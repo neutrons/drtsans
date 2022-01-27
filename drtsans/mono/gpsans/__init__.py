@@ -66,24 +66,27 @@ from .api import *
 from .attenuation import *
 
 
-__all__ = [] + drtsans.absolute_units.__all__\
-          + drtsans.beam_finder.__all__ \
-          + ['load_iqmod', 'save_iqmod'] \
-          + drtsans.geometry.__all__ \
-          + drtsans.iq.__all__\
-          + drtsans.mask_utils.__all__ \
-          + drtsans.path.__all__\
-          + drtsans.pixel_calibration.__all__ \
-          + drtsans.redparms.__all__\
-          + drtsans.stitch.__all__\
-          + drtsans.solid_angle.__all__\
-          + drtsans.thickness_normalization.__all__\
-          + drtsans.mono.transmission.__all__\
-          + drtsans.mono.absolute_units.__all__\
-          + drtsans.mono.dark_current.__all__\
-          + drtsans.mono.load.__all__\
-          + drtsans.mono.momentum_transfer.__all__\
-          + drtsans.mono.normalization.__all__\
-          + drtsans.plots.api.__all__\
-          + attenuation.__all__\
-          + api.__all__
+__all__ = (
+    []
+    + drtsans.absolute_units.__all__
+    + drtsans.beam_finder.__all__
+    + ["load_iqmod", "save_iqmod"]
+    + drtsans.geometry.__all__
+    + drtsans.iq.__all__
+    + drtsans.mask_utils.__all__
+    + drtsans.path.__all__
+    + drtsans.pixel_calibration.__all__
+    + drtsans.redparms.__all__
+    + drtsans.stitch.__all__
+    + drtsans.solid_angle.__all__
+    + drtsans.thickness_normalization.__all__
+    + drtsans.mono.transmission.__all__
+    + drtsans.mono.absolute_units.__all__
+    + drtsans.mono.dark_current.__all__
+    + drtsans.mono.load.__all__
+    + drtsans.mono.momentum_transfer.__all__
+    + drtsans.mono.normalization.__all__
+    + drtsans.plots.api.__all__
+    + attenuation.__all__
+    + api.__all__
+)

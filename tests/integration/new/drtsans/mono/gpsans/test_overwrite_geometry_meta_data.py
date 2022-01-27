@@ -5,8 +5,13 @@ import time
 import os
 from drtsans.files.log_h5_reader import verify_cg2_reduction_results
 
-from drtsans.mono.gpsans import (load_all_files, plot_reduction_output, reduce_single_configuration,
-                                 reduction_parameters, update_reduction_parameters)
+from drtsans.mono.gpsans import (
+    load_all_files,
+    plot_reduction_output,
+    reduce_single_configuration,
+    reduction_parameters,
+    update_reduction_parameters,
+)
 
 
 def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix):
@@ -26,11 +31,11 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix):
 
     """
     # USER Input here with scan numbers etc.
-    samples = ['9166', '9167', '9176']
-    samples_trans = ['9178', '9179', '9188']
-    sample_thick = ['0.1'] * 3
-    bkgd = ['9165', '9165', '9165']
-    bkgd_trans = ['9177', '9177', '9177']
+    samples = ["9166", "9167", "9176"]
+    samples_trans = ["9178", "9179", "9188"]
+    sample_thick = ["0.1"] * 3
+    bkgd = ["9165", "9165", "9165"]
+    bkgd_trans = ["9177", "9177", "9177"]
 
     # Sample names for output
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
@@ -38,7 +43,7 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix):
     # set output directory
     reduction_input_common["configuration"]["outputDir"] = output_dir
     # create output directory
-    for subfolder in ['1D', '2D']:
+    for subfolder in ["1D", "2D"]:
         output_folder = os.path.join(output_dir, subfolder)
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
@@ -47,22 +52,26 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix):
     for i in range(len(samples)):
         specs = {
             "dataDirectories": data_dir,
-            "sample": {"runNumber": samples[i],
-                       "thickness": sample_thick[i],
-                       "transmission": {"runNumber": samples_trans[i]}
-                       },
-            "background": {"runNumber": bkgd[i],
-                           "transmission": {"runNumber": bkgd_trans[i]}
-                           },
-            "outputFileName": sample_names[i]
+            "sample": {
+                "runNumber": samples[i],
+                "thickness": sample_thick[i],
+                "transmission": {"runNumber": samples_trans[i]},
+            },
+            "background": {
+                "runNumber": bkgd[i],
+                "transmission": {"runNumber": bkgd_trans[i]},
+            },
+            "outputFileName": sample_names[i],
         }
-        reduction_input = update_reduction_parameters(reduction_input_common, specs, validate=True)
+        reduction_input = update_reduction_parameters(
+            reduction_input_common, specs, validate=True
+        )
         loaded = load_all_files(reduction_input, path=data_dir, prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
         plot_reduction_output(out, reduction_input, loglog=False, close_figures=True)
 
     end_time = time.time()
-    print('Execution Time: {}'.format(end_time - start_time))
+    print("Execution Time: {}".format(end_time - start_time))
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -79,8 +88,10 @@ def test_no_overwrite(reference_dir, cleanfile):
     -------
 
     """
-    sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
-    output_dir = mkdtemp(prefix='meta_overwrite_test1')
+    sensitivity_file = os.path.join(
+        reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
+    )
+    output_dir = mkdtemp(prefix="meta_overwrite_test1")
     cleanfile(output_dir)
     specs = {
         "iptsNumber": 21981,
@@ -103,19 +114,28 @@ def test_no_overwrite(reference_dir, cleanfile):
             "WedgeMinAngles": "-30, 60",
             "WedgeMaxAngles": "30, 120",
             "usePixelCalibration": False,
-            "useSubpixels": False
-        }
+            "useSubpixels": False,
+        },
     }
-    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
-    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, prefix='CG2MetaRaw')
+    reduction_input = reduction_parameters(
+        specs, "GPSANS", validate=False
+    )  # add defaults and defer validation
+    reduce_gpsans_data(
+        reference_dir.new.gpsans, reduction_input, output_dir, prefix="CG2MetaRaw"
+    )
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test1/')
+    gold_path = os.path.join(reference_dir.new.gpsans, "overwrite_gold_04282020/test1/")
 
     # Verify results
-    verify_cg2_reduction_results(sample_names, output_dir, gold_path,
-                                 title='Raw (No Overwriting)', prefix='CG2MetaRaw')
+    verify_cg2_reduction_results(
+        sample_names,
+        output_dir,
+        gold_path,
+        title="Raw (No Overwriting)",
+        prefix="CG2MetaRaw",
+    )
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -135,8 +155,10 @@ def test_overwrite_sample2si(reference_dir, cleanfile):
     -------
 
     """
-    sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
-    output_dir = mkdtemp(prefix='meta_overwrite_test2')
+    sensitivity_file = os.path.join(
+        reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
+    )
+    output_dir = mkdtemp(prefix="meta_overwrite_test2")
     cleanfile(output_dir)
     specs = {
         "iptsNumber": 21981,
@@ -160,19 +182,28 @@ def test_overwrite_sample2si(reference_dir, cleanfile):
             "WedgeMinAngles": "-30, 60",
             "WedgeMaxAngles": "30, 120",
             "usePixelCalibration": False,
-            "useSubpixels": False
-        }
+            "useSubpixels": False,
+        },
     }
-    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
-    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, 'CG2MetaSWD')
+    reduction_input = reduction_parameters(
+        specs, "GPSANS", validate=False
+    )  # add defaults and defer validation
+    reduce_gpsans_data(
+        reference_dir.new.gpsans, reduction_input, output_dir, "CG2MetaSWD"
+    )
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
 
     # Verify results
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/test2/')
-    verify_cg2_reduction_results(sample_names, output_dir, gold_path,
-                                 title='Overwrite SampleToSi to 94mm', prefix='CG2MetaSWD')
+    gold_path = os.path.join(reference_dir.new.gpsans, "overwrite_gold_04282020/test2/")
+    verify_cg2_reduction_results(
+        sample_names,
+        output_dir,
+        gold_path,
+        title="Overwrite SampleToSi to 94mm",
+        prefix="CG2MetaSWD",
+    )
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -192,8 +223,10 @@ def test_overwrite_sdd(reference_dir, cleanfile):
 
     """
     # Set test and run: sample to detector distance is changed to 40 meter
-    sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
-    output_dir = mkdtemp(prefix='meta_overwrite_test3')
+    sensitivity_file = os.path.join(
+        reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
+    )
+    output_dir = mkdtemp(prefix="meta_overwrite_test3")
     cleanfile(output_dir)
 
     # Set up reduction
@@ -219,23 +252,36 @@ def test_overwrite_sdd(reference_dir, cleanfile):
             "WedgeMinAngles": "-30, 60",
             "WedgeMaxAngles": "30, 120",
             "usePixelCalibration": False,
-            "useSubpixels": False
-        }
+            "useSubpixels": False,
+        },
     }
-    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
-    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, 'CG2MetaSDD')
+    reduction_input = reduction_parameters(
+        specs, "GPSANS", validate=False
+    )  # add defaults and defer validation
+    reduce_gpsans_data(
+        reference_dir.new.gpsans, reduction_input, output_dir, "CG2MetaSDD"
+    )
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    output_log_files = [os.path.join(output_dir, '{}_reduction_log.hdf'.format(sn)) for sn in sample_names]
+    output_log_files = [
+        os.path.join(output_dir, "{}_reduction_log.hdf".format(sn))
+        for sn in sample_names
+    ]
     for output_file_path in output_log_files:
-        assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
+        assert os.path.exists(output_file_path), "Output {} cannot be found".format(
+            output_file_path
+        )
 
     # Verify results
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_20201027/test3/')
-    verify_cg2_reduction_results(sample_names, output_dir, gold_path,
-                                 title='Overwrite DetectorSampleDistance to 40 meter',
-                                 prefix='CG2MetaSDD')
+    gold_path = os.path.join(reference_dir.new.gpsans, "overwrite_gold_20201027/test3/")
+    verify_cg2_reduction_results(
+        sample_names,
+        output_dir,
+        gold_path,
+        title="Overwrite DetectorSampleDistance to 40 meter",
+        prefix="CG2MetaSDD",
+    )
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -256,8 +302,10 @@ def test_overwrite_both(reference_dir, cleanfile):
 
     """
     # Set test and run: sample to silicon window to 94 mm and sample to detector distance to 15 meter
-    sensitivity_file = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_04282020/sens_c486_noBar.nxs')
-    output_dir = mkdtemp(prefix='meta_overwrite_test4')
+    sensitivity_file = os.path.join(
+        reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
+    )
+    output_dir = mkdtemp(prefix="meta_overwrite_test4")
     cleanfile(output_dir)
     specs = {
         "iptsNumber": 21981,
@@ -282,24 +330,37 @@ def test_overwrite_both(reference_dir, cleanfile):
             "WedgeMinAngles": "-30, 60",
             "WedgeMaxAngles": "30, 120",
             "usePixelCalibration": False,
-            "useSubpixels": False
-        }
+            "useSubpixels": False,
+        },
     }
-    reduction_input = reduction_parameters(specs, 'GPSANS', validate=False)  # add defaults and defer validation
-    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, 'CG2MetaBoth')
+    reduction_input = reduction_parameters(
+        specs, "GPSANS", validate=False
+    )  # add defaults and defer validation
+    reduce_gpsans_data(
+        reference_dir.new.gpsans, reduction_input, output_dir, "CG2MetaBoth"
+    )
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    output_log_files = [os.path.join(output_dir, '{}_reduction_log.hdf'.format(sn)) for sn in sample_names]
+    output_log_files = [
+        os.path.join(output_dir, "{}_reduction_log.hdf".format(sn))
+        for sn in sample_names
+    ]
     for output_file_path in output_log_files:
-        assert os.path.exists(output_file_path), 'Output {} cannot be found'.format(output_file_path)
+        assert os.path.exists(output_file_path), "Output {} cannot be found".format(
+            output_file_path
+        )
 
     # Verify results
-    gold_path = os.path.join(reference_dir.new.gpsans, 'overwrite_gold_20201027/test4/')
-    verify_cg2_reduction_results(sample_names, output_dir, gold_path,
-                                 title='Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm',
-                                 prefix='CG2MetaBoth')
+    gold_path = os.path.join(reference_dir.new.gpsans, "overwrite_gold_20201027/test4/")
+    verify_cg2_reduction_results(
+        sample_names,
+        output_dir,
+        gold_path,
+        title="Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm",
+        prefix="CG2MetaBoth",
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

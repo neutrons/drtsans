@@ -10,14 +10,27 @@ MaskBTP              <https://docs.mantidproject.org/nightly/algorithms/MaskBTP-
 MaskDetectors        <https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html>
 MaskSpectra          <https://docs.mantidproject.org/nightly/algorithms/MaskSpectra-v1.html>
 """
-from mantid.simpleapi import (ExtractMask, FindDetectorsInShape, LoadMask, logger,
-                              MaskBTP, MaskDetectors, MaskSpectra, LoadNexusProcessed, MaskAngle)
+from mantid.simpleapi import (
+    ExtractMask,
+    FindDetectorsInShape,
+    LoadMask,
+    logger,
+    MaskBTP,
+    MaskDetectors,
+    MaskSpectra,
+    LoadNexusProcessed,
+    MaskAngle,
+)
 from mantid.api import mtd, MatrixWorkspace, IEventWorkspace
 import os
-# drtsans imports
-from drtsans.settings import unique_workspace_dundername, unique_workspace_dundername as uwd
 
-__all__ = ['apply_mask', 'circular_mask_from_beam_center']
+# drtsans imports
+from drtsans.settings import (
+    unique_workspace_dundername,
+    unique_workspace_dundername as uwd,
+)
+
+__all__ = ["apply_mask", "circular_mask_from_beam_center"]
 
 
 def mask_as_numpy_array(input_workspace, invert=False):
@@ -40,7 +53,10 @@ def mask_as_numpy_array(input_workspace, invert=False):
         Array of boolean values, with ``True`` representing masked spectra.
     """
     input_workspace = mtd[str(input_workspace)]  # handle to the workspace
-    mask = [input_workspace.getDetector(i).isMasked() for i in range(input_workspace.getNumberHistograms())]
+    mask = [
+        input_workspace.getDetector(i).isMasked()
+        for i in range(input_workspace.getNumberHistograms())
+    ]
     mask = np.asarray(mask)
     return mask if invert is False else np.invert(mask)
 
@@ -92,7 +108,7 @@ def apply_mask(input_workspace, mask=None, panel=None, **btp):
     # instrument = mtd[input_workspace].getInstrument().getName()
     if mask is not None:
         if isinstance(mask, str):
-            if os.path.splitext(mask)[1] == '.xml':
+            if os.path.splitext(mask)[1] == ".xml":
                 # mask_workspace = LoadMask(Instrument=instrument, InputFile=mask,
                 #                           RefWorkspace=input_workspace,
                 #                           OutputWorkspace=unique_workspace_dundername())
@@ -106,19 +122,26 @@ def apply_mask(input_workspace, mask=None, panel=None, **btp):
         elif isinstance(mask, list):
             MaskDetectors(Workspace=input_workspace, DetectorList=mask)
     if panel:
-        MaskBTP(Workspace=input_workspace, Components=panel + '-panel')
+        MaskBTP(Workspace=input_workspace, Components=panel + "-panel")
     if bool(btp):
-        min_angle = btp.pop('MinAngle', None)
-        max_angle = btp.pop('MaxAngle', None)
-        angle = btp.pop('Angle', 'TwoTheta')
+        min_angle = btp.pop("MinAngle", None)
+        max_angle = btp.pop("MaxAngle", None)
+        angle = btp.pop("Angle", "TwoTheta")
         if min_angle is not None or max_angle is not None:
-            MaskAngle(Workspace=input_workspace, MinAngle=min_angle, MaxAngle=max_angle, Angle=angle)
+            MaskAngle(
+                Workspace=input_workspace,
+                MinAngle=min_angle,
+                MaxAngle=max_angle,
+                Angle=angle,
+            )
         if bool(btp):  # see if any parameters are left
-            print('Try to mask BTP to workspace {} with {}'.format(input_workspace, btp))
+            print(
+                "Try to mask BTP to workspace {} with {}".format(input_workspace, btp)
+            )
             MaskBTP(Workspace=input_workspace, **btp)
 
 
-def load_mask(mask_file='', output_workspace=None):
+def load_mask(mask_file="", output_workspace=None):
     r"""
     Load mask file in a workspace
 
@@ -137,15 +160,19 @@ def load_mask(mask_file='', output_workspace=None):
     """
     if not output_workspace:
         output_workspace = unique_workspace_dundername()
-    mask_workspace = LoadNexusProcessed(Filename=mask_file, OutputWorkspace=output_workspace)
+    mask_workspace = LoadNexusProcessed(
+        Filename=mask_file, OutputWorkspace=output_workspace
+    )
     if isinstance(mask_workspace, IEventWorkspace):
-        logger.warning('Storing the mask on an EventWorkspace is inefficient. \
-                        Consider saving as a histogram with one bin.')
+        logger.warning(
+            "Storing the mask on an EventWorkspace is inefficient. \
+                        Consider saving as a histogram with one bin."
+        )
     return mask_workspace
 
 
 def load_mask_xml(mask_file, ref_workspace, output_workspace=None):
-    """ Load mask file in a workspace
+    """Load mask file in a workspace
 
     Parameters
     ----------
@@ -167,8 +194,12 @@ def load_mask_xml(mask_file, ref_workspace, output_workspace=None):
     instrument = mtd[ref_workspace].getInstrument().getName()
 
     # Load
-    mask_workspace = LoadMask(Instrument=instrument, InputFile=mask_file,
-                              RefWorkspace=ref_workspace, OutputWorkspace=output_workspace)
+    mask_workspace = LoadMask(
+        Instrument=instrument,
+        InputFile=mask_file,
+        RefWorkspace=ref_workspace,
+        OutputWorkspace=output_workspace,
+    )
 
     return mask_workspace
 
@@ -198,15 +229,22 @@ def mask_spectra_with_special_values(input_workspace, output_workspace=None):
         output_workspace = str(input_workspace)
     workspace = mtd[str(input_workspace)]
     intensities = workspace.extractY()
-    non_finite_indexes = np.argwhere(np.isfinite(np.sum(intensities, axis=-1)) == False)  # noqa: E712
+    non_finite_indexes = np.argwhere(
+        np.isfinite(np.sum(intensities, axis=-1))
+        == False  # NOTE: this is a awkward way to do it
+    )  # noqa: E712
     non_finite_indexes = non_finite_indexes.flatten().tolist()
     if len(non_finite_indexes) > 0:
-        MaskSpectra(InputWorkspace=input_workspace, InputWorkspaceIndexType='WorkspaceIndex',
-                    InputWorkspaceIndexSet=non_finite_indexes, OutputWorkspace=output_workspace)
+        MaskSpectra(
+            InputWorkspace=input_workspace,
+            InputWorkspaceIndexType="WorkspaceIndex",
+            InputWorkspaceIndexSet=non_finite_indexes,
+            OutputWorkspace=output_workspace,
+        )
     return len(non_finite_indexes)
 
 
-def circular_mask_from_beam_center(input_workspace, radius, unit='mm'):
+def circular_mask_from_beam_center(input_workspace, radius, unit="mm"):
     """
     Find the detectors ID's within a certain radius from the beam center
 
@@ -224,7 +262,7 @@ def circular_mask_from_beam_center(input_workspace, radius, unit='mm'):
     numpy.ndarray
         List of detector ID's
     """
-    r = radius * 1e-3 if unit == 'mm' else radius
+    r = radius * 1e-3 if unit == "mm" else radius
 
     cylinder = r"""
     <infinite-cylinder id="shape">
@@ -233,7 +271,9 @@ def circular_mask_from_beam_center(input_workspace, radius, unit='mm'):
         <radius val="{}" />
     </infinite-cylinder>
     <algebra val="shape" />
-    """.format(r)
+    """.format(
+        r
+    )
     det_ids = FindDetectorsInShape(Workspace=input_workspace, ShapeXML=cylinder)
     return det_ids
 

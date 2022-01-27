@@ -2,11 +2,15 @@ from pathlib import Path
 
 from drtsans.instruments import InstrumentEnumName
 from drtsans.mono.gpsans import load_all_files as load_all_gpsans_files
-from drtsans.mono.gpsans import reduce_single_configuration as reduce_single_gpsans_configuration
+from drtsans.mono.gpsans import (
+    reduce_single_configuration as reduce_single_gpsans_configuration,
+)
 from drtsans.mono.biosans import load_all_files as load_all_biosans_files
-from drtsans.mono.biosans import reduce_single_configuration as reduce_single_biosans_configuration
+from drtsans.mono.biosans import (
+    reduce_single_configuration as reduce_single_biosans_configuration,
+)
 
-__all__ = ['create_output_directory', 'run_reduction']
+__all__ = ["create_output_directory", "run_reduction"]
 
 
 def create_output_directory(output_dir="", subfolder=None, hfir_sans=True):
@@ -31,7 +35,7 @@ def create_output_directory(output_dir="", subfolder=None, hfir_sans=True):
     subfolder_array = [] if subfolder is None else subfolder
 
     if hfir_sans:
-        subfolder_array.extend(['1D', '2D'])
+        subfolder_array.extend(["1D", "2D"])
 
     if subfolder_array == []:
         Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -41,7 +45,9 @@ def create_output_directory(output_dir="", subfolder=None, hfir_sans=True):
             Path(output_folder).mkdir(parents=True, exist_ok=True)
 
 
-def run_reduction(reduction_input, q_type='', sample_name='', instrument=InstrumentEnumName.GPSANS):
+def run_reduction(
+    reduction_input, q_type="", sample_name="", instrument=InstrumentEnumName.GPSANS
+):
     r"""Run a full reduction for GP or BIO sans instruments
 
     :param reduction_input: dictionary
@@ -65,5 +71,12 @@ def run_reduction(reduction_input, q_type='', sample_name='', instrument=Instrum
         out = reduce_single_biosans_configuration(loaded, reduction_input)
     else:
         raise NotImplementedError("instrument not implemented yet!")
-    filename = reduction_input["configuration"]["outputDir"]+'/2D/' + sample_name + '_' + q_type + 'q.jpg'
+    filename = (
+        reduction_input["configuration"]["outputDir"]
+        + "/2D/"
+        + sample_name
+        + "_"
+        + q_type
+        + "q.jpg"
+    )
     return out, filename

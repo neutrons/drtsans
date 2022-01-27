@@ -2,13 +2,18 @@
 # sample and background data accounting wavelength-dependent incoherent inelastic scattering.
 # The workflow algorithms will be directly called by eqsans.api.
 import os.path
-from drtsans.tof.eqsans.momentum_transfer import convert_to_q, split_by_frame  # noqa E402
 from drtsans.dataobjects import IQmod, IQazimuthal
 from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
 from typing import Union
-from drtsans.tof.eqsans.incoherence_correction_1d import correct_incoherence_inelastic_1d, CorrectedIQ1D
-from drtsans.tof.eqsans.incoherence_correction_2d import correct_incoherence_inelastic_2d, CorrectedIQ2D
+from drtsans.tof.eqsans.incoherence_correction_1d import (
+    correct_incoherence_inelastic_1d,
+    CorrectedIQ1D,
+)
+from drtsans.tof.eqsans.incoherence_correction_2d import (
+    correct_incoherence_inelastic_2d,
+    CorrectedIQ2D,
+)
 
 """
 Workflow to correct intensities and errors accounting wavelength dependent
@@ -55,6 +60,7 @@ class CorrectionConfiguration:
     A data class/structure to hold the parameters configured to do incoherence/inelastic
     scattering correction
     """
+
     def __init__(self, do_correction=False, select_min_incoherence=False):
 
         self._do_correction = do_correction
@@ -64,10 +70,12 @@ class CorrectionConfiguration:
 
     def __str__(self):
         if self._do_correction:
-            output = f'Do correction: select min incoherence = {self._select_min_incoherence}, ' \
-                     f'thickness = {self._sample_thickness}'
+            output = (
+                f"Do correction: select min incoherence = {self._select_min_incoherence}, "
+                f"thickness = {self._sample_thickness}"
+            )
         else:
-            output = f'No correction'
+            output = "No correction"
 
         return output
 
@@ -85,8 +93,7 @@ class CorrectionConfiguration:
 
     @property
     def elastic_reference(self):
-        """elastic scattering normalization reference run and background run
-        """
+        """elastic scattering normalization reference run and background run"""
         return self._elastic_ref_run_setup
 
     @property
@@ -111,10 +118,14 @@ class ElasticReferenceRunSetup:
     """
     A data class/structure to hold the reference run
     """
-    def __init__(self, ref_run_number: Union[int, str],
-                 thickness: float,
-                 trans_run_number: Union[None, Union[str, int]] = None,
-                 trans_value: Union[None, float] = None):
+
+    def __init__(
+        self,
+        ref_run_number: Union[int, str],
+        thickness: float,
+        trans_run_number: Union[None, Union[str, int]] = None,
+        trans_value: Union[None, float] = None,
+    ):
         self.run_number = ref_run_number
         self.thickness = thickness
         self.transmission_run_number = trans_run_number
@@ -122,30 +133,40 @@ class ElasticReferenceRunSetup:
 
         # sanity check
         if trans_run_number is None and trans_value is None:
-            raise RuntimeError(f'Either transmission run or transmission value shall be given.')
+            raise RuntimeError(
+                "Either transmission run or transmission value shall be given."
+            )
         elif trans_run_number and trans_value:
-            raise RuntimeError(f'Either transmission run or transmission value can be given, but '
-                               f'not both')
+            raise RuntimeError(
+                "Either transmission run or transmission value can be given, but "
+                "not both"
+            )
 
         # Background
         self.background_run_number = None
         self.background_transmission_run_number = None
         self.background_transmission_value = None
 
-    def set_background(self, run_number: Union[int, str],
-                       trans_run_number: Union[None, Union[int, str]] = None,
-                       trans_value: Union[None, float] = None):
-        """Set elastic reference background run setup
-        """
+    def set_background(
+        self,
+        run_number: Union[int, str],
+        trans_run_number: Union[None, Union[int, str]] = None,
+        trans_value: Union[None, float] = None,
+    ):
+        """Set elastic reference background run setup"""
         self.background_run_number = run_number
         self.background_transmission_run_number = trans_run_number
         self.background_transmission_value = trans_value
 
         if trans_run_number is None and trans_value is None:
-            raise RuntimeError(f'Either background transmission run or transmission value shall be given.')
+            raise RuntimeError(
+                "Either background transmission run or transmission value shall be given."
+            )
         elif trans_run_number and trans_value:
-            raise RuntimeError(f'Either background transmission run or transmission value can be given, but '
-                               f'not both')
+            raise RuntimeError(
+                "Either background transmission run or transmission value can be given, but "
+                "not both"
+            )
 
 
 def parse_correction_config(reduction_config):
@@ -163,59 +184,76 @@ def parse_correction_config(reduction_config):
 
     """
     # an exception case
-    if 'configuration' not in reduction_config:
+    if "configuration" not in reduction_config:
         _config = CorrectionConfiguration(False)
     else:
         # properly configured
-        run_config = reduction_config['configuration']
+        run_config = reduction_config["configuration"]
 
         # incoherence inelastic correction setup: basic
-        do_correction = run_config.get('fitInelasticIncoh', False)
-        select_min_incoherence = run_config.get('selectMinIncoh', False)
+        do_correction = run_config.get("fitInelasticIncoh", False)
+        select_min_incoherence = run_config.get("selectMinIncoh", False)
         _config = CorrectionConfiguration(do_correction, select_min_incoherence)
 
         # Optional elastic normalization
-        elastic_ref_json = run_config.get('elasticReference')
+        elastic_ref_json = run_config.get("elasticReference")
         if elastic_ref_json:
-            elastic_ref_run = elastic_ref_json.get('runNumber')
-            if elastic_ref_run is not None and elastic_ref_run != '':
+            elastic_ref_run = elastic_ref_json.get("runNumber")
+            if elastic_ref_run is not None and elastic_ref_run != "":
                 # only set up elastic reference after checking run number
                 try:
-                    elastic_ref_trans_run = elastic_ref_json['transmission'].get('runNumber')
-                    elastic_ref_trans_value = elastic_ref_json['transmission'].get('value')
-                    elastic_ref_thickness = float(elastic_ref_json.get('thickness'))
-                    elastic_ref_config = ElasticReferenceRunSetup(elastic_ref_run,
-                                                                  elastic_ref_thickness,
-                                                                  elastic_ref_trans_run,
-                                                                  elastic_ref_trans_value)
+                    elastic_ref_trans_run = elastic_ref_json["transmission"].get(
+                        "runNumber"
+                    )
+                    elastic_ref_trans_value = elastic_ref_json["transmission"].get(
+                        "value"
+                    )
+                    elastic_ref_thickness = float(elastic_ref_json.get("thickness"))
+                    elastic_ref_config = ElasticReferenceRunSetup(
+                        elastic_ref_run,
+                        elastic_ref_thickness,
+                        elastic_ref_trans_run,
+                        elastic_ref_trans_value,
+                    )
                     # background runs
-                    elastic_ref_bkgd = run_config.get('elasticReferenceBkgd')
+                    elastic_ref_bkgd = run_config.get("elasticReferenceBkgd")
                     if elastic_ref_bkgd:
-                        elastic_bkgd_run = elastic_ref_bkgd.get('runNumber')
+                        elastic_bkgd_run = elastic_ref_bkgd.get("runNumber")
                         # only set up elastic reference background after checking run number
-                        if elastic_bkgd_run is not None and elastic_bkgd_run != '':
-                            elastic_bkgd_trans_run = elastic_ref_bkgd['transmission'].get('runNumber')
-                            elastic_bkgd_trans_value = elastic_ref_bkgd['transmission'].get('value')
-                            elastic_ref_config.set_background(elastic_bkgd_run, elastic_bkgd_trans_run,
-                                                              elastic_bkgd_trans_value)
+                        if elastic_bkgd_run is not None and elastic_bkgd_run != "":
+                            elastic_bkgd_trans_run = elastic_ref_bkgd[
+                                "transmission"
+                            ].get("runNumber")
+                            elastic_bkgd_trans_value = elastic_ref_bkgd[
+                                "transmission"
+                            ].get("value")
+                            elastic_ref_config.set_background(
+                                elastic_bkgd_run,
+                                elastic_bkgd_trans_run,
+                                elastic_bkgd_trans_value,
+                            )
 
                     # Set to configuration
                     _config.set_elastic_reference(elastic_ref_config)
                 except IndexError as index_err:
-                    raise RuntimeError(f'Invalid JSON for elastic reference run setup: {index_err}')
+                    raise RuntimeError(
+                        f"Invalid JSON for elastic reference run setup: {index_err}"
+                    )
 
     return _config
 
 
 # Define named tuple for elastic scattering normalization factor
-NormFactor = namedtuple('NormFactor', 'k k_error p s')
+NormFactor = namedtuple("NormFactor", "k k_error p s")
 
 
-def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,
-                                            correction_setup: CorrectionConfiguration,
-                                            prefix: str,
-                                            output_dir: str,
-                                            output_filename: str = "") -> IQmod:
+def do_inelastic_incoherence_correction_q1d(
+    iq1d: IQmod,
+    correction_setup: CorrectionConfiguration,
+    prefix: str,
+    output_dir: str,
+    output_filename: str = "",
+) -> IQmod:
     """Do inelastic incoherence correction on 1D data (Q1d)
 
     Parameters
@@ -237,58 +275,73 @@ def do_inelastic_incoherence_correction_q1d(iq1d: IQmod,
 
     """
     # type check
-    assert isinstance(iq1d, IQmod), f'Assuming each element in input is IQmod but not {type(iq1d)}'
+    assert isinstance(
+        iq1d, IQmod
+    ), f"Assuming each element in input is IQmod but not {type(iq1d)}"
 
     # do inelastic/incoherent correction
-    corrected = correct_incoherence_inelastic_1d(iq1d, correction_setup.select_min_incoherence)
+    corrected = correct_incoherence_inelastic_1d(
+        iq1d, correction_setup.select_min_incoherence
+    )
 
     # save file
-    save_b_factor(corrected, os.path.join(output_dir, f'{output_filename}_inelastic_b1d_{prefix}.dat'))
+    save_b_factor(
+        corrected,
+        os.path.join(output_dir, f"{output_filename}_inelastic_b1d_{prefix}.dat"),
+    )
 
     return corrected.iq1d
 
 
-def do_inelastic_incoherence_correction_q2d(iq2d: IQazimuthal,
-                                            correction_setup: CorrectionConfiguration,
-                                            prefix: Union[int, str],
-                                            output_dir: str,
-                                            output_filename: str = "") -> IQazimuthal:
+def do_inelastic_incoherence_correction_q2d(
+    iq2d: IQazimuthal,
+    correction_setup: CorrectionConfiguration,
+    prefix: Union[int, str],
+    output_dir: str,
+    output_filename: str = "",
+) -> IQazimuthal:
     # type check
-    assert isinstance(iq2d, IQazimuthal), f'iq2d must be IQazimuthal but not {type(iq2d)}'
+    assert isinstance(
+        iq2d, IQazimuthal
+    ), f"iq2d must be IQazimuthal but not {type(iq2d)}"
 
     # apply the correction to each
-    corrected = correct_incoherence_inelastic_2d(iq2d, correction_setup.select_min_incoherence)
+    corrected = correct_incoherence_inelastic_2d(
+        iq2d, correction_setup.select_min_incoherence
+    )
 
     # save file
-    save_b_factor(corrected, os.path.join(output_dir, f'{output_filename}_inelastic_b2d_{prefix}.dat'))
+    save_b_factor(
+        corrected,
+        os.path.join(output_dir, f"{output_filename}_inelastic_b2d_{prefix}.dat"),
+    )
 
     return corrected.iq2d
 
 
 def save_b_factor(i_of_q: Union[CorrectedIQ1D, CorrectedIQ2D], path: str) -> None:
-    header = 'lambda,b,delta_b\n'
+    header = "lambda,b,delta_b\n"
     # grab the IQmod or IQazimuthal wavelength
     wavelength = i_of_q[0].wavelength
     wave_str = map(str, wavelength)
     b_str = map(str, i_of_q.b_factor)
     b_e_str = map(str, i_of_q.b_error)
     # merge items (all are appropriately ordered, so zip is usable)
-    output = '\n'.join(map(','.join, zip(wave_str, b_str, b_e_str)))
-    with open(path, 'w', encoding='utf-8') as save_file:
+    output = "\n".join(map(",".join, zip(wave_str, b_str, b_e_str)))
+    with open(path, "w", encoding="utf-8") as save_file:
         save_file.write(header)
         save_file.write(output)
 
 
 def save_k_vector(wavelength_vec, k_vec, delta_k_vec, path: str) -> None:
-    """Save K vector from elastic scattering normalization
-    """
-    header = 'lambda,k,delta_k\n'
+    """Save K vector from elastic scattering normalization"""
+    header = "lambda,k,delta_k\n"
     # grab the IQmod or IQazimuthal wavelength
     wave_str = map(str, wavelength_vec)
     k_str = map(str, k_vec)
     k_e_str = map(str, delta_k_vec)
     # merge items (all are appropriately ordered, so zip is usable)
-    output = '\n'.join(map(','.join, zip(wave_str, k_str, k_e_str)))
-    with open(path, 'w', encoding='utf-8') as save_file:
+    output = "\n".join(map(",".join, zip(wave_str, k_str, k_e_str)))
+    with open(path, "w", encoding="utf-8") as save_file:
         save_file.write(header)
         save_file.write(output)

@@ -6,7 +6,9 @@ from drtsans.mono.biosans.cg3_spice_to_nexus import convert_spice_to_nexus
 from mantid.simpleapi import LoadEventNexus, LoadHFIRSANS
 
 
-@pytest.mark.skipif(not os.path.exists('/HFIR/HB2B/shared/autoreduce/'), reason='On build server')
+@pytest.mark.skipif(
+    not os.path.exists("/HFIR/HB2B/shared/autoreduce/"), reason="On build server"
+)
 def test_convert_spice(reference_dir, cleanfile):
     """
     Test converting BIOSANS SPICE file to event Nexus
@@ -38,7 +40,7 @@ def test_convert_spice(reference_dir, cleanfile):
 
     # Verify result
     raw_spice = os.path.join(
-        reference_dir.new.biosans, f"BioSANS_exp402_scan0006_0001.xml"
+        reference_dir.new.biosans, "BioSANS_exp402_scan0006_0001.xml"
     )
     verify_result(nexus_files[0], raw_spice, [70911])
 
@@ -46,8 +48,10 @@ def test_convert_spice(reference_dir, cleanfile):
 def verify_result(test_nexus, raw_spice, masked_pixels):
     # Load data
     test_ws = LoadEventNexus(
-        Filename=test_nexus, OutputWorkspace="test2", NumberOfBins=1,
-        LoadNexusInstrumentXML=True
+        Filename=test_nexus,
+        OutputWorkspace="test2",
+        NumberOfBins=1,
+        LoadNexusInstrumentXML=True,
     )
     raw_ws = LoadHFIRSANS(Filename=raw_spice, OutputWorkspace="raw")
 
@@ -74,8 +78,8 @@ def verify_result(test_nexus, raw_spice, masked_pixels):
     # spice spectra v nexus spectra
     # tube 1 <--> tube 1 (first tube in the front)
     # tube 2 <--> tube 5 (first tube in the back)
-    np.testing.assert_allclose(raw_y[2:256+2], test_y[:256])
-    np.testing.assert_allclose(raw_y[256+2:512+2], test_y[4*256:5*256])
+    np.testing.assert_allclose(raw_y[2 : 256 + 2], test_y[:256])
+    np.testing.assert_allclose(raw_y[256 + 2 : 512 + 2], test_y[4 * 256 : 5 * 256])
 
 
 if __name__ == "__main__":

@@ -88,9 +88,7 @@ class MonitorNode(drtsans.files.hdf5_rw.GroupNode):
 
 
 class BankNode(drtsans.files.hdf5_rw.GroupNode):
-    """Node for bank entry such as /entry/bank12
-
-    """
+    """Node for bank entry such as /entry/bank12"""
 
     def __init__(self, name, bank_name):
         """Initialization
@@ -220,9 +218,7 @@ class InstrumentNode(drtsans.files.hdf5_rw.GroupNode):
     """
 
     def __init__(self):
-        """
-
-        """
+        """ """
         super(InstrumentNode, self).__init__(name="/entry/instrument")
 
         # add the NeXus class attributes

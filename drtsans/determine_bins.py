@@ -4,10 +4,10 @@ from collections import namedtuple
 
 # Define structure (namedtuple) for binning parameters: min, max, number of bins
 # bins shall be integer as number of bins
-BinningParams = namedtuple('BinningParams', 'min max bins')
+BinningParams = namedtuple("BinningParams", "min max bins")
 # Define structure (namedtuple) for bins: bin edges and bin boundaries
 # Both bin edge and bin boundaries shall be 1-dimensional 1D array and 'edges' size is 1 larger than centers
-Bins = namedtuple('Bins', 'edges centers')
+Bins = namedtuple("Bins", "edges centers")
 
 
 def determine_1d_linear_bins(x_min, x_max, bins):
@@ -30,17 +30,19 @@ def determine_1d_linear_bins(x_min, x_max, bins):
     """
     # Check input x min and x max
     if x_min is None or x_max is None or x_min >= x_max:
-        raise RuntimeError('x min {} and x max {} must not be None and x min shall be less than x max'
-                           ''.format(x_min, x_max))
+        raise RuntimeError(
+            "x min {} and x max {} must not be None and x min shall be less than x max"
+            "".format(x_min, x_max)
+        )
     # force the number of bins to be an integer and error check it
     bins = int(bins)
     if bins <= 0:
-        raise ValueError('Encountered illegal number of bins: {}'.format(bins))
+        raise ValueError("Encountered illegal number of bins: {}".format(bins))
 
     # Calculate Q step size
     delta_x = float((x_max - x_min) / bins)
     # Determine bin edges
-    bin_edges = np.arange(bins + 1).astype('float') * delta_x + x_min
+    bin_edges = np.arange(bins + 1).astype("float") * delta_x + x_min
     # Determine bin centers from edges
     bin_centers = (bin_edges[1:] + bin_edges[:-1]) * 0.5
 
@@ -50,8 +52,9 @@ def determine_1d_linear_bins(x_min, x_max, bins):
     return linear_bins
 
 
-def determine_1d_log_bins(x_min, x_max, decade_on_center,
-                          n_bins_per_decade=None, n_bins=None):
+def determine_1d_log_bins(
+    x_min, x_max, decade_on_center, n_bins_per_decade=None, n_bins=None
+):
     """
 
     Parameters
@@ -73,11 +76,15 @@ def determine_1d_log_bins(x_min, x_max, decade_on_center,
     """
     # Check inputs
     if n_bins_per_decade is None and n_bins is None:
-        raise RuntimeError('Density of points (n_bins_per_decade) and total number of bins (n_bins) cannot be '
-                           'None simultaneously.  One and only one of them must be specified.')
+        raise RuntimeError(
+            "Density of points (n_bins_per_decade) and total number of bins (n_bins) cannot be "
+            "None simultaneously.  One and only one of them must be specified."
+        )
     elif n_bins_per_decade is not None and n_bins is not None:
-        raise RuntimeError('Density of points (n_bins_per_decade) and total number of bins (n_bins) cannot be '
-                           'specified simultaneously.  One and only one of them must be specified.')
+        raise RuntimeError(
+            "Density of points (n_bins_per_decade) and total number of bins (n_bins) cannot be "
+            "specified simultaneously.  One and only one of them must be specified."
+        )
     # only allow either n_bins or n_bins_per_decade
 
     # Calculate Q min, number of total bins and number of steps
@@ -91,7 +98,7 @@ def determine_1d_log_bins(x_min, x_max, decade_on_center,
             x_ref = x_min
 
         # calculate step size
-        n_step = 10**(1 / n_bins_per_decade)
+        n_step = 10 ** (1 / n_bins_per_decade)
 
         # calculate number of bins
         n_bins = _calculate_n_bins(x_ref, x_max, n_step)
@@ -100,26 +107,27 @@ def determine_1d_log_bins(x_min, x_max, decade_on_center,
 
         # case that is not supported
         if decade_on_center:
-            assert n_bins_per_decade is not None, 'For option decade_on_center, number of bins per decade ' \
-                                                  'is required'
+            assert n_bins_per_decade is not None, (
+                "For option decade_on_center, number of bins per decade " "is required"
+            )
         x_ref = x_min
 
         # calculate bin step size
         # Equation 11.33
-        n_step = 10**((np.log10(x_max / x_ref)) / (n_bins - 1))
+        n_step = 10 ** ((np.log10(x_max / x_ref)) / (n_bins - 1))
 
     # Calculate kay
     kay = (n_step - 1) / (n_step + 1)
 
     # Calculate bin centers
     # init an array ranging from 0 to (n_bins - 1)
-    bin_centers = np.arange(n_bins).astype('float64')
+    bin_centers = np.arange(n_bins).astype("float64")
     # Equation 11.34: Q_k = Q_ref * 10^(k * delta L)
-    bin_centers = x_ref * n_step**bin_centers
+    bin_centers = x_ref * n_step ** bin_centers
 
     # Calculate bin edges (aka boundaries)
     # Equation 11.35
-    bin_edges = np.ndarray(shape=(n_bins + 1, ), dtype='float64')
+    bin_edges = np.ndarray(shape=(n_bins + 1,), dtype="float64")
     # calculate left edges (i.e., right edges except last one), i.e., Q_{k-1, max} = Q_{k, min}
     bin_edges[:-1] = bin_centers[:] - kay * bin_centers[:]
     # calculate last right edge
@@ -145,7 +153,9 @@ def _calculate_x_ref(x_min, n_bins_per_decade):
     -------
 
     """
-    ref_x = 10 ** ((1. / n_bins_per_decade) * (np.round(n_bins_per_decade * np.log10(x_min))))
+    ref_x = 10 ** (
+        (1.0 / n_bins_per_decade) * (np.round(n_bins_per_decade * np.log10(x_min)))
+    )
 
     return ref_x
 
@@ -169,10 +179,14 @@ def _calculate_n_bins(x_min, x_max, n_step):
     -------
 
     """
-    n_bins = np.floor(np.ceil((np.log10(x_max / x_min) + np.log10((n_step + 1) * 0.5)) / np.log10(n_step)))
+    n_bins = np.floor(
+        np.ceil(
+            (np.log10(x_max / x_min) + np.log10((n_step + 1) * 0.5)) / np.log10(n_step)
+        )
+    )
 
     # to avoid round off error such that n_bins = |n_bins| + epsilon, where epsilon is an infinitesimally
     # small value
-    n_bins = int(n_bins + 1E-5)
+    n_bins = int(n_bins + 1e-5)
 
     return n_bins

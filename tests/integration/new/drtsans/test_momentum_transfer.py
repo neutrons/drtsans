@@ -19,7 +19,7 @@ from drtsans.settings import namedtuplefy, unique_workspace_dundername
 
 # Instrument definition file for two tubes, each tube contains two pixels.
 # Pixels are cylinders of diameter 0.02m and height 0.02m
-coarse_instrument = r'''
+coarse_instrument = r"""
 <?xml version="1.0" encoding="UTF-8"?>
 <instrument name="GenericSANS" valid-from="1900-01-31 23:59:59" valid-to="2100-12-31 23:59:59"
  last-modified="2019-07-12 00:00:00">
@@ -95,11 +95,11 @@ coarse_instrument = r'''
         <value val="20.0"/>
     </parameter>
 </instrument>
-'''
+"""
 
 # Instrument definition file for four tubes, each tube contains four pixels.
 # Pixels are cylinders of diameter 0.01m and height 0.01m
-fine_instrument = r'''
+fine_instrument = r"""
 <?xml version="1.0" encoding="UTF-8"?>
 <instrument name="GenericSANS" valid-from="1900-01-31 23:59:59" valid-to="2100-12-31 23:59:59"
  last-modified="2019-07-12 00:00:00">
@@ -179,23 +179,30 @@ fine_instrument = r'''
         <value val="10.0"/>
     </parameter>
 </instrument>
-'''
+"""
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 @namedtuplefy
 def data_subpixels_convert_to_q():
     r"""Data to be used in test_subpixels_convert_to_q()"""
-    return dict(wavelength_bin_boundaries=[2.0, 2.1, 2.2],
-                coarse_intensities=[[1.0, 1.1], [2.0, 2.1],  # first tube
-                                    [3.0, 3.1], [4.0, 4.1]],  # second tube
-                fine_intensities=[[[1.0, 1.1], [1.0, 1.1], [2.0, 2.1], [2.0, 2.1]],
-                                  [[1.0, 1.1], [1.0, 1.1], [2.0, 2.1], [2.0, 2.1]],
-                                  [[3.0, 3.1], [3.0, 3.1], [4.0, 4.1], [4.0, 4.1]],
-                                  [[3.0, 3.1], [3.0, 3.1], [4.0, 4.1], [4.0, 4.1]]],
-                n_h=2,  # subpixels in X-direction
-                n_v=2  # subpixels in vertical (Y) direction
-                )
+    return dict(
+        wavelength_bin_boundaries=[2.0, 2.1, 2.2],
+        coarse_intensities=[
+            [1.0, 1.1],
+            [2.0, 2.1],  # first tube
+            [3.0, 3.1],
+            [4.0, 4.1],
+        ],  # second tube
+        fine_intensities=[
+            [[1.0, 1.1], [1.0, 1.1], [2.0, 2.1], [2.0, 2.1]],
+            [[1.0, 1.1], [1.0, 1.1], [2.0, 2.1], [2.0, 2.1]],
+            [[3.0, 3.1], [3.0, 3.1], [4.0, 4.1], [4.0, 4.1]],
+            [[3.0, 3.1], [3.0, 3.1], [4.0, 4.1], [4.0, 4.1]],
+        ],
+        n_h=2,  # subpixels in X-direction
+        n_v=2,  # subpixels in vertical (Y) direction
+    )
 
 
 def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
@@ -212,21 +219,43 @@ def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
     """
     data = data_subpixels_convert_to_q  # handy shortcut
     # Workspace containing an instrument made of two tubes, and two pixels per tube
-    coarse_workspace = CreateWorkspace(DataX=data.wavelength_bin_boundaries, UnitX='Wavelength',
-                                       DataY=np.array(data.coarse_intensities),
-                                       DataE=np.sqrt(data.coarse_intensities), NSpec=4,
-                                       OutputWorkspace=unique_workspace_dundername())
-    LoadInstrument(Workspace=coarse_workspace, InstrumentXML=coarse_instrument, RewriteSpectraMap=True,
-                   InstrumentName='GenericSANS')
-    assert coarse_workspace.extractY().shape == (4, 2)  # 4 pixels, each pixel contains two intensity values
+    coarse_workspace = CreateWorkspace(
+        DataX=data.wavelength_bin_boundaries,
+        UnitX="Wavelength",
+        DataY=np.array(data.coarse_intensities),
+        DataE=np.sqrt(data.coarse_intensities),
+        NSpec=4,
+        OutputWorkspace=unique_workspace_dundername(),
+    )
+    LoadInstrument(
+        Workspace=coarse_workspace,
+        InstrumentXML=coarse_instrument,
+        RewriteSpectraMap=True,
+        InstrumentName="GenericSANS",
+    )
+    assert coarse_workspace.extractY().shape == (
+        4,
+        2,
+    )  # 4 pixels, each pixel contains two intensity values
     # Workspace containing an instrument made of four tubes, and four pixels per tube
-    fine_workspace = CreateWorkspace(DataX=data.wavelength_bin_boundaries, UnitX='Wavelength',
-                                     DataY=np.array(data.fine_intensities),
-                                     DataE=np.sqrt(data.fine_intensities), NSpec=16,
-                                     OutputWorkspace=unique_workspace_dundername())
-    LoadInstrument(Workspace=fine_workspace, InstrumentXML=fine_instrument, RewriteSpectraMap=True,
-                   InstrumentName='GenericSANS')
-    assert fine_workspace.extractY().shape == (16, 2)  # 16 pixels, each pixel contains two intensity values
+    fine_workspace = CreateWorkspace(
+        DataX=data.wavelength_bin_boundaries,
+        UnitX="Wavelength",
+        DataY=np.array(data.fine_intensities),
+        DataE=np.sqrt(data.fine_intensities),
+        NSpec=16,
+        OutputWorkspace=unique_workspace_dundername(),
+    )
+    LoadInstrument(
+        Workspace=fine_workspace,
+        InstrumentXML=fine_instrument,
+        RewriteSpectraMap=True,
+        InstrumentName="GenericSANS",
+    )
+    assert fine_workspace.extractY().shape == (
+        16,
+        2,
+    )  # 16 pixels, each pixel contains two intensity values
 
     n_bins = len(data.wavelength_bin_boundaries) - 1  # number of wavelength bins
     # Subpixel indexes in the coarse instrument do not correspond to pixel indexes in the fine instrument.
@@ -257,36 +286,61 @@ def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
     #
     # We require a permutation of the coarse subpixel indexes in order to compare results from the coarse
     # instrument with subpixels to results from the fine instrument.
-    permutation = [0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15]  # from coarse index to fine index
+    permutation = [
+        0,
+        1,
+        4,
+        5,
+        2,
+        3,
+        6,
+        7,
+        8,
+        9,
+        12,
+        13,
+        10,
+        11,
+        14,
+        15,
+    ]  # from coarse index to fine index
 
     # Test modulus Q between subpixels from the coarse instrument and pixels from the fine instrument
     # "coarse_iq" is an IQmod object, containing values for the intensity, error, Q-modulus, wavelength
-    coarse_iq = convert_to_q(coarse_workspace, 'scalar', n_horizontal=data.n_h, n_vertical=data.n_v)
-    fine_iq = convert_to_q(fine_workspace, 'scalar')  # no subpixels here (n_horizontal = n_vertical = 1)
+    coarse_iq = convert_to_q(
+        coarse_workspace, "scalar", n_horizontal=data.n_h, n_vertical=data.n_v
+    )
+    fine_iq = convert_to_q(
+        fine_workspace, "scalar"
+    )  # no subpixels here (n_horizontal = n_vertical = 1)
     # check the following quantities are identical between the two scenarios
-    for quantity in ('mod_q', 'intensity', 'error', 'wavelength'):
+    for quantity in ("mod_q", "intensity", "error", "wavelength"):
         coarse_values = getattr(coarse_iq, quantity).reshape(-1, n_bins)[permutation]
         fine_values = getattr(fine_iq, quantity).reshape(-1, n_bins)
         assert coarse_values == pytest.approx(fine_values)
 
     # Test azimuthal Q (Qx, Qy) between subpixels and fine pixels
     # "coarse_iq" is an IQazimuthal object, containing values for the intensity, error, Qx, Qy, wavelength
-    coarse_iq = convert_to_q(coarse_workspace, 'azimuthal', n_horizontal=data.n_h, n_vertical=data.n_v)
-    fine_iq = convert_to_q(fine_workspace, 'azimuthal')
-    for quantity in ('qx', 'qy', 'intensity', 'error', 'wavelength'):
+    coarse_iq = convert_to_q(
+        coarse_workspace, "azimuthal", n_horizontal=data.n_h, n_vertical=data.n_v
+    )
+    fine_iq = convert_to_q(fine_workspace, "azimuthal")
+    for quantity in ("qx", "qy", "intensity", "error", "wavelength"):
         coarse_values = getattr(coarse_iq, quantity).reshape(-1, n_bins)[permutation]
         fine_values = getattr(fine_iq, quantity).reshape(-1, n_bins)
         assert coarse_values == pytest.approx(fine_values)
 
     # Test crystal Q (Qx, Qy, Qz) between subpixels and fine pixels
     # "coarse_iq" is an IQcrystal object, containing values for the intensity, error, Qx, Qy, Qz, wavelength
-    coarse_iq = convert_to_q(coarse_workspace, 'crystallographic', n_horizontal=data.n_h, n_vertical=data.n_v)
-    fine_iq = convert_to_q(fine_workspace, 'crystallographic')
-    for quantity in ('qx', 'qy', 'qz', 'intensity', 'error', 'wavelength'):
+    coarse_iq = convert_to_q(
+        coarse_workspace, "crystallographic", n_horizontal=data.n_h, n_vertical=data.n_v
+    )
+    fine_iq = convert_to_q(fine_workspace, "crystallographic")
+    for quantity in ("qx", "qy", "qz", "intensity", "error", "wavelength"):
         coarse_values = getattr(coarse_iq, quantity).reshape(-1, n_bins)[permutation]
         fine_values = getattr(fine_iq, quantity).reshape(-1, n_bins)
         assert coarse_values == pytest.approx(fine_values)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

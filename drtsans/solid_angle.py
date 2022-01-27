@@ -1,13 +1,22 @@
-from mantid.simpleapi import ClearMaskFlag, CloneWorkspace, DeleteWorkspace, Divide, mtd, ReplaceSpecialValues, \
-    SolidAngle
+from mantid.simpleapi import (
+    ClearMaskFlag,
+    CloneWorkspace,
+    DeleteWorkspace,
+    Divide,
+    mtd,
+    ReplaceSpecialValues,
+    SolidAngle,
+)
 from drtsans.instruments import instrument_enum_name
 from drtsans.settings import unique_workspace_dundername
 
-__all__ = ['calculate_solid_angle', 'solid_angle_correction']
+__all__ = ["calculate_solid_angle", "solid_angle_correction"]
 
 
-def calculate_solid_angle(input_workspace, detector_type='VerticalTube', output_workspace=None, **kwargs):
-    '''Calculate the solid angle from the ``input_workspace``.
+def calculate_solid_angle(
+    input_workspace, detector_type="VerticalTube", output_workspace=None, **kwargs
+):
+    """Calculate the solid angle from the ``input_workspace``.
 
     **Mantid algorithms used:**
     :ref:`SolidAngle <algm-SolidAngle-v1>`
@@ -27,12 +36,12 @@ def calculate_solid_angle(input_workspace, detector_type='VerticalTube', output_
     Returns
     -------
     ~mantid.api.IEventWorkspace, ~mantid.api.MatrixWorkspace
-    '''
+    """
     instrument = instrument_enum_name(input_workspace)
 
     # default behaviour is to create instrument unique name
     if not output_workspace:
-        output_workspace = '{}_solid_angle'.format(instrument)
+        output_workspace = "{}_solid_angle".format(instrument)
 
     # make a copy of the workspace and clear the mask flag
     # so the solid angle is calculated for the entire instrument
@@ -40,13 +49,23 @@ def calculate_solid_angle(input_workspace, detector_type='VerticalTube', output_
     ClearMaskFlag(Workspace=output_workspace)
 
     # calculate the solid angle
-    SolidAngle(InputWorkspace=output_workspace, OutputWorkspace=output_workspace, Method=detector_type, **kwargs)
+    SolidAngle(
+        InputWorkspace=output_workspace,
+        OutputWorkspace=output_workspace,
+        Method=detector_type,
+        **kwargs
+    )
 
     return mtd[output_workspace]
 
 
-def solid_angle_correction(input_workspace, detector_type='VerticalTube', output_workspace=None,
-                           solid_angle_ws=None, **kwargs):
+def solid_angle_correction(
+    input_workspace,
+    detector_type="VerticalTube",
+    output_workspace=None,
+    solid_angle_ws=None,
+    **kwargs
+):
     r"""
     The algorithm calculates solid angles subtended by the individual pixel-detectors when vieved from the sample
     position. The returned workspace is the input workspace normalized (divided) by the pixel solid angles.
@@ -86,13 +105,25 @@ def solid_angle_correction(input_workspace, detector_type='VerticalTube', output
     cleanup_solid_angle_ws = False
     if not solid_angle_ws:
         cleanup_solid_angle_ws = True
-        solid_angle_ws = calculate_solid_angle(input_workspace=input_workspace, detector_type=detector_type,
-                                               output_workspace=unique_workspace_dundername(), **kwargs)
+        solid_angle_ws = calculate_solid_angle(
+            input_workspace=input_workspace,
+            detector_type=detector_type,
+            output_workspace=unique_workspace_dundername(),
+            **kwargs
+        )
 
     # correct the input workspace and get rid of nan and infinity
-    Divide(LHSWorkspace=input_workspace, RHSWorkspace=solid_angle_ws, OutputWorkspace=output_workspace)
-    ReplaceSpecialValues(InputWorkspace=output_workspace, NaNValue=0., InfinityValue=0.,
-                         OutputWorkspace=output_workspace)
+    Divide(
+        LHSWorkspace=input_workspace,
+        RHSWorkspace=solid_angle_ws,
+        OutputWorkspace=output_workspace,
+    )
+    ReplaceSpecialValues(
+        InputWorkspace=output_workspace,
+        NaNValue=0.0,
+        InfinityValue=0.0,
+        OutputWorkspace=output_workspace,
+    )
 
     # delete temporary workspaces
     if cleanup_solid_angle_ws:

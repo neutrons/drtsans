@@ -3,7 +3,10 @@ import os
 import numpy as np
 import tempfile
 from mantid.simpleapi import LoadNexusProcessed
-from drtsans.mono.gpsans.prepare_sensitivities_correction import prepare_spice_sensitivities_correction, SpiceRun
+from drtsans.mono.gpsans.prepare_sensitivities_correction import (
+    prepare_spice_sensitivities_correction,
+    SpiceRun,
+)
 
 
 def test_sensitivities_with_bar(reference_dir, cleanfile):
@@ -16,19 +19,29 @@ def test_sensitivities_with_bar(reference_dir, cleanfile):
     # Experiment setup
     experiment_number = 280
     # Input Flood Runs
-    flood_scan_pt_list = (38, 1), (40, 1), (42, 1)  # list of 2 tuple as (scan number, pt number)
+    flood_scan_pt_list = (
+        (38, 1),
+        (40, 1),
+        (42, 1),
+    )  # list of 2 tuple as (scan number, pt number)
 
     # Direct beam / transmission
-    direct_beam_scan_pt_list = (37, 1), (39, 1), (41, 1)  # list of 2 tuple as (scan number, pt number)
+    direct_beam_scan_pt_list = (
+        (37, 1),
+        (39, 1),
+        (41, 1),
+    )  # list of 2 tuple as (scan number, pt number)
     # Beam center size
     beam_center_mask_radius_mm = 140  # mm
 
     # Default mask to detector
-    pixels_to_mask = '1-8,249-256'
+    pixels_to_mask = "1-8,249-256"
 
     # Pixel calibration
     # PIXEL_CALIBRATION = None
-    pixel_calib_file = os.path.join(reference_dir.new.gpsans, 'calibrations/pixel_calibration_gold_sens.json')
+    pixel_calib_file = os.path.join(
+        reference_dir.new.gpsans, "calibrations/pixel_calibration_gold_sens.json"
+    )
 
     # Corrections
     do_solid_angle_correction = True
@@ -41,36 +54,50 @@ def test_sensitivities_with_bar(reference_dir, cleanfile):
     max_threshold = 1.5
 
     # Output directory
-    output_dir = tempfile.mkdtemp('gpsans_sensitivity_test')
+    output_dir = tempfile.mkdtemp("gpsans_sensitivity_test")
     cleanfile(output_dir)
 
     # Mask
     mask_xml_file = None  # 'Mask.XML'
 
     # Set the directory for already converted SPICE files
-    nexus_dir = os.path.join(reference_dir.new.gpsans, f'Exp{experiment_number}')
+    nexus_dir = os.path.join(reference_dir.new.gpsans, f"Exp{experiment_number}")
     # Check
     if not os.path.exists(nexus_dir):
-        raise RuntimeError(f'[ERROR] Converted NeXus-SPICE directory {nexus_dir} does not exist')
+        raise RuntimeError(
+            f"[ERROR] Converted NeXus-SPICE directory {nexus_dir} does not exist"
+        )
 
     # Convert flood runs
-    CG2 = 'CG2'
-    flood_spice_runs = [SpiceRun(CG2, -1, experiment_number, scan_i, pt_i) for scan_i, pt_i in flood_scan_pt_list]
+    CG2 = "CG2"
+    flood_spice_runs = [
+        SpiceRun(CG2, -1, experiment_number, scan_i, pt_i)
+        for scan_i, pt_i in flood_scan_pt_list
+    ]
     if direct_beam_scan_pt_list is None:
         transmission_spice_runs = None
     else:
-        transmission_spice_runs = [SpiceRun(CG2, -1, experiment_number, scan_i, pt_i)
-                                   for scan_i, pt_i in direct_beam_scan_pt_list]
+        transmission_spice_runs = [
+            SpiceRun(CG2, -1, experiment_number, scan_i, pt_i)
+            for scan_i, pt_i in direct_beam_scan_pt_list
+        ]
 
     # Correction
-    test_sens_nxs = prepare_spice_sensitivities_correction(flood_spice_runs, transmission_spice_runs,
-                                                           moving_detector_method, min_threshold, max_threshold,
-                                                           nexus_dir, mask_xml_file, pixels_to_mask,
-                                                           beam_center_mask_radius_mm,
-                                                           solid_angle_correction=do_solid_angle_correction,
-                                                           pixel_calibration_file=pixel_calib_file,
-                                                           output_dir=output_dir,
-                                                           file_suffix='spice')
+    test_sens_nxs = prepare_spice_sensitivities_correction(
+        flood_spice_runs,
+        transmission_spice_runs,
+        moving_detector_method,
+        min_threshold,
+        max_threshold,
+        nexus_dir,
+        mask_xml_file,
+        pixels_to_mask,
+        beam_center_mask_radius_mm,
+        solid_angle_correction=do_solid_angle_correction,
+        pixel_calibration_file=pixel_calib_file,
+        output_dir=output_dir,
+        file_suffix="spice",
+    )
 
     # Verify
     verify_results(test_sens_nxs, reference_dir)
@@ -89,9 +116,13 @@ def verify_results(test_sensitivities_file, reference_dir):
 
     """
     # Get gold file
-    gold_sens_file = os.path.join(reference_dir.new.gpsans, 'calibrations/sens_CG2_spice_bar.nxs')
+    gold_sens_file = os.path.join(
+        reference_dir.new.gpsans, "calibrations/sens_CG2_spice_bar.nxs"
+    )
     if not os.path.exists(gold_sens_file):
-        raise RuntimeError(f'Expected (gold) sensitivities cannot be found at {gold_sens_file}')
+        raise RuntimeError(
+            f"Expected (gold) sensitivities cannot be found at {gold_sens_file}"
+        )
 
     # Compare sensitivities
     gold_sens_ws = LoadNexusProcessed(Filename=gold_sens_file)
@@ -99,5 +130,5 @@ def verify_results(test_sensitivities_file, reference_dir):
     np.testing.assert_allclose(test_sens_ws.extractY(), gold_sens_ws.extractY())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

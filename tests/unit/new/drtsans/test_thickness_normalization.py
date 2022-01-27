@@ -1,5 +1,5 @@
 import pytest
-import os, numpy as np          # noqa: E401
+import os, numpy as np  # noqa: E401
 from numpy.testing import assert_allclose
 
 r"""
@@ -20,26 +20,36 @@ from drtsans.thickness_normalization import normalize_by_thickness
 here = os.path.abspath(os.path.dirname(__file__))
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def testdata():
     # create test data from csv file provided by LiLin He
-    path = os.path.join(here, 'Thickness_normalization_He.csv')
-    data = np.genfromtxt(path, delimiter=',', skip_header=3)
+    path = os.path.join(here, "Thickness_normalization_He.csv")
+    data = np.genfromtxt(path, delimiter=",", skip_header=3)
     # intensity and errorbars, expected normalized intensity and errorbars
     I, E, normedI, normedE = data.T
     return I, E, normedI, normedE
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def workspaces(testdata):
     """create workspace using the data loaded from the csv file provided by LiLin He"""
     # load data from csv
     I, E, normedI, normedE = testdata
     nbins = I.size
-    inputws = CreateWorkspace(NSpec=1, DataX=np.arange(nbins+1), DataY=I, DataE=E,
-                              OutputWorkspace=unique_workspace_dundername())
-    expected_output_ws = CreateWorkspace(NSpec=1, DataX=np.arange(nbins+1), DataY=normedI, DataE=normedE,
-                                         OutputWorkspace=unique_workspace_dundername())
+    inputws = CreateWorkspace(
+        NSpec=1,
+        DataX=np.arange(nbins + 1),
+        DataY=I,
+        DataE=E,
+        OutputWorkspace=unique_workspace_dundername(),
+    )
+    expected_output_ws = CreateWorkspace(
+        NSpec=1,
+        DataX=np.arange(nbins + 1),
+        DataY=normedI,
+        DataE=normedE,
+        OutputWorkspace=unique_workspace_dundername(),
+    )
     yield inputws, expected_output_ws
     # Delete upon closure of the fixture
     [workspace.delete() for workspace in (inputws, expected_output_ws)]
@@ -65,5 +75,5 @@ def test_thickness_normalization(workspaces):
     return
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

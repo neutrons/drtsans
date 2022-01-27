@@ -4,7 +4,8 @@ import os
 from drtsans.files.log_h5_reader import verify_cg2_reduction_results
 from drtsans.mono.gpsans.reduce_spice import reduce_gpsans_nexus
 import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 
 """ Test data information
 
@@ -34,10 +35,10 @@ def test_reduction_spice(reference_dir, cleanfile):
     Test reduction from SPICE-converted Nexus file
 
     """
-    nexus_dir = os.path.join(reference_dir.new.gpsans, 'Exp280')
+    nexus_dir = os.path.join(reference_dir.new.gpsans, "Exp280")
 
     # Set output (temp) directory
-    output_directory = tempfile.mkdtemp(prefix='cg2_spice_reduction')
+    output_directory = tempfile.mkdtemp(prefix="cg2_spice_reduction")
     cleanfile(output_directory)
 
     # USER INPUT
@@ -48,7 +49,7 @@ def test_reduction_spice(reference_dir, cleanfile):
     samples = [(35, 1)]
     samples_trans = [(27, 1)]
     sample_thick = [0.1]
-    sample_names = ['Porasil_B']
+    sample_names = ["Porasil_B"]
     bkgd = [(34, 1)]
     bkgd_trans = [(26, 1)]
 
@@ -60,7 +61,9 @@ def test_reduction_spice(reference_dir, cleanfile):
 
     # STAFF INPUT
     use_mask_file = True
-    mask_file_name = os.path.join(reference_dir.new.gpsans, 'calibrations/mask_pixel_map.nxs')
+    mask_file_name = os.path.join(
+        reference_dir.new.gpsans, "calibrations/mask_pixel_map.nxs"
+    )
     use_dark_file = False
     dark_file_name = ""
     block_beam = (9, 1)
@@ -70,7 +73,9 @@ def test_reduction_spice(reference_dir, cleanfile):
     wedge_min_angles = None
     wedge_max_angles = None
 
-    sensitivity_file = os.path.join(reference_dir.new.gpsans, 'calibrations/sens_CG2_spice_bar.nxs')
+    sensitivity_file = os.path.join(
+        reference_dir.new.gpsans, "calibrations/sens_CG2_spice_bar.nxs"
+    )
     use_log_2d_binning = False
     use_log_1d = True
     common_configuration = {
@@ -94,10 +99,10 @@ def test_reduction_spice(reference_dir, cleanfile):
             "useLogQBinsEvenDecade": False,
             "wavelength": wavelength,
             "wavelengthSpread": wavelength_spread,
-            "blockedBeamRunNumber": 'Whatever',
+            "blockedBeamRunNumber": "Whatever",
             "maskFileName": mask_file_name,
-            'WedgeMinAngles': wedge_min_angles,
-            'WedgeMaxAngles': wedge_max_angles,
+            "WedgeMinAngles": wedge_min_angles,
+            "WedgeMaxAngles": wedge_max_angles,
             "AnnularAngleBin": 2.0,
             "Qmin": 0.0028,
             "Qmax": 0.0035,
@@ -107,36 +112,51 @@ def test_reduction_spice(reference_dir, cleanfile):
             "useTimeSlice": False,
             "useLogSlice": False,
             "logSliceName": "",
-            "logSliceInterval": '',
-        }
+            "logSliceInterval": "",
+        },
     }
 
     # Reduce
-    output_dir = reduce_gpsans_nexus(ipts_number, exp_number, samples, sample_thick, sample_names,
-                                     bkgd, samples_trans, bkgd_trans, block_beam,
-                                     empty_trans, beam_center,
-                                     nexus_dir,
-                                     mask_file_name=mask_file_name if use_mask_file else '',
-                                     dark_file_name=dark_file_name if use_dark_file else '',
-                                     use_log_1d=use_log_1d,
-                                     use_log_2d_binning=use_log_2d_binning,
-                                     common_configuration=common_configuration,
-                                     q_range=q_range, use_mask_back_tubes=use_mask_back_tubes,
-                                     debug_output=False)
+    output_dir = reduce_gpsans_nexus(
+        ipts_number,
+        exp_number,
+        samples,
+        sample_thick,
+        sample_names,
+        bkgd,
+        samples_trans,
+        bkgd_trans,
+        block_beam,
+        empty_trans,
+        beam_center,
+        nexus_dir,
+        mask_file_name=mask_file_name if use_mask_file else "",
+        dark_file_name=dark_file_name if use_dark_file else "",
+        use_log_1d=use_log_1d,
+        use_log_2d_binning=use_log_2d_binning,
+        common_configuration=common_configuration,
+        q_range=q_range,
+        use_mask_back_tubes=use_mask_back_tubes,
+        debug_output=False,
+    )
 
     # verify
-    expected_data_dir = os.path.join(reference_dir.new.gpsans, 'spice_reduction/exp280_normal_bin')
-    verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, 'SPICE reduction', prefix='')
+    expected_data_dir = os.path.join(
+        reference_dir.new.gpsans, "spice_reduction/exp280_normal_bin"
+    )
+    verify_cg2_reduction_results(
+        sample_names, output_dir, expected_data_dir, "SPICE reduction", prefix=""
+    )
 
 
 def test_reduction_spice_subpixel(reference_dir, cleanfile):
     """
     Test reduction from SPICE-converted Nexus file
     """
-    nexus_dir = os.path.join(reference_dir.new.gpsans, 'Exp280')
+    nexus_dir = os.path.join(reference_dir.new.gpsans, "Exp280")
 
     # Set output (temp) directory
-    output_directory = tempfile.mkdtemp(prefix='cg2_spice_reduction_subpixel')
+    output_directory = tempfile.mkdtemp(prefix="cg2_spice_reduction_subpixel")
     cleanfile(output_directory)
 
     # USER INPUT
@@ -147,7 +167,7 @@ def test_reduction_spice_subpixel(reference_dir, cleanfile):
     samples = [(35, 1)]
     samples_trans = [(27, 1)]
     sample_thick = [0.1]
-    sample_names = ['Porasil_B']
+    sample_names = ["Porasil_B"]
     bkgd = [(34, 1)]
     bkgd_trans = [(26, 1)]
 
@@ -159,7 +179,9 @@ def test_reduction_spice_subpixel(reference_dir, cleanfile):
 
     # STAFF INPUT
     use_mask_file = True
-    mask_file_name = os.path.join(reference_dir.new.gpsans, 'calibrations/mask_pixel_map.nxs')
+    mask_file_name = os.path.join(
+        reference_dir.new.gpsans, "calibrations/mask_pixel_map.nxs"
+    )
     use_dark_file = False
     dark_file_name = ""
     block_beam = (9, 1)
@@ -170,7 +192,9 @@ def test_reduction_spice_subpixel(reference_dir, cleanfile):
     wedge_max_angles = None
 
     # sensitivity_file = '/HFIR/CG2/shared/drt_sensitivity/sens_CG2_spice_bar.nxs'
-    sensitivity_file = os.path.join(reference_dir.new.gpsans, 'calibrations/sens_CG2_spice_bar.nxs')
+    sensitivity_file = os.path.join(
+        reference_dir.new.gpsans, "calibrations/sens_CG2_spice_bar.nxs"
+    )
     use_log_2d_binning = False
     use_log_1d = True
     common_configuration = {
@@ -194,10 +218,10 @@ def test_reduction_spice_subpixel(reference_dir, cleanfile):
             "useLogQBinsEvenDecade": False,
             "wavelength": wavelength,
             "wavelengthSpread": wavelength_spread,
-            "blockedBeamRunNumber": 'Whatever',
+            "blockedBeamRunNumber": "Whatever",
             "maskFileName": mask_file_name,
-            'WedgeMinAngles': wedge_min_angles,
-            'WedgeMaxAngles': wedge_max_angles,
+            "WedgeMinAngles": wedge_min_angles,
+            "WedgeMaxAngles": wedge_max_angles,
             "AnnularAngleBin": 2.0,
             "Qmin": 0.0028,
             "Qmax": 0.0035,
@@ -207,27 +231,42 @@ def test_reduction_spice_subpixel(reference_dir, cleanfile):
             "useTimeSlice": False,
             "useLogSlice": False,
             "logSliceName": "",
-            "logSliceInterval": '',
-        }
+            "logSliceInterval": "",
+        },
     }
 
     # Reduce
-    output_dir = reduce_gpsans_nexus(ipts_number, exp_number, samples, sample_thick, sample_names,
-                                     bkgd, samples_trans, bkgd_trans, block_beam,
-                                     empty_trans, beam_center,
-                                     nexus_dir,
-                                     mask_file_name=mask_file_name if use_mask_file else '',
-                                     dark_file_name=dark_file_name if use_dark_file else '',
-                                     use_log_1d=use_log_1d,
-                                     use_log_2d_binning=use_log_2d_binning,
-                                     common_configuration=common_configuration,
-                                     q_range=q_range, use_mask_back_tubes=use_mask_back_tubes,
-                                     debug_output=False)
+    output_dir = reduce_gpsans_nexus(
+        ipts_number,
+        exp_number,
+        samples,
+        sample_thick,
+        sample_names,
+        bkgd,
+        samples_trans,
+        bkgd_trans,
+        block_beam,
+        empty_trans,
+        beam_center,
+        nexus_dir,
+        mask_file_name=mask_file_name if use_mask_file else "",
+        dark_file_name=dark_file_name if use_dark_file else "",
+        use_log_1d=use_log_1d,
+        use_log_2d_binning=use_log_2d_binning,
+        common_configuration=common_configuration,
+        q_range=q_range,
+        use_mask_back_tubes=use_mask_back_tubes,
+        debug_output=False,
+    )
 
     # verify
-    expected_data_dir = os.path.join(reference_dir.new.gpsans, 'spice_reduction/exp280_subpixel_bin/')
-    verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, 'SPICE reduction', prefix='')
+    expected_data_dir = os.path.join(
+        reference_dir.new.gpsans, "spice_reduction/exp280_subpixel_bin/"
+    )
+    verify_cg2_reduction_results(
+        sample_names, output_dir, expected_data_dir, "SPICE reduction", prefix=""
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

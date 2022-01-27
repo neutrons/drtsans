@@ -24,7 +24,7 @@ __all__ = [
     "DasDevice",
     "RunTime",
     "init_event_nexus",
-    "parse_event_nexus"
+    "parse_event_nexus",
 ]
 
 # Specify parameter
@@ -54,8 +54,7 @@ class EventNeXusWriter(object):
     """
 
     def __init__(self, beam_line, instrument_name):
-        """ Initialization
-        """
+        """Initialization"""
         self._beam_line = beam_line
         self._instrument_name = instrument_name
 
@@ -541,7 +540,7 @@ def parse_event_nexus(source_nexus_name, num_banks, logs_white_list=None):
         bank_histograms[bank_id] = bank_histogram
 
     # Retrieve information from specified bank
-    monitor_entry = source_nexus_h5[f"/entry/monitor1"]
+    monitor_entry = source_nexus_h5["/entry/monitor1"]
     monitor_counts = monitor_entry["event_time_offset"][()].shape[0]
 
     # add sample logs

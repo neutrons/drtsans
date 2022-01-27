@@ -7,7 +7,10 @@ from drtsans.mono.transmission import calculate_transmission
 from drtsans.mono.biosans.api import load_all_files, reduce_single_configuration
 
 
-@pytest.mark.skipif(not os.path.exists('/HFIR/HB2B/shared/autoreduce/'), reason='Skip test on build server')
+@pytest.mark.skipif(
+    not os.path.exists("/HFIR/HB2B/shared/autoreduce/"),
+    reason="Skip test on build server",
+)
 def test_reduce_single_configuration_slice_transmission_false():
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
@@ -17,25 +20,14 @@ def test_reduce_single_configuration_slice_transmission_false():
         "sample": {
             "runNumber": "8375",
             "thickness": 0.2,
-            "transmission": {
-                "runNumber": "8379",
-                "value": None
-            }
+            "transmission": {"runNumber": "8379", "value": None},
         },
         "background": {
             "runNumber": "8374",
-            "transmission": {
-                "runNumber": "8378",
-                "value": None
-            }
+            "transmission": {"runNumber": "8378", "value": None},
         },
-        "emptyTransmission": {
-            "runNumber": "8381",
-            "value": None
-        },
-        "beamCenter": {
-            "runNumber": "8381"
-        },
+        "emptyTransmission": {"runNumber": "8381", "value": None},
+        "beamCenter": {"runNumber": "8381"},
         "outputFileName": "r8375_AgBeh_15m18Aqa",
         "configuration": {
             "wavelength": None,
@@ -55,20 +47,10 @@ def test_reduce_single_configuration_slice_transmission_false():
             "maskFileName": None,
             "useDefaultMask": True,
             "defaultMask": [
-                {
-                    "Pixel": "1-18,239-256"
-                },
-                {
-                    "Bank": "18-24,42-48"
-                },
-                {
-                    "Bank": "49",
-                    "Tube": "1"
-                },
-                {
-                    "Bank": "88",
-                    "Tube": "4"
-                }
+                {"Pixel": "1-18,239-256"},
+                {"Bank": "18-24,42-48"},
+                {"Bank": "49", "Tube": "1"},
+                {"Bank": "88", "Tube": "4"},
             ],
             "useMaskBackTubes": False,
             "darkMainFileName": "CG3_8331.nxs.h5",
@@ -114,12 +96,8 @@ def test_reduce_single_configuration_slice_transmission_false():
             "QmaxMain": 0.016,
             "QminWing": 0.009,
             "QmaxWing": 0.3,
-            "overlapStitchQmin": [
-                0.0105
-            ],
-            "overlapStitchQmax": [
-                0.0145
-            ],
+            "overlapStitchQmin": [0.0105],
+            "overlapStitchQmax": [0.0145],
             "wedge1QminMain": 0.003,
             "wedge1QmaxMain": 0.0425,
             "wedge1QminWing": 0.02,
@@ -133,24 +111,21 @@ def test_reduce_single_configuration_slice_transmission_false():
             "wedge2overlapStitchQmin": 0.03,
             "wedge2overlapStitchQmax": 0.04,
             "wedges": None,
-            "symmetric_wedges": True
+            "symmetric_wedges": True,
         },
-        "logslice_data": {}
+        "logslice_data": {},
     }
-    reduction_input['configuration']['outputDir'] = mkdtemp(prefix='trans_slice_false')
+    reduction_input["configuration"]["outputDir"] = mkdtemp(prefix="trans_slice_false")
     loaded = load_all_files(reduction_input)
     _ = reduce_single_configuration(loaded, reduction_input)
     # just need a couple components from reduce
     # but the whole thing needs to be run then a few components pulled
     transmission = calculate_transmission(
-        mtd['_sample_trans'],  # pull relevant transmission
-        mtd['_empty']  # pull relevant
+        mtd["_sample_trans"],  # pull relevant transmission
+        mtd["_empty"],  # pull relevant
     )
     transmission_val = transmission.extractY()[0][0]
-    assert isclose(
-        transmission_val,
-        0.5734218305525239  # provided by s6v
-    )
+    assert isclose(transmission_val, 0.5734218305525239)  # provided by s6v
     del _
 
 
@@ -163,25 +138,14 @@ def test_reduce_single_configuration_slice_transmission_true():
         "sample": {
             "runNumber": "8361",
             "thickness": 0.1,
-            "transmission": {
-                "runNumber": "8361",
-                "value": None
-            }
+            "transmission": {"runNumber": "8361", "value": None},
         },
         "background": {
             "runNumber": "8359",
-            "transmission": {
-                "runNumber": "8359",
-                "value": None
-            }
+            "transmission": {"runNumber": "8359", "value": None},
         },
-        "emptyTransmission": {
-            "runNumber": "8364",
-            "value": None
-        },
-        "beamCenter": {
-            "runNumber": "8373"
-        },
+        "emptyTransmission": {"runNumber": "8364", "value": None},
+        "beamCenter": {"runNumber": "8373"},
         "outputFileName": "r8361_PorB3_15m",
         "configuration": {
             "wavelength": None,
@@ -201,20 +165,10 @@ def test_reduce_single_configuration_slice_transmission_true():
             "maskFileName": None,
             "useDefaultMask": True,
             "defaultMask": [
-                {
-                    "Pixel": "1-18,239-256"
-                },
-                {
-                    "Bank": "18-24,42-48"
-                },
-                {
-                    "Bank": "49",
-                    "Tube": "1"
-                },
-                {
-                    "Bank": "88",
-                    "Tube": "4"
-                }
+                {"Pixel": "1-18,239-256"},
+                {"Bank": "18-24,42-48"},
+                {"Bank": "49", "Tube": "1"},
+                {"Bank": "88", "Tube": "4"},
             ],
             "useMaskBackTubes": False,
             "darkMainFileName": "CG3_8331.nxs.h5",
@@ -260,12 +214,8 @@ def test_reduce_single_configuration_slice_transmission_true():
             "QmaxMain": 0.045,
             "QminWing": 0.03,
             "QmaxWing": 0.9,
-            "overlapStitchQmin": [
-                0.0325
-            ],
-            "overlapStitchQmax": [
-                0.0425
-            ],
+            "overlapStitchQmin": [0.0325],
+            "overlapStitchQmax": [0.0425],
             "wedge1QminMain": 0.003,
             "wedge1QmaxMain": 0.0425,
             "wedge1QminWing": 0.02,
@@ -279,26 +229,25 @@ def test_reduce_single_configuration_slice_transmission_true():
             "wedge2overlapStitchQmin": 0.03,
             "wedge2overlapStitchQmax": 0.04,
             "wedges": None,
-            "symmetric_wedges": True
+            "symmetric_wedges": True,
         },
-        "logslice_data": {}
+        "logslice_data": {},
     }
-    reduction_input['configuration']['outputDir'] = mkdtemp(prefix='trans_slice_true')
+    reduction_input["configuration"]["outputDir"] = mkdtemp(prefix="trans_slice_true")
     loaded = load_all_files(reduction_input)
     _ = reduce_single_configuration(loaded, reduction_input)
     # just need a couple components from reduce
     # but the whole thing needs to be run then a few components pulled
     transmission = calculate_transmission(
-        mtd['_sample_trans'],  # pull relevant transmission
-        mtd['_empty']  # pull relevant
+        mtd["_sample_trans"],  # pull relevant transmission
+        mtd["_empty"],  # pull relevant
     )
     transmission_val = transmission.extractY()[0][0]
     assert isclose(
-        transmission_val,
-        0.7526460467895154  # from above config using older workflow
+        transmission_val, 0.7526460467895154  # from above config using older workflow
     )
     del _
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main(__file__)

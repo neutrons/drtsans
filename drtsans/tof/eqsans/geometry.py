@@ -1,13 +1,24 @@
 from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
-from drtsans.geometry import get_instrument, source_sample_distance, sample_detector_distance, \
-    translate_sample_by_z, translate_detector_by_z
+from drtsans.geometry import (
+    get_instrument,
+    source_sample_distance,
+    sample_detector_distance,
+    translate_sample_by_z,
+    translate_detector_by_z,
+)
 
-__all__ = ['beam_radius', 'sample_aperture_diameter', 'source_aperture_diameter',
-           'source_aperture_sample_distance', 'translate_sample_by_z', 'translate_detector_by_z']
+__all__ = [
+    "beam_radius",
+    "sample_aperture_diameter",
+    "source_aperture_diameter",
+    "source_aperture_sample_distance",
+    "translate_sample_by_z",
+    "translate_detector_by_z",
+]
 
 
-def source_monitor_distance(source, unit='mm', log_key=None, search_logs=True):
+def source_monitor_distance(source, unit="mm", log_key=None, search_logs=True):
     r"""
     Report the distance (always positive!) between source and monitor.
 
@@ -38,7 +49,7 @@ def source_monitor_distance(source, unit='mm', log_key=None, search_logs=True):
 
     # Search the logs for the distance
     if search_logs is True:
-        lk = 'source-monitor-distance' if log_key is not None else log_key
+        lk = "source-monitor-distance" if log_key is not None else log_key
         try:
             return sl.single_value(lk) * mm2units[unit]
         except Exception:
@@ -46,17 +57,17 @@ def source_monitor_distance(source, unit='mm', log_key=None, search_logs=True):
 
     # Calculate the distance using the instrument definition file
     instrument = get_instrument(source)
-    monitor = instrument.getComponentByName('monitor1')
+    monitor = instrument.getComponentByName("monitor1")
     smd = monitor.getDistance(instrument.getSource())
 
     # Insert in the logs if not present
-    if 'source-monitor-distance' not in sl.keys():
-        sl.insert('source-monitor-distance', smd * 1.e3, unit='mm')
+    if "source-monitor-distance" not in sl.keys():
+        sl.insert("source-monitor-distance", smd * 1.0e3, unit="mm")
 
     return smd * m2units[unit]
 
 
-def sample_aperture_diameter(run, unit='mm'):
+def sample_aperture_diameter(run, unit="mm"):
     r"""
     Find the sample aperture diameter from the logs.
 
@@ -76,25 +87,27 @@ def sample_aperture_diameter(run, unit='mm'):
     """
     sl = SampleLogs(run)
     sad = None
-    for log_key in ('sample_aperture_diameter', 'beamslit4'):
+    for log_key in ("sample_aperture_diameter", "beamslit4"):
         if log_key in sl.keys():
             sad = sl.single_value(log_key)
             break
     if sad is None:
         pnames = [p.name for p in run.run().getProperties()]
-        raise RuntimeError('Unable to retrieve sample aperture diameter as neither log "sample_aperture_diameter" '
-                           'nor "beamslit4" is in the sample logs.  Available logs are {}'
-                           ''.format(pnames))
+        raise RuntimeError(
+            'Unable to retrieve sample aperture diameter as neither log "sample_aperture_diameter" '
+            'nor "beamslit4" is in the sample logs.  Available logs are {}'
+            "".format(pnames)
+        )
 
-    if 'sample_aperture_diameter' not in sl.keys():
-        sl.insert('sample_aperture_diameter', sad, unit='mm')
-    if unit == 'm':
+    if "sample_aperture_diameter" not in sl.keys():
+        sl.insert("sample_aperture_diameter", sad, unit="mm")
+    if unit == "m":
         sad /= 1000.0
     return sad
 
 
 @namedtuplefy
-def source_aperture(other, unit='m'):
+def source_aperture(other, unit="m"):
     r"""
     Find the source aperture diameter and position
 
@@ -121,23 +134,39 @@ def source_aperture(other, unit='m'):
         - float: distance to sample, in requested units
     """
     sample_logs = SampleLogs(other)
-    if 'sample_aperture_diameter' in sample_logs and 'source_aperture_sample_distance' in sample_logs:
-        diameter = float(sample_logs.sample_aperture_diameter.value)  # assumed in mili meters
-        asd = float(sample_logs.source_aperture_sample_distance.value)  # assumed in mili meters
+    if (
+        "sample_aperture_diameter" in sample_logs
+        and "source_aperture_sample_distance" in sample_logs
+    ):
+        diameter = float(
+            sample_logs.sample_aperture_diameter.value
+        )  # assumed in mili meters
+        asd = float(
+            sample_logs.source_aperture_sample_distance.value
+        )  # assumed in mili meters
     else:  # determine the aperture using the three diameter-variable slits
-        source_aperture_distance = [10080, 11156, 12150]  # source to aperture distance, in mili-meters
+        source_aperture_distance = [
+            10080,
+            11156,
+            12150,
+        ]  # source to aperture distance, in mili-meters
         number_slits = len(source_aperture_distance)
 
         # Slit diameters for the different slits. Diameters have changed during time so we use the run number to
         # identify which sets of diameters to pick
         # Entries are of the form: (start_run_number, end_run_number): [slits set]
-        index_to_diameters = {(0, 9999): [[5.0, 10.0, 10.0, 15.0, 20.0, 20.0, 25.0, 40.0],
-                                          [0.0, 10.0, 10.0, 15.0, 15.0, 20.0, 20.0, 40.0],
-                                          [0.0, 10.0, 10.0, 15.0, 15.0, 20.0, 20.0, 40.0]],
-                              (10000, float('inf')): [[5.0, 10.0, 15.0, 20.0, 25.0, 25.0, 25.0, 25.0],
-                                                      [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 25.0, 25.0],
-                                                      [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 25.0, 25.0]]
-                              }
+        index_to_diameters = {
+            (0, 9999): [
+                [5.0, 10.0, 10.0, 15.0, 20.0, 20.0, 25.0, 40.0],
+                [0.0, 10.0, 10.0, 15.0, 15.0, 20.0, 20.0, 40.0],
+                [0.0, 10.0, 10.0, 15.0, 15.0, 20.0, 20.0, 40.0],
+            ],
+            (10000, float("inf")): [
+                [5.0, 10.0, 15.0, 20.0, 25.0, 25.0, 25.0, 25.0],
+                [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 25.0, 25.0],
+                [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 25.0, 25.0],
+            ],
+        }
 
         # Find the appropriate set of slit diameters
         run_number = int(sample_logs.run_number.value)
@@ -148,29 +177,39 @@ def source_aperture(other, unit='m'):
 
         # entries vBeamSlit, vBeamSlit2, and vBeamSlit3 contain the slit number, identifying the slit diameter
         # for each of the three slits
-        diameter_indexes = [int(sample_logs[log_key].value.mean()) - 1
-                            for log_key in ['vBeamSlit', 'vBeamSlit2', 'vBeamSlit3']]
+        diameter_indexes = [
+            int(sample_logs[log_key].value.mean()) - 1
+            for log_key in ["vBeamSlit", "vBeamSlit2", "vBeamSlit3"]
+        ]
 
         # Determine which of the three slits subtend the smallest angle with the sample, assumed to be a pinhole.
         # The angle is estimated as the ratio aperture_diameter / aperture_sample_distance.
         # `slit_index` runs from zero to two, specifying the slits we're selecting
         # `diameter_index` runs from zero to seven, specifying the diameter we're selecting
-        ssd = source_sample_distance(other, unit='mm')
-        diameter, asd = float('inf'), 1.0  # start with an infinite diameter / asd ratio
+        ssd = source_sample_distance(other, unit="mm")
+        diameter, asd = float("inf"), 1.0  # start with an infinite diameter / asd ratio
         for slit_index in range(number_slits):  # iterate over the three slits
-            diameter_index = diameter_indexes[slit_index]  # index specifies which of the 8 apertures to choose from
-            tentative_asd = ssd - source_aperture_distance[slit_index]  # distance from the aperture to the sample
-            tentative_diameter = index_to_diameter[slit_index][diameter_index]  # slit diameter
-            if tentative_diameter / tentative_asd < diameter / asd:  # we found a smaller subtending angle
+            diameter_index = diameter_indexes[
+                slit_index
+            ]  # index specifies which of the 8 apertures to choose from
+            tentative_asd = (
+                ssd - source_aperture_distance[slit_index]
+            )  # distance from the aperture to the sample
+            tentative_diameter = index_to_diameter[slit_index][
+                diameter_index
+            ]  # slit diameter
+            if (
+                tentative_diameter / tentative_asd < diameter / asd
+            ):  # we found a smaller subtending angle
                 diameter = tentative_diameter
                 asd = tentative_asd
-    if unit == 'm':
+    if unit == "m":
         diameter /= 1000.0
         asd /= 1000.0
     return dict(diameter=diameter, distance_to_sample=asd, unit=unit)
 
 
-def source_aperture_diameter(run, unit='mm'):
+def source_aperture_diameter(run, unit="mm"):
     r"""
     Find the source aperture diameter
 
@@ -201,20 +240,22 @@ def source_aperture_diameter(run, unit='mm'):
     float
         Source aperture diameter, in requested units
     """
-    log_key = 'source_aperture_diameter'
+    log_key = "source_aperture_diameter"
     sample_logs = SampleLogs(run)
     if log_key in sample_logs.keys():
-        source_aperture_diameter_entry = sample_logs.single_value(log_key)  # units are 'mm'
+        source_aperture_diameter_entry = sample_logs.single_value(
+            log_key
+        )  # units are 'mm'
     else:
-        source_aperture_diameter_entry = source_aperture(run, unit='mm').diameter
-        sample_logs.insert(log_key, source_aperture_diameter_entry, unit='mm')
-    if unit == 'm':
+        source_aperture_diameter_entry = source_aperture(run, unit="mm").diameter
+        sample_logs.insert(log_key, source_aperture_diameter_entry, unit="mm")
+    if unit == "m":
         source_aperture_diameter_entry /= 1000.0
 
     return source_aperture_diameter_entry
 
 
-def source_aperture_sample_distance(run, unit='mm'):
+def source_aperture_sample_distance(run, unit="mm"):
     r"""
     Find the distance from the source aperture to the sample.
 
@@ -231,14 +272,14 @@ def source_aperture_sample_distance(run, unit='mm'):
     -------
     float
     """
-    log_key = 'source_aperture_sample_distance'
+    log_key = "source_aperture_sample_distance"
     sample_logs = SampleLogs(run)
     if log_key in sample_logs.keys():
         sasd = sample_logs.single_value(log_key)  # units are 'mm'
     else:
-        sasd = source_aperture(run, unit='mm').distance_to_sample
-        sample_logs.insert(log_key, sasd, unit='mm')
-    if unit == 'm':
+        sasd = source_aperture(run, unit="mm").distance_to_sample
+        sample_logs.insert(log_key, sasd, unit="mm")
+    if unit == "m":
         sasd /= 1000.0
 
     return sasd
@@ -255,14 +296,14 @@ def insert_aperture_logs(ws):
         Insert metadata in this workspace's logs
     """
     sample_logs = SampleLogs(ws)
-    if 'sample_aperture_diameter' not in sample_logs.keys():
-        sample_aperture_diameter(ws, unit='mm')  # function will insert the log
-    if 'source_aperture_diameter' not in sample_logs.keys():
-        sad = source_aperture_diameter(ws, unit='mm')
-        sample_logs.insert('source_aperture_diameter', sad, unit='mm')
-    if 'source_aperture_sample_distance' not in sample_logs.keys():
-        sds = source_aperture(ws, unit='mm').distance_to_sample
-        sample_logs.insert('source_aperture_sample_distance', sds, unit='mm')
+    if "sample_aperture_diameter" not in sample_logs.keys():
+        sample_aperture_diameter(ws, unit="mm")  # function will insert the log
+    if "source_aperture_diameter" not in sample_logs.keys():
+        sad = source_aperture_diameter(ws, unit="mm")
+        sample_logs.insert("source_aperture_diameter", sad, unit="mm")
+    if "source_aperture_sample_distance" not in sample_logs.keys():
+        sds = source_aperture(ws, unit="mm").distance_to_sample
+        sample_logs.insert("source_aperture_sample_distance", sds, unit="mm")
 
 
 def detector_id(pixel_coordinates, tube_size=256):
@@ -284,12 +325,18 @@ def detector_id(pixel_coordinates, tube_size=256):
     int, list
         detector ID or list of detector ID's depending on the input pixel_coordinates
     """
-    pixel_xy_list = [pixel_coordinates] if isinstance(pixel_coordinates[0], int) else pixel_coordinates
+    pixel_xy_list = (
+        [pixel_coordinates]
+        if isinstance(pixel_coordinates[0], int)
+        else pixel_coordinates
+    )
     detector_ids = list()
     for pixel_xy in pixel_xy_list:
         x, y = pixel_xy
         eightpack_index = x // 8
-        consecutive_tube_index = x % 8  # tube index within the eightpack containing the tube
+        consecutive_tube_index = (
+            x % 8
+        )  # tube index within the eightpack containing the tube
         tube_index_permutation = [0, 4, 1, 5, 2, 6, 3, 7]
         tube_index = tube_index_permutation[consecutive_tube_index]
         detector_ids.append((eightpack_index * 8 + tube_index) * tube_size + y)
@@ -318,18 +365,22 @@ def pixel_coordinates(detector_id, tube_size=256):
         (x, y) pixel coordinates if only one detector, else a list of (x, y) pixel coordinates
     """
     tube_index_permutation = [0, 2, 4, 6, 1, 3, 5, 7]
-    detector_ids = [detector_id] if isinstance(detector_id, int) else detector_id  # assume iterable
+    detector_ids = (
+        [detector_id] if isinstance(detector_id, int) else detector_id
+    )  # assume iterable
     pixel_xy = list()
     for det_id in detector_ids:
         y = det_id % tube_size
         eithpack_index = det_id // (8 * tube_size)
-        tube_id = det_id // tube_size - 8 * eithpack_index   # tube index within the eightpack containing the tube
+        tube_id = (
+            det_id // tube_size - 8 * eithpack_index
+        )  # tube index within the eightpack containing the tube
         x = eithpack_index * 8 + tube_index_permutation[tube_id]
         pixel_xy.append((x, y))
     return pixel_xy if len(pixel_xy) > 1 else pixel_xy[0]
 
 
-def beam_radius(input_workspace, unit='mm'):
+def beam_radius(input_workspace, unit="mm"):
     r"""
     Calculate the beam radius impinging on the detector bank.
 
@@ -354,7 +405,9 @@ def beam_radius(input_workspace, unit='mm'):
     r_src_ap = 0.5 * source_aperture_diam
 
     # retrieve source aperture to sample distance
-    source_aperture_sample_dist = source_aperture_sample_distance(input_workspace, unit=unit)
+    source_aperture_sample_dist = source_aperture_sample_distance(
+        input_workspace, unit=unit
+    )
 
     # retrieve sample aperture radius
     sample_aperture_diam = sample_aperture_diameter(input_workspace, unit=unit)
@@ -364,6 +417,9 @@ def beam_radius(input_workspace, unit='mm'):
     sample_detector_dist = sample_detector_distance(input_workspace)
 
     # calculate beam radius
-    r_beam = r_sam_ap + (r_sam_ap + r_src_ap) * sample_detector_dist / source_aperture_sample_dist
+    r_beam = (
+        r_sam_ap
+        + (r_sam_ap + r_src_ap) * sample_detector_dist / source_aperture_sample_dist
+    )
 
     return r_beam

@@ -1,11 +1,10 @@
 import pytest
-from drtsans.settings import (namedtuplefy, amend_config)
+from drtsans.settings import namedtuplefy, amend_config
 from mantid.kernel import ConfigService
 
 
 @pytest.mark.offline
 def test_namedtuplefy():
-
     @namedtuplefy
     def foo(x):
         return dict(foo=x)
@@ -28,16 +27,16 @@ def test_namedtuplefy():
 @pytest.mark.offline
 def test_amend_config():
     config = ConfigService.Instance()
-    old_instrument = config['instrumentName']
-    with amend_config({'instrumentName': '42'}):
-        assert config['instrumentName'] == '42'
-    assert config['instrumentName'] == old_instrument
+    old_instrument = config["instrumentName"]
+    with amend_config({"instrumentName": "42"}):
+        assert config["instrumentName"] == "42"
+    assert config["instrumentName"] == old_instrument
 
 
 @pytest.mark.offline
 def test_offline():
-    print('this tests runs when offline')
+    print("this tests runs when offline")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

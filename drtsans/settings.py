@@ -12,8 +12,10 @@ from mantid.api import AnalysisDataService
 from mantid.kernel import ConfigService
 
 # import mantid's workspace types exposed to python
-workspace_types = [getattr(mantid.dataobjects, w_type_name) for w_type_name in
-                   [s for s in dir(mantid.dataobjects) if "Workspace" in s]]
+workspace_types = [
+    getattr(mantid.dataobjects, w_type_name)
+    for w_type_name in [s for s in dir(mantid.dataobjects) if "Workspace" in s]
+]
 
 
 class MultiOrderedDict(OrderedDict):
@@ -47,9 +49,10 @@ def namedtuplefy(func):
         res = func(*args, **kwargs)
         if wrapper.nt is None:
             if isinstance(res, Mapping) is False:
-                raise ValueError('Cannot namedtuplefy a non-dict')
-            wrapper.nt = namedtuple(func.__name__ + '_nt', res.keys())
+                raise ValueError("Cannot namedtuplefy a non-dict")
+            wrapper.nt = namedtuple(func.__name__ + "_nt", res.keys())
         return wrapper.nt(**res)
+
     wrapper.nt = None
     return wrapper
 
@@ -72,16 +75,22 @@ def amend_config(new_config=None, data_dir=None):
     backup = dict()
     config = ConfigService.Instance()
     if new_config is not None:
-        SEARCH_ARCHIVE = 'datasearch.searcharchive'
+        SEARCH_ARCHIVE = "datasearch.searcharchive"
         if SEARCH_ARCHIVE not in new_config:
-            new_config[SEARCH_ARCHIVE] = 'hfir, sns'
+            new_config[SEARCH_ARCHIVE] = "hfir, sns"
         for key, val in new_config.items():
             backup[key] = config[key]
             config[key] = val  # config does not have an 'update' method
             modified_keys.append(key)
     if data_dir is not None:
-        data_dirs = [data_dir, ] if isinstance(data_dir, str) else data_dir
-        key = 'datasearch.directories'
+        data_dirs = (
+            [
+                data_dir,
+            ]
+            if isinstance(data_dir, str)
+            else data_dir
+        )
+        key = "datasearch.directories"
         backup[key] = deepcopy(config[key])
         [config.appendDataSearchDir(dd) for dd in data_dirs if isdir(dd)]
         modified_keys.append(key)
@@ -92,7 +101,7 @@ def amend_config(new_config=None, data_dir=None):
             config[key] = backup[key]
 
 
-def unique_workspace_name(n=5, prefix='', suffix=''):
+def unique_workspace_name(n=5, prefix="", suffix=""):
     r"""
     Create a random sequence of `n` lowercase characters that is guaranteed
     not to collide with the name of any existing Mantid workspace
@@ -113,17 +122,17 @@ def unique_workspace_name(n=5, prefix='', suffix=''):
     string
     """
 
-    ws_name = ''.join(random.choice(string.ascii_lowercase) for _ in range(n))
-    ws_name = '{}{}{}'.format(str(prefix), ws_name, str(suffix))
+    ws_name = "".join(random.choice(string.ascii_lowercase) for _ in range(n))
+    ws_name = "{}{}{}".format(str(prefix), ws_name, str(suffix))
     while ws_name in AnalysisDataService.getObjectNames():
         characters = [random.choice(string.ascii_lowercase) for _ in range(n)]
-        ws_name = ''.join(characters)
-        ws_name = '{}{}{}'.format(str(prefix), ws_name, str(suffix))
+        ws_name = "".join(characters)
+        ws_name = "{}{}{}".format(str(prefix), ws_name, str(suffix))
     return ws_name
 
 
 def unique_workspace_dundername():
-    return unique_workspace_name(n=5, prefix='__')
+    return unique_workspace_name(n=5, prefix="__")
 
 
 def unpack_v3d(functor, index):

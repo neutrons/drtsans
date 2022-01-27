@@ -1,6 +1,7 @@
 import numpy as np
 import os
 from mantid.kernel import logger
+
 r"""
 Links to mantid algorithms
 https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
@@ -8,16 +9,31 @@ https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
 https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
 https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 """
-from mantid.simpleapi import mtd, DeleteWorkspace, SaveNexusProcessed, Integration, CreateWorkspace
+from mantid.simpleapi import (
+    mtd,
+    DeleteWorkspace,
+    SaveNexusProcessed,
+    Integration,
+    CreateWorkspace,
+)
+
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsettings.py
 from drtsans.settings import unique_workspace_dundername as uwd
+
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fdetector.py
 from drtsans.detector import Component
 
 
-def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_threshold=2.0,
-                                     poly_order=2, min_detectors_per_tube=50, filename=None,
-                                     component_name='detector1', output_workspace=None):
+def calculate_sensitivity_correction(
+    input_workspace,
+    min_threshold=0.5,
+    max_threshold=2.0,
+    poly_order=2,
+    min_detectors_per_tube=50,
+    filename=None,
+    component_name="detector1",
+    output_workspace=None,
+):
     """
     Calculate the detector sensitivity
 
@@ -51,7 +67,7 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
         The calculated sensitivity workspace
     """
     if output_workspace is None:
-        output_workspace = '{}_sensitivity'.format(input_workspace)
+        output_workspace = "{}_sensitivity".format(input_workspace)
 
     # Wavelength bins are summed together to remove the time-of-flight nature according
     # to equations A3.1 and A3.2
@@ -63,7 +79,9 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
         # More than 1 bins in spectra: do integration to single bin
         # This is for EQSANS specially
         # output workspace name shall be unique and thus won't overwrite any existing one
-        input_workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
+        input_workspace = Integration(
+            InputWorkspace=input_workspace, OutputWorkspace=uwd()
+        )
         # set flag to delete input workspace later
         delete_input_workspace = True
     else:
@@ -78,18 +96,34 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
 
     # Normalize the counts and uncertainty on each pixel by total average counts on detector
     # calculate the number of spectra that is not masked out (i.e., either NaN or -Infinity)
-    n_elements =\
-        input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(y)) - np.count_nonzero(np.isneginf(y))
+    n_elements = (
+        input_workspace.getNumberHistograms()
+        - np.count_nonzero(np.isnan(y))
+        - np.count_nonzero(np.isneginf(y))
+    )
     # calculate average counts on non-masked spectra
     # F = sum_i^{|N|}(Y_i)/N: i \in spectra such that Y_i is not NaN or -Infinity
-    F = np.sum([value for value in y if not np.isnan(value) and not np.isneginf(value)])/n_elements
+    F = (
+        np.sum([value for value in y if not np.isnan(value) and not np.isneginf(value)])
+        / n_elements
+    )
     # Calculate the average uncertainties on non-masked spectra
-    dF = np.sqrt(np.sum([value**2 for value in y_uncertainty
-                         if not np.isnan(value) and not np.isneginf(value)]))/n_elements
+    dF = (
+        np.sqrt(
+            np.sum(
+                [
+                    value ** 2
+                    for value in y_uncertainty
+                    if not np.isnan(value) and not np.isneginf(value)
+                ]
+            )
+        )
+        / n_elements
+    )
     # calculate the normalized counts on each pixel by average count
-    II = y/F
+    II = y / F
     # calculate the normalized uncertainty on each pixel
-    dI = II * np.sqrt(np.square(y_uncertainty/y) + np.square(dF/F))
+    dI = II * np.sqrt(np.square(y_uncertainty / y) + np.square(dF / F))
 
     # Any pixel in II less than min_threshold or greater than max_threshold is masked
     counts = 0
@@ -119,7 +153,7 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
         # beam center masked pixels
         beam_center_masked_pixels = []
         for i in range(0, num_pixels_per_tube):
-            index = num_pixels_per_tube*j + i
+            index = num_pixels_per_tube * j + i
             if np.isneginf(II[index]):
                 beam_center_masked_pixels.append([i, index])
             elif not np.isnan(II[index]):
@@ -134,8 +168,10 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
 
         # This shall be an option later
         if len(xx) < min_detectors_per_tube:
-            logger.error("Skipping tube with indices {} with {} non-masked value. Too many "
-                         "masked or dead pixels.".format(j, len(xx)))
+            logger.error(
+                "Skipping tube with indices {} with {} non-masked value. Too many "
+                "masked or dead pixels.".format(j, len(xx))
+            )
             continue
 
         # Do poly fit
@@ -145,7 +181,9 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
         # covariance matrix is calculated differently from numpy 1.6
         # Refer to: https://numpy.org/devdocs/release/
         #                   1.16.0-notes.html#the-scaling-of-the-covariance-matrix-in-np-polyfit-is-different
-        polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, poly_order, w=np.array(ee), cov=True)
+        polynomial_coeffs, cov_matrix = np.polyfit(
+            xx, yy, poly_order, w=np.array(ee), cov=True
+        )
 
         # Errors in the least squares is the sqrt of the covariance matrix
         # (correlation between the coefficients)
@@ -156,8 +194,11 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
         # The patch is applied to the results of the previous step to produce S2(m,n).
         y_new = np.polyval(polynomial_coeffs, beam_center_masked_pixels[:, 0])
         # errors of the polynomial
-        e_new = np.sqrt(e_coeffs[2]**2 + (e_coeffs[1]*beam_center_masked_pixels[:, 0])**2 +
-                        (e_coeffs[0]*beam_center_masked_pixels[:, 0]**2)**2)
+        e_new = np.sqrt(
+            e_coeffs[2] ** 2
+            + (e_coeffs[1] * beam_center_masked_pixels[:, 0]) ** 2
+            + (e_coeffs[0] * beam_center_masked_pixels[:, 0] ** 2) ** 2
+        )
         for i, index in enumerate(beam_center_masked_pixels[:, 1]):
             II[index] = y_new[i]
             dI[index] = e_new[i]
@@ -165,22 +206,43 @@ def calculate_sensitivity_correction(input_workspace, min_threshold=0.5, max_thr
     # The final sensitivity, S(m,n), is produced by dividing this result by the average value
     # per Equations A3.13 and A3.14
     # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
-    n_elements =\
-        input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(II)) - np.count_nonzero(np.isneginf(II))
-    F = np.sum([value for value in II if not np.isnan(value) and not np.isneginf(value)])/n_elements
-    dF = np.sqrt(np.sum([value**2 for value in dI if not np.isnan(value) and not np.isneginf(value)]))/n_elements
-    output = II/F
+    n_elements = (
+        input_workspace.getNumberHistograms()
+        - np.count_nonzero(np.isnan(II))
+        - np.count_nonzero(np.isneginf(II))
+    )
+    F = (
+        np.sum(
+            [value for value in II if not np.isnan(value) and not np.isneginf(value)]
+        )
+        / n_elements
+    )
+    dF = (
+        np.sqrt(
+            np.sum(
+                [
+                    value ** 2
+                    for value in dI
+                    if not np.isnan(value) and not np.isneginf(value)
+                ]
+            )
+        )
+        / n_elements
+    )
+    output = II / F
     # propagate uncertainties from covariance matrix to sensitivities' uncertainty
-    output_uncertainty = output * np.sqrt(np.square(dI/II) + np.square(dF/F))
+    output_uncertainty = output * np.sqrt(np.square(dI / II) + np.square(dF / F))
 
     # Export the calculated sensitivities via Mantid Workspace
     # Create a workspace to have sensitivity value and error for each spectrum
-    CreateWorkspace(DataX=[1., 2.],
-                    DataY=output,
-                    DataE=output_uncertainty,
-                    Nspec=input_workspace.getNumberHistograms(),
-                    UnitX='wavelength',
-                    OutputWorkspace=output_workspace)
+    CreateWorkspace(
+        DataX=[1.0, 2.0],
+        DataY=output,
+        DataE=output_uncertainty,
+        Nspec=input_workspace.getNumberHistograms(),
+        UnitX="wavelength",
+        OutputWorkspace=output_workspace,
+    )
     # If the input workspace is flagged to delete, delete it
     if delete_input_workspace:
         DeleteWorkspace(input_workspace)

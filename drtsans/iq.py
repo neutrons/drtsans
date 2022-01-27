@@ -1,26 +1,48 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/docs/drtsans/dataobjects.rst
-from drtsans.dataobjects import DataType, getDataType, IQazimuthal, IQmod, \
-    q_azimuthal_to_q_modulo, concatenate
+from drtsans.dataobjects import (
+    DataType,
+    getDataType,
+    IQazimuthal,
+    IQmod,
+    q_azimuthal_to_q_modulo,
+    concatenate,
+)
 from enum import Enum
 from typing import List, Any, Tuple
 import numpy as np
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
-from drtsans.determine_bins import determine_1d_log_bins, determine_1d_linear_bins, BinningParams
-# To ignore warning:   invalid value encountered in true_divide
-np.seterr(divide='ignore', invalid='ignore')
 
-__all__ = ['bin_all', 'bin_intensity_into_q1d', 'select_i_of_q_by_wedge',
-           'bin_annular_into_q1d', 'bin_intensity_into_q2d', 'BinningMethod', 'check_iq_for_binning',
-           'determine_1d_linear_bins', 'determine_1d_log_bins', 'BinningParams']
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
+from drtsans.determine_bins import (
+    determine_1d_log_bins,
+    determine_1d_linear_bins,
+    BinningParams,
+)
+
+# To ignore warning:   invalid value encountered in true_divide
+np.seterr(divide="ignore", invalid="ignore")
+
+__all__ = [
+    "bin_all",
+    "bin_intensity_into_q1d",
+    "select_i_of_q_by_wedge",
+    "bin_annular_into_q1d",
+    "bin_intensity_into_q2d",
+    "BinningMethod",
+    "check_iq_for_binning",
+    "determine_1d_linear_bins",
+    "determine_1d_log_bins",
+    "BinningParams",
+]
 
 
 class BinningMethod(Enum):
     """
     Binning method
     """
-    NOWEIGHT = 1   # no-weight binning
-    WEIGHTED = 2   # weighted binning
+
+    NOWEIGHT = 1  # no-weight binning
+    WEIGHTED = 2  # weighted binning
 
 
 def check_iq_for_binning(i_of_q):
@@ -37,27 +59,39 @@ def check_iq_for_binning(i_of_q):
         I(Q)
 
     """
-    error_message = ''
+    error_message = ""
 
     # Check intensity
     if np.where(np.isnan(i_of_q.intensity))[0].size > 0:
-        error_message += 'Intensity has {} NaNs: {}\n'.format(len(np.where(np.isnan(i_of_q.intensity))[0]),
-                                                              np.where(np.isnan(i_of_q.intensity))[0])
+        error_message += "Intensity has {} NaNs: {}\n".format(
+            len(np.where(np.isnan(i_of_q.intensity))[0]),
+            np.where(np.isnan(i_of_q.intensity))[0],
+        )
     if np.where(np.isinf(i_of_q.intensity))[0].size > 0:
-        error_message += 'Intensity has {} Infinities: {}\n'.format(len(np.where(np.isnan(i_of_q.intensity))[0]),
-                                                                    np.where(np.isnan(i_of_q.intensity))[0])
+        error_message += "Intensity has {} Infinities: {}\n".format(
+            len(np.where(np.isnan(i_of_q.intensity))[0]),
+            np.where(np.isnan(i_of_q.intensity))[0],
+        )
 
     # Check error
     if np.where(np.isnan(i_of_q.error))[0].size > 0:
-        error_message += 'Intensity error has {} NaNs: {}\n'.format(len(np.where(np.isnan(i_of_q.error))[0]),
-                                                                    np.where(np.isnan(i_of_q.error))[0])
+        error_message += "Intensity error has {} NaNs: {}\n".format(
+            len(np.where(np.isnan(i_of_q.error))[0]),
+            np.where(np.isnan(i_of_q.error))[0],
+        )
     if np.where(np.isinf(i_of_q.error))[0].size > 0:
-        error_message += 'Intensity error has Inf: {}\n'.format(np.where(np.isnan(i_of_q.error))[0])
-    if np.where(np.abs(i_of_q.error) < 1E-20)[0].size > 0:
-        error_message += 'Intensity error has zero {}\n'.format(np.where(np.abs(i_of_q.error) < 1E-20)[0])
+        error_message += "Intensity error has Inf: {}\n".format(
+            np.where(np.isnan(i_of_q.error))[0]
+        )
+    if np.where(np.abs(i_of_q.error) < 1e-20)[0].size > 0:
+        error_message += "Intensity error has zero {}\n".format(
+            np.where(np.abs(i_of_q.error) < 1e-20)[0]
+        )
 
     if len(error_message) > 0:
-        raise RuntimeError('Input I(Q) for binning does not meet assumption:\n{}'.format(error_message))
+        raise RuntimeError(
+            "Input I(Q) for binning does not meet assumption:\n{}".format(error_message)
+        )
 
 
 def valid_wedge(min_angle, max_angle) -> List[Tuple[float, float]]:
@@ -76,28 +110,40 @@ def valid_wedge(min_angle, max_angle) -> List[Tuple[float, float]]:
         (min_angle, max_angle) tuple. If min_angle < 270 and max_angle > -90
         the function returns two wedges [(min_angle,270.1),(-90.1,max_angle)]
     """
-    if min_angle >= 270. or min_angle < -90:
-        raise ValueError("minimum angle not in the [-90,270) range: {:.1f}".format(min_angle))
-    if max_angle >= 270. or max_angle < -90:
-        raise ValueError("maximum angle not in the [-90,270) range: {:.1f}".format(max_angle))
+    if min_angle >= 270.0 or min_angle < -90:
+        raise ValueError(
+            "minimum angle not in the [-90,270) range: {:.1f}".format(min_angle)
+        )
+    if max_angle >= 270.0 or max_angle < -90:
+        raise ValueError(
+            "maximum angle not in the [-90,270) range: {:.1f}".format(max_angle)
+        )
     if max_angle == min_angle:
-        raise ValueError("maximum angle = minimum angle: {:.1f} == {:.1f}".format(min_angle, max_angle))
+        raise ValueError(
+            "maximum angle = minimum angle: {:.1f} == {:.1f}".format(
+                min_angle, max_angle
+            )
+        )
     if max_angle > min_angle:
         diff = max_angle - min_angle
-        if diff < 180.:
+        if diff < 180.0:
             return [(min_angle, max_angle)]
-        raise ValueError("wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} < 180"
-                         "".format(max_angle, min_angle, diff))
+        raise ValueError(
+            "wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} < 180"
+            "".format(max_angle, min_angle, diff)
+        )
     diff = min_angle - max_angle
     if diff <= 180:
-        raise ValueError("wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} <= 180"
-                         "".format(min_angle, max_angle, diff))
+        raise ValueError(
+            "wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} <= 180"
+            "".format(min_angle, max_angle, diff)
+        )
     return [(min_angle, 270.1), (-90.1, max_angle)]
 
 
-def get_wedges(min_angle: float,
-               max_angle: float,
-               symmetric_wedges=True) -> List[Tuple[float, float]]:
+def get_wedges(
+    min_angle: float, max_angle: float, symmetric_wedges=True
+) -> List[Tuple[float, float]]:
     """
     Helper function to return all wedges defined by the min_angle and max_angle,
     including the wedge offset by 180 degrees
@@ -119,11 +165,11 @@ def get_wedges(min_angle: float,
     if symmetric_wedges:
         wedges = valid_wedge(min_angle, max_angle)
         # create the opposite side and add it
-        opp_min = min_angle + 180.
-        opp_max = max_angle + 180.
+        opp_min = min_angle + 180.0
+        opp_max = max_angle + 180.0
         if opp_min >= 270:
-            opp_min -= 360.
-        if opp_max >= 270.:
+            opp_min -= 360.0
+        if opp_max >= 270.0:
             opp_max -= 360
         wedges.extend(valid_wedge(opp_min, opp_max))
     elif isinstance(min_angle, (float, int)):
@@ -134,21 +180,33 @@ def get_wedges(min_angle: float,
     else:
         # in this case min_angle and max_angle are actually two wedges
         # that should be summed together
-        raise NotImplementedError('use case to have min_angle and max_angle as 2-tuple is disabled')
+        raise NotImplementedError(
+            "use case to have min_angle and max_angle as 2-tuple is disabled"
+        )
 
     return wedges
 
 
-def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
-            n1dbins_per_decade=None, bin1d_type='scalar',
-            log_scale=False, decade_on_center=False,
-            qmin=None, qmax=None,
-            qxrange=None, qyrange=None,
-            annular_angle_bin=1.,
-            wedges: List[Any] = None,
-            symmetric_wedges: bool = True,
-            error_weighted=False,
-            n_wavelength_bin=1) -> Tuple[IQazimuthal, List[IQmod]]:
+def bin_all(
+    i_qxqy,
+    i_modq,
+    nxbins,
+    nybins,
+    n1dbins=None,
+    n1dbins_per_decade=None,
+    bin1d_type="scalar",
+    log_scale=False,
+    decade_on_center=False,
+    qmin=None,
+    qmax=None,
+    qxrange=None,
+    qyrange=None,
+    annular_angle_bin=1.0,
+    wedges: List[Any] = None,
+    symmetric_wedges: bool = True,
+    error_weighted=False,
+    n_wavelength_bin=1,
+) -> Tuple[IQazimuthal, List[IQmod]]:
     r"""Do all 1D and 2D binning for a configuration or detector
 
     Parameters
@@ -206,7 +264,9 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
     if n_wavelength_bin is None:
         pass
     elif n_wavelength_bin > 1:
-        raise NotImplementedError(f'Case for n_wavelength_bin = {n_wavelength_bin} has not been implemented')
+        raise NotImplementedError(
+            f"Case for n_wavelength_bin = {n_wavelength_bin} has not been implemented"
+        )
 
     method = BinningMethod.NOWEIGHT
     if error_weighted:
@@ -232,22 +292,24 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
     # bin 2D
     # FIXME - 2D binning does not support weighted binning well.  Force it to no-weight binning
     bin_2d_method = BinningMethod.NOWEIGHT
-    binned_q2d = bin_intensity_into_q2d(i_qxqy,
-                                        binning_x,
-                                        binning_y,
-                                        method=bin_2d_method,
-                                        wavelength_bins=n_wavelength_bin)
+    binned_q2d = bin_intensity_into_q2d(
+        i_qxqy,
+        binning_x,
+        binning_y,
+        method=bin_2d_method,
+        wavelength_bins=n_wavelength_bin,
+    )
 
     # 1D binning
     binned_q1d_list = []
-    if bin1d_type == 'annular':
+    if bin1d_type == "annular":
         # annular binning
-        bin_params = BinningParams(0., 360., int(360. / annular_angle_bin))
-        kwargs = {'method': method}
+        bin_params = BinningParams(0.0, 360.0, int(360.0 / annular_angle_bin))
+        kwargs = {"method": method}
         if qmin is not None:
-            kwargs['q_min'] = qmin
+            kwargs["q_min"] = qmin
         if qmax is not None:
-            kwargs['q_max'] = qmax
+            kwargs["q_max"] = qmax
         binned_q1d_list.append(bin_annular_into_q1d(i_qxqy, bin_params, **kwargs))
     else:
         # regular binning including 'scalar' and 'wedge'
@@ -256,48 +318,67 @@ def bin_all(i_qxqy, i_modq, nxbins, nybins, n1dbins=None,
         if qmax is None:
             qmax = i_modq.mod_q.max()
 
-        if bin1d_type == 'scalar':
+        if bin1d_type == "scalar":
             unbinned_1d = [i_modq]
-        elif bin1d_type == 'wedge':
+        elif bin1d_type == "wedge":
             # select Q's by wedge angles
             unbinned_1d = bin_into_wedges(i_qxqy, wedges, symmetric_wedges)
         else:
-            raise ValueError(f'bin1d_type of type {bin1d_type} is not available')
+            raise ValueError(f"bin1d_type of type {bin1d_type} is not available")
 
         if log_scale:
             # log bins
-            bins_1d = determine_1d_log_bins(qmin, qmax,
-                                            n_bins_per_decade=n1dbins_per_decade,
-                                            n_bins=n1dbins,
-                                            decade_on_center=decade_on_center)
+            bins_1d = determine_1d_log_bins(
+                qmin,
+                qmax,
+                n_bins_per_decade=n1dbins_per_decade,
+                n_bins=n1dbins,
+                decade_on_center=decade_on_center,
+            )
             for ub1d in unbinned_1d:
                 # The filter is needed for logarithmic binning so that
                 # the qmin and qmax are correctly taken into account
-                q_filter = np.where(np.logical_and(ub1d.mod_q >= qmin, ub1d.mod_q <= qmax))
-                ub1d_filtered = IQmod(ub1d.intensity[q_filter],
-                                      ub1d.error[q_filter],
-                                      ub1d.mod_q[q_filter],
-                                      ub1d.delta_mod_q[q_filter] if ub1d.delta_mod_q is not None else None,
-                                      ub1d.wavelength[q_filter] if ub1d.wavelength is not None else None)
-                binned_q1d = bin_intensity_into_q1d(ub1d_filtered, bins_1d, bin_method=method,
-                                                    wavelength_bins=n_wavelength_bin)
+                q_filter = np.where(
+                    np.logical_and(ub1d.mod_q >= qmin, ub1d.mod_q <= qmax)
+                )
+                ub1d_filtered = IQmod(
+                    ub1d.intensity[q_filter],
+                    ub1d.error[q_filter],
+                    ub1d.mod_q[q_filter],
+                    ub1d.delta_mod_q[q_filter]
+                    if ub1d.delta_mod_q is not None
+                    else None,
+                    ub1d.wavelength[q_filter] if ub1d.wavelength is not None else None,
+                )
+                binned_q1d = bin_intensity_into_q1d(
+                    ub1d_filtered,
+                    bins_1d,
+                    bin_method=method,
+                    wavelength_bins=n_wavelength_bin,
+                )
                 binned_q1d_list.append(binned_q1d)
         else:
             # linear bins
-            bins_1d = determine_1d_linear_bins(qmin, qmax,  n1dbins)
+            bins_1d = determine_1d_linear_bins(qmin, qmax, n1dbins)
             for ub_index, ub1d in enumerate(unbinned_1d):
-                print(f'Linear binning for {ub_index}!')
-                print(f'Number of NaNs = {np.where(np.isnan(ub1d.intensity))[0].shape}; '
-                      f'Number of data points = {ub1d.intensity.shape}')
-                binned_q1d_list.append(bin_intensity_into_q1d(ub1d, bins_1d, bin_method=method,
-                                       wavelength_bins=n_wavelength_bin))
+                print(f"Linear binning for {ub_index}!")
+                print(
+                    f"Number of NaNs = {np.where(np.isnan(ub1d.intensity))[0].shape}; "
+                    f"Number of data points = {ub1d.intensity.shape}"
+                )
+                binned_q1d_list.append(
+                    bin_intensity_into_q1d(
+                        ub1d,
+                        bins_1d,
+                        bin_method=method,
+                        wavelength_bins=n_wavelength_bin,
+                    )
+                )
 
     return binned_q2d, binned_q1d_list
 
 
-def bin_into_wedges(i_qxqy,
-                    wedges: List[Any],
-                    symmetric_wedges: bool) -> List[Any]:
+def bin_into_wedges(i_qxqy, wedges: List[Any], symmetric_wedges: bool) -> List[Any]:
     """
 
     Parameters
@@ -321,8 +402,10 @@ def bin_into_wedges(i_qxqy,
     # Bin!
     for wedge_angles in validated_wedge_angles_groups:
         # select I(Q) by wedge angles
-        wedge_pieces = [select_i_of_q_by_wedge(i_qxqy, min_angle, max_angle)
-                        for min_angle, max_angle in wedge_angles]
+        wedge_pieces = [
+            select_i_of_q_by_wedge(i_qxqy, min_angle, max_angle)
+            for min_angle, max_angle in wedge_angles
+        ]
 
         # concatenate selected I(Q)
         unbinned_1d.append(q_azimuthal_to_q_modulo(concatenate(wedge_pieces)))
@@ -353,21 +436,27 @@ def validate_wedges_groups(wedges, symmetric_wedges) -> List[List[Tuple[float, f
         if isinstance(wedge, tuple):
             # manual wedge: each wedge group contains 1 and only 1 wedge.
             min_wedge_angle, max_wedge_angle = wedge
-            wedge_angles = get_wedges(min_wedge_angle, max_wedge_angle, symmetric_wedges)
+            wedge_angles = get_wedges(
+                min_wedge_angle, max_wedge_angle, symmetric_wedges
+            )
         elif isinstance(wedge, list):
             # auto wedge: each wedge group contain 2 wedges
             if len(wedges) != 2 or symmetric_wedges:
                 # Note: auto wedge shall not have a pair of wedges sent to this method
                 # It is worth to discuss how to work with auto/manual wedge with symmetric/asymmetric combination
                 # by unified data structure
-                raise NotImplementedError(f'Unsupported scenario for automated wedge: number of wedges {len(wedges)}'
-                                          f' is not equal to 2.  And/or symmetric wedge option {symmetric_wedges} '
-                                          f'cannot be True.')
+                raise NotImplementedError(
+                    f"Unsupported scenario for automated wedge: number of wedges {len(wedges)}"
+                    f" is not equal to 2.  And/or symmetric wedge option {symmetric_wedges} "
+                    f"cannot be True."
+                )
             wedge_angles = get_wedges(wedge[0][0], wedge[0][1], symmetric_wedges)
             wedge_angles.extend(get_wedges(wedge[1][0], wedge[1][1], symmetric_wedges))
         else:
             # supported wedge group type
-            raise TypeError(f'Wedge group {wedges} of type {type(wedges)} is not supported')
+            raise TypeError(
+                f"Wedge group {wedges} of type {type(wedges)} is not supported"
+            )
 
         # add the corrected wedge angles
         validated_wedge_angles_groups.append(wedge_angles)
@@ -375,8 +464,9 @@ def validate_wedges_groups(wedges, symmetric_wedges) -> List[List[Tuple[float, f
     return validated_wedge_angles_groups
 
 
-def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.NOWEIGHT,
-                           wavelength_bins=1) -> IQmod:
+def bin_intensity_into_q1d(
+    i_of_q, q_bins, bin_method=BinningMethod.NOWEIGHT, wavelength_bins=1
+) -> IQmod:
     """Binning I(Q) from scalar Q (1D) with linear binning on Q
 
     Replace intensity, intensity_error, scalar_q, scalar_dq by IQmod
@@ -408,12 +498,26 @@ def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.NOWEIGHT,
     # bin I(Q)
     if bin_method == BinningMethod.WEIGHTED:
         # weighed binning
-        binned_q = _do_1d_weighted_binning(i_of_q.mod_q, i_of_q.delta_mod_q, i_of_q.intensity, i_of_q.error,
-                                           q_bins, i_of_q.wavelength, wavelength_bins)
+        binned_q = _do_1d_weighted_binning(
+            i_of_q.mod_q,
+            i_of_q.delta_mod_q,
+            i_of_q.intensity,
+            i_of_q.error,
+            q_bins,
+            i_of_q.wavelength,
+            wavelength_bins,
+        )
     else:
         # no-weight binning
-        binned_q = _do_1d_no_weight_binning(i_of_q.mod_q, i_of_q.delta_mod_q, i_of_q.intensity, i_of_q.error,
-                                            q_bins, i_of_q.wavelength, wavelength_bins)
+        binned_q = _do_1d_no_weight_binning(
+            i_of_q.mod_q,
+            i_of_q.delta_mod_q,
+            i_of_q.intensity,
+            i_of_q.error,
+            q_bins,
+            i_of_q.wavelength,
+            wavelength_bins,
+        )
 
     return binned_q
 
@@ -438,26 +542,30 @@ def select_i_of_q_by_wedge(i_of_q, min_wedge_angle, max_wedge_angle):
     """
     # Calculate wedge angles for each I(Qx, Qy)
     # calculate azimuthal angles from -180 to 180 degrees
-    azimuthal_array = np.arctan2(i_of_q.qy, i_of_q.qx) * 180. / np.pi
+    azimuthal_array = np.arctan2(i_of_q.qy, i_of_q.qx) * 180.0 / np.pi
     # correct azimuthal angles to -90 to 270 degrees
-    azimuthal_array[azimuthal_array < -90.] += 360.
+    azimuthal_array[azimuthal_array < -90.0] += 360.0
 
     # Define the filter (mask/ROI) for pixels falling into preferred wedge
-    wedge_indexes = (azimuthal_array > min_wedge_angle) & (azimuthal_array < max_wedge_angle)
+    wedge_indexes = (azimuthal_array > min_wedge_angle) & (
+        azimuthal_array < max_wedge_angle
+    )
 
     # Create a new IQazimuthal with selected subset
-    wedge_i_of_q = IQazimuthal(i_of_q.intensity[wedge_indexes],
-                               i_of_q.error[wedge_indexes],
-                               i_of_q.qx[wedge_indexes],
-                               i_of_q.qy[wedge_indexes],
-                               i_of_q.delta_qx[wedge_indexes],
-                               i_of_q.delta_qy[wedge_indexes])
+    wedge_i_of_q = IQazimuthal(
+        i_of_q.intensity[wedge_indexes],
+        i_of_q.error[wedge_indexes],
+        i_of_q.qx[wedge_indexes],
+        i_of_q.qy[wedge_indexes],
+        i_of_q.delta_qx[wedge_indexes],
+        i_of_q.delta_qy[wedge_indexes],
+    )
 
     return wedge_i_of_q
 
 
 def _toQmodAndAzimuthal(data):
-    '''This function returns the values of qmod and azimuthal that are parallel
+    """This function returns the values of qmod and azimuthal that are parallel
     to the original data array. It requiresthat the data is IQazimuthal
 
     Parameters
@@ -468,12 +576,16 @@ def _toQmodAndAzimuthal(data):
     =======
     tuple
         ``(intensity, error, qmod, dqmod, azimuthal)`` as 1d arrays
-        with Q in angstrom and azimuthal angle in degrees'''
+        with Q in angstrom and azimuthal angle in degrees"""
     if not getDataType(data) == DataType.IQ_AZIMUTHAL:
-        raise RuntimeError('Calculating qmod and azimuthal only works for IQazimuthal')
+        raise RuntimeError("Calculating qmod and azimuthal only works for IQazimuthal")
 
     # reshape the qx and qy if intensity array is 2d
-    if len(data.intensity.shape) == 2 and len(data.qx.shape) == 1 and len(data.qy.shape) == 1:
+    if (
+        len(data.intensity.shape) == 2
+        and len(data.qx.shape) == 1
+        and len(data.qy.shape) == 1
+    ):
         qx = np.tile(data.qx, (data.qy.shape[0], 1))
         qy = np.tile(data.qy, (data.qx.shape[0], 1)).transpose()
     else:
@@ -491,12 +603,14 @@ def _toQmodAndAzimuthal(data):
 
     # azimuthal is expected to be positive so use cyclical nature of trig functions
     azimuthal = np.rad2deg(np.arctan2(qy, qx)).ravel()
-    azimuthal[azimuthal < 0.] += 360.
+    azimuthal[azimuthal < 0.0] += 360.0
 
     return data.intensity.ravel(), data.error.ravel(), q, dq, azimuthal
 
 
-def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, method=BinningMethod.NOWEIGHT):
+def bin_annular_into_q1d(
+    i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, method=BinningMethod.NOWEIGHT
+):
     """Annular 1D binning
 
     Calculates: I(azimuthal), sigma I and dazmuthal by assigning pixels to proper azimuthal angle bins
@@ -537,10 +651,13 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
         Annular-binned I(azimuthal) in 1D
     """
     # Determine azimuthal angle bins (i.e., theta bins)
-    theta_bins = determine_1d_linear_bins(theta_bin_params.min, theta_bin_params.max, theta_bin_params.bins)
-    if theta_bins.centers.min() < 0. or theta_bins.centers.max() > 360.:
-        msg = 'must specify range 0<=theta<=360deg found {}<=theta<={}deg'.format(theta_bin_params.min,
-                                                                                  theta_bin_params.max)
+    theta_bins = determine_1d_linear_bins(
+        theta_bin_params.min, theta_bin_params.max, theta_bin_params.bins
+    )
+    if theta_bins.centers.min() < 0.0 or theta_bins.centers.max() > 360.0:
+        msg = "must specify range 0<=theta<=360deg found {}<=theta<={}deg".format(
+            theta_bin_params.min, theta_bin_params.max
+        )
         raise ValueError(msg)
 
     # Check input I(Q) whether it meets assumptions
@@ -562,31 +679,37 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
         do_1d_binning = _do_1d_weighted_binning
     else:
         # not supported case
-        raise RuntimeError('Binning method {} is not recognized'.format(method))
+        raise RuntimeError("Binning method {} is not recognized".format(method))
 
     # apply the selected binning method by either using or skipping the dq_array
     if dq_array is None:
-        binned_i_of_azimuthal = do_1d_binning(theta_array[allowed_q_index],
-                                              None,
-                                              intensity[allowed_q_index],
-                                              error[allowed_q_index],
-                                              theta_bins,
-                                              None,
-                                              1)
+        binned_i_of_azimuthal = do_1d_binning(
+            theta_array[allowed_q_index],
+            None,
+            intensity[allowed_q_index],
+            error[allowed_q_index],
+            theta_bins,
+            None,
+            1,
+        )
     else:
-        binned_i_of_azimuthal = do_1d_binning(theta_array[allowed_q_index],
-                                              dq_array[allowed_q_index],
-                                              intensity[allowed_q_index],
-                                              error[allowed_q_index],
-                                              theta_bins,
-                                              None,
-                                              1)
+        binned_i_of_azimuthal = do_1d_binning(
+            theta_array[allowed_q_index],
+            dq_array[allowed_q_index],
+            intensity[allowed_q_index],
+            error[allowed_q_index],
+            theta_bins,
+            None,
+            1,
+        )
 
     return binned_i_of_azimuthal
 
 
-def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, wl_array, wavelength_bins):
-    """ Bin I(Q) by given bin edges and do no-weight binning
+def _do_1d_no_weight_binning(
+    q_array, dq_array, iq_array, sigmaq_array, q_bins, wl_array, wavelength_bins
+):
+    """Bin I(Q) by given bin edges and do no-weight binning
 
     This method implements equation 11.34, 11.35 and 11.36 in master document.
 
@@ -611,6 +734,7 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
         IQmod is a class for holding 1D binned data.
 
     """
+
     def _bin_iq1d(bin_edges, q_vec, dq_vec, i_vec, error_vec):
         """Bin I(Q1D), dI(Q1D) and dQ(Q1D) by no weight binning algorithm
 
@@ -640,7 +764,7 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
         i_raw_vec, _ = np.histogram(q_vec, bins=bin_edges, weights=i_vec)
 
         # Square of summed uncertainties for each bin
-        sigma_sqr_vec, _ = np.histogram(q_vec, bins=bin_edges, weights=error_vec**2)
+        sigma_sqr_vec, _ = np.histogram(q_vec, bins=bin_edges, weights=error_vec ** 2)
 
         # Final I(Q):     I_k       = \frac{I_{k, raw}}{N_k}
         i_final_vec = i_raw_vec / num_pt_vec
@@ -661,12 +785,17 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
 
     if wavelength_bins == 1 or wl_array is None:
         # bin I(Q, wl) regardless of wl value
-        i_final_array, sigma_final_array, bin_q_resolution = _bin_iq1d(q_bins.edges, q_array, dq_array,
-                                                                       iq_array, sigmaq_array)
+        i_final_array, sigma_final_array, bin_q_resolution = _bin_iq1d(
+            q_bins.edges, q_array, dq_array, iq_array, sigmaq_array
+        )
 
         # construct output without wavelength vector
-        binned_iq1d = IQmod(intensity=i_final_array, error=sigma_final_array,
-                            mod_q=q_bins.centers, delta_mod_q=bin_q_resolution)
+        binned_iq1d = IQmod(
+            intensity=i_final_array,
+            error=sigma_final_array,
+            mod_q=q_bins.centers,
+            delta_mod_q=bin_q_resolution,
+        )
 
     elif wavelength_bins is None:
         # bin I(Q) with same value of wavelength
@@ -681,8 +810,11 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
         wl_matrix = wl_matrix.transpose()
 
         # define output
-        binned_q_vec = binned_dq_vec = binned_i_vec = binned_sigma_vec = binned_wl_vec = np.ndarray(shape=(0,),
-                                                                                                    dtype=float)
+        binned_q_vec = (
+            binned_dq_vec
+        ) = binned_i_vec = binned_sigma_vec = binned_wl_vec = np.ndarray(
+            shape=(0,), dtype=float
+        )
 
         for wl_i in unique_wl_vec:
             # filter
@@ -695,10 +827,13 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
                 dq_array_i = filtered_matrix[:, 4]
 
             # bin by Q1D
-            i_final_array, sigma_final_array, bin_q_resolution = _bin_iq1d(q_bins.edges, filtered_matrix[:, 1],
-                                                                           dq_array_i,
-                                                                           filtered_matrix[:, 2],
-                                                                           filtered_matrix[:, 3])
+            i_final_array, sigma_final_array, bin_q_resolution = _bin_iq1d(
+                q_bins.edges,
+                filtered_matrix[:, 1],
+                dq_array_i,
+                filtered_matrix[:, 2],
+                filtered_matrix[:, 3],
+            )
 
             # build up the final output
             binned_q_vec = np.concatenate((binned_q_vec, q_bins.centers))
@@ -706,7 +841,9 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
             binned_sigma_vec = np.concatenate((binned_sigma_vec, sigma_final_array))
             if dq_array is not None:
                 binned_dq_vec = np.concatenate((binned_dq_vec, bin_q_resolution))
-            binned_wl_vec = np.concatenate((binned_wl_vec, np.zeros_like(i_final_array) + wl_i))
+            binned_wl_vec = np.concatenate(
+                (binned_wl_vec, np.zeros_like(i_final_array) + wl_i)
+            )
         # END-FOR (wl_i)
 
         # Construct output
@@ -714,17 +851,25 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
         # IQmod is a class for holding 1D binned data.
         if dq_array is None:
             binned_dq_vec = None
-        binned_iq1d = IQmod(intensity=binned_i_vec, error=binned_sigma_vec,
-                            mod_q=binned_q_vec, delta_mod_q=binned_dq_vec,
-                            wavelength=binned_wl_vec)
+        binned_iq1d = IQmod(
+            intensity=binned_i_vec,
+            error=binned_sigma_vec,
+            mod_q=binned_q_vec,
+            delta_mod_q=binned_dq_vec,
+            wavelength=binned_wl_vec,
+        )
     else:
-        raise RuntimeError(f'Number of wavlength bins = {wavelength_bins} is not supported')
+        raise RuntimeError(
+            f"Number of wavlength bins = {wavelength_bins} is not supported"
+        )
 
     return binned_iq1d
 
 
-def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins, wl_array, wavelength_bins):
-    """ Bin I(Q) by given bin edges and do weighted binning
+def _do_1d_weighted_binning(
+    q_array, dq_array, iq_array, sigma_iq_array, q_bins, wl_array, wavelength_bins
+):
+    """Bin I(Q) by given bin edges and do weighted binning
 
     This method implements equation 11.22, 11.23 and 11.24 in master document for 1-dimensional Q
 
@@ -766,22 +911,28 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
         IQmod is a class for holding 1D binned data.
 
     """
-    def _bin_q1d_weighted(mod_q_array, delta_q_array, intensity_array, error_array, bin_edges):
-        """Do 1D weighed binning
-        """
+
+    def _bin_q1d_weighted(
+        mod_q_array, delta_q_array, intensity_array, error_array, bin_edges
+    ):
+        """Do 1D weighed binning"""
         # bin I(Q, wl) regardless of wl value
         # Calculate 1/sigma^2 for multiple uses
-        invert_sigma2_array = 1. / (error_array ** 2)
+        invert_sigma2_array = 1.0 / (error_array ** 2)
 
         # Histogram on 1/sigma^2, i.e., nominator part in Equation 11.22, 11.23 and 11.24
         # sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
-        w_array, _ = np.histogram(mod_q_array, bins=bin_edges, weights=invert_sigma2_array)
+        w_array, _ = np.histogram(
+            mod_q_array, bins=bin_edges, weights=invert_sigma2_array
+        )
 
         # Calculate Equation 11.22: I(Q)
         #  I(Q') = sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2) /
         #              sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
         # denominator in Equation 11.22: sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2)
-        i_raw_array, _ = np.histogram(mod_q_array, bins=bin_edges, weights=intensity_array * invert_sigma2_array)
+        i_raw_array, _ = np.histogram(
+            mod_q_array, bins=bin_edges, weights=intensity_array * invert_sigma2_array
+        )
         # denominator divided by nominator (11.22)
         binned_intensity_array = i_raw_array / w_array
 
@@ -801,7 +952,9 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
         if delta_q_array is None:
             binned_dq_array = None
         else:
-            binned_dq, _ = np.histogram(mod_q_array, bins=bin_edges, weights=delta_q_array * invert_sigma2_array)
+            binned_dq, _ = np.histogram(
+                mod_q_array, bins=bin_edges, weights=delta_q_array * invert_sigma2_array
+            )
             # denominator divided by nominator (11.24)
             binned_dq_array = binned_dq / i_raw_array
 
@@ -812,11 +965,16 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
 
     if wl_array is None or wavelength_bins == 1:
         # bin I(Q, wl) regardless of wl value
-        i_final_array, sigma_final_array, bin_q_resolution = _bin_q1d_weighted(q_array, dq_array, iq_array,
-                                                                               sigma_iq_array, q_bins.edges)
+        i_final_array, sigma_final_array, bin_q_resolution = _bin_q1d_weighted(
+            q_array, dq_array, iq_array, sigma_iq_array, q_bins.edges
+        )
 
-        binned_i_of_q = IQmod(intensity=i_final_array, error=sigma_final_array,
-                              mod_q=q_bins.centers, delta_mod_q=bin_q_resolution)
+        binned_i_of_q = IQmod(
+            intensity=i_final_array,
+            error=sigma_final_array,
+            mod_q=q_bins.centers,
+            delta_mod_q=bin_q_resolution,
+        )
 
     elif wavelength_bins is None:
         # bin I(Q, wl) per wavelength
@@ -827,12 +985,17 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
         if dq_array is None:
             wl_matrix = np.array([wl_array, q_array, iq_array, sigma_iq_array])
         else:
-            wl_matrix = np.array([wl_array, q_array, iq_array, sigma_iq_array, dq_array])
+            wl_matrix = np.array(
+                [wl_array, q_array, iq_array, sigma_iq_array, dq_array]
+            )
         wl_matrix = wl_matrix.transpose()
 
         # define output
-        binned_q_vec = binned_dq_vec = binned_i_vec = binned_sigma_vec = binned_wl_vec = np.ndarray(shape=(0,),
-                                                                                                    dtype=float)
+        binned_q_vec = (
+            binned_dq_vec
+        ) = binned_i_vec = binned_sigma_vec = binned_wl_vec = np.ndarray(
+            shape=(0,), dtype=float
+        )
 
         for wl_i in unique_wl_vec:
             # filter
@@ -845,11 +1008,13 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
                 dq_array_i = filtered_matrix[:, 4]
 
             # bin by Q1D
-            binned = _bin_q1d_weighted(mod_q_array=filtered_matrix[:, 1],
-                                       delta_q_array=dq_array_i,
-                                       intensity_array=filtered_matrix[:, 2],
-                                       error_array=filtered_matrix[:, 3],
-                                       bin_edges=q_bins.edges)
+            binned = _bin_q1d_weighted(
+                mod_q_array=filtered_matrix[:, 1],
+                delta_q_array=dq_array_i,
+                intensity_array=filtered_matrix[:, 2],
+                error_array=filtered_matrix[:, 3],
+                bin_edges=q_bins.edges,
+            )
             i_final_array, sigma_final_array, bin_q_resolution = binned
 
             # build up the final output
@@ -858,7 +1023,9 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
             binned_sigma_vec = np.concatenate((binned_sigma_vec, sigma_final_array))
             if dq_array is not None:
                 binned_dq_vec = np.concatenate((binned_dq_vec, bin_q_resolution))
-            binned_wl_vec = np.concatenate((binned_wl_vec, np.zeros_like(i_final_array) + wl_i))
+            binned_wl_vec = np.concatenate(
+                (binned_wl_vec, np.zeros_like(i_final_array) + wl_i)
+            )
         # END-FOR (wl_i)
 
         # Construct output
@@ -867,19 +1034,27 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
         if dq_array is None:
             binned_dq_vec = None
 
-        binned_i_of_q = IQmod(intensity=binned_i_vec, error=binned_sigma_vec,
-                              mod_q=binned_q_vec, delta_mod_q=binned_dq_vec,
-                              wavelength=binned_wl_vec)
+        binned_i_of_q = IQmod(
+            intensity=binned_i_vec,
+            error=binned_sigma_vec,
+            mod_q=binned_q_vec,
+            delta_mod_q=binned_dq_vec,
+            wavelength=binned_wl_vec,
+        )
 
     else:
-        raise RuntimeError(f'Binning with wavelength bins = {wavelength_bins} is not supported')
+        raise RuntimeError(
+            f"Binning with wavelength bins = {wavelength_bins} is not supported"
+        )
 
     # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
     # IQmod is a class for holding 1D binned data.
     return binned_i_of_q
 
 
-def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIGHT, wavelength_bins=1):
+def bin_intensity_into_q2d(
+    i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIGHT, wavelength_bins=1
+):
     """Bin I(Qx, Qy) into to new (Qx, Qy) bins
 
     Note 1: for binning parameters:
@@ -922,16 +1097,33 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
 
     if method == BinningMethod.NOWEIGHT:
         # Calculate no-weight binning
-        binned_arrays = _do_2d_no_weight_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
-                                                 i_of_q.wavelength, i_of_q.intensity, i_of_q.error,
-                                                 qx_bins.edges, qy_bins.edges, debug_filter_wl=filter_wavelength,
-                                                 sum_all_wavelengths=not filter_wavelength)
+        binned_arrays = _do_2d_no_weight_binning(
+            i_of_q.qx,
+            i_of_q.delta_qx,
+            i_of_q.qy,
+            i_of_q.delta_qy,
+            i_of_q.wavelength,
+            i_of_q.intensity,
+            i_of_q.error,
+            qx_bins.edges,
+            qy_bins.edges,
+            debug_filter_wl=filter_wavelength,
+            sum_all_wavelengths=not filter_wavelength,
+        )
     else:
         # Calculate weighed binning
         # FIXME - _do_2d_weighted_binning API shall be changed as _do_2d_no_weight_binning() for sum_all_wavelength
-        binned_arrays = _do_2d_weighted_binning(i_of_q.qx, i_of_q.delta_qx, i_of_q.qy, i_of_q.delta_qy,
-                                                i_of_q.wavelength, i_of_q.intensity, i_of_q.error,
-                                                qx_bins.edges, qy_bins.edges)
+        binned_arrays = _do_2d_weighted_binning(
+            i_of_q.qx,
+            i_of_q.delta_qx,
+            i_of_q.qy,
+            i_of_q.delta_qy,
+            i_of_q.wavelength,
+            i_of_q.intensity,
+            i_of_q.error,
+            qx_bins.edges,
+            qy_bins.edges,
+        )
     # END-IF-ELSE
 
     # construct return
@@ -945,7 +1137,7 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     #       [qy0, qy1, ...],
     #       ...]
     # Thus indexing='ij' is used
-    qx_matrix, qy_matrix = np.meshgrid(qx_bins.centers, qy_bins.centers, indexing='ij')
+    qx_matrix, qy_matrix = np.meshgrid(qx_bins.centers, qy_bins.centers, indexing="ij")
     binned_qx_array = qx_matrix
     binned_qy_array = qy_matrix
     unique_wl_vec = np.unique(i_of_q.wavelength)
@@ -954,12 +1146,21 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
         for wl_i in unique_wl_vec[1:]:
             binned_qx_array = np.concatenate((binned_qx_array, qx_matrix), axis=1)
             binned_qy_array = np.concatenate((binned_qy_array, qy_matrix), axis=1)
-    return IQazimuthal(intensity=binned_intensities, error=binned_sigmas, qx=binned_qx_array,
-                       delta_qx=binned_dqx, qy=binned_qy_array, delta_qy=binned_dqy, wavelength=binned_wl)
+    return IQazimuthal(
+        intensity=binned_intensities,
+        error=binned_sigmas,
+        qx=binned_qx_array,
+        delta_qx=binned_dqx,
+        qy=binned_qy_array,
+        delta_qy=binned_dqy,
+        wavelength=binned_wl,
+    )
 
 
-def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_vec, error_vec):
-    """ Bin I(Q2D), dI(Q2D) and dQ(Q2D) by no weight binning algorithm
+def _bin_iq2d(
+    qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_vec, error_vec
+):
+    """Bin I(Q2D), dI(Q2D) and dQ(Q2D) by no weight binning algorithm
 
     Parameters
     ----------
@@ -991,18 +1192,22 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
     num_pt_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges))
 
     # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
-    i_raw_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
-                                     weights=i_vec)
+    i_raw_array, *_ = np.histogram2d(
+        qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges), weights=i_vec
+    )
 
     # Square of summed uncertainties for each bin
-    sigma_sqr_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
-                                         weights=error_vec ** 2)
+    sigma_sqr_array, *_ = np.histogram2d(
+        qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges), weights=error_vec ** 2
+    )
 
     # Q resolution: simple average
-    dqx_raw_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
-                                       weights=dqx_vec)
-    dqy_raw_array, *_ = np.histogram2d(qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges),
-                                       weights=dqy_vec)
+    dqx_raw_array, *_ = np.histogram2d(
+        qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges), weights=dqx_vec
+    )
+    dqy_raw_array, *_ = np.histogram2d(
+        qx_vec, qy_vec, bins=(qx_bin_edges, qy_bin_edges), weights=dqy_vec
+    )
 
     # Final I(Q): I_{k, final} = \frac{I_{k, raw}}{Nk}
     #       sigma = 1/sqrt(w_k)
@@ -1014,9 +1219,19 @@ def _bin_iq2d(qx_bin_edges, qy_bin_edges, qx_vec, qy_vec, dqx_vec, dqy_vec, i_ve
     return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array
 
 
-def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, iq_array, sigma_iq_array,
-                             qx_bin_edges, qy_bin_edges, sum_all_wavelengths: bool = True,
-                             debug_filter_wl: bool = False):
+def _do_2d_no_weight_binning(
+    qx_array,
+    dqx_array,
+    qy_array,
+    dqy_array,
+    wl_array,
+    iq_array,
+    sigma_iq_array,
+    qx_bin_edges,
+    qy_bin_edges,
+    sum_all_wavelengths: bool = True,
+    debug_filter_wl: bool = False,
+):
     """Perform 2D no-weight binning on I(Qx, Qy)
 
     General description of the algorithm:
@@ -1056,29 +1271,50 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
     if wl_array is None or sum_all_wavelengths:
         # bin only by (qx, qy).  all I(qx, qy, wavelength) with binned regardless of wavelength value
         # output will be I(Qx, Qy)
-        binned_iq_array, binned_sigma_iq_array, binned_dqx_array, binned_dqy_array = _bin_iq2d(qx_bin_edges,
-                                                                                               qy_bin_edges,
-                                                                                               qx_array,
-                                                                                               qy_array,
-                                                                                               dqx_array,
-                                                                                               dqy_array,
-                                                                                               iq_array,
-                                                                                               sigma_iq_array)
+        (
+            binned_iq_array,
+            binned_sigma_iq_array,
+            binned_dqx_array,
+            binned_dqy_array,
+        ) = _bin_iq2d(
+            qx_bin_edges,
+            qy_bin_edges,
+            qx_array,
+            qy_array,
+            dqx_array,
+            dqy_array,
+            iq_array,
+            sigma_iq_array,
+        )
         binned_wl_array = None
     else:
         # separate I(qx, qy, wavelength) by wavelength value and bin (qx, qy)
         # output will be I(Qx, Qy, wavelength)
         if debug_filter_wl is False and len(wl_array) > 1:
-            raise RuntimeError(f'It is not supposed to do binning with wavelength term kept.')
+            raise RuntimeError(
+                "It is not supposed to do binning with wavelength term kept."
+            )
 
         unique_wl_vec = np.unique(wl_array)
         unique_wl_vec.sort()
 
         # construct a 2D array for filtering
         if dqx_array is None:
-            wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigma_iq_array])
+            wl_matrix = np.array(
+                [wl_array, qx_array, qy_array, iq_array, sigma_iq_array]
+            )
         else:
-            wl_matrix = np.array([wl_array, qx_array, qy_array, iq_array, sigma_iq_array, dqx_array, dqy_array])
+            wl_matrix = np.array(
+                [
+                    wl_array,
+                    qx_array,
+                    qy_array,
+                    iq_array,
+                    sigma_iq_array,
+                    dqx_array,
+                    dqy_array,
+                ]
+            )
         wl_matrix = wl_matrix.transpose()
 
         binned_iq_array = np.ndarray(shape=(0,), dtype=float)
@@ -1103,35 +1339,76 @@ def _do_2d_no_weight_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array,
                 dqy_array_i = filtered_matrix[:, 6]
 
             # bin by Q2D
-            i_final_array, sigma_final_array, dqx_final_array, dqy_final_array = _bin_iq2d(qx_bin_edges, qy_bin_edges,
-                                                                                           filtered_matrix[:, 1],
-                                                                                           filtered_matrix[:, 2],
-                                                                                           dqx_array_i, dqy_array_i,
-                                                                                           filtered_matrix[:, 3],
-                                                                                           filtered_matrix[:, 4])
+            (
+                i_final_array,
+                sigma_final_array,
+                dqx_final_array,
+                dqy_final_array,
+            ) = _bin_iq2d(
+                qx_bin_edges,
+                qy_bin_edges,
+                filtered_matrix[:, 1],
+                filtered_matrix[:, 2],
+                dqx_array_i,
+                dqy_array_i,
+                filtered_matrix[:, 3],
+                filtered_matrix[:, 4],
+            )
             # build up the final output
-            binned_iq_array = np.concatenate((binned_iq_array, i_final_array), axis=1) \
-                if binned_iq_array.size else i_final_array
-            binned_sigma_iq_array = np.concatenate((binned_sigma_iq_array, sigma_final_array), axis=1) \
-                if binned_sigma_iq_array.size else sigma_final_array
+            binned_iq_array = (
+                np.concatenate((binned_iq_array, i_final_array), axis=1)
+                if binned_iq_array.size
+                else i_final_array
+            )
+            binned_sigma_iq_array = (
+                np.concatenate((binned_sigma_iq_array, sigma_final_array), axis=1)
+                if binned_sigma_iq_array.size
+                else sigma_final_array
+            )
             if dqx_array is not None:
-                binned_dqx_array = np.concatenate((binned_dqx_array, dqx_final_array), axis=1) \
-                    if binned_dqx_array.size else dqx_final_array
-                binned_dqy_array = np.concatenate((binned_dqy_array, dqy_final_array), axis=1) \
-                    if binned_dqy_array.size else dqy_final_array
-            binned_wl_array = np.concatenate((binned_wl_array, np.zeros_like(i_final_array) + wl_i), axis=1) \
-                if binned_wl_array.size else np.zeros_like(i_final_array) + wl_i
+                binned_dqx_array = (
+                    np.concatenate((binned_dqx_array, dqx_final_array), axis=1)
+                    if binned_dqx_array.size
+                    else dqx_final_array
+                )
+                binned_dqy_array = (
+                    np.concatenate((binned_dqy_array, dqy_final_array), axis=1)
+                    if binned_dqy_array.size
+                    else dqy_final_array
+                )
+            binned_wl_array = (
+                np.concatenate(
+                    (binned_wl_array, np.zeros_like(i_final_array) + wl_i), axis=1
+                )
+                if binned_wl_array.size
+                else np.zeros_like(i_final_array) + wl_i
+            )
         # END-FOR (wl_i)
 
         if dqx_array is None:
             binned_dqx_array = None
             binned_dqy_array = None
 
-    return binned_iq_array, binned_sigma_iq_array, binned_dqx_array, binned_dqy_array, binned_wl_array
+    return (
+        binned_iq_array,
+        binned_sigma_iq_array,
+        binned_dqx_array,
+        binned_dqy_array,
+        binned_wl_array,
+    )
 
 
-def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, iq_array, sigma_iq_array,
-                            x_bin_edges, y_bin_edges):
+def _do_2d_weighted_binning(
+    qx_array,
+    dqx_array,
+    qy_array,
+    dqy_array,
+    wl_array,
+    iq_array,
+    sigma_iq_array,
+    x_bin_edges,
+    y_bin_edges,
+):
     """Perform 2D weighted binning
 
     General description of algorithm:
@@ -1180,19 +1457,27 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, 
     if wl_array is None or len(unique_wl_vec) == 1:
 
         # Calculate 1/sigma^2 for multiple uses
-        invert_sigma2_array = 1. / (sigma_iq_array ** 2)   # 1D
+        invert_sigma2_array = 1.0 / (sigma_iq_array ** 2)  # 1D
 
         # Histogram on 1/sigma^2, i.e., nominator part in Equation 11.22, 11.23 and 11.24
         # sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2)
-        w_2d_array, *_ = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                        weights=invert_sigma2_array)  # 2D
+        w_2d_array, *_ = np.histogram2d(
+            qx_array,
+            qy_array,
+            bins=(x_bin_edges, y_bin_edges),
+            weights=invert_sigma2_array,
+        )  # 2D
 
         # Calculate Equation 11.22: I(Qx, Qy)
         # I(x', y') = sum_{x, y, lambda}^{K} (I(x, y, lambda) / sigma(x, y, lambda)^2) /
         #             sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2)
         # denominator in Equation 11.22: sum_{x, y, lambda}^{K} (I(x, y, lambda) / sigma(x, y, lambda)^2)
-        i_raw_2d_array, *_ = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                            weights=iq_array * invert_sigma2_array)  # 2D
+        i_raw_2d_array, *_ = np.histogram2d(
+            qx_array,
+            qy_array,
+            bins=(x_bin_edges, y_bin_edges),
+            weights=iq_array * invert_sigma2_array,
+        )  # 2D
         # denominator divided by nominator (11.22)
         i_final_array = i_raw_2d_array / w_2d_array
 
@@ -1203,16 +1488,24 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, 
         #                sum_{x, y, lambda}^{K}(1/sigma(x, y, lambda)^2)
         #                = 1 / sqrt(sum_{x, y, lambda}^{K} (1 / sigma(x, y, lambda)^2))
         # Thus histogrammed sigmaI can be obtained from histogrammed invert_sigma2_array directly
-        sigma_final_array = 1. / np.sqrt(w_2d_array)
+        sigma_final_array = 1.0 / np.sqrt(w_2d_array)
 
         # Calculate equation 11.24:  sigmaQx and sigmaQy (i.e., Q resolution)
         # sigmaQ(x', y') = sum_{x, y, lambda}^{K}(sigmaQ(x, y, lambda)/sigma^2(x, y, lambda)^2) /
         #                  sum_{x, y, lambda}^{K}(1/sigma(x, y, lambda)^2)
         # denominator in Equation 11.24: sum_{x, y, lambda}^{K}(sigmaQ(x, y, lambda)/sigma^2(x, y, lambda)^2)
-        dqx_raw_array, *_ = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                           weights=dqx_array * invert_sigma2_array)  # 2D
-        dqy_raw_array, *_ = np.histogram2d(qx_array, qy_array, bins=(x_bin_edges, y_bin_edges),
-                                           weights=dqy_array * invert_sigma2_array)  # 2D
+        dqx_raw_array, *_ = np.histogram2d(
+            qx_array,
+            qy_array,
+            bins=(x_bin_edges, y_bin_edges),
+            weights=dqx_array * invert_sigma2_array,
+        )  # 2D
+        dqy_raw_array, *_ = np.histogram2d(
+            qx_array,
+            qy_array,
+            bins=(x_bin_edges, y_bin_edges),
+            weights=dqy_array * invert_sigma2_array,
+        )  # 2D
         # denominator divided by nominator (11.24)
         dqx_final_array = dqx_raw_array / w_2d_array  # dQx
         dqy_final_array = dqy_raw_array / w_2d_array  # dQy
@@ -1222,19 +1515,27 @@ def _do_2d_weighted_binning(qx_array, dqx_array, qy_array, dqy_array, wl_array, 
         else:
             wl_final_array = np.full_like(i_final_array, unique_wl_vec[0])
     else:
-        raise NotImplementedError("2D binning with multiple wavelengths is not supported")
+        raise NotImplementedError(
+            "2D binning with multiple wavelengths is not supported"
+        )
 
-    return i_final_array, sigma_final_array, dqx_final_array, dqy_final_array, wl_final_array
+    return (
+        i_final_array,
+        sigma_final_array,
+        dqx_final_array,
+        dqy_final_array,
+        wl_final_array,
+    )
 
 
 def explore_binning_issue(ub_index, n_wavelength_bin, ub1d: IQmod, bins_1d):
     # TODO FIXME - Remove after binning issue is resolved completely
 
     # DEBUG BINNING
-    print(f'[PROOF] [{ub_index}]  Wavelength bins = {n_wavelength_bin}')
+    print(f"[PROOF] [{ub_index}]  Wavelength bins = {n_wavelength_bin}")
     if n_wavelength_bin is None:
         wl_vec = np.unique(ub1d.wavelength)
-        print(f'number of wavelength: {len(wl_vec)}: {wl_vec}')
+        print(f"number of wavelength: {len(wl_vec)}: {wl_vec}")
     else:
         wl_vec = None
 
@@ -1250,10 +1551,12 @@ def explore_binning_issue(ub_index, n_wavelength_bin, ub1d: IQmod, bins_1d):
         in_range_i_arrays = in_range_i_arrays[in_range_q_arrays < bin_qmax]
         in_range_q_arrays = in_range_q_arrays[in_range_q_arrays < bin_qmax]
         sum_intensity = in_range_i_arrays.sum()
-        print(f'{i_bin}-bin:  boundary: {bins_1d.edges[i_bin]}, {bins_1d.edges[i_bin + 1]}:'
-              f'num points = {len(in_range_q_arrays)}, '
-              f'sum = {sum_intensity},'
-              f'average = {sum_intensity / len(in_range_q_arrays)}')
+        print(
+            f"{i_bin}-bin:  boundary: {bins_1d.edges[i_bin]}, {bins_1d.edges[i_bin + 1]}:"
+            f"num points = {len(in_range_q_arrays)}, "
+            f"sum = {sum_intensity},"
+            f"average = {sum_intensity / len(in_range_q_arrays)}"
+        )
 
         if wl_vec is not None:
             # wavelength in details
@@ -1265,10 +1568,14 @@ def explore_binning_issue(ub_index, n_wavelength_bin, ub1d: IQmod, bins_1d):
             sum_i_per_wl_vec = list()
             num_pt_per_wl_vec = list()
             for wl in wl_vec:
-                selected_i_array = in_range_i_arrays[np.abs(in_range_wl_arrays - wl) < 0.001]
+                selected_i_array = in_range_i_arrays[
+                    np.abs(in_range_wl_arrays - wl) < 0.001
+                ]
                 sum_i_per_wl_vec.append(np.sum(selected_i_array))
                 num_pt_per_wl_vec.append(len(selected_i_array))
-                print(f'wl = {wl}: sum = {np.sum(selected_i_array)}, num I(Q) = {len(selected_i_array)}')
+                print(
+                    f"wl = {wl}: sum = {np.sum(selected_i_array)}, num I(Q) = {len(selected_i_array)}"
+                )
             sum_i_per_wl_vec = np.array(sum_i_per_wl_vec)
             num_pt_per_wl_vec = np.array(num_pt_per_wl_vec)
             sum_i = sum_i_per_wl_vec.sum()
@@ -1279,4 +1586,6 @@ def explore_binning_issue(ub_index, n_wavelength_bin, ub1d: IQmod, bins_1d):
             num_valid_ws = len(valid_num_pt_vec)
             bin_int = np.sum(valid_sum_i_vec / valid_num_pt_vec) / num_valid_ws
 
-            print(f'Number of I(Q) = {num_pt_per_wl_vec.sum()}, Total I(Q) = {sum_i}, Binned I = {bin_int}')
+            print(
+                f"Number of I(Q) = {num_pt_per_wl_vec.sum()}, Total I(Q) = {sum_i}, Binned I = {bin_int}"
+            )

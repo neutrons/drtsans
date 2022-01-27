@@ -5,7 +5,6 @@ from drtsans.wavelength import Wband, Wbands
 
 @pytest.mark.offline
 class TestWband(object):
-
     def test_init(self):
         with pytest.raises(ValueError):
             Wband(-1, 0)
@@ -33,7 +32,6 @@ class TestWband(object):
 
 @pytest.mark.offline
 class TestWbands(object):
-
     def test_init(self):
         # initialize with a Wband object
         ws = Wbands(Wband(1, 2))
@@ -75,5 +73,5 @@ class TestWbands(object):
         assert ws[1] == Wband(1.7, 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

@@ -9,13 +9,15 @@ def test_SANSBeamFinder(eqsans_f):
     pm = PropertyManager()
     PropertyManagerDataService.addOrReplace("test_pm", pm)
 
-    out = SANSBeamFinder(Filename=eqsans_f['beamcenter'],
-                         # UseDirectBeamMethod=True,
-                         # BeamRadius=3,
-                         ReductionProperties='test_pm')
+    out = SANSBeamFinder(
+        Filename=eqsans_f["beamcenter"],
+        # UseDirectBeamMethod=True,
+        # BeamRadius=3,
+        ReductionProperties="test_pm",
+    )
 
-    x = float(pm.getPropertyValue('LatestBeamCenterX'))
-    y = float(pm.getPropertyValue('LatestBeamCenterY'))
+    x = float(pm.getPropertyValue("LatestBeamCenterX"))
+    y = float(pm.getPropertyValue("LatestBeamCenterY"))
 
     assert x == pytest.approx(90.6773456526)
     assert y == pytest.approx(131.698906123)

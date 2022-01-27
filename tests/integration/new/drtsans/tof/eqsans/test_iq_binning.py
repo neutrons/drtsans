@@ -4,9 +4,20 @@ import os
 
 # import mantid
 from mantid import mtd
-from mantid.simpleapi import AddSampleLog, ConfigService, Rebin  # ExtractSpectra MaskAngle,
-from drtsans.tof.eqsans import (center_detector, geometry, load_events, normalization, transform_to_wavelength,
-                                convert_to_q, set_init_uncertainties)
+from mantid.simpleapi import (
+    AddSampleLog,
+    ConfigService,
+    Rebin,
+)  # ExtractSpectra MaskAngle,
+from drtsans.tof.eqsans import (
+    center_detector,
+    geometry,
+    load_events,
+    normalization,
+    transform_to_wavelength,
+    convert_to_q,
+    set_init_uncertainties,
+)
 from drtsans.iq import BinningMethod, bin_intensity_into_q1d, determine_1d_linear_bins
 from drtsans.dataobjects import IQmod
 
@@ -17,15 +28,14 @@ from drtsans.dataobjects import IQmod
 def legacy_reduction(reference_dir):
 
     from reduction_workflow.command_interface import AppendDataFile, Reduce
-    from reduction_workflow.instruments.sans import (sns_command_interface as
-                                                     eqsans)
+    from reduction_workflow.instruments.sans import sns_command_interface as eqsans
     import tempfile
 
     configI = ConfigService.Instance()
-    configI["facilityName"] = 'SNS'
+    configI["facilityName"] = "SNS"
 
     eqsans.EQSANS()
-    AppendDataFile(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'))
+    AppendDataFile(os.path.join(reference_dir.new.eqsans, "EQSANS_68200_event.nxs"))
     eqsans.UseConfig(False)
     eqsans.UseConfigTOFTailsCutoff(False)
     eqsans.UseConfigMask(False)
@@ -42,7 +52,7 @@ def legacy_reduction(reference_dir):
     eqsans.IQxQy(nbins=100, log_binning=False)
     Reduce()
 
-    return mtd['EQSANS_68200_event_iq']
+    return mtd["EQSANS_68200_event_iq"]
 
 
 def test_iq_binning_serial(reference_dir):
@@ -57,41 +67,52 @@ def test_iq_binning_serial(reference_dir):
 
     """
     # Load event data
-    ws = load_events(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'),
-                     detector_offset=0,
-                     sample_offset=0)
+    ws = load_events(
+        os.path.join(reference_dir.new.eqsans, "EQSANS_68200_event.nxs"),
+        detector_offset=0,
+        sample_offset=0,
+    )
 
     # Convert to wave length
-    ws, bands = transform_to_wavelength(ws, bin_width=0.1, low_tof_clip=500, high_tof_clip=2000)
+    ws, bands = transform_to_wavelength(
+        ws, bin_width=0.1, low_tof_clip=500, high_tof_clip=2000
+    )
     ws = set_init_uncertainties(ws)
     # Calibration in the next few steps
     center_detector(ws, center_x=0.025, center_y=0.016)
 
-    flux_ws = normalization.load_beam_flux_file(os.path.join(
-        reference_dir.new.eqsans, 'test_normalization', 'beam_profile_flux.txt'),
-        output_workspace='flux_ws', data_workspace=ws)
+    flux_ws = normalization.load_beam_flux_file(
+        os.path.join(
+            reference_dir.new.eqsans, "test_normalization", "beam_profile_flux.txt"
+        ),
+        output_workspace="flux_ws",
+        data_workspace=ws,
+    )
 
     ws = normalization.normalize_by_proton_charge_and_flux(ws, flux_ws, "ws")
 
     # Prepare to calculate Q, dQ and bin I(Q)
     # NOTE: geometry.sample_aperture_diameter is not working: slit4 missing in EQSANS_68200_event.nxs
     # We hard code the sample_aperture_diameter instead
-    AddSampleLog(Workspace=ws,
-                 LogName='sample_aperture_diameter',
-                 LogText='10.',
-                 LogType='Number',
-                 LogUnit='mm')
+    AddSampleLog(
+        Workspace=ws,
+        LogName="sample_aperture_diameter",
+        LogText="10.",
+        LogType="Number",
+        LogUnit="mm",
+    )
     geometry.source_aperture_diameter(ws)
 
     # Rebin the workspace: rebin to a coarse binning of wave length matching to final resolution I(Q)
     rebin_start, rebin_end, rebin_step = 2.6, 5.6, 0.2
-    ws = Rebin(InputWorkspace=ws,
-               OutputWorkspace="ws_rebin",
-               Params="{:.2f},{:.2f},{:.2f}".format(rebin_start, rebin_step,
-                                                    rebin_end))
+    ws = Rebin(
+        InputWorkspace=ws,
+        OutputWorkspace="ws_rebin",
+        Params="{:.2f},{:.2f},{:.2f}".format(rebin_start, rebin_step, rebin_end),
+    )
 
     # Calculate Q and dQ
-    r = convert_to_q(ws, mode='scalar', resolution_function=None)
+    r = convert_to_q(ws, mode="scalar", resolution_function=None)
     iq_array = r[0]
     sigma_iq_array = r[1]
     q_array = r[2]
@@ -102,7 +123,9 @@ def test_iq_binning_serial(reference_dir):
     test_iq = IQmod(iq_array, sigma_iq_array, q_array, dq_array, None)
     q_max = test_iq.mod_q.max()
     linear_bins = determine_1d_linear_bins(final_q_min, q_max, 10)
-    i_of_q = bin_intensity_into_q1d(test_iq, linear_bins, bin_method=BinningMethod.WEIGHTED)
+    i_of_q = bin_intensity_into_q1d(
+        test_iq, linear_bins, bin_method=BinningMethod.WEIGHTED
+    )
     assert i_of_q
 
     # TODO - continue from here
@@ -178,9 +201,11 @@ def test_iq_binning_serial(reference_dir):
 
 def skip_test_api(reference_dir):
 
-    ws = load_events(os.path.join(reference_dir.new.eqsans, 'EQSANS_68200_event.nxs'),
-                     detector_offset=0,
-                     sample_offset=0)
+    ws = load_events(
+        os.path.join(reference_dir.new.eqsans, "EQSANS_68200_event.nxs"),
+        detector_offset=0,
+        sample_offset=0,
+    )
     assert ws
 
     # ws = transform_to_wavelength(ws,

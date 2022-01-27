@@ -93,7 +93,7 @@ class CG3EventNexusConvert(EventNexusConverter):
                 else:
                     # wing
                     bank_id = group_bank_shift + tube_bank_shift * num_wing_8packs
-                bank_id += 1   # Nexus bank ID starts from 1
+                bank_id += 1  # Nexus bank ID starts from 1
 
                 # spice tube index
                 spice_tube_index = tube_group * 8 + tube_index
@@ -102,8 +102,12 @@ class CG3EventNexusConvert(EventNexusConverter):
                 # map counts to
                 spice_count_start_index = spice_tube_index * num_pixel_per_tube
                 bank_count_start_index = bank_tube_index * num_pixel_per_tube
-                self._bank_counts_dict[bank_id][bank_count_start_index:bank_count_start_index + num_pixel_per_tube] = \
-                    self._spice_detector_counts[spice_count_start_index:spice_count_start_index + num_pixel_per_tube]
+                self._bank_counts_dict[bank_id][
+                    bank_count_start_index : bank_count_start_index + num_pixel_per_tube
+                ] = self._spice_detector_counts[
+                    spice_count_start_index : spice_count_start_index
+                    + num_pixel_per_tube
+                ]
 
     def get_pid_range(self, bank_id):
         """Set GPSANS bank and pixel ID relation
@@ -159,7 +163,7 @@ def convert_spice_to_nexus(
     masked_detector_pixels: List[int] = list(),
     output_dir: str = None,
     spice_dir: str = None,
-    spice_data: str = Union[None, str]
+    spice_data: str = Union[None, str],
 ):
     """
     Description
@@ -227,8 +231,10 @@ def convert_spice_to_nexus(
         try:
             os.mkdir(output_dir)
         except (OSError, IOError) as dir_err:
-            raise RuntimeError(f"Output directory {output_dir} doesn't exist."
-                               f"Unable to create {output_dir} due to {dir_err}")
+            raise RuntimeError(
+                f"Output directory {output_dir} doesn't exist."
+                f"Unable to create {output_dir} due to {dir_err}"
+            )
 
     # output file name
     out_nexus_file = os.path.join(

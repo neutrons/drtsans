@@ -1,6 +1,8 @@
 from drtsans.dataobjects import IQazimuthal, q_azimuthal_to_q_modulo
+
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import select_i_of_q_by_wedge
+
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/test_q_azimuthal_to_q_modulo.py
 from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data
 import pytest
@@ -22,20 +24,24 @@ def test_i_q_azimuthal_to_i_q_modulo():
     """
     """Test 'i_q_azimuthal_to_i_q_modulo
     """
-    min_wedge_angle = -45.
+    min_wedge_angle = -45.0
     max_wedge_angle = 45
 
     # Get data
-    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(
+        2, True
+    )
 
     # Test high level method
     # Define input data
-    test_i_q = IQazimuthal(intensity=intensities,
-                           error=sigmas,
-                           qx=qx_array,
-                           qy=qy_array,
-                           delta_qx=dqx_array,
-                           delta_qy=dqy_array)
+    test_i_q = IQazimuthal(
+        intensity=intensities,
+        error=sigmas,
+        qx=qx_array,
+        qy=qy_array,
+        delta_qx=dqx_array,
+        delta_qy=dqy_array,
+    )
 
     # Select I(Q) inside wedge
     wedge_i_of_q = select_i_of_q_by_wedge(test_i_q, min_wedge_angle, max_wedge_angle)
@@ -50,5 +56,5 @@ def test_i_q_azimuthal_to_i_q_modulo():
     assert delta_mod_q[-1] == pytest.approx(0.0111666, abs=1e-7)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

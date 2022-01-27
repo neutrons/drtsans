@@ -8,7 +8,9 @@ from mantid.simpleapi import CreateWorkspace, logger
 
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/205
-def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, threshold_min, threshold_max):
+def prepare_sensitivity(
+    flood_data_matrix, flood_sigma_matrix, threshold_min, threshold_max
+):
     """Prepare sensitivity for moving detector
 
     Data files are processed such that intensities and errors are stored in numpy.ndarray with shape (N, M), where
@@ -56,22 +58,30 @@ def prepare_sensitivity(flood_data_matrix, flood_sigma_matrix, threshold_min, th
 
     # find weighted average for each fie and error
     # inputs: (N, M) array; outputs: (N, M) array
-    returns = _calculate_weighted_average_with_error(flood_data_matrix, flood_sigma_matrix)
+    returns = _calculate_weighted_average_with_error(
+        flood_data_matrix, flood_sigma_matrix
+    )
     flood_data_matrix = returns[0]
     flood_sigma_matrix = returns[1]
 
     # apply bad pixel threshold to each file
     # inputs: (N, M) array; outputs: (N, M) array
-    flood_data_matrix, flood_sigma_matrix = _apply_sensitivity_thresholds(flood_data_matrix, flood_sigma_matrix,
-                                                                          threshold_min, threshold_max)
+    flood_data_matrix, flood_sigma_matrix = _apply_sensitivity_thresholds(
+        flood_data_matrix, flood_sigma_matrix, threshold_min, threshold_max
+    )
 
     # correct for beam stop and add all the flood files together to non-normalized sensitivities
-    raw_sensitivities, raw_sensitivities_error = _calculate_pixel_wise_sensitivity(flood_data_matrix,
-                                                                                   flood_sigma_matrix)
+    raw_sensitivities, raw_sensitivities_error = _calculate_pixel_wise_sensitivity(
+        flood_data_matrix, flood_sigma_matrix
+    )
 
     # apply weighted average to sensitivities
-    sensitivities, sensitivities_error, sens_avg, sigma_sens_avg = _normalize_sensitivities(raw_sensitivities,
-                                                                                            raw_sensitivities_error)
+    (
+        sensitivities,
+        sensitivities_error,
+        sens_avg,
+        sigma_sens_avg,
+    ) = _normalize_sensitivities(raw_sensitivities, raw_sensitivities_error)
     return sensitivities, sensitivities_error
 
 
@@ -93,9 +103,11 @@ def _mask_zero_count_pixel(flood_data_matrix, flood_sigma_matrix):
 
     """
     # get the zero count elments
-    zero_count_elements = flood_data_matrix < 1E-12
-    logger.notice(f'Input flood runs: total {len(np.where(zero_count_elements)[0])} are '
-                  f'masked')
+    zero_count_elements = flood_data_matrix < 1e-12
+    logger.notice(
+        f"Input flood runs: total {len(np.where(zero_count_elements)[0])} are "
+        f"masked"
+    )
 
     # set to NaN
     flood_data_matrix[zero_count_elements] = np.nan
@@ -133,25 +145,37 @@ def _calculate_weighted_average_with_error(normalized_data, normalized_error):
     # Summation is done along axis=1, the return, weighted_sum, is a 1D array with shape (M,)
 
     # calculate:  sum_{n} I(m, n) / sigma^2(m, n)
-    weighted_sum = np.nansum(normalized_data / normalized_error**2, axis=1)  # summing in row
+    weighted_sum = np.nansum(
+        normalized_data / normalized_error ** 2, axis=1
+    )  # summing in row
     # calculate: sum_n(1 / sigma^2(m, n))
-    weights_square = np.nansum(1. / normalized_error**2, axis=1)
+    weights_square = np.nansum(1.0 / normalized_error ** 2, axis=1)
     # average[m] == sum_{n}(I(m, n) / sigma^2(m, n)) / sum_{n}(1 / sigma^2(m, n))
     weighted_average = weighted_sum / weights_square
     # reshape to (M, 1) for division to input 2D array with shape (M, N)
-    weighted_average = weighted_average.reshape((normalized_data.shape[0], 1))  # reshape to (N, 1) for division
+    weighted_average = weighted_average.reshape(
+        (normalized_data.shape[0], 1)
+    )  # reshape to (N, 1) for division
     # calculate: error for weighted average: sigma_avg[m] = 1 / sqrt(sum_{n}(1 / sigma^2(m, n)))
-    weighted_average_error = 1. / np.sqrt(weights_square)
+    weighted_average_error = 1.0 / np.sqrt(weights_square)
     # reshape to (M, 1) for division to input 2D array with shape (M, N)
-    weighted_average_error = weighted_average_error.reshape((normalized_data.shape[0], 1))
+    weighted_average_error = weighted_average_error.reshape(
+        (normalized_data.shape[0], 1)
+    )
 
     # Normalize data by weighted-average
     avg_norm_data = normalized_data / weighted_average
 
     # Propagate uncertainties: sigma S(n) = I(m, n) / avg * [(error(m, n)/I(m, n))^2 + (sigma Avg/Avg)^2]^1/2
     # in the sqrt operation, first term is a N x M array and second term is a N x 1 array
-    avg_norm_error = normalized_data / weighted_average * np.sqrt((normalized_error / normalized_data)**2
-                                                                  + (weighted_average_error / weighted_average)**2)
+    avg_norm_error = (
+        normalized_data
+        / weighted_average
+        * np.sqrt(
+            (normalized_error / normalized_data) ** 2
+            + (weighted_average_error / weighted_average) ** 2
+        )
+    )
 
     return avg_norm_data, avg_norm_error, weighted_average, weighted_average_error
 
@@ -223,9 +247,11 @@ def _calculate_pixel_wise_sensitivity(flood_data, flood_error):
     # np.nansum():  https://docs.scipy.org/doc/numpy/reference/generated/numpy.nansum.html
     # If there is any element in array that is infinity, the summation of all elements on the specified axis
     # i.e., among all flood data files/runs, could be messed up (though every likely the summed value is inf).
-    s_ij = np.nansum(1. / flood_error ** 2, axis=0)  # summation along axis 1: among files
+    s_ij = np.nansum(
+        1.0 / flood_error ** 2, axis=0
+    )  # summation along axis 1: among files
     d_ij = np.nansum(flood_data / flood_error ** 2, axis=0) / s_ij
-    s_ij = 1. / np.sqrt(s_ij)
+    s_ij = 1.0 / np.sqrt(s_ij)
 
     # In case there is at least an inf in this subset of data along axis=0, i.e., among various flood runs/files,
     # set sensitivities to -inf in case nansum() messes up
@@ -265,8 +291,10 @@ def _normalize_sensitivities(d_array, sigam_d_array):
     # Any NaN terms and Infinity terms (for bad pixels) shall be excluded from summation
     # ~(np.isinf(d_array) | np.isnan(d_array) gives out the indexes of elements in d_array that are not NaN or Inf
     # calculate denominator: denominator = sum_{i, j}{D(i, j) / sigma^2(i, j)} = sum_{n}(D(n) / sigma^2(n))
-    denominator = np.sum(d_array[~(np.isinf(d_array) | np.isnan(d_array))] /
-                         sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
+    denominator = np.sum(
+        d_array[~(np.isinf(d_array) | np.isnan(d_array))]
+        / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2
+    )
     # calculate nominator: nominator = sum_{m, n}{1 / sigma^2(m, n)}
     nominator = np.sum(1 / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
     sens_avg = denominator / nominator
@@ -280,13 +308,18 @@ def _normalize_sensitivities(d_array, sigam_d_array):
     # Thus, all the NaN terms shall be excluded from summation
     # All the infinity terms shall be ignored because (1/inf) is zero and has no contribution in summation
     # d_array[~(np.isinf(d_array) | np.isnan(d_array))] excludes all items that are either infinity or Nan
-    sigma_sens_avg = np.sqrt(1 / np.sum(1 / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))]**2))
+    sigma_sens_avg = np.sqrt(
+        1 / np.sum(1 / sigam_d_array[~(np.isinf(d_array) | np.isnan(d_array))] ** 2)
+    )
 
     # Propagate the sensitivities
     # sigma_sens(m, n) = D(m, n) / S_avg * [(sigma_D(m, n) / D(m, n))^2 + (sigma_S_avg / S_avg)^2]^{1/2}
     # D(m, n) are the non-normalized sensitivities
-    sensitivities_error = d_array / sens_avg * np.sqrt((sigam_d_array / d_array) ** 2
-                                                       + (sigma_sens_avg / sens_avg) ** 2)
+    sensitivities_error = (
+        d_array
+        / sens_avg
+        * np.sqrt((sigam_d_array / d_array) ** 2 + (sigma_sens_avg / sens_avg) ** 2)
+    )
 
     # set sensitivities error to -infinity if sensitivities are
     sensitivities_error[np.isinf(sensitivities)] = -np.inf
@@ -357,16 +390,18 @@ def calculate_sensitivity_correction(flood_run_ws_list, threshold_min, threshold
         sigma_array[f_index][:] = flood_run_ws_list[f_index].extractE().transpose()[0]
 
     # Convert all masked pixels' counts to NaN
-    masked_items = np.where(sigma_array < 1E-16)
+    masked_items = np.where(sigma_array < 1e-16)
     # set values to masked pixels
     flood_array[masked_items] = np.nan
     sigma_array[masked_items] = np.nan
 
     # Calculate sensitivities
-    sens_array, sens_sigma_array = prepare_sensitivity(flood_data_matrix=flood_array,
-                                                       flood_sigma_matrix=sigma_array,
-                                                       threshold_min=threshold_min,
-                                                       threshold_max=threshold_max)
+    sens_array, sens_sigma_array = prepare_sensitivity(
+        flood_data_matrix=flood_array,
+        flood_sigma_matrix=sigma_array,
+        threshold_min=threshold_min,
+        threshold_max=threshold_max,
+    )
 
     # Convert all -infinity to nan
     sens_sigma_array[np.where(np.isinf(sens_array))] = np.nan
@@ -375,14 +410,16 @@ def calculate_sensitivity_correction(flood_run_ws_list, threshold_min, threshold
     # Export to a MatrixWorkspace
     # Create a workspace for sensitivities
     vec_x = flood_run_ws_list[0].extractX().flatten()
-    sens_ws_name = 'sensitivities'
+    sens_ws_name = "sensitivities"
 
     # Create output workspace
-    nexus_ws = CreateWorkspace(DataX=vec_x,
-                               DataY=sens_array,
-                               DataE=sens_sigma_array,
-                               NSpec=num_spec,
-                               UnitX='wavelength',
-                               OutputWorkspace=sens_ws_name)
+    nexus_ws = CreateWorkspace(
+        DataX=vec_x,
+        DataY=sens_array,
+        DataE=sens_sigma_array,
+        NSpec=num_spec,
+        UnitX="wavelength",
+        OutputWorkspace=sens_ws_name,
+    )
 
     return nexus_ws

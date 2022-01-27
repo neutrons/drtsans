@@ -10,10 +10,10 @@ def test_create_base_node():
     -------
 
     """
-    attributes = {'A': 3, 'B': 'hello world'}
-    attributes_alt1 = {'A': 3, 'B': 'hello worlds'}
-    attributes_alt2 = {'A': 3, 'B': 'hello world', 'C': 3.23}
-    name = 'test'
+    attributes = {"A": 3, "B": "hello world"}
+    attributes_alt1 = {"A": 3, "B": "hello worlds"}
+    attributes_alt2 = {"A": 3, "B": "hello world", "C": 3.23}
+    name = "test"
 
     node1 = HDFNode(name=name)
     node1.add_attributes(attributes)
@@ -46,9 +46,9 @@ def test_create_data_node():
     -------
 
     """
-    attributes = {'A': 3, 'B': 'hello world'}
-    attributes_alt1 = {'A': 3, 'B': 'hello worlds'}
-    name = 'test data'
+    attributes = {"A": 3, "B": "hello world"}
+    attributes_alt1 = {"A": 3, "B": "hello worlds"}
+    name = "test data"
 
     node1 = DataSetNode(name)
     node1.add_attributes(attributes)
@@ -85,9 +85,9 @@ def test_create_group_node():
     -------
 
     """
-    attributes = {'A': 3, 'B': 'hello world'}
-    attributes_alt1 = {'A': 3, 'B': 'hello worlds'}
-    name = 'test data'
+    attributes = {"A": 3, "B": "hello world"}
+    attributes_alt1 = {"A": 3, "B": "hello worlds"}
+    name = "test data"
 
     # define nodes
     node1 = GroupNode(name)
@@ -96,20 +96,20 @@ def test_create_group_node():
     node2 = GroupNode(name)
     node2.add_attributes(attributes)
 
-    node3 = GroupNode('node3')
+    node3 = GroupNode("node3")
     node3.add_attributes(attributes_alt1)
 
-    node4 = GroupNode('node45')
+    node4 = GroupNode("node45")
     node4.add_attributes(attributes_alt1)
 
-    node5 = GroupNode('node45')
+    node5 = GroupNode("node45")
     node5.add_attributes(attributes_alt1)
 
-    node6 = DataSetNode('data')
-    node6.set_string_value('abcdefg')
+    node6 = DataSetNode("data")
+    node6.set_string_value("abcdefg")
 
-    node7 = DataSetNode('data')
-    node7.set_string_value('abcdefgh')
+    node7 = DataSetNode("data")
+    node7.set_string_value("abcdefgh")
 
     # set node 1 and its group
     node1.set_child(node3)
@@ -142,15 +142,15 @@ def test_check_type():
     -------
 
     """
-    attributes = {'A': 3, 'B': 'hello world'}
+    attributes = {"A": 3, "B": "hello world"}
 
-    node1 = HDFNode('test')
+    node1 = HDFNode("test")
     node1.add_attributes(attributes)
 
-    node2 = GroupNode('test')
+    node2 = GroupNode("test")
     node2.add_attributes(attributes)
 
-    node3 = DataSetNode('test')
+    node3 = DataSetNode("test")
     node3.add_attributes(attributes)
 
     # node 3 shall match to node 1
@@ -167,5 +167,5 @@ def test_check_type():
         node3.match(node2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main(__file__)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import pytest
 from mantid import mtd
+
 # https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
 from mantid.simpleapi import LoadHFIRSANS
 from drtsans.settings import unique_workspace_dundername
@@ -10,7 +11,7 @@ from drtsans.mono.gpsans import center_detector, find_beam_center
 # the data for this test is defined in tests/conftest.py and is currently CG2_exp325_scan0020_0001.xml
 def test_beam_finder(gpsans_f):
     ws = unique_workspace_dundername()
-    LoadHFIRSANS(Filename=gpsans_f['beamcenter'], OutputWorkspace=ws)
+    LoadHFIRSANS(Filename=gpsans_f["beamcenter"], OutputWorkspace=ws)
 
     x, y, _ = find_beam_center(ws)
     print("Beam center found = ({:.3}, {:.3}) meters.".format(x, y))
@@ -30,5 +31,5 @@ def test_beam_finder(gpsans_f):
     mtd.remove(ws)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

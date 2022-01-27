@@ -13,8 +13,20 @@ RemoveSpectra <https://docs.mantidproject.org/nightly/algorithms/RemoveSpectra-v
 Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
 SplineInterpolation <https://docs.mantidproject.org/nightly/algorithms/SplineInterpolation-v1.html>
 """
-from mantid.simpleapi import (CloneWorkspace, ConvertToHistogram, DeleteWorkspace, Divide, Load, LoadAscii, Multiply,
-                              NormaliseByCurrent, RebinToWorkspace, RemoveSpectra, Scale, SplineInterpolation)
+from mantid.simpleapi import (
+    CloneWorkspace,
+    ConvertToHistogram,
+    DeleteWorkspace,
+    Divide,
+    Load,
+    LoadAscii,
+    Multiply,
+    NormaliseByCurrent,
+    RebinToWorkspace,
+    RemoveSpectra,
+    Scale,
+    SplineInterpolation,
+)
 from mantid.api import mtd
 
 r"""
@@ -29,7 +41,12 @@ from drtsans.samplelogs import SampleLogs
 from drtsans import path
 from drtsans.dark_current import duration as run_duration
 
-__all__ = ['normalize_by_flux', 'normalize_by_time', 'normalize_by_monitor', 'normalize_by_proton_charge_and_flux']
+__all__ = [
+    "normalize_by_flux",
+    "normalize_by_time",
+    "normalize_by_monitor",
+    "normalize_by_proton_charge_and_flux",
+]
 
 
 def load_beam_flux_file(flux, data_workspace=None, output_workspace=None):
@@ -62,12 +79,22 @@ def load_beam_flux_file(flux, data_workspace=None, output_workspace=None):
         output_workspace = unique_workspace_dundername()  # make a hidden workspace
 
     # Load flux filename to a point-data workspace (we have as many intensities as wavelength values)
-    LoadAscii(Filename=flux, Separator="Tab", Unit="Wavelength", OutputWorkspace=output_workspace)
+    LoadAscii(
+        Filename=flux,
+        Separator="Tab",
+        Unit="Wavelength",
+        OutputWorkspace=output_workspace,
+    )
     # In histogram data we have as many intensities as wavelength bins
-    ConvertToHistogram(InputWorkspace=output_workspace,  OutputWorkspace=output_workspace)
+    ConvertToHistogram(
+        InputWorkspace=output_workspace, OutputWorkspace=output_workspace
+    )
     if data_workspace is not None:
-        RebinToWorkspace(WorkspaceToRebin=output_workspace, WorkspaceToMatch=data_workspace,
-                         OutputWorkspace=output_workspace)
+        RebinToWorkspace(
+            WorkspaceToRebin=output_workspace,
+            WorkspaceToMatch=data_workspace,
+            OutputWorkspace=output_workspace,
+        )
     return mtd[output_workspace]
 
 
@@ -99,17 +126,31 @@ def normalize_by_proton_charge_and_flux(input_workspace, flux, output_workspace=
         output_workspace = str(input_workspace)
     # Match the binning of the input workspace prior to carry out the division
     rebinned_flux = unique_workspace_dundername()
-    RebinToWorkspace(WorkspaceToRebin=flux, WorkspaceToMatch=input_workspace, OutputWorkspace=rebinned_flux)
+    RebinToWorkspace(
+        WorkspaceToRebin=flux,
+        WorkspaceToMatch=input_workspace,
+        OutputWorkspace=rebinned_flux,
+    )
     # Normalize by the flux
-    Divide(LHSWorkspace=input_workspace, RHSWorkspace=rebinned_flux, OutputWorkspace=output_workspace)
+    Divide(
+        LHSWorkspace=input_workspace,
+        RHSWorkspace=rebinned_flux,
+        OutputWorkspace=output_workspace,
+    )
     DeleteWorkspace(rebinned_flux)  # remove the temporary rebinned flux workspace
     # Normalize by the proton charge
-    NormaliseByCurrent(InputWorkspace=output_workspace, OutputWorkspace=output_workspace)
+    NormaliseByCurrent(
+        InputWorkspace=output_workspace, OutputWorkspace=output_workspace
+    )
     return mtd[output_workspace]
 
 
-def load_flux_to_monitor_ratio_file(flux_to_monitor_ratio_file, data_workspace=None, loader_kwargs=dict(),
-                                    output_workspace=None):
+def load_flux_to_monitor_ratio_file(
+    flux_to_monitor_ratio_file,
+    data_workspace=None,
+    loader_kwargs=dict(),
+    output_workspace=None,
+):
     r"""
     Loads the flux-to-monitor ratio
 
@@ -139,15 +180,26 @@ def load_flux_to_monitor_ratio_file(flux_to_monitor_ratio_file, data_workspace=N
         output_workspace = unique_workspace_dundername()  # make a hidden workspace
 
     # Let Mantid figure out what kind file format is the flux file
-    Load(Filename=flux_to_monitor_ratio_file, OutputWorkspace=output_workspace, **loader_kwargs)
-    ConvertToHistogram(InputWorkspace=output_workspace, OutputWorkspace=output_workspace)
+    Load(
+        Filename=flux_to_monitor_ratio_file,
+        OutputWorkspace=output_workspace,
+        **loader_kwargs
+    )
+    ConvertToHistogram(
+        InputWorkspace=output_workspace, OutputWorkspace=output_workspace
+    )
     if data_workspace is not None:
-        SplineInterpolation(WorkspaceToMatch=data_workspace, WorkspaceToInterpolate=output_workspace,
-                            OutputWorkspace=output_workspace)
+        SplineInterpolation(
+            WorkspaceToMatch=data_workspace,
+            WorkspaceToInterpolate=output_workspace,
+            OutputWorkspace=output_workspace,
+        )
     return mtd[output_workspace]
 
 
-def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, output_workspace=None):
+def normalize_by_monitor(
+    input_workspace, flux_to_monitor, monitor_workspace, output_workspace=None
+):
     r"""
     Normalizes the input workspace by monitor count and flux-to-monitor
     ratio.
@@ -183,36 +235,65 @@ def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
 
     # Check non-skip mode
     if bool(SampleLogs(input_workspace).is_frame_skipping.value) is True:
-        msg = 'Normalization by monitor not possible in frame-skipping mode'
+        msg = "Normalization by monitor not possible in frame-skipping mode"
         raise ValueError(msg)
 
     # Only the first spectrum of the monitor is required
     monitor_workspace_rebinned = unique_workspace_dundername()
-    RebinToWorkspace(monitor_workspace, input_workspace, OutputWorkspace=monitor_workspace_rebinned)
-    excess_idx = range(1, mtd[monitor_workspace_rebinned].getNumberHistograms())  # only one spectrum is needed
-    RemoveSpectra(monitor_workspace_rebinned, WorkspaceIndices=excess_idx, OutputWorkspace=monitor_workspace_rebinned)
+    RebinToWorkspace(
+        monitor_workspace, input_workspace, OutputWorkspace=monitor_workspace_rebinned
+    )
+    excess_idx = range(
+        1, mtd[monitor_workspace_rebinned].getNumberHistograms()
+    )  # only one spectrum is needed
+    RemoveSpectra(
+        monitor_workspace_rebinned,
+        WorkspaceIndices=excess_idx,
+        OutputWorkspace=monitor_workspace_rebinned,
+    )
 
     # Elucidate the nature of the flux to monitor input
     flux_to_monitor_workspace = unique_workspace_dundername()
     if isinstance(flux_to_monitor, str) and path.exists(flux_to_monitor):
-        load_flux_to_monitor_ratio_file(flux_to_monitor, data_workspace=input_workspace,
-                                        output_workspace=flux_to_monitor_workspace)
+        load_flux_to_monitor_ratio_file(
+            flux_to_monitor,
+            data_workspace=input_workspace,
+            output_workspace=flux_to_monitor_workspace,
+        )
     else:
         CloneWorkspace(flux_to_monitor, OutputWorkspace=flux_to_monitor_workspace)
         # Match the binning to that of the input workspace. Necessary prior to division
-        SplineInterpolation(WorkspaceToMatch=input_workspace, WorkspaceToInterpolate=flux_to_monitor_workspace,
-                            OutputWorkspace=flux_to_monitor_workspace)
+        SplineInterpolation(
+            WorkspaceToMatch=input_workspace,
+            WorkspaceToInterpolate=flux_to_monitor_workspace,
+            OutputWorkspace=flux_to_monitor_workspace,
+        )
 
     # the neutron flux integrated over the duration of the run is the product of the monitor counts and the
     # flux-to-monitor ratios
     flux_workspace = unique_workspace_dundername()
-    Multiply(monitor_workspace_rebinned, flux_to_monitor_workspace, OutputWorkspace=flux_workspace)
+    Multiply(
+        monitor_workspace_rebinned,
+        flux_to_monitor_workspace,
+        OutputWorkspace=flux_workspace,
+    )
 
     # Normalize our input workspace
-    Divide(LHSWorkspace=input_workspace, RHSWorkspace=flux_workspace, OutputWorkspace=output_workspace)
+    Divide(
+        LHSWorkspace=input_workspace,
+        RHSWorkspace=flux_workspace,
+        OutputWorkspace=output_workspace,
+    )
 
     # Clean the dust balls
-    [DeleteWorkspace(name) for name in (flux_to_monitor_workspace, flux_workspace, monitor_workspace_rebinned)]
+    [
+        DeleteWorkspace(name)
+        for name in (
+            flux_to_monitor_workspace,
+            flux_workspace,
+            monitor_workspace_rebinned,
+        )
+    ]
     return mtd[output_workspace]
 
 
@@ -241,12 +322,23 @@ def normalize_by_time(input_workspace, log_key=None, output_workspace=None):
     if output_workspace is None:
         output_workspace = str(input_workspace)
     duration = run_duration(input_workspace, log_key=log_key)
-    Scale(input_workspace, Factor=1./duration.value, Operation='Multiply', OutputWorkspace=output_workspace)
-    SampleLogs(output_workspace).insert('normalizing_duration', duration.log_key)
+    Scale(
+        input_workspace,
+        Factor=1.0 / duration.value,
+        Operation="Multiply",
+        OutputWorkspace=output_workspace,
+    )
+    SampleLogs(output_workspace).insert("normalizing_duration", duration.log_key)
     return mtd[output_workspace]
 
 
-def normalize_by_flux(input_workspace, flux, method='proton charge', monitor_workspace=None, output_workspace=None):
+def normalize_by_flux(
+    input_workspace,
+    flux,
+    method="proton charge",
+    monitor_workspace=None,
+    output_workspace=None,
+):
     r"""
     Normalize counts by several methods to estimate the neutron flux.
 
@@ -284,26 +376,29 @@ def normalize_by_flux(input_workspace, flux, method='proton charge', monitor_wor
         output_workspace = str(input_workspace)
 
     # Use the appropriate flux file loader
-    if method == 'proton charge':
+    if method == "proton charge":
         w_flux = load_beam_flux_file(flux, data_workspace=input_workspace)
-    elif method == 'monitor':
+    elif method == "monitor":
         w_flux = load_flux_to_monitor_ratio_file(flux, data_workspace=input_workspace)
     else:
         w_flux = None
 
     # Select the normalization function
-    normalizer = {'proton charge': normalize_by_proton_charge_and_flux,
-                  'monitor': normalize_by_monitor,
-                  'time': normalize_by_time}
+    normalizer = {
+        "proton charge": normalize_by_proton_charge_and_flux,
+        "monitor": normalize_by_monitor,
+        "time": normalize_by_time,
+    }
 
     # Arguments specific to the normalizer
-    args = {'proton charge': [w_flux],
-            'monitor': [w_flux, monitor_workspace]}
+    args = {"proton charge": [w_flux], "monitor": [w_flux, monitor_workspace]}
     args = args.get(method, list())
-    kwargs = {'time': dict(log_key=flux)}
+    kwargs = {"time": dict(log_key=flux)}
     kwargs = kwargs.get(method, dict())
 
-    normalizer[method](input_workspace, *args, output_workspace=output_workspace, **kwargs)
+    normalizer[method](
+        input_workspace, *args, output_workspace=output_workspace, **kwargs
+    )
 
     # A bit of cleanup
     if w_flux:

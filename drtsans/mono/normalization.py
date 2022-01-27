@@ -14,7 +14,7 @@ SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drts
 from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 
-__all__ = ['normalize_by_time', 'normalize_by_monitor', 'normalize_by_flux']
+__all__ = ["normalize_by_time", "normalize_by_monitor", "normalize_by_flux"]
 
 
 def normalize_by_flux(ws, method):
@@ -48,7 +48,7 @@ def normalize_by_time(input_workspace, output_workspace=None):
     output_workspace: str
         Optional name of the output workspace. Default is to replace the input workspace
     """
-    log_keys = ('duration', 'timer')  # valid log keys to search for run duration
+    log_keys = ("duration", "timer")  # valid log keys to search for run duration
     input_workspace = str(input_workspace)
     if output_workspace is None:
         output_workspace = input_workspace
@@ -56,11 +56,17 @@ def normalize_by_time(input_workspace, output_workspace=None):
         try:
             duration = SampleLogs(input_workspace).single_value(log_key)
             # Cast the timer value into a Mantid workspace to later divide the input workspace by this workspace
-            duration_workspace = CreateSingleValuedWorkspace(duration, OutputWorkspace=unique_workspace_dundername())
+            duration_workspace = CreateSingleValuedWorkspace(
+                duration, OutputWorkspace=unique_workspace_dundername()
+            )
             break
         except RuntimeError:
             continue  # check next log entry
-    Divide(LHSWorkspace=input_workspace, RHSWorkspace=duration_workspace, OutputWorkspace=output_workspace)
+    Divide(
+        LHSWorkspace=input_workspace,
+        RHSWorkspace=duration_workspace,
+        OutputWorkspace=output_workspace,
+    )
     duration_workspace.delete()  # some cleanup
     return mtd[output_workspace]
 
@@ -88,10 +94,12 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
     RuntimeError
         No monitor metadata found in the sample logs of the input workspace
     """
-    metadata_entry_names = ['monitor',  # created by load_events
-                            'monitor1']  # may be in the DAS logs
+    metadata_entry_names = [
+        "monitor",  # created by load_events
+        "monitor1",
+    ]  # may be in the DAS logs
 
-    reference_total_counts = 1.e08  # actual number selected by the instrument team
+    reference_total_counts = 1.0e08  # actual number selected by the instrument team
     input_workspace = str(input_workspace)
 
     if output_workspace is None:
@@ -99,13 +107,22 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
     for entry_name in metadata_entry_names:
         monitor = None
         try:
-            monitor = SampleLogs(input_workspace).single_value(entry_name) / reference_total_counts
+            monitor = (
+                SampleLogs(input_workspace).single_value(entry_name)
+                / reference_total_counts
+            )
             break
         except RuntimeError:  # the entry is not found in the metadata
             continue  # search next entry
     else:
-        raise RuntimeError('No monitor metadata found')
+        raise RuntimeError("No monitor metadata found")
     # Cast the monitor value into a Mantid workspace to later divide the input workspace by this workspace
-    monitor_workspace = CreateSingleValuedWorkspace(monitor, OutputWorkspace=unique_workspace_dundername())
-    Divide(LHSWorkspace=input_workspace, RHSWorkspace=monitor_workspace, OutputWorkspace=output_workspace)
+    monitor_workspace = CreateSingleValuedWorkspace(
+        monitor, OutputWorkspace=unique_workspace_dundername()
+    )
+    Divide(
+        LHSWorkspace=input_workspace,
+        RHSWorkspace=monitor_workspace,
+        OutputWorkspace=output_workspace,
+    )
     return mtd[output_workspace]

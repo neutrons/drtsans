@@ -3,26 +3,30 @@ import os
 from mantid.kernel import ConfigService
 from mantid.api import mtd
 
-__all__ = ['InstrumentEnumName', 'instrument_enum_name', 'instrument_standard_name', 'is_time_of_flight']
+__all__ = [
+    "InstrumentEnumName",
+    "instrument_enum_name",
+    "instrument_standard_name",
+    "is_time_of_flight",
+]
 
-INSTRUMENT_LABELS = ['CG3', 'BIOSANS', 'EQ-SANS', 'EQSANS', 'CG2', 'GPSANS']
+INSTRUMENT_LABELS = ["CG3", "BIOSANS", "EQ-SANS", "EQSANS", "CG2", "GPSANS"]
 
 
 @enum.unique
 class InstrumentEnumName(enum.Enum):
-
     @staticmethod
     def names():
         r"""Standard names for all instruments, in alphabetical order"""
         names_all = list(map(str, InstrumentEnumName))
-        names_all.remove('UNDEFINED')
+        names_all.remove("UNDEFINED")
         return sorted(names_all)
 
     r"""Unique names labelling each instrument"""
     UNDEFINED = None  # usually the dummy instrument used for testing
-    BIOSANS = ConfigService.getFacility('HFIR').instrument('BIOSANS')
-    EQSANS = ConfigService.getFacility('SNS').instrument('EQSANS')
-    GPSANS = ConfigService.getFacility('HFIR').instrument('GPSANS')
+    BIOSANS = ConfigService.getFacility("HFIR").instrument("BIOSANS")
+    EQSANS = ConfigService.getFacility("SNS").instrument("EQSANS")
+    GPSANS = ConfigService.getFacility("HFIR").instrument("GPSANS")
 
     def __str__(self):
         return self.name
@@ -42,9 +46,14 @@ def instrument_enum_name(input_query):
     InstrumentEnumName
         The name of the instrument as one of the InstrumentName enumerations
     """
-    string_to_enum = {'CG3': InstrumentEnumName.BIOSANS, 'BIOSANS': InstrumentEnumName.BIOSANS,
-                      'EQ-SANS': InstrumentEnumName.EQSANS, 'EQSANS': InstrumentEnumName.EQSANS,
-                      'CG2': InstrumentEnumName.GPSANS, 'GPSANS': InstrumentEnumName.GPSANS}
+    string_to_enum = {
+        "CG3": InstrumentEnumName.BIOSANS,
+        "BIOSANS": InstrumentEnumName.BIOSANS,
+        "EQ-SANS": InstrumentEnumName.EQSANS,
+        "EQSANS": InstrumentEnumName.EQSANS,
+        "CG2": InstrumentEnumName.GPSANS,
+        "GPSANS": InstrumentEnumName.GPSANS,
+    }
     # convert to a string
     name = str(input_query)
 
@@ -94,7 +103,7 @@ def instrument_filesystem_name(input_query):
     -------
     str
     """
-    filesystem_name = {'BIOSANS': 'CG3', 'EQSANS': 'EQSANS', 'GPSANS': 'CG2'}
+    filesystem_name = {"BIOSANS": "CG3", "EQSANS": "EQSANS", "GPSANS": "CG2"}
     return filesystem_name[instrument_standard_name(input_query)]
 
 
@@ -121,7 +130,9 @@ def instrument_label(input_query):
         for instrument_string_label in INSTRUMENT_LABELS:
             if instrument_string_label in name:
                 return instrument_string_label
-    raise RuntimeError('Instrument name can not be resolved from "{}"'.format(input_query))
+    raise RuntimeError(
+        'Instrument name can not be resolved from "{}"'.format(input_query)
+    )
 
 
 def extract_run_number(input_query):
@@ -147,13 +158,13 @@ def extract_run_number(input_query):
         # name of the file without path
         run_number = os.path.basename(input_query)
         # everything up to the extension
-        run_number = run_number.split('.')[0]
+        run_number = run_number.split(".")[0]
         # remove the instrument name
         for label in INSTRUMENT_LABELS:
-            run_number = run_number.replace(label, '')
+            run_number = run_number.replace(label, "")
         # remove any remaining '_'
-        if '_' in run_number:
-            run_number = run_number.split('_')[1]
+        if "_" in run_number:
+            run_number = run_number.split("_")[1]
         # convert to an integer
 
     return int(run_number)
@@ -172,4 +183,6 @@ def is_time_of_flight(input_query):
     -------
     bool
     """
-    return instrument_enum_name(input_query) is InstrumentEnumName.EQSANS  # we only have one, for the moment
+    return (
+        instrument_enum_name(input_query) is InstrumentEnumName.EQSANS
+    )  # we only have one, for the moment

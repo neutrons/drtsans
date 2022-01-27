@@ -24,7 +24,10 @@ def test_normalize_by_monitor(gpsans_f):
     (This test was introduced prior to the testset with the instrument team)
     """
     input_sample_workspace_mame = unique_workspace_dundername()
-    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'], OutputWorkspace=input_sample_workspace_mame)
+    LoadHFIRSANS(
+        Filename=gpsans_f["sample_scattering"],
+        OutputWorkspace=input_sample_workspace_mame,
+    )
     input_sample_workspace = mtd[input_sample_workspace_mame]
 
     sample_logs = SampleLogs(input_sample_workspace)
@@ -35,7 +38,9 @@ def test_normalize_by_monitor(gpsans_f):
     normalized_workspace = normalize_by_monitor(input_sample_workspace)
     normalized_values = normalized_workspace.extractY().flatten()
 
-    assert normalized_values == pytest.approx(1.e08 * unnormalized_values / monitor_counts, abs=0.1)
+    assert normalized_values == pytest.approx(
+        1.0e08 * unnormalized_values / monitor_counts, abs=0.1
+    )
 
 
 def test_normalize_by_time(gpsans_f):
@@ -44,15 +49,20 @@ def test_normalize_by_time(gpsans_f):
     (This test was introduced prior to the testset with the instrument team)
     """
     input_sample_workspace_mame = unique_workspace_dundername()
-    LoadHFIRSANS(Filename=gpsans_f['sample_scattering'], OutputWorkspace=input_sample_workspace_mame)
+    LoadHFIRSANS(
+        Filename=gpsans_f["sample_scattering"],
+        OutputWorkspace=input_sample_workspace_mame,
+    )
     input_sample_workspace = mtd[input_sample_workspace_mame]
 
     sample_logs = SampleLogs(input_sample_workspace)
-    run_duration = sample_logs.single_value('timer')
+    run_duration = sample_logs.single_value("timer")
     assert run_duration == 60.0  # in seconds
 
     unnormalized_values = input_sample_workspace.extractY().flatten()
     normalized_workspace = normalize_by_time(input_sample_workspace)
     normalized_values = normalized_workspace.extractY().flatten()
 
-    assert normalized_values == pytest.approx(unnormalized_values / run_duration, abs=1.-3)
+    assert normalized_values == pytest.approx(
+        unnormalized_values / run_duration, abs=1.0 - 3
+    )

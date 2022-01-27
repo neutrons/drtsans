@@ -78,32 +78,59 @@ def test_parse_json_geometry_current():
 
     # parse JSON for sample to si window distance with instrument preferred default
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542
-    sample_to_si_dict = parse_json_meta_data(input_dict, meta_name='SampleToSi', unit_conversion_factor=1E-3,
-                                             beam_center_run=True, background_run=True, empty_transmission_run=True,
-                                             transmission_run=True, background_transmission=True,
-                                             block_beam_run=True, dark_current_run=False)
+    sample_to_si_dict = parse_json_meta_data(
+        input_dict,
+        meta_name="SampleToSi",
+        unit_conversion_factor=1e-3,
+        beam_center_run=True,
+        background_run=True,
+        empty_transmission_run=True,
+        transmission_run=True,
+        background_transmission=True,
+        block_beam_run=True,
+        dark_current_run=False,
+    )
 
     # parse JSON for sample to detector distance with instrument preferred default
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542
-    sample_to_detector_dict = parse_json_meta_data(input_dict, meta_name='SampleDetectorDistance',
-                                                   unit_conversion_factor=1.,
-                                                   beam_center_run=True, background_run=True,
-                                                   empty_transmission_run=False, transmission_run=False,
-                                                   background_transmission=False,
-                                                   block_beam_run=True, dark_current_run=False)
+    sample_to_detector_dict = parse_json_meta_data(
+        input_dict,
+        meta_name="SampleDetectorDistance",
+        unit_conversion_factor=1.0,
+        beam_center_run=True,
+        background_run=True,
+        empty_transmission_run=False,
+        transmission_run=False,
+        background_transmission=False,
+        block_beam_run=True,
+        dark_current_run=False,
+    )
 
     # verify SampleToSi
-    for run_type in [mono_meta_data.SAMPLE, mono_meta_data.BACKGROUND, mono_meta_data.BEAM_CENTER,
-                     mono_meta_data.EMPTY_TRANSMISSION,
-                     mono_meta_data.TRANSMISSION, mono_meta_data.TRANSMISSION_BACKGROUND,
-                     mono_meta_data.BLOCK_BEAM]:
+    for run_type in [
+        mono_meta_data.SAMPLE,
+        mono_meta_data.BACKGROUND,
+        mono_meta_data.BEAM_CENTER,
+        mono_meta_data.EMPTY_TRANSMISSION,
+        mono_meta_data.TRANSMISSION,
+        mono_meta_data.TRANSMISSION_BACKGROUND,
+        mono_meta_data.BLOCK_BEAM,
+    ]:
         assert sample_to_si_dict[run_type] == pytest.approx(0.23456, 0.000004)
     assert sample_to_si_dict[mono_meta_data.DARK_CURRENT] is None
 
     # verify SampleDetectorDistance
-    for run_type in [mono_meta_data.SAMPLE, mono_meta_data.BACKGROUND, mono_meta_data.BEAM_CENTER,
-                     mono_meta_data.BLOCK_BEAM]:
+    for run_type in [
+        mono_meta_data.SAMPLE,
+        mono_meta_data.BACKGROUND,
+        mono_meta_data.BEAM_CENTER,
+        mono_meta_data.BLOCK_BEAM,
+    ]:
         assert sample_to_detector_dict[run_type] == pytest.approx(32.11, 0.004)
-    for run_type in [mono_meta_data.TRANSMISSION, mono_meta_data.TRANSMISSION_BACKGROUND,
-                     mono_meta_data.EMPTY_TRANSMISSION, mono_meta_data.DARK_CURRENT]:
+    for run_type in [
+        mono_meta_data.TRANSMISSION,
+        mono_meta_data.TRANSMISSION_BACKGROUND,
+        mono_meta_data.EMPTY_TRANSMISSION,
+        mono_meta_data.DARK_CURRENT,
+    ]:
         assert sample_to_detector_dict[run_type] is None

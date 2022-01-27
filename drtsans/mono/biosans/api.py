@@ -22,10 +22,17 @@ from drtsans.reductionlog import savereductionlog
 from drtsans.mono import biosans
 from drtsans.mono.biosans import solid_angle_correction
 from drtsans.mask_utils import apply_mask, load_mask
-from drtsans.mono.load import load_events, transform_to_wavelength, set_init_uncertainties
+from drtsans.mono.load import (
+    load_events,
+    transform_to_wavelength,
+    set_init_uncertainties,
+)
 from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
 from drtsans.mono.dark_current import subtract_dark_current
-from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
+from drtsans.mono.transmission import (
+    apply_transmission_correction,
+    calculate_transmission,
+)
 from drtsans.thickness_normalization import normalize_by_thickness
 from drtsans.iq import bin_all
 from drtsans.save_ascii import save_ascii_binned_2D
@@ -39,17 +46,29 @@ import drtsans.mono.meta_data as meta_data
 
 
 # Functions exposed to the general user (public) API
-__all__ = ['prepare_data', 'load_all_files', 'plot_reduction_output',
-           'prepare_data_workspaces', 'process_single_configuration',
-           'reduce_single_configuration']
+__all__ = [
+    "prepare_data",
+    "load_all_files",
+    "plot_reduction_output",
+    "prepare_data_workspaces",
+    "process_single_configuration",
+    "reduce_single_configuration",
+]
 
 # silicon window to nominal position (origin) distance in meter
 SI_WINDOW_NOMINAL_DISTANCE_METER = 0.071
-SAMPLE_SI_META_NAME = 'CG3:CS:SampleToSi'
+SAMPLE_SI_META_NAME = "CG3:CS:SampleToSi"
 
 
 @namedtuplefy
-def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_nexus_idf=False, debug_output=False):
+def load_all_files(
+    reduction_input,
+    prefix="",
+    load_params=None,
+    path=None,
+    use_nexus_idf=False,
+    debug_output=False,
+):
     """load all required files at the beginning, and transform them to histograms
 
     Parameters
@@ -65,38 +84,44 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
         Flag to save internal data for debugging
 
     """
-    reduction_config = reduction_input['configuration']  # a handy shortcut to the configuration parameters dictionary
+    reduction_config = reduction_input[
+        "configuration"
+    ]  # a handy shortcut to the configuration parameters dictionary
 
-    instrument_name = reduction_input['instrumentName']
-    ipts = reduction_input['iptsNumber']
-    sample = reduction_input['sample']['runNumber']
-    sample_trans = reduction_input['sample']['transmission']['runNumber']
-    bkgd = reduction_input['background']['runNumber']
-    bkgd_trans = reduction_input['background']['transmission']['runNumber']
-    empty = reduction_input['emptyTransmission']['runNumber']
-    center = reduction_input['beamCenter']['runNumber']
-    blocked_beam = reduction_config['blockedBeamRunNumber']
+    instrument_name = reduction_input["instrumentName"]
+    ipts = reduction_input["iptsNumber"]
+    sample = reduction_input["sample"]["runNumber"]
+    sample_trans = reduction_input["sample"]["transmission"]["runNumber"]
+    bkgd = reduction_input["background"]["runNumber"]
+    bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
+    empty = reduction_input["emptyTransmission"]["runNumber"]
+    center = reduction_input["beamCenter"]["runNumber"]
+    blocked_beam = reduction_config["blockedBeamRunNumber"]
 
     # Remove existing workspaces, this is to guarantee that all the data is loaded correctly
     # In the future this should be made optional
-    ws_to_remove = [f'{prefix}_{instrument_name}_{run_number}_raw_histo'
-                    for run_number in (sample,
-                                       center,
-                                       bkgd,
-                                       empty,
-                                       sample_trans,
-                                       bkgd_trans,
-                                       blocked_beam)]
-    ws_to_remove.append(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group')
-    ws_to_remove.append(f'{prefix}_main_sensitivity')
-    ws_to_remove.append(f'{prefix}_wing_sensitivity')
-    ws_to_remove.append(f'{prefix}_mask')
+    ws_to_remove = [
+        f"{prefix}_{instrument_name}_{run_number}_raw_histo"
+        for run_number in (
+            sample,
+            center,
+            bkgd,
+            empty,
+            sample_trans,
+            bkgd_trans,
+            blocked_beam,
+        )
+    ]
+    ws_to_remove.append(f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group")
+    ws_to_remove.append(f"{prefix}_main_sensitivity")
+    ws_to_remove.append(f"{prefix}_wing_sensitivity")
+    ws_to_remove.append(f"{prefix}_mask")
     if reduction_config["darkMainFileName"]:
         run_number = extract_run_number(reduction_config["darkMainFileName"])
-        ws_to_remove.append(f'{prefix}_{instrument_name}_{run_number}_raw_histo')
+        ws_to_remove.append(f"{prefix}_{instrument_name}_{run_number}_raw_histo")
     if reduction_config["darkWingFileName"]:
         run_number = extract_run_number(reduction_config["darkWingFileName"])
-        ws_to_remove.append(f'{prefix}_{instrument_name}_{run_number}_raw_histo')
+        ws_to_remove.append(f"{prefix}_{instrument_name}_{run_number}_raw_histo")
     for ws_name in ws_to_remove:
         if registered_workspace(ws_name):
             mtd.remove(ws_name)
@@ -106,17 +131,26 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
         load_params = {}
     # load nexus idf
     if use_nexus_idf:
-        load_params['LoadNexusInstrumentXML'] = use_nexus_idf
+        load_params["LoadNexusInstrumentXML"] = use_nexus_idf
 
     # Adjust pixel heights and widths
-    load_params['pixel_calibration'] = reduction_config.get('usePixelCalibration', False)
+    load_params["pixel_calibration"] = reduction_config.get(
+        "usePixelCalibration", False
+    )
 
     # wave length and wave length spread
-    wave_length_dict, wave_length_spread_dict = meta_data.parse_json_wave_length_and_spread(reduction_input)
+    (
+        wave_length_dict,
+        wave_length_spread_dict,
+    ) = meta_data.parse_json_wave_length_and_spread(reduction_input)
 
     if reduction_config["useDefaultMask"]:
         # reduction_config["defaultMask"] is a list of python dictionaries
-        default_mask = reduction_config["defaultMask"] if reduction_config["defaultMask"] is not None else []
+        default_mask = (
+            reduction_config["defaultMask"]
+            if reduction_config["defaultMask"] is not None
+            else []
+        )
     else:
         default_mask = []
 
@@ -124,47 +158,79 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
     timeslice = reduction_config["useTimeSlice"]
     logslice = reduction_config["useLogSlice"]
     if timeslice or logslice:
-        if len(sample.split(',')) > 1:
+        if len(sample.split(",")) > 1:
             raise ValueError("Can't do slicing on summed data sets")
 
     # thickness is written to sample log if it is defined...
-    thickness = reduction_input['sample']['thickness']
-    sample_aperture_diameter = reduction_config['sampleApertureSize']  # in milimiters
-    source_aperture_diameter = reduction_config['sourceApertureDiameter']  # in milimiters
+    thickness = reduction_input["sample"]["thickness"]
+    sample_aperture_diameter = reduction_config["sampleApertureSize"]  # in milimiters
+    source_aperture_diameter = reduction_config[
+        "sourceApertureDiameter"
+    ]  # in milimiters
 
     # Parse smearing pixel size x and y for all runs
-    smearing_pixel_size_x_dict = parse_json_meta_data(reduction_input, 'smearingPixelSizeX', 1E-3,
-                                                      beam_center_run=True, background_run=True,
-                                                      empty_transmission_run=True,
-                                                      transmission_run=True, background_transmission=True,
-                                                      block_beam_run=True, dark_current_run=True)
+    smearing_pixel_size_x_dict = parse_json_meta_data(
+        reduction_input,
+        "smearingPixelSizeX",
+        1e-3,
+        beam_center_run=True,
+        background_run=True,
+        empty_transmission_run=True,
+        transmission_run=True,
+        background_transmission=True,
+        block_beam_run=True,
+        dark_current_run=True,
+    )
 
-    smearing_pixel_size_y_dict = parse_json_meta_data(reduction_input, 'smearingPixelSizeY', 1E-3,
-                                                      beam_center_run=True, background_run=True,
-                                                      empty_transmission_run=True,
-                                                      transmission_run=True, background_transmission=True,
-                                                      block_beam_run=True, dark_current_run=True)
+    smearing_pixel_size_y_dict = parse_json_meta_data(
+        reduction_input,
+        "smearingPixelSizeY",
+        1e-3,
+        beam_center_run=True,
+        background_run=True,
+        empty_transmission_run=True,
+        transmission_run=True,
+        background_transmission=True,
+        block_beam_run=True,
+        dark_current_run=True,
+    )
 
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
 
     # Retrieve parameters for overwriting geometry related meta data
-    swd_value_dict = parse_json_meta_data(reduction_input, 'sampleToSi', 1E-3,
-                                          beam_center_run=True, background_run=True,
-                                          empty_transmission_run=True,
-                                          transmission_run=True, background_transmission=True,
-                                          block_beam_run=True, dark_current_run=False)
+    swd_value_dict = parse_json_meta_data(
+        reduction_input,
+        "sampleToSi",
+        1e-3,
+        beam_center_run=True,
+        background_run=True,
+        empty_transmission_run=True,
+        transmission_run=True,
+        background_transmission=True,
+        block_beam_run=True,
+        dark_current_run=False,
+    )
     # Sample to detector distance
-    sdd_value_dict = parse_json_meta_data(reduction_input, 'sampleDetectorDistance', 1.,
-                                          beam_center_run=True, background_run=True,
-                                          empty_transmission_run=True, transmission_run=True,
-                                          background_transmission=True,
-                                          block_beam_run=True, dark_current_run=False)
+    sdd_value_dict = parse_json_meta_data(
+        reduction_input,
+        "sampleDetectorDistance",
+        1.0,
+        beam_center_run=True,
+        background_run=True,
+        empty_transmission_run=True,
+        transmission_run=True,
+        background_transmission=True,
+        block_beam_run=True,
+        dark_current_run=False,
+    )
 
     if timeslice or logslice:
-        ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'
+        ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
         if not registered_workspace(ws_name):
-            filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
+            filename = abspath(
+                sample.strip(), instrument=instrument_name, ipts=ipts, directory=path
+            )
             print(f"Loading filename {filename}")
             if timeslice:
                 timesliceinterval = float(reduction_config["timeSliceInterval"])
@@ -173,25 +239,31 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
                 timesliceinterval = None
                 logslicename = reduction_config["logSliceName"]
                 logsliceinterval = reduction_config["logSliceInterval"]
-            biosans.load_and_split(filename, output_workspace=ws_name,
-                                   time_interval=timesliceinterval,
-                                   log_name=logslicename, log_value_interval=logsliceinterval,
-                                   sample_to_si_name=SAMPLE_SI_META_NAME,
-                                   si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                   sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
-                                   sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
-                                   **load_params)
+            biosans.load_and_split(
+                filename,
+                output_workspace=ws_name,
+                time_interval=timesliceinterval,
+                log_name=logslicename,
+                log_value_interval=logsliceinterval,
+                sample_to_si_name=SAMPLE_SI_META_NAME,
+                si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
+                sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
+                **load_params,
+            )
 
             for _w in mtd[ws_name]:
                 # Overwrite meta data
-                set_meta_data(str(_w),
-                              wave_length=wave_length_dict[meta_data.SAMPLE],
-                              wavelength_spread=wave_length_spread_dict[meta_data.SAMPLE],
-                              sample_thickness=thickness,
-                              sample_aperture_diameter=sample_aperture_diameter,
-                              source_aperture_diameter=source_aperture_diameter,
-                              smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.SAMPLE],
-                              smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE])
+                set_meta_data(
+                    str(_w),
+                    wave_length=wave_length_dict[meta_data.SAMPLE],
+                    wavelength_spread=wave_length_spread_dict[meta_data.SAMPLE],
+                    sample_thickness=thickness,
+                    sample_aperture_diameter=sample_aperture_diameter,
+                    source_aperture_diameter=source_aperture_diameter,
+                    smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.SAMPLE],
+                    smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE],
+                )
                 # Transform X-axis to wave length with spread
                 _w = transform_to_wavelength(_w)
                 _w = set_init_uncertainties(_w)
@@ -201,31 +273,40 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
             if logslicename is not None:
                 for n in range(mtd[ws_name].getNumberOfEntries()):
                     samplelogs = SampleLogs(mtd[ws_name].getItem(n))
-                    logslice_data_dict[str(n)] = {'data': list(samplelogs[logslicename].value),
-                                                  'units': samplelogs[logslicename].units,
-                                                  'name': logslicename}
+                    logslice_data_dict[str(n)] = {
+                        "data": list(samplelogs[logslicename].value),
+                        "units": samplelogs[logslicename].units,
+                        "name": logslicename,
+                    }
     else:
         # Load raw without slicing
-        ws_name = f'{prefix}_{instrument_name}_{sample}_raw_histo'
+        ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo"
         if not registered_workspace(ws_name):
             # if sample is not an absolute path to nexus file, convert it to the absolute path
-            filename = abspaths(sample, instrument=instrument_name, ipts=ipts, directory=path)
+            filename = abspaths(
+                sample, instrument=instrument_name, ipts=ipts, directory=path
+            )
             logger.notice(f"Loading filename {filename} from sample {sample}")
-            biosans.load_events_and_histogram(filename, output_workspace=ws_name,
-                                              sample_to_si_name=SAMPLE_SI_META_NAME,
-                                              si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                              sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
-                                              sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
-                                              **load_params)
+            biosans.load_events_and_histogram(
+                filename,
+                output_workspace=ws_name,
+                sample_to_si_name=SAMPLE_SI_META_NAME,
+                si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
+                sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
+                **load_params,
+            )
             # Overwrite meta data
-            set_meta_data(ws_name,
-                          wave_length=wave_length_dict[meta_data.SAMPLE],
-                          wavelength_spread=wave_length_spread_dict[meta_data.SAMPLE],
-                          sample_thickness=thickness,
-                          sample_aperture_diameter=sample_aperture_diameter,
-                          source_aperture_diameter=source_aperture_diameter,
-                          smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.SAMPLE],
-                          smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE])
+            set_meta_data(
+                ws_name,
+                wave_length=wave_length_dict[meta_data.SAMPLE],
+                wavelength_spread=wave_length_spread_dict[meta_data.SAMPLE],
+                sample_thickness=thickness,
+                sample_aperture_diameter=sample_aperture_diameter,
+                source_aperture_diameter=source_aperture_diameter,
+                smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.SAMPLE],
+                smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE],
+            )
             # Re-transform to wave length if overwriting values are specified
             if wave_length_dict[meta_data.SAMPLE]:
                 transform_to_wavelength(ws_name)
@@ -237,30 +318,41 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
 
     # load all other files
     # for run_number in [center, bkgd, empty, sample_trans, bkgd_trans, blocked_beam]:
-    for run_number, run_type in [(center, meta_data.BEAM_CENTER), (bkgd, meta_data.BACKGROUND),
-                                 (empty, meta_data.EMPTY_TRANSMISSION), (sample_trans, meta_data.TRANSMISSION),
-                                 (bkgd_trans, meta_data.TRANSMISSION_BACKGROUND),
-                                 (blocked_beam, meta_data.BLOCK_BEAM)]:
+    for run_number, run_type in [
+        (center, meta_data.BEAM_CENTER),
+        (bkgd, meta_data.BACKGROUND),
+        (empty, meta_data.EMPTY_TRANSMISSION),
+        (sample_trans, meta_data.TRANSMISSION),
+        (bkgd_trans, meta_data.TRANSMISSION_BACKGROUND),
+        (blocked_beam, meta_data.BLOCK_BEAM),
+    ]:
         if run_number:
-            ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
+            ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
             if not registered_workspace(ws_name):
-                filename = abspaths(run_number, instrument=instrument_name, ipts=ipts, directory=path)
+                filename = abspaths(
+                    run_number, instrument=instrument_name, ipts=ipts, directory=path
+                )
                 print(f"Loading filename {filename}")
-                biosans.load_events_and_histogram(filename, output_workspace=ws_name,
-                                                  sample_to_si_name=SAMPLE_SI_META_NAME,
-                                                  si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                                  sample_to_si_value=swd_value_dict[run_type],
-                                                  sample_detector_distance_value=sdd_value_dict[run_type],
-                                                  **load_params)
+                biosans.load_events_and_histogram(
+                    filename,
+                    output_workspace=ws_name,
+                    sample_to_si_name=SAMPLE_SI_META_NAME,
+                    si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+                    sample_to_si_value=swd_value_dict[run_type],
+                    sample_detector_distance_value=sdd_value_dict[run_type],
+                    **load_params,
+                )
                 # Set the wave length and wave length spread
-                set_meta_data(ws_name,
-                              wave_length=wave_length_dict[run_type],
-                              wavelength_spread=wave_length_spread_dict[run_type],
-                              sample_thickness=None,
-                              sample_aperture_diameter=None,
-                              source_aperture_diameter=None,
-                              smearing_pixel_size_x=smearing_pixel_size_x_dict[run_type],
-                              smearing_pixel_size_y=smearing_pixel_size_y_dict[run_type])
+                set_meta_data(
+                    ws_name,
+                    wave_length=wave_length_dict[run_type],
+                    wavelength_spread=wave_length_spread_dict[run_type],
+                    sample_thickness=None,
+                    sample_aperture_diameter=None,
+                    source_aperture_diameter=None,
+                    smearing_pixel_size_x=smearing_pixel_size_x_dict[run_type],
+                    smearing_pixel_size_y=smearing_pixel_size_y_dict[run_type],
+                )
                 # Re-transform X-axis to wave length with spread due to overwriting wave length
                 if wave_length_dict[run_type]:
                     transform_to_wavelength(ws_name)
@@ -271,33 +363,37 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
     dark_current_file_wing = reduction_config["darkWingFileName"]
     if dark_current_file_main and dark_current_file_wing:
         # dark current for main detector
-        dark_current_main = dark_current_correction(dark_current_file_main,
-                                                    default_mask,
-                                                    instrument_name,
-                                                    ipts,
-                                                    load_params,
-                                                    path,
-                                                    prefix,
-                                                    wave_length_dict[meta_data.DARK_CURRENT],
-                                                    wave_length_spread_dict[meta_data.DARK_CURRENT],
-                                                    swd_value_dict[meta_data.DARK_CURRENT],
-                                                    sdd_value_dict[meta_data.DARK_CURRENT],
-                                                    smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
-                                                    smearing_pixel_size_y_dict[meta_data.DARK_CURRENT])
+        dark_current_main = dark_current_correction(
+            dark_current_file_main,
+            default_mask,
+            instrument_name,
+            ipts,
+            load_params,
+            path,
+            prefix,
+            wave_length_dict[meta_data.DARK_CURRENT],
+            wave_length_spread_dict[meta_data.DARK_CURRENT],
+            swd_value_dict[meta_data.DARK_CURRENT],
+            sdd_value_dict[meta_data.DARK_CURRENT],
+            smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
+            smearing_pixel_size_y_dict[meta_data.DARK_CURRENT],
+        )
         # dark current for wing detector
-        dark_current_wing = dark_current_correction(dark_current_file_wing,
-                                                    default_mask,
-                                                    instrument_name,
-                                                    ipts,
-                                                    load_params,
-                                                    path,
-                                                    prefix,
-                                                    wave_length_dict[meta_data.DARK_CURRENT],
-                                                    wave_length_spread_dict[meta_data.DARK_CURRENT],
-                                                    swd_value_dict[meta_data.DARK_CURRENT],
-                                                    sdd_value_dict[meta_data.DARK_CURRENT],
-                                                    smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
-                                                    smearing_pixel_size_y_dict[meta_data.DARK_CURRENT])
+        dark_current_wing = dark_current_correction(
+            dark_current_file_wing,
+            default_mask,
+            instrument_name,
+            ipts,
+            load_params,
+            path,
+            prefix,
+            wave_length_dict[meta_data.DARK_CURRENT],
+            wave_length_spread_dict[meta_data.DARK_CURRENT],
+            swd_value_dict[meta_data.DARK_CURRENT],
+            sdd_value_dict[meta_data.DARK_CURRENT],
+            smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
+            smearing_pixel_size_y_dict[meta_data.DARK_CURRENT],
+        )
     else:
         dark_current_main = dark_current_wing = None
 
@@ -307,67 +403,121 @@ def load_all_files(reduction_input, prefix='', load_params=None, path=None, use_
     flood_file_main = reduction_config["sensitivityMainFileName"]
     flood_file_wing = reduction_config["sensitivityWingFileName"]
     if flood_file_main and flood_file_wing:
-        sensitivity_main_ws_name = f'{prefix}_main_sensitivity'
-        sensitivity_wing_ws_name = f'{prefix}_wing_sensitivity'
+        sensitivity_main_ws_name = f"{prefix}_main_sensitivity"
+        sensitivity_wing_ws_name = f"{prefix}_wing_sensitivity"
         if not registered_workspace(sensitivity_main_ws_name):
             print(f"Loading filename {flood_file_main}")
-            load_sensitivity_workspace(flood_file_main, output_workspace=sensitivity_main_ws_name)
+            load_sensitivity_workspace(
+                flood_file_main, output_workspace=sensitivity_main_ws_name
+            )
         if not registered_workspace(sensitivity_wing_ws_name):
             print(f"Loading filename {flood_file_wing}")
-            load_sensitivity_workspace(flood_file_wing, output_workspace=sensitivity_wing_ws_name)
+            load_sensitivity_workspace(
+                flood_file_wing, output_workspace=sensitivity_wing_ws_name
+            )
 
     mask_ws = None
     custom_mask_file = reduction_input["configuration"]["maskFileName"]
     if custom_mask_file is not None:
-        mask_ws_name = f'{prefix}_mask'
+        mask_ws_name = f"{prefix}_mask"
         if not registered_workspace(mask_ws_name):
             print(f"Loading filename {custom_mask_file}")
             mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
         else:
             mask_ws = mtd[mask_ws_name]
 
-    if registered_workspace(f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group'):
-        raw_sample_ws = mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo_slice_group']
+    if registered_workspace(
+        f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
+    ):
+        raw_sample_ws = mtd[
+            f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
+        ]
         raw_sample_ws_list = [w for w in raw_sample_ws]
     else:
-        raw_sample_ws_list = [mtd[f'{prefix}_{instrument_name}_{sample}_raw_histo']]
-    raw_bkgd_ws = mtd[f'{prefix}_{instrument_name}_{bkgd}_raw_histo'] if bkgd else None
-    raw_blocked_ws = mtd[f'{prefix}_{instrument_name}_{blocked_beam}_raw_histo'] if blocked_beam else None
-    raw_center_ws = mtd[f'{prefix}_{instrument_name}_{center}_raw_histo']
-    raw_empty_ws = mtd[f'{prefix}_{instrument_name}_{empty}_raw_histo'] if empty else None
-    raw_sample_trans_ws = mtd[f'{prefix}_{instrument_name}_{sample_trans}_raw_histo'] if sample_trans else None
-    raw_bkg_trans_ws = mtd[f'{prefix}_{instrument_name}_{bkgd_trans}_raw_histo'] if bkgd_trans else None
-    sensitivity_main_ws = mtd[sensitivity_main_ws_name] if sensitivity_main_ws_name else None
-    sensitivity_wing_ws = mtd[sensitivity_wing_ws_name] if sensitivity_wing_ws_name else None
+        raw_sample_ws_list = [mtd[f"{prefix}_{instrument_name}_{sample}_raw_histo"]]
+    raw_bkgd_ws = mtd[f"{prefix}_{instrument_name}_{bkgd}_raw_histo"] if bkgd else None
+    raw_blocked_ws = (
+        mtd[f"{prefix}_{instrument_name}_{blocked_beam}_raw_histo"]
+        if blocked_beam
+        else None
+    )
+    raw_center_ws = mtd[f"{prefix}_{instrument_name}_{center}_raw_histo"]
+    raw_empty_ws = (
+        mtd[f"{prefix}_{instrument_name}_{empty}_raw_histo"] if empty else None
+    )
+    raw_sample_trans_ws = (
+        mtd[f"{prefix}_{instrument_name}_{sample_trans}_raw_histo"]
+        if sample_trans
+        else None
+    )
+    raw_bkg_trans_ws = (
+        mtd[f"{prefix}_{instrument_name}_{bkgd_trans}_raw_histo"]
+        if bkgd_trans
+        else None
+    )
+    sensitivity_main_ws = (
+        mtd[sensitivity_main_ws_name] if sensitivity_main_ws_name else None
+    )
+    sensitivity_wing_ws = (
+        mtd[sensitivity_wing_ws_name] if sensitivity_wing_ws_name else None
+    )
 
     if debug_output:
         for raw_sample in raw_sample_ws_list:
-            plot_detector(input_workspace=str(raw_sample), filename=form_output_name(raw_sample),
-                          backend='mpl')
-        for ws in [raw_bkgd_ws, raw_center_ws, raw_empty_ws, raw_sample_trans_ws,
-                   raw_bkg_trans_ws, raw_blocked_ws, dark_current_main, dark_current_wing]:
+            plot_detector(
+                input_workspace=str(raw_sample),
+                filename=form_output_name(raw_sample),
+                backend="mpl",
+            )
+        for ws in [
+            raw_bkgd_ws,
+            raw_center_ws,
+            raw_empty_ws,
+            raw_sample_trans_ws,
+            raw_bkg_trans_ws,
+            raw_blocked_ws,
+            dark_current_main,
+            dark_current_wing,
+        ]:
             if ws is not None:
-                plot_detector(input_workspace=str(ws), filename=form_output_name(ws),
-                              backend='mpl',  imshow_kwargs={'norm': LogNorm(vmin=1)})
+                plot_detector(
+                    input_workspace=str(ws),
+                    filename=form_output_name(ws),
+                    backend="mpl",
+                    imshow_kwargs={"norm": LogNorm(vmin=1)},
+                )
 
-    return dict(sample=raw_sample_ws_list,
-                background=raw_bkgd_ws,
-                center=raw_center_ws,
-                empty=raw_empty_ws,
-                sample_transmission=raw_sample_trans_ws,
-                background_transmission=raw_bkg_trans_ws,
-                blocked_beam=raw_blocked_ws,
-                dark_current_main=dark_current_main,
-                dark_current_wing=dark_current_wing,
-                sensitivity_main=sensitivity_main_ws,
-                sensitivity_wing=sensitivity_wing_ws,
-                mask=mask_ws)
+    return dict(
+        sample=raw_sample_ws_list,
+        background=raw_bkgd_ws,
+        center=raw_center_ws,
+        empty=raw_empty_ws,
+        sample_transmission=raw_sample_trans_ws,
+        background_transmission=raw_bkg_trans_ws,
+        blocked_beam=raw_blocked_ws,
+        dark_current_main=dark_current_main,
+        dark_current_wing=dark_current_wing,
+        sensitivity_main=sensitivity_main_ws,
+        sensitivity_wing=sensitivity_wing_ws,
+        mask=mask_ws,
+    )
 
 
-def dark_current_correction(dark_current_file, default_mask, instrument_name, ipts, load_params,
-                            path, prefix, wavelength, wavelength_spread_user,
-                            user_sample_si_distance, user_sample_detector_distance,
-                            smearing_pixel_size_x, smearing_pixel_size_y):
+def dark_current_correction(
+    dark_current_file,
+    default_mask,
+    instrument_name,
+    ipts,
+    load_params,
+    path,
+    prefix,
+    wavelength,
+    wavelength_spread_user,
+    user_sample_si_distance,
+    user_sample_detector_distance,
+    smearing_pixel_size_x,
+    smearing_pixel_size_y,
+):
     """Calculate the dark current correction
 
     Parameters
@@ -397,29 +547,35 @@ def dark_current_correction(dark_current_file, default_mask, instrument_name, ip
 
     """
     run_number = extract_run_number(dark_current_file)
-    ws_name = f'{prefix}_{instrument_name}_{run_number}_raw_histo'
+    ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
     if not registered_workspace(ws_name):
         print(f"Loading filename {dark_current_file}")
         # identify to use exact given path to NeXus or use OnCat instead
-        temp_name = abspath(dark_current_file, instrument=instrument_name, ipts=ipts, directory=path)
+        temp_name = abspath(
+            dark_current_file, instrument=instrument_name, ipts=ipts, directory=path
+        )
         if os.path.exists(temp_name):
             dark_current_file = temp_name
-        biosans.load_events_and_histogram(dark_current_file,
-                                          output_workspace=ws_name,
-                                          sample_to_si_name=SAMPLE_SI_META_NAME,
-                                          si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
-                                          sample_to_si_value=user_sample_si_distance,
-                                          sample_detector_distance_value=user_sample_detector_distance,
-                                          **load_params)
+        biosans.load_events_and_histogram(
+            dark_current_file,
+            output_workspace=ws_name,
+            sample_to_si_name=SAMPLE_SI_META_NAME,
+            si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
+            sample_to_si_value=user_sample_si_distance,
+            sample_detector_distance_value=user_sample_detector_distance,
+            **load_params,
+        )
         # Set the wave length and wave length spread
-        set_meta_data(ws_name,
-                      wave_length=wavelength,
-                      wavelength_spread=wavelength_spread_user,
-                      sample_thickness=None,
-                      sample_aperture_diameter=None,
-                      source_aperture_diameter=None,
-                      smearing_pixel_size_x=smearing_pixel_size_x,
-                      smearing_pixel_size_y=smearing_pixel_size_y)
+        set_meta_data(
+            ws_name,
+            wave_length=wavelength,
+            wavelength_spread=wavelength_spread_user,
+            sample_thickness=None,
+            sample_aperture_diameter=None,
+            source_aperture_diameter=None,
+            smearing_pixel_size_x=smearing_pixel_size_x,
+            smearing_pixel_size_y=smearing_pixel_size_y,
+        )
         # Re-Transform X-axis to wave length with spread
         if wavelength:
             transform_to_wavelength(ws_name)
@@ -431,18 +587,22 @@ def dark_current_correction(dark_current_file, default_mask, instrument_name, ip
     return dark_current
 
 
-def prepare_data_workspaces(data,
-                            center_x=None, center_y=None, center_y_wing=None,
-                            dark_current=None,
-                            flux_method=None,    # normalization (time/monitor)
-                            monitor_fail_switch=False,
-                            mask_ws=None,        # apply a custom mask from workspace
-                            mask_detector=None,  # main or wing
-                            mask_panel=None,     # mask back or front panel
-                            mask_btp=None,       # mask bank/tube/pixel
-                            solid_angle=True,
-                            sensitivity_workspace=None,
-                            output_workspace=None):
+def prepare_data_workspaces(
+    data,
+    center_x=None,
+    center_y=None,
+    center_y_wing=None,
+    dark_current=None,
+    flux_method=None,  # normalization (time/monitor)
+    monitor_fail_switch=False,
+    mask_ws=None,  # apply a custom mask from workspace
+    mask_detector=None,  # main or wing
+    mask_panel=None,  # mask back or front panel
+    mask_btp=None,  # mask bank/tube/pixel
+    solid_angle=True,
+    sensitivity_workspace=None,
+    output_workspace=None,
+):
     r"""
     Given a " raw"data workspace, this function provides the following:
 
@@ -499,33 +659,42 @@ def prepare_data_workspaces(data,
     """
     if not output_workspace:
         output_workspace = str(data)
-        output_workspace = output_workspace.replace('_raw_histo', '') + '_processed_histo'
+        output_workspace = (
+            output_workspace.replace("_raw_histo", "") + "_processed_histo"
+        )
 
     mtd[str(data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
 
     if center_x is not None and center_y is not None and center_y_wing is not None:
-        biosans.center_detector(output_workspace, center_x=center_x, center_y=center_y, center_y_wing=center_y_wing)
+        biosans.center_detector(
+            output_workspace,
+            center_x=center_x,
+            center_y=center_y,
+            center_y_wing=center_y_wing,
+        )
 
     # Dark current
     if dark_current is not None:
         subtract_dark_current(output_workspace, dark_current)
 
     # Normalization
-    if str(flux_method).lower() == 'monitor':
+    if str(flux_method).lower() == "monitor":
         try:
             normalize_by_monitor(output_workspace)
         except RuntimeError as e:
             if monitor_fail_switch:
-                logger.warning(f'{e}. Resorting to normalization by time')
+                logger.warning(f"{e}. Resorting to normalization by time")
                 normalize_by_time(output_workspace)
             else:
-                msg = '. Setting "normalizationResortToTime": True will cause the' \
-                      ' reduction to normalize by time if monitor counts are not available'
+                msg = (
+                    '. Setting "normalizationResortToTime": True will cause the'
+                    " reduction to normalize by time if monitor counts are not available"
+                )
                 raise RuntimeError(str(e) + msg)
-    elif str(flux_method).lower() == 'time':
+    elif str(flux_method).lower() == "time":
         normalize_by_time(output_workspace)
     else:
-        logger.notice('No time or monitor normalization is carried out')
+        logger.notice("No time or monitor normalization is carried out")
 
     # Mask either detector
     if mask_detector is not None:
@@ -542,40 +711,43 @@ def prepare_data_workspaces(data,
 
     # Sensitivity
     if sensitivity_workspace is not None:
-        apply_sensitivity_correction(output_workspace,
-                                     sensitivity_workspace=sensitivity_workspace)
+        apply_sensitivity_correction(
+            output_workspace, sensitivity_workspace=sensitivity_workspace
+        )
 
     return mtd[output_workspace]
 
 
-def process_single_configuration(sample_ws_raw,
-                                 sample_trans_ws=None,
-                                 sample_trans_value=None,
-                                 bkg_ws_raw=None,
-                                 bkg_trans_ws=None,
-                                 bkg_trans_value=None,
-                                 blocked_ws_raw=None,
-                                 theta_deppendent_transmission=True,
-                                 center_x=None,
-                                 center_y=None,
-                                 center_y_wing=None,
-                                 dark_current=None,
-                                 flux_method=None,    # normalization (time/monitor)
-                                 monitor_fail_switch=False,
-                                 mask_ws=None,        # apply a custom mask from workspace
-                                 mask_detector=None,
-                                 mask_panel=None,     # mask back or front panel
-                                 mask_btp=None,       # mask bank/tube/pixel
-                                 solid_angle=True,
-                                 sensitivity_workspace=None,
-                                 output_workspace=None,
-                                 output_suffix='',
-                                 thickness=1.,
-                                 absolute_scale_method='standard',
-                                 empty_beam_ws=None,
-                                 beam_radius=None,
-                                 absolute_scale=1.,
-                                 keep_processed_workspaces=True):
+def process_single_configuration(
+    sample_ws_raw,
+    sample_trans_ws=None,
+    sample_trans_value=None,
+    bkg_ws_raw=None,
+    bkg_trans_ws=None,
+    bkg_trans_value=None,
+    blocked_ws_raw=None,
+    theta_deppendent_transmission=True,
+    center_x=None,
+    center_y=None,
+    center_y_wing=None,
+    dark_current=None,
+    flux_method=None,  # normalization (time/monitor)
+    monitor_fail_switch=False,
+    mask_ws=None,  # apply a custom mask from workspace
+    mask_detector=None,
+    mask_panel=None,  # mask back or front panel
+    mask_btp=None,  # mask bank/tube/pixel
+    solid_angle=True,
+    sensitivity_workspace=None,
+    output_workspace=None,
+    output_suffix="",
+    thickness=1.0,
+    absolute_scale_method="standard",
+    empty_beam_ws=None,
+    beam_radius=None,
+    absolute_scale=1.0,
+    keep_processed_workspaces=True,
+):
     r"""
     This function provides full data processing for a single experimental configuration,
     starting from workspaces (no data loading is happening inside this function)
@@ -643,80 +815,93 @@ def process_single_configuration(sample_ws_raw,
         Reference to the processed workspace
     """
     if not output_workspace:
-        output_workspace = output_suffix + '_sample'
+        output_workspace = output_suffix + "_sample"
 
     # create a common configuration for prepare data
-    prepare_data_conf = {'center_x': center_x,
-                         'center_y': center_y,
-                         'center_y_wing': center_y_wing,
-                         'dark_current': dark_current,
-                         'flux_method': flux_method,
-                         'monitor_fail_switch': monitor_fail_switch,
-                         'mask_ws': mask_ws,
-                         'mask_detector': mask_detector,
-                         'mask_panel': mask_panel,
-                         'mask_btp': mask_btp,
-                         'solid_angle': solid_angle,
-                         'sensitivity_workspace': sensitivity_workspace}
+    prepare_data_conf = {
+        "center_x": center_x,
+        "center_y": center_y,
+        "center_y_wing": center_y_wing,
+        "dark_current": dark_current,
+        "flux_method": flux_method,
+        "monitor_fail_switch": monitor_fail_switch,
+        "mask_ws": mask_ws,
+        "mask_detector": mask_detector,
+        "mask_panel": mask_panel,
+        "mask_btp": mask_btp,
+        "solid_angle": solid_angle,
+        "sensitivity_workspace": sensitivity_workspace,
+    }
 
     # process blocked
     if blocked_ws_raw:
-        blocked_ws_name = output_suffix + '_blocked'
+        blocked_ws_name = output_suffix + "_blocked"
         if not registered_workspace(blocked_ws_name):
-            blocked_ws = prepare_data_workspaces(blocked_ws_raw,
-                                                 output_workspace=blocked_ws_name,
-                                                 **prepare_data_conf)
+            blocked_ws = prepare_data_workspaces(
+                blocked_ws_raw, output_workspace=blocked_ws_name, **prepare_data_conf
+            )
         else:
             blocked_ws = mtd[blocked_ws_name]
 
     # process sample
-    sample_ws = prepare_data_workspaces(sample_ws_raw,
-                                        output_workspace=output_workspace,
-                                        **prepare_data_conf)
+    sample_ws = prepare_data_workspaces(
+        sample_ws_raw, output_workspace=output_workspace, **prepare_data_conf
+    )
     if blocked_ws_raw:
         sample_ws = subtract_background(sample_ws, blocked_ws)
     # apply transmission to the sample
     transmission_dict = {}
     if sample_trans_ws or sample_trans_value:
         if sample_trans_value:
-            transmission_dict = {'value': float(sample_trans_value),
-                                 'error': ''}
+            transmission_dict = {"value": float(sample_trans_value), "error": ""}
         else:
-            transmission_dict = {'value': sample_trans_ws.extractY(),
-                                 'error': sample_trans_ws.extractE()}
-        sample_ws = apply_transmission_correction(sample_ws,
-                                                  trans_workspace=sample_trans_ws,
-                                                  trans_value=sample_trans_value,
-                                                  theta_dependent=theta_deppendent_transmission,
-                                                  output_workspace=output_workspace)
+            transmission_dict = {
+                "value": sample_trans_ws.extractY(),
+                "error": sample_trans_ws.extractE(),
+            }
+        sample_ws = apply_transmission_correction(
+            sample_ws,
+            trans_workspace=sample_trans_ws,
+            trans_value=sample_trans_value,
+            theta_dependent=theta_deppendent_transmission,
+            output_workspace=output_workspace,
+        )
 
     # process background, if not already processed
     background_transmission_dict = {}
     if bkg_ws_raw:
-        bkgd_ws_name = output_suffix + '_background'
+        bkgd_ws_name = output_suffix + "_background"
         if not registered_workspace(bkgd_ws_name):
-            bkgd_ws = prepare_data_workspaces(bkg_ws_raw,
-                                              output_workspace=bkgd_ws_name,
-                                              **prepare_data_conf)
+            bkgd_ws = prepare_data_workspaces(
+                bkg_ws_raw, output_workspace=bkgd_ws_name, **prepare_data_conf
+            )
             if blocked_ws_raw:
                 bkgd_ws = subtract_background(bkgd_ws, blocked_ws)
             # apply transmission to bkgd
             if bkg_trans_ws or bkg_trans_value:
                 if bkg_trans_value:
-                    background_transmission_dict = {'value': float(bkg_trans_value),
-                                                    'error': ''}
+                    background_transmission_dict = {
+                        "value": float(bkg_trans_value),
+                        "error": "",
+                    }
                 else:
-                    background_transmission_dict = {'value': bkg_trans_ws.extractY(),
-                                                    'error': bkg_trans_ws.extractE()}
-                bkgd_ws = apply_transmission_correction(bkgd_ws,
-                                                        trans_workspace=bkg_trans_ws,
-                                                        trans_value=bkg_trans_value,
-                                                        theta_dependent=theta_deppendent_transmission,
-                                                        output_workspace=bkgd_ws_name)
+                    background_transmission_dict = {
+                        "value": bkg_trans_ws.extractY(),
+                        "error": bkg_trans_ws.extractE(),
+                    }
+                bkgd_ws = apply_transmission_correction(
+                    bkgd_ws,
+                    trans_workspace=bkg_trans_ws,
+                    trans_value=bkg_trans_value,
+                    theta_dependent=theta_deppendent_transmission,
+                    output_workspace=bkgd_ws_name,
+                )
         else:
             bkgd_ws = mtd[bkgd_ws_name]
         # subtract background
-        sample_ws = subtract_background(sample_ws, bkgd_ws, output_workspace=output_workspace)
+        sample_ws = subtract_background(
+            sample_ws, bkgd_ws, output_workspace=output_workspace
+        )
 
         if not keep_processed_workspaces:
             bkgd_ws.delete()
@@ -728,7 +913,7 @@ def process_single_configuration(sample_ws_raw,
     sample_ws = normalize_by_thickness(sample_ws, thickness)
 
     # standard method assumes absolute scale from outside
-    if absolute_scale_method == 'direct_beam':
+    if absolute_scale_method == "direct_beam":
         # try:
         #     empty = mtd[str(empty_beam_ws)]
         # except KeyError:
@@ -742,19 +927,23 @@ def process_single_configuration(sample_ws_raw,
         #                                attenuator_coefficient=ac,
         #                                attenuator_error=ace,
         #                                output_workspace=output_workspace)
-        raise NotImplementedError('This method is not yet implemented for BIOSANS')
+        raise NotImplementedError("This method is not yet implemented for BIOSANS")
     else:
         sample_ws *= absolute_scale
 
-    return mtd[str(sample_ws)], {'sample': transmission_dict,
-                                 'background': background_transmission_dict}
+    return mtd[str(sample_ws)], {
+        "sample": transmission_dict,
+        "background": background_transmission_dict,
+    }
 
 
-def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow_kwargs=None):
-    reduction_config = reduction_input['configuration']
+def plot_reduction_output(
+    reduction_output, reduction_input, loglog=True, imshow_kwargs=None
+):
+    reduction_config = reduction_input["configuration"]
     output_dir = reduction_config["outputDir"]
     outputFilename = reduction_input["outputFileName"]
-    output_suffix = ''
+    output_suffix = ""
 
     bin1d_type = reduction_config["1DQbinType"]
 
@@ -762,9 +951,9 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
         imshow_kwargs = {}
     for i, out in enumerate(reduction_output):
         if len(reduction_output) > 1:
-            output_suffix = f'_{i}'
+            output_suffix = f"_{i}"
 
-        wedges = reduction_config["wedges"] if bin1d_type == 'wedge' else None
+        wedges = reduction_config["wedges"] if bin1d_type == "wedge" else None
         symmetric_wedges = reduction_config.get("symmetric_wedges", True)
 
         qmin_main = reduction_config["QminMain"]
@@ -772,30 +961,55 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
         qmin_wing = reduction_config["QminWing"]
         qmax_wing = reduction_config["QmaxWing"]
 
-        filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_main.png')
-        plot_IQazimuthal(out.I2D_main, filename, backend='mpl',
-                         imshow_kwargs=imshow_kwargs, title='Main',
-                         wedges=wedges, symmetric_wedges=symmetric_wedges,
-                         qmin=qmin_main, qmax=qmax_main)
+        filename = os.path.join(
+            output_dir, "2D", f"{outputFilename}{output_suffix}_2D_main.png"
+        )
+        plot_IQazimuthal(
+            out.I2D_main,
+            filename,
+            backend="mpl",
+            imshow_kwargs=imshow_kwargs,
+            title="Main",
+            wedges=wedges,
+            symmetric_wedges=symmetric_wedges,
+            qmin=qmin_main,
+            qmax=qmax_main,
+        )
         plt.clf()
-        filename = os.path.join(output_dir, '2D', f'{outputFilename}{output_suffix}_2D_wing.png')
-        plot_IQazimuthal(out.I2D_wing, filename, backend='mpl',
-                         imshow_kwargs=imshow_kwargs, title='Wing',
-                         wedges=wedges, symmetric_wedges=symmetric_wedges,
-                         qmin=qmin_wing, qmax=qmax_wing)
+        filename = os.path.join(
+            output_dir, "2D", f"{outputFilename}{output_suffix}_2D_wing.png"
+        )
+        plot_IQazimuthal(
+            out.I2D_wing,
+            filename,
+            backend="mpl",
+            imshow_kwargs=imshow_kwargs,
+            title="Wing",
+            wedges=wedges,
+            symmetric_wedges=symmetric_wedges,
+            qmin=qmin_wing,
+            qmax=qmax_wing,
+        )
         plt.clf()
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
-                add_suffix = f'_wedge_{j}'
-            filename = os.path.join(output_dir, '1D', f'{outputFilename}{output_suffix}_1D{add_suffix}.png')
-            plot_IQmod([out.I1D_main[j], out.I1D_wing[j], out.I1D_combined[j]],
-                       filename, loglog=loglog, backend='mpl', errorbar_kwargs={'label': 'main,wing,both'})
+                add_suffix = f"_wedge_{j}"
+            filename = os.path.join(
+                output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}.png"
+            )
+            plot_IQmod(
+                [out.I1D_main[j], out.I1D_wing[j], out.I1D_combined[j]],
+                filename,
+                loglog=loglog,
+                backend="mpl",
+                errorbar_kwargs={"label": "main,wing,both"},
+            )
             plt.clf()
     plt.close()
     # allow overwrite
-    allow_overwrite(os.path.join(output_dir, '1D'))
-    allow_overwrite(os.path.join(output_dir, '2D'))
+    allow_overwrite(os.path.join(output_dir, "1D"))
+    allow_overwrite(os.path.join(output_dir, "2D"))
 
 
 def reduce_single_configuration(
@@ -825,9 +1039,8 @@ def reduce_single_configuration(
     ]  # FIXME missing keyword in the schema
     absolute_scale = reduction_config["StandardAbsoluteScale"]
     time_slice_transmission = (
-            reduction_config["useTimeSlice"]
-            and
-            reduction_config["useTimeSliceTransmission"]
+        reduction_config["useTimeSlice"]
+        and reduction_config["useTimeSliceTransmission"]
     )
     output_dir = reduction_config["outputDir"]
 
@@ -884,7 +1097,7 @@ def reduce_single_configuration(
 
     fbc_options = biosans.fbc_options_json(reduction_input)
     xc, yc, yw, fit_results = biosans.find_beam_center(loaded_ws.center, **fbc_options)
-    logger.notice(f'Find beam center  = {xc}, {yc}, {yw}')
+    logger.notice(f"Find beam center  = {xc}, {yc}, {yw}")
 
     # empty beam transmission workspace
     if loaded_ws.empty is not None:
@@ -1303,22 +1516,35 @@ def reduce_single_configuration(
     return output
 
 
-def prepare_data(data,
-                 pixel_calibration=False,
-                 mask_detector=None,
-                 detector_offset=0, sample_offset=0,
-                 center_x=None, center_y=None, center_y_wing=None,
-                 dark_current=None,
-                 flux_method=None,
-                 monitor_fail_switch=False,
-                 mask=None, mask_panel=None, btp=dict(),
-                 solid_angle=True,
-                 sensitivity_file_path=None, sensitivity_workspace=None,
-                 wave_length=None, wavelength_spread=None,
-                 sample_aperture_diameter=None, sample_thickness=None,
-                 source_aperture_diameter=None,
-                 smearing_pixel_size_x=None, smearing_pixel_size_y=None,
-                 output_workspace=None, output_suffix='', **kwargs):
+def prepare_data(
+    data,
+    pixel_calibration=False,
+    mask_detector=None,
+    detector_offset=0,
+    sample_offset=0,
+    center_x=None,
+    center_y=None,
+    center_y_wing=None,
+    dark_current=None,
+    flux_method=None,
+    monitor_fail_switch=False,
+    mask=None,
+    mask_panel=None,
+    btp=dict(),
+    solid_angle=True,
+    sensitivity_file_path=None,
+    sensitivity_workspace=None,
+    wave_length=None,
+    wavelength_spread=None,
+    sample_aperture_diameter=None,
+    sample_thickness=None,
+    source_aperture_diameter=None,
+    smearing_pixel_size_x=None,
+    smearing_pixel_size_y=None,
+    output_workspace=None,
+    output_suffix="",
+    **kwargs,
+):
     r"""
     Load a BIOSANS data file and bring the data to a point where it can be used. This includes applying basic
     corrections that are always applied regardless of whether the data is background or scattering data.
@@ -1395,23 +1621,33 @@ def prepare_data(data,
         Reference to the events workspace
     """
     # Detector offset and sample offset are disabled
-    if abs(detector_offset) > 1E-8 or abs(sample_offset) > 1E-8:
-        raise RuntimeError('biosans.api.prepare_data does not work with detector_offset or sample_offset')
+    if abs(detector_offset) > 1e-8 or abs(sample_offset) > 1e-8:
+        raise RuntimeError(
+            "biosans.api.prepare_data does not work with detector_offset or sample_offset"
+        )
 
     # Load data and enforce to use nexus IDF
-    if 'enforce_use_nexus_idf' in kwargs:
-        enforce_use_nexus_idf = kwargs['enforce_use_nexus_idf']
+    if "enforce_use_nexus_idf" in kwargs:
+        enforce_use_nexus_idf = kwargs["enforce_use_nexus_idf"]
     else:
         enforce_use_nexus_idf = False
 
     # Load event without moving detector and sample after loading NeXus and instrument
-    ws = load_events(data, overwrite_instrument=True, output_workspace=output_workspace, output_suffix=output_suffix,
-                     pixel_calibration=pixel_calibration, detector_offset=0., sample_offset=0.,
-                     LoadNexusInstrumentXML=enforce_use_nexus_idf)
+    ws = load_events(
+        data,
+        overwrite_instrument=True,
+        output_workspace=output_workspace,
+        output_suffix=output_suffix,
+        pixel_calibration=pixel_calibration,
+        detector_offset=0.0,
+        sample_offset=0.0,
+        LoadNexusInstrumentXML=enforce_use_nexus_idf,
+    )
 
     # Reset the offset
-    sample_offset, detector_offset = get_sample_detector_offset(ws, SAMPLE_SI_META_NAME,
-                                                                SI_WINDOW_NOMINAL_DISTANCE_METER)
+    sample_offset, detector_offset = get_sample_detector_offset(
+        ws, SAMPLE_SI_META_NAME, SI_WINDOW_NOMINAL_DISTANCE_METER
+    )
     # Translate instrument with offsets
     move_instrument(ws, sample_offset, detector_offset)
 
@@ -1420,9 +1656,9 @@ def prepare_data(data,
     set_init_uncertainties(ws_name)
 
     if center_x is not None and center_y is not None and center_y_wing is not None:
-        biosans.center_detector(ws_name, center_x=center_x,
-                                center_y=center_y,
-                                center_y_wing=center_y_wing)
+        biosans.center_detector(
+            ws_name, center_x=center_x, center_y=center_y, center_y_wing=center_y_wing
+        )
 
     # Mask either detector
     if mask_detector is not None:
@@ -1434,28 +1670,33 @@ def prepare_data(data,
             dark_ws = mtd[str(dark_current)]
         else:
             # load dark current
-            dark_ws = load_events(dark_current, overwrite_instrument=True,
-                                  LoadNexusInstrumentXML=enforce_use_nexus_idf)
+            dark_ws = load_events(
+                dark_current,
+                overwrite_instrument=True,
+                LoadNexusInstrumentXML=enforce_use_nexus_idf,
+            )
             dark_ws = transform_to_wavelength(dark_ws)
             dark_ws = set_init_uncertainties(dark_ws)
         subtract_dark_current(ws_name, dark_ws)
 
     # Normalization
-    if str(flux_method).lower() == 'monitor':
+    if str(flux_method).lower() == "monitor":
         try:
             normalize_by_monitor(ws_name)
         except RuntimeError as e:
             if monitor_fail_switch:
-                logger.warning(f'{e}. Resorting to normalization by time')
+                logger.warning(f"{e}. Resorting to normalization by time")
                 normalize_by_time(ws_name)
             else:
-                msg = '. Setting configuration "normalizationResortToTime": True will cause the' \
-                      ' reduction to normalize by time if monitor counts are not available'
+                msg = (
+                    '. Setting configuration "normalizationResortToTime": True will cause the'
+                    " reduction to normalize by time if monitor counts are not available"
+                )
                 raise RuntimeError(str(e) + msg)
-    elif str(flux_method).lower() == 'time':
+    elif str(flux_method).lower() == "time":
         normalize_by_time(ws_name)
     else:
-        logger.notice('No time or monitor normalization is carried out')
+        logger.notice("No time or monitor normalization is carried out")
 
     # Additional masks
     apply_mask(ws_name, panel=mask_panel, mask=mask, **btp)
@@ -1468,15 +1709,24 @@ def prepare_data(data,
             solid_angle_correction(ws_name, solid_angle_ws=solid_angle)
     # Sensitivity
     if sensitivity_file_path is not None or sensitivity_workspace is not None:
-        drtsans.apply_sensitivity_correction(ws_name, sensitivity_filename=sensitivity_file_path,
-                                             sensitivity_workspace=sensitivity_workspace)
+        drtsans.apply_sensitivity_correction(
+            ws_name,
+            sensitivity_filename=sensitivity_file_path,
+            sensitivity_workspace=sensitivity_workspace,
+        )
 
     # Overwrite meta data
-    set_meta_data(ws_name, wave_length, wavelength_spread,
-                  sample_offset,
-                  sample_aperture_diameter, sample_thickness,
-                  source_aperture_diameter,
-                  smearing_pixel_size_x, smearing_pixel_size_y)
+    set_meta_data(
+        ws_name,
+        wave_length,
+        wavelength_spread,
+        sample_offset,
+        sample_aperture_diameter,
+        sample_thickness,
+        source_aperture_diameter,
+        smearing_pixel_size_x,
+        smearing_pixel_size_y,
+    )
 
     return mtd[ws_name]
 
@@ -1487,7 +1737,7 @@ def create_output_dir(output_dir):
         os.mkdir(output_dir)
 
     # 1D and 2D
-    for sub_dir in ['1D', '2D']:
+    for sub_dir in ["1D", "2D"]:
         n_d_dir = os.path.join(output_dir, sub_dir)
         if not os.path.exists(n_d_dir):
             os.mkdir(n_d_dir)
@@ -1497,5 +1747,5 @@ def create_output_dir(output_dir):
 
 def form_output_name(workspace):
     workspace_name = str(workspace)
-    file_name = workspace_name.split('/')[-1].split('.')[0]
-    return f'{file_name}.png'
+    file_name = workspace_name.split("/")[-1].split(".")[0]
+    return f"{file_name}.png"

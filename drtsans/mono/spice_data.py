@@ -1,10 +1,11 @@
 # Module containing multiple classes to work with SPICE data
 from typing import NamedTuple, List, Tuple, Union
 import os
+
 # Functions exposed to the general user (public) API
 
 
-__all__ = ['SpiceRun', 'map_to_nexus']
+__all__ = ["SpiceRun", "map_to_nexus"]
 
 
 class SpiceRun(NamedTuple):
@@ -29,7 +30,7 @@ class SpiceRun(NamedTuple):
             Path to IPTS directory
 
         """
-        return f'/HFIR/{self.beam_line}/IPTS-{self.ipts_number}/'
+        return f"/HFIR/{self.beam_line}/IPTS-{self.ipts_number}/"
 
     def locate_spice_file(self, data_dir=None, raise_if_not_exist=True):
         """Locate SPICE file
@@ -48,18 +49,22 @@ class SpiceRun(NamedTuple):
 
         """
         # standard spice file name
-        spice_file_name = f'{self.beam_line}_exp{self.exp_number}_scan{self.scan_number:04}_{self.pt_number:04}.xml'
+        spice_file_name = f"{self.beam_line}_exp{self.exp_number}_scan{self.scan_number:04}_{self.pt_number:04}.xml"
 
         # data file path
         if data_dir is None:
             # default: on the HFIR data server
-            data_dir = os.path.join(self.hfir_ipts_dir, f'exp{self.exp_number}/Datafiles')
+            data_dir = os.path.join(
+                self.hfir_ipts_dir, f"exp{self.exp_number}/Datafiles"
+            )
 
         spice_file_path = os.path.join(data_dir, spice_file_name)
 
         # check file existence
         if raise_if_not_exist and not os.path.exists(spice_file_path):
-            raise RuntimeError(f'SPICE file {spice_file_name} cannot be found in directory {data_dir}')
+            raise RuntimeError(
+                f"SPICE file {spice_file_name} cannot be found in directory {data_dir}"
+            )
 
         return spice_file_path
 
@@ -75,7 +80,7 @@ class SpiceRun(NamedTuple):
             run number
 
         """
-        return int(f'{self.exp_number}{self.scan_number:04}{self.pt_number:04}')
+        return int(f"{self.exp_number}{self.scan_number:04}{self.pt_number:04}")
 
     def unique_nexus_name(self, nexus_dir=None, raise_if_not_exist=False):
         """
@@ -94,26 +99,30 @@ class SpiceRun(NamedTuple):
 
         """
         # standard base name
-        base_nexus_name = f'{self.beam_line}_{self.unique_run_number:012}.nxs.h5'
+        base_nexus_name = f"{self.beam_line}_{self.unique_run_number:012}.nxs.h5"
 
         if nexus_dir is None:
             # use standard defalt
-            nexus_dir = os.path.join(self.hfir_ipts_dir, f'shared/Exp{self.exp_number}')
+            nexus_dir = os.path.join(self.hfir_ipts_dir, f"shared/Exp{self.exp_number}")
 
         nexus_path = os.path.join(nexus_dir, base_nexus_name)
 
         if raise_if_not_exist and not os.path.exists(nexus_path):
-            raise RuntimeError(f'Spice converted Nexus file {base_nexus_name} does not exist in '
-                               f'directory {nexus_dir}')
+            raise RuntimeError(
+                f"Spice converted Nexus file {base_nexus_name} does not exist in "
+                f"directory {nexus_dir}"
+            )
 
         return nexus_path
 
 
-def map_to_nexus(beam_line: str,
-                 ipts_number: int,
-                 exp_number: int,
-                 scan_pt_list: List[Union[Tuple[int, int], None]],
-                 nexus_dir: str = None) -> List[str]:
+def map_to_nexus(
+    beam_line: str,
+    ipts_number: int,
+    exp_number: int,
+    scan_pt_list: List[Union[Tuple[int, int], None]],
+    nexus_dir: str = None,
+) -> List[str]:
     """Map SPICE information to converted NeXus file path
 
     Parameters
@@ -141,8 +150,9 @@ def map_to_nexus(beam_line: str,
             nexus_file = None
         else:
             scan, pt = scan_pt
-            nexus_file = SpiceRun(beam_line, ipts_number, exp_number,
-                                  scan, pt).unique_nexus_name(nexus_dir, raise_if_not_exist=True)
+            nexus_file = SpiceRun(
+                beam_line, ipts_number, exp_number, scan, pt
+            ).unique_nexus_name(nexus_dir, raise_if_not_exist=True)
         nexus_list.append(nexus_file)
 
     return nexus_list

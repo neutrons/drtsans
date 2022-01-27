@@ -19,7 +19,11 @@ from drtsans.mono.load import load_mono
 from drtsans.path import exists, registered_workspace
 from drtsans.process_uncertainties import set_init_uncertainties
 
-__all__ = ['subtract_dark_current', 'load_dark_current_workspace', 'normalize_dark_current']
+__all__ = [
+    "subtract_dark_current",
+    "load_dark_current_workspace",
+    "normalize_dark_current",
+]
 
 
 def normalize_dark_current(dark_workspace, output_workspace=None):
@@ -51,11 +55,14 @@ def normalize_dark_current(dark_workspace, output_workspace=None):
 
     # Find out the duration of the dark current from the logs, and divide
     dark_duration = duration(dark_workspace)
-    Scale(InputWorkspace=dark_workspace,
-          Factor=1. / dark_duration.value, Operation='Multiply',
-          OutputWorkspace=output_workspace)
+    Scale(
+        InputWorkspace=dark_workspace,
+        Factor=1.0 / dark_duration.value,
+        Operation="Multiply",
+        OutputWorkspace=output_workspace,
+    )
     # Save the name of the log used to calculate the duration
-    SampleLogs(output_workspace).insert('normalizing_duration', dark_duration.log_key)
+    SampleLogs(output_workspace).insert("normalizing_duration", dark_duration.log_key)
     return mtd[output_workspace]
 
 
@@ -72,11 +79,14 @@ def load_dark_current_workspace(dark_current_filename, output_workspace):
     output_workspace: int, str
         run number or file path for dark current
     """
-    if (isinstance(dark_current_filename, str) and exists(dark_current_filename)) \
-            or isinstance(dark_current_filename, int):
+    if (
+        isinstance(dark_current_filename, str) and exists(dark_current_filename)
+    ) or isinstance(dark_current_filename, int):
         load_mono(dark_current_filename, output_workspace=output_workspace)
     else:
-        message = 'Unable to find or load the dark current {}'.format(dark_current_filename)
+        message = "Unable to find or load the dark current {}".format(
+            dark_current_filename
+        )
         raise RuntimeError(message)
     return mtd[output_workspace]
 
@@ -113,10 +123,14 @@ def subtract_dark_current(data_workspace, dark, output_workspace=None):
     if registered_workspace(dark):
         dark_workspace = dark
     else:
-        dark_workspace = load_dark_current_workspace(dark, output_workspace=unique_workspace_dundername())
+        dark_workspace = load_dark_current_workspace(
+            dark, output_workspace=unique_workspace_dundername()
+        )
 
     # Integrate and set uncertainties
-    dark_integrated = Integration(dark_workspace, OutputWorkspace=unique_workspace_dundername())
+    dark_integrated = Integration(
+        dark_workspace, OutputWorkspace=unique_workspace_dundername()
+    )
     dark_integrated = set_init_uncertainties(dark_integrated)
     # Normalize the dark current
     normalized_dark_current = unique_workspace_dundername()  # temporary workspace
@@ -125,9 +139,17 @@ def subtract_dark_current(data_workspace, dark, output_workspace=None):
     # Find the duration of the data run using the same log key than that of the dark current
     duration_log_key = SampleLogs(normalized_dark_current).normalizing_duration.value
     data_duration = duration(data_workspace, log_key=duration_log_key).value
-    Scale(InputWorkspace=normalized_dark_current, Factor=data_duration, Operation='Multiply',
-          OutputWorkspace=normalized_dark_current)
-    Minus(LHSWorkspace=data_workspace, RHSWorkspace=normalized_dark_current, OutputWorkspace=output_workspace)
+    Scale(
+        InputWorkspace=normalized_dark_current,
+        Factor=data_duration,
+        Operation="Multiply",
+        OutputWorkspace=normalized_dark_current,
+    )
+    Minus(
+        LHSWorkspace=data_workspace,
+        RHSWorkspace=normalized_dark_current,
+        OutputWorkspace=output_workspace,
+    )
 
     DeleteWorkspace(normalized_dark_current)  # some clean-up
     return mtd[output_workspace]

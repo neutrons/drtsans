@@ -44,8 +44,10 @@ class EQSANSDiskChopperSet(object):
     #: Phase offsets, in micro-seconds. These values are required to calibrate the value reported in the
     #: metadata. The combination on the reported phase and this offset is the time (starting from the
     #: current pulse) at which the middle of the choppers apertures will intersect with the neutron beam axis.
-    _offsets = {FrameMode.not_skip: [9507., 9471., 9829.7, 9584.3],
-                FrameMode.skip: [19024., 18820., 19714., 19360.]}
+    _offsets = {
+        FrameMode.not_skip: [9507.0, 9471.0, 9829.7, 9584.3],
+        FrameMode.skip: [19024.0, 18820.0, 19714.0, 19360.0],
+    }
 
     def __init__(self, other):
         # Load choppers settings from the logs
@@ -55,14 +57,18 @@ class EQSANSDiskChopperSet(object):
             ws = LoadNexusProcessed(other)
             sample_logs = SampleLogs(ws)
         else:
-            raise RuntimeError('{} is not a valid file name, workspace, Run object or run number'.format(other))
+            raise RuntimeError(
+                "{} is not a valid file name, workspace, Run object or run number".format(
+                    other
+                )
+            )
 
         self._choppers = list()
         for chopper_index in range(self._n_choppers):
             aperture = self._aperture[chopper_index]
             to_source = self._to_source[chopper_index]
-            speed = sample_logs['Speed{}'.format(1 + chopper_index)].value.mean()
-            sensor_phase = sample_logs['Phase{}'.format(1 + chopper_index)].value.mean()
+            speed = sample_logs["Speed{}".format(1 + chopper_index)].value.mean()
+            sensor_phase = sample_logs["Phase{}".format(1 + chopper_index)].value.mean()
             ch = DiskChopper(to_source, aperture, speed, sensor_phase)
             ch.pulse_width = self._pulse_width
             ch.cutoff_wl = self._cutoff_wl

@@ -9,11 +9,13 @@ import numpy as np
 from contextlib import contextmanager
 from drtsans.tof.eqsans.geometry import detector_id
 
-__all__ = ['load_config', ]
+__all__ = [
+    "load_config",
+]
 
 
 # default directory for instrument configuration
-cfg_dir = '/SNS/EQSANS/shared/instrument_configuration'
+cfg_dir = "/SNS/EQSANS/shared/instrument_configuration"
 
 
 def closest_config(run, config_dir=cfg_dir):
@@ -32,7 +34,7 @@ def closest_config(run, config_dir=cfg_dir):
     str
         Absolute path to configuration file
     """
-    pattern = re.compile(r'eqsans_configuration\.(\d+)')
+    pattern = re.compile(r"eqsans_configuration\.(\d+)")
     reference_runs = list()
     for root, dirs, files in os.walk(config_dir):
         for file_name in files:
@@ -42,11 +44,12 @@ def closest_config(run, config_dir=cfg_dir):
     reference_runs.sort()
     reference_runs = np.asarray(reference_runs)
     if not bool(reference_runs.size > 0):
-        raise RuntimeError('Failed to find any reference runs in "{}"'.format(config_dir))
+        raise RuntimeError(
+            'Failed to find any reference runs in "{}"'.format(config_dir)
+        )
     maximum_index_below_run = np.where(run >= reference_runs)[0][-1]
     reference_run = reference_runs[maximum_index_below_run]
-    return os.path.join(config_dir,
-                        'eqsans_configuration.{}'.format(reference_run))
+    return os.path.join(config_dir, "eqsans_configuration.{}".format(reference_run))
 
 
 @contextmanager
@@ -95,13 +98,12 @@ class CfgItemValue(object):
         Description of the entry
     """
 
-    def __init__(self, name='', data='', note=''):
+    def __init__(self, name="", data="", note=""):
         self.data = data
         self.note = note
 
     def __repr__(self):
-        return 'CfgItemValue(data="{data}", note="{note}")'.\
-            format(**self.__dict__)
+        return 'CfgItemValue(data="{data}", note="{note}")'.format(**self.__dict__)
 
     def __eq__(self, other):
         """Discard note explanatory when comparing two value items"""
@@ -127,6 +129,7 @@ class CfgItemValue(object):
 
 class ItemMaskMixin(object):
     r"""Functionality common to all types of masks items in the config file"""
+
     @property
     def detectors(self):
         r"""List of masked detector ID's, sorted by increasing ID"""
@@ -142,12 +145,13 @@ class CfgItemRectangularMask(CfgItemValue, ItemMaskMixin):
     (xs, ys) defines the lower-left corner of the rectangular mask
     (xe, ye) defines the upper-right corner of the rectangular mask
     """
+
     def __init__(self, *args, **kwargs):
         CfgItemValue.__init__(self, *args, **kwargs)
 
     def insert(self, value):
         r"""Additional validation"""
-        if len(re.findall(r'\d+', value)) == 4:
+        if len(re.findall(r"\d+", value)) == 4:
             super().insert(value)
 
     @property
@@ -160,11 +164,17 @@ class CfgItemRectangularMask(CfgItemValue, ItemMaskMixin):
         list
         """
         pxs = list()
-        recs = [self.data, ] if isinstance(self.data, str) else self.data
+        recs = (
+            [
+                self.data,
+            ]
+            if isinstance(self.data, str)
+            else self.data
+        )
         for rec in recs:
             # (xs,ys) left-lower corner; (xe,y) upper-right corner
-            xs, ys, xe, ye = [int(n) for n in re.findall(r'\d+', rec)]
-            pxs.extend(iproduct(range(xs, 1+xe), range(ys, 1+ye)))
+            xs, ys, xe, ye = [int(n) for n in re.findall(r"\d+", rec)]
+            pxs.extend(iproduct(range(xs, 1 + xe), range(ys, 1 + ye)))
         return list(set(pxs))  # remove possible duplicates
 
     @property
@@ -176,7 +186,8 @@ CfgItemEllipticalMask = CfgItemRectangularMask
 
 
 class CfgTofEdgeDiscard(CfgItemValue):
-    r"""Specialization for entry 'TOF edge discard' """
+    r"""Specialization for entry 'TOF edge discard'"""
+
     def __init__(self, *args, **kwargs):
         CfgItemValue.__init__(self, *args, **kwargs)
 
@@ -189,12 +200,15 @@ class Cfg(object):
     """
     Read EQSANS configuration files
     """
-    _item_types = {'rectangular mask': CfgItemRectangularMask,
-                   'elliptical mask': CfgItemEllipticalMask,
-                   'tof edge discard': CfgTofEdgeDiscard}
+
+    _item_types = {
+        "rectangular mask": CfgItemRectangularMask,
+        "elliptical mask": CfgItemEllipticalMask,
+        "tof edge discard": CfgTofEdgeDiscard,
+    }
 
     @staticmethod
-    def load(source, config_dir=cfg_dir, comment_symbol='#'):
+    def load(source, config_dir=cfg_dir, comment_symbol="#"):
         """
         Load the configuration file appropriate to the input source info.
 
@@ -216,18 +230,18 @@ class Cfg(object):
         cfg = dict()
         with open_source(source, config_dir=config_dir) as f:
             for line in f.readlines():
-                if '=' not in line:
+                if "=" not in line:
                     continue  # this line contains no valid entries
-                key, val = [x.strip() for x in line.split('=')]
+                key, val = [x.strip() for x in line.split("=")]
                 if comment_symbol in key:
                     continue
                 key = key.lower()  # ignore case
-                description = ''
+                description = ""
                 if comment_symbol in val:
-                    val, description = [x.strip() for x in val.split('#')]
+                    val, description = [x.strip() for x in val.split("#")]
                 if key in cfg:
                     cfg[key].insert(val)
-                    if description != '':
+                    if description != "":
                         cfg[key].help = description
                 else:
                     item_type = Cfg._item_types.get(key, CfgItemValue)
@@ -235,15 +249,16 @@ class Cfg(object):
                     cfg[key] = item
 
         # Old reduction combines the rectangular and elliptical masks
-        cfg['combined mask'] = deepcopy(cfg['rectangular mask'])
-        if 'elliptical mask' in cfg:
-            cfg['combined mask'] += cfg['elliptical mask']
+        cfg["combined mask"] = deepcopy(cfg["rectangular mask"])
+        if "elliptical mask" in cfg:
+            cfg["combined mask"] += cfg["elliptical mask"]
 
         return cfg
 
     def __init__(self, source=None, config_dir=cfg_dir):
-        self._cfg = dict() if source is None \
-            else Cfg.load(source, config_dir=config_dir)
+        self._cfg = (
+            dict() if source is None else Cfg.load(source, config_dir=config_dir)
+        )
 
     def __getitem__(self, item):
         return self._cfg[item]
@@ -261,7 +276,7 @@ class Cfg(object):
 
     def __repr__(self):
         fmt = '"{}" : {}'
-        return '\n'.join(fmt.format(k, v) for (k, v) in self._cfg.items())
+        return "\n".join(fmt.format(k, v) for (k, v) in self._cfg.items())
 
     def logit(self, key, workspace, name=None, replace=False):
         """
@@ -285,9 +300,11 @@ class Cfg(object):
         log_name = key if name is None else name
         run = workspace.getRun()
         if replace is False and run.hasProperty(log_name):
-            msg = 'Property {} already exists. Set keyword "replace"' \
-                  ' to True if you wish to replace the existing property' \
-                  ' with the new value.'
+            msg = (
+                'Property {} already exists. Set keyword "replace"'
+                " to True if you wish to replace the existing property"
+                " with the new value."
+            )
             raise ValueError(msg.format(log_name))
         run.addProperty(log_name, self[key].data, replace=replace)
 

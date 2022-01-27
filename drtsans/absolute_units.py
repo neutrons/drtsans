@@ -9,7 +9,9 @@ from mantid.dataobjects import WorkspaceSingleValue
 # drtsans imports
 from drtsans.settings import unique_workspace_dundername as uwd  # pylint: disable=W0404
 
-__all__ = ['standard_sample_scaling', ]
+__all__ = [
+    "standard_sample_scaling",
+]
 
 
 def standard_sample_scaling(input_workspace, f, f_std, output_workspace=None):
@@ -40,6 +42,8 @@ def standard_sample_scaling(input_workspace, f, f_std, output_workspace=None):
         output_workspace = str(input_workspace)
 
     scaling_factor = Divide(LHSWorkspace=f_std, RHSWorkspace=f, OutputWorkspace=uwd())
-    output_workspace = Multiply(LHSWorkspace=input_workspace, RHSWorkspace=scaling_factor)
+    output_workspace = Multiply(
+        LHSWorkspace=input_workspace, RHSWorkspace=scaling_factor
+    )
     DeleteWorkspace(Workspace=scaling_factor)
     return output_workspace

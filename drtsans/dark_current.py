@@ -41,14 +41,18 @@ def duration(input_workspace, log_key=None):
 
     """
     # Determine which log keys to use when finding out the duration of the run
-    log_keys = ('duration', 'start_time', 'proton_charge', 'timer') if log_key is None else (log_key, )
+    log_keys = (
+        ("duration", "start_time", "proton_charge", "timer")
+        if log_key is None
+        else (log_key,)
+    )
 
     sample_logs = SampleLogs(input_workspace)
 
     def from_start_time(log_entry):
         r"""Utility function to find the duration using the start_time and end_time log entries"""
         st = parse_date(sample_logs[log_entry].value)
-        et = parse_date(sample_logs['end_time'].value)
+        et = parse_date(sample_logs["end_time"].value)
         return (et - st).total_seconds()
 
     def from_proton_charge(log_entry):

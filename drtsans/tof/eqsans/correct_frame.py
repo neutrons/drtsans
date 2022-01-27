@@ -1,14 +1,24 @@
 import numpy as np
+
 # https://docs.mantidproject.org/nightly/algorithms/ConvertUnits-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/CropWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/EQSANSCorrectFrame-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/MaskBins-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/Rebin-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html
-from mantid.simpleapi import (mtd, ConvertUnits, CropWorkspace, EQSANSCorrectFrame,
-                              MaskBins, Rebin, RebinToWorkspace, logger,
-                              SetInstrumentParameter, ModeratorTzero,
-                              ChangeBinOffset)
+from mantid.simpleapi import (
+    mtd,
+    ConvertUnits,
+    CropWorkspace,
+    EQSANSCorrectFrame,
+    MaskBins,
+    Rebin,
+    RebinToWorkspace,
+    logger,
+    SetInstrumentParameter,
+    ModeratorTzero,
+    ChangeBinOffset,
+)
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.chopper import EQSANSDiskChopperSet
 from drtsans.frame_mode import FrameMode
@@ -19,7 +29,7 @@ from drtsans.tof.eqsans.geometry import source_monitor_distance
 from drtsans.process_uncertainties import set_init_uncertainties
 
 
-__all__ = ['transform_to_wavelength']
+__all__ = ["transform_to_wavelength"]
 
 
 def _is_frame_skipping(input_workspace):
@@ -35,10 +45,10 @@ def _is_frame_skipping(input_workspace):
     bool
     """
     sample_logs = SampleLogs(input_workspace)
-    if 'is_frame_skipping' in sample_logs.keys():
+    if "is_frame_skipping" in sample_logs.keys():
         return bool(sample_logs.is_frame_skipping.value)
     else:
-        return (EQSANSDiskChopperSet(input_workspace).frame_mode == FrameMode.skip)
+        return EQSANSDiskChopperSet(input_workspace).frame_mode == FrameMode.skip
 
 
 @namedtuplefy
@@ -61,16 +71,19 @@ def transmitted_bands(input_workspace):
     sample_logs = SampleLogs(input_workspace)
     try:
         # 10^6/60 micro-seconds
-        pulse_period = 1.e6 / sample_logs.single_value('frequency')
+        pulse_period = 1.0e6 / sample_logs.single_value("frequency")
     except RuntimeError:
-        pulse_period = 1.e6 / 60.  # reasonable default
+        pulse_period = 1.0e6 / 60.0  # reasonable default
     ch = EQSANSDiskChopperSet(input_workspace)  # object representing the four choppers
     # Wavelength band of neutrons from the leading pulse transmitted
     # by the chopper system
     lead_band = ch.transmission_bands(pulsed=True)[0]
     # Wavelength from the previous, skipped pulse.
-    skip_band = ch.transmission_bands(delay=pulse_period, pulsed=True)[0]\
-        if ch.frame_mode == FrameMode.skip else None
+    skip_band = (
+        ch.transmission_bands(delay=pulse_period, pulsed=True)[0]
+        if ch.frame_mode == FrameMode.skip
+        else None
+    )
     return dict(lead=lead_band, skip=skip_band)
 
 
@@ -97,11 +110,15 @@ def limiting_tofs(input_workspace, sdd):
     ws = mtd[str(input_workspace)]
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
     bands = transmitted_bands(ws)
-    lead = (wlg.tof(bands.lead.min, sdd, ch.pulse_width),
-            wlg.tof(bands.lead.max, sdd))
-    skip = None if ch.frame_mode == FrameMode.not_skip else \
-        (wlg.tof(bands.skip.min, sdd, ch.pulse_width),
-         wlg.tof(bands.skip.max, sdd))
+    lead = (wlg.tof(bands.lead.min, sdd, ch.pulse_width), wlg.tof(bands.lead.max, sdd))
+    skip = (
+        None
+        if ch.frame_mode == FrameMode.not_skip
+        else (
+            wlg.tof(bands.skip.min, sdd, ch.pulse_width),
+            wlg.tof(bands.skip.max, sdd),
+        )
+    )
     return dict(lead=lead, skip=skip)
 
 
@@ -124,19 +141,23 @@ def clipped_bands_from_logs(input_workspace):
         - skipped, Wband for the skipped pulse. None if not operating in the skipped frame mode
     """
     sl = SampleLogs(input_workspace)
-    lead = wlg.Wband(sl.wavelength_lead_min.value,
-                     sl.wavelength_lead_max.value)
+    lead = wlg.Wband(sl.wavelength_lead_min.value, sl.wavelength_lead_max.value)
     if _is_frame_skipping(input_workspace):
-        skip = wlg.Wband(sl.wavelength_skip_min.value,
-                         sl.wavelength_skip_max.value)
+        skip = wlg.Wband(sl.wavelength_skip_min.value, sl.wavelength_skip_max.value)
     else:
         skip = None
     return dict(lead=lead, skip=skip)
 
 
 @namedtuplefy
-def transmitted_bands_clipped(input_workspace, source_detector_dist=None, low_tof_clip=None, high_tof_clip=None,
-                              interior_clip=True, search_in_logs=True):
+def transmitted_bands_clipped(
+    input_workspace,
+    source_detector_dist=None,
+    low_tof_clip=None,
+    high_tof_clip=None,
+    interior_clip=True,
+    search_in_logs=True,
+):
     r"""
     Wavelength bands of the lead and skipped pulses transmitted by the choppers taking into account
     the TOF clippings for neutrons arriving at the detector, assuming a detector were placed at `distance`.
@@ -174,7 +195,9 @@ def transmitted_bands_clipped(input_workspace, source_detector_dist=None, low_to
             bands = clipped_bands_from_logs(input_workspace)
             return dict(lead=bands.lead, skip=bands.skip)
         except AttributeError:
-            logger.warning('Clipped bands not present in the logs. Calculating using the chopper settings.')
+            logger.warning(
+                "Clipped bands not present in the logs. Calculating using the chopper settings."
+            )
 
     # If necessary, retrieve the clips from the logs
     sample_logs = SampleLogs(input_workspace)
@@ -185,10 +208,12 @@ def transmitted_bands_clipped(input_workspace, source_detector_dist=None, low_to
 
     # If necessary, retrieve the source_detector_distance from the input workspace
     if source_detector_dist is None:
-        source_detector_dist = source_detector_distance(input_workspace, unit='m')
+        source_detector_dist = source_detector_distance(input_workspace, unit="m")
 
     ch = EQSANSDiskChopperSet(input_workspace)  # object representing the four choppers
-    lwc = wlg.from_tof(low_tof_clip, source_detector_dist, ch.pulse_width)  # low wavel. clip
+    lwc = wlg.from_tof(
+        low_tof_clip, source_detector_dist, ch.pulse_width
+    )  # low wavel. clip
     hwc = wlg.from_tof(high_tof_clip, source_detector_dist)  # high wavelength clip
     bands = transmitted_bands(input_workspace)
     if ch.frame_mode == FrameMode.not_skip:
@@ -202,8 +227,7 @@ def transmitted_bands_clipped(input_workspace, source_detector_dist=None, low_to
     return dict(lead=lead, skip=skip)
 
 
-def log_tof_structure(input_workspace, low_tof_clip, high_tof_clip,
-                      interior_clip=True):
+def log_tof_structure(input_workspace, low_tof_clip, high_tof_clip, interior_clip=True):
     r"""
     Append to the logs relevant information about the time of flight
     frame and structure
@@ -234,12 +258,12 @@ def log_tof_structure(input_workspace, low_tof_clip, high_tof_clip,
     ws = mtd[str(input_workspace)]
     ch = EQSANSDiskChopperSet(ws)
     sample_logs = SampleLogs(ws)
-    sample_logs.insert('low_tof_clip', low_tof_clip, unit='ms')
-    sample_logs.insert('high_tof_clip', high_tof_clip, unit='ms')
-    sample_logs.insert('tof_frame_width', ch.period, unit='ms')
+    sample_logs.insert("low_tof_clip", low_tof_clip, unit="ms")
+    sample_logs.insert("high_tof_clip", high_tof_clip, unit="ms")
+    sample_logs.insert("tof_frame_width", ch.period, unit="ms")
     clip_times = 1 if interior_clip is False else 2
     tof_width_clipped = ch.period - clip_times * (low_tof_clip + high_tof_clip)
-    sample_logs.insert('tof_frame_width_clipped', tof_width_clipped, unit='ms')
+    sample_logs.insert("tof_frame_width_clipped", tof_width_clipped, unit="ms")
     return ws
 
 
@@ -257,13 +281,13 @@ def log_band_structure(input_workspace, bands):
     sample_logs = SampleLogs(input_workspace)
     w_min = bands.lead.min
     w_max = bands.skip.max if is_frame_skipping else bands.lead.max
-    sample_logs.insert('wavelength_min', w_min, unit='Angstrom')
-    sample_logs.insert('wavelength_max', w_max, unit='Angstrom')
-    sample_logs.insert('wavelength_lead_min', bands.lead.min, unit='Angstrom')
-    sample_logs.insert('wavelength_lead_max', bands.lead.max, unit='Angstrom')
+    sample_logs.insert("wavelength_min", w_min, unit="Angstrom")
+    sample_logs.insert("wavelength_max", w_max, unit="Angstrom")
+    sample_logs.insert("wavelength_lead_min", bands.lead.min, unit="Angstrom")
+    sample_logs.insert("wavelength_lead_max", bands.lead.max, unit="Angstrom")
     if is_frame_skipping:
-        sample_logs.insert('wavelength_skip_min', bands.skip.min, unit='Angstrom')
-        sample_logs.insert('wavelength_skip_max', bands.skip.max, unit='Angstrom')
+        sample_logs.insert("wavelength_skip_min", bands.skip.min, unit="Angstrom")
+        sample_logs.insert("wavelength_skip_max", bands.skip.max, unit="Angstrom")
 
 
 @namedtuplefy
@@ -283,21 +307,29 @@ def metadata_bands(input_workspace):
     """
     sample_logs = SampleLogs(input_workspace)
     try:
-        lead = wlg.Wband(sample_logs.wavelength_lead_min.value, sample_logs.wavelength_lead_max.value)
+        lead = wlg.Wband(
+            sample_logs.wavelength_lead_min.value, sample_logs.wavelength_lead_max.value
+        )
     except AttributeError as e:
-        raise RuntimeError('Band structure not found in the logs') from e
+        raise RuntimeError("Band structure not found in the logs") from e
     skip = None
     if _is_frame_skipping(input_workspace):
         try:
-            skip = wlg.Wband(sample_logs.wavelength_skip_min.value, sample_logs.wavelength_skip_max.value)
+            skip = wlg.Wband(
+                sample_logs.wavelength_skip_min.value,
+                sample_logs.wavelength_skip_max.value,
+            )
         except AttributeError as e:
-            raise RuntimeError('Bands from the skipped pulse missing in the logs') from e
+            raise RuntimeError(
+                "Bands from the skipped pulse missing in the logs"
+            ) from e
 
     return dict(lead=lead, skip=skip)
 
 
-def correct_tof_frame(input_workspace, source_to_component_distance,
-                      path_to_pixel=True):
+def correct_tof_frame(
+    input_workspace, source_to_component_distance, path_to_pixel=True
+):
     r"""
     Assign the correct TOF to each event.
 
@@ -324,27 +356,30 @@ def correct_tof_frame(input_workspace, source_to_component_distance,
     """
     ws = mtd[str(input_workspace)]
     sl = SampleLogs(ws)
-    pulse_period = 1.e6 / sl.frequency.value.mean()  # 10^6/60 micro-seconds
+    pulse_period = 1.0e6 / sl.frequency.value.mean()  # 10^6/60 micro-seconds
     ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
     # The TOF values recorded are never bigger than the frame width,
     # which is also the choppers' rotational period.
     frame_width = ch.period  # either 10^6/60 or 10^6/30 micro-seconds
 
     tof_min, tof_max = limiting_tofs(ws, source_to_component_distance).lead
-    EQSANSCorrectFrame(ws,
-                       PulsePeriod=pulse_period,
-                       MinTOF=tof_min,
-                       FrameWidth=frame_width,
-                       FrameSkipping=(ch.frame_mode is FrameMode.skip),
-                       PathToPixel=path_to_pixel)
+    EQSANSCorrectFrame(
+        ws,
+        PulsePeriod=pulse_period,
+        MinTOF=tof_min,
+        FrameWidth=frame_width,
+        FrameSkipping=(ch.frame_mode is FrameMode.skip),
+        PathToPixel=path_to_pixel,
+    )
     # Amend the logs
     fr_skip = 1 if ch.frame_mode == FrameMode.skip else 0
-    sl.insert('is_frame_skipping', fr_skip)
+    sl.insert("is_frame_skipping", fr_skip)
 
 
 def correct_detector_frame(ws, path_to_pixel=True):
-    correct_tof_frame(ws, source_detector_distance(ws, unit='m'),
-                      path_to_pixel=path_to_pixel)
+    correct_tof_frame(
+        ws, source_detector_distance(ws, unit="m"), path_to_pixel=path_to_pixel
+    )
 
 
 def correct_monitor_frame(input_workspace):
@@ -365,8 +400,7 @@ def correct_monitor_frame(input_workspace):
     if EQSANSDiskChopperSet(ws).frame_mode == FrameMode.skip:
         raise RuntimeError('cannot correct monitor frame in "skip" mode')
     # correct TOF's
-    correct_tof_frame(ws, source_monitor_distance(ws, unit='m'),
-                      path_to_pixel=False)
+    correct_tof_frame(ws, source_monitor_distance(ws, unit="m"), path_to_pixel=False)
 
 
 def correct_emission_time(input_workspace):
@@ -387,13 +421,17 @@ def correct_emission_time(input_workspace):
     #
     # if λ>=2 then 0.5*(231.99+6.4787λ-0.5233λ^2+0.0148λ^3)
     # else 0.5*(1280.5-7448.4*λ+16509*λ^2-17872*λ^3+10445*λ^4-3169.3*λ^5+392.31*λ^6)
-    SetInstrumentParameter(Workspace=input_workspace,
-                           ParameterName="t0_formula",
-                           Value="incidentEnergy=sqrt(81.80420249996277/incidentEnergy), (incidentEnergy < 2.0) ? 0.5*(1280.5-7448.4*incidentEnergy+16509*incidentEnergy^2-17872*incidentEnergy^3+10445*incidentEnergy^4-3169.3*incidentEnergy^5+392.31*incidentEnergy^6) : 0.5*(231.99+6.4797*incidentEnergy-0.5233*incidentEnergy^2+0.0148*incidentEnergy^3)")
-    ModeratorTzero(InputWorkspace=input_workspace,
-                   OutputWorkspace=input_workspace,
-                   EMode="Elastic",
-                   Niter=10)
+    SetInstrumentParameter(
+        Workspace=input_workspace,
+        ParameterName="t0_formula",
+        Value="incidentEnergy=sqrt(81.80420249996277/incidentEnergy), (incidentEnergy < 2.0) ? 0.5*(1280.5-7448.4*incidentEnergy+16509*incidentEnergy^2-17872*incidentEnergy^3+10445*incidentEnergy^4-3169.3*incidentEnergy^5+392.31*incidentEnergy^6) : 0.5*(231.99+6.4797*incidentEnergy-0.5233*incidentEnergy^2+0.0148*incidentEnergy^3)",
+    )
+    ModeratorTzero(
+        InputWorkspace=input_workspace,
+        OutputWorkspace=input_workspace,
+        EMode="Elastic",
+        Niter=10,
+    )
 
 
 def correct_tof_offset(input_workspace):
@@ -408,9 +446,11 @@ def correct_tof_offset(input_workspace):
     """
     # If 60Hz (non-frameskip) then subtract 664.7us from all tofs
     if not _is_frame_skipping(input_workspace):
-        ChangeBinOffset(InputWorkspace=input_workspace,
-                        OutputWorkspace=input_workspace,
-                        Offset=-664.7)
+        ChangeBinOffset(
+            InputWorkspace=input_workspace,
+            OutputWorkspace=input_workspace,
+            Offset=-664.7,
+        )
 
 
 def smash_monitor_spikes(input_workspace, output_workspace=None):
@@ -447,13 +487,17 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
 
     # We detect spikes in histogram mode
     bin_width = 1  # 1 micro second
-    w = Rebin(input_workspace, Params=bin_width, PreserveEvents=False,
-              OutputWorkspace=output_workspace)
+    w = Rebin(
+        input_workspace,
+        Params=bin_width,
+        PreserveEvents=False,
+        OutputWorkspace=output_workspace,
+    )
 
     # Find intensities in the range of valid time-of-flight
     intensity = w.dataY(0)
     tofs = w.dataX(0)
-    smd = source_monitor_distance(w, unit='m')
+    smd = source_monitor_distance(w, unit="m")
     tof_min, tof_max = limiting_tofs(w, smd).lead
     valid_idx = np.where(np.logical_and(tofs >= tof_min, tofs <= tof_max))[0]
     if valid_idx[-1] == len(intensity):
@@ -462,7 +506,7 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
 
     # Is this a flat monitor?
     if len(np.where(intensity < 1)[0]) > 0.1 * len(intensity):
-        raise RuntimeError('Monitor spectrum is flat')
+        raise RuntimeError("Monitor spectrum is flat")
 
     remove_spikes(intensity)
     w.dataY(0)[valid_idx] = intensity
@@ -498,13 +542,15 @@ def band_gap_indexes(input_workspace, bands):
     if bands.skip is None:
         return list()
     else:
-        return (np.where((ws.dataX(0) > bands.lead.max) &
-                         (ws.dataX(0) < bands.skip.min))[0]).tolist()
+        return (
+            np.where((ws.dataX(0) > bands.lead.max) & (ws.dataX(0) < bands.skip.min))[0]
+        ).tolist()
 
 
 # flake8: noqa: C901
-def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=True,
-                          output_workspace=None):
+def convert_to_wavelength(
+    input_workspace, bands=None, bin_width=0.1, events=True, output_workspace=None
+):
     r"""
     Convert a time-of-flight events workspace to a wavelength workspace
 
@@ -527,8 +573,12 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
     if output_workspace is None:
         output_workspace = str(input_workspace)
 
-    ConvertUnits(InputWorkspace=input_workspace, Target='Wavelength',
-                 Emode='Elastic', OutputWorkspace=output_workspace)
+    ConvertUnits(
+        InputWorkspace=input_workspace,
+        Target="Wavelength",
+        Emode="Elastic",
+        OutputWorkspace=output_workspace,
+    )
 
     # Rebin to the clipped bands
     is_frame_skipping = _is_frame_skipping(input_workspace)
@@ -546,32 +596,39 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
         if w_min is not None and w_max is not None:
             params = (w_min, bin_width, w_max)
         else:
-            params = (bin_width)
+            params = bin_width
 
-        Rebin(InputWorkspace=output_workspace,
-              Params=params,
-              PreserveEvents=events,
-              OutputWorkspace=output_workspace)
+        Rebin(
+            InputWorkspace=output_workspace,
+            Params=params,
+            PreserveEvents=events,
+            OutputWorkspace=output_workspace,
+        )
     else:
         # crop the workspace if wavelength range is found
         kwargs = dict()
         if w_min is not None:
-            kwargs['XMin'] = w_min
+            kwargs["XMin"] = w_min
         if w_max is not None:
-            kwargs['XMax'] = w_max
+            kwargs["XMax"] = w_max
         if kwargs:
-            CropWorkspace(InputWorkspace=output_workspace,
-                          OutputWorkspace=output_workspace, **kwargs)
+            CropWorkspace(
+                InputWorkspace=output_workspace,
+                OutputWorkspace=output_workspace,
+                **kwargs
+            )
 
     # Discard neutrons in between bands.lead.max and bands.skip.min
     if is_frame_skipping:
         # for some reason event and histogram mode of MaskBins do not give the same result
         # they differ by 2-3 events in the tests
-        if (mtd[output_workspace].id() == 'EventWorkspace'):
-            MaskBins(InputWorkspace=output_workspace,
-                     OutputWorkspace=output_workspace,
-                     XMax=bands.skip.min,
-                     XMin=bands.lead.max)
+        if mtd[output_workspace].id() == "EventWorkspace":
+            MaskBins(
+                InputWorkspace=output_workspace,
+                OutputWorkspace=output_workspace,
+                XMax=bands.skip.min,
+                XMin=bands.lead.max,
+            )
         else:  # histogram
             _ws = mtd[output_workspace]
             to_zero = band_gap_indexes(_ws, bands)
@@ -581,20 +638,27 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
                     _ws.dataE(i)[to_zero] = 1.0
 
     # convert to a histogram if requested
-    if (mtd[output_workspace].id() == 'EventWorkspace') and (not events):
-        RebinToWorkspace(WorkspaceToRebin=output_workspace,
-                         WorkspaceToMatch=output_workspace,
-                         OutputWorkspace=output_workspace,
-                         PreserveEvents=False)
+    if (mtd[output_workspace].id() == "EventWorkspace") and (not events):
+        RebinToWorkspace(
+            WorkspaceToRebin=output_workspace,
+            WorkspaceToMatch=output_workspace,
+            OutputWorkspace=output_workspace,
+            PreserveEvents=False,
+        )
 
     return mtd[output_workspace]
 
 
-def transform_to_wavelength(input_workspace, bin_width=0.1,
-                            low_tof_clip=0., high_tof_clip=0.,
-                            keep_events=True, interior_clip=True,
-                            output_workspace=None,
-                            bands=None):
+def transform_to_wavelength(
+    input_workspace,
+    bin_width=0.1,
+    low_tof_clip=0.0,
+    high_tof_clip=0.0,
+    keep_events=True,
+    interior_clip=True,
+    output_workspace=None,
+    bands=None,
+):
     r"""
     API function that converts corrected TOF's to Wavelength.
 
@@ -631,18 +695,25 @@ def transform_to_wavelength(input_workspace, bin_width=0.1,
 
     # generate bands if not given
     if bands is None:
-        if low_tof_clip > 0. or high_tof_clip > 0.:
-            sdd = source_detector_distance(input_workspace, unit='m')
-            bands = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip,
-                                              high_tof_clip)
+        if low_tof_clip > 0.0 or high_tof_clip > 0.0:
+            sdd = source_detector_distance(input_workspace, unit="m")
+            bands = transmitted_bands_clipped(
+                input_workspace, sdd, low_tof_clip, high_tof_clip
+            )
         else:
             bands = transmitted_bands(input_workspace)
 
     # convert input workspaces to wavelength
-    convert_to_wavelength(input_workspace, bands=bands, bin_width=bin_width,
-                          events=keep_events, output_workspace=output_workspace)
+    convert_to_wavelength(
+        input_workspace,
+        bands=bands,
+        bin_width=bin_width,
+        events=keep_events,
+        output_workspace=output_workspace,
+    )
     log_band_structure(output_workspace, bands)
-    w = log_tof_structure(output_workspace, low_tof_clip,
-                          high_tof_clip, interior_clip=interior_clip)
+    w = log_tof_structure(
+        output_workspace, low_tof_clip, high_tof_clip, interior_clip=interior_clip
+    )
 
     return w, bands

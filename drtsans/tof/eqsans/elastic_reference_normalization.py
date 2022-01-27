@@ -5,8 +5,13 @@ from drtsans.dataobjects import verify_same_q_bins, IQmod
 import numpy as np
 
 
-__all__ = ['normalize_by_elastic_reference', 'determine_reference_wavelength_q1d_mesh',
-           'reshape_q_wavelength_matrix', 'build_i_of_q1d', 'determine_common_mod_q_range_mesh']
+__all__ = [
+    "normalize_by_elastic_reference",
+    "determine_reference_wavelength_q1d_mesh",
+    "reshape_q_wavelength_matrix",
+    "build_i_of_q1d",
+    "determine_common_mod_q_range_mesh",
+]
 
 
 # TODO - make it dataclass when python is upgraded to 3.7
@@ -15,6 +20,7 @@ class ReferenceWavelengths:
     """
     Class for keeping track of reference wavelength for each momentum transfer Q (1D)
     """
+
     # TODO - make the following as definition of dataclass when python is upgraded to 3.7
     # q_vec: np.ndarray
     # ref_wl_vec: np.ndarray
@@ -66,15 +72,25 @@ def reshape_q_wavelength_matrix(i_of_q):
 
     # Create a matrix for q, wavelength, intensity and error
     if i_of_q.delta_mod_q is None:
-        i_q_wl_matrix = np.array([i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity,
-                                 i_of_q.error])
+        i_q_wl_matrix = np.array(
+            [i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity, i_of_q.error]
+        )
     else:
-        i_q_wl_matrix = np.array([i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity,
-                                 i_of_q.error, i_of_q.delta_mod_q])
+        i_q_wl_matrix = np.array(
+            [
+                i_of_q.mod_q,
+                i_of_q.wavelength,
+                i_of_q.intensity,
+                i_of_q.error,
+                i_of_q.delta_mod_q,
+            ]
+        )
     i_q_wl_matrix = i_q_wl_matrix.transpose()
 
     # Order by wavelength and momentum transfer (Q)
-    i_q_wl_matrix = i_q_wl_matrix[np.lexsort((i_q_wl_matrix[:, 1], i_q_wl_matrix[:, 0]))]
+    i_q_wl_matrix = i_q_wl_matrix[
+        np.lexsort((i_q_wl_matrix[:, 1], i_q_wl_matrix[:, 0]))
+    ]
 
     # Unique wavelength and unique momentum transfer
     wl_vector = np.unique(i_of_q.wavelength)
@@ -83,7 +99,9 @@ def reshape_q_wavelength_matrix(i_of_q):
     assert wl_vector.shape[0] * q_vector.shape[0] == i_of_q.intensity.shape[0]
 
     # Reformat
-    intensity_array = i_q_wl_matrix[:, 2].reshape((q_vector.shape[0], wl_vector.shape[0]))
+    intensity_array = i_q_wl_matrix[:, 2].reshape(
+        (q_vector.shape[0], wl_vector.shape[0])
+    )
     error_array = i_q_wl_matrix[:, 3].reshape((q_vector.shape[0], wl_vector.shape[0]))
     if i_of_q.delta_mod_q is not None:
         dq_array = i_q_wl_matrix[:, 4].reshape((q_vector.shape[0], wl_vector.shape[0]))
@@ -111,38 +129,62 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
     """
     # check i_of_q and ref_i_of_q shall have same binning
     if not verify_same_q_bins(i_of_q, ref_i_of_q):
-        raise RuntimeError('Input I(Q) and elastic reference I(Q) have different Q and wavelength binning')
+        raise RuntimeError(
+            "Input I(Q) and elastic reference I(Q) have different Q and wavelength binning"
+        )
 
     # Reshape Q, wavelength, intensities and errors to unique 1D array or 2D array
     wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
     try:
         # in some case, I(Q) and ref I(Q) are the same
         np.testing.assert_allclose(i_of_q.mod_q, ref_i_of_q.mod_q)
-        np.testing.assert_allclose(i_of_q.intensity, ref_i_of_q.intensity, equal_nan=True)
+        np.testing.assert_allclose(
+            i_of_q.intensity, ref_i_of_q.intensity, equal_nan=True
+        )
         ref_i_array, ref_error_array = i_array, error_array
     except AssertionError:
-        ref_wl_vec, ref_q_vec, ref_i_array, ref_error_array, ref_dq_array = reshape_q_wavelength_matrix(ref_i_of_q)
+        (
+            ref_wl_vec,
+            ref_q_vec,
+            ref_i_array,
+            ref_error_array,
+            ref_dq_array,
+        ) = reshape_q_wavelength_matrix(ref_i_of_q)
 
     # Calculate Qmin and Qmax
     qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, ref_i_array)
 
     # Calculate reference
-    ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, ref_i_array, ref_error_array,
-                                                        qmin_index, qmax_index)
+    ref_wl_ie = determine_reference_wavelength_q1d_mesh(
+        wl_vec, q_vec, ref_i_array, ref_error_array, qmin_index, qmax_index
+    )
 
     # Calculate scale factor
-    k_vec, k_error_vec, p_vec, s_vec = calculate_scale_factor_mesh_grid(wl_vec, ref_i_array, ref_error_array,
-                                                                        ref_wl_ie, qmin_index, qmax_index)
+    k_vec, k_error_vec, p_vec, s_vec = calculate_scale_factor_mesh_grid(
+        wl_vec, ref_i_array, ref_error_array, ref_wl_ie, qmin_index, qmax_index
+    )
 
     # Normalize
-    data_ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array,
-                                                             qmin_index, qmax_index)
-    normalized = normalize_intensity_q1d(wl_vec, q_vec, i_array, error_array,
-                                         data_ref_wl_ie, k_vec, p_vec, s_vec,
-                                         qmin_index, qmax_index)
+    data_ref_wl_ie = determine_reference_wavelength_q1d_mesh(
+        wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index
+    )
+    normalized = normalize_intensity_q1d(
+        wl_vec,
+        q_vec,
+        i_array,
+        error_array,
+        data_ref_wl_ie,
+        k_vec,
+        p_vec,
+        s_vec,
+        qmin_index,
+        qmax_index,
+    )
 
     # Convert normalized intensities and errors to IModQ
-    normalized_i_of_q = build_i_of_q1d(wl_vec, q_vec, normalized[0], normalized[1], dq_array)
+    normalized_i_of_q = build_i_of_q1d(
+        wl_vec, q_vec, normalized[0], normalized[1], dq_array
+    )
 
     return normalized_i_of_q, k_vec, k_error_vec
 
@@ -172,7 +214,10 @@ def build_i_of_q1d(wl_vector, q_vector, intensity_array, error_array, delta_q_ar
 
     """
     # assume that intensity, error and delta q have the same as (num_q, num_wl)
-    assert intensity_array.shape[0] == q_vector.shape[0] and intensity_array.shape[1] == wl_vector.shape[0]
+    assert (
+        intensity_array.shape[0] == q_vector.shape[0]
+        and intensity_array.shape[1] == wl_vector.shape[0]
+    )
 
     # tile wave length
     wl_array_1d = np.tile(wl_vector, q_vector.shape[0])
@@ -184,11 +229,13 @@ def build_i_of_q1d(wl_vector, q_vector, intensity_array, error_array, delta_q_ar
     if delta_q_array is not None:
         delta_q_array = delta_q_array.flatten()
 
-    return IQmod(intensity=intensity_array,
-                 error=error_array,
-                 mod_q=q_array_1d,
-                 wavelength=wl_array_1d,
-                 delta_mod_q=delta_q_array)
+    return IQmod(
+        intensity=intensity_array,
+        error=error_array,
+        mod_q=q_array_1d,
+        wavelength=wl_array_1d,
+        delta_mod_q=delta_q_array,
+    )
 
 
 def determine_common_mod_q_range_mesh(q_vec, intensity_array):
@@ -217,7 +264,7 @@ def determine_common_mod_q_range_mesh(q_vec, intensity_array):
     qmax_index = None
 
     # Sanity check
-    assert q_vec.shape[0] == intensity_array.shape[0], 'Shape mismatch'
+    assert q_vec.shape[0] == intensity_array.shape[0], "Shape mismatch"
 
     num_q = q_vec.shape[0]
     for q_index in range(num_q):
@@ -230,13 +277,14 @@ def determine_common_mod_q_range_mesh(q_vec, intensity_array):
             break
 
     if qmin_index is None:
-        raise RuntimeError('Unable to find common q range')
+        raise RuntimeError("Unable to find common q range")
 
     return qmin_index, qmax_index
 
 
-def calculate_scale_factor_mesh_grid(wl_vec, intensity_array, error_array,
-                                     ref_wl_intensities, qmin_index, qmax_index):
+def calculate_scale_factor_mesh_grid(
+    wl_vec, intensity_array, error_array, ref_wl_intensities, qmin_index, qmax_index
+):
     """Same functionality as calculate_scale_factor but the algorithm is improved
     as I(Q, wavelength) are in meshgrid
 
@@ -270,22 +318,26 @@ def calculate_scale_factor_mesh_grid(wl_vec, intensity_array, error_array,
 
     for i_wl, lambda_i in enumerate(wl_vec):
         # P(wl) = sum_q I(q, ref_wl) * I(q, wl)
-        p_value = np.sum(ref_wl_intensities.intensity_vec[qmin_index:qmax_index + 1] *
-                         intensity_array[:, i_wl][qmin_index:qmax_index + 1])
+        p_value = np.sum(
+            ref_wl_intensities.intensity_vec[qmin_index : qmax_index + 1]
+            * intensity_array[:, i_wl][qmin_index : qmax_index + 1]
+        )
         # S(wl) = sum_q I(q, wl)**2
-        s_value = np.sum(intensity_array[:, i_wl][qmin_index:qmax_index + 1]**2)
+        s_value = np.sum(intensity_array[:, i_wl][qmin_index : qmax_index + 1] ** 2)
 
         # assign
         p_vec[i_wl] = p_value
         s_vec[i_wl] = s_value
 
-        term0 = error_array[:, i_wl][qmin_index:qmax_index+1]
-        term1 = (ref_wl_intensities.intensity_vec[qmin_index:qmax_index+1] * s_value -
-                 2. * intensity_array[:, i_wl][qmin_index:qmax_index+1] * p_value) / s_value**2
-        term2 = ref_wl_intensities.error_vec[qmin_index:qmax_index+1]
-        term3 = intensity_array[:, i_wl][qmin_index:qmax_index+1] / s_value
+        term0 = error_array[:, i_wl][qmin_index : qmax_index + 1]
+        term1 = (
+            ref_wl_intensities.intensity_vec[qmin_index : qmax_index + 1] * s_value
+            - 2.0 * intensity_array[:, i_wl][qmin_index : qmax_index + 1] * p_value
+        ) / s_value ** 2
+        term2 = ref_wl_intensities.error_vec[qmin_index : qmax_index + 1]
+        term3 = intensity_array[:, i_wl][qmin_index : qmax_index + 1] / s_value
 
-        k_error2_vec[i_wl] = np.sum((term0 * term1)**2 + (term2 * term3)**2)
+        k_error2_vec[i_wl] = np.sum((term0 * term1) ** 2 + (term2 * term3) ** 2)
 
     # Calculate K
     k_vec = p_vec / s_vec
@@ -293,8 +345,15 @@ def calculate_scale_factor_mesh_grid(wl_vec, intensity_array, error_array,
     return k_vec, np.sqrt(k_error2_vec), p_vec, s_vec
 
 
-def determine_reference_wavelength_q1d_mesh(wavelength_vec, q_vec, intensity_array, error_array,
-                                            qmin_index, qmax_index, min_wl_index=0):
+def determine_reference_wavelength_q1d_mesh(
+    wavelength_vec,
+    q_vec,
+    intensity_array,
+    error_array,
+    qmin_index,
+    qmax_index,
+    min_wl_index=0,
+):
     """Determine the reference wavelength for each Q.
 
     The reference wavelength of a specific Q or (qx, qy)
@@ -323,8 +382,10 @@ def determine_reference_wavelength_q1d_mesh(wavelength_vec, q_vec, intensity_arr
 
     """
     # Sanity check
-    assert wavelength_vec.shape[0] == intensity_array.shape[1], f'Wavelength dimension = {wavelength_vec.shape} ,' \
-                                                                f'Intensity  dimension = {intensity_array.shape}'
+    assert wavelength_vec.shape[0] == intensity_array.shape[1], (
+        f"Wavelength dimension = {wavelength_vec.shape} ,"
+        f"Intensity  dimension = {intensity_array.shape}"
+    )
 
     # Minimum wavelength bin is the reference wavelength
     min_wl_vec = np.zeros_like(q_vec) + wavelength_vec[min_wl_index]
@@ -336,9 +397,9 @@ def determine_reference_wavelength_q1d_mesh(wavelength_vec, q_vec, intensity_arr
     # Set the unused defined reference wavelength (outside of qmin and qmax)'s
     # intensity and error to nan
     min_intensity_vec[0:qmin_index] = np.nan
-    min_intensity_vec[qmax_index+1:] = np.nan
+    min_intensity_vec[qmax_index + 1 :] = np.nan
     min_error_vec[0:qmin_index] = np.nan
-    min_error_vec[qmax_index+1:] = np.nan
+    min_error_vec[qmax_index + 1 :] = np.nan
 
     return ReferenceWavelengths(q_vec, min_wl_vec, min_intensity_vec, min_error_vec)
 
@@ -370,7 +431,7 @@ def determine_reference_wavelength_q2d(i_of_q):
     unique_q_vec = np.unique(q2d_vec, axis=0)
 
     # Init return vector
-    ref_wavelength_vec = np.ndarray(shape=(unique_q_vec.shape[0], 3), dtype='float')
+    ref_wavelength_vec = np.ndarray(shape=(unique_q_vec.shape[0], 3), dtype="float")
 
     # Remove all the I(q, wl) with intensity as nan or infinity
     combo_matrix = combo_matrix[np.isfinite(combo_matrix)]
@@ -390,8 +451,18 @@ def determine_reference_wavelength_q2d(i_of_q):
     return ref_wavelength_vec
 
 
-def normalize_intensity_q1d(wl_vec, q_vec, intensity_array, error_array, ref_wl_ints_errs, k_vec, p_vec, s_vec,
-                            qmin_index, qmax_index):
+def normalize_intensity_q1d(
+    wl_vec,
+    q_vec,
+    intensity_array,
+    error_array,
+    ref_wl_ints_errs,
+    k_vec,
+    p_vec,
+    s_vec,
+    qmin_index,
+    qmax_index,
+):
     """Normalize Q1D intensities and errors
 
     Parameters
@@ -434,7 +505,7 @@ def normalize_intensity_q1d(wl_vec, q_vec, intensity_array, error_array, ref_wl_
     normalized_error2_array = np.zeros_like(error_array)
 
     # Lowest wavelength bin does not require normalization as K = 1, i_wl = 0
-    normalized_error2_array[:, 0] = error_array[:, 0]**2
+    normalized_error2_array[:, 0] = error_array[:, 0] ** 2
 
     # Reshape
     ri_vec = ref_wl_ints_errs.intensity_vec.reshape((q_vec.shape[0], 1))
@@ -450,33 +521,44 @@ def normalize_intensity_q1d(wl_vec, q_vec, intensity_array, error_array, ref_wl_
         intensity_vec = intensity_array[:, i_wl].reshape((q_vec.shape[0], 1))
 
         # Calculate Y: Y_ij = I_i * R_j * s - I_i * 2 * I_j * p
-        y_matrix = \
-            intensity_vec * (ri_vec.transpose()) * s_vec[i_wl] - \
-            intensity_vec * (intensity_vec.transpose()) * (2 * p_vec[i_wl])
+        y_matrix = intensity_vec * (ri_vec.transpose()) * s_vec[
+            i_wl
+        ] - intensity_vec * (intensity_vec.transpose()) * (2 * p_vec[i_wl])
         y_diag = np.diag(y_matrix)
         # y_matrix[i, :] corresponds to a single q_i/r_i
         # y_matrix[:, j] corresponds to a single q_j/r_j
 
         # Term 2
         # t2 += [delta I(q', wl)]**2 * Y(q, q'', wl)**2 / S(lw)**4
-        t2sum_vec = \
-            error_array[qmin_index:i_qmax, i_wl]**2 * y_matrix[:, qmin_index:i_qmax]**2 / s_vec[i_wl]**4
+        t2sum_vec = (
+            error_array[qmin_index:i_qmax, i_wl] ** 2
+            * y_matrix[:, qmin_index:i_qmax] ** 2
+            / s_vec[i_wl] ** 4
+        )
 
         # Term 3
         # t3 += [delta I(q_j, ref_wl[q_j]]^2 * [I(q_j, wl) * I(q, wl)]^2 / S(wl)^2
-        t3sum_vec = \
-            intensity_array[:, i_wl]**2 * np.sum(
-                re_vec[qmin_index:i_qmax]**2 * intensity_array[qmin_index:i_qmax, i_wl]**2 / s_vec[i_wl]**2)
+        t3sum_vec = intensity_array[:, i_wl] ** 2 * np.sum(
+            re_vec[qmin_index:i_qmax] ** 2
+            * intensity_array[qmin_index:i_qmax, i_wl] ** 2
+            / s_vec[i_wl] ** 2
+        )
 
         # term 1
         # outside of qmin and qmax: t1 = [delta I(q, wl)]**2 * [P(wl) / S(wl)]**2
-        t1sum_vec = (error_array[:, i_wl] * p_vec[i_wl] / s_vec[i_wl])**2
-        t1sum_vec[qmin_index:qmax_index+1] =\
-            error_array[qmin_index:qmax_index+1, i_wl]**2\
-            * (p_vec[i_wl]**2 * s_vec[i_wl]**2
-               + 2 * p_vec[i_wl] * s_vec[i_wl] * y_diag[qmin_index:qmax_index+1]) / s_vec[i_wl]**4
+        t1sum_vec = (error_array[:, i_wl] * p_vec[i_wl] / s_vec[i_wl]) ** 2
+        t1sum_vec[qmin_index : qmax_index + 1] = (
+            error_array[qmin_index : qmax_index + 1, i_wl] ** 2
+            * (
+                p_vec[i_wl] ** 2 * s_vec[i_wl] ** 2
+                + 2 * p_vec[i_wl] * s_vec[i_wl] * y_diag[qmin_index : qmax_index + 1]
+            )
+            / s_vec[i_wl] ** 4
+        )
 
         # sum up
-        normalized_error2_array[:, i_wl] += t1sum_vec + t2sum_vec.sum(axis=1) + t3sum_vec
+        normalized_error2_array[:, i_wl] += (
+            t1sum_vec + t2sum_vec.sum(axis=1) + t3sum_vec
+        )
 
     return normalized_intensity_array, np.sqrt(normalized_error2_array)

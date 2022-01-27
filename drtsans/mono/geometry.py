@@ -2,10 +2,10 @@ from mantid.kernel import logger
 from drtsans.geometry import sample_detector_distance, sample_aperture_diameter
 from drtsans.geometry import source_sample_distance, source_aperture_diameter
 
-__all__ = ['beam_radius']
+__all__ = ["beam_radius"]
 
 
-def beam_radius(input_workspace, unit='mm'):
+def beam_radius(input_workspace, unit="mm"):
     """
     Calculate the beam radius impinging on the detector
 
@@ -32,6 +32,8 @@ def beam_radius(input_workspace, unit='mm'):
     l2 = sample_detector_distance(input_workspace, unit=unit)
 
     radius = r_sa + (r_sa + r_so) * (l2 / l1)
-    logger.notice("Radius calculated from the input workspace = {:.2} mm".format(radius * 1e3))
+    logger.notice(
+        "Radius calculated from the input workspace = {:.2} mm".format(radius * 1e3)
+    )
 
     return radius

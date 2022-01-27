@@ -4,8 +4,11 @@ import numpy as np
 import warnings
 from tempfile import mkdtemp
 from drtsans.mono.spice_data import SpiceRun
-from drtsans.mono.biosans.prepare_sensitivities_correction import prepare_spice_sensitivities_correction
+from drtsans.mono.biosans.prepare_sensitivities_correction import (
+    prepare_spice_sensitivities_correction,
+)
 from mantid.simpleapi import LoadNexusProcessed
+
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
@@ -30,7 +33,7 @@ def test_main_detector(reference_dir, cleanfile):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
-    CG3 = 'CG3'  # Main
+    CG3 = "CG3"  # Main
 
     # IPTS
     IPTS = 17241
@@ -58,7 +61,7 @@ def test_main_detector(reference_dir, cleanfile):
     # Default mask to detector
     UNIVERSAL_MASK = None  # 'Mask.XML'
     # CG3:
-    MASKED_PIXELS = '1-18,249-256'  # CG3
+    MASKED_PIXELS = "1-18,249-256"  # CG3
     # Mask angle: must 2 values as min and max or None
     MAIN_DET_MASK_ANGLE = 2.0  # 0.75# 1.5 #0.75
     WING_DET_MASK_ANGLE = 57.0
@@ -74,31 +77,59 @@ def test_main_detector(reference_dir, cleanfile):
     MAX_THRESHOLD = 2.0
 
     # Output
-    FILE_SURFIX = 'wing' if WING_DETECTOR else 'main'
-    SENSITIVITY_FILE = os.path.join(output_dir, f'{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN}sac_tdc7m.nxs')
+    FILE_SURFIX = "wing" if WING_DETECTOR else "main"
+    SENSITIVITY_FILE = os.path.join(
+        output_dir, f"{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN}sac_tdc7m.nxs"
+    )
 
     # Convert SPICE file to NeXus file
     flood_run = SpiceRun(CG3, IPTS, EXPERIMENT, FLOOD_RUN[0], FLOOD_RUN[1])
-    direct_beam_run = SpiceRun(CG3, IPTS, EXPERIMENT, DIRECT_BEAM_RUN[0], DIRECT_BEAM_RUN[1]) if DIRECT_BEAM_RUN \
+    direct_beam_run = (
+        SpiceRun(CG3, IPTS, EXPERIMENT, DIRECT_BEAM_RUN[0], DIRECT_BEAM_RUN[1])
+        if DIRECT_BEAM_RUN
         else None
-    open_beam_transmission = SpiceRun(CG3, IPTS, EXPERIMENT, OPEN_BEAM_TRANSMISSION[0],
-                                      OPEN_BEAM_TRANSMISSION[1]) if OPEN_BEAM_TRANSMISSION else None
-    transmission_flood_run = SpiceRun(CG3, IPTS, EXPERIMENT, TRANSMISSION_FLOOD_RUN[0], TRANSMISSION_FLOOD_RUN[1])
-    dark_current_run = SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0],
-                                DARK_CURRENT_RUN[1]) if DARK_CURRENT_RUN else None
+    )
+    open_beam_transmission = (
+        SpiceRun(
+            CG3, IPTS, EXPERIMENT, OPEN_BEAM_TRANSMISSION[0], OPEN_BEAM_TRANSMISSION[1]
+        )
+        if OPEN_BEAM_TRANSMISSION
+        else None
+    )
+    transmission_flood_run = SpiceRun(
+        CG3, IPTS, EXPERIMENT, TRANSMISSION_FLOOD_RUN[0], TRANSMISSION_FLOOD_RUN[1]
+    )
+    dark_current_run = (
+        SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0], DARK_CURRENT_RUN[1])
+        if DARK_CURRENT_RUN
+        else None
+    )
 
-    prepare_spice_sensitivities_correction(WING_DETECTOR, flood_run,
-                                           direct_beam_run, dark_current_run,
-                                           SOLID_ANGLE_CORRECTION,
-                                           transmission_flood_run, open_beam_transmission, BEAM_TRAP_SIZE_FACTOR,
-                                           THETA_DEPENDENT_CORRECTION,
-                                           UNIVERSAL_MASK, MASKED_PIXELS, MASK_BEAM_CENTER_RADIUS,
-                                           MAIN_DET_MASK_ANGLE, WING_DET_MASK_ANGLE,
-                                           MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE,
-                                           nexus_dir=reference_dir.new.biosans)
+    prepare_spice_sensitivities_correction(
+        WING_DETECTOR,
+        flood_run,
+        direct_beam_run,
+        dark_current_run,
+        SOLID_ANGLE_CORRECTION,
+        transmission_flood_run,
+        open_beam_transmission,
+        BEAM_TRAP_SIZE_FACTOR,
+        THETA_DEPENDENT_CORRECTION,
+        UNIVERSAL_MASK,
+        MASKED_PIXELS,
+        MASK_BEAM_CENTER_RADIUS,
+        MAIN_DET_MASK_ANGLE,
+        WING_DET_MASK_ANGLE,
+        MIN_THRESHOLD,
+        MAX_THRESHOLD,
+        SENSITIVITY_FILE,
+        nexus_dir=reference_dir.new.biosans,
+    )
 
     # Verify
-    gold_sens_file = os.path.join(reference_dir.new.biosans, 'CG3_sens_main_exp549_scan9.nxs')
+    gold_sens_file = os.path.join(
+        reference_dir.new.biosans, "CG3_sens_main_exp549_scan9.nxs"
+    )
     assert os.path.exists(gold_sens_file)
     verify_results(SENSITIVITY_FILE, gold_sens_file)
 
@@ -121,7 +152,7 @@ def test_wing_detector(reference_dir, cleanfile):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
-    CG3 = 'CG3'  # Main
+    CG3 = "CG3"  # Main
 
     # IPTS
     IPTS = 17241
@@ -149,7 +180,7 @@ def test_wing_detector(reference_dir, cleanfile):
     # Default mask to detector
     UNIVERSAL_MASK = None  # 'Mask.XML'
     # CG3:
-    MASKED_PIXELS = '1-18,249-256'  # CG3
+    MASKED_PIXELS = "1-18,249-256"  # CG3
     # Mask angle: must 2 values as min and max or None
     MAIN_DET_MASK_ANGLE = 2.0  # 0.75# 1.5 #0.75
     WING_DET_MASK_ANGLE = 57.0
@@ -165,42 +196,71 @@ def test_wing_detector(reference_dir, cleanfile):
     MAX_THRESHOLD = 2.0
 
     # Output
-    FILE_SURFIX = 'wing' if WING_DETECTOR else 'main'
-    SENSITIVITY_FILE = os.path.join(output_dir, f'{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN}sac_tdc7m.nxs')
+    FILE_SURFIX = "wing" if WING_DETECTOR else "main"
+    SENSITIVITY_FILE = os.path.join(
+        output_dir, f"{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN}sac_tdc7m.nxs"
+    )
 
     # Convert SPICE file to NeXus file
     flood_run = SpiceRun(CG3, IPTS, EXPERIMENT, FLOOD_RUN[0], FLOOD_RUN[1])
-    direct_beam_run = SpiceRun(CG3, IPTS, EXPERIMENT, DIRECT_BEAM_RUN[0], DIRECT_BEAM_RUN[1]) if DIRECT_BEAM_RUN \
+    direct_beam_run = (
+        SpiceRun(CG3, IPTS, EXPERIMENT, DIRECT_BEAM_RUN[0], DIRECT_BEAM_RUN[1])
+        if DIRECT_BEAM_RUN
         else None
-    open_beam_transmission = SpiceRun(CG3, IPTS, EXPERIMENT, OPEN_BEAM_TRANSMISSION[0],
-                                      OPEN_BEAM_TRANSMISSION[1]) if OPEN_BEAM_TRANSMISSION else None
-    transmission_flood_run = SpiceRun(CG3, IPTS, EXPERIMENT, TRANSMISSION_FLOOD_RUN[0], TRANSMISSION_FLOOD_RUN[1])
-    dark_current_run = SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0],
-                                DARK_CURRENT_RUN[1]) if DARK_CURRENT_RUN else None
+    )
+    open_beam_transmission = (
+        SpiceRun(
+            CG3, IPTS, EXPERIMENT, OPEN_BEAM_TRANSMISSION[0], OPEN_BEAM_TRANSMISSION[1]
+        )
+        if OPEN_BEAM_TRANSMISSION
+        else None
+    )
+    transmission_flood_run = SpiceRun(
+        CG3, IPTS, EXPERIMENT, TRANSMISSION_FLOOD_RUN[0], TRANSMISSION_FLOOD_RUN[1]
+    )
+    dark_current_run = (
+        SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0], DARK_CURRENT_RUN[1])
+        if DARK_CURRENT_RUN
+        else None
+    )
 
-    prepare_spice_sensitivities_correction(WING_DETECTOR, flood_run,
-                                           direct_beam_run, dark_current_run,
-                                           SOLID_ANGLE_CORRECTION,
-                                           transmission_flood_run, open_beam_transmission, BEAM_TRAP_SIZE_FACTOR,
-                                           THETA_DEPENDENT_CORRECTION,
-                                           UNIVERSAL_MASK, MASKED_PIXELS, MASK_BEAM_CENTER_RADIUS,
-                                           MAIN_DET_MASK_ANGLE, WING_DET_MASK_ANGLE,
-                                           MIN_THRESHOLD, MAX_THRESHOLD, SENSITIVITY_FILE,
-                                           nexus_dir=reference_dir.new.biosans)
+    prepare_spice_sensitivities_correction(
+        WING_DETECTOR,
+        flood_run,
+        direct_beam_run,
+        dark_current_run,
+        SOLID_ANGLE_CORRECTION,
+        transmission_flood_run,
+        open_beam_transmission,
+        BEAM_TRAP_SIZE_FACTOR,
+        THETA_DEPENDENT_CORRECTION,
+        UNIVERSAL_MASK,
+        MASKED_PIXELS,
+        MASK_BEAM_CENTER_RADIUS,
+        MAIN_DET_MASK_ANGLE,
+        WING_DET_MASK_ANGLE,
+        MIN_THRESHOLD,
+        MAX_THRESHOLD,
+        SENSITIVITY_FILE,
+        nexus_dir=reference_dir.new.biosans,
+    )
 
     # Verify
-    gold_sens_file = os.path.join(reference_dir.new.biosans, 'CG3_sens_wing_exp549_scan20.nxs')
+    gold_sens_file = os.path.join(
+        reference_dir.new.biosans, "CG3_sens_wing_exp549_scan20.nxs"
+    )
     assert os.path.exists(gold_sens_file)
     verify_results(SENSITIVITY_FILE, gold_sens_file)
 
 
 def verify_results(test_sensitivities_file: str, gold_sens_file: str):
-    """Verify sensitivities of tested result from gold file
-    """
+    """Verify sensitivities of tested result from gold file"""
     # Get gold file
     # gold_sens_file = os.path.join(reference_dir.new.gpsans, 'calibrations/sens_CG2_spice_bar.nxs')
     if not os.path.exists(gold_sens_file):
-        raise RuntimeError(f'Expected (gold) sensitivities cannot be found at {gold_sens_file}')
+        raise RuntimeError(
+            f"Expected (gold) sensitivities cannot be found at {gold_sens_file}"
+        )
 
     # Compare sensitivities
     gold_sens_ws = LoadNexusProcessed(Filename=gold_sens_file)
@@ -208,5 +268,5 @@ def verify_results(test_sensitivities_file: str, gold_sens_file: str):
     np.testing.assert_allclose(test_sens_ws.extractY(), gold_sens_ws.extractY())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

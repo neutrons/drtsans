@@ -1,8 +1,13 @@
 import numpy as np
 
-from mantid.api import (Run, MatrixWorkspace)
-from mantid.kernel import (BoolTimeSeriesProperty, DateAndTime, FloatTimeSeriesProperty, Int64TimeSeriesProperty,
-                           StringTimeSeriesProperty)
+from mantid.api import Run, MatrixWorkspace
+from mantid.kernel import (
+    BoolTimeSeriesProperty,
+    DateAndTime,
+    FloatTimeSeriesProperty,
+    Int64TimeSeriesProperty,
+    StringTimeSeriesProperty,
+)
 from mantid.simpleapi import mtd
 
 
@@ -27,7 +32,7 @@ class SampleLogs(object):
         raise KeyError('"{}" not found in sample logs'.format(item))
 
     def __getattr__(self, item):
-        _run = self.__dict__['_run']
+        _run = self.__dict__["_run"]
         try:
             return getattr(_run, item)
         except AttributeError:
@@ -37,7 +42,7 @@ class SampleLogs(object):
                 raise AttributeError('"{}" not found in sample logs'.format(item))
 
     def __contains__(self, item):
-        '''Called when using python's ``in`` operation'''
+        """Called when using python's ``in`` operation"""
         return item in self._run
 
     def insert(self, name, value, unit=None):
@@ -57,13 +62,15 @@ class SampleLogs(object):
             Log unit
         """
         if not unit:
-            unit = ''
+            unit = ""
         if isinstance(value, list):
             value = value[0]  # copies AddSampleLog behavior
 
         self._ws.mutableRun().addProperty(name, value, unit, True)
 
-    def insert_time_series(self, name, elapsed_times, values, start_time='2000-01-01T00:00:00', unit=''):
+    def insert_time_series(
+        self, name, elapsed_times, values, start_time="2000-01-01T00:00:00", unit=""
+    ):
         r"""
         Insert a ~mantid.kernel.FloatTimeSeriesProperty in the logs
 
@@ -81,15 +88,23 @@ class SampleLogs(object):
             Log unit
         """
         # Determine the type of the time series
-        series_types = {bool: BoolTimeSeriesProperty, float: FloatTimeSeriesProperty,
-                        int: Int64TimeSeriesProperty, str: StringTimeSeriesProperty}
-        series_property = series_types.get(type(values[0]), FloatTimeSeriesProperty)(name)
+        series_types = {
+            bool: BoolTimeSeriesProperty,
+            float: FloatTimeSeriesProperty,
+            int: Int64TimeSeriesProperty,
+            str: StringTimeSeriesProperty,
+        }
+        series_property = series_types.get(type(values[0]), FloatTimeSeriesProperty)(
+            name
+        )
 
         # Insert one pair of (time, elapsed_time) at a time
-        seconds_to_nanoseconds = 1.e09  # from seconds to nanoseconds
+        seconds_to_nanoseconds = 1.0e09  # from seconds to nanoseconds
         start = DateAndTime(start_time)
         for (elapsed_time, value) in zip(elapsed_times, values):
-            series_property.addValue(start + int(elapsed_time * seconds_to_nanoseconds), value)
+            series_property.addValue(
+                start + int(elapsed_time * seconds_to_nanoseconds), value
+            )
 
         # include the whole time series property in the metadata
         self._ws.mutableRun().addProperty(name, series_property, unit, True)
@@ -103,7 +118,7 @@ class SampleLogs(object):
         return self._ws
 
     def single_value(self, log_key, operation=np.mean):
-        _run = self.__dict__['_run']
+        _run = self.__dict__["_run"]
         return float(operation(_run[log_key].value))
 
     def find_run(self, other):
@@ -119,6 +134,7 @@ class SampleLogs(object):
         Run
             Reference to the run object
         """
+
         def from_ws(ws):
             self._ws = ws
             return ws.getRun()
@@ -131,21 +147,23 @@ class SampleLogs(object):
             if s in mtd:
                 return self.find_run(mtd[s])
             else:
-                raise RuntimeError('{} is not a valid workspace name'.format(s))
+                raise RuntimeError("{} is not a valid workspace name".format(s))
 
         dispatch = {Run: from_run, MatrixWorkspace: from_ws, str: from_string}
 
         # If others is not None: raise exception
         if other is None:
-            a = ('[DEBUG 187] dispatch: {}'.format(dispatch.items()))
-            b = ('[DEBUG 187] other: {}'.format(other))
-            raise NotImplementedError('{}\n{}'.format(a, b))
+            a = "[DEBUG 187] dispatch: {}".format(dispatch.items())
+            b = "[DEBUG 187] other: {}".format(other)
+            raise NotImplementedError("{}\n{}".format(a, b))
 
         finders = [v for k, v in dispatch.items() if isinstance(other, k)]
         if len(finders) == 0:
             # In case no items found
-            raise RuntimeError('Input "other" of value {} is not supported to retrieve Mantid '
-                               '"run" object'.format(other))
+            raise RuntimeError(
+                'Input "other" of value {} is not supported to retrieve Mantid '
+                '"run" object'.format(other)
+            )
         finder = finders[0]
         return finder(other)
 
@@ -170,4 +188,6 @@ class SampleLogs(object):
                 error_msg += " [%s]" % self[log_key].units
                 raise RuntimeError(error_msg)
             return np.average(self[log_key].value)
-        raise RuntimeError(f'Could not find {log_key} with unit {unit} in logs: {self.keys()}')
+        raise RuntimeError(
+            f"Could not find {log_key} with unit {unit} in logs: {self.keys()}"
+        )

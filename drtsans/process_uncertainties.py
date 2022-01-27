@@ -42,20 +42,26 @@ def set_init_uncertainties(input_workspace, output_workspace=None):
     # in the case of event workspaces, don't do anything if they are RAW events (eventType=='TOF')
     # and the histogram representation doesn't have any zeros
     input_ws = mtd[input_workspace]
-    if isinstance(input_ws, IEventWorkspace) \
-       and input_ws.getSpectrum(0).getEventType() == EventType.TOF \
-       and input_ws.findY(0.) == (-1, -1):
+    if (
+        isinstance(input_ws, IEventWorkspace)
+        and input_ws.getSpectrum(0).getEventType() == EventType.TOF
+        and input_ws.findY(0.0) == (-1, -1)
+    ):
         # clone the input_workspace or return it
         if input_workspace == output_workspace:
             return mtd[input_workspace]
         else:
-            return CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
+            return CloneWorkspace(
+                InputWorkspace=input_workspace, OutputWorkspace=output_workspace
+            )
 
     # Calculate uncertainties as square root and set 1 for 0 count
     # But SetUncertainties does not treat nan as SANS team desires
-    SetUncertainties(InputWorkspace=input_workspace,
-                     OutputWorkspace=output_workspace,
-                     SetError='sqrtOrOne')
+    SetUncertainties(
+        InputWorkspace=input_workspace,
+        OutputWorkspace=output_workspace,
+        SetError="sqrtOrOne",
+    )
 
     # get a handle to the workspace
     output_ws = mtd[output_workspace]

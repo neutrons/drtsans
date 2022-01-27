@@ -7,7 +7,7 @@ from drtsans.mono.biosans.beam_finder import center_detector
 
 def test_api_geometry(biosans_f):
 
-    ws = LoadHFIRSANS(Filename=biosans_f['beamcenter'])
+    ws = LoadHFIRSANS(Filename=biosans_f["beamcenter"])
 
     instrument = ws.getInstrument()
     pos_main = instrument.getComponentByName("detector1").getPos()
@@ -28,12 +28,11 @@ def test_api_geometry(biosans_f):
 
     assert pytest.approx(abs(pos_main[0] - pos_main_2[0]), abs(center_x))
     assert pytest.approx(abs(pos_main[1] - pos_main_2[1]), abs(center_y))
-    assert pytest.approx(
-        abs(pos_wing[1] - pos_wing_2[1]), abs(center_y_gravity))
+    assert pytest.approx(abs(pos_wing[1] - pos_wing_2[1]), abs(center_y_gravity))
     # Note that after the gravity correction the center Y of the wing detector
     # it's higher than the centre of the main detector
     assert pos_wing_2[1] > pos_main_2[1]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

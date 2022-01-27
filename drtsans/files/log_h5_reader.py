@@ -3,7 +3,7 @@ import numpy as np
 import os
 from matplotlib import pyplot as plt
 
-__all__ = ['verify_cg2_reduction_results']
+__all__ = ["verify_cg2_reduction_results"]
 
 
 def get_iq1d(log_file_name):
@@ -21,19 +21,19 @@ def get_iq1d(log_file_name):
 
     """
     # Open file and entry
-    log_h5 = h5py.File(log_file_name, 'r')
+    log_h5 = h5py.File(log_file_name, "r")
 
-    if '_slice_1' in log_h5:
-        data_entry = log_h5['_slice_1']['main']
+    if "_slice_1" in log_h5:
+        data_entry = log_h5["_slice_1"]["main"]
     else:
-        data_entry = log_h5['main']
+        data_entry = log_h5["main"]
 
     # Get data
-    iq1d_entry = data_entry['I(Q)']
+    iq1d_entry = data_entry["I(Q)"]
 
     # Get data with a copy
-    vec_q = np.copy(iq1d_entry['Q'][()])
-    vec_i = np.copy(iq1d_entry['I'][()])
+    vec_q = np.copy(iq1d_entry["Q"][()])
+    vec_i = np.copy(iq1d_entry["I"][()])
 
     # close file
     log_h5.close()
@@ -62,59 +62,90 @@ def compare_reduced_iq(test_log_file, gold_log_file, title: str, prefix: str):
     # Verify result
     test_exception = None
     diff_q = False
-    for vec_name, test_vec, gold_vec, abs_tol in [('q', test_q_vec, gold_q_vec, 1E-4),
-                                                  ('intensity', test_intensity_vec,  gold_intensity_vec, 1E-7)]:
+    for vec_name, test_vec, gold_vec, abs_tol in [
+        ("q", test_q_vec, gold_q_vec, 1e-4),
+        ("intensity", test_intensity_vec, gold_intensity_vec, 1e-7),
+    ]:
         try:
             np.testing.assert_allclose(test_vec, gold_vec, atol=abs_tol)
         except AssertionError as assert_err:
             test_exception = assert_err
-            if vec_name == 'q':
+            if vec_name == "q":
                 diff_q = True
             break
 
     # Output error message
     if test_exception:
         base_name = f'{prefix}{os.path.basename(test_log_file).split(".")[0]}'
-        report_difference((test_q_vec, test_intensity_vec), (gold_q_vec, gold_intensity_vec), title,
-                          diff_q, base_name)
+        report_difference(
+            (test_q_vec, test_intensity_vec),
+            (gold_q_vec, gold_intensity_vec),
+            title,
+            diff_q,
+            base_name,
+        )
 
     if test_exception:
         raise test_exception
 
 
-def report_difference(test_data, gold_data,
-                      title: str,
-                      is_q_diff: bool,
-                      base_file_name: str):
+def report_difference(
+    test_data, gold_data, title: str, is_q_diff: bool, base_file_name: str
+):
     test_q_vec, test_intensity_vec = test_data
     gold_q_vec, gold_intensity_vec = gold_data
 
     # plot I(Q)
-    png_name = f'{base_file_name}_compare_iq.png'
-    plot_data([(test_q_vec, test_intensity_vec, 'red', 'Test I(Q)'),
-               (gold_q_vec, gold_intensity_vec, 'black', 'Gold I(Q)')],
-              'log', title, png_name)
+    png_name = f"{base_file_name}_compare_iq.png"
+    plot_data(
+        [
+            (test_q_vec, test_intensity_vec, "red", "Test I(Q)"),
+            (gold_q_vec, gold_intensity_vec, "black", "Gold I(Q)"),
+        ],
+        "log",
+        title,
+        png_name,
+    )
 
     # plot difference of I(Q)
     if is_q_diff:
         # different Q
-        png_name = f'{base_file_name}_diff_q.png'
+        png_name = f"{base_file_name}_diff_q.png"
         if test_q_vec.shape == gold_q_vec.shape:
             # same Q shape
             diff_q_array = test_q_vec - gold_q_vec
-            plot_data([(np.arange(diff_q_array.shape[0]), diff_q_array, 'red', 'diff(Q)')],
-                      None, 'Difference in Q', png_name)
+            plot_data(
+                [(np.arange(diff_q_array.shape[0]), diff_q_array, "red", "diff(Q)")],
+                None,
+                "Difference in Q",
+                png_name,
+            )
         else:
             # different Q shape
-            plot_data([(np.arange(test_q_vec.shape[0]), test_q_vec, 'red', 'Q (test)'),
-                       (np.arange(gold_q_vec.shape[0]), gold_q_vec, 'black', 'Q (expected)')],
-                      None, 'Difference in Q', png_name)
+            plot_data(
+                [
+                    (np.arange(test_q_vec.shape[0]), test_q_vec, "red", "Q (test)"),
+                    (
+                        np.arange(gold_q_vec.shape[0]),
+                        gold_q_vec,
+                        "black",
+                        "Q (expected)",
+                    ),
+                ],
+                None,
+                "Difference in Q",
+                png_name,
+            )
     else:
         # different I(Q)
         diff_iq_array = test_intensity_vec - gold_intensity_vec
-        png_name = f'{base_file_name}_diff_iq.png'
-        plot_data([(test_q_vec, diff_iq_array, 'red', 'I(Q)_test - I(Q)_gold')],
-                  None, 'Difference in I(Q)', png_name)
+        png_name = f"{base_file_name}_diff_iq.png"
+        plot_data(
+            [(test_q_vec, diff_iq_array, "red", "I(Q)_test - I(Q)_gold")],
+            None,
+            "Difference in I(Q)",
+            png_name,
+        )
 
 
 def plot_data(plot_info_list, y_scale, title, fig_name):
@@ -170,24 +201,34 @@ def verify_cg2_reduction_results(sample_names, output_dir, gold_path, title, pre
         prefix for output png file in order not to confusing various error outputs
 
     """
-    unmatched_errors = ''
+    unmatched_errors = ""
 
     for sample_name in sample_names:
         # output log file name
-        output_log_file = os.path.join(output_dir, '{}_reduction_log.hdf'.format(sample_name))
-        assert os.path.exists(output_log_file), 'Output {} cannot be found'.format(output_log_file)
+        output_log_file = os.path.join(
+            output_dir, "{}_reduction_log.hdf".format(sample_name)
+        )
+        assert os.path.exists(output_log_file), "Output {} cannot be found".format(
+            output_log_file
+        )
         # gold file
-        gold_log_file = os.path.join(gold_path, '{}_reduction_log.hdf'.format(sample_name))
-        assert os.path.exists(gold_path), 'Gold file {} cannot be found'.format(gold_log_file)
+        gold_log_file = os.path.join(
+            gold_path, "{}_reduction_log.hdf".format(sample_name)
+        )
+        assert os.path.exists(gold_path), "Gold file {} cannot be found".format(
+            gold_log_file
+        )
         # compare
-        title_i = '{}: {}'.format(sample_name, title)
+        title_i = "{}: {}".format(sample_name, title)
         try:
             compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
         except AssertionError as unmatched_error:
-            unmatched_errors = 'Testing output {} is different from gold result {}:\n{}' \
-                               ''.format(output_log_file, gold_log_file, unmatched_error)
+            unmatched_errors = (
+                "Testing output {} is different from gold result {}:\n{}"
+                "".format(output_log_file, gold_log_file, unmatched_error)
+            )
     # END-FOR
 
     # raise error for all
-    if unmatched_errors != '':
+    if unmatched_errors != "":
         raise AssertionError(unmatched_errors)

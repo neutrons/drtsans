@@ -3,7 +3,7 @@ import numpy as np
 
 
 def integrate_detector_roi(workspace, roi_det_list):
-    """ Integrate neutron counts in ROI of detectors (pixels)
+    """Integrate neutron counts in ROI of detectors (pixels)
 
     Integrate neutron counts and uncertainties in ROI of detectors
 
@@ -31,7 +31,7 @@ def integrate_detector_roi(workspace, roi_det_list):
     roi_intensity = roi_intensity.sum()
 
     # ROI error: sqrt(sum(sigma(i)^2))
-    roi_error_sq = (error_array[roi_det_list])**2
+    roi_error_sq = (error_array[roi_det_list]) ** 2
     roi_error = np.sqrt(np.sum(roi_error_sq))
 
     return roi_intensity, roi_error

@@ -11,11 +11,12 @@
 import sys
 import warnings
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
+
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 # INSTRUMENT = 'CG2'  # 'CG2'  # From 'EQSANS', 'CG3'
-INSTRUMENT = 'CG3'   # Main
+INSTRUMENT = "CG3"  # Main
 
 # Input Flood Runs
 # CG2: FLOOD_RUNS = 7116, 7118, 7120  # Single value integer or a list or tuple
@@ -44,7 +45,7 @@ TRANSMISSION_FLOOD_RUNS = 4829
 UNIVERSAL_MASK = None  # 'Mask.XML'
 # CG2: MASKED_PIXELS = '1-8,249-256'
 # CG3:
-MASKED_PIXELS = '1-18,239-256'  # CG3
+MASKED_PIXELS = "1-18,239-256"  # CG3
 # Mask angle: must 2 values as min and max or None
 MAIN_DET_MASK_ANGLE = 1.5
 WING_DET_MASK_ANGLE = 57.05
@@ -58,7 +59,7 @@ PIXEL_CALIBRATION = True
 # Corrections
 SOLID_ANGLE_CORRECTION = False
 TRANSMISSION_CORRECTION = True
-BEAM_TRAP_SIZE_FACTOR = 2   # For BIO-SANS masking angle only.
+BEAM_TRAP_SIZE_FACTOR = 2  # For BIO-SANS masking angle only.
 # Flag to do dependent correction with transmission correction
 THETA_DEPENDENT_CORRECTION = True
 
@@ -70,17 +71,19 @@ MIN_THRESHOLD = 0.5
 MAX_THRESHOLD = 2.0
 
 # Output
-FILE_SURFIX = 'm7p0'
-SENSITIVITY_FILE = '/HFIR/{}/shared/sens_f{}.nxs'.format(INSTRUMENT, FILE_SURFIX)
+FILE_SURFIX = "m7p0"
+SENSITIVITY_FILE = "/HFIR/{}/shared/sens_f{}.nxs".format(INSTRUMENT, FILE_SURFIX)
 
 # --------------  END OF USER INPUTS --------------
 
 # --------------  DO NOT CHANGE ANY CODE BELOW THIS LINE.  THANKS! --------------------------
 
 # Load data files
-if INSTRUMENT not in ['CG2', 'CG3', 'EQSANS']:
-    print('Instrument {} is not supported.  Supported are {}'
-          ''.format(INSTRUMENT, 'CG2, EQSANS, CG3'))
+if INSTRUMENT not in ["CG2", "CG3", "EQSANS"]:
+    print(
+        "Instrument {} is not supported.  Supported are {}"
+        "".format(INSTRUMENT, "CG2, EQSANS, CG3")
+    )
     sys.exit(-1)
 
 preparer = PrepareSensitivityCorrection(INSTRUMENT, WING_DETECTOR)
@@ -92,21 +95,26 @@ if DIRECT_BEAM_RUNS is not None:
     preparer.set_direct_beam_runs(DIRECT_BEAM_RUNS)
 
 # Set extra masks
-preparer.set_masks(UNIVERSAL_MASK, MASKED_PIXELS,
-                   wing_det_mask_angle=WING_DET_MASK_ANGLE,
-                   main_det_mask_angle=MAIN_DET_MASK_ANGLE)
+preparer.set_masks(
+    UNIVERSAL_MASK,
+    MASKED_PIXELS,
+    wing_det_mask_angle=WING_DET_MASK_ANGLE,
+    main_det_mask_angle=MAIN_DET_MASK_ANGLE,
+)
 
 # Set beam center radius
 if MASK_BEAM_CENTER_RADIUS is not None:
     preparer.set_beam_center_radius(MASK_BEAM_CENTER_RADIUS)
 else:
-    raise RuntimeError('MASK BEAM CENTER RADIUS must be set')
+    raise RuntimeError("MASK BEAM CENTER RADIUS must be set")
 
 # Transmission
 if TRANSMISSION_REFERENCE_RUNS is not None:
-    preparer.set_transmission_correction(transmission_flood_runs=TRANSMISSION_FLOOD_RUNS,
-                                         transmission_reference_runs=TRANSMISSION_REFERENCE_RUNS,
-                                         beam_trap_factor=BEAM_TRAP_SIZE_FACTOR)
+    preparer.set_transmission_correction(
+        transmission_flood_runs=TRANSMISSION_FLOOD_RUNS,
+        transmission_reference_runs=TRANSMISSION_REFERENCE_RUNS,
+        beam_trap_factor=BEAM_TRAP_SIZE_FACTOR,
+    )
     preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
 
 # Dark runs

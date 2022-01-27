@@ -190,7 +190,7 @@ class EventNexusConverter(ABC):
 
     def _map_detector_and_counts(self):
         # self._detector_counts = counts[2:]
-        raise RuntimeError('This is virtual')
+        raise RuntimeError("This is virtual")
 
     def load_idf(self, template_nexus_file):
         """Load IDF content from a template NeXus file
@@ -207,7 +207,7 @@ class EventNexusConverter(ABC):
         try:
             source_nexus_h5 = h5py.File(template_nexus_file, "r")
         except OSError as os_err:
-            raise RuntimeError(f'Unable to load {template_nexus_file} due to {os_err}')
+            raise RuntimeError(f"Unable to load {template_nexus_file} due to {os_err}")
         # IDF in XML
         self._idf_content = source_nexus_h5["entry"]["instrument"]["instrument_xml"][
             "data"
@@ -228,15 +228,19 @@ class EventNexusConverter(ABC):
         """
         # Sanity check
         if self._spice_detector_counts is None:
-            raise RuntimeError('Detector counts array has not been set up yet.  Load data first')
+            raise RuntimeError(
+                "Detector counts array has not been set up yet.  Load data first"
+            )
 
         # Set masked pixels
         for pid in pixel_index_list:
             try:
                 self._spice_detector_counts[pid] = 0
             except IndexError as index_error:
-                raise RuntimeError(f'Pixel ID {pid} is out of range {self._spice_detector_counts.shape}. '
-                                   f'FYI: {index_error}')
+                raise RuntimeError(
+                    f"Pixel ID {pid} is out of range {self._spice_detector_counts.shape}. "
+                    f"FYI: {index_error}"
+                )
 
     @staticmethod
     def _retrieve_meta_data(spice_file_name, das_spice_log_map):

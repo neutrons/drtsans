@@ -1,23 +1,27 @@
 import re
+
 # import tempfile
 
 import pytest
 from pytest import approx
 
 from mantid.simpleapi import LoadHFIRSANS
+
 # from drtsans.save_ascii import save_ascii_1D, save_xml_1D
 from drtsans.settings import unique_workspace_name
 
 
 def numbers_in_line(line, numbers):
-    xyz = [float(s) for s in re.findall(r'\d+\.\d+', line)]
-    return all(
-        [x == approx(n, rel=1.E-03) or x < 0.02 for x, n in zip(xyz, numbers)])
+    xyz = [float(s) for s in re.findall(r"\d+\.\d+", line)]
+    return all([x == approx(n, rel=1.0e-03) or x < 0.02 for x, n in zip(xyz, numbers)])
 
 
 def test_save_ascii(gpsans_f):
 
-    ws = LoadHFIRSANS(Filename=gpsans_f['sample_transmission'], OutputWorkspace=unique_workspace_name())
+    ws = LoadHFIRSANS(
+        Filename=gpsans_f["sample_transmission"],
+        OutputWorkspace=unique_workspace_name(),
+    )
     assert ws is not None
 
     # TODO - Will review and rewrite with I(Q) binning rewrite
@@ -48,5 +52,5 @@ def test_save_ascii(gpsans_f):
     #     assert numbers_in_line(output_lines[48900], numbers) is True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

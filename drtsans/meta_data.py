@@ -1,12 +1,20 @@
 # Method in this module is to set meta data to SANS Mantid Workspaces
-from drtsans.geometry import search_sample_detector_distance_meta_name, search_source_sample_distance_meta_name
+from drtsans.geometry import (
+    search_sample_detector_distance_meta_name,
+    search_source_sample_distance_meta_name,
+)
 
 
-__all__ = ['set_meta_data', 'set_up_sample_detector_distance', 'set_up_source_sample_distance']
+__all__ = [
+    "set_meta_data",
+    "set_up_sample_detector_distance",
+    "set_up_source_sample_distance",
+]
 
 
-def set_up_source_sample_distance(workspace, source_sample_distance, distance_unit,
-                                  non_exist_default_name):
+def set_up_source_sample_distance(
+    workspace, source_sample_distance, distance_unit, non_exist_default_name
+):
     """Set source to sample distance to meta data
 
     Parameters
@@ -30,12 +38,18 @@ def set_up_source_sample_distance(workspace, source_sample_distance, distance_un
     if source_sample_distance is None:
         return list()
 
-    return set_up_distance(workspace, source_sample_distance, distance_unit,
-                           search_source_sample_distance_meta_name, non_exist_default_name)
+    return set_up_distance(
+        workspace,
+        source_sample_distance,
+        distance_unit,
+        search_source_sample_distance_meta_name,
+        non_exist_default_name,
+    )
 
 
-def set_up_sample_detector_distance(workspace, sample_detector_distance, distance_unit,
-                                    non_exist_default_name):
+def set_up_sample_detector_distance(
+    workspace, sample_detector_distance, distance_unit, non_exist_default_name
+):
     """Set detector to sample distance to meta data
 
     Parameters
@@ -59,11 +73,18 @@ def set_up_sample_detector_distance(workspace, sample_detector_distance, distanc
     if sample_detector_distance is None:
         return list()
 
-    return set_up_distance(workspace, sample_detector_distance, distance_unit,
-                           search_sample_detector_distance_meta_name, non_exist_default_name)
+    return set_up_distance(
+        workspace,
+        sample_detector_distance,
+        distance_unit,
+        search_sample_detector_distance_meta_name,
+        non_exist_default_name,
+    )
 
 
-def set_up_distance(workspace, distance, distance_unit, meta_search_function, non_exist_default_name):
+def set_up_distance(
+    workspace, distance, distance_unit, meta_search_function, non_exist_default_name
+):
     """Set up (i.e., overwrite) sample-detector or source-sample distance to workspace's run
 
     Parameters
@@ -104,11 +125,18 @@ def set_up_distance(workspace, distance, distance_unit, meta_search_function, no
     return meta_overwrite_list
 
 
-def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
-                  sample_to_detector_distance=None, source_to_sample_distance=None,
-                  sample_aperture_size=None, sample_thickness=None,
-                  source_aperture_size=None,
-                  smearing_pixel_size_x=None, smearing_pixel_size_y=None):
+def set_meta_data(
+    workspace,
+    wave_length=None,
+    wavelength_spread=None,
+    sample_to_detector_distance=None,
+    source_to_sample_distance=None,
+    sample_aperture_size=None,
+    sample_thickness=None,
+    source_aperture_size=None,
+    smearing_pixel_size_x=None,
+    smearing_pixel_size_y=None,
+):
     """Set meta data to SANS Mantid Workspace as run properties
 
     Parameters
@@ -138,4 +166,4 @@ def set_meta_data(workspace, wave_length=None, wavelength_spread=None,
     -------
 
     """
-    raise RuntimeError('set meta data is virtual in module drtsans')
+    raise RuntimeError("set meta data is virtual in module drtsans")

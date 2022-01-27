@@ -70,7 +70,7 @@ class Wband(object):
 
     def __init__(self, w_min, w_max):
         if w_min < 0 or w_max < 0 or w_min > w_max:
-            raise ValueError('Invalid wavelength band')
+            raise ValueError("Invalid wavelength band")
         self._min = w_min
         self._max = w_max
 
@@ -153,7 +153,7 @@ class Wband(object):
         return self._min < other._min
 
     def __str__(self):
-        return 'Wband({:.3f}, {:.3f})'.format(self._min, self._max)
+        return "Wband({:.3f}, {:.3f})".format(self._min, self._max)
 
 
 class Wbands(object):
@@ -227,7 +227,7 @@ class Wbands(object):
                 for band in other:
                     self += band
             except TypeError as te:
-                print('Argument is not iterable', te)
+                print("Argument is not iterable", te)
         return self
 
     def __mul__(self, other):
@@ -292,4 +292,4 @@ class Wbands(object):
         return self
 
     def __str__(self):
-        return '(' + ', '.join([str(band) for band in self]) + ')'
+        return "(" + ", ".join([str(band) for band in self]) + ")"

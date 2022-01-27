@@ -45,13 +45,11 @@ class TestDiskChopper(object):
 
     def test_wavelength(self):
         assert_almost_equal(self.ch.wavelength(1200), 4.7, decimal=1)
-        assert_almost_equal(self.ch.wavelength(1200, pulsed=True),
-                            4.3, decimal=1)
+        assert_almost_equal(self.ch.wavelength(1200, pulsed=True), 4.3, decimal=1)
 
     def test_tof(self):
         assert_almost_equal(self.ch.tof(4.747), 1200, decimal=0)
-        assert_almost_equal(self.ch.tof(4.399, pulsed=True),
-                            1200, decimal=0)
+        assert_almost_equal(self.ch.tof(4.399, pulsed=True), 1200, decimal=0)
 
     def test_transmission_bands(self):
         wb = self.ch.transmission_bands()
@@ -63,5 +61,5 @@ class TestDiskChopper(object):
         assert_almost_equal((wb[0].min, wb[0].max), (0, 0.687), decimal=2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

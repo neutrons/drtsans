@@ -8,20 +8,21 @@ from drtsans.mono.biosans.cg3_spice_to_nexus import CG3EventNexusConvert
 
 
 def test_cg2_pid_range(reference_dir):
-    """Test PID range
-    """
+    """Test PID range"""
     # Load test event NeXus file
-    test_nexus = os.path.join(reference_dir.new.gpsans, 'CG2_9177.nxs.h5')
-    nexus_h5 = h5py.File(test_nexus, 'r')
+    test_nexus = os.path.join(reference_dir.new.gpsans, "CG2_9177.nxs.h5")
+    nexus_h5 = h5py.File(test_nexus, "r")
 
     # Check each bank
     for bank_id in range(1, 48 + 1):  # 48 banks
-        pids = nexus_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
+        pids = nexus_h5["entry"][f"bank{bank_id}_events"]["event_id"][()]
         min_pid = np.min(pids)
         max_pid = np.max(pids)
         start_pid, end_pid = CG2EventNexusConvert().get_pid_range(bank_id)
 
-        assert start_pid <= min_pid <= max_pid <= end_pid, f'CG2 Bank {bank_id} PID is out of range'
+        assert (
+            start_pid <= min_pid <= max_pid <= end_pid
+        ), f"CG2 Bank {bank_id} PID is out of range"
 
     # close file
     nexus_h5.close()
@@ -34,23 +35,24 @@ def test_cg2_pid_range(reference_dir):
 
 
 def test_cg3_pid_range(reference_dir):
-    """Test PID range
-    """
+    """Test PID range"""
     # Load test event NeXus file
-    test_nexus = os.path.join(reference_dir.new.biosans, 'CG3_5705.nxs.h5')
-    nexus_h5 = h5py.File(test_nexus, 'r')
+    test_nexus = os.path.join(reference_dir.new.biosans, "CG3_5705.nxs.h5")
+    nexus_h5 = h5py.File(test_nexus, "r")
 
     # Check each bank
     for bank_id in range(1, 88 + 1):  # 88 banks
-        pids = nexus_h5['entry'][f'bank{bank_id}_events']['event_id'][()]
+        pids = nexus_h5["entry"][f"bank{bank_id}_events"]["event_id"][()]
         min_pid = np.min(pids)
         max_pid = np.max(pids)
         start_pid, end_pid = CG3EventNexusConvert().get_pid_range(bank_id)
 
-        assert start_pid <= min_pid <= max_pid <= end_pid, f'CG3 Bank {bank_id} PID (H5 range ' \
-                                                           f'{min_pid} - {max_pid}) is out of range ' \
-                                                           f'of calculated PID range {start_pid} - ' \
-                                                           f'{end_pid}'
+        assert start_pid <= min_pid <= max_pid <= end_pid, (
+            f"CG3 Bank {bank_id} PID (H5 range "
+            f"{min_pid} - {max_pid}) is out of range "
+            f"of calculated PID range {start_pid} - "
+            f"{end_pid}"
+        )
 
     # close file
     nexus_h5.close()
@@ -63,10 +65,11 @@ def test_cg3_pid_range(reference_dir):
 
 
 def test_mask_detector(reference_dir):
-    """Test mask detector
-    """
+    """Test mask detector"""
     # Load data
-    test_spice = os.path.join(reference_dir.new.biosans, "BioSANS_exp549_scan0010_0001.xml")
+    test_spice = os.path.join(
+        reference_dir.new.biosans, "BioSANS_exp549_scan0010_0001.xml"
+    )
     assert os.path.exists(test_spice)
 
     # Init CG3 convert
@@ -86,5 +89,5 @@ def test_mask_detector(reference_dir):
     assert diff_counts[70911] == 1635
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main(__file__)

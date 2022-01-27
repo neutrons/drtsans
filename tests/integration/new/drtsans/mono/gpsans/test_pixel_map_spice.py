@@ -19,13 +19,13 @@ def test_pixel_calibration(reference_dir, cleanfile):
 
     """
     # Set and clean output
-    test_output_dir = mkdtemp('test_bar_scan')
+    test_output_dir = mkdtemp("test_bar_scan")
     cleanfile(test_output_dir)
 
     # First and last pt for the barscan: Set by user
     # -------------------------------------------------------------------------------------------------------
     # IPTS 828 Exp 280.  (/HFIR/CG2/IPTS-828/exp280/Datafiles)
-    root_dir = os.path.join(reference_dir.new.gpsans, 'calibrations')
+    root_dir = os.path.join(reference_dir.new.gpsans, "calibrations")
     ipts = 828
     exp_number = 280
     scan_number = 5
@@ -37,13 +37,25 @@ def test_pixel_calibration(reference_dir, cleanfile):
     flood_scan = 4
     flood_pt = 1
 
-    mask_file = os.path.join(reference_dir.new.gpsans, 'calibrations/mask_pixel_map.nxs')
-    assert os.path.exists(mask_file), f'Mask file {mask_file} does not exist'
+    mask_file = os.path.join(
+        reference_dir.new.gpsans, "calibrations/mask_pixel_map.nxs"
+    )
+    assert os.path.exists(mask_file), f"Mask file {mask_file} does not exist"
 
     # Calculate pixel calibration file
-    calibration_results = generate_spice_pixel_map(ipts, exp_number, scan_number, range(first_pt, last_pt + 1),
-                                                   flood_ipts, flood_exp, flood_scan, flood_pt,
-                                                   root_dir, test_output_dir, mask_file)
+    calibration_results = generate_spice_pixel_map(
+        ipts,
+        exp_number,
+        scan_number,
+        range(first_pt, last_pt + 1),
+        flood_ipts,
+        flood_exp,
+        flood_scan,
+        flood_pt,
+        root_dir,
+        test_output_dir,
+        mask_file,
+    )
     calibration_table_file = None
     for index, returned in enumerate(calibration_results):
         if index == 0:
@@ -60,15 +72,21 @@ def test_pixel_calibration(reference_dir, cleanfile):
         elif index == 3:
             calibration_table_file = returned
         else:
-            raise RuntimeError(f'Index = {index} is not defined')
+            raise RuntimeError(f"Index = {index} is not defined")
 
-    print(f'Calibraton file {calibration_table_file} of type {type(calibration_table_file)}')
+    print(
+        f"Calibraton file {calibration_table_file} of type {type(calibration_table_file)}"
+    )
     assert os.path.exists(calibration_table_file)
 
     # Get expected data file
-    expected_calib_nexus = os.path.join(reference_dir.new.gpsans,
-                                        f'calibrations/CG2_Pixel_Calibration_Expected_{last_pt - first_pt + 1}.nxs')
-    assert os.path.exists(expected_calib_nexus), f'Gold result (file) {expected_calib_nexus} cannot be found.'
+    expected_calib_nexus = os.path.join(
+        reference_dir.new.gpsans,
+        f"calibrations/CG2_Pixel_Calibration_Expected_{last_pt - first_pt + 1}.nxs",
+    )
+    assert os.path.exists(
+        expected_calib_nexus
+    ), f"Gold result (file) {expected_calib_nexus} cannot be found."
 
     # Compare 2 NeXus file
     compare_pixel_calibration_files(calibration_table_file, expected_calib_nexus)
@@ -101,5 +119,5 @@ def compare_pixel_calibration_files(test_file_name, gold_file_name):
     np.testing.assert_allclose(test_cal_values, gold_cal_values)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main(__file__)

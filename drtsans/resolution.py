@@ -2,16 +2,29 @@ import numpy as np
 from scipy import constants
 
 
-__all__ = ['InstrumentSetupParameters', 'calculate_sigma_theta_prefactor', 'calculate_sigma_geometry',
-           'calculate_sigma_theta_geometry', 'calculate_sigma_theta_gravity']
+__all__ = [
+    "InstrumentSetupParameters",
+    "calculate_sigma_theta_prefactor",
+    "calculate_sigma_geometry",
+    "calculate_sigma_theta_geometry",
+    "calculate_sigma_theta_gravity",
+]
 
 
 class InstrumentSetupParameters(object):
     """
     Data structure containing the parameters used to calculate Q resolution
     """
-    def __init__(self, l1, sample_det_center_dist, source_aperture_radius, sample_aperture_radius,
-                 pixel_width_ratio=None, pixel_height_ratio=None):
+
+    def __init__(
+        self,
+        l1,
+        sample_det_center_dist,
+        source_aperture_radius,
+        sample_aperture_radius,
+        pixel_width_ratio=None,
+        pixel_height_ratio=None,
+    ):
         """
         Initialization to set all the parameters (6) to calculate momentrum transfer resolution
 
@@ -38,17 +51,21 @@ class InstrumentSetupParameters(object):
         self._sample_det_center_dist = sample_det_center_dist
         self._source_aperture = source_aperture_radius
         self._sample_aperture = sample_aperture_radius
-        self.smearing_pixel_width_ratio, self.smearing_pixel_height_ratio = pixel_width_ratio, pixel_height_ratio
+        self.smearing_pixel_width_ratio, self.smearing_pixel_height_ratio = (
+            pixel_width_ratio,
+            pixel_height_ratio,
+        )
 
     def __str__(self):
         """
         Nice output string
         :return:
         """
-        out = 'L1 = {} (m)\nSample-Detector-Center-Distance (L2)= {} (m)\n' \
-              ''.format(self.l1, self._sample_det_center_dist)
-        out += 'Source aperture radius (R1) = {} (m)\n'.format(self._source_aperture)
-        out += 'Sample aperture radius (R2) = {} (m)\n'.format(self._sample_aperture)
+        out = "L1 = {} (m)\nSample-Detector-Center-Distance (L2)= {} (m)\n" "".format(
+            self.l1, self._sample_det_center_dist
+        )
+        out += "Source aperture radius (R1) = {} (m)\n".format(self._source_aperture)
+        out += "Sample aperture radius (R2) = {} (m)\n".format(self._sample_aperture)
 
         return out
 
@@ -117,7 +134,9 @@ def calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameter
     """
     two_theta = pixel_info.two_theta.reshape(-1, 1)
     L2 = instrument_parameters.sample_det_center_distance
-    return np.square(2 * np.pi * np.cos(0.5 * two_theta) * np.cos(two_theta)**2 / wavelength / L2)
+    return np.square(
+        2 * np.pi * np.cos(0.5 * two_theta) * np.cos(two_theta) ** 2 / wavelength / L2
+    )
 
 
 def calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters):
@@ -174,8 +193,11 @@ def calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters):
         pixel_size2 = 0.5 * (dx2 + dy2)
     elif mode == "azimuthal":
         pixel_size2 = np.array([dx2, dy2])
-    return 0.25 * np.square(L2 / L1 * R1)  \
-        + 0.25 * np.square((L1 + L2) / L1 * R2) + pixel_size2 / 12.0
+    return (
+        0.25 * np.square(L2 / L1 * R1)
+        + 0.25 * np.square((L1 + L2) / L1 * R2)
+        + pixel_size2 / 12.0
+    )
 
 
 def calculate_sigma_theta_gravity(wavelength, delta_wavelength, instrument_parameters):
@@ -211,14 +233,18 @@ def calculate_sigma_theta_gravity(wavelength, delta_wavelength, instrument_param
     # h = 6.626e-34    # m^2 kg s^-1
     # m_n = 1.675e-27  # kg
     # g = 9.8          # m s^-2
-    G_MN2_OVER_H2 = constants.g * np.square(constants.neutron_mass / constants.h)  # Unit as m, s, Kg
+    G_MN2_OVER_H2 = constants.g * np.square(
+        constants.neutron_mass / constants.h
+    )  # Unit as m, s, Kg
     L1 = instrument_parameters.l1
     L2 = instrument_parameters.sample_det_center_distance
-    B = 0.5 * G_MN2_OVER_H2 * L2 * (L1 + L2) * 1.E-20
-    return 2. * np.square(B * wavelength * delta_wavelength) / 3.
+    B = 0.5 * G_MN2_OVER_H2 * L2 * (L1 + L2) * 1.0e-20
+    return 2.0 * np.square(B * wavelength * delta_wavelength) / 3.0
 
 
-def calculate_sigma_geometry(mode, wavelength, delta_wavelength, pixel_info, instrument_parameters):
+def calculate_sigma_geometry(
+    mode, wavelength, delta_wavelength, pixel_info, instrument_parameters
+):
     r"""
     Calculates the Q independent part of the resolution, the common parts in formula 10.3 - 10.6
 
@@ -244,11 +270,20 @@ def calculate_sigma_geometry(mode, wavelength, delta_wavelength, pixel_info, ins
     =======
     ~np.array
     """
-    factor = calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameters)
-    geometry_part = calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters)
-    gravity_part = calculate_sigma_theta_gravity(wavelength, delta_wavelength, instrument_parameters)
+    factor = calculate_sigma_theta_prefactor(
+        wavelength, pixel_info, instrument_parameters
+    )
+    geometry_part = calculate_sigma_theta_geometry(
+        mode, pixel_info, instrument_parameters
+    )
+    gravity_part = calculate_sigma_theta_gravity(
+        wavelength, delta_wavelength, instrument_parameters
+    )
 
     if mode == "scalar":
         return factor * (geometry_part[:, np.newaxis] * 2 + gravity_part)
     if mode == "azimuthal":
-        return [factor * geometry_part[0][:, np.newaxis], factor * (geometry_part[1][:, np.newaxis] + gravity_part)]
+        return [
+            factor * geometry_part[0][:, np.newaxis],
+            factor * (geometry_part[1][:, np.newaxis] + gravity_part),
+        ]

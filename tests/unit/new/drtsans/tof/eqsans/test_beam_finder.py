@@ -17,7 +17,7 @@ def test_find_beam_center(reference_dir):
         FindCenterOfMassPosition https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v2.html
     """
     with amend_config(data_dir=reference_dir.new.eqsans):
-        w = LoadEventNexus(Filename="EQSANS_92160", OutputWorkspace=uwd())
+        w = LoadEventNexus(Filename="EQSANS_92160.nxs.h5", OutputWorkspace=uwd())
     assert find_beam_center(w)[:-1] == approx((0.02997, 0.01379), abs=1e-3)
 
 
@@ -33,7 +33,7 @@ def test_center_detector(reference_dir):
         MoveInstrumentComponent https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
     """
     with amend_config(data_dir=reference_dir.new.eqsans):
-        w = LoadEventNexus(Filename="EQSANS_92160", OutputWorkspace=uwd())
+        w = LoadEventNexus(Filename="EQSANS_92160.nxs.h5", OutputWorkspace=uwd())
     r = find_beam_center(w, method="center_of_mass")
     assert r[:-1] == approx((0.02997, 0.0138), abs=1e-3)
     pos_old = w.getInstrument().getDetector(0).getPos()

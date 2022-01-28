@@ -78,6 +78,9 @@ def amend_config(new_config=None, data_dir=None):
         SEARCH_ARCHIVE = "datasearch.searcharchive"
         if SEARCH_ARCHIVE not in new_config:
             new_config[SEARCH_ARCHIVE] = "hfir, sns"
+        DEFAULT_FACILITY = "default.facility"
+        if DEFAULT_FACILITY not in new_config:
+            new_config[DEFAULT_FACILITY] = "SNS"
         for key, val in new_config.items():
             backup[key] = config[key]
             config[key] = val  # config does not have an 'update' method

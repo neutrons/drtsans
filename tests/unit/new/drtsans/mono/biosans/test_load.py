@@ -17,7 +17,7 @@ from drtsans.samplelogs import SampleLogs
 
 def test_load_events(reference_dir):
     events_workspace = load_events(
-        "CG3_961", data_dir=reference_dir.new.biosans, overwrite_instrument=True
+        "CG3_961.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True
     )
     assert events_workspace.name() == "BIOSANS_961"
 
@@ -192,7 +192,7 @@ def test_load_and_split(reference_dir):
     # Check that is fails with missing required paramters
     with pytest.raises(ValueError) as excinfo:
         load_and_split(
-            "CG3_961",
+            "CG3_961.nxs.h5",
             data_dir=reference_dir.new.biosans,
             sample_to_si_name="CG3:CS:SampleToSi",
             si_nominal_distance=0.071,
@@ -202,7 +202,7 @@ def test_load_and_split(reference_dir):
     )
 
     filtered_ws = load_and_split(
-        "CG3_961",
+        "CG3_961.nxs.h5",
         data_dir=reference_dir.new.biosans,
         time_interval=1000,
         sample_to_si_name="CG3:CS:SampleToSi",
@@ -272,7 +272,7 @@ def test_load_and_split_overwrite_geometry(reference_dir):
     # Check that is fails with missing required paramters
     with pytest.raises(ValueError) as excinfo:
         load_and_split(
-            "CG3_961",
+            "CG3_961.nxs.h5",
             data_dir=reference_dir.new.biosans,
             sample_to_si_name="CG3:CS:SampleToSi",
             si_nominal_distance=0.071,

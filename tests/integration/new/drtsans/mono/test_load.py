@@ -7,7 +7,7 @@ from drtsans.mono.meta_data import get_sample_detector_offset
 from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import sample_detector_distance
 from drtsans.load import move_instrument
-from mantid.simpleapi import AddSampleLogMultiple
+from mantid.simpleapi import AddSampleLogMultiple, DeleteWorkspace
 
 
 def test_load_gpsans():
@@ -85,7 +85,11 @@ def test_load_gpsans():
 
     assert new_sample_det_distance == raw_sample_det_distance
 
+    # cleanup
+    DeleteWorkspace(ws)
 
+
+@pytest.mark.skip(reason="Too large to run on build server")
 def test_load_biosans():
     """Test load BIOSANS data
 
@@ -154,7 +158,11 @@ def test_load_biosans():
     )
     assert sample_det_distance_cal == pytest.approx(7.00000019, 1e-7)
 
+    # cleanup
+    DeleteWorkspace(ws)
 
+
+@pytest.mark.skip(reason="Too large to run on build server")
 def test_load_biosans_sample_off_nominal():
     """Test load BIOSANS data with sample position off nominal position
 
@@ -237,7 +245,11 @@ def test_load_biosans_sample_off_nominal():
     )
     assert sample_det_distance_cal == pytest.approx(7.00000019, 1e-7)
 
+    # cleanup
+    DeleteWorkspace(ws)
 
+
+@pytest.mark.skip(reason="Too large to run on build server")
 def test_load_biosans_overwrite_swd():
     """Test load BIOSANS data with overwriting sample Si window distance
 
@@ -298,7 +310,11 @@ def test_load_biosans_overwrite_swd():
     swd = logs.find_log_with_units("CG3:CS:SampleToSi", unit="mm")
     assert swd == pytest.approx(74.21, 1e-10)
 
+    # cleanup
+    DeleteWorkspace(ws)
 
+
+@pytest.mark.skip(reason="Too large to run on build server")
 def test_load_biosans_overwrite_sdd():
     """Test load BIOSANS data with overwriting sample detector distance related meta data
 
@@ -372,6 +388,9 @@ def test_load_biosans_overwrite_sdd():
     assert sample_det_distance_cal == pytest.approx(
         sample_det_distance_meta * 1e-3, 1e-7
     )
+
+    # cleanup
+    DeleteWorkspace(ws)
 
 
 if __name__ == "__main__":

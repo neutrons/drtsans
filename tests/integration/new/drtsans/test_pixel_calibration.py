@@ -1110,6 +1110,7 @@ def test_gpsans_tube_calibration(reference_dir):
     assert amplitude(calibrated_densities) / amplitude(
         uncalibrated_densities
     ) == pytest.approx(0.13, abs=0.01)
+    DeleteWorkspace(uncalibrated_workspace)
 
 
 def test_biosans_tube_calibration(reference_dir):

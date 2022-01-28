@@ -26,7 +26,7 @@ def test_instrument_name(serve_events_workspace):
         == InstrumentEnumName.UNDEFINED
     )
     assert (
-        instrument_enum_name(serve_events_workspace("EQSANS_92353"))
+        instrument_enum_name(serve_events_workspace("EQSANS_92353.nxs.h5"))
         == InstrumentEnumName.EQSANS
     )
     workspace = CreateWorkspace(
@@ -37,7 +37,7 @@ def test_instrument_name(serve_events_workspace):
 
 
 def test_is_time_of_flight(serve_events_workspace):
-    for query in ("EQSANS", "EQ-SANS", serve_events_workspace("EQSANS_92353")):
+    for query in ("EQSANS", "EQ-SANS", serve_events_workspace("EQSANS_92353.nxs.h5")):
         assert is_time_of_flight(query) is True
     for query in ("GPSANS", "CG2", "BIOSANS", "CG3"):
         assert is_time_of_flight(query) is False

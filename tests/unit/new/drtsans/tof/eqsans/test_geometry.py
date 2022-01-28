@@ -24,7 +24,7 @@ from drtsans.samplelogs import SampleLogs
 
 def test_translate_detector_by_z(serve_events_workspace, reference_dir):
     # Load instrument with main panel at Z=0, then translate according to the logs
-    workspace = serve_events_workspace("EQSANS_92353")
+    workspace = serve_events_workspace("EQSANS_92353.nxs.h5")
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(
         0.0, abs=1e-3
     )  # detector1 at z=0
@@ -35,7 +35,7 @@ def test_translate_detector_by_z(serve_events_workspace, reference_dir):
 
     # Load instrument with main panel at Z=0, then apply latest IDF which will move the main panel. Subsequent
     # application of translate_detector_by_z will have no effect
-    workspace = serve_events_workspace("EQSANS_92353")
+    workspace = serve_events_workspace("EQSANS_92353.nxs.h5")
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(
         0.0, abs=1e-3
     )  # detector1 at z=0
@@ -51,7 +51,7 @@ def test_translate_detector_by_z(serve_events_workspace, reference_dir):
 
 
 def test_sample_aperture_diameter(serve_events_workspace):
-    ws = serve_events_workspace("EQSANS_92353")
+    ws = serve_events_workspace("EQSANS_92353.nxs.h5")
     sad = sample_aperture_diameter(ws)
     # ISSUE1887 TODO Enabled assert sad == approx(10)
     sad = SampleLogs(ws).single_value("sample_aperture_diameter")
@@ -104,7 +104,7 @@ def test_source_aperture(generic_workspace, data):
 
 
 def test_source_aperture_diameter(serve_events_workspace):
-    ws = serve_events_workspace("EQSANS_92353")
+    ws = serve_events_workspace("EQSANS_92353.nxs.h5")
     sad = source_aperture_diameter(ws)
     # ISSUE187 TODO Enable assert sad == approx(20)
     sad = SampleLogs(ws).single_value("source_aperture_diameter")
@@ -140,7 +140,7 @@ def test_source_aperture_sample_distance(generic_workspace, data):
 
 
 def test_source_monitor_distance(serve_events_workspace):
-    ws = serve_events_workspace("EQSANS_92353")
+    ws = serve_events_workspace("EQSANS_92353.nxs.h5")
     smd = source_monitor_distance(ws, unit="m")
     assert smd == pytest.approx(10.122, abs=0.001)
     smd = SampleLogs(ws).single_value("source-monitor-distance")

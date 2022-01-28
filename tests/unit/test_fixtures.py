@@ -359,8 +359,8 @@ def test_generate_workspace_tof(generic_workspace):
 
 
 def test_serve_events_workspace(serve_events_workspace):
-    w1 = serve_events_workspace("EQSANS_92353")
-    w2 = serve_events_workspace("EQSANS_92353")
+    w1 = serve_events_workspace("EQSANS_92353.nxs.h5")
+    w2 = serve_events_workspace("EQSANS_92353.nxs.h5")
     assert w1.name() != w2.name()
     originals = [w.name() for w in serve_events_workspace._cache.values()]
     assert w1.name() not in originals

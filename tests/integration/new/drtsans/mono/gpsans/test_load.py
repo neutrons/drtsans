@@ -1,7 +1,7 @@
 import pytest
 import os
 import json
-from mantid.simpleapi import mtd
+from mantid.simpleapi import mtd, DeleteWorkspace
 from drtsans.mono.gpsans import load_all_files
 from drtsans.mono.biosans import reduction_parameters
 from drtsans.geometry import sample_detector_distance
@@ -144,6 +144,13 @@ def test_load_all_files(reference_dir):
     assert thickness == pytest.approx(0.2), "{} has a wrong thickness {}".format(
         str(sample_run), thickness
     )
+
+    # cleanup
+    for ws in [sample_run, sample_trans_run, bkgd_run, bkgd_trans_run]:
+        try:
+            DeleteWorkspace(ws)
+        except RuntimeError:
+            print("The workspace is already deleted")
 
 
 def generate_test_json():

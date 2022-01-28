@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+from drtsans.load import load_events
 import drtsans.mono.gpsans
 import drtsans.mono.biosans
 import drtsans.tof.eqsans
@@ -19,7 +20,6 @@ from mantid.simpleapi import (
     MaskAngle,
     Integration,
     MaskDetectors,
-    LoadEventNexus,
     CreateWorkspace,
 )
 from mantid.api import mtd
@@ -760,7 +760,7 @@ class PrepareSensitivityCorrection(object):
             event_nexus = parent_flood_run
             assert os.path.exists(event_nexus)
 
-        parent_ws = LoadEventNexus(Filename=event_nexus, MetaDataOnly=True)
+        parent_ws = load_events(run=event_nexus, MetaDataOnly=True)
 
         # Create new sensitivity workspace
         new_sens_name = "{}_new".format(str(sensitivity_ws))

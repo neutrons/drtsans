@@ -3,6 +3,7 @@ from pytest import approx
 import numpy as np
 from mantid.simpleapi import (
     Load,
+    DeleteWorkspace,
     EQSANSLoad,
     SumSpectra,
     RebinToWorkspace,
@@ -26,13 +27,13 @@ from drtsans.geometry import source_detector_distance
 trials = dict(  # configurations with frame skipped
     # (0)run, (1)wavelength_bin, (2)source-detector-distance
     # (3)monitor-min-TOF
-    skip_1m=("EQSANS_86217", 0.02, 1.3, -1),
-    skip_4m=("EQSANS_92353", 0.02, 4.0, -1),
-    skip_5m=("EQSANS_85550", 0.02, 5.0, -1),
+    skip_1m=("EQSANS_86217.nxs.h5", 0.02, 1.3, -1),
+    skip_4m=("EQSANS_92353.nxs.h5", 0.02, 4.0, -1),
+    skip_5m=("EQSANS_85550.nxs.h5", 0.02, 5.0, -1),
     # configurations with no frame skipped
-    nonskip_1m=("EQSANS_101595", 0.02, 1.3, 15388),
-    nonskip_4m=("EQSANS_88565", 0.02, 4.0, 25565),
-    nonskip_8m=("EQSANS_88901", 0.02, 8.0, 30680),
+    nonskip_1m=("EQSANS_101595.nxs.h5", 0.02, 1.3, 15388),
+    nonskip_4m=("EQSANS_88565.nxs.h5", 0.02, 4.0, 25565),
+    nonskip_8m=("EQSANS_88901.nxs.h5", 0.02, 8.0, 30680),
 )
 
 
@@ -91,14 +92,16 @@ def test_correct_detector_frame(serve_events_workspace):
 
 def test_smash_monitor_spikes(reference_dir):
     # Smash two spikes
-    w = load_events_monitor("EQSANS_88565", data_dir=reference_dir.new.eqsans)
+    w = load_events_monitor("EQSANS_88565.nxs.h5", data_dir=reference_dir.new.eqsans)
     w = smash_monitor_spikes(w)
     assert max(w.dataY(0)) < 1e3
+    DeleteWorkspace(w)
 
     # Monitor data is crap
-    w = load_events_monitor("EQSANS_101595", data_dir=reference_dir.new.eqsans)
+    w = load_events_monitor("EQSANS_101595.nxs.h5", data_dir=reference_dir.new.eqsans)
     with pytest.raises(RuntimeError, match="Monitor spectrum is flat"):
         smash_monitor_spikes(w)
+    DeleteWorkspace(w)
 
 
 def test_correct_monitor_frame(reference_dir):

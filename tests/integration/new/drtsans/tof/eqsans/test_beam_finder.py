@@ -5,7 +5,7 @@ from pytest import approx
 # https://docs.mantidproject.org/nightly/algorithms/ClearMaskFlag-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/ExtractMaskMask-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/SaveMask-v1.html
-from mantid.simpleapi import ClearMaskFlag, ExtractMask, SaveMask
+from mantid.simpleapi import ClearMaskFlag, ExtractMask, SaveMask, DeleteWorkspace
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.tof.eqsans import (
     apply_mask,
@@ -52,6 +52,8 @@ def test_find_beam_center(eqsans_f, eqsans_p):
     #
     center_detector(ws, center_x=x0, center_y=y0)
     assert find_beam_center(ws)[:-1] == pytest.approx((0, 0), abs=1e-04)
+    #
+    DeleteWorkspace(ws)
 
 
 if __name__ == "__main__":

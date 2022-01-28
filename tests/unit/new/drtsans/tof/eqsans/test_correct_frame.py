@@ -17,7 +17,7 @@ BandsTuple = namedtuple("BandsTuple", "lead skip")
 
 def test_transmitted_bands(reference_dir):
     with amend_config(data_dir=reference_dir.new.eqsans):
-        ws = Load(Filename="EQSANS_86217")
+        ws = Load(Filename="EQSANS_86217.nxs.h5")
         bands = correct_frame.transmitted_bands(ws)
         assert_almost_equal((bands.lead.min, bands.lead.max), (2.48, 6.78), decimal=2)
         assert_almost_equal((bands.skip.min, bands.skip.max), (10.90, 15.23), decimal=2)
@@ -25,7 +25,7 @@ def test_transmitted_bands(reference_dir):
 
 def test_transmitted_bands_clipped(reference_dir):
     with amend_config(data_dir=reference_dir.new.eqsans):
-        ws = Load(Filename="EQSANS_86217")
+        ws = Load(Filename="EQSANS_86217.nxs.h5")
         sdd = source_detector_distance(ws, unit="m")
         bands_0 = correct_frame.transmitted_bands_clipped(ws, sdd, 0.0, 0.0)
         lwc, hwc = (0.139, 0.560)  # expected clippings

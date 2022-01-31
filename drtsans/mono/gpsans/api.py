@@ -5,7 +5,7 @@ import os
 from collections import namedtuple
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from mantid.simpleapi import mtd, MaskDetectors, logger, SaveNexusProcessed
+from mantid.simpleapi import mtd, MaskDetectors, logger, SaveNexusProcessed, MoveInstrumentComponent
 
 from drtsans import getWedgeSelection
 from drtsans.path import abspath, abspaths, registered_workspace
@@ -53,6 +53,7 @@ __all__ = [
     "load_all_files",
     "plot_reduction_output",
     "reduce_single_configuration",
+    'adjust_back_panels_to_effective_position',
 ]
 
 
@@ -1469,5 +1470,22 @@ def plot_reduction_output(
         if close_figures:
             plt.close()
     # allow overwrite
-    allow_overwrite(os.path.join(output_dir, "1D"))
-    allow_overwrite(os.path.join(output_dir, "2D"))
+    allow_overwrite(os.path.join(output_dir, '1D'))
+    allow_overwrite(os.path.join(output_dir, '2D'))
+
+
+def adjust_back_panels_to_effective_position(workspace):
+    """
+    As the back panels are shadowed by its neighboring front panels when the
+    incident beam is hitting at an angle, the effective position of the back
+    panels needs to be adjusted to the center of the gap between its two
+    neighboring front panels.
+
+    :param workspace: intput workspace
+
+    @NOTE: this adjustment must be done right before convert to q space
+    """
+    MoveInstrumentComponent(Workspace=workspace,
+                            ComponentName="detector1/back-panel",
+                            Z=-0.0082,
+                            RelativePosition=True)

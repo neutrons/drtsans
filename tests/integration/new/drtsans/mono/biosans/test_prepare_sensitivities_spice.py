@@ -13,7 +13,7 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 @pytest.mark.skipif(True, reason="Job is too large to run on build server")
-def test_main_detector(reference_dir, cleanfile):
+def test_main_detector(reference_dir, generatecleanfile):
     """Test case for CG3 main detector
 
     This test is skipped
@@ -28,8 +28,7 @@ def test_main_detector(reference_dir, cleanfile):
     /HFIR/CG3/IPTS-17241/exp549/Datafiles/BioSANS_exp549_scan0022_0001.xml
     """
     # output testing directory
-    output_dir = mkdtemp()
-    cleanfile(output_dir)
+    output_dir = generatecleanfile()
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
@@ -134,7 +133,7 @@ def test_main_detector(reference_dir, cleanfile):
     verify_results(SENSITIVITY_FILE, gold_sens_file)
 
 
-def test_wing_detector(reference_dir, cleanfile):
+def test_wing_detector(reference_dir, generatecleanfile):
     """Test case for CG3 wing detector
 
     Flood for wing detector at 1.4° -
@@ -147,8 +146,7 @@ def test_wing_detector(reference_dir, cleanfile):
     /HFIR/CG3/IPTS-17241/exp549/Datafiles/BioSANS_exp549_scan0022_0001.xml
     """
     # output testing directory
-    output_dir = mkdtemp()
-    cleanfile(output_dir)
+    output_dir = generatecleanfile()
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 

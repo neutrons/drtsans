@@ -104,6 +104,8 @@ def test_spice_conversion(reference_dir, cleanfile):
     if os.path.exists(test_temp_dir) is False:
         os.mkdir(test_temp_dir)
 
+    cleanfile(test_temp_dir)
+
     # Convert
     nexus = convert_spice_to_nexus(
         1,

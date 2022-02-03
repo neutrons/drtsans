@@ -6,6 +6,7 @@ import pytest
 import random
 from shutil import rmtree
 import string
+import tempfile
 import numpy as np
 from os.path import join as pjoin
 from collections import namedtuple
@@ -108,6 +109,33 @@ def cleanfile():
             else:
                 filename.unlink()  # remove the single file
 
+@pytest.fixture(scope="module")
+def generatecleanfile():
+    """Fixture that generates temp files and deletes them when the .py file is finished. It
+    will cleanup on exception and will safely skip over files that do not
+    exist. Do not use this if you want the files to remain for a failing test.
+
+    Usage:
+
+    def test_something(generatecleanfile):
+        output_dir = generatecleanfile(prefix='somefilename')
+        # do stuff
+    """
+    filenames = []
+
+    def _generatecleanfile(suffix=None, prefix=None, dir=None):
+        temp_dir = tempfile.mkdtemp(suffix, prefix, dir)
+        filenames.append(Path(temp_dir))
+        return temp_dir
+
+    yield _generatecleanfile
+
+    for filename in filenames:
+        if filename.exists():
+            if filename.is_dir():
+                rmtree(filename)  # remove the directory and any files that are in it
+            else:
+                filename.unlink()  # remove the single file
 
 @pytest.fixture(scope="function")
 def clean_workspace():

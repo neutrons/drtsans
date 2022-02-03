@@ -86,7 +86,7 @@ def write_configfile(input_json_file, basename, tmpdir, config_overrides=dict())
     )
 
     # temporary directory is always readable
-    outputdir = str(tmpdir)
+    outputdir = tmpdir
     output_json_file = NamedTemporaryFile(
         prefix=os.path.basename(input_json_file).replace(".json", "_"),
         suffix=".json",
@@ -226,7 +226,7 @@ specs_eqsans = {
     ],
     ids=["88980", "112300"],
 )
-def test_eqsans(run_config, basename, tmpdir):
+def test_eqsans(run_config, basename, generatecleanfile, cleanfile):
     common_config = {
         "configuration": {
             "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
@@ -250,7 +250,7 @@ def test_eqsans(run_config, basename, tmpdir):
         common_config, "EQSANS", validate=False
     )  # defaults and common options
     input_config = update_reduction_parameters(input_config, run_config, validate=False)
-    output_dir = str(tmpdir)
+    output_dir = generatecleanfile()
     amendments = {
         "outputFileName": basename,
         "configuration": {"outputDir": output_dir},
@@ -262,6 +262,7 @@ def test_eqsans(run_config, basename, tmpdir):
     json_file = NamedTemporaryFile(suffix=".json", delete=False).name
     with open(json_file, "w") as handle:
         json.dump(input_config, handle)
+    cleanfile(json_file)
     run_reduction("eqsans_reduction.py", json_file)
     check_and_cleanup(output_dir, basename)
 
@@ -288,7 +289,7 @@ def test_eqsans(run_config, basename, tmpdir):
     ],
     ids=["4822", "4822_wedge", "5532_autowedge"],
 )
-def test_biosans(configfile, basename, required, tmpdir, reference_dir):
+def test_biosans(configfile, basename, required, generatecleanfile, reference_dir):
     check_for_required_files(required)
 
     # Set for sensitivities files
@@ -307,7 +308,7 @@ def test_biosans(configfile, basename, required, tmpdir, reference_dir):
 
     # modify the config file and get the output directory and the full path to the new configuration file
     outputdir, json_file = write_configfile(
-        configfile, basename, tmpdir, config_overwrite_dict
+        configfile, basename, generatecleanfile(), config_overwrite_dict
     )
 
     run_reduction("biosans_reduction.py", json_file)
@@ -331,11 +332,11 @@ def test_biosans(configfile, basename, required, tmpdir, reference_dir):
     ],
     ids=["8944"],
 )
-def test_gpsans(configfile, basename, required, tmpdir):
+def test_gpsans(configfile, basename, required, generatecleanfile):
     check_for_required_files(required)
 
     # modify the config file and get the output directory and the full path to the new configuration file
-    outputdir, json_file = write_configfile(configfile, basename, tmpdir)
+    outputdir, json_file = write_configfile(configfile, basename, generatecleanfile())
 
     run_reduction("gpsans_reduction.py", json_file)
 

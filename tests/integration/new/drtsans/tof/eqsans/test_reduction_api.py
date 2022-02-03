@@ -42,7 +42,7 @@ specs_eqsans = {
     [(specs_eqsans["EQSANS_88980"], "EQSANS_88980")],
     ids=["88980"],
 )
-def test_regular_setup(run_config, basename, tmpdir, reference_dir):
+def test_regular_setup(run_config, basename, generatecleanfile, reference_dir):
     """Same reduction from Shaman test with regular non-correction and no-weighted binning"""
     # set flag to use weighted binning
     weighted_binning = False
@@ -71,7 +71,7 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
     input_config = reduction_parameters(common_config, "EQSANS", validate=False)
     # final changes and validation
     input_config = update_reduction_parameters(input_config, run_config, validate=False)
-    output_dir = str(tmpdir)
+    output_dir = generatecleanfile()
     amendments = {
         "outputFileName": basename,
         "configuration": {"outputDir": output_dir},
@@ -123,7 +123,7 @@ def test_regular_setup(run_config, basename, tmpdir, reference_dir):
     [(specs_eqsans["EQSANS_88980"], "EQSANS_88980")],
     ids=["88980"],
 )
-def test_weighted_binning_setup(run_config, basename, tmpdir, reference_dir):
+def test_weighted_binning_setup(run_config, basename, generatecleanfile, reference_dir):
     """Same reduction from Shaman test but using weighted binning
 
     A previous integration test has approved that the 2-step binning
@@ -156,7 +156,7 @@ def test_weighted_binning_setup(run_config, basename, tmpdir, reference_dir):
         common_config, "EQSANS", validate=False
     )  # defaults and common options
     input_config = update_reduction_parameters(input_config, run_config, validate=False)
-    output_dir = str(tmpdir)
+    output_dir = generatecleanfile()
     amendments = {
         "outputFileName": f"{basename}_corr",
         "configuration": {"outputDir": output_dir},

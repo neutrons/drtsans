@@ -9,7 +9,6 @@ from drtsans.tof.eqsans.api import (
 from drtsans.dataobjects import _Testing
 from drtsans.settings import amend_config
 import json
-import tempfile
 from typing import Tuple, Dict
 from drtsans.dataobjects import load_iq1d_from_h5, load_iq2d_from_h5
 
@@ -268,14 +267,14 @@ def generate_configuration_with_correction(output_dir: str = "/tmp/") -> Dict:
 @pytest.mark.skipif(
     reason="The test is either incorrect or using wrong ref values",
 )
-def test_incoherence_correction_step4only(reference_dir):
+def test_incoherence_correction_step4only(reference_dir, generatecleanfile):
     """Test incoherence correction without elastic correction"""
     # Set up the configuration dict
     configuration = generate_configuration_with_correction()
 
     # Create temp output directory
-    test_dir = tempfile.mkdtemp()
-    base_name = "EQSANS_113915_Incoh_1d"
+    test_dir = generatecleanfile()
+    base_name = 'EQSANS_113915_Incoh_1d'
 
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
     configuration["configuration"]["outputDir"] = test_dir
@@ -318,7 +317,7 @@ def test_incoherence_correction_step4only(reference_dir):
     not os.path.exists("/SNS/users/pf9/etc/"),
     reason="Test is too long for build server",
 )
-def test_incoherence_correction_elastic_normalization(reference_dir):
+def test_incoherence_correction_elastic_normalization(reference_dir, generatecleanfile):
     """Test incoherence correction with elastic correction"""
     # Set up the configuration dict
     config_json_file = os.path.join(
@@ -332,8 +331,8 @@ def test_incoherence_correction_elastic_normalization(reference_dir):
     assert isinstance(configuration, dict)
 
     # Create temp output directory
-    test_dir = tempfile.mkdtemp()
-    base_name = "EQSANS_125707_"
+    test_dir = generatecleanfile()
+    base_name = 'EQSANS_125707_'
 
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
     configuration["configuration"]["outputDir"] = test_dir

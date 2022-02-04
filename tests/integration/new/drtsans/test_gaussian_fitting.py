@@ -9,14 +9,14 @@ import os
 
 # defining 2D Gaussian fitting functions
 def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
-    a = np.cos(theta) ** 2 / (2.0 * sigma_x ** 2) + np.sin(theta) ** 2 / (
-        2.0 * sigma_y ** 2
+    a = np.cos(theta) ** 2 / (2.0 * sigma_x**2) + np.sin(theta) ** 2 / (
+        2.0 * sigma_y**2
     )
-    b = -np.sin(2.0 * theta) / (4.0 * sigma_x ** 2) + np.sin(2.0 * theta) / (
-        4.0 * sigma_y ** 2
+    b = -np.sin(2.0 * theta) / (4.0 * sigma_x**2) + np.sin(2.0 * theta) / (
+        4.0 * sigma_y**2
     )
-    c = np.sin(theta) ** 2 / (2.0 * sigma_x ** 2) + np.cos(theta) ** 2 / (
-        2.0 * sigma_y ** 2
+    c = np.sin(theta) ** 2 / (2.0 * sigma_x**2) + np.cos(theta) ** 2 / (
+        2.0 * sigma_y**2
     )
     amplitude = amp / (np.sqrt(2.0 * np.pi) * np.sqrt(sigma_x * sigma_y))
     val = amplitude * np.exp(
@@ -92,8 +92,12 @@ def test_gaussian_fit():
     assert y0 == pytest.approx(results.params["y0"].value)
     # update ref val after upgrading mantid (v5 -> v6)
     assert fit_results["amp"]["value"] == pytest.approx(1360200663376.656, rel=1e-4)
-    assert fit_results["sigma_x"]["value"] == pytest.approx(0.010603256092469593, rel=1e-4)
-    assert fit_results["sigma_y"]["value"] == pytest.approx(0.007517092414260906, rel=1e-4)
+    assert fit_results["sigma_x"]["value"] == pytest.approx(
+        0.010603256092469593, rel=1e-4
+    )
+    assert fit_results["sigma_y"]["value"] == pytest.approx(
+        0.007517092414260906, rel=1e-4
+    )
     assert fit_results["theta"]["value"] == pytest.approx(np.pi / 2.0)
 
     params["theta"].value = 0.0
@@ -108,8 +112,12 @@ def test_gaussian_fit():
     assert y0 == pytest.approx(results.params["y0"].value)
     # update ref val after upgrading mantid (v5 -> v6)
     assert fit_results["amp"]["value"] == pytest.approx(1360200459321.1245, rel=1e-4)
-    assert fit_results["sigma_x"]["value"] == pytest.approx(0.007517094619706732, rel=1e-4)
-    assert fit_results["sigma_y"]["value"] == pytest.approx(0.010603256114750437, rel=1e-4)
+    assert fit_results["sigma_x"]["value"] == pytest.approx(
+        0.007517094619706732, rel=1e-4
+    )
+    assert fit_results["sigma_y"]["value"] == pytest.approx(
+        0.010603256114750437, rel=1e-4
+    )
     assert fit_results["theta"]["value"] == pytest.approx(0.0)
 
 

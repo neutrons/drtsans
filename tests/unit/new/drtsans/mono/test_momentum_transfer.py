@@ -44,28 +44,28 @@ def sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y
     mn = 1.674929e-27
     # mn = scipy.constants.neutron_mass
     g = scipy.constants.g  # 6.67408e-11
-    B = 0.5 * g * mn ** 2 * L2 * (L1 + L2) / h ** 2
-    B = B / 10 ** 20
+    B = 0.5 * g * mn**2 * L2 * (L1 + L2) / h**2
+    B = B / 10**20
     r = (delta_lambda / wavelength) ** 2
     sigma_x = (
         2 * np.pi * np.cos(theta) * np.cos(2 * theta) ** 2 / wavelength / L2
     ) ** 2
     sigma_x = sigma_x * (
-        (L2 / L1) ** 2 * R1 ** 2 / 4 + (1 + L2 / L1) ** 2 * R2 ** 2 / 4 + x3 ** 2 / 12
+        (L2 / L1) ** 2 * R1**2 / 4 + (1 + L2 / L1) ** 2 * R2**2 / 4 + x3**2 / 12
     )
-    sigma_x = sigma_x + Qx ** 2 / 6 * r
+    sigma_x = sigma_x + Qx**2 / 6 * r
     sigma_y = (
         2 * np.pi * np.cos(theta) * np.cos(2 * theta) ** 2 / wavelength / L2
     ) ** 2
     sigma_y = (
         sigma_y
         * (
-            (L2 / L1) ** 2 * R1 ** 2 / 4
-            + (1 + L2 / L1) ** 2 * R2 ** 2 / 4
-            + y3 ** 2 / 12
-            + 2 * B ** 2 * wavelength ** 4 * r / 3
+            (L2 / L1) ** 2 * R1**2 / 4
+            + (1 + L2 / L1) ** 2 * R2**2 / 4
+            + y3**2 / 12
+            + 2 * B**2 * wavelength**4 * r / 3
         )
-        + Qy ** 2 / 6 * r
+        + Qy**2 / 6 * r
     )
     sigma_x = np.sqrt(sigma_x)
     sigma_y = np.sqrt(sigma_y)
@@ -261,7 +261,7 @@ def test_momentum_and_resolution(generic_workspace):
             # positions
             x = x3 * (2 - i)
             y = y3 * (j - 2)
-            tt = np.arctan2(np.sqrt(x ** 2 + y ** 2), L2)
+            tt = np.arctan2(np.sqrt(x**2 + y**2), L2)
             azi = np.arctan2(y, x)
             # expected momentum
             mod_q = 4 * np.pi * np.sin(0.5 * tt) / wavelength

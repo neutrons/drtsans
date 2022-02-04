@@ -212,7 +212,7 @@ def generate_test_data(q_dimension, drt_standard):
 
     if q_dimension == 1:
         # Calculate scalar Q
-        scalar_q_matrix = np.sqrt(qx_matrix ** 2 + qy_matrix ** 2)
+        scalar_q_matrix = np.sqrt(qx_matrix**2 + qy_matrix**2)
         # Scalar dQ is defined
     else:
         # No-op

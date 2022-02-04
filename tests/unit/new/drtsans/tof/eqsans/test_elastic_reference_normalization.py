@@ -1108,7 +1108,7 @@ def prototype_normalize_q1d(
 
                 # calculate t2_i
                 # t2 += [delta I(q', wl)]**2 * Y(q, q'', wl)**2 / S(lw)**4
-                t2_inc = i_q_matrix[j_q, 3] ** 2 * y_value ** 2 / s_vec[i_wl] ** 4
+                t2_inc = i_q_matrix[j_q, 3] ** 2 * y_value**2 / s_vec[i_wl] ** 4
                 t2_sum += t2_inc
 
                 # calculate t3_i

@@ -24,10 +24,10 @@ def test_reduction(reference_dir, cleanfile):
 
     # Set specific configuration
     config = ConfigService.Instance()
-    previous_instrument = config['instrumentName']
-    config['instrumentName'] = 'EQSANS'
-    previous_archive = config['datasearch.searcharchive']
-    config['datasearch.searcharchive'] = 'hfir,sns'
+    previous_instrument = config["instrumentName"]
+    config["instrumentName"] = "EQSANS"
+    previous_archive = config["datasearch.searcharchive"]
+    config["datasearch.searcharchive"] = "hfir,sns"
     cleanfile(output_dir)
     # Let's rock and roll!
     try:

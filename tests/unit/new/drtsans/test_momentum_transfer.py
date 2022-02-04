@@ -93,7 +93,7 @@ def test_convert_to_mod_q(generic_workspace):
     # All detector pixels subtend the same scattering angle. Detectors are located at coordinates
     # (x, y, z) = (+-0.5, +-0.5, 5.0)
     two_theta = np.arccos(
-        5.0 / np.sqrt(5 ** 2 + 0.5 ** 2 + 0.5 ** 2)
+        5.0 / np.sqrt(5**2 + 0.5**2 + 0.5**2)
     )  # cos(two_theta) = z / sqrt(x^2 + y^2 + z^2)
     assert ws.spectrumInfo().twoTheta(0) == pytest.approx(two_theta, abs=1e-5)
 

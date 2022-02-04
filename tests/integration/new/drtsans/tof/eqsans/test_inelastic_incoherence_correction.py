@@ -274,7 +274,7 @@ def test_incoherence_correction_step4only(reference_dir, generatecleanfile):
 
     # Create temp output directory
     test_dir = generatecleanfile()
-    base_name = 'EQSANS_113915_Incoh_1d'
+    base_name = "EQSANS_113915_Incoh_1d"
 
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
     configuration["configuration"]["outputDir"] = test_dir
@@ -332,7 +332,7 @@ def test_incoherence_correction_elastic_normalization(reference_dir, generatecle
 
     # Create temp output directory
     test_dir = generatecleanfile()
-    base_name = 'EQSANS_125707_'
+    base_name = "EQSANS_125707_"
 
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
     configuration["configuration"]["outputDir"] = test_dir

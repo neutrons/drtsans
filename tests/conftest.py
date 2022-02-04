@@ -109,6 +109,7 @@ def cleanfile():
             else:
                 filename.unlink()  # remove the single file
 
+
 @pytest.fixture(scope="module")
 def generatecleanfile():
     """Fixture that generates temp files and deletes them when the .py file is finished. It
@@ -136,6 +137,7 @@ def generatecleanfile():
                 rmtree(filename)  # remove the directory and any files that are in it
             else:
                 filename.unlink()  # remove the single file
+
 
 @pytest.fixture(scope="function")
 def clean_workspace():

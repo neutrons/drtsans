@@ -114,7 +114,9 @@ def test_reduce_single_configuration_slice_transmission_false(generatecleanfile)
         },
         "logslice_data": {},
     }
-    reduction_input['configuration']['outputDir'] = generatecleanfile(prefix='trans_slice_false')
+    reduction_input["configuration"]["outputDir"] = generatecleanfile(
+        prefix="trans_slice_false"
+    )
     loaded = load_all_files(reduction_input)
     _ = reduce_single_configuration(loaded, reduction_input)
     # just need a couple components from reduce
@@ -232,7 +234,9 @@ def test_reduce_single_configuration_slice_transmission_true(generatecleanfile):
         },
         "logslice_data": {},
     }
-    reduction_input['configuration']['outputDir'] = generatecleanfile(prefix='trans_slice_true')
+    reduction_input["configuration"]["outputDir"] = generatecleanfile(
+        prefix="trans_slice_true"
+    )
     loaded = load_all_files(reduction_input)
     _ = reduce_single_configuration(loaded, reduction_input)
     # just need a couple components from reduce

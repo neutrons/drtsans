@@ -38,7 +38,7 @@ def test_reduction_spice(reference_dir, generatecleanfile):
     nexus_dir = os.path.join(reference_dir.new.gpsans, "Exp280")
 
     # Set output (temp) directory
-    output_directory = generatecleanfile(prefix='cg2_spice_reduction')
+    output_directory = generatecleanfile(prefix="cg2_spice_reduction")
 
     # USER INPUT
     ipts_number = 828
@@ -155,7 +155,7 @@ def test_reduction_spice_subpixel(reference_dir, generatecleanfile):
     nexus_dir = os.path.join(reference_dir.new.gpsans, "Exp280")
 
     # Set output (temp) directory
-    output_directory = generatecleanfile(prefix='cg2_spice_reduction_subpixel')
+    output_directory = generatecleanfile(prefix="cg2_spice_reduction_subpixel")
 
     # USER INPUT
     ipts_number = 828

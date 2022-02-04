@@ -1,5 +1,4 @@
 import pytest
-import tempfile
 import os
 from drtsans.files.log_h5_reader import verify_cg2_reduction_results
 from drtsans.mono.gpsans.reduce_spice import reduce_gpsans_nexus

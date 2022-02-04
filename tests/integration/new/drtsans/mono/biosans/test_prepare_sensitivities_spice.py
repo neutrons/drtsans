@@ -2,7 +2,6 @@ import pytest
 import os
 import numpy as np
 import warnings
-from tempfile import mkdtemp
 from drtsans.mono.spice_data import SpiceRun
 from drtsans.mono.biosans.prepare_sensitivities_correction import (
     prepare_spice_sensitivities_correction,

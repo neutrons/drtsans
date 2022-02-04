@@ -1,7 +1,6 @@
 import pytest
 import os
 import numpy as np
-import tempfile
 from mantid.simpleapi import LoadNexusProcessed
 from drtsans.mono.gpsans.prepare_sensitivities_correction import (
     prepare_spice_sensitivities_correction,

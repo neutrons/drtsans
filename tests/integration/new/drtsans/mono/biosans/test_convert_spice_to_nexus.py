@@ -1,7 +1,7 @@
 import pytest
 import os
 import numpy as np
-from tempfile import mkdtemp
+
 from drtsans.mono.biosans.cg3_spice_to_nexus import convert_spice_to_nexus
 from mantid.simpleapi import LoadEventNexus, LoadHFIRSANS
 
@@ -9,7 +9,7 @@ from mantid.simpleapi import LoadEventNexus, LoadHFIRSANS
 @pytest.mark.skipif(
     not os.path.exists("/HFIR/HB2B/shared/autoreduce/"), reason="On build server"
 )
-def test_convert_spice(reference_dir, cleanfile):
+def test_convert_spice(reference_dir, generatecleanfile):
     """
     Test converting BIOSANS SPICE file to event Nexus
     """
@@ -19,8 +19,8 @@ def test_convert_spice(reference_dir, cleanfile):
     scan_pt_list = [(6, 1)]
 
     # Create output directory
-    output_dir = mkdtemp(prefix="cg3spiceconverter")
-    cleanfile(output_dir)
+    output_dir = generatecleanfile(prefix="cg3spiceconverter")
+
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     temp_event_nexus = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/CG3_5705.nxs.h5"
@@ -40,7 +40,7 @@ def test_convert_spice(reference_dir, cleanfile):
 
     # Verify result
     raw_spice = os.path.join(
-        reference_dir.new.biosans, "BioSANS_exp402_scan0006_0001.xml"
+        reference_dir.new.biosans, f"BioSANS_exp402_scan0006_0001.xml"
     )
     verify_result(nexus_files[0], raw_spice, [70911])
 

@@ -1,5 +1,4 @@
 import pytest
-from tempfile import mkdtemp
 import h5py
 import numpy as np
 from drtsans.mono.biosans.reduce_spice import (
@@ -9,7 +8,7 @@ from drtsans.mono.biosans.reduce_spice import (
 import os
 
 
-def crashed_worker_test_spice_reduction(reference_dir, cleanfile):
+def crashed_worker_test_spice_reduction(reference_dir, generatecleanfile):
     """Test reduction from data converted from SPICE
 
     Modified from Volker's RC488_IPTS24666_VolkerTemplate.py
@@ -64,7 +63,7 @@ def crashed_worker_test_spice_reduction(reference_dir, cleanfile):
     OL_range = [0.0325, 0.0425]
 
     # Miscellaneous settings--
-    base_output_directory = mkdtemp("cg3_reduction_test")
+    base_output_directory = generatecleanfile("cg3_reduction_test")
 
     scaling_beam_radius = None
     flexible_pixelsizes = True  # 'True'- if use barscan/flood information for flexible pixel sizes, else 'False'

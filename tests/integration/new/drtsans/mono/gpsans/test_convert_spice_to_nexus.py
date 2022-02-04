@@ -1,12 +1,11 @@
 import pytest
 import os
 import numpy as np
-from tempfile import mkdtemp
 from drtsans.mono.gpsans.cg2_spice_to_nexus import convert_spice_to_nexus
 from mantid.simpleapi import LoadEventNexus, LoadHFIRSANS
 
 
-def test_convert_spice(reference_dir, cleanfile):
+def test_convert_spice(reference_dir, generatecleanfile):
     """
     Test converting GPSANS SPICE file to event Nexus
     """
@@ -16,8 +15,7 @@ def test_convert_spice(reference_dir, cleanfile):
     scan_pt_list = [(12, 1)]
 
     # Create output directory
-    output_dir = mkdtemp(prefix="cg2spiceconverter")
-    cleanfile(output_dir)
+    output_dir = generatecleanfile(prefix="cg2spiceconverter")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     temp_event_nexus = (
@@ -37,7 +35,7 @@ def test_convert_spice(reference_dir, cleanfile):
         nexus_files.append(fake_nexus)
 
     # Verify result
-    raw_spice = os.path.join(reference_dir.new.gpsans, "CG2_exp280_scan0012_0001.xml")
+    raw_spice = os.path.join(reference_dir.new.gpsans, f"CG2_exp280_scan0012_0001.xml")
     verify_result(nexus_files[0], raw_spice)
 
 

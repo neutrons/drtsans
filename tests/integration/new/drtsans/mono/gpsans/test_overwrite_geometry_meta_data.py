@@ -1,6 +1,5 @@
 # Integration test for overwriting instrument geometry related meta data for GP-SANS
 import pytest
-from tempfile import mkdtemp
 import time
 import os
 from drtsans.files.log_h5_reader import verify_cg2_reduction_results
@@ -76,7 +75,7 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_no_overwrite(reference_dir, cleanfile):
+def test_no_overwrite(reference_dir, generatecleanfile):
     """Test reduce 3 sets of data overwriting neither SampleToSi (distance) nor SampleDetectorDistance.
 
     This test case is provided by Lisa and verified by Lilin
@@ -91,8 +90,7 @@ def test_no_overwrite(reference_dir, cleanfile):
     sensitivity_file = os.path.join(
         reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
     )
-    output_dir = mkdtemp(prefix="meta_overwrite_test1")
-    cleanfile(output_dir)
+    output_dir = generatecleanfile(prefix="meta_overwrite_test1")
     specs = {
         "iptsNumber": 21981,
         "beamCenter": {"runNumber": 9177},
@@ -140,7 +138,7 @@ def test_no_overwrite(reference_dir, cleanfile):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_overwrite_sample2si(reference_dir, cleanfile):
+def test_overwrite_sample2si(reference_dir, generatecleanfile):
     """Test reduce 3 sets of data overwriting SampleToSi (distance) but not SampleDetectorDistance.
     Sample to detector distance will be changed accordingly.
 
@@ -158,8 +156,7 @@ def test_overwrite_sample2si(reference_dir, cleanfile):
     sensitivity_file = os.path.join(
         reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
     )
-    output_dir = mkdtemp(prefix="meta_overwrite_test2")
-    cleanfile(output_dir)
+    output_dir = generatecleanfile(prefix="meta_overwrite_test2")
     specs = {
         "iptsNumber": 21981,
         "beamCenter": {"runNumber": 9177},
@@ -208,7 +205,7 @@ def test_overwrite_sample2si(reference_dir, cleanfile):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_overwrite_sdd(reference_dir, cleanfile):
+def test_overwrite_sdd(reference_dir, generatecleanfile):
     """Test reduce 3 sets of data overwriting SampleDetectorDistance but not SampleDetectorDistance
 
     - Overwrite DetectorToSample (distance) to 40 meter
@@ -226,8 +223,7 @@ def test_overwrite_sdd(reference_dir, cleanfile):
     sensitivity_file = os.path.join(
         reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
     )
-    output_dir = mkdtemp(prefix="meta_overwrite_test3")
-    cleanfile(output_dir)
+    output_dir = generatecleanfile(prefix="meta_overwrite_test3")
 
     # Set up reduction
     specs = {
@@ -286,7 +282,7 @@ def test_overwrite_sdd(reference_dir, cleanfile):
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
-def test_overwrite_both(reference_dir, cleanfile):
+def test_overwrite_both(reference_dir, generatecleanfile):
     """Test reduce 3 sets of data overwriting both SampleToSi (distance) and SampleDetectorDistance
 
     - Overwrite SampleToSi (distance) to 200 mm.
@@ -305,8 +301,7 @@ def test_overwrite_both(reference_dir, cleanfile):
     sensitivity_file = os.path.join(
         reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
     )
-    output_dir = mkdtemp(prefix="meta_overwrite_test4")
-    cleanfile(output_dir)
+    output_dir = generatecleanfile(prefix="meta_overwrite_test4")
     specs = {
         "iptsNumber": 21981,
         "beamCenter": {"runNumber": 9177},

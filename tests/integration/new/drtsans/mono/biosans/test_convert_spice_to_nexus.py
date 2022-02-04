@@ -40,7 +40,7 @@ def test_convert_spice(reference_dir, generatecleanfile):
 
     # Verify result
     raw_spice = os.path.join(
-        reference_dir.new.biosans, f"BioSANS_exp402_scan0006_0001.xml"
+        reference_dir.new.biosans, "BioSANS_exp402_scan0006_0001.xml"
     )
     verify_result(nexus_files[0], raw_spice, [70911])
 

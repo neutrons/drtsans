@@ -89,7 +89,7 @@ def test_duplicate_event_nexus(reference_dir, generatecleanfile):
     np.testing.assert_allclose(
         source_moderator_pos,
         target_moderator_pos,
-        err_msg=f"Mismatch is detected at neutron source position",
+        err_msg="Mismatch is detected at neutron source position",
     )
 
     # Compare counts on each pixel

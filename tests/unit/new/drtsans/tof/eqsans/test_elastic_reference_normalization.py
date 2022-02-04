@@ -198,10 +198,10 @@ def test_determine_reference_wavelength_q1d():
     assert test_ref_lambda_vec.shape == (num_q, 4)
 
     # Verify the values
-    assert pytest.approx(test_ref_lambda_vec[0][0], 100.0)
-    assert test_ref_lambda_vec[0][1] == 0.4
-    assert pytest.approx(test_ref_lambda_vec[1][1], 0.3)
-    assert test_ref_lambda_vec[2][1] == 0.2
+    np.testing.assert_allclose(test_ref_lambda_vec[0][0], 100.0, rtol=1e-4)
+    np.testing.assert_allclose(test_ref_lambda_vec[0][1], 0.4, rtol=1e-4)
+    np.testing.assert_allclose(test_ref_lambda_vec[1][1], 0.3, rtol=1e-4)
+    np.testing.assert_allclose(test_ref_lambda_vec[2][1], 0.2, rtol=1e-4)
     for i in range(3, num_q):
         assert test_ref_lambda_vec[i][1] == 0.1, (
             f"{i}-th Q has a wrong reference wavelength " f"{test_ref_lambda_vec[i]}"

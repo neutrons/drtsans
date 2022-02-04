@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 
 # https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
 from mantid.simpleapi import LoadHFIRSANS
@@ -26,9 +27,9 @@ def test_api_geometry(biosans_f):
     pos_main_2 = instrument.getComponentByName("detector1").getPos()
     pos_wing_2 = instrument.getComponentByName("wing_detector").getPos()
 
-    assert pytest.approx(abs(pos_main[0] - pos_main_2[0]), abs(center_x))
-    assert pytest.approx(abs(pos_main[1] - pos_main_2[1]), abs(center_y))
-    assert pytest.approx(abs(pos_wing[1] - pos_wing_2[1]), abs(center_y_gravity))
+    np.testing.assert_allclose(abs(pos_main[0] - pos_main_2[0]), abs(center_x), rtol=1e-4)
+    np.testing.assert_allclose(abs(pos_main[1] - pos_main_2[1]), abs(center_y), rtol=1e-4)
+    np.testing.assert_allclose(abs(pos_wing[1] - pos_wing_2[1]), abs(center_y_gravity), rtol=1e-4)
     # Note that after the gravity correction the center Y of the wing detector
     # it's higher than the centre of the main detector
     assert pos_wing_2[1] > pos_main_2[1]

@@ -15,7 +15,7 @@ from drtsans.process_uncertainties import set_init_uncertainties
     [{"Nx": 2, "Ny": 2, "dx": 0.005, "dy": 0.004, "zc": 2.5}],
     indirect=True,
 )
-def test_initial_uncertainty(generic_IDF):
+def test_initial_uncertainty(generic_IDF, cleanfile):
     """
     Test initial uncertainty after histogram data is converted to unit
     wavelength for a TOF instrument
@@ -36,6 +36,7 @@ def test_initial_uncertainty(generic_IDF):
     with open(r"/tmp/GenericSANS2_Definition.xml", "w") as tmp:
         tmp.write(generic_IDF)
         tmp.close()
+    cleanfile(tmp.name)
     ws = LoadEmptyInstrument(
         Filename=tmp.name,
         InstrumentName="GenericSANS2",

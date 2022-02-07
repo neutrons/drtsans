@@ -1,7 +1,6 @@
 from math import isclose
 import pytest
 import os
-from tempfile import mkdtemp
 from mantid.simpleapi import mtd
 from drtsans.mono.transmission import calculate_transmission
 from drtsans.mono.biosans.api import load_all_files, reduce_single_configuration
@@ -11,7 +10,7 @@ from drtsans.mono.biosans.api import load_all_files, reduce_single_configuration
     not os.path.exists("/HFIR/HB2B/shared/autoreduce/"),
     reason="Skip test on build server",
 )
-def test_reduce_single_configuration_slice_transmission_false():
+def test_reduce_single_configuration_slice_transmission_false(generatecleanfile):
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "BIOSANS",
@@ -115,7 +114,9 @@ def test_reduce_single_configuration_slice_transmission_false():
         },
         "logslice_data": {},
     }
-    reduction_input["configuration"]["outputDir"] = mkdtemp(prefix="trans_slice_false")
+    reduction_input["configuration"]["outputDir"] = generatecleanfile(
+        prefix="trans_slice_false"
+    )
     loaded = load_all_files(reduction_input)
     _ = reduce_single_configuration(loaded, reduction_input)
     # just need a couple components from reduce
@@ -129,7 +130,7 @@ def test_reduce_single_configuration_slice_transmission_false():
     del _
 
 
-def test_reduce_single_configuration_slice_transmission_true():
+def test_reduce_single_configuration_slice_transmission_true(generatecleanfile):
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "BIOSANS",
@@ -233,7 +234,9 @@ def test_reduce_single_configuration_slice_transmission_true():
         },
         "logslice_data": {},
     }
-    reduction_input["configuration"]["outputDir"] = mkdtemp(prefix="trans_slice_true")
+    reduction_input["configuration"]["outputDir"] = generatecleanfile(
+        prefix="trans_slice_true"
+    )
     loaded = load_all_files(reduction_input)
     _ = reduce_single_configuration(loaded, reduction_input)
     # just need a couple components from reduce

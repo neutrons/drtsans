@@ -177,7 +177,7 @@ def correct_intensity_error_prototype(
                     # delta I'(j, i) += 1/N^2 [(Ref_delta_I(k))^2 + (delta I(k, i)^2]: i for wl
                     error2_j += (
                         1.0
-                        / n_q ** 2
+                        / n_q**2
                         * (ref_wl_ie.error_vec[q_k] ** 2 + error_array[q_k, i_wl] ** 2)
                     )
             else:
@@ -188,7 +188,7 @@ def correct_intensity_error_prototype(
                 for q_k in range(qmin_index, qmax_index + 1):
                     error2_j += (
                         1.0
-                        / n_q ** 2
+                        / n_q**2
                         * (ref_wl_ie.error_vec[q_k] ** 2 + error_array[q_k, i_wl] ** 2)
                     )
 
@@ -218,7 +218,7 @@ def calculate_b_vector_prototype(
                 # delta b^2 = 1/N^2 sum_{q_j} [(ref_delta_I(q_j)^2 + (delta I(q_j, wl)^2]
                 delta_b_i += (
                     1.0
-                    / n_q ** 2
+                    / n_q**2
                     * (ref_wl_ie.error_vec[j_q] ** 2 + error_array[j_q, i_wl] ** 2)
                 )
 

@@ -181,7 +181,7 @@ def _test_data(tested_data=[], ref_data=[], abs=None):
             _tested == pytest.approx(_ref, abs=abs)
 
 
-def test_writing_metadata_with_no_reductionparams():
+def test_writing_metadata_with_no_reductionparams(cleanfile):
     pythonscript = "this is my python script"
     pythonfile = "this_is_my_file.py"
     starttime = "1993-03-18T21:00:00"
@@ -191,6 +191,7 @@ def test_writing_metadata_with_no_reductionparams():
 
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename,
         detectordata={"slice_1": {"main_detector": {"iq": test_iq}}},
@@ -239,7 +240,7 @@ def test_writing_metadata_with_no_reductionparams():
         )
 
 
-def test_writing_metadata():
+def test_writing_metadata(cleanfile):
     pythonscript = "this is my python script"
     pythonfile = "this_is_my_file.py"
     reductionparams = {
@@ -253,6 +254,7 @@ def test_writing_metadata():
 
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename,
         detectordata={"slice_1": {"main_detector": {"iq": test_iq}}},
@@ -302,10 +304,11 @@ def test_writing_metadata():
         )
 
 
-def test_writing_iq_wedge_mode():
+def test_writing_iq_wedge_mode(cleanfile):
     test_iq_1 = _create_iq()
     test_iq = list([test_iq_1, test_iq_1])
     tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename, detectordata={"slice_1": {"main_detector": {"iq": test_iq}}}
     )
@@ -336,9 +339,10 @@ def test_writing_iq_wedge_mode():
         _test_data(tested_data=data, ref_data=np.array([0.011912, 0.11912]), abs=1e-6)
 
 
-def test_writing_iq_scalar_mode():
+def test_writing_iq_scalar_mode(cleanfile):
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename, detectordata={"slice_1": {"main_detector": {"iq": test_iq}}}
     )
@@ -369,9 +373,10 @@ def test_writing_iq_scalar_mode():
         _test_data(tested_data=data, ref_data=np.array([0.011912, 0.11912]), abs=1e-6)
 
 
-def test_slicelogdata_is_a_dict():
+def test_slicelogdata_is_a_dict(cleanfile):
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
     logslice_data_dict = "I'm a string"
     detectordata = {"slice_1": {"main_detector": {"iq": test_iq}}}
 
@@ -381,9 +386,10 @@ def test_slicelogdata_is_a_dict():
         )
 
 
-def test_not_using_slicelogdata_if_empty():
+def test_not_using_slicelogdata_if_empty(cleanfile):
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
     detectordata = {"slice_1": {"main_detector": {"iq": test_iq}}}
     logslice_data_dict = {}
 
@@ -392,9 +398,10 @@ def test_not_using_slicelogdata_if_empty():
     )
 
 
-def test_slicelogdata_not_bigger_than_detectordata():
+def test_slicelogdata_not_bigger_than_detectordata(cleanfile):
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
     logslice_data_dict = {
         "0": {"data": list([1, 2, 3]), "units": "m"},
         "1": {"data": list([1, 2, 3]), "units": "m"},
@@ -407,9 +414,10 @@ def test_slicelogdata_not_bigger_than_detectordata():
         )
 
 
-def test_writing_slicelogdata():
+def test_writing_slicelogdata(cleanfile):
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
     logslice_data_dict = {
         "0": {
             "data": list([1, 2, 3]),
@@ -434,9 +442,10 @@ def test_writing_slicelogdata():
         _test_data(tested_data=data, ref_data=list([1, 2, 3]))
 
 
-def test_writing_iqxqy():
+def test_writing_iqxqy(cleanfile):
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename,
         detectordata={"slice_1": {"main_detector": {"iqxqy": test_iqxqy}}},
@@ -474,10 +483,11 @@ def test_writing_iqxqy():
         _test_data(tested_data=data, ref_data=np.array([0.008423, 0.008423]))
 
 
-def test_writing_iq_and_iqxqy_scalar_mode():
+def test_writing_iq_and_iqxqy_scalar_mode(cleanfile):
     test_iq = [_create_iq()]
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename,
         detectordata={
@@ -535,11 +545,12 @@ def test_writing_iq_and_iqxqy_scalar_mode():
         _test_data(tested_data=data, ref_data=np.array([0.008423, 0.008423]))
 
 
-def test_writing_iq_and_iqxqy_wedge_mode():
+def test_writing_iq_and_iqxqy_wedge_mode(cleanfile):
     test_iq_1 = _create_iq()
     test_iq = [test_iq_1, test_iq_1]
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename,
         detectordata={
@@ -597,10 +608,10 @@ def test_writing_iq_and_iqxqy_wedge_mode():
         _test_data(tested_data=data, ref_data=np.array([0.008423, 0.008423]))
 
 
-def test_reduction_parameters():
+def test_reduction_parameters(cleanfile):
     test_iqxqy = _create_iqxqy()
     tmp_log_filename = _create_tmp_log_filename()
-
+    cleanfile(tmp_log_filename)
     json_file = _getConfigJsonFile()
     with open(json_file, "r") as file_handle:
         data = {"data": json.load(file_handle), "filename": json_file}

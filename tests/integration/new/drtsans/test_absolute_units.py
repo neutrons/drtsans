@@ -58,9 +58,9 @@ def test_standard_sample_measurement():
     # err2 = F_std_err**2 / F**2 * Iq**2
     # err3 = F_std**2 / F**2 * Iq_err*2
     # Iq_abs_err = np.sqrt(err1 + err2 + err3)
-    err1 = F_err ** 2 / F ** 2
-    err2 = F_std_err ** 2 / F_std ** 2
-    err3 = Iq_err ** 2 / Iq ** 2
+    err1 = F_err**2 / F**2
+    err2 = F_std_err**2 / F_std**2
+    err3 = Iq_err**2 / Iq**2
     Iq_abs_err = Iq / F * F_std * np.sqrt(err1 + err2 + err3)
     # run absolute_units.standard_sample_scaling
     Iq_abs_ws = standard_sample_scaling(Iq_ws, F_ws, F_std_ws)

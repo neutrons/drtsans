@@ -103,7 +103,9 @@ def test_merge_Data(reference_dir):
 
 
 def test_load_events_and_histogram(reference_dir):
-    ws0 = load_events_and_histogram("EQSANS_101595.nxs.h5", data_dir=reference_dir.new.eqsans)
+    ws0 = load_events_and_histogram(
+        "EQSANS_101595.nxs.h5", data_dir=reference_dir.new.eqsans
+    )
 
     assert ws0.data.getAxis(0).getUnit().caption() == "Wavelength"
     assert ws0.data.name() == "EQSANS_101595"

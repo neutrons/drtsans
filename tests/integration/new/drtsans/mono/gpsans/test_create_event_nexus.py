@@ -30,10 +30,9 @@ from drtsans.files.event_nexus_rw import (
 from drtsans.mono.gpsans.cg2_spice_to_nexus import CG2EventNexusConvert
 from drtsans.files.log_h5_reader import verify_cg2_reduction_results
 from mantid.simpleapi import LoadEventNexus, mtd, ConvertToMatrixWorkspace, LoadHFIRSANS
-from tempfile import mkdtemp
 
 
-def test_duplicate_event_nexus(reference_dir, cleanfile):
+def test_duplicate_event_nexus(reference_dir, generatecleanfile):
     """Test duplicating an HDF5/NeXus in 2 different approaches in order to verify EventNexusWriter
 
     Verification is to load both of the generated Event NeXus to do a comparison
@@ -52,8 +51,7 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     ), f"Test data {source_nexus_file} does not exist"
 
     # Duplicate the source file to the temporary directory
-    output_dir = mkdtemp(prefix="dupnexus")
-    cleanfile(output_dir)
+    output_dir = generatecleanfile(prefix="dupnexus")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     prototype_dup_nexus = os.path.join(output_dir, "CG2_9177_prototype.nxs.h5")
@@ -98,7 +96,7 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     np.testing.assert_allclose(source_y, target_y)
 
 
-def test_reduction(reference_dir, cleanfile):
+def test_reduction(reference_dir, generatecleanfile):
     """Test generate (partially copy) an event Nexus file by
     verifying reduction result between raw and generated event nexus file
 
@@ -109,8 +107,7 @@ def test_reduction(reference_dir, cleanfile):
 
     """
     # Generate a new event NeXus file
-    output_dir = mkdtemp(prefix="reducecg2nexus")
-    cleanfile(output_dir)
+    output_dir = generatecleanfile(prefix="reducecg2nexus")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
@@ -609,7 +606,7 @@ def verify_histogram(source_nexus, test_nexus):
         raise AssertionError(error_message)
 
 
-def test_convert_spice_to_nexus(reference_dir, cleanfile):
+def test_convert_spice_to_nexus(reference_dir, generatecleanfile):
     """Test to convert SPICE to NeXus
 
     Parameters
@@ -629,8 +626,7 @@ def test_convert_spice_to_nexus(reference_dir, cleanfile):
     assert os.path.exists(spice_data_file)
     assert os.path.exists(template_nexus_file)
 
-    output_dir = mkdtemp(prefix="spice2nexus")
-    cleanfile(output_dir)
+    output_dir = generatecleanfile(prefix="spice2nexus")
 
     # Convert from SPICE to event Nexus
     out_nexus_file = os.path.join(output_dir, "CG2_31500050060.nxs.h5")

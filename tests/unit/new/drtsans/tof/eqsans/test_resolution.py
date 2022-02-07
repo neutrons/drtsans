@@ -96,8 +96,8 @@ def sigma_neutron(
     g = constants.g  # 9.81 n/s^2
 
     # Calculate B
-    B = 0.5 * g * mn ** 2 * L2 * (L1 + L2) / h ** 2
-    B /= 10 ** 20  # add a factor of 10^-2 to cancel out the A in the term using B
+    B = 0.5 * g * mn**2 * L2 * (L1 + L2) / h**2
+    B /= 10**20  # add a factor of 10^-2 to cancel out the A in the term using B
     # (dWL/WL)**2
     r = (delta_wave_length / wave_length) ** 2
 
@@ -106,11 +106,11 @@ def sigma_neutron(
         2.0 * np.pi * np.cos(theta) * np.cos(2.0 * theta) ** 2 / wave_length / L2
     ) ** 2
     sigma_x = sigma_x * (
-        (L2 / L1) ** 2 * R1 ** 2 / 4 + (1 + L2 / L1) ** 2 * R2 ** 2 / 4 + x3 ** 2 / 12
+        (L2 / L1) ** 2 * R1**2 / 4 + (1 + L2 / L1) ** 2 * R2**2 / 4 + x3**2 / 12
     )  # geometry
     sigma_x = np.sqrt(
         sigma_x
-        + Qx ** 2
+        + Qx**2
         / 12
         * (r + (3.9560 * sig_emission) ** 2 / (1000 * wave_length * (s2p + m2s)) ** 2)
     )
@@ -120,14 +120,14 @@ def sigma_neutron(
         2.0 * np.pi * np.cos(theta) * np.cos(2 * theta) ** 2 / wave_length / L2
     ) ** 2
     sigma_y = sigma_y * (
-        (L2 / L1) ** 2 * R1 ** 2 / 4
-        + (1 + L2 / L1) ** 2 * R2 ** 2 / 4
-        + y3 ** 2 / 12
-        + B ** 2 * wave_length ** 4 * 2 / 3 * r
+        (L2 / L1) ** 2 * R1**2 / 4
+        + (1 + L2 / L1) ** 2 * R2**2 / 4
+        + y3**2 / 12
+        + B**2 * wave_length**4 * 2 / 3 * r
     )
     sigma_y = np.sqrt(
         sigma_y
-        + Qy ** 2
+        + Qy**2
         / 12
         * (r + (3.9560 * sig_emission) ** 2 / (1000 * wave_length * (s2p + m2s)) ** 2)
     )
@@ -219,7 +219,7 @@ def test_eqsans_resolution():
         wavelength=wave_length,
         delta_wavelength=wl_resolution,
     )
-    assert q_res == pytest.approx(np.sqrt(golden_dqx ** 2 + golden_dqy ** 2), abs=1e-7)
+    assert q_res == pytest.approx(np.sqrt(golden_dqx**2 + golden_dqy**2), abs=1e-7)
 
 
 if __name__ == "__main__":

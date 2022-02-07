@@ -2,12 +2,11 @@ import pytest
 import os
 import numpy as np
 import time
-from tempfile import mkdtemp
 from drtsans.mono.bar_scan_pixel_calibration import generate_spice_pixel_map
 from mantid.simpleapi import LoadNexusProcessed
 
 
-def test_pixel_calibration(reference_dir, cleanfile):
+def test_pixel_calibration(reference_dir, generatecleanfile):
     """
 
     Parameters
@@ -19,8 +18,7 @@ def test_pixel_calibration(reference_dir, cleanfile):
 
     """
     # Set and clean output
-    test_output_dir = mkdtemp("test_bar_scan")
-    cleanfile(test_output_dir)
+    test_output_dir = generatecleanfile("test_bar_scan")
 
     # First and last pt for the barscan: Set by user
     # -------------------------------------------------------------------------------------------------------

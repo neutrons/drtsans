@@ -127,7 +127,7 @@ def test_convert_monitor_counts_to_events():
     assert monitor_events_uneven.event_index[-12] == num_counts - 101 * 12
 
 
-def test_generate_event_nexus():
+def test_generate_event_nexus(cleanfile):
     """Test for generating an event nexus file
 
     Returns
@@ -169,6 +169,8 @@ def test_generate_event_nexus():
     # clean
     if os.path.exists(out_nexus_name):
         os.remove(out_nexus_name)
+
+    cleanfile(out_nexus_name)
 
     start_time = "2020-02-19T01:02:03.123456-05:00"
     end_time = "2020-02-19T01:05:03.654321-05:00"

@@ -15,11 +15,10 @@ from drtsans.mono.biosans import (
 )
 from mantid.simpleapi import LoadEventNexus, Rebin
 from drtsans.mono.biosans.cg3_spice_to_nexus import generate_event_nexus
-from tempfile import mkdtemp
 from matplotlib import pyplot as plt
 
 
-def test_duplicate_event_nexus(reference_dir, cleanfile):
+def test_duplicate_event_nexus(reference_dir, generatecleanfile):
     """Test duplicating an HDF5/NeXus in 2 different approaches in order to verify EventNexusWriter
 
     Verification is to load both of the generated Event NeXus to do a comparison
@@ -38,8 +37,7 @@ def test_duplicate_event_nexus(reference_dir, cleanfile):
     ), f"Test data {source_nexus_file} does not exist"
 
     # Duplicate the source file to the temporary directory
-    output_dir = mkdtemp(prefix="dupcg3nexus")
-    cleanfile(output_dir)
+    output_dir = generatecleanfile(prefix="dupcg3nexus")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     product_dup_nexus = os.path.join(output_dir, "CG3_5709_product.nxs.h5")
@@ -186,7 +184,7 @@ def verify_histogram(source_nexus, test_nexus):
         report_file.write(f"target: {test_nexus}\n")
 
 
-def crashed_worker_test_reduction(reference_dir, cleanfile):
+def crashed_worker_test_reduction(reference_dir, generatecleanfile):
     """Test generate (partially copy) an event Nexus file by
     verifying reduction result between raw and generated event nexus file
 
@@ -202,8 +200,7 @@ def crashed_worker_test_reduction(reference_dir, cleanfile):
     )
 
     # Create output directory
-    output_dir = mkdtemp(prefix="nexuscg3reduction")
-    cleanfile(output_dir)
+    output_dir = generatecleanfile(prefix="nexuscg3reduction")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 

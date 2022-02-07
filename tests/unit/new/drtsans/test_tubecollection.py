@@ -275,7 +275,7 @@ class TestPixelSpectrum(object):
         assert pixel.height == pytest.approx(1.42)
         # Test property 'area'
         pixel.height, pixel.width = 1.42, 1.42
-        assert pixel.area == 1.42 ** 2
+        assert pixel.area == 1.42**2
 
 
 @pytest.mark.parametrize(

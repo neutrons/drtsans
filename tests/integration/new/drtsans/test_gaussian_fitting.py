@@ -1,4 +1,5 @@
 from mantid.simpleapi import MaskBTP
+from mantid.simpleapi import DeleteWorkspace
 import numpy as np
 from drtsans.mono import gpsans as sans
 import drtsans
@@ -9,14 +10,14 @@ import os
 
 # defining 2D Gaussian fitting functions
 def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
-    a = np.cos(theta) ** 2 / (2.0 * sigma_x**2) + np.sin(theta) ** 2 / (
-        2.0 * sigma_y**2
+    a = np.cos(theta) ** 2 / (2.0 * sigma_x ** 2) + np.sin(theta) ** 2 / (
+        2.0 * sigma_y ** 2
     )
-    b = -np.sin(2.0 * theta) / (4.0 * sigma_x**2) + np.sin(2.0 * theta) / (
-        4.0 * sigma_y**2
+    b = -np.sin(2.0 * theta) / (4.0 * sigma_x ** 2) + np.sin(2.0 * theta) / (
+        4.0 * sigma_y ** 2
     )
-    c = np.sin(theta) ** 2 / (2.0 * sigma_x**2) + np.cos(theta) ** 2 / (
-        2.0 * sigma_y**2
+    c = np.sin(theta) ** 2 / (2.0 * sigma_x ** 2) + np.cos(theta) ** 2 / (
+        2.0 * sigma_y ** 2
     )
     amplitude = amp / (np.sqrt(2.0 * np.pi) * np.sqrt(sigma_x * sigma_y))
     val = amplitude * np.exp(
@@ -119,6 +120,17 @@ def test_gaussian_fit():
         0.010603256114750437, rel=1e-4
     )
     assert fit_results["theta"]["value"] == pytest.approx(0.0)
+
+    # cleanup
+    DeleteWorkspace(ws)
+    # NOTE:
+    # the sensitivity calculation has two leftover workspaces, and it is unclear if we where
+    # they were generated:
+    # barscan_GPSANS_detector1_20200818:	0.393216 MB
+    # tubewidth_GPSANS_detector1_20200612:	0.393216 MB
+    # for testing purposes, we will manually delete them here
+    DeleteWorkspace("barscan_GPSANS_detector1_20200818")
+    DeleteWorkspace("tubewidth_GPSANS_detector1_20200612")
 
 
 if __name__ == "__main__":

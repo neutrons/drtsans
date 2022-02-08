@@ -12,6 +12,7 @@ from mantid.simpleapi import (
     LoadEmptyInstrument,
     MaskDetectors,
     CreateWorkspace,
+    DeleteWorkspace,
     LoadInstrument,
 )
 import numpy as np
@@ -19,13 +20,14 @@ import numpy as np
 # Note for testing beam center: The FindCenterOfMassPosition algorithm
 # needs some pixels outside the given examples, to be able to perform
 # the iterative approach. So, for a 2x2 example, we need a 4x4 instrument
-# to padd with zeros on each side
+# to pad with zeros on each side
 
 
 @pytest.mark.parametrize(
     "generic_workspace",
     [
         {
+            "name": "GENERICSANS",
             "Nx": 4,
             "Ny": 4,
             "dx": 1.0,
@@ -76,6 +78,8 @@ def test_beam_finder_trivial(generic_workspace):
     x_cen, y_cen, _ = find_beam_center(ws)
     assert x_cen == approx(1.328293, abs=1e-5)
     assert y_cen == approx(1.421136, abs=1e-5)
+
+    DeleteWorkspace(ws)
 
 
 @pytest.mark.parametrize(
@@ -135,6 +139,8 @@ def test_beam_finder_larger_workspace(generic_workspace):
     x_cen, y_cen, _ = find_beam_center(ws)
     assert x_cen == approx(5.594458, abs=1e-5)
     assert y_cen == approx(6.098827, abs=1e-5)
+    #
+    DeleteWorkspace(ws)
 
 
 def test_center_detector():
@@ -168,6 +174,9 @@ def test_center_detector():
     assert inst.getDetector(49151).getPos() == approx(
         [-1.025015, -0.179043, -0.0234656], abs=1e-5
     )
+
+    # cleanup
+    DeleteWorkspace(w_eqsans)
 
 
 # Detector pixel geometry (x_center, y_center, z-center, height and width) are defined outside of the function
@@ -549,6 +558,11 @@ def test_find_beam_center_arbitrary_assembly(arbitrary_assembly_IDF):
     )
     assert x_cen * 1000 == approx(27.41, abs=0.9)
     assert y_cen * 1000 == approx(22.5, abs=0.9)
+
+    # cleanup
+    DeleteWorkspace(workspace)
+    DeleteWorkspace(workspace_sensitivity)
+    DeleteWorkspace(sensitivity_corrected_counts)
 
 
 def test_fbc_options_json():

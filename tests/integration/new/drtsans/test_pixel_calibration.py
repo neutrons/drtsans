@@ -360,6 +360,11 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
     DeleteWorkspace(
         modified_flood_workspace
     )  # flood_workspace is garbage collected upon test completion
+    # NOTE:
+    # unknown leftover workspace from workflow:
+    # tubewidth_UNDEFINED_detector1_20200219:	0.0008 MB
+    # manual deleting here
+    DeleteWorkspace("tubewidth_UNDEFINED_detector1_20200219")
 
 
 @pytest.fixture(scope="module")
@@ -978,6 +983,9 @@ def test_generate_barscan_calibration(
     # Compare the updated pixel positions and heights of `workspace` with the test data
     assert np.array(positions) == pytest.approx(data.positions, abs=data.precision)
     assert np.array(heights) == pytest.approx(data.heights, abs=data.precision)
+    # NOTE:
+    # barscan_UNDEFINED_detector1_20200219:	0.00064 MB
+    DeleteWorkspace("barscan_UNDEFINED_detector1_20200219")
 
 
 @pytest.mark.skip(
@@ -1075,6 +1083,8 @@ def test_debug_biosans_wing_detector_barscan(reference_dir, tmp_path):
     calibration = calculate_barscan_calibration(
         barscan_files[::20], component=detector_array, formula=formula, mask=mask_file
     )
+    # WARNING: this will add a small file to runtime disk, which might cause issue on the
+    #          build server in the long run.
     calibration.save(database=path_join(tmp_path, "junk.json"), tablefile="junk.nxs")
     LoadNexus(barscan_files[0], OutputWorkspace="reference_workspace")
     views = calibration.as_intensities("reference_workspace")
@@ -1111,6 +1121,10 @@ def test_gpsans_tube_calibration(reference_dir):
         uncalibrated_densities
     ) == pytest.approx(0.13, abs=0.01)
     DeleteWorkspace(uncalibrated_workspace)
+    # NOTE:
+    # leftover workspace in memory:
+    # tubewidth_GPSANS_detector1_20200130:	0.393216 MB
+    DeleteWorkspace("tubewidth_GPSANS_detector1_20200130")
 
 
 def test_biosans_tube_calibration(reference_dir):
@@ -1151,6 +1165,14 @@ def test_biosans_tube_calibration(reference_dir):
         uncalibrated_densities
     ) == pytest.approx(0.38, abs=0.01)
 
+    # cleanup
+    DeleteWorkspace(uncalibrated_workspace)
+    DeleteWorkspace(calibrated_workspace)
+    # NOTE:
+    # mysterious leftover workspace in memory
+    # tubewidth_BIOSANS_wing_detector_20200118:	0.32768 MB
+    DeleteWorkspace("tubewidth_BIOSANS_wing_detector_20200118")
+
 
 def test_as_intensities(reference_dir):
     LoadNexus(
@@ -1160,6 +1182,18 @@ def test_as_intensities(reference_dir):
     calibration = load_calibration("scan_55", "BARSCAN")
     views = calibration.as_intensities("scan_55")
     print(views)
+    # NOTE:
+    # mysterious leftover workspace in memory
+    # barscan_GPSANS_detector1_20200103:	0.393216 MB
+    # barscan_GPSANS_detector1_20200103_heights:	1.181868 MB
+    # barscan_GPSANS_detector1_20200103_positions:	1.181868 MB
+    # barscan_GPSANS_detector1_20200103_positions_mantid:	1.181868 MB
+    # scan_55:	1.181868 MB
+    DeleteWorkspace("barscan_GPSANS_detector1_20200103")
+    DeleteWorkspace("barscan_GPSANS_detector1_20200103_heights")
+    DeleteWorkspace("barscan_GPSANS_detector1_20200103_positions")
+    DeleteWorkspace("barscan_GPSANS_detector1_20200103_positions_mantid")
+    DeleteWorkspace("scan_55")
 
 
 if __name__ == "__main__":

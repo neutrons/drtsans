@@ -3,6 +3,7 @@ from pathlib import Path
 
 from drtsans.load import load_events
 from drtsans.settings import unique_workspace_dundername
+from mantid.simpleapi import DeleteWorkspace
 
 
 class TestLoadEvents:
@@ -38,6 +39,15 @@ class TestLoadEvents:
         )  # uncalibrated width
         pixel_height = component_info.scaleFactor(42).X() * nominal_pixel_height
         assert pixel_height == pytest.approx(0.00492, abs=1.0e-5)  # calibrated width
+
+        # NOTE:
+        # It is unclear where the following two workspaces are loaded/created and
+        # whether they should be allowed to be persistent in memory.
+        # For testing purpose, we are deleteing them.
+        # barscan_GPSANS_detector1_20200103:	0.393216 MB
+        # tubewidth_GPSANS_detector1_20200130:	0.393216 MB
+        DeleteWorkspace("barscan_GPSANS_detector1_20200103")
+        DeleteWorkspace("tubewidth_GPSANS_detector1_20200130")
 
 
 if __name__ == "__main__":

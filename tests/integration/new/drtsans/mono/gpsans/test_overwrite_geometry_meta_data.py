@@ -11,6 +11,7 @@ from drtsans.mono.gpsans import (
     reduction_parameters,
     update_reduction_parameters,
 )
+from mantid.simpleapi import DeleteWorkspace, mtd
 
 
 def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix):
@@ -135,6 +136,33 @@ def test_no_overwrite(reference_dir, generatecleanfile):
         prefix="CG2MetaRaw",
     )
 
+    # cleanup
+    # leftover workspaces due to the design of load_all_files
+    # _bkgd_trans:	1.439529 MB
+    # _empty:	1.439529 MB
+    # _processed_center:	1.439529 MB
+    # _sample_trans:	1.449257 MB
+    # CG2MetaRaw_GPSANS_9165_raw_histo:	1.799657 MB
+    # CG2MetaRaw_GPSANS_9166_raw_histo:	1.796017 MB
+    # CG2MetaRaw_GPSANS_9167_raw_histo:	1.815313 MB
+    # CG2MetaRaw_GPSANS_9176_raw_histo:	16.279889 MB
+    # CG2MetaRaw_GPSANS_9177_raw_histo:	1.439529 MB
+    # CG2MetaRaw_GPSANS_9178_raw_histo:	1.439337 MB
+    # CG2MetaRaw_GPSANS_9179_raw_histo:	1.439241 MB
+    # CG2MetaRaw_GPSANS_9188_raw_histo:	1.449257 MB
+    # CG2MetaRaw_sensitivity:	16.933112 MB
+    # chi:	9.6e-05 MB
+    # processed_data_main:	16.279889 MB
+    DeleteWorkspace("_bkgd_trans")
+    DeleteWorkspace("_empty")
+    DeleteWorkspace("_processed_center")
+    DeleteWorkspace("_sample_trans")
+    DeleteWorkspace("chi")
+    DeleteWorkspace("processed_data_main")
+    for me in mtd.getObjectNames():
+        if str(me).startswith("CG2MetaRaw"):
+            DeleteWorkspace(me)
+
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
@@ -201,6 +229,33 @@ def test_overwrite_sample2si(reference_dir, generatecleanfile):
         title="Overwrite SampleToSi to 94mm",
         prefix="CG2MetaSWD",
     )
+
+    # cleanup
+    # leftover workspaces due to the design of load_all_files
+    # _bkgd_trans:	1.439529 MB
+    # _empty:	1.439529 MB
+    # _processed_center:	1.439529 MB
+    # _sample_trans:	1.449257 MB
+    # CG2MetaSWD_GPSANS_9165_raw_histo:	1.799657 MB
+    # CG2MetaSWD_GPSANS_9166_raw_histo:	1.796017 MB
+    # CG2MetaSWD_GPSANS_9167_raw_histo:	1.815313 MB
+    # CG2MetaSWD_GPSANS_9176_raw_histo:	16.279889 MB
+    # CG2MetaSWD_GPSANS_9177_raw_histo:	1.439529 MB
+    # CG2MetaSWD_GPSANS_9178_raw_histo:	1.439337 MB
+    # CG2MetaSWD_GPSANS_9179_raw_histo:	1.439241 MB
+    # CG2MetaSWD_GPSANS_9188_raw_histo:	1.449257 MB
+    # CG2MetaSWD_sensitivity:	16.933112 MB
+    # chi:	9.6e-05 MB
+    # processed_data_main:	16.279889 MB
+    DeleteWorkspace("_bkgd_trans")
+    DeleteWorkspace("_empty")
+    DeleteWorkspace("_processed_center")
+    DeleteWorkspace("_sample_trans")
+    DeleteWorkspace("chi")
+    DeleteWorkspace("processed_data_main")
+    for me in mtd.getObjectNames():
+        if str(me).startswith("CG2MetaSWD"):
+            DeleteWorkspace(me)
 
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
@@ -279,6 +334,33 @@ def test_overwrite_sdd(reference_dir, generatecleanfile):
         prefix="CG2MetaSDD",
     )
 
+    # cleanup
+    # leftover workspaces due to the design of load_all_files
+    # _bkgd_trans:	1.439529 MB
+    # _empty:	1.439529 MB
+    # _processed_center:	1.439529 MB
+    # _sample_trans:	1.449257 MB
+    # CG2MetaSDD_GPSANS_9165_raw_histo:	1.799657 MB
+    # CG2MetaSDD_GPSANS_9166_raw_histo:	1.796017 MB
+    # CG2MetaSDD_GPSANS_9167_raw_histo:	1.815313 MB
+    # CG2MetaSDD_GPSANS_9176_raw_histo:	16.279889 MB
+    # CG2MetaSDD_GPSANS_9177_raw_histo:	1.439529 MB
+    # CG2MetaSDD_GPSANS_9178_raw_histo:	1.439337 MB
+    # CG2MetaSDD_GPSANS_9179_raw_histo:	1.439241 MB
+    # CG2MetaSDD_GPSANS_9188_raw_histo:	1.449257 MB
+    # CG2MetaSDD_sensitivity:	16.933112 MB
+    # chi:	9.6e-05 MB
+    # processed_data_main:	16.279889 MB
+    DeleteWorkspace("_bkgd_trans")
+    DeleteWorkspace("_empty")
+    DeleteWorkspace("_processed_center")
+    DeleteWorkspace("_sample_trans")
+    DeleteWorkspace("chi")
+    DeleteWorkspace("processed_data_main")
+    for me in mtd.getObjectNames():
+        if str(me).startswith("CG2MetaSDD"):
+            DeleteWorkspace(me)
+
 
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Debeer-Schmitt, Lisa M. debeerschmlm@ornl.gov, He, Lilin <hel3@ornl.gov>
@@ -355,6 +437,33 @@ def test_overwrite_both(reference_dir, generatecleanfile):
         title="Overwrite DetectorSampleDistance to 30 meter, SampleToSi to 200 mm",
         prefix="CG2MetaBoth",
     )
+
+    # cleanup
+    # leftover workspaces due to the design of load_all_files
+    # _bkgd_trans:	1.439529 MB
+    # _empty:	1.439529 MB
+    # _processed_center:	1.439529 MB
+    # _sample_trans:	1.449257 MB
+    # CG2MetaBoth_GPSANS_9165_raw_histo:	1.799657 MB
+    # CG2MetaBoth_GPSANS_9166_raw_histo:	1.796017 MB
+    # CG2MetaBoth_GPSANS_9167_raw_histo:	1.815313 MB
+    # CG2MetaBoth_GPSANS_9176_raw_histo:	16.279889 MB
+    # CG2MetaBoth_GPSANS_9177_raw_histo:	1.439529 MB
+    # CG2MetaBoth_GPSANS_9178_raw_histo:	1.439337 MB
+    # CG2MetaBoth_GPSANS_9179_raw_histo:	1.439241 MB
+    # CG2MetaBoth_GPSANS_9188_raw_histo:	1.449257 MB
+    # CG2MetaBoth_sensitivity:	16.933112 MB
+    # chi:	9.6e-05 MB
+    # processed_data_main:	16.279889 MB
+    DeleteWorkspace("_bkgd_trans")
+    DeleteWorkspace("_empty")
+    DeleteWorkspace("_processed_center")
+    DeleteWorkspace("_sample_trans")
+    DeleteWorkspace("chi")
+    DeleteWorkspace("processed_data_main")
+    for me in mtd.getObjectNames():
+        if str(me).startswith("CG2MetaBoth"):
+            DeleteWorkspace(me)
 
 
 if __name__ == "__main__":

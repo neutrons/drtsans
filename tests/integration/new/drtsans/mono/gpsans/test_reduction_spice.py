@@ -3,6 +3,7 @@ import os
 from drtsans.files.log_h5_reader import verify_cg2_reduction_results
 from drtsans.mono.gpsans.reduce_spice import reduce_gpsans_nexus
 import warnings
+from mantid.simpleapi import mtd, DeleteWorkspace
 
 warnings.filterwarnings("ignore")
 
@@ -146,6 +147,42 @@ def test_reduction_spice(reference_dir, generatecleanfile):
         sample_names, output_dir, expected_data_dir, "SPICE reduction", prefix=""
     )
 
+    # clean up
+    # mysterious leftover workspaces
+    # _bkgd_trans:	1.182593 MB
+    # _empty:	1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000090001.nxs.h5_raw_histo:
+    #   1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000200001.nxs.h5_raw_histo:
+    #   1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000260001.nxs.h5_raw_histo:
+    #   1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000270001.nxs.h5_raw_histo:
+    #   1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000280001.nxs.h5_raw_histo:
+    #   1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000340001.nxs.h5_raw_histo:
+    #   1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000350001.nxs.h5_raw_histo:
+    #   1.182969 MB
+    # _mask:	1.203736 MB
+    # _processed_center:	1.182593 MB
+    # _sample_trans:	1.182593 MB
+    # _sensitivity:	1.181408 MB
+    # chi:	9.6e-05 MB
+    # processed_data_main:	1.182969 MB
+    DeleteWorkspace("_bkgd_trans")
+    DeleteWorkspace("_empty")
+    DeleteWorkspace("_mask")
+    DeleteWorkspace("_processed_center")
+    DeleteWorkspace("_sample_trans")
+    DeleteWorkspace("_sensitivity")
+    DeleteWorkspace("chi")
+    DeleteWorkspace("processed_data_main")
+    for ws in mtd.getObjectNames():
+        if str(ws).startswith("_GPSANS_"):
+            DeleteWorkspace(ws)
+
 
 def test_reduction_spice_subpixel(reference_dir, generatecleanfile):
     """
@@ -263,6 +300,42 @@ def test_reduction_spice_subpixel(reference_dir, generatecleanfile):
     verify_cg2_reduction_results(
         sample_names, output_dir, expected_data_dir, "SPICE reduction", prefix=""
     )
+
+    # clean up
+    # mysterious leftover workspaces
+    # _bkgd_trans:	1.182593 MB
+    # _empty:	1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000090001.nxs.h5_raw_histo:
+    #   1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000200001.nxs.h5_raw_histo:
+    #   1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000260001.nxs.h5_raw_histo:
+    #   1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000270001.nxs.h5_raw_histo:
+    #   1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000280001.nxs.h5_raw_histo:
+    #   1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000340001.nxs.h5_raw_histo:
+    #   1.182593 MB
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000350001.nxs.h5_raw_histo:
+    #   1.182969 MB
+    # _mask:	1.203736 MB
+    # _processed_center:	1.182593 MB
+    # _sample_trans:	1.182593 MB
+    # _sensitivity:	1.181408 MB
+    # chi:	9.6e-05 MB
+    # processed_data_main:	1.182969 MB
+    DeleteWorkspace("_bkgd_trans")
+    DeleteWorkspace("_empty")
+    DeleteWorkspace("_mask")
+    DeleteWorkspace("_processed_center")
+    DeleteWorkspace("_sample_trans")
+    DeleteWorkspace("_sensitivity")
+    DeleteWorkspace("chi")
+    DeleteWorkspace("processed_data_main")
+    for ws in mtd.getObjectNames():
+        if str(ws).startswith("_GPSANS_"):
+            DeleteWorkspace(ws)
 
 
 if __name__ == "__main__":

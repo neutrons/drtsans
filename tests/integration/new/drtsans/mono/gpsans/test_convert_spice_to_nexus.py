@@ -2,7 +2,9 @@ import pytest
 import os
 import numpy as np
 from drtsans.mono.gpsans.cg2_spice_to_nexus import convert_spice_to_nexus
-from mantid.simpleapi import LoadEventNexus, LoadHFIRSANS
+from mantid.simpleapi import DeleteWorkspace
+from mantid.simpleapi import LoadEventNexus
+from mantid.simpleapi import LoadHFIRSANS
 
 
 def test_convert_spice(reference_dir, generatecleanfile):
@@ -38,6 +40,11 @@ def test_convert_spice(reference_dir, generatecleanfile):
     raw_spice = os.path.join(reference_dir.new.gpsans, "CG2_exp280_scan0012_0001.xml")
     verify_result(nexus_files[0], raw_spice)
 
+    # NOTE:
+    # mysterious leftover workspace
+    # CG2_exp280_scan0012_0001:	1.20332 MB
+    DeleteWorkspace("CG2_exp280_scan0012_0001")
+
 
 def verify_result(test_nexus, raw_spice):
     # Load data
@@ -62,7 +69,9 @@ def verify_result(test_nexus, raw_spice):
         spice_det_pos = raw_ws.getDetector(iws + 2).getPos()
         np.testing.assert_allclose(nexus_det_pos, spice_det_pos)
 
-    return
+    # Cleanup
+    DeleteWorkspace(test_ws)
+    DeleteWorkspace(raw_ws)
 
 
 if __name__ == "__main__":

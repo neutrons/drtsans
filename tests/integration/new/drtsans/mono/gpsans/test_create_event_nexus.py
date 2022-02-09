@@ -29,7 +29,11 @@ from drtsans.files.event_nexus_rw import (
 )
 from drtsans.mono.gpsans.cg2_spice_to_nexus import CG2EventNexusConvert
 from drtsans.files.log_h5_reader import verify_cg2_reduction_results
-from mantid.simpleapi import LoadEventNexus, mtd, ConvertToMatrixWorkspace, LoadHFIRSANS
+from mantid.simpleapi import mtd
+from mantid.simpleapi import ConvertToMatrixWorkspace
+from mantid.simpleapi import DeleteWorkspace
+from mantid.simpleapi import LoadEventNexus
+from mantid.simpleapi import LoadHFIRSANS
 
 
 def test_duplicate_event_nexus(reference_dir, generatecleanfile):
@@ -94,6 +98,10 @@ def test_duplicate_event_nexus(reference_dir, generatecleanfile):
     source_y = prototype_ws.extractY()
     target_y = target_ws.extractY()
     np.testing.assert_allclose(source_y, target_y)
+
+    # Cleanup
+    DeleteWorkspace(target_ws)
+    DeleteWorkspace(prototype_ws)
 
 
 def test_reduction(reference_dir, generatecleanfile):
@@ -179,6 +187,29 @@ def test_reduction(reference_dir, generatecleanfile):
         title="Raw (No Overwriting)",
         prefix="CG2MetaRaw_",
     )
+
+    # NOTE:
+    # mysterious leftover workspaces in memory
+    # _bkgd_trans:	1.182917 MB
+    # _empty:	1.182917 MB
+    # _processed_center:	1.182917 MB
+    # _sample_trans:	1.182901 MB
+    # CG2MetaRaw_GPSANS_/tmp/reducecg2nexus1k0_yod0/CG2_9165.nxs.h5_raw_histo:	1.184293 MB
+    # CG2MetaRaw_GPSANS_/tmp/reducecg2nexus1k0_yod0/CG2_9166.nxs.h5_raw_histo:	1.184357 MB
+    # CG2MetaRaw_GPSANS_/tmp/reducecg2nexus1k0_yod0/CG2_9177.nxs.h5_raw_histo:	1.182917 MB
+    # CG2MetaRaw_GPSANS_/tmp/reducecg2nexus1k0_yod0/CG2_9178.nxs.h5_raw_histo:	1.182901 MB
+    # CG2MetaRaw_GPSANS_/tmp/reducecg2nexusf_zeo1fx/CG2_9166.nxs.h5_raw_histo:	1.184357 MB
+    # chi:	9.6e-05 MB
+    # processed_data_main:	1.184357 MB
+    DeleteWorkspace("_bkgd_trans")
+    DeleteWorkspace("_empty")
+    DeleteWorkspace("_processed_center")
+    DeleteWorkspace("_sample_trans")
+    DeleteWorkspace("chi")
+    DeleteWorkspace("processed_data_main")
+    for ws in mtd.getObjectNames():
+        if "CG2MetaRaw" in str(ws):
+            DeleteWorkspace(ws)
 
 
 def reduce_gpsans_data(
@@ -605,6 +636,10 @@ def verify_histogram(source_nexus, test_nexus):
     if error_message != "":
         raise AssertionError(error_message)
 
+    # cleanup
+    DeleteWorkspace(src_ws)
+    DeleteWorkspace(test_ws)
+
 
 def test_convert_spice_to_nexus(reference_dir, generatecleanfile):
     """Test to convert SPICE to NeXus
@@ -746,6 +781,14 @@ def test_convert_spice_to_nexus(reference_dir, generatecleanfile):
         nexus_log_value = test_nexus_ws.run().getProperty(log_name).value.mean()
         spice_log_value = spice_ws.run().getProperty(log_name).value
         assert nexus_log_value == pytest.approx(spice_log_value, 1e-7)
+
+    # cleanup
+    DeleteWorkspace(test_ws_name)
+    DeleteWorkspace(template_ws)
+    DeleteWorkspace(spice_ws)
+    # mysterious leftover workspace in memory
+    # CG2_exp315_scan0005_0060:	1.203944 MB
+    DeleteWorkspace("CG2_exp315_scan0005_0060")
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ import numpy as np
 import time
 from drtsans.mono.bar_scan_pixel_calibration import generate_spice_pixel_map
 from mantid.simpleapi import LoadNexusProcessed
+from mantid.simpleapi import DeleteWorkspace
 
 
 def test_pixel_calibration(reference_dir, generatecleanfile):
@@ -89,6 +90,15 @@ def test_pixel_calibration(reference_dir, generatecleanfile):
     # Compare 2 NeXus file
     compare_pixel_calibration_files(calibration_table_file, expected_calib_nexus)
 
+    # clean up
+    # mysterious leftover workspace due to the design of generate_spice_pixel_map
+    # barscan_GPSANS_detector1_20180220:	0.393216 MB
+    # flood_run:	1.181425 MB
+    # tubewidth_GPSANS_detector1_20180220:	0.393216 MB
+    DeleteWorkspace("barscan_GPSANS_detector1_20180220")
+    DeleteWorkspace("flood_run")
+    DeleteWorkspace("tubewidth_GPSANS_detector1_20180220")
+
 
 def compare_pixel_calibration_files(test_file_name, gold_file_name):
     """Compare 2 calibration file by the pixel calibration value
@@ -115,6 +125,10 @@ def compare_pixel_calibration_files(test_file_name, gold_file_name):
     gold_cal_values = np.array(gold_calib_ws.column(1)).flatten()
 
     np.testing.assert_allclose(test_cal_values, gold_cal_values)
+
+    # clean up
+    DeleteWorkspace(test_calib_ws)
+    DeleteWorkspace(gold_calib_ws)
 
 
 if __name__ == "__main__":

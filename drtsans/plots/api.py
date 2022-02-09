@@ -50,16 +50,19 @@ class Backend(Enum):
     @staticmethod
     def getMode(mode):
         """Public function to convert anything into :py:obj:`Backend`"""
-        if mode in Backend:
-            return mode
+        try:
+            if mode in Backend:
+                return mode
+        except TypeError:
+            pass  # intentionally ignore
+
+        mode = str(mode)
+        if mode == "mpl" or mode == "matplotlib":
+            return Backend.MATPLOTLIB
+        elif mode == "mpld3" or mode == "d3":
+            return Backend.MPLD3
         else:
-            mode = str(mode)
-            if mode == "mpl" or mode == "matplotlib":
-                return Backend.MATPLOTLIB
-            elif mode == "mpld3" or mode == "d3":
-                return Backend.MPLD3
-            else:
-                return Backend[mode.upper()]
+            return Backend[mode.upper()]
 
 
 def _saveFile(figure, filename, backend, show=False):

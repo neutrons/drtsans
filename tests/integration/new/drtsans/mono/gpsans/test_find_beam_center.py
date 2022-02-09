@@ -5,6 +5,7 @@ import pytest
 import os
 import numpy as np
 from drtsans.mono.gpsans import prepare_data, find_beam_center
+from mantid.simpleapi import DeleteWorkspace
 
 
 def test_gpsans_find_beam_center():
@@ -53,6 +54,9 @@ def test_gpsans_find_beam_center():
     ), "Beam center shift {} to {} is beyond" "0.4 +/- 7E-3".format(
         beam_center, det_center
     )
+
+    # cleanup
+    DeleteWorkspace(beam_center_ws)
 
 
 if __name__ == "__main__":

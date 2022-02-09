@@ -151,6 +151,15 @@ def test_load_all_files(reference_dir):
             DeleteWorkspace(ws)
         except RuntimeError:
             print("The workspace is already deleted")
+    # NOTE:
+    # mysterious leftover workspaces from load_all_files
+    # GP_TEST_LOAD_GPSANS_9165_raw_histo:	1.798009 MB
+    # GP_TEST_LOAD_GPSANS_9177_raw_histo:	1.439257 MB
+    # GP_TEST_LOAD_GPSANS_9178_raw_histo:	1.439081 MB
+    # GP_TEST_LOAD_sensitivity:	16.933112 MB
+    for me in mtd.getObjectNames():
+        if str(me).startswith("GP_TEST_LOAD"):
+            DeleteWorkspace(me)
 
 
 def generate_test_json():

@@ -1,6 +1,8 @@
 import pytest
 import os
 import numpy as np
+from mantid.simpleapi import mtd
+from mantid.simpleapi import DeleteWorkspace
 from mantid.simpleapi import LoadNexusProcessed
 from drtsans.mono.gpsans.prepare_sensitivities_correction import (
     prepare_spice_sensitivities_correction,
@@ -100,6 +102,34 @@ def test_sensitivities_with_bar(reference_dir, generatecleanfile):
     # Verify
     verify_results(test_sens_nxs, reference_dir)
 
+    # NOTE:
+    # leftover workspaces in memory
+    # barscan_GPSANS_detector1_20180220:	0.393216 MB
+    # BC_CG2_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000370001.nxs.h5:
+    #   1.182257 MB
+    # BC_CG2_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000390001.nxs.h5:
+    #   1.182257 MB
+    # BC_CG2_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000410001.nxs.h5:
+    #   1.182257 MB
+    # GPSANS_28000380001:	22.415297 MB
+    # GPSANS_28000380001_processed_histo:	1.182257 MB
+    # GPSANS_28000400001:	1.182257 MB
+    # GPSANS_28000400001_processed_histo:	1.182257 MB
+    # GPSANS_28000420001:	1.182257 MB
+    # GPSANS_28000420001_processed_histo:	1.182257 MB
+    # sensitivities:	1.179928 MB
+    # sensitivities_new:	1.181633 MB
+    # tubewidth_GPSANS_detector1_20180220:	0.393216 MB
+    DeleteWorkspace("barscan_GPSANS_detector1_20180220")
+    DeleteWorkspace("sensitivities")
+    DeleteWorkspace("sensitivities_new")
+    DeleteWorkspace("tubewidth_GPSANS_detector1_20180220")
+    for ws in mtd.getObjectNames():
+        if str(ws).startswith("BC_CG2_/SNS"):
+            DeleteWorkspace(ws)
+        if str(ws).startswith("GPSANS_28000"):
+            DeleteWorkspace(ws)
+
 
 def verify_results(test_sensitivities_file, reference_dir):
     """
@@ -126,6 +156,10 @@ def verify_results(test_sensitivities_file, reference_dir):
     gold_sens_ws = LoadNexusProcessed(Filename=gold_sens_file)
     test_sens_ws = LoadNexusProcessed(Filename=test_sensitivities_file)
     np.testing.assert_allclose(test_sens_ws.extractY(), gold_sens_ws.extractY())
+
+    # Clean up
+    DeleteWorkspace(gold_sens_ws)
+    DeleteWorkspace(test_sens_ws)
 
 
 if __name__ == "__main__":

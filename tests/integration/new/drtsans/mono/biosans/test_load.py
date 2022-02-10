@@ -1,7 +1,8 @@
 import pytest
 import os
 import json
-from mantid.simpleapi import mtd
+from mantid.simpleapi import mtd, DeleteWorkspace
+from mantid.api import AnalysisDataService
 from drtsans.mono.biosans import load_all_files
 from drtsans.mono.biosans import reduction_parameters
 from drtsans.geometry import sample_detector_distance
@@ -161,6 +162,14 @@ def test_load_all_files(reference_dir):
     assert thickness == pytest.approx(0.2), "{} has a wrong thickness {}".format(
         str(sample_run), thickness
     )
+    clean_all_ws("BioTestLoadAll")
+
+
+def clean_all_ws(prefix):
+    for object_name in mtd.getObjectNames():
+        if object_name.startswith(prefix):
+            if AnalysisDataService.doesExist(object_name):
+                DeleteWorkspace(object_name)
 
 
 def generate_test_json(sens_nxs_dir):

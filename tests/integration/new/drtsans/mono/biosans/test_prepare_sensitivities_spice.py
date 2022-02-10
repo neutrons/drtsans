@@ -2,6 +2,8 @@ import pytest
 import os
 import numpy as np
 import warnings
+from mantid.api import AnalysisDataService
+from mantid.simpleapi import DeleteWorkspace
 from drtsans.mono.spice_data import SpiceRun
 from drtsans.mono.biosans.prepare_sensitivities_correction import (
     prepare_spice_sensitivities_correction,
@@ -10,9 +12,21 @@ from mantid.simpleapi import LoadNexusProcessed
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
+workspaces = [
+    "BC_CG3_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/CG3_054900200001.nxs.h5"
+    "BIOSANS_54900200001",
+    "BIOSANS_54900200001_sensitivity",
+    "BIOSANS_54900200001_sensitivity_new",
+    "BIOSANS_54900220001",
+    "TRANS_CG3_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/CG3_054900160001.nxs.h5",
+    "TRANS_CG3_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/CG3_054900200001.nxs.h5",
+    "BC_CG3_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/CG3_054900200001.nxs.h5",
+    "BIOSANS_54900200001",
+]
+
 
 @pytest.mark.skipif(True, reason="Job is too large to run on build server")
-def test_main_detector(reference_dir, generatecleanfile):
+def test_main_detector(reference_dir, generatecleanfile, clean_workspace):
     """Test case for CG3 main detector
 
     This test is skipped
@@ -129,10 +143,10 @@ def test_main_detector(reference_dir, generatecleanfile):
         reference_dir.new.biosans, "CG3_sens_main_exp549_scan9.nxs"
     )
     assert os.path.exists(gold_sens_file)
-    verify_results(SENSITIVITY_FILE, gold_sens_file)
+    verify_results(SENSITIVITY_FILE, gold_sens_file, clean_workspace)
 
 
-def test_wing_detector(reference_dir, generatecleanfile):
+def test_wing_detector(reference_dir, generatecleanfile, clean_workspace):
     """Test case for CG3 wing detector
 
     Flood for wing detector at 1.4° -
@@ -241,16 +255,15 @@ def test_wing_detector(reference_dir, generatecleanfile):
         SENSITIVITY_FILE,
         nexus_dir=reference_dir.new.biosans,
     )
-
     # Verify
     gold_sens_file = os.path.join(
         reference_dir.new.biosans, "CG3_sens_wing_exp549_scan20.nxs"
     )
     assert os.path.exists(gold_sens_file)
-    verify_results(SENSITIVITY_FILE, gold_sens_file)
+    verify_results(SENSITIVITY_FILE, gold_sens_file, clean_workspace)
 
 
-def verify_results(test_sensitivities_file: str, gold_sens_file: str):
+def verify_results(test_sensitivities_file: str, gold_sens_file: str, clean_workspace):
     """Verify sensitivities of tested result from gold file"""
     # Get gold file
     # gold_sens_file = os.path.join(reference_dir.new.gpsans, 'calibrations/sens_CG2_spice_bar.nxs')
@@ -262,7 +275,20 @@ def verify_results(test_sensitivities_file: str, gold_sens_file: str):
     # Compare sensitivities
     gold_sens_ws = LoadNexusProcessed(Filename=gold_sens_file)
     test_sens_ws = LoadNexusProcessed(Filename=test_sensitivities_file)
+    clean_workspace(gold_sens_ws)
+    clean_workspace(test_sens_ws)
     np.testing.assert_allclose(test_sens_ws.extractY(), gold_sens_ws.extractY())
+    clean_all_ws()
+
+
+def clean_all_ws():
+    for workspace in workspaces:
+        remove_ws(workspace)
+
+
+def remove_ws(workspace):
+    if AnalysisDataService.doesExist(workspace):
+        DeleteWorkspace(workspace)
 
 
 if __name__ == "__main__":

@@ -2,14 +2,15 @@ import pytest
 import os
 import numpy as np
 
+from mantid.api import AnalysisDataService
 from drtsans.mono.biosans.cg3_spice_to_nexus import convert_spice_to_nexus
-from mantid.simpleapi import LoadEventNexus, LoadHFIRSANS
+from mantid.simpleapi import LoadEventNexus, LoadHFIRSANS, DeleteWorkspace
 
 
 @pytest.mark.skipif(
     not os.path.exists("/HFIR/HB2B/shared/autoreduce/"), reason="On build server"
 )
-def test_convert_spice(reference_dir, generatecleanfile):
+def test_convert_spice(reference_dir, generatecleanfile, clean_workspace):
     """
     Test converting BIOSANS SPICE file to event Nexus
     """
@@ -42,10 +43,10 @@ def test_convert_spice(reference_dir, generatecleanfile):
     raw_spice = os.path.join(
         reference_dir.new.biosans, "BioSANS_exp402_scan0006_0001.xml"
     )
-    verify_result(nexus_files[0], raw_spice, [70911])
+    verify_result(nexus_files[0], raw_spice, [70911], clean_workspace)
 
 
-def verify_result(test_nexus, raw_spice, masked_pixels):
+def verify_result(test_nexus, raw_spice, masked_pixels, clean_workspace):
     # Load data
     test_ws = LoadEventNexus(
         Filename=test_nexus,
@@ -54,6 +55,9 @@ def verify_result(test_nexus, raw_spice, masked_pixels):
         LoadNexusInstrumentXML=True,
     )
     raw_ws = LoadHFIRSANS(Filename=raw_spice, OutputWorkspace="raw")
+
+    clean_workspace(test_ws)
+    clean_workspace(raw_ws)
 
     # Compare counts
     assert (
@@ -80,6 +84,9 @@ def verify_result(test_nexus, raw_spice, masked_pixels):
     # tube 2 <--> tube 5 (first tube in the back)
     np.testing.assert_allclose(raw_y[2 : 256 + 2], test_y[:256])
     np.testing.assert_allclose(raw_y[256 + 2 : 512 + 2], test_y[4 * 256 : 5 * 256])
+
+    if AnalysisDataService.doesExist("BioSANS_exp402_scan0006_0001"):
+        DeleteWorkspace("BioSANS_exp402_scan0006_0001")
 
 
 if __name__ == "__main__":

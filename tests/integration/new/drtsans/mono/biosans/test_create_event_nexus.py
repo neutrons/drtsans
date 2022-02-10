@@ -18,7 +18,7 @@ from drtsans.mono.biosans.cg3_spice_to_nexus import generate_event_nexus
 from matplotlib import pyplot as plt
 
 
-def test_duplicate_event_nexus(reference_dir, generatecleanfile):
+def test_duplicate_event_nexus(reference_dir, generatecleanfile, clean_workspace):
     """Test duplicating an HDF5/NeXus in 2 different approaches in order to verify EventNexusWriter
 
     Verification is to load both of the generated Event NeXus to do a comparison
@@ -69,7 +69,8 @@ def test_duplicate_event_nexus(reference_dir, generatecleanfile):
         NumberOfBins=1,
         LoadNexusInstrumentXML=True,
     )
-
+    clean_workspace(target_ws)
+    clean_workspace(source_ws)
     # Compare pixels' positions
     num_hist = source_ws.getNumberHistograms()
     for iws in range(0, num_hist):

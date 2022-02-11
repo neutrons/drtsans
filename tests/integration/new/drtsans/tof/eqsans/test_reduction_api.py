@@ -7,6 +7,7 @@ from drtsans.tof.eqsans.api import (
     reduce_single_configuration,
 )  # noqa E402
 from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
+from mantid.simpleapi import mtd, DeleteWorkspace
 import numpy as np
 from drtsans.dataobjects import save_i_of_q_to_h5, load_iq1d_from_h5, load_iq2d_from_h5
 from typing import List, Any, Union, Tuple, Dict
@@ -116,6 +117,33 @@ def test_regular_setup(run_config, basename, generatecleanfile, reference_dir):
 
     # clean up
     os.remove(reduced_data_nexus)
+    # NOTE: similar to other tests, the design of load_all_files requires
+    #       us to clean up the leftover workspaces in ADS by hand
+    # _bkgd_trans:	123.262977 MB
+    # _empty:	123.261169 MB
+    # _EQSANS_86275_raw_histo:	64.764329 MB
+    # _EQSANS_88973_raw_events:	33.996129 MB
+    # _EQSANS_88973_raw_histo:	123.260961 MB
+    # _EQSANS_88974_raw_histo:	123.262769 MB
+    # _EQSANS_88978_raw_histo:	123.261585 MB
+    # _EQSANS_88980_raw_histo:	124.588369 MB
+    # _mask:	33.532216 MB
+    # _sample_trans:	124.588577 MB
+    # _sensitivity:	51.262916 MB
+    # no_wl_gold:	124.589201 MB
+    # no_wl_test:	124.589201 MB
+    # processed_data_main:	124.589201 MB
+    DeleteWorkspace("_bkgd_trans")
+    DeleteWorkspace("_empty")
+    DeleteWorkspace("_mask")
+    DeleteWorkspace("_sample_trans")
+    DeleteWorkspace("_sensitivity")
+    DeleteWorkspace("no_wl_gold")
+    DeleteWorkspace("no_wl_test")
+    DeleteWorkspace("processed_data_main")
+    for ws in mtd.getObjectNames():
+        if str(ws).startswith("_EQSANS_8"):
+            DeleteWorkspace(ws)
 
 
 @pytest.mark.parametrize(
@@ -205,6 +233,33 @@ def test_weighted_binning_setup(run_config, basename, generatecleanfile, referen
 
     # clean up
     os.remove(reduced_data_nexus)
+    # NOTE: similar to other tests, the design of load_all_files requires
+    #       us to clean up the leftover workspaces in ADS by hand
+    # _bkgd_trans:	123.262977 MB
+    # _empty:	123.261169 MB
+    # _EQSANS_86275_raw_histo:	64.764329 MB
+    # _EQSANS_88973_raw_events:	33.996129 MB
+    # _EQSANS_88973_raw_histo:	123.260961 MB
+    # _EQSANS_88974_raw_histo:	123.262769 MB
+    # _EQSANS_88978_raw_histo:	123.261585 MB
+    # _EQSANS_88980_raw_histo:	124.588369 MB
+    # _mask:	33.532216 MB
+    # _sample_trans:	124.588577 MB
+    # _sensitivity:	51.262916 MB
+    # no_wl_gold:	124.589201 MB
+    # no_wl_test:	124.589201 MB
+    # processed_data_main:	124.589201 MB
+    DeleteWorkspace("_bkgd_trans")
+    DeleteWorkspace("_empty")
+    DeleteWorkspace("_mask")
+    DeleteWorkspace("_sample_trans")
+    DeleteWorkspace("_sensitivity")
+    DeleteWorkspace("no_wl_gold")
+    DeleteWorkspace("no_wl_test")
+    DeleteWorkspace("processed_data_main")
+    for ws in mtd.getObjectNames():
+        if str(ws).startswith("_EQSANS_8"):
+            DeleteWorkspace(ws)
 
 
 def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):
@@ -441,6 +496,38 @@ def test_wavelength_step(reference_dir):
             y_rel_tol=3.0e-7,
             e_rel_tol=1.36e-7,
         )
+
+    # clean up
+    # _empty:	11.331733 MB
+    # _EQSANS_113569_raw_histo:	72.325189 MB
+    # _EQSANS_115356_raw_events:	44.045813 MB
+    # _EQSANS_115356_raw_histo:	11.331525 MB
+    # _EQSANS_115357_raw_histo:	11.329493 MB
+    # _EQSANS_115361_raw_histo:	12.371909 MB
+    # _EQSANS_115363_raw_histo:	11.679333 MB
+    # _mask:	143.871004 MB
+    # _sensitivity:	55.210004 MB
+    # com_gold:	11.680165 MB
+    # com_test:	11.680165 MB
+    # gauss_gold:	11.680165 MB
+    # gauss_test:	11.680165 MB
+    # processed_data_main:	11.680165 MB
+    # reg_gold:	11.680165 MB
+    # reg_test:	11.680165 MB
+    DeleteWorkspace("_bkgd_trans")
+    DeleteWorkspace("_empty")
+    DeleteWorkspace("_mask")
+    DeleteWorkspace("_sensitivity")
+    DeleteWorkspace("com_gold")
+    DeleteWorkspace("com_test")
+    DeleteWorkspace("gauss_gold")
+    DeleteWorkspace("gauss_test")
+    DeleteWorkspace("processed_data_main")
+    DeleteWorkspace("reg_gold")
+    DeleteWorkspace("reg_test")
+    for ws in mtd.getObjectNames():
+        if str(ws).startswith("_EQSANS_11"):
+            DeleteWorkspace(ws)
 
 
 def verify_processed_workspace(

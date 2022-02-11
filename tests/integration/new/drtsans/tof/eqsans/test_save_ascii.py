@@ -3,6 +3,7 @@ from os.path import join
 from drtsans.save_ascii import save_ascii_1D, save_xml_1D
 
 from mantid.simpleapi import Load
+from mantid.simpleapi import DeleteWorkspace
 import numpy as np
 import xml.etree.ElementTree as ET
 
@@ -56,7 +57,5 @@ def test_save_ascii_1d(reference_dir):
                 ]
             )
         assert np.allclose(output, reference, atol=1e-6)
-
-
-def test_save_ascii_2d():
-    pass
+    # clean up
+    DeleteWorkspace(ws)

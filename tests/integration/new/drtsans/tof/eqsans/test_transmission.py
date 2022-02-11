@@ -324,12 +324,12 @@ def transmission_fixture(reference_dir):
         )
         return CompareWorkspaces(tentative, ws, Tolerance=1.0e-4).Result
 
-    a = LoadNexus(pjn(data_dir, "sample.nxs"))
+    a = LoadNexus(pjn(data_dir, "sample.nxs"), OutputWorkspace=unique_workspace_dundername())
     insert_aperture_logs(a)  # source and sample aperture diameters
-    b = LoadNexus(pjn(data_dir, "direct_beam.nxs"))
+    b = LoadNexus(pjn(data_dir, "direct_beam.nxs"), OutputWorkspace=unique_workspace_dundername())
     insert_aperture_logs(b)
-    c = LoadNexus(pjn(data_dir, "sample_skip.nxs"))
-    d = LoadNexus(pjn(data_dir, "direct_beam_skip.nxs"))
+    c = LoadNexus(pjn(data_dir, "sample_skip.nxs"), OutputWorkspace=unique_workspace_dundername())
+    d = LoadNexus(pjn(data_dir, "direct_beam_skip.nxs"), OutputWorkspace=unique_workspace_dundername())
     for workspace in (a, c):
         sample_logs = SampleLogs(workspace)
         sample_logs.insert("low_tof_clip", 0.0, unit="ms")

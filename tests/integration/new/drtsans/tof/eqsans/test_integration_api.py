@@ -11,6 +11,7 @@ from mantid.dataobjects import EventWorkspace
 # https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html
 from mantid.simpleapi import SumSpectra, mtd, LoadNexus, CompareWorkspaces
+from mantid.simpleapi import DeleteWorkspace
 
 # public API
 from drtsans.tof import eqsans
@@ -141,6 +142,8 @@ def test_normalize_by_flux(run_infoset, flux_file):
     assert 1.0e6 * np.average(normalized_data_workspace.readY(0)) == approx(
         run_infoset.flux_normalized, abs=1.0
     )
+    # clean up
+    DeleteWorkspace(normalized_data_workspace)
 
 
 def test_subtract_background(reference_dir):
@@ -179,6 +182,13 @@ def test_prepare_monitors(reference_dir):
         assert (
             CompareWorkspaces(w, v, Tolerance=1e-3, ToleranceRelErr=True).Result is True
         )
+    # cleanup
+    DeleteWorkspace(w)
+    DeleteWorkspace(v)
+    # NOTE:
+    # somehow EQSANS_92353_monitors:	134.563688 MB
+    # is left in ADS
+    DeleteWorkspace("EQSANS_92353_monitors")
 
 
 @pytest.mark.skip(reason="prepare data not yet completed")

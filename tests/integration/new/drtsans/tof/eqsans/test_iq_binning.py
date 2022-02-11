@@ -7,6 +7,7 @@ from mantid import mtd
 from mantid.simpleapi import (
     AddSampleLog,
     ConfigService,
+    DeleteWorkspace,
     Rebin,
 )  # ExtractSpectra MaskAngle,
 from drtsans.tof.eqsans import (
@@ -127,6 +128,15 @@ def test_iq_binning_serial(reference_dir):
         test_iq, linear_bins, bin_method=BinningMethod.WEIGHTED
     )
     assert i_of_q
+
+    # clean up
+    # NOTE: the Python handle is redirected to different workspace in ADS,
+    #       so the cleanest way to handle cleanup is to remove the workspaces
+    #       by name
+    DeleteWorkspace("EQSANS_68200")
+    DeleteWorkspace("flux_ws")
+    DeleteWorkspace("ws")
+    DeleteWorkspace("ws_rebin")
 
     # TODO - continue from here
     # assert i_of_q.iq.shape == (256, 192)

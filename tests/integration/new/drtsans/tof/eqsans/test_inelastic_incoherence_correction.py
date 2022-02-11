@@ -11,6 +11,7 @@ from drtsans.settings import amend_config
 import json
 from typing import Tuple, Dict
 from drtsans.dataobjects import load_iq1d_from_h5, load_iq2d_from_h5
+from mantid.simpleapi import mtd, DeleteWorkspace
 
 
 @pytest.mark.skipif(
@@ -371,6 +372,28 @@ def test_incoherence_correction_elastic_normalization(reference_dir, generatecle
 
     print(f"TEST DEBUT: {filecmp.cmp(test_iq1d_file, gold_iq1d_file)}")
     assert filecmp.cmp(test_iq1d_file, gold_iq1d_file)
+
+    # cleanup
+    # NOTE: loaded is not a dict that is iterable, so we have to delete the
+    #       leftover workspace explicitly
+    # _empty:	37.277037 MB
+    # _EQSANS_124667_raw_histo:	106.769917 MB
+    # _EQSANS_124680_raw_histo:	40.050957 MB
+    # _EQSANS_125701_raw_events:	41.005101 MB
+    # _EQSANS_125701_raw_histo:	37.276829 MB
+    # _EQSANS_125707_raw_histo:	38.326685 MB
+    # _mask:	27.092797 MB
+    # _sensitivity:	30.03614 MB
+    # processed_data_main:	38.327517 MB
+    # processed_elastic_ref:	40.051789 MB
+    DeleteWorkspace("_empty")
+    DeleteWorkspace("_mask")
+    DeleteWorkspace("_sensitivity")
+    DeleteWorkspace("processed_data_main")
+    DeleteWorkspace("processed_elastic_ref")
+    for ws in mtd.getObjectNames():
+        if str(ws).startswith("_EQSANS_"):
+            DeleteWorkspace(ws)
 
 
 def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):

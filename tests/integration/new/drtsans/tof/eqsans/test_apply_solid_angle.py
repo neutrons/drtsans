@@ -1,6 +1,7 @@
 import pytest
 from drtsans.tof import eqsans
 from mantid.simpleapi import SolidAngle
+from mantid.simpleapi import DeleteWorkspace
 from mantid.kernel import V3D
 import numpy as np
 from copy import deepcopy
@@ -63,6 +64,10 @@ def test_solid_angle(generic_workspace):
 
     assert ws.dataY(4)[0] == pytest.approx(167784655.70)
     assert ws.dataE(4)[0] == pytest.approx(13433523.577)
+
+    # clean up
+    DeleteWorkspace(ws)
+    DeleteWorkspace(ws2)
 
 
 if __name__ == "__main__":

@@ -191,23 +191,6 @@ def test_prepare_monitors(reference_dir):
     DeleteWorkspace("EQSANS_92353_monitors")
 
 
-@pytest.mark.skip(reason="prepare data not yet completed")
-def test_prepared_data(eqsans_f):
-    """
-    This is Section 3 of the requirements document.
-    It should just be a convenience function that brings together
-    loading, moving the detector, normalizing, binning in wavelength,
-    and subtracting dark current.
-    """
-    ws = eqsans.prepare_data(
-        eqsans_f["data"],
-        smearing_pixel_size_x=0.0012,
-        smearing_pixel_size_y=0.0013,
-        sample_thickness=0.1,
-    )
-    assert isinstance(ws, EventWorkspace)
-
-
 def test_solid_angle(run_infoset):
     ws2 = solid_angle_correction(
         run_infoset.ws,

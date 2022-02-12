@@ -14,10 +14,6 @@ from drtsans.dataobjects import load_iq1d_from_h5, load_iq2d_from_h5
 from mantid.simpleapi import mtd, DeleteWorkspace
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5"),
-    reason="Required test data not available",
-)
 def test_parse_json(reference_dir):
     """Test the JSON to dictionary"""
     elastic_reference_run = "124680"
@@ -90,10 +86,6 @@ def test_parse_json(reference_dir):
     assert correction.elastic_reference.background_run_number is None
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5"),
-    reason="Required test data not available",
-)
 def test_parse_invalid_json():
     """Test the JSON to dictionary"""
     invalid_run_num = "260159121"
@@ -314,10 +306,6 @@ def test_incoherence_correction_step4only(reference_dir, generatecleanfile):
     verify_binned_iq(gold_file_dict, reduction_output)
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/SNS/users/pf9/etc/"),
-    reason="Test is too long for build server",
-)
 def test_incoherence_correction_elastic_normalization(reference_dir, generatecleanfile):
     """Test incoherence correction with elastic correction"""
     # Set up the configuration dict

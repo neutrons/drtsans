@@ -349,10 +349,6 @@ def export_reduction_output(
         print(f"Save frame {section_index} I(Q2D) to {h5_file_name}")
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/SNS/EQSANS/IPTS-26015/nexus/EQSANS_115363.nxs.h5"),
-    reason="Required test data not available",
-)
 def test_wavelength_step(reference_dir):
 
     # Set up the configuration dict

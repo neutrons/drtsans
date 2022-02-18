@@ -555,7 +555,7 @@ def save_iqmod(
     sep=" ",
     float_format="%.6E",
     skip_nan=True,
-    header_type=HeaderType.PANDAS.value,
+    header_type=HeaderType.MANTID_ASCII.value,
 ):
     r"""
     Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
@@ -577,6 +577,11 @@ def save_iqmod(
         Format string for floating point numbers.
     skip_nan: bool
         If true, any data point where intensity is NAN will not be written to file
+    header: text
+        Determine the header type to make 1D data compatible with panda or Mantid
+        possible values:
+        HeaderType.MANTID_ASCII.value
+        HeaderType.PANDAS.value
     """
     if header_type == HeaderType.MANTID_ASCII.value:
         from drtsans.save_ascii import save_ascii_binned_1D

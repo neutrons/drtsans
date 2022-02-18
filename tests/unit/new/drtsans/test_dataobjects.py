@@ -132,7 +132,7 @@ def test_save_load_iqmod_pandas():
     iq = IQmod([1, 2, 3, np.nan], [4, 5, 6, 0], [7, 8, 9, 0])
     filename = tempfile.NamedTemporaryFile("wb", suffix=".dat").name
     #  Save
-    save_iqmod(iq, filename)
+    save_iqmod(iq, filename, header_type="Pandas")
     # Load
     iq_other = load_iqmod(filename)
     # Verify
@@ -283,7 +283,7 @@ def test_save_load_iqmod_dq():
     filename = tempfile.NamedTemporaryFile("wb", suffix=".dat").name
 
     #  Save
-    save_iqmod(iq, filename)
+    save_iqmod(iq, filename, header_type="Pandas")
     # Load
     iq_other = load_iqmod(filename)
     # Verify

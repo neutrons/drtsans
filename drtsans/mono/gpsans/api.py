@@ -85,7 +85,7 @@ def load_all_files(
     debug_output: bool
         Flag to save out internal result
     back_panel_correction: bool
-        Move the z direction of back panel to remove artifacts in azimuthal plots.   
+        Move the z direction of back panel to remove artifacts in azimuthal plots
 
     Returns
     -------

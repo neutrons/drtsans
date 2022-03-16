@@ -85,8 +85,8 @@ def load_all_files(
     debug_output: bool
         Flag to save out internal result
     back_panel_correction: bool
-        Move the z direction of back panel to remove artifacts in azimuthal plots. 
-        
+        Move the z direction of back panel to remove artifacts in azimuthal plots.   
+
     Returns
     -------
 
@@ -496,9 +496,8 @@ def load_all_files(
                     backend="mpl",
                 )
 
-    # Apply the backpanel correction on z direction to remove the 
+    # Apply the backpanel correction on z direction to remove the
     # artifacts in 2D azimuthal patterns
-
     if back_panel_correction == True:
         for ws in raw_sample_ws_list:
             if ws is not None:
@@ -521,7 +520,7 @@ def load_all_files(
             adjust_back_panels_to_effective_position(sensitivity_ws)
         if mask_ws is not None:
             adjust_back_panels_to_effective_position(mask_ws)
-    
+
     return dict(
         sample=raw_sample_ws_list,
         background=raw_bkgd_ws,

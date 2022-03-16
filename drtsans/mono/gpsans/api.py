@@ -69,6 +69,7 @@ def load_all_files(
     path=None,
     use_nexus_idf: bool = False,
     debug_output: bool = False,
+    back_panel_correction: bool = False
 ):
     """load all required files at the beginning, and transform them to histograms
 
@@ -83,7 +84,9 @@ def load_all_files(
         Flag to use IDF inside NeXus file.  True for SPICE data
     debug_output: bool
         Flag to save out internal result
-
+    back_panel_correction: bool
+        Move the z direction of back panel to remove artifacts in azimuthal plots. 
+        
     Returns
     -------
 
@@ -493,6 +496,32 @@ def load_all_files(
                     backend="mpl",
                 )
 
+    # Apply the backpanel correction on z direction to remove the 
+    # artifacts in 2D azimuthal patterns
+
+    if back_panel_correction == True:
+        for ws in raw_sample_ws_list:
+            if ws is not None:
+                adjust_back_panels_to_effective_position(ws)
+        if raw_bkgd_ws is not None:
+            adjust_back_panels_to_effective_position(raw_bkgd_ws)
+        if raw_center_ws is not None:
+            adjust_back_panels_to_effective_position(raw_center_ws)
+        if raw_empty_ws is not None:
+            adjust_back_panels_to_effective_position(raw_empty_ws)
+        if raw_sample_trans_ws is not None:
+            adjust_back_panels_to_effective_position(raw_sample_trans_ws)
+        if raw_bkg_trans_ws is not None:
+            adjust_back_panels_to_effective_position(raw_bkg_trans_ws)
+        if raw_blocked_ws is not None:
+            adjust_back_panels_to_effective_position(raw_blocked_ws)
+        if dark_current is not None:
+            adjust_back_panels_to_effective_position(dark_current)
+        if sensitivity_ws is not None:
+            adjust_back_panels_to_effective_position(sensitivity_ws)
+        if mask_ws is not None:
+            adjust_back_panels_to_effective_position(mask_ws)
+    
     return dict(
         sample=raw_sample_ws_list,
         background=raw_bkgd_ws,

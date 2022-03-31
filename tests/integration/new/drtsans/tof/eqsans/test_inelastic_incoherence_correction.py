@@ -346,11 +346,15 @@ def test_incoherence_correction_elastic_normalization(reference_dir, generatecle
     # Check output result
     iq1d_base_name = "EQSANS_125707__Iq.dat"
     test_iq1d_file = os.path.join(test_dir, iq1d_base_name)
+    # FIXME: The gold data are not stored inside the repository so when
+    # gold data are changed a version prefix is added with date and developer
+    # information. The old data will be kept as it is.
+    version = "20220321_rys_"
     assert os.path.exists(
         test_iq1d_file
     ), f"Expected test result {test_iq1d_file} does not exist"
     gold_iq1d_file = os.path.join(
-        reference_dir.new.eqsans, "test_incoherence_correction", iq1d_base_name
+        reference_dir.new.eqsans, "test_incoherence_correction", version + iq1d_base_name
     )
     assert os.path.exists(
         gold_iq1d_file

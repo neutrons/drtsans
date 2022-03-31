@@ -286,26 +286,26 @@ def test_1d_weighted_binning():
     # Generate test data
     test_qiew_array = np.array(
         [
-            [0.013, np.nan, np.nan, 1.0],
-            [0.021, np.nan, np.nan, 1.0],
-            [0.032, np.nan, np.nan, 1.0],
-            [0.041, 10.000, 1.1000, 1.0],
-            [0.048, 10.000, 1.5000, 1.0],
-            [0.060, 10.000, 1.1300, 1.0],
-            [0.070, 10.000, 2.3000, 1.0],
-            [0.080, 10.000, 0.7000, 1.0],
-            [0.090, 10.000, 0.8000, 1.0],
-            [0.099, 10.000, 1.2000, 1.0],
-            [0.011, np.nan, np.nan, 2.0],
-            [0.021, 12.000, 2.3000, 2.0],
-            [0.031, 12.000, 1.5000, 2.0],
-            [0.039, 12.000, 1.7000, 2.0],
-            [0.049, 12.000, 0.5000, 2.0],
-            [0.062, 12.000, 2.4000, 2.0],
-            [0.073, 12.000, 0.6000, 2.0],
-            [0.079, 12.000, 0.9000, 2.0],
-            [0.091, 12.000, 1.3000, 2.0],
-            [0.099, 12.000, 1.4000, 2.0],
+            [0.013, np.nan, np.nan, 1.0, 0.0005],
+            [0.021, np.nan, np.nan, 1.0, 0.0007],
+            [0.032, np.nan, np.nan, 1.0, 0.0010],
+            [0.041, 10.000, 1.1000, 1.0, 0.0002],
+            [0.048, 10.000, 1.5000, 1.0, 0.0001],
+            [0.060, 10.000, 1.1300, 1.0, 0.0004],
+            [0.070, 10.000, 2.3000, 1.0, 0.0003],
+            [0.080, 10.000, 0.7000, 1.0, 0.0006],
+            [0.090, 10.000, 0.8000, 1.0, 0.0009],
+            [0.099, 10.000, 1.2000, 1.0, 0.00035],
+            [0.011, np.nan, np.nan, 2.0, 0.00015],
+            [0.021, 12.000, 2.3000, 2.0, 0.0002],
+            [0.031, 12.000, 1.5000, 2.0, 0.0006],
+            [0.039, 12.000, 1.7000, 2.0, 0.0004],
+            [0.049, 12.000, 0.5000, 2.0, 0.0005],
+            [0.062, 12.000, 2.4000, 2.0, 0.0006],
+            [0.073, 12.000, 0.6000, 2.0, 0.0007],
+            [0.079, 12.000, 0.9000, 2.0, 0.0006],
+            [0.091, 12.000, 1.3000, 2.0, 0.0009],
+            [0.099, 12.000, 1.4000, 2.0, 0.00015],
         ]
     )
 
@@ -313,6 +313,7 @@ def test_1d_weighted_binning():
         intensity=test_qiew_array[:, 1],
         error=test_qiew_array[:, 2],
         mod_q=test_qiew_array[:, 0],
+        delta_mod_q=test_qiew_array[:, 4],
         wavelength=test_qiew_array[:, 3],
     )
 
@@ -326,18 +327,18 @@ def test_1d_weighted_binning():
     # Expected binned I(Q, wl)
     expected_binned_qiew = np.array(
         [
-            [0.025, 10, 0.887045495441276, 1.0],
-            [0.075, 10, 0.435609182296287, 1.0],
-            [0.025, 12, 0.448133161649441, 2.0],
-            [0.075, 12, 0.434869885395938, 2.0],
+            [0.025, 10, 0.887045495441276, 1.0, 0.00016502890173410406],
+            [0.075, 10, 0.435609182296287, 1.0, 0.0006155217563843883],
+            [0.025, 12, 0.448133161649441, 2.0, 0.0004905877304625013],
+            [0.075, 12, 0.434869885395938, 2.0, 0.0006426826759447178],
         ]
     )
 
     # Expected binned I(Q)
     expected_binned_qie = np.array(
         [
-            [0.025, 11.5933404636534, 0.399987461455165],
-            [0.075, 11.0016985965419, 0.307760492837406],
+            [0.025, 11.5933404636534, 0.399987461455165, 0.00042439192929037884],
+            [0.075, 11.0016985965419, 0.307760492837406, 0.0006291252838865729],
         ]
     )
 
@@ -355,6 +356,7 @@ def test_1d_weighted_binning():
     np.testing.assert_allclose(binned_iq_all_wl.mod_q, expected_binned_qie[:, 0])
     np.testing.assert_allclose(binned_iq_all_wl.intensity, expected_binned_qie[:, 1])
     np.testing.assert_allclose(binned_iq_all_wl.error, expected_binned_qie[:, 2])
+    np.testing.assert_allclose(binned_iq_all_wl.delta_mod_q, expected_binned_qie[:, 3])
 
     # Do weighted binning on each wavelength
     binned_iq_per_wl = bin_intensity_into_q1d(
@@ -369,6 +371,7 @@ def test_1d_weighted_binning():
     np.testing.assert_allclose(binned_iq_per_wl.intensity, expected_binned_qiew[:, 1])
     np.testing.assert_allclose(binned_iq_per_wl.error, expected_binned_qiew[:, 2])
     np.testing.assert_allclose(binned_iq_per_wl.wavelength, expected_binned_qiew[:, 3])
+    np.testing.assert_allclose(binned_iq_per_wl.delta_mod_q, expected_binned_qiew[:, 4])
 
     # Do weighted binning on Q-binned I(Q, wl)
     binned_iq_all_wl = bin_intensity_into_q1d(
@@ -378,6 +381,7 @@ def test_1d_weighted_binning():
     np.testing.assert_allclose(binned_iq_all_wl.mod_q, expected_binned_qie[:, 0])
     np.testing.assert_allclose(binned_iq_all_wl.intensity, expected_binned_qie[:, 1])
     np.testing.assert_allclose(binned_iq_all_wl.error, expected_binned_qie[:, 2])
+    np.testing.assert_allclose(binned_iq_all_wl.delta_mod_q, expected_binned_qie[:, 3])
 
 
 if __name__ == "__main__":

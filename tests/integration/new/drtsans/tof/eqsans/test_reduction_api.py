@@ -220,9 +220,15 @@ def test_weighted_binning_setup(run_config, basename, generatecleanfile, referen
     # Verify binned I(Q)
     gold_file_dict = dict()
     gold_dir = os.path.join(reference_dir.new.eqsans, "gold_data")
+
+    # FIXME: The gold data are not stored inside the repository so when
+    # gold data are changed a version prefix is added with date and developer
+    # information. The old data will be kept as it is.
+    version = "20220321_rys_"
+
     for frame_index in range(2):
         iq1d_h5_name = os.path.join(
-            gold_dir, f"gold_88980_weighted_1d_{frame_index}.h5"
+            gold_dir, f"{version}gold_88980_weighted_1d_{frame_index}.h5"
         )
         gold_file_dict[1, frame_index, 0] = iq1d_h5_name
         iq2d_h5_name = os.path.join(

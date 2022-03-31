@@ -877,18 +877,18 @@ def _do_1d_weighted_binning(
 
     General description of algorithm:
 
-    Equation 11.22
+    Equation 11.26
     I(Q') = sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2) /
             sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
 
-    Equation 11.23
+    Equation 11.27
     sigmaI(Q') = sqrt(sum_{Q, lambda}^{K} (sigma(Q, lambda / sigma(Q, lambda)^2)^2) /
                  sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
                = sqrt(sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)) /
                  sum_{Q, lambda}^{K}(1/sigma(Q, lambda)^2)
                = 1 / sqrt(sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2))
 
-    Equation 11.24
+    Equation 11.28
     sigmaQ(Q') = sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2) /
                  sum_{Q, lambda}^{K}(1/sigma(Q, lambda)^2)
 
@@ -926,17 +926,17 @@ def _do_1d_weighted_binning(
             mod_q_array, bins=bin_edges, weights=invert_sigma2_array
         )
 
-        # Calculate Equation 11.22: I(Q)
+        # Calculate Equation 11.26: I(Q)
         #  I(Q') = sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2) /
         #              sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
         # denominator in Equation 11.22: sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2)
         i_raw_array, _ = np.histogram(
             mod_q_array, bins=bin_edges, weights=intensity_array * invert_sigma2_array
         )
-        # denominator divided by nominator (11.22)
+        # numerator divided by denominator (11.26)
         binned_intensity_array = i_raw_array / w_array
 
-        # Calculate equation 11.23: sigmaI(Q)
+        # Calculate equation 11.27: sigmaI(Q)
         # sigmaI(Q') = sqrt(sum_{Q, lambda}^{K} (sigma(Q, lambda / sigma(Q, lambda)^2)^2) /
         #              sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
         #            = sqrt(sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)) /
@@ -945,18 +945,18 @@ def _do_1d_weighted_binning(
         # Thus histogrammed sigmaI can be obtained from histogrammed invert_sigma2_array directly
         binned_error_array = 1 / np.sqrt(w_array)
 
-        # Calculate equation 11.24:  sigmaQ (i.e., Q resolution)
+        # Calculate equation 11.28:  sigmaQ (i.e., Q resolution)
         # sigmaQ(Q') = sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2) /
         #              sum_{Q, lambda}^{K}(1/sigma(Q, lambda)^2)
-        # denominator in Equation 11.24: sum_{Q, lambda}^{K}(sigmaQ(Q, lambda)/sigma^2(Q, lambda)^2)
+        # denominator in Equation 11.28: sum_{Q, lambda}^{K}(1/sigma(Q, lambda)^2)
         if delta_q_array is None:
             binned_dq_array = None
         else:
             binned_dq, _ = np.histogram(
                 mod_q_array, bins=bin_edges, weights=delta_q_array * invert_sigma2_array
             )
-            # denominator divided by nominator (11.24)
-            binned_dq_array = binned_dq / i_raw_array
+            # numerator divided by denominator (11.28)
+            binned_dq_array = binned_dq / w_array
 
         return binned_intensity_array, binned_error_array, binned_dq_array
 

@@ -65,7 +65,7 @@ class Backend(Enum):
             return Backend[mode.upper()]
 
 
-def _saveFile(figure, filename, backend, show=False):
+def _save_file(figure, filename, backend, show=False):
     """Convenience method for the common bits of saving the file based on
     the selected backend.
 
@@ -156,7 +156,6 @@ def plot_IQmod(
             raise RuntimeError('Do not know how to plot type="{}"'.format(datatype))
 
     fig, ax = plt.subplots()
-    handles = []
     for n, workspace in enumerate(workspaces):
         eb, _, _ = ax.errorbar(
             workspace.mod_q, workspace.intensity, yerr=workspace.error
@@ -177,7 +176,115 @@ def plot_IQmod(
     if kwargs:
         plt.setp(ax, **kwargs)
 
-    _saveFile(fig, filename, backend)
+    _save_file(fig, filename, backend)
+
+
+def _create_ring_roi(iq2d, q_min, q_max, input_roi) -> np.ndarray:
+    """Create a mask or ROI by q range and result in a ring (or circle)
+
+    Returns
+    -------
+    np.ndarray
+        Boolean numpy array with same shape as input iq2d.  False for masking, True for ROI
+
+    """
+    # create region of interest overlay
+    output_roi = input_roi
+
+    # Larger than min Q
+    if q_min is not None:
+        # roi = np.logical_and(roi, np.square(iq2d.qx) + np.square(iq2d.qy) > np.square(q_min))
+        q_min_roi = np.square(iq2d.qx) + np.square(iq2d.qy) > np.square(q_min)
+        # act on output
+        output_roi = np.logical_and(output_roi, q_min_roi)
+
+    # Less than max Q
+    if q_max is not None:
+        q_max_roi = np.square(iq2d.qx) + np.square(iq2d.qy) < np.square(q_max)
+        # act on output
+        output_roi = np.logical_and(output_roi, q_max_roi)
+
+    return output_roi
+
+
+def _create_wedge_roi(iq2d, wedges, symmetric_wedges: bool,
+                      input_roi: np.ndarray, qx_limit: float = 1e10) -> np.ndarray:
+    """Create ROI matrix with
+
+    Parameters
+    ----------
+    iq2d
+    wedges
+    symmetric_wedges
+    input_roi
+    qx_limit: float
+        Upper limit of possible Qx
+
+    Returns
+    -------
+    np.ndarray
+        boolean array with same shape as intensity.  True for ROI.
+
+    """
+    # set output
+    output_roi = input_roi
+
+    # Check: wedge must be specified
+    if wedges is None:
+        return output_roi
+
+    # create bool array selecting nothing
+    roi_wedges = np.zeros(iq2d.intensity.shape).astype(bool)
+    # expand the supplied variables into an easier form
+    # get validated wedge in groups and flatten it to list of wedge angles
+    wedge_angles = validate_wedges_groups(wedges, symmetric_wedges)
+    wedge_angles = [
+        wedge_angle for wedges_group in wedge_angles for wedge_angle in wedges_group
+    ]
+
+    # create the individual selections and combine with 'or'
+    # Note: qx is in [[qx0, qx0, qx0, ...], [qx1, qx1, qx1, ...], ...]
+    #       qy is in [[qy0, qy1, qy2, ...], [qy0, qy1, qy2, ...], ...]
+    # this is transposed comparing to how Qx and Qy is plotted for the output
+    azimuthal = np.rad2deg(
+        np.arctan2(iq2d.qy, iq2d.qx)
+    )
+    # Try 1azimuthal = np.rad2deg(np.arctan2(workspace.qx, workspace.qy))
+    azimuthal[azimuthal <= -90.0] += 360.0
+    for lower_boundary_angle, upper_boundary_angle in wedge_angles:
+        wedge = np.logical_and((azimuthal > lower_boundary_angle), (azimuthal < upper_boundary_angle))
+        roi_wedges = np.logical_or(roi_wedges, wedge)
+
+    # combine with existing roi
+    output_roi = np.logical_and(output_roi, roi_wedges)
+
+    return output_roi
+
+
+def _require_transpose_intensity(iq2d) -> bool:
+    """Check whether the intensity/ROI in IQazimuthal shall be transposed to plot
+    as Qx in horizontal and Qy in vertical
+    """
+    # Determine whether intensity matrix shall be inverted or not
+    qx2d = iq2d.qx
+    qy2d = iq2d.qy
+    # set up the flag to transpose ROI if I(Qx, Qy) is to be tranposed
+    transpose_flag = False
+    if len(qx2d.shape) == 1:
+        # No need to transpose if Qx and Qy are given in 1-dim
+        transpose_flag = True
+    if len(qx2d.shape) == 2 and qx2d.shape[0] > 1 and np.sum(qx2d[0] == qx2d[1]) == qx2d.shape[1]:
+        # Input Qx and Qy are 2-dim and
+        # I(Qx, Qy) is of same order as meshgrid(Qx, Qy)
+        # Qx have identical among rows:
+        if qy2d.shape[1] > 1:
+            # sanity check
+            assert (np.sum(qy2d[:, 0] == qy2d[:, 1]) == qy2d.shape[0]), "Qy shall have identical columns"
+    else:
+        # I(Qx, Qy) is transposed to meshgrid(Qx, Qy)
+        transpose_flag = True
+
+    return transpose_flag
 
 
 def plot_IQazimuthal(
@@ -223,81 +330,39 @@ def plot_IQazimuthal(
     kwargs: ~dict
         Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
     """
+    # Set up backend and verify data type
     backend = Backend.getMode(backend)
     datatype = getDataType(workspace)
     if datatype != DataType.IQ_AZIMUTHAL:
         raise RuntimeError('Do not know how to plot type="{}"'.format(datatype))
 
-    qxmin = workspace.qx.min()
-    qxmax = workspace.qx.max()
-    qymin = workspace.qy.min()
-    qymax = workspace.qy.max()
+    # Set up ROI/mask
+    roi = (np.zeros(workspace.intensity.shape) + 1).astype(bool)
+    # ROI as a ring (qmin, qmax)
+    roi = _create_ring_roi(workspace, qmin, qmax, roi)
+    # wedge
+    roi = _create_wedge_roi(workspace, wedges, symmetric_wedges, roi)
 
-    # create region of interest overlay
-    roi = None
-    if qmin is not None:
-        # no need to check for exsting roi
-        roi = np.square(workspace.qx) + np.square(workspace.qy) > np.square(qmin)
-    if qmax is not None:
-        roi_qmax = np.square(workspace.qx) + np.square(workspace.qy) < np.square(qmax)
-        if roi is None:
-            roi = roi_qmax
-        else:
-            roi = np.logical_and(roi, roi_qmax)
-    if wedges is not None:
-        # create bool array selecting nothing
-        roi_wedges = np.logical_not(workspace.qx < 1000.0)
-        # expand the supplied variables into an easier form
-        # get validated wedge in groups and flatten it to list of wedge angles
-        wedge_angles = validate_wedges_groups(wedges, symmetric_wedges)
-        wedge_angles = [
-            wedge_angle for wedges_group in wedge_angles for wedge_angle in wedges_group
-        ]
-
-        # create the individual selections and combine with 'or'
-        # Note: qx is in [[qx0, qx0, qx0, ...], [qx1, qx1, qx1, ...], ...]
-        #       qy is in [[qy0, qy1, qy2, ...], [qy0, qy1, qy2, ...], ...]
-        # this is transposed comparing to how Qx and Qy is plotted for the output
-        azimuthal = np.rad2deg(
-            np.arctan2(workspace.qy.transpose(), workspace.qx.transpose())
-        )
-        # Try 1azimuthal = np.rad2deg(np.arctan2(workspace.qx, workspace.qy))
-        azimuthal[azimuthal <= -90.0] += 360.0
-        for left, right in wedge_angles:
-            wedge = np.logical_and((azimuthal > left), (azimuthal < right))
-            # Try 0 wedge = np.logical_and((azimuthal < right), (azimuthal > left))
-            roi_wedges = np.logical_or(roi_wedges, wedge)
-
-        # combine with existing roi
-        if roi is None:
-            roi = roi_wedges
-        else:
-            roi = np.logical_and(roi, roi_wedges)
+    # Make sure the orientation of intensity array can be shown correctly with imshow
+    # imshow thinks the bottom right corner is (0, n-1) while it is intensity(qx_max, qy_min)
+    transpose_flag = _require_transpose_intensity(workspace)
+    if transpose_flag:
+        # transpose both intensity and ROI
+        intensity = workspace.intensity.T
+        roi = roi.T
+    else:
+        intensity = workspace.intensity
+    # convert ROI to masks
+    roi = np.ma.masked_where(roi, roi.astype(int))
 
     # put together the plot
     fig, ax = plt.subplots()
     current_cmap = matplotlib.cm.get_cmap()
     current_cmap.set_bad(color="grey")
-
-    # Determine whether intensity matrix shall be inverted or not
-    qx2d = workspace.qx
-    qy2d = workspace.qy
-    # set up the flag to transpose ROI if I(Qx, Qy) is to be tranposed
-    transpose_flag = False
-    if qx2d.shape[0] > 1 and np.sum(qx2d[0] == qx2d[1]) == qx2d.shape[1]:
-        # I(Qx, Qy) is of same order as meshgrid(Qx, Qy)
-        # Qx have identical among rows:
-        if qy2d.shape[1] > 1:
-            # sanity check
-            assert (
-                np.sum(qy2d[:, 0] == qy2d[:, 1]) == qy2d.shape[0]
-            ), "Qy shall have identical columns"
-        intensity = workspace.intensity
-    else:
-        # I(Qx, Qy) is tranposed to meshgrid(Qx, Qy)
-        intensity = workspace.intensity.T
-        transpose_flag = True
-
+    qxmin = workspace.qx.min()
+    qxmax = workspace.qx.max()
+    qymin = workspace.qy.min()
+    qymax = workspace.qy.max()
     pcm = ax.imshow(
         intensity,
         extent=(qxmin, qxmax, qymin, qymax),
@@ -307,22 +372,17 @@ def plot_IQazimuthal(
     )
 
     # add calculated region of interest
-    if roi is not None:
-        roi = np.ma.masked_where(roi, roi.astype(int))
-        # transpose ROI
-        if transpose_flag:
-            roi = roi.T
-        ax.imshow(
-            roi,
-            alpha=mask_alpha,
-            extent=(qxmin, qxmax, qymin, qymax),
-            cmap="gray",
-            vmax=roi.max(),
-            interpolation="none",
-            origin="lower",
-            aspect="auto",
-        )
-        pcm.cmap.set_bad(alpha=0.5)
+    ax.imshow(
+        roi,
+        alpha=mask_alpha,
+        extent=(qxmin, qxmax, qymin, qymax),
+        cmap="gray",
+        vmax=roi.max(),
+        interpolation="none",
+        origin="lower",
+        aspect="auto",
+    )
+    pcm.cmap.set_bad(alpha=0.5)
 
     # rest of plotting arguments
     fig.colorbar(pcm, ax=ax)
@@ -332,7 +392,7 @@ def plot_IQazimuthal(
     if kwargs:
         plt.setp(ax, **kwargs)
 
-    _saveFile(fig, filename, backend)
+    _save_file(fig, filename, backend)
 
 
 def plot_detector(
@@ -428,4 +488,4 @@ def plot_detector(
     fig.tight_layout()
 
     if filename is not None:
-        _saveFile(fig, filename, backend)
+        _save_file(fig, filename, backend)

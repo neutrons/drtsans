@@ -625,6 +625,7 @@ class IQazimuthal(
             _check_parallel(intensity, error, qx, qy)
         elif len(intensity.shape) == 2:
             if len(qx.shape) == 1:
+                # Qx and Qy are given in 1D array (not meshed)
                 _check_parallel(intensity, error)
                 if intensity.shape[0] != qx.shape[0]:
                     raise TypeError(
@@ -639,6 +640,7 @@ class IQazimuthal(
                         )
                     )
             elif len(qx.shape) == 2:
+                # Qx and Qy are given in meshed 2D
                 _check_parallel(intensity, error, qx, qy)
             else:
                 raise TypeError(
@@ -666,10 +668,15 @@ class IQazimuthal(
 
         # make the qx and qy have the same shape as the data
         if len(intensity.shape) == 2 and len(qx.shape) == 1 and len(qy.shape) == 1:
-            qy_length = qy.shape[0]
-            qx_length = qx.shape[0]
-            qx = np.tile(qx, (qy_length, 1))
-            qy = np.tile(qy, (qx_length, 1)).transpose()
+            # Using meshgrid to construct the Qx and Qy 2D arrays.  This is consistent with the algorithm
+            # that is used in bin_iq_2d()
+            qx, qy = np.meshgrid(qx, qy, indexing='ij')
+
+            # Sanity check
+            assert qx.shape == intensity.shape, f'qx and intensity must have same shapes.  ' \
+                                                f'It is not now: {qx.shape} vs {intensity.shape}'
+            assert qy.shape == intensity.shape, f'qy and intensity must have same shapes.  ' \
+                                                f'It is not now: {qy.shape} vs {intensity.shape}'
 
         # pass everything to namedtuple
         return super(IQazimuthal, cls).__new__(

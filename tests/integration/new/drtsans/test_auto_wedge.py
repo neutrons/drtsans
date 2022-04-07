@@ -65,6 +65,13 @@ def _create_2d_data():
             [12.2, 13.8, 14.8, 13.4, 13.8, 16.7, 14.8, 17.0, 14.8, 14.8, 12.2],
         ]
     )
+
+    # IQazimuthal's constructor is corrected in
+    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/merge_requests/951
+    # Thus the test input data shall be tranposed accordingly
+    intensities = intensities.T
+    errors = errors.T
+
     data2d = IQazimuthal(
         intensity=intensities,
         error=errors,
@@ -360,6 +367,9 @@ def test_calc_qmod_and_azimuthal():
     assert delta_qmod is None
     assert azimuthal.shape == intensity.shape
 
+    from drtsans.plots.api import plot_IQazimuthal
+    plot_IQazimuthal(data2d, 'input_wedge.png', backend='mpl')
+
     # numbers taken from the spreadsheet
     q_exp = np.array(
         [
@@ -396,7 +406,10 @@ def test_calc_qmod_and_azimuthal():
     )
 
     np.testing.assert_allclose(qmod, q_exp.ravel(), atol=0.005)
-    np.testing.assert_allclose(azimuthal, azimuthal_exp.ravel(), atol=0.5)
+    # IQazimuthal's constructor is corrected in
+    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/merge_requests/951
+    # Thus the expected test result shall be tranposed accordingly
+    np.testing.assert_allclose(azimuthal, azimuthal_exp.T.ravel(), atol=0.5)
 
 
 def test_bin_into_q_and_azimuthal():
@@ -480,6 +493,10 @@ def test_integration():
         q_delta=q_delta,
         azimuthal_delta=azimuthal_delta,
     )
+
+    # from drtsans.plots.api import plot_IQazimuthal
+    # plot_IQazimuthal(data2d, 'wedge_int_test_debug.png', backend='mpl')
+    # assert False, f'Wedges: {wedges}'
 
     # tests
     assert len(wedges) == 2

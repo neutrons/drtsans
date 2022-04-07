@@ -1,5 +1,7 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/docs/drtsans/dataobjects.rst
+import numpy
+
 from drtsans.dataobjects import (
     DataType,
     getDataType,
@@ -564,9 +566,10 @@ def select_i_of_q_by_wedge(i_of_q, min_wedge_angle, max_wedge_angle):
     return wedge_i_of_q
 
 
-def _toQmodAndAzimuthal(data):
+def _toQmodAndAzimuthal(data: IQazimuthal) -> Tuple[numpy.ndarray, numpy.ndarray,
+                                                    numpy.ndarray, numpy.ndarray, numpy.ndarray]:
     """This function returns the values of qmod and azimuthal that are parallel
-    to the original data array. It requiresthat the data is IQazimuthal
+    to the original data array. It requires that the data is IQazimuthal
 
     Parameters
     ==========

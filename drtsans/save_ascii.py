@@ -23,13 +23,23 @@ def save_ascii_binned_1D(filename, title, *args, **kwargs):
         intensity, error, mod_q, delta_mod_q - 1D numpy arrays of the same length, output from 1D binning
     """
     try:
-        kwargs = args[0]._asdict()
+        kwargs.update(args[0]._asdict())
     except AttributeError:
         pass
-    q = kwargs["mod_q"]
-    intensity = kwargs["intensity"]
-    error = kwargs["error"]
-    dq = kwargs["delta_mod_q"]
+    # Read the value of skip_nan from kwargs or True as default
+    skip_nan = kwargs.get('skip_nan', True)
+    # Delete NaNs if requested
+    if skip_nan:
+        finites = np.isfinite(kwargs['intensity'])
+        q = kwargs['mod_q'][finites]
+        intensity = kwargs["intensity"][finites]
+        error = kwargs["error"][finites]
+        dq = kwargs["delta_mod_q"][finites]
+    else:
+        q = kwargs["mod_q"]
+        intensity = kwargs["intensity"]
+        error = kwargs["error"]
+        dq = kwargs["delta_mod_q"]
 
     with open(filename, "w+") as f:
         f.write("# " + title + "\n")

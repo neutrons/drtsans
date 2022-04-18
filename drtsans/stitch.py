@@ -58,9 +58,14 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
             to_target.mod_q[good_values],
             to_target.intensity[good_values],
         )
-        return sum(target_profile.intensity[indexes_in_overlap]) / sum(
-            to_target_interpolated
-        )
+        scale = sum(target_profile.intensity[indexes_in_overlap]) / \
+            sum(to_target_interpolated)
+        if scale <= 0:
+            raise ValueError(
+                f"Scale number: {scale}. The scaling number for stitching cannot be negative. "
+                + "Please check the stitching range or profile pattern")
+        else:
+            return scale
 
     # We begin stitching to the target profile the neighboring profile with lower Q-values, then proceed until we
     # run out of profiles with lower Q-values than the target profile

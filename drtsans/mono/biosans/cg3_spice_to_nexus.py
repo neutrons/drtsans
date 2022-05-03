@@ -237,9 +237,7 @@ def convert_spice_to_nexus(
             )
 
     # output file name
-    out_nexus_file = os.path.join(
-        output_dir, f"CG3_{exp_number:04}{scan_number:04}{pt_number:04}.nxs.h5"
-    )
+    out_nexus_file = f’CG3_{exp_number:04}{scan_number:04}{pt_number:04}.nxs.h5’
     out_nexus_file = os.path.join(output_dir, out_nexus_file)
 
     # load mapping reference from yaml

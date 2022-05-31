@@ -227,19 +227,6 @@ code-pylint:
   tags:
     - scse-mantid-builder
 
-scse-web-next-dev1:
-  stage: web-host
-  dependencies:
-    - docs-next
-  script:
-    - sudo rm -rf /tmp/scse-web/docs/drt/sans || true
-    - sudo mkdir -p /tmp/scse-web/docs/drt/sans
-    - sudo rsync -r html/* /tmp/scse-web/docs/drt/sans
-  tags:
-    - scse-web-dev1
-  only:
-    - next
-
 scse-web-next1:
   stage: web-host
   dependencies:
@@ -284,7 +271,7 @@ analysis-update:
         CONDA_ENV="sans-qa"
       else
         CONDA_ENV="sans"
-      fi    
+      fi
     - curl -X POST -F token=$DEVOPS_TRIGGER -F ref=main -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=$CONDA_ENV $DEVOPS_PROJECT
   tags:
     - scse-mantid-builder

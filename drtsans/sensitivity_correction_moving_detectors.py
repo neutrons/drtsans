@@ -204,6 +204,12 @@ def _apply_sensitivity_thresholds(data, data_error, threshold_min, threshold_max
         data with bad pixels set to INF,
         data error with bad pixels set to INF
     """
+    msg = "[drtsans._apply_sensitivity_thresholds]:\n"
+    msg += f"\tthreshold_min: {threshold_min}\n"
+    msg += f"\tthreshold_max: {threshold_max}\n"
+    msg += f"\tnumber of pixels below threshold_min: {len(np.where(data < threshold_min)[0])}\n"
+    msg += f"\tnumber of pixels above threshold_max: {len(np.where(data > threshold_max)[0])}\n"
+    logger.notice(msg)
     # (data < threshold_min) | (data > threshold_max) returns the list of indexes in array data whose values
     # are either smaller than minimum threshold or larger than maximum threshold.
     data[(data < threshold_min) | (data > threshold_max)] = -np.inf
@@ -391,6 +397,11 @@ def calculate_sensitivity_correction(flood_run_ws_list, threshold_min, threshold
 
     # Convert all masked pixels' counts to NaN
     masked_items = np.where(sigma_array < 1e-16)
+    # Logging
+    msg = "[drtsans.calculate_sensitivity_correction]:\n"
+    msg += f"\tNumber of zero counts: {np.where(flood_array < 1e-16)[0].shape}\n"
+    msg += f"\tNumber of zero sigmas: {np.where(sigma_array < 1e-16)[0].shape}\n"
+    logger.notice(msg)
     # set values to masked pixels
     flood_array[masked_items] = np.nan
     sigma_array[masked_items] = np.nan

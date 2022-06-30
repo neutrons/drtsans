@@ -7,11 +7,11 @@ conda config --add channels conda-forge
 conda config --add channels mantid
 conda install -q -y mamba -n base -c conda-forge
 source activate mantid
-mamba install -q -y -c mantid/label/nightly python=3.7 mantid-framework
+conda install -q -y -c mantid/label/nightly python=3.7 mantid-framework
 
 # these should be the new additions
-mamba install -q -y --file /opt/sans-backend/requirements.txt
-mamba install -q -y --file /opt/sans-backend/requirements_dev.txt
+conda install -q -y --file /opt/sans-backend/requirements.txt
+conda install -q -y --file /opt/sans-backend/requirements_dev.txt
 
 # cleanup
 conda clean -afy

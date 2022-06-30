@@ -560,12 +560,21 @@ class PrepareSensitivityCorrection(object):
                 f"but total mask is off"
             )
 
-        print(
+        logger.debug(
+            "Patch detector method: Pixels that have not been masked as bad pixels, but have been"
+            "identified as needing to have values set by the patch applied. To identify them, the"
+            "value is set to -INF."
+        )
+        logger.notice(
             "Number of infinities = {}".format(
                 len(np.where(np.isinf(flood_workspace.extractY()))[0])
             )
         )
-        print(
+
+        logger.debug(
+            "Moving/Patch detector algorithm.  Any masked detector pixel is set to NaN"
+        )
+        logger.notice(
             "Number of NaNs       = {}".format(
                 len(np.where(np.isnan(flood_workspace.extractY()))[0])
             )

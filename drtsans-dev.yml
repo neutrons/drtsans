@@ -1,0 +1,27 @@
+name: drtsans-dev
+channels:
+  - mantid
+  - conda-forge
+  - defaults
+dependencies:
+  - autopep8
+  - black
+  - docutils
+  - flake8
+  - ipywidgets
+  - jsonschema>=3.0.2
+  - lmfit
+  - mantidworkbench==6.4
+  - mpld3
+  - numexpr
+  - pandas
+  - pre-commit
+  - pylint
+  - pytest >= 3.2
+  - pytest-xdist
+  - sortedcontainers
+  - sphinx
+  - sphinxcontrib-napoleon
+  - tinydb
+
+prefix: /opt/anaconda/envs/drtsans-dev

@@ -48,12 +48,21 @@ dockerbuild:
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
+    - DOCKER_DATE=$(date +%Y.%m.%d)
+    - DOCKER_TAG_BASE=$CONTAINER_URL
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - time docker pull code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master
-    - time docker build -t $CONTAINER_URL .
-    - time docker push $CONTAINER_URL
+    # kickstart or $CI_COMMIT_REF_SLUG
+    - docker build -f dockerfiles/Dockerfile.kickstart --build-arg PROFILE=${PROFILE} -t $DOCKER_TAG_BASE:$DOCKER_DATE .
+    - docker tag $DOCKER_TAG_BASE:$DOCKER_DATE $DOCKER_TAG_BASE:latest
+    - docker push $DOCKER_TAG_BASE:$DOCKER_DATE
+    - docker push $DOCKER_TAG_BASE:latest
     - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh
     - sudo chown -R gitlab-runner .
+  only:
+    changes:
+      - .gitlab-ci.yml
+      - dockerfiles/Dockerfile.kickstart
+      - drtsans-dev.yml
   tags:
     - scse-mantid-builder
   artifacts:
@@ -66,7 +75,6 @@ docker-update-test:
   dependencies:
     - dockerbuild
   before_script:
-    - sudo yum install -y nfs-utils
     - sudo mkdir -p /SNS/EQSANS
     - sudo mkdir -p /HFIR/CG2
     - sudo mkdir -p /HFIR/CG3
@@ -85,7 +93,6 @@ docker-no-update-test:
   dependencies:
     - dockerbuild
   before_script:
-    - sudo yum install -y nfs-utils
     - sudo mkdir -p /SNS/EQSANS
     - sudo mkdir -p /HFIR/CG2
     - sudo mkdir -p /HFIR/CG3
@@ -111,7 +118,7 @@ docs-feature:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx"
+    - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "source activate drtsans-dev; cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx"
     - ls .
     - popd
   tags:
@@ -133,7 +140,7 @@ docs-next:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx"
+    - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "source activate drtsans-dev; cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx"
     - ls .
     - popd
   after_script:

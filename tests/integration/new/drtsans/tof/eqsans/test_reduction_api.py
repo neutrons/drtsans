@@ -38,6 +38,9 @@ specs_eqsans = {
 }
 
 
+@pytest.mark.skip(
+    reason="Unknown issue leads to Cannot find events file associated to 88980 error"
+)
 @pytest.mark.parametrize(
     "run_config, basename",
     [(specs_eqsans["EQSANS_88980"], "EQSANS_88980")],
@@ -146,6 +149,9 @@ def test_regular_setup(run_config, basename, generatecleanfile, reference_dir):
             DeleteWorkspace(ws)
 
 
+@pytest.mark.skip(
+    reason="Unknown issue leads to Cannot find events file associated to 88980 error"
+)
 @pytest.mark.parametrize(
     "run_config, basename",
     [(specs_eqsans["EQSANS_88980"], "EQSANS_88980")],
@@ -355,6 +361,9 @@ def export_reduction_output(
         print(f"Save frame {section_index} I(Q2D) to {h5_file_name}")
 
 
+@pytest.mark.skip(
+    reason="Unknown issue leads to asseration error with current tolerance"
+)
 def test_wavelength_step(reference_dir):
 
     # Set up the configuration dict

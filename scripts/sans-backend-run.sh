@@ -49,11 +49,11 @@ func_main() {
   elif [[ $# -eq 1 ]]; then
     declare -r VAR_PARAMS_FILE="${1}"
   else
-    declare -r VAR_PARAMS_FILE='/opt/sans-backend/scripts/test_input.json'
+    declare -r VAR_PARAMS_FILE='/tmp/input/scripts/test_input.json'
   fi
   if docker -v 1>/dev/null 2>/dev/null; then
     if [ "${VAR_UPDATE}" = 'true' ]; then
-      docker pull CONTAINER_URL
+      docker pull ${CONTAINER_URL}
     fi
     if docker login code.ornl.gov:4567 2>/dev/null; then
       if [[ -d /SNS ]] && [[ $(ls -1q /SNS | wc -l) -gt 0 ]]; then
@@ -61,9 +61,9 @@ func_main() {
       fi
       mkdir -m a=rwx -p SANS_output
       if ${VAR_INTERACT}; then
-        docker run -v "$PWD":/tmp/input -v "$PWD"/SANS_output:/tmp/SANS_output ${VAR_MOUNT_SNS} -it CONTAINER_URL bash
+        docker run -v "$PWD":/tmp/input -v "$PWD"/SANS_output:/tmp/SANS_output ${VAR_MOUNT_SNS} -it ${CONTAINER_URL} bash
       else
-        docker run -v "$PWD":/tmp/input -v "$PWD"/SANS_output:/tmp/SANS_output ${VAR_MOUNT_SNS} -t CONTAINER_URL bash -c "source activate mantid && python3 /opt/sans-backend/scripts/process_reduction.py ${VAR_PARAMS_FILE}"
+        docker run -v "$PWD":/tmp/input -v "$PWD"/SANS_output:/tmp/SANS_output ${VAR_MOUNT_SNS} -t ${CONTAINER_URL} bash -c "source activate drtsans-dev && python3 /tmp/input/scripts/process_reduction.py ${VAR_PARAMS_FILE}"
       fi
     else
       printf "Error: Login failed. Do you have access to this repository?\n" 1>&2

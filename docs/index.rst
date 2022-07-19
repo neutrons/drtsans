@@ -6,14 +6,37 @@
 Welcome to drt-sans's documentation!
 ====================================
 
+User Guide
+----------
+
 .. toctree::
    :maxdepth: 2
 
-   /drtsans/index
-   /drtsans/dataobjects
-   /drtsans/pixel_calibration
-   /drtsans/mono/index
-   /drtsans/tof/index
+   /drtsans/reduction_parameters
+
+
+API documentation
+-----------------
+
+.. toctree::
+   :maxdepth: 1
+
+   /drtsans/drtsans
+   /drtsans/drtsans.files
+   /drtsans/drtsans.mono
+   /drtsans/drtsans.mono.biosans
+   /drtsans/drtsans.mono.gpsans
+   /drtsans/drtsans.plots
+   /drtsans/drtsans.tof
+   /drtsans/drtsans.tof.eqsans
+   /drtsans/modules
+
+developer
+---------
+
+.. toctree::
+   :maxdepth: 2
+
    /developer/index
 
 Indices and tables

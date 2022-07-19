@@ -15,8 +15,7 @@ def prepare_sensitivity(
 
     Data files are processed such that intensities and errors are stored in numpy.ndarray with shape (N, M), where
     - N: number of data files to calculate sensitivities
-    - M: number of pixels (aka spectra) in instrument's detector;
-         The 2D data from 2D detector are flattened to 1D in implementation
+    - M: number of pixels (aka spectra) in instrument's detector; The 2D data from 2D detector are flattened to 1D
 
     Prerequisite of the input data:
     - Input data has been normalized by monitor counts already

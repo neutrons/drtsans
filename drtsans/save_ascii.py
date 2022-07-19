@@ -9,7 +9,7 @@ import numpy as np
 
 
 def save_ascii_binned_1D(filename, title, *args, **kwargs):
-    r"""Save I(q) data in Ascii format
+    """Save I(q) data in Ascii format
 
     Parameters
     ----------
@@ -17,7 +17,7 @@ def save_ascii_binned_1D(filename, title, *args, **kwargs):
         output filename
     title: str
         title to be added on the first line
-    args: ~drtsans.dataobjects.IQmod
+    args: drtsans.dataobjects.IQmod
         output from 1D binning
     kwargs:
         intensity, error, mod_q, delta_mod_q - 1D numpy arrays of the same length, output from 1D binning
@@ -139,7 +139,7 @@ def save_ascii_binned_2D(filename, title, *args, **kwargs):
 
 
 def load_ascii_binned_2D(filename):
-    """Load the format produced by :ref:`~save_ascii_binned_2D`
+    """Load the format produced by save_ascii_binned_2D
 
     Parameters
     ----------
@@ -148,7 +148,7 @@ def load_ascii_binned_2D(filename):
 
     Returns
     -------
-    ~drtsans.dataobjects.IQazimuthal
+    drtsans.dataobjects.IQazimuthal
     """
     csv_data = np.genfromtxt(filename, comments="#", dtype=np.float64, skip_header=3)
     num_cols = len(csv_data[0])

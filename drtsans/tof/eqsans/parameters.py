@@ -38,7 +38,7 @@ def _get_config_file(run_number):
 def get_parameters(run_number):
     """
     Get the parameters from the configuration file
-    If the same key exist, the value is appended with '\n'
+    If the same key exist, the value is appended with \n
     Returns a dictionary
     """
     raise RuntimeError("Deprecated function. Use eqsans.correct_frame instead")

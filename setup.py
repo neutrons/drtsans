@@ -1,7 +1,7 @@
 """
 Setup script for ORNL SANS reduction
 """
-from __future__ import absolute_import, division, print_function
+# from __future__ import absolute_import, division, print_function
 import os
 from setuptools import setup, find_packages
 import versioneer
@@ -24,7 +24,7 @@ def read_requirements_from_file(filepath):
     :param filepath: Path to the file to read
     :return: A list of strings containing the requirements
     """
-    with open(filepath, "rU") as req_file:
+    with open(filepath, "r") as req_file:
         return req_file.readlines()
 
 

@@ -63,8 +63,7 @@ func_main() {
       if ${VAR_INTERACT}; then
         docker run -v "$PWD":/tmp/input -v "$PWD"/SANS_output:/tmp/SANS_output ${VAR_MOUNT_SNS} -it ${CONTAINER_URL} bash
       else
-      docker run -v """$PWD:/tmp/input -v $PWD/SANS_output:/tmp/SANS_output ${VAR_MOUNT_SNS} -t ${CONTAINER_URL} bash -c source activate drtsans-dev && python3 /tmp/input/scripts/process_reduction.py ${VAR_PARAMS_FILE}"""
-     # docker run -v "$PWD":/tmp/input -v "$PWD"/SANS_output:/tmp/SANS_output ${VAR_MOUNT_SNS} -t ${CONTAINER_URL} bash -c "source activate drtsans-dev && python3 /tmp/input/scripts/process_reduction.py ${VAR_PARAMS_FILE}"
+        docker run -v "$PWD":/tmp/input -v "$PWD"/SANS_output:/tmp/SANS_output ${VAR_MOUNT_SNS} -t ${CONTAINER_URL} bash -c "source activate drtsans-dev && python3 /tmp/input/scripts/process_reduction.py ${VAR_PARAMS_FILE}"
       fi
     else
       printf "Error: Login failed. Do you have access to this repository?\n" 1>&2

@@ -166,8 +166,6 @@ def convert_spice_to_nexus(
     spice_data: str = Union[None, str],
 ):
     """
-    Description
-    -----------
     Convert legacy SPICE file for bioSANS/cg3 to Event NeXus
 
     Parameters

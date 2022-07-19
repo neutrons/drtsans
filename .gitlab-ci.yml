@@ -56,7 +56,7 @@ dockerbuild:
     - docker tag $DOCKER_TAG_BASE:$DOCKER_DATE $DOCKER_TAG_BASE:latest
     - docker push $DOCKER_TAG_BASE:$DOCKER_DATE
     - docker push $DOCKER_TAG_BASE:latest
-    - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh
+    # - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh
     - sudo chown -R gitlab-runner .
   only:
     changes:
@@ -118,7 +118,7 @@ docs-feature:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "source activate drtsans-dev; cd /opt/sans-backend; python /opt/sans-backend/setup.py build_sphinx"
+    - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "source activate drtsans-dev; cd /opt/sans-backend/docs; make html"
     - ls .
     - popd
   tags:

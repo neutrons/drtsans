@@ -2,8 +2,8 @@
 
 pytest >= 3.2
 pytest-xdist
-jinja2==3.0.0
-sphinx == 1.8.5
+jinja2
+sphinx
 sphinxcontrib-napoleon
 
 # for linting and formatting

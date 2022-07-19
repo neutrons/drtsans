@@ -15,8 +15,6 @@ class SampleLogs(object):
     r"""
     Log reader, a bit more pythonic
 
-    Params
-    ------
     source: PyObject
         Instrument object, MatrixWorkspace, workspace name, file name,
         run number

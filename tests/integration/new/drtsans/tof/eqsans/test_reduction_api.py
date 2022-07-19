@@ -361,9 +361,6 @@ def export_reduction_output(
         print(f"Save frame {section_index} I(Q2D) to {h5_file_name}")
 
 
-@pytest.mark.skip(
-    reason="Unknown issue leads to asseration error with current tolerance"
-)
 def test_wavelength_step(reference_dir):
 
     # Set up the configuration dict

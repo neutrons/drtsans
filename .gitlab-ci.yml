@@ -6,7 +6,6 @@ stages:
   - flake8
   - dockerbuild
   - test
-  - web-host
   - analysis-update
 
 flake8-feature:
@@ -233,32 +232,6 @@ code-pylint:
     - popd
   tags:
     - scse-mantid-builder
-
-scse-web-next1:
-  stage: web-host
-  dependencies:
-    - docs-next
-  script:
-    - sudo rm -rf /tmp/scse-web/docs/drt/sans || true
-    - sudo mkdir -p /tmp/scse-web/docs/drt/sans
-    - sudo rsync -r html/* /tmp/scse-web/docs/drt/sans
-  tags:
-    - scse-web1
-  only:
-    - next
-
-scse-web-next2:
-  stage: web-host
-  dependencies:
-    - docs-next
-  script:
-    - sudo rm -rf /tmp/scse-web/docs/drt/sans || true
-    - sudo mkdir -p /tmp/scse-web/docs/drt/sans
-    - sudo rsync -r html/* /tmp/scse-web/docs/drt/sans
-  tags:
-    - scse-web2
-  only:
-    - next
 
 analysis-update:
   stage: analysis-update

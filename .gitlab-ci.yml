@@ -233,29 +233,50 @@ code-pylint:
   tags:
     - scse-mantid-builder
 
-analysis-update:
+deploy-dev:
   stage: analysis-update
-  before_script:
-    - sudo yum install -y nfs-utils
-    - sudo mkdir -p /SNS/software
-    - grep -qs '/SNS/software' /proc/mounts || sudo mount -t nfs -o "nfsvers=3,tcp,noatime,rsize=32768,wsize=32768" 128.219.164.43:/volumes/datapool/sfw-rhel7-prod /SNS/software
-  script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - time docker pull $CONTAINER_URL
-    - time docker run -v /SNS/software/miniconda2:/SNS/software/miniconda2 -u 0:0 $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/analysis-update-user.sh $CI_COMMIT_REF_NAME"
-    - sudo chown -R gitlab-runner .
-    - >
-      if [[ ${CI_COMMIT_REF_SLUG} == "next" ]]; then
-        CONDA_ENV="sans-dev"
-      elif [[ ${CI_COMMIT_REF_SLUG} == "qa" ]]; then
-        CONDA_ENV="sans-qa"
-      else
-        CONDA_ENV="sans"
-      fi
-    - curl -X POST -F token=$DEVOPS_TRIGGER -F ref=main -F variables[PLAY]=conda/update -F variables[CONDA_ENV]=$CONDA_ENV $DEVOPS_PROJECT
-  tags:
-    - scse-mantid-builder
+  inherit:
+    # do not pass global variables to the downstream pipeline
+    variables: false
+  variables:
+    # specify deployment in the downstream repo is TEST
+    PLAY: update
+    CONDA_ENV: sans-dev
+  trigger:
+    project: sns-hfir-scse/deployments/conda-legacy-deploy
+    # run the downstream pipeline on branch main
+    branch: main
   only:
     - next
-    - master
+
+deploy-qa:
+  stage: analysis-update
+  inherit:
+    # do not pass global variables to the downstream pipeline
+    variables: false
+  variables:
+    # specify deployment in the downstream repo is TEST
+    PLAY: update
+    CONDA_ENV: sans-qa
+  trigger:
+    project: sns-hfir-scse/deployments/conda-legacy-deploy
+    # run the downstream pipeline on branch main
+    branch: main
+  only:
     - qa
+
+deploy-prod:
+  stage: analysis-update
+  inherit:
+    # do not pass global variables to the downstream pipeline
+    variables: false
+  variables:
+    # specify deployment in the downstream repo is TEST
+    PLAY: update
+    CONDA_ENV: sans
+  trigger:
+    project: sns-hfir-scse/deployments/conda-legacy-deploy
+    # run the downstream pipeline on branch main
+    branch: main
+  only:
+    - main

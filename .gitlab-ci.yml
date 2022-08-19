@@ -121,7 +121,7 @@ docs-feature:
     - ls .
     - popd
   tags:
-    - scse-mantid-builder
+    - rse-multi-builder
   except:
     - next
     - master
@@ -145,7 +145,7 @@ docs-next:
   after_script:
     - cp -r /tmp/sans-backend/build/sphinx/html .
   tags:
-    - scse-mantid-builder
+    - rse-multi-builder
   only:
     - next
   artifacts:
@@ -215,11 +215,6 @@ code-pylint:
   stage: test
   dependencies:
     - dockerbuild
-  before_script:
-    - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
-    - sudo mkdir -p /HFIR/CG2
-    - sudo mkdir -p /HFIR/CG3
-    - sudo bash scripts/instruments-mount.sh
   script:
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
@@ -228,10 +223,10 @@ code-pylint:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - time docker run -v /SNS:/SNS -v /HFIR:/HFIR -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/pylint_job.sh"
+    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/pylint_job.sh"
     - popd
   tags:
-    - scse-mantid-builder
+    - rse-multi-builder
 
 create-wheel:
   stage: test
@@ -248,7 +243,7 @@ create-wheel:
     - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/create_wheel.sh"
     - popd
   tags:
-    - scse-mantid-builder
+    - rse-multi-builder
 
 deploy-dev:
   stage: analysis-update

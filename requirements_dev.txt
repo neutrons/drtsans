@@ -12,3 +12,7 @@ flake8
 pylint
 black
 pre-commit
+
+build
+check-wheel-contents
+pytest-runner

@@ -6,6 +6,7 @@ channels:
 dependencies:
   - autopep8
   - black
+  - build
   - conda-build
   - docutils
   - flake8
@@ -18,9 +19,13 @@ dependencies:
   - mpld3
   - numexpr
   - pandas
+  - pip
+  - pip:
+      - check-wheel-contents
   - pre-commit
   - pylint
   - pytest >= 3.2
+  - pytest-runner
   - pytest-xdist
   - sortedcontainers
   - sphinx >= 5.0.2

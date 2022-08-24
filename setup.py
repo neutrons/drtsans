@@ -45,7 +45,7 @@ setup(
     long_description="""ORNL SANS reduction""",
     license="Apache License 2.0",
     zip_safe=False,
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests", "tests.*"]),
     scripts=scripts,
     package_dir={},
     package_data={

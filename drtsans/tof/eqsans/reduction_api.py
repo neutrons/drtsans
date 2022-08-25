@@ -22,6 +22,7 @@ from drtsans.tof.eqsans.correction_api import (
 )
 from drtsans.tof.eqsans.elastic_reference_normalization import (
     normalize_by_elastic_reference,
+    normalize_by_elastic_reference2D,
 )
 import os
 from collections import namedtuple
@@ -287,7 +288,7 @@ def bin_i_with_correction(
             )
 
         # Bin elastic reference run
-        if iq1d_elastic_ref_fr:
+        if iq1d_elastic_ref_fr or iq2d_elastic_ref_fr:
             # bin the reference elastic runs of the current frame
             iq2d_elastic_wl, iq1d_elastic_wl = bin_all(
                 iq2d_elastic_ref_fr[wl_frame],
@@ -309,26 +310,40 @@ def bin_i_with_correction(
                 error_weighted=weighted_errors,
                 n_wavelength_bin=None,
             )
-            if len(iq1d_elastic_wl) != 1:
-                raise NotImplementedError(
-                    "Not expected that there are more than 1 IQmod of "
-                    "elastic reference run."
+            if (iq1d_elastic_ref_fr):
+                if len(iq1d_elastic_wl) != 1:
+                    raise NotImplementedError(
+                        "Not expected that there are more than 1 IQmod of "
+                        "elastic reference run."
+                    )
+                # normalization
+                iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(
+                    iq1d_main_wl[0], iq1d_elastic_wl[0]
                 )
-            # normalization
-            iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(
-                iq1d_main_wl[0], iq1d_elastic_wl[0]
-            )
-            iq1d_main_wl[0] = iq1d_wl
-            # write
-            run_number = os.path.basename(
-                str(incoherence_correction_setup.elastic_reference.run_number)
-            ).split(".")[0]
-            save_k_vector(
-                iq1d_wl.wavelength,
-                k_vec,
-                k_error_vec,
-                path=os.path.join(output_dir, f"k_{run_number}.dat"),
-            )
+                iq1d_main_wl[0] = iq1d_wl
+                # write
+                run_number = os.path.basename(
+                    str(incoherence_correction_setup.elastic_reference.run_number)
+                ).split(".")[0]
+                save_k_vector(
+                    iq1d_wl.wavelength,
+                    k_vec,
+                    k_error_vec,
+                    path=os.path.join(output_dir, f"k_{run_number}.dat"),
+                )
+            else:
+                # 2D normalization
+                iq2d_wl, k_vec, k_error_vec = normalize_by_elastic_reference2D(
+                    iq2d_main_wl[0], iq2d_elastic_wl[0]
+                )
+                iq2d_main_wl[0] = iq2d_wl
+
+                save_k_vector(
+                    iq2d_wl.wavelength,
+                    k_vec,
+                    k_error_vec,
+                    path=os.path.join(output_dir, f"k_{run_number}.dat"),
+                )
 
         # 1D correction
         b_file_prefix = f"{raw_name}_frame_{wl_frame}"

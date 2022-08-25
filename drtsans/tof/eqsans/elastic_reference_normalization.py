@@ -1,7 +1,7 @@
 # Main method in this module implement step 2 of
 # wavelength dependent inelastic incoherent scattering correction
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
-from drtsans.dataobjects import verify_same_q_bins, IQmod
+from drtsans.dataobjects import verify_same_q_bins, IQmod, IQazimuthal
 import numpy as np
 
 
@@ -214,6 +214,63 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
     )
 
     return normalized_i_of_q, k_vec, k_error_vec
+
+
+def normalize_by_elastic_reference2D(i_of_q, ref_i_of_q):
+    """Normalize I(Q2D) by elastic reference run
+
+    Parameters
+    ----------
+    i_of_q: ~drtsans.dataobjects.IQmod
+        Input I(Q, wavelength) to normalize
+    ref_i_of_q: ~drtsans.dataobjects.IQmod
+        Input I(Q, wavelength) as elastic reference run
+
+    Returns
+    -------
+    tuple
+        normalized Q(2D), K vector and delta K vector
+
+    """
+    # check i_of_q and ref_i_of_q shall have same binning
+    if not verify_same_q_bins(i_of_q, ref_i_of_q):
+        raise RuntimeError(
+            "Input I(Q) and elastic reference I(Q) have different Q and wavelength binning"
+        )
+
+    # skip reshape step of the 1D case?
+
+    k_vec, k_error2_vec, p_vec, s_vec = calculate_K_2d(i_of_q)
+
+    # common grouping mask
+    mask = determine_common_mod_q2d_range_mesh(i_of_q.qx, i_of_q.qy, i_of_q.wavelength, i_of_q.intensity)
+
+    ref_wavelength_vec = determine_reference_wavelength_q2d(i_of_q, mask)
+
+    normalized_intensity_array, normalized_error2_array = normalize_intensity_q2d(
+        i_of_q.wavelength,
+        i_of_q.qx,
+        i_of_q.qy,
+        i_of_q.intensity,
+        i_of_q.error,
+        ref_wavelength_vec,
+        k_vec,
+        p_vec,
+        s_vec,
+        mask
+    )
+
+    normalized_i_of_q = IQazimuthal(
+        intensity=normalized_intensity_array,
+        error=normalized_error2_array,
+        qx=i_of_q.qx,
+        qy=i_of_q.qy,
+        wavelength=i_of_q.wavelength,
+        delta_qx=i_of_q.delta_qx,
+        delta_qy=i_of_q.delta_qy
+    )
+
+    return normalized_i_of_q, k_vec, k_error2_vec
 
 
 def build_i_of_q1d(wl_vector, q_vector, intensity_array, error_array, delta_q_array):

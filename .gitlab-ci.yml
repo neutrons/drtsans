@@ -6,6 +6,7 @@ stages:
   - flake8
   - dockerbuild
   - test
+  - publish
   - analysis-update
 
 flake8-feature:
@@ -52,9 +53,9 @@ dockerbuild:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     # kickstart or $CI_COMMIT_REF_SLUG
     - docker build -f dockerfiles/Dockerfile.kickstart --build-arg PROFILE=${PROFILE} -t $DOCKER_TAG_BASE:$DOCKER_DATE .
-    - docker tag $DOCKER_TAG_BASE:$DOCKER_DATE $DOCKER_TAG_BASE:latest
+    - docker tag $DOCKER_TAG_BASE:$DOCKER_DATE $DOCKER_TAG_BASE
     - docker push $DOCKER_TAG_BASE:$DOCKER_DATE
-    - docker push $DOCKER_TAG_BASE:latest
+    - docker push $DOCKER_TAG_BASE
     # - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh
     - sudo chown -R gitlab-runner .
   only:
@@ -244,6 +245,20 @@ create-wheel:
     - popd
   tags:
     - rse-multi-builder
+
+publish-package:
+  stage: publish
+  dependencies:
+    - create-wheel
+    - dockerbuild
+  before_script:
+    - sudo chmod +x scripts/exec_script_on_docker.sh
+  script:
+    - bash scripts/exec_script_on_docker.sh publish_package.sh
+  tags:
+    - rse-multi-builder
+  only:
+    - main
 
 deploy-dev:
   stage: analysis-update

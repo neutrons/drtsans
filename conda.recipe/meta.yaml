@@ -27,5 +27,6 @@ test:
 
 about:
   home: 
-  license:
-  license_file:
+  license: GPL (version 3)
+  license_family: GPL3
+  license_file: ../LICENSE

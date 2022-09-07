@@ -258,7 +258,7 @@ publish-package:
   tags:
     - rse-multi-builder
   only:
-    - main
+    - tags
 
 deploy-dev:
   stage: analysis-update

@@ -251,8 +251,6 @@ conda-package:
   dependencies:
     - create-wheel
     - dockerbuild
-  before_script:
-    - sudo chmod +x scripts/exec_script_on_docker.sh
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL

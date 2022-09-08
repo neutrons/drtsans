@@ -1,12 +1,20 @@
 # Build conda library
 set -e
-
 echo GITHUB REF $CI_COMMIT_REF_SLUG
+
+# cd into the correct directory
+THISFILE=$(readlink -f "$0")
+DIREC=$(dirname $THISFILE)   # directory of executable
+cd "${DIREC}/../conda.recipe"
+
+# setup and build the conda package
 conda install -y anaconda-client conda-build conda-verify
-cd conda.recipe
 conda build --output-folder . . -c neutrons -c mantid/label/nightly
 
-# Verify
+# show what tarballs were created
+ls */*.tar.bz2
+
+# verify
 conda-verify ./linux-64/drtsans-*.tar.bz2
 
 # Deploy tags to anaconda.org

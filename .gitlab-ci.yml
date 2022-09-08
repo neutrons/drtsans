@@ -246,7 +246,7 @@ create-wheel:
   tags:
     - rse-multi-builder
 
-publish-package:
+conda-package:
   stage: publish
   dependencies:
     - create-wheel
@@ -254,11 +254,11 @@ publish-package:
   before_script:
     - sudo chmod +x scripts/exec_script_on_docker.sh
   script:
-    - bash scripts/exec_script_on_docker.sh publish_package.sh
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - time docker pull $CONTAINER_URL
+    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/publish-package.sh"
   tags:
     - rse-multi-builder
-  only:
-    - tags
 
 deploy-dev:
   stage: analysis-update

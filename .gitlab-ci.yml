@@ -254,7 +254,7 @@ conda-package:
   script:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/publish-package.sh"
+    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/publish_package.sh"
   tags:
     - rse-multi-builder
 

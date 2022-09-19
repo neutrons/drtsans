@@ -1,32 +1,57 @@
+# this will reproduce the version from tags to match versioningit
+{% set version = environ.get('GIT_DESCRIBE_TAG', '0.0.0') %}
+{% set version_number = environ.get('GIT_DESCRIBE_NUMBER', '0') | string %}
+
 package:
-  name: drtsans
-  version: "0.1"
+  name: "drtsans"
+  version: {{ version }}
 
 source:
-  git_rev: v0.1
-  git_url: git@code.ornl.gov:sns-hfir-scse/sans/sans-backend.git
+  path: ..
+#  git_rev: v0.1
+#  git_url: git@code.ornl.gov:sns-hfir-scse/sans/sans-backend.git
 #  git_url: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend.git
 
 build:
-  number: 0
-  script: python -m pip install --no-deps --ignore-installed .
-  skip: True # [win]
+  noarch: python
+  number: {{ version_number }}
+  string: py{{py}}
+  script: {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
 
 requirements:
-  build:
+  host:
     - python
+    - numpy {{ numpy }}
+
+  build:
+    - setuptools
+    - versioneer
 
   run:
-    - python
-    - mantid-framework
-
-build:
+    - docutils
+    - jsonschema>=3.0.2
+    - lmfit
+    - matplotlib  # is this necessary
+    - mpld3
+    - numpy {{ numpy }}
+    - numexpr
+    - pandas
+    - sortedcontainers
+    - tinydb
+    - ipywidgets
+    - python {{ python }}
+    - mantidworkbench
+    - mpld3
+    - pandas
+    - sortedcontainers
+    - tinydb
 
 test:
   imports:
+    - drtsans
 
 about:
-  home: 
+  home: https://drtsans.readthedocs.io/
   license: GPL (version 3)
   license_family: GPL3
   license_file: ../LICENSE

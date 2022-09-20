@@ -21,30 +21,22 @@ build:
 requirements:
   host:
     - python
-    - numpy {{ numpy }}
 
   build:
     - setuptools
     - versioneer
 
   run:
-    - docutils
     - jsonschema>=3.0.2
     - lmfit
-    - matplotlib  # is this necessary
     - mpld3
-    - numpy {{ numpy }}
     - numexpr
     - pandas
     - sortedcontainers
-    - tinydb
-    - ipywidgets
+    - tinydb  # not imported
+    - ipywidgets # not imported
     - python {{ python }}
     - mantidworkbench
-    - mpld3
-    - pandas
-    - sortedcontainers
-    - tinydb
 
 test:
   imports:

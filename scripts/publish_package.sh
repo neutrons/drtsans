@@ -9,7 +9,7 @@ cd "${DIREC}/../conda.recipe"
 
 # setup and build the conda package
 conda install -y anaconda-client conda-build conda-verify
-conda build --output-folder . . -c neutrons -c mantid/label/nightly
+conda build --output-folder . . -c neutrons -c mantid/label/nightly -c conda-forge
 
 # show what tarballs were created
 ls */*.tar.bz2

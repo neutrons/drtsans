@@ -15,16 +15,17 @@ source:
 build:
   noarch: python
   number: {{ version_number }}
-  string: py{{py}}
   script: {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
 
 requirements:
   host:
-    - python
+    - python=3.8
 
   build:
+    - python=3.8
     - setuptools
     - versioneer
+    - mantid
 
   run:
     - jsonschema>=3.0.2
@@ -35,8 +36,8 @@ requirements:
     - sortedcontainers
     - tinydb  # not imported
     - ipywidgets # not imported
-    - python {{ python }}
-    - mantidworkbench
+    - python=3.8
+    - mantid
 
 test:
   imports:

@@ -111,6 +111,7 @@ docs-feature:
   dependencies:
     - dockerbuild
   script:
+    - set -x
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
     - sudo cp -r . /tmp/sans-backend
@@ -118,7 +119,7 @@ docs-feature:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "source activate drtsans-dev; cd /opt/sans-backend/docs; make html"
+    - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "source activate drtsans-dev&& cp -R /opt/sans-backend /tmp/ && cd /tmp/sans-backend/docs&& make html"
     - ls .
     - popd
   tags:
@@ -234,6 +235,7 @@ create-wheel:
   dependencies:
     - dockerbuild
   script:
+    - set -x
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
     - sudo cp -r . /tmp/sans-backend
@@ -252,6 +254,11 @@ conda-package:
     - create-wheel
     - dockerbuild
   script:
+    - sudo rm -rf /tmp/sans-backend || true
+    - sudo mkdir -p /tmp/sans-backend
+    - sudo cp -r . /tmp/sans-backend
+    - sudo chmod 777 /tmp/sans-backend
+    - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
     - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/publish_package.sh"

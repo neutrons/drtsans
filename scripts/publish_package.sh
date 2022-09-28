@@ -1,15 +1,15 @@
 # Build conda library
-set -e
+set -ex
 echo GITHUB REF $CI_COMMIT_REF_SLUG
 
-# cd into the correct directory
-THISFILE=$(readlink -f "$0")
-DIREC=$(dirname $THISFILE)   # directory of executable
-cd "${DIREC}/../conda.recipe"
+cp -R /opt/sans-backend /tmp/
+cd /tmp/sans-backend/conda.recipe
 
 # setup and build the conda package
+conda update -y -n base conda
 conda install -y anaconda-client conda-build conda-verify
-conda build --output-folder . . -c neutrons -c mantid/label/nightly -c conda-forge
+conda render .
+conda build --output-folder . . -c mantid/label/nightly -c conda-forge -c defaults
 
 # show what tarballs were created
 ls */*.tar.bz2

@@ -122,6 +122,8 @@ docs-feature:
     - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "source activate drtsans-dev&& cp -R /opt/sans-backend /tmp/ && cd /tmp/sans-backend/docs&& make html"
     - ls .
     - popd
+  after_script:
+    - ls -l $CI_PROJECT_DIR
   tags:
     - rse-multi-builder
   except:
@@ -245,6 +247,8 @@ create-wheel:
     - time docker pull $CONTAINER_URL
     - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/create_wheel.sh"
     - popd
+  after_script:
+    - ls -l $CI_PROJECT_DIR
   tags:
     - rse-multi-builder
 
@@ -262,6 +266,8 @@ conda-package:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
     - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/publish_package.sh"
+  after_script:
+    - ls -l $CI_PROJECT_DIR
   tags:
     - rse-multi-builder
 

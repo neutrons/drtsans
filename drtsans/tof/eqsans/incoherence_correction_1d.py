@@ -17,7 +17,11 @@ __all__ = ["correct_incoherence_inelastic_1d", "CorrectedIQ1D"]
 CorrectedIQ1D = namedtuple("CorrectedIQ1D", "iq1d b_factor b_error")
 
 
-def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence):
+def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence,
+                                     intensity_weighted=False,
+                                     qmin=None,
+                                     qmax=None,
+                                     factor=None):
     """Correct I(Q1D) accounting wavelength dependant incoherent inelastic scattering
 
     This is the envelop method for the complete workflow to correct I(Q1D) accounting
@@ -29,6 +33,14 @@ def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence):
         I(Q, wavelength) and error
     select_minimum_incoherence: bool
         flag to determine correction B by minimum incoherence
+    intensity_weighted: bool
+        Change this factor to determine if the b factor is calculated in a weighted function by intensity
+    qmin_index: float
+        manually set the qmin used for incoherent calculation
+    qmax_index: float
+        manually set the qmax used for incoherent calculation
+    factor: float
+        automatically determine the qmin qmax by checking the intensity profile
 
     Returns
     -------
@@ -39,60 +51,26 @@ def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence):
     # Convert to mesh grid I(Q) and delta I(Q)
     wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
 
-    # determine q min and q max that exists in all I(q, wl)
-    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+    if qmin is not None and qmax is not None:
+        qmin_index, qmax_index = np.searchsorted(q_vec, [qmin, qmax])
+        qmax_index = min(qmax_index, len(q_vec) - 1)
+    else:
+        # determine q min and q max that exists in all I(q, wl)
+        qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
 
-    """
-    # User defined qmin and qmax for b calculations
+    if factor is not None:
+        def _tuneqmin(qmin_idx, qmax_idx, factor):
+            assert qmin_idx < qmax_idx
 
-    # FIXMe: Change these two numbers can control the qmin qmax in b calculation
-    # customized qmin qmax cannot exceed the valid qmin qmax range
-    """
-    print('qmin, qmax ', qmin_index, qmax_index)
+            imin = np.nansum(i_array[qmin_idx])
+            imax = np.nansum(i_array[qmax_idx])
+            if imin > factor * imax:
+                return _tuneqmin(qmin_idx + 1, qmax_idx, factor)
 
-    cqmin_index = 45
-    cqmax_index = 100
-
-    '''May I ask a little more to this ?? :) It’d be more useful, if I
-    can get actual q-values. Do you know how to get actual q-values at
-    corresponding index ? maybe even to estimate I(q(qmin_index)) ?
-    Ideally, I’d like to implement following logic to determin
-    qmin_index.
-
-    get I(qmin_index) and I(qmax_index) from the default qmin_index and qmax_index
-    if I(qmin_index) > 10 * I(qmax_index), then qmin_index = qmin_index + 1
-    repeat comparison until I(qmin_index) <= 10* I(qmax_index)
-    Then, used final qmin_index and qmax_index for the next process.
-    here, the number 10 is kind of arbitrary, but I know from
-    experience that this is going to be the max number... it may work
-    better with 5 but I can test it later.s
-
-    '''
-
-    ff = 10.
-
-    def _tuneqmin(qmin_idx, qmax_idx, i_arr, qv, factor=ff):
-        assert qmin_idx < qmax_idx
-
-        imin = np.nansum(i_arr[qmin_idx])
-        imax = np.nansum(i_arr[qmax_idx])
-        if imin > factor * imax:
-            return _tuneqmin(qmin_idx + 1, qmax_idx, i_arr, qv, factor=ff)
-        else:
             return (qmin_idx, qmax_idx)
 
-    qmin_index, qmax_index = _tuneqmin(qmin_index, qmax_index, i_array, q_vec, factor=ff)
+        qmin_index, qmax_index = _tuneqmin(qmin_index, qmax_index, factor=factor)
 
-    # Change this factor to determine if the b factor is calculated in a weighted function by
-    # intensity
-    intensity_weighted = True
-
-    if cqmin_index > qmin_index:
-        qmin_index = cqmin_index
-    if cqmax_index < qmax_index:
-        qmax_index = cqmax_index
-
-    print('qmin , qmax ' , qmin_index, qmax_index)
     # calculate B factors and errors
     b_array, ref_wl_ie = calculate_b_factors(
         wl_vec,

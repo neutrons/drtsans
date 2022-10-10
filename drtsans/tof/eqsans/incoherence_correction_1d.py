@@ -59,17 +59,8 @@ def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence,
         qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
 
     if factor is not None:
-        def _tuneqmin(qmin_idx, qmax_idx, factor):
-            assert qmin_idx < qmax_idx
-
-            imin = np.nansum(i_array[qmin_idx])
-            imax = np.nansum(i_array[qmax_idx])
-            if imin > factor * imax:
-                return _tuneqmin(qmin_idx + 1, qmax_idx, factor)
-
-            return (qmin_idx, qmax_idx)
-
-        qmin_index, qmax_index = _tuneqmin(qmin_index, qmax_index, factor=factor)
+        print(f"Using automated (qmin, qmax) finder with factor={factor}")
+        qmin_index, qmax_index = tuneqmin(qmin_index, qmax_index, i_array, factor=factor)
 
     # calculate B factors and errors
     b_array, ref_wl_ie = calculate_b_factors(
@@ -100,6 +91,22 @@ def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence,
     }
 
     return CorrectedIQ1D(**corrected)
+
+
+def tuneqmin(qmin_idx, qmax_idx, i_arr, factor):
+    """get I(qmin_index) and I(qmax_index) from the default qmin_index and
+    qmax_index if I(qmin_index) > 10 * I(qmax_index), then qmin_index
+    = qmin_index + 1 repeat comparison until I(qmin_index) <= factor*
+    I(qmax_index)
+    """
+    assert qmin_idx < qmax_idx
+
+    imin = np.nansum(i_arr[qmin_idx])
+    imax = np.nansum(i_arr[qmax_idx])
+    if imin > factor * imax:
+        return tuneqmin(qmin_idx + 1, qmax_idx, i_arr, factor)
+
+    return (qmin_idx, qmax_idx)
 
 
 def calculate_b_factors(
@@ -240,6 +247,7 @@ def calculate_b_error_b(
         # if use reference intensity to normalize the function then b value should be
         # adjusted according to the I(Q) profile on each Q
 
+        # Equation from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/896
         # Calculate B factors
         # b[wl] =
         # - 1/N sum_{q_k=q_min}^{q_max}(1/RefI(q_k)) * sum_{q_k=q_min}^{q_max} ([RefI(q_k) - I(q_k, wl)]/RefI(q_k))

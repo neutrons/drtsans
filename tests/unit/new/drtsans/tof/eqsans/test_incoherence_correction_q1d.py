@@ -3,20 +3,15 @@ import pytest
 from drtsans.dataobjects import IQmod
 from drtsans.tof.eqsans.elastic_reference_normalization import (
     reshape_q_wavelength_matrix,
-)
-from drtsans.tof.eqsans.elastic_reference_normalization import (
     determine_common_mod_q_range_mesh,
-)
-from drtsans.tof.eqsans.elastic_reference_normalization import (
     determine_reference_wavelength_q1d_mesh,
 )
 from drtsans.tof.eqsans.incoherence_correction_1d import (
     calculate_b_error_b,
     calculate_b_factors,
-)
-from drtsans.tof.eqsans.incoherence_correction_1d import (
     correct_intensity_error,
     correct_incoherence_inelastic_1d,
+    tuneqmin,
 )
 import numpy as np
 
@@ -47,7 +42,7 @@ def test_calculate_b_factor():
     np.testing.assert_allclose(test_b_array[0], generate_expected_b_factors())
 
     # call prototype
-    b_array, ref_wl_ie = calculate_b_factors_prototype(
+    b_array, _ = calculate_b_factors_prototype(
         wl_vec, q_vec, i_array, error_array, select_min_incoh, qmin_index, qmax_index
     )
 
@@ -55,6 +50,34 @@ def test_calculate_b_factor():
     np.testing.assert_allclose(b_array[0], generate_expected_b_factors())
     # test delta B by 2 various implementation
     np.testing.assert_allclose(test_b_array[1], b_array[1])
+
+    # Test with intensity weighted
+    test_b_array = calculate_b_error_b(
+        wl_vec, i_array, error_array, qmin_index, qmax_index, ref_wl_ie, True,
+        intensity_weighted=True
+    )
+
+    # verify
+    np.testing.assert_allclose(test_b_array[0], generate_expected_b_factors(True))
+
+    # Test with intensity weighted and manually set q bounds
+    test_b_array = calculate_b_error_b(
+        wl_vec, i_array, error_array, 4, 9, ref_wl_ie, True,
+        intensity_weighted=True
+    )
+
+    # verify
+    np.testing.assert_allclose(test_b_array[0], generate_expected_b_factors(True, True))
+
+
+def test_tuneqmin():
+    i_array = np.array([[100], [90], [80], [50], [40], [30], [20], [10], [5]])
+    qmin_idx, qmax_idx = tuneqmin(0, 8, i_array, 100)
+    assert qmin_idx == 0
+    assert qmax_idx == 8
+    qmin_idx, qmax_idx = tuneqmin(0, 8, i_array, 10)
+    assert qmin_idx == 3
+    assert qmax_idx == 8
 
 
 def test_calculate_b_factor_select_min_incoherence():
@@ -112,6 +135,16 @@ def test_incoherence_inelastic_correction():
     # verify
     np.testing.assert_allclose(b_array[0], generate_expected_b_factors(), verbose=True)
 
+    # Test with intensity weighted
+    b_array_w, ref_wl_ie_w = calculate_b_factors(
+        wl_vec, q_vec, i_array, error_array, select_min_incoh, qmin_index, qmax_index,
+        intensity_weighted=True
+    )
+    # verify
+    expected_b_factors = np.array([0, 3.3, 5.5, 4.4, 1.1]) / (11 * 110)
+    # verify
+    np.testing.assert_allclose(b_array_w[0], expected_b_factors)
+
     # correct intensities and errors
     corrected_intensities, corrected_errors = correct_intensity_error(
         wl_vec, q_vec, i_array, error_array, b_array, qmin_index, qmax_index, ref_wl_ie
@@ -142,6 +175,12 @@ def test_incoherence_inelastic_correction():
     corrected_i_of_q = correct_incoherence_inelastic_1d(test_iq1d, False)
     np.testing.assert_allclose(
         corrected_i_of_q.iq1d.intensity, generate_expected_corrected_intensities()
+    )
+
+    # Test with weighted intensity
+    corrected_i_of_q_w = correct_incoherence_inelastic_1d(test_iq1d, False, True)
+    np.testing.assert_allclose(
+        corrected_i_of_q_w.iq1d.intensity, generate_expected_corrected_intensities(True)
     )
 
 
@@ -360,125 +399,234 @@ def generate_test_data():
     return i_of_q
 
 
-def generate_expected_b_factors():
+def generate_expected_b_factors(weighted_intensity=False, limited_range=False):
     # Generate test data given in
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/
     # /b3b4038f44443385afe4252bb2316be3/inelastic_incoherent_avg_example.xlsx
     # Denoted as TEST1
 
     # Expected B vectors
-    b_factor_vec = np.array([0.0, 0.03, 0.05, 0.04, 0.01])
+    if weighted_intensity:
+        if limited_range:
+            b_factor_vec = np.array([0, 1.8, 3, 2.4, 0.6]) / (6 * 60)
+        else:
+            b_factor_vec = np.array([0, 3.3, 5.5, 4.4, 1.1]) / (11 * 110)
+    else:
+        b_factor_vec = np.array([0.0, 0.03, 0.05, 0.04, 0.01])
 
     return b_factor_vec
 
 
-def generate_expected_corrected_intensities():
+def generate_expected_corrected_intensities(weighted_intensity=False):
 
     # Expected corrected intensities
-    corrected_intensity_vec = np.array(
-        [
-            0.1,
-            0.1,
-            np.nan,
-            np.nan,
-            np.nan,  # q = 0.01
-            0.1,
-            0.1,
-            0.1,
-            np.nan,
-            np.nan,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            np.nan,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            np.nan,
-            0.1,
-            0.1,
-            0.1,
-            0.1,
-            np.nan,
-            np.nan,
-            0.1,
-            0.1,
-            0.1,
-            np.nan,
-            np.nan,
-            0.1,
-            0.1,
-            0.1,
-            np.nan,
-            np.nan,
-            np.nan,
-            0.1,
-            0.1,
-            np.nan,
-            np.nan,
-            np.nan,
-            0.1,
-            0.1,
-            np.nan,
-            np.nan,
-            np.nan,
-            np.nan,
-            0.1,
-        ]
-    )
+    if weighted_intensity:
+        corrected_intensity_vec = np.array(
+            [0.1,
+             0.12727273,
+             np.nan,
+             np.nan,
+             np.nan,
+             0.1,
+             0.12727273,
+             0.14545455,
+             np.nan,
+             np.nan,
+             0.1,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             0.1,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             0.1,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             0.1,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             0.1,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             0.1,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             0.1,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             0.1,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             0.1,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             0.1,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             0.1,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             np.nan,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             np.nan,
+             0.12727273,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             np.nan,
+             np.nan,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             np.nan,
+             np.nan,
+             0.14545455,
+             0.13636364,
+             0.10909091,
+             np.nan,
+             np.nan,
+             np.nan,
+             0.13636364,
+             0.10909091,
+             np.nan,
+             np.nan,
+             np.nan,
+             0.13636364,
+             0.10909091,
+             np.nan,
+             np.nan,
+             np.nan,
+             np.nan,
+             0.10909091])
+    else:
+        corrected_intensity_vec = np.array(
+            [
+                0.1,
+                0.1,
+                np.nan,
+                np.nan,
+                np.nan,  # q = 0.01
+                0.1,
+                0.1,
+                0.1,
+                np.nan,
+                np.nan,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                np.nan,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                np.nan,
+                0.1,
+                0.1,
+                0.1,
+                0.1,
+                np.nan,
+                np.nan,
+                0.1,
+                0.1,
+                0.1,
+                np.nan,
+                np.nan,
+                0.1,
+                0.1,
+                0.1,
+                np.nan,
+                np.nan,
+                np.nan,
+                0.1,
+                0.1,
+                np.nan,
+                np.nan,
+                np.nan,
+                0.1,
+                0.1,
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+                0.1,
+            ]
+        )
 
     return corrected_intensity_vec
 

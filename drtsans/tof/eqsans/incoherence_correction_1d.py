@@ -62,6 +62,9 @@ def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence,
         print(f"Using automated (qmin, qmax) finder with factor={factor}")
         qmin_index, qmax_index = tuneqmin(qmin_index, qmax_index, i_array, factor=factor)
 
+    print(f"Incoherent correction using qmin={q_vec[qmin_index]} qmax={q_vec[qmax_index]} "
+          f"with qmin_index={qmin_index}, qmax_index={qmax_index}")
+
     # calculate B factors and errors
     b_array, ref_wl_ie = calculate_b_factors(
         wl_vec,
@@ -241,6 +244,8 @@ def calculate_b_error_b(
     # Declare B factor array
     b_factor_array = np.zeros(shape=(2, len(wl_vec)), dtype="float")
 
+    print(f"Using intensity weighted B factor calculation: {intensity_weighted}")
+
     import uncertainties.unumpy as unumpy
 
     if intensity_weighted:
@@ -345,7 +350,7 @@ def correct_intensity_error(
     assert wavelength_vec.shape[0] == intensity_array.shape[1]
     assert q_vec.shape[0] == error_array.shape[0]
     assert len(b_array2d.shape) == 2 and b_array2d.shape[0] == 2, (
-        f"Expected input B and B error but not " f"of shape {b_array2d.shape}"
+        f"Expected input B and B error but not of shape {b_array2d.shape}"
     )
     assert b_array2d.shape[1] == wavelength_vec.shape[0]
 

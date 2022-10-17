@@ -61,10 +61,14 @@ class CorrectionConfiguration:
     scattering correction
     """
 
-    def __init__(self, do_correction=False, select_min_incoherence=False):
-
+    def __init__(self, do_correction=False, select_min_incoherence=False,
+                 select_intensityweighted=False, qmin=None, qmax=None, factor=None):
         self._do_correction = do_correction
         self._select_min_incoherence = select_min_incoherence
+        self._select_intensityweighted = select_intensityweighted
+        self._qmin = qmin
+        self._qmax = qmax
+        self._factor = factor
         self._elastic_ref_run_setup = None
         self._sample_thickness = 1  # mm
 
@@ -72,7 +76,9 @@ class CorrectionConfiguration:
         if self._do_correction:
             output = (
                 f"Do correction: select min incoherence = {self._select_min_incoherence}, "
-                f"thickness = {self._sample_thickness}"
+                f"thickness = {self._sample_thickness}, "
+                f"select_intensityweighted = {self._select_intensityweighted}, "
+                f"qmin = {self._qmin}, q_max = {self._qmax}, factor = {self._factor}"
             )
         else:
             output = "No correction"
@@ -90,6 +96,22 @@ class CorrectionConfiguration:
     @select_min_incoherence.setter
     def select_min_incoherence(self, flag):
         self._select_min_incoherence = flag
+
+    @property
+    def select_intensityweighted(self):
+        return self._select_intensityweighted
+
+    @property
+    def qmin(self):
+        return self._qmin
+
+    @property
+    def qmax(self):
+        return self._qmax
+
+    @property
+    def factor(self):
+        return self._factor
 
     @property
     def elastic_reference(self):
@@ -193,7 +215,13 @@ def parse_correction_config(reduction_config):
         # incoherence inelastic correction setup: basic
         do_correction = run_config.get("fitInelasticIncoh", False)
         select_min_incoherence = run_config.get("selectMinIncoh", False)
-        _config = CorrectionConfiguration(do_correction, select_min_incoherence)
+        select_intensityweighted = run_config.get("incohfit_intensityweighted", False)
+        qmin = run_config.get("incohfit_qmin")
+        qmax = run_config.get("incohfit_qmax")
+        factor = run_config.get("incohfit_factor")
+
+        _config = CorrectionConfiguration(do_correction, select_min_incoherence,
+                                          select_intensityweighted, qmin, qmax, factor)
 
         # Optional elastic normalization
         elastic_ref_json = run_config.get("elasticReference")
@@ -281,7 +309,11 @@ def do_inelastic_incoherence_correction_q1d(
 
     # do inelastic/incoherent correction
     corrected = correct_incoherence_inelastic_1d(
-        iq1d, correction_setup.select_min_incoherence
+        iq1d, correction_setup.select_min_incoherence,
+        correction_setup.select_intensityweighted,
+        correction_setup.qmin,
+        correction_setup.qmax,
+        correction_setup.factor
     )
 
     # save file

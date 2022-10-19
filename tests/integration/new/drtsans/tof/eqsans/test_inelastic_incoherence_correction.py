@@ -388,6 +388,90 @@ def test_incoherence_correction_elastic_normalization(reference_dir, generatecle
             DeleteWorkspace(ws)
 
 
+def test_incoherence_correction_elastic_normalization_weighted(reference_dir, generatecleanfile):
+    """Test incoherence correction with elastic correction"""
+    import filecmp
+
+    # Set up the configuration dict
+    config_json_file = os.path.join(
+        reference_dir.new.eqsans, "test_incoherence_correction/porsil_29024_abs_inel.json"
+    )
+    assert os.path.exists(
+        config_json_file
+    ), f"Test JSON file {config_json_file} does not exist."
+    with open(config_json_file, "r") as config_json:
+        configuration = json.load(config_json)
+    assert isinstance(configuration, dict)
+
+    # Create temp output directory
+    test_dir = generatecleanfile()
+
+    def run_reduction_and_compare(config, expected_result_filename):
+        with amend_config(data_dir=reference_dir.new.eqsans):
+            # validate and clean configuration
+            input_config = reduction_parameters(config)
+            loaded = load_all_files(input_config)
+
+            # Reduce
+            reduction_output = reduce_single_configuration(
+                loaded, input_config, not_apply_incoherence_correction=False
+            )
+        assert reduction_output
+
+        test_iq1d_file = os.path.join(test_dir, config["outputFileName"] + "_Iq.dat")
+        gold_iq1d_file = os.path.join(
+            reference_dir.new.eqsans, "test_incoherence_correction", expected_result_filename
+        )
+        # compare
+        assert filecmp.cmp(test_iq1d_file, gold_iq1d_file)
+
+        DeleteWorkspace("_empty")
+        DeleteWorkspace("_mask")
+        DeleteWorkspace("_sensitivity")
+        DeleteWorkspace("processed_data_main")
+        for ws in mtd.getObjectNames():
+            if str(ws).startswith("_EQSANS_"):
+                DeleteWorkspace(ws)
+
+    # Run without intensity weighted correction
+    base_name = "EQSANS_132078"
+    assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
+    configuration["configuration"]["outputDir"] = test_dir
+    configuration["outputFileName"] = base_name
+    configuration["dataDirectories"] = reference_dir.new.eqsans
+    run_reduction_and_compare(configuration, "EQSANS_132078_Iq.dat")
+
+    # Run with weighted
+    base_name = "EQSANS_132078_weighted"
+    configuration["outputFileName"] = base_name
+    configuration["configuration"]["incohfit_intensityweighted"] = True
+    configuration["configuration"]["incohfit_factor"] = None
+    configuration["configuration"]["incohfit_qmin"] = None
+    configuration["configuration"]["incohfit_qmax"] = None
+    run_reduction_and_compare(configuration, "EQSANS_132078_weighted_Iq.dat")
+
+    # Run with weighted and factor
+    base_name = "EQSANS_132078_weighted_factor"
+    configuration["outputFileName"] = base_name
+    configuration["configuration"]["incohfit_intensityweighted"] = True
+    configuration["configuration"]["incohfit_factor"] = 10
+    configuration["configuration"]["incohfit_qmin"] = None
+    configuration["configuration"]["incohfit_qmax"] = None
+    run_reduction_and_compare(configuration, "EQSANS_132078_weighted_factor_Iq.dat")
+
+    # Run with weighted and manual q range
+    # q-range is set to be the same as what the factor calculation finds
+    base_name = "EQSANS_132078_weighted_qrange"
+    configuration["outputFileName"] = base_name
+    configuration["configuration"]["incohfit_intensityweighted"] = True
+    configuration["configuration"]["incohfit_factor"] = None
+    configuration["configuration"]["incohfit_qmin"] = 0.085
+    configuration["configuration"]["incohfit_qmax"] = 0.224
+    run_reduction_and_compare(configuration, "EQSANS_132078_weighted_factor_Iq.dat")
+
+    print(f"Output directory: {test_dir}")
+
+
 def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):
     """Verify reduced I(Q1D) and I(qx, qy) by expected/gold data
 

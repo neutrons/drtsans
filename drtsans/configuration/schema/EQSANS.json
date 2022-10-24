@@ -181,18 +181,18 @@
 	    "default": null,
 	    "pairedTo": "#configuration/incohfit_qmax",
 	    "lessThan": "#configuration/incohfit_qmax",
-	    "description": ""
+	    "description": "manually set the QMin for incoherent scattering calculation, if not set maximum valid range will be used"
 	},
         "incohfit_qmax": {
 	    "$ref": "common.json#/definitions/safeStringPositiveFloat",
 	    "default": null,
 	    "pairedTo": "#configuration/incohfit_qmin",
-	    "description": ""
+	    "description": "manually set the QMax for incoherent scattering calculation, if not set maximum valid range will be used"
 	},
         "incohfit_factor": {
 	    "$ref": "common.json#/definitions/safeStringPositiveFloat",
 	    "default": null,
-	    "description": ""
+	    "description": "if set the qmin and qmax will be automatically determined by checking the intensity profile"
 	},
         "elasticReference": {
           "type": "object",

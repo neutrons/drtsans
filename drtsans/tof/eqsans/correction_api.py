@@ -59,6 +59,21 @@ class CorrectionConfiguration:
     """
     A data class/structure to hold the parameters configured to do incoherence/inelastic
     scattering correction
+
+    Parameters
+    ----------
+    do_correction: bool
+        if to do correction or not
+    select_minimum_incoherence: bool
+        flag to determine correction B by minimum incoherence
+    intensity_weighted: bool
+       flag to determine if the b factor is calculated in a weighted function by intensity
+    qmin_index: float
+        optional, manually set the qmin used for incoherent calculation
+    qmax_index: float
+        optional, manually set the qmax used for incoherent calculation
+    factor: float
+        optional, automatically determine the qmin qmax by checking the intensity profile
     """
 
     def __init__(self, do_correction=False, select_min_incoherence=False,

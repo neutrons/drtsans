@@ -144,7 +144,7 @@ def calculate_b_factors(
     qmax_index: int
         index of maximum common q in q vector (included)
     intensity_weighted: bool
-        if set to true, the
+        if set to true, the B factor is calculated using weighted function by intensity
     Returns
     -------
 

@@ -141,7 +141,7 @@ def test_incoherence_inelastic_correction():
         intensity_weighted=True
     )
     # verify
-    expected_b_factors = np.array([0, 3.3, 5.5, 4.4, 1.1]) / (11 * 110)
+    expected_b_factors = np.array([0, 3.3, 5.5, 4.4, 1.1]) / 110
     # verify
     np.testing.assert_allclose(b_array_w[0], expected_b_factors)
 
@@ -408,9 +408,9 @@ def generate_expected_b_factors(weighted_intensity=False, limited_range=False):
     # Expected B vectors
     if weighted_intensity:
         if limited_range:
-            b_factor_vec = np.array([0, 1.8, 3, 2.4, 0.6]) / (6 * 60)
+            b_factor_vec = np.array([0, 1.8, 3, 2.4, 0.6]) / 60
         else:
-            b_factor_vec = np.array([0, 3.3, 5.5, 4.4, 1.1]) / (11 * 110)
+            b_factor_vec = np.array([0, 3.3, 5.5, 4.4, 1.1]) / 110
     else:
         b_factor_vec = np.array([0.0, 0.03, 0.05, 0.04, 0.01])
 
@@ -420,10 +420,7 @@ def generate_expected_b_factors(weighted_intensity=False, limited_range=False):
 def generate_expected_corrected_intensities(weighted_intensity=False):
 
     # Expected corrected intensities
-    if weighted_intensity:
-        corrected_intensity_vec = np.tile([0.1, 0.12727273, 0.14545455, 0.13636364, 0.10909091], 20)
-    else:
-        corrected_intensity_vec = np.repeat(0.1, 100)
+    corrected_intensity_vec = np.repeat(0.1, 100)
 
     isnan = np.array([2, 3, 4, 8, 9, 65, 70, 75, 76, 80, 81, 85, 86, 87, 90, 91, 92, 95, 96, 97, 98])
     corrected_intensity_vec[isnan] = np.nan

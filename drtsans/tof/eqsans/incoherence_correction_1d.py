@@ -273,7 +273,7 @@ def calculate_b_error_b(
             - intensity_vec
         ) / ref_intensity_vec
 
-        b_array = -1.0 / num_q * np.sum(b_vec, axis=0) * \
+        b_array = -1.0 * np.sum(b_vec, axis=0) * \
             1 / np.sum(1 / ref_intensity_vec)
 
         b_factor_array[0] = unumpy.nominal_values(b_array)

@@ -314,10 +314,14 @@ def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
         fine_workspace, "scalar"
     )  # no subpixels here (n_horizontal = n_vertical = 1)
     # check the following quantities are identical between the two scenarios
-    for quantity in ("mod_q", "intensity", "error", "wavelength"):
+    for quantity in ("mod_q", "intensity", "wavelength"):
         coarse_values = getattr(coarse_iq, quantity).reshape(-1, n_bins)[permutation]
         fine_values = getattr(fine_iq, quantity).reshape(-1, n_bins)
         assert coarse_values == pytest.approx(fine_values)
+    # Errors should be different by a factor of sqrt(data.n_h*data.n_v)
+    coarse_values = getattr(coarse_iq, "error").reshape(-1, n_bins)[permutation]
+    fine_values = getattr(fine_iq, "error").reshape(-1, n_bins)
+    assert coarse_values == pytest.approx(fine_values * np.sqrt(data.n_h * data.n_v))
 
     # Test azimuthal Q (Qx, Qy) between subpixels and fine pixels
     # "coarse_iq" is an IQazimuthal object, containing values for the intensity, error, Qx, Qy, wavelength
@@ -325,10 +329,14 @@ def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
         coarse_workspace, "azimuthal", n_horizontal=data.n_h, n_vertical=data.n_v
     )
     fine_iq = convert_to_q(fine_workspace, "azimuthal")
-    for quantity in ("qx", "qy", "intensity", "error", "wavelength"):
+    for quantity in ("qx", "qy", "intensity", "wavelength"):
         coarse_values = getattr(coarse_iq, quantity).reshape(-1, n_bins)[permutation]
         fine_values = getattr(fine_iq, quantity).reshape(-1, n_bins)
         assert coarse_values == pytest.approx(fine_values)
+    # Errors should be different by a factor of sqrt(data.n_h*data.n_v)
+    coarse_values = getattr(coarse_iq, "error").reshape(-1, n_bins)[permutation]
+    fine_values = getattr(fine_iq, "error").reshape(-1, n_bins)
+    assert coarse_values == pytest.approx(fine_values * np.sqrt(data.n_h * data.n_v))
 
     # Test crystal Q (Qx, Qy, Qz) between subpixels and fine pixels
     # "coarse_iq" is an IQcrystal object, containing values for the intensity, error, Qx, Qy, Qz, wavelength
@@ -336,10 +344,14 @@ def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
         coarse_workspace, "crystallographic", n_horizontal=data.n_h, n_vertical=data.n_v
     )
     fine_iq = convert_to_q(fine_workspace, "crystallographic")
-    for quantity in ("qx", "qy", "qz", "intensity", "error", "wavelength"):
+    for quantity in ("qx", "qy", "qz", "intensity", "wavelength"):
         coarse_values = getattr(coarse_iq, quantity).reshape(-1, n_bins)[permutation]
         fine_values = getattr(fine_iq, quantity).reshape(-1, n_bins)
         assert coarse_values == pytest.approx(fine_values)
+    # Errors should be different by a factor of sqrt(data.n_h*data.n_v)
+    coarse_values = getattr(coarse_iq, "error").reshape(-1, n_bins)[permutation]
+    fine_values = getattr(fine_iq, "error").reshape(-1, n_bins)
+    assert coarse_values == pytest.approx(fine_values * np.sqrt(data.n_h * data.n_v))
 
 
 if __name__ == "__main__":

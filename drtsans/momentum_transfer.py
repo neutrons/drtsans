@@ -190,6 +190,8 @@ def _convert_to_q_scalar(ws, resolution_function, **kwargs):
             * np.sin(two_theta * 0.5)
             / lam.reshape(len(two_theta), number_of_bins)
         ).ravel()
+        # Scale the error by square root of (n_horizontal * n_vertical)
+        error *= np.sqrt(n_horizontal * n_vertical)
     else:
         # retain only those pixels that are unmasked or not monitor
         [mod_q,] = _filter_and_replicate(
@@ -324,6 +326,8 @@ def _convert_to_q_azimuthal(ws, resolution_function, **kwargs):
             azimuthal
         )  # note the convention for the left handed reference frame
         qy = mod_q * np.sin(azimuthal)
+        # Scale the error by square root of (n_horizontal * n_vertical)
+        error *= np.sqrt(n_horizontal * n_vertical)
     else:
         # retain only those pixels that are unmasked or not monitor
         qx, qy = _filter_and_replicate([qx, qy], keep, n_horizontal=1, n_vertical=1)
@@ -450,6 +454,8 @@ def _convert_to_q_crystal(ws, resolution_function, **kwargs):
         qx = (temp * np.sin(two_theta) * np.cos(azimuthal)).ravel()
         qy = (temp * np.sin(two_theta) * np.sin(azimuthal)).ravel()
         qz = (temp * (np.cos(two_theta) - 1.0)).ravel()
+        # Scale the error by square root of (n_horizontal * n_vertical)
+        error *= np.sqrt(n_horizontal * n_vertical)
     else:
         # retain only those pixels that are unmasked or not monitor
         [qx, qy, qz] = _filter_and_replicate(

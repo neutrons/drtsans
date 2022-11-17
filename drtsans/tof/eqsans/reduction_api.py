@@ -234,9 +234,6 @@ def bin_i_with_correction(
     """Bin I(Q) in 1D and 2D with the option to do inelastic incoherent correction"""
 
     if incoherence_correction_setup.do_correction:
-        # Sanity check
-        assert weighted_errors, f"Must using weighted error {weighted_errors}"
-
         # Define qmin and qmax for this frame
         if user_qmin is None:
             qmin = iq1d_in_frames[wl_frame].mod_q.min()

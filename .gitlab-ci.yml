@@ -2,16 +2,22 @@ variables:
   CONTAINER_URL: "code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_SLUG"
   TEST_SCOPE: "unit"
 
+#####
+# YAML anchors Section
+# to reuse setup and teardown commands
+#####
+.startup_cleanup: &startup_cleanup
+  - curl https://code.ornl.gov/rse-deployment/rse-sharables/raw/master/rse-bash-modules.sh -O
+  - source rse-bash-modules.sh
+  - func_rse_docker_cleanup
 
-before_script:
-    - curl https://code.ornl.gov/rse-deployment/rse-sharables/raw/master/rse-bash-modules.sh -O
-    - source rse-bash-modules.sh
-    - func_rse_docker_cleanup
+.teardown_cleanup: &teardown_cleanup
+  - source rse-bash-modules.sh
+  - func_rse_docker_cleanup
 
-after_script:
-    - source rse-bash-modules.sh
-    - func_rse_docker_cleanup
-
+#####
+# Job Stages
+#####
 stages:
   - flake8
   - dockerbuild
@@ -19,6 +25,9 @@ stages:
   - publish
   - analysis-update
 
+#####
+# Jobs
+#####
 flake8-feature:
   stage: flake8
   retry: 1
@@ -53,6 +62,7 @@ dockerbuild:
   stage: dockerbuild
   retry: 1
   before_script:
+    - *startup_cleanup
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
@@ -66,11 +76,8 @@ dockerbuild:
     - docker push $DOCKER_TAG_BASE
     # - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh
     - sudo chown -R gitlab-runner .
-  only:
-    changes:
-      - .gitlab-ci.yml
-      - dockerfiles/Dockerfile.kickstart
-      - drtsans-dev.yml
+  after_script:
+    - *teardown_cleanup
   tags:
     - scse-mantid-builder
   artifacts:
@@ -83,6 +90,7 @@ docker-update-test:
   dependencies:
     - dockerbuild
   before_script:
+    - *startup_cleanup
     - sudo mkdir -p /SNS/EQSANS
     - sudo mkdir -p /HFIR/CG2
     - sudo mkdir -p /HFIR/CG3
@@ -92,6 +100,8 @@ docker-update-test:
     - time docker pull $CONTAINER_URL
     - time bash -x scripts/sans-backend-run.sh -u || cat SANS_output/*err
     - sudo chown -R gitlab-runner .
+  after_script:
+    - *teardown_cleanup
   tags:
     - scse-mantid-builder    #scse-sans-demo
 
@@ -101,6 +111,7 @@ docker-no-update-test:
   dependencies:
     - dockerbuild
   before_script:
+    - *startup_cleanup
     - sudo mkdir -p /SNS/EQSANS
     - sudo mkdir -p /HFIR/CG2
     - sudo mkdir -p /HFIR/CG3
@@ -110,6 +121,8 @@ docker-no-update-test:
     - time docker pull $CONTAINER_URL
     - time bash -x scripts/sans-backend-run.sh || cat SANS_output/*err
     - sudo chown -R gitlab-runner .
+  after_script:
+    - *teardown_cleanup
   tags:
     - scse-mantid-builder   #scse-sans-demo
 
@@ -119,6 +132,7 @@ docs-feature:
   dependencies:
     - dockerbuild
   script:
+    - *startup_cleanup
     - set -x
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
@@ -132,8 +146,9 @@ docs-feature:
     - popd
   after_script:
     - ls -l $CI_PROJECT_DIR
+    - *teardown_cleanup
   tags:
-    - rse-multi-builder
+    - neutrons-multi-builder
   except:
     - next
     - master
@@ -144,6 +159,7 @@ docs-next:
   dependencies:
     - dockerbuild
   script:
+    - *startup_cleanup
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
     - sudo cp -r . /tmp/sans-backend
@@ -156,8 +172,9 @@ docs-next:
     - popd
   after_script:
     - cp -r /tmp/sans-backend/build/sphinx/html .
+    - *teardown_cleanup
   tags:
-    - rse-multi-builder
+    - neutrons-multi-builder
   only:
     - next
   artifacts:
@@ -170,6 +187,7 @@ code-unit-test:
   dependencies:
     - dockerbuild
   before_script:
+    - *startup_cleanup
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
     - sudo bash scripts/instruments-mount.sh
   script:
@@ -184,6 +202,7 @@ code-unit-test:
     - popd
   after_script:
     - cp -r /tmp/sans-backend/unit_test_results.xml unit_test_results.xml
+    - *teardown_cleanup
   artifacts:
     paths:
       -  unit_test_results.xml
@@ -198,6 +217,7 @@ code-integration-test:
   dependencies:
     - dockerbuild
   before_script:
+    - *startup_cleanup
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
     - sudo mkdir -p /HFIR/CG2
     - sudo mkdir -p /HFIR/CG3
@@ -214,6 +234,7 @@ code-integration-test:
     - popd
   after_script:
     - cp -r /tmp/sans-backend/integration_test_results.xml integration_test_results.xml
+    - *teardown_cleanup
   artifacts:
     paths:
       -  integration_test_results.xml
@@ -228,6 +249,7 @@ code-pylint:
   dependencies:
     - dockerbuild
   script:
+    - *startup_cleanup
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
     - sudo cp -r . /tmp/sans-backend
@@ -237,14 +259,17 @@ code-pylint:
     - time docker pull $CONTAINER_URL
     - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/pylint_job.sh"
     - popd
+  after_script:
+    - *teardown_cleanup
   tags:
-    - rse-multi-builder
+    - neutrons-multi-builder
 
 create-wheel:
   stage: test
   dependencies:
     - dockerbuild
   script:
+    - *startup_cleanup
     - set -x
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
@@ -257,8 +282,9 @@ create-wheel:
     - popd
   after_script:
     - ls -l $CI_PROJECT_DIR
+    - *teardown_cleanup
   tags:
-    - rse-multi-builder
+    - neutrons-multi-builder
 
 conda-package:
   stage: publish
@@ -266,6 +292,7 @@ conda-package:
     - create-wheel
     - dockerbuild
   script:
+    - *startup_cleanup
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
     - sudo cp -r . /tmp/sans-backend
@@ -276,8 +303,9 @@ conda-package:
     - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/publish_package.sh"
   after_script:
     - ls -l $CI_PROJECT_DIR
+    - *teardown_cleanup
   tags:
-    - rse-multi-builder
+    - neutrons-multi-builder
 
 deploy-dev:
   stage: analysis-update

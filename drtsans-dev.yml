@@ -4,6 +4,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - mantid==6.4
   - autopep8
   - black
   - build
@@ -15,7 +16,6 @@ dependencies:
   - jinja2
   - jsonschema>=3.0.2
   - lmfit
-  - mantidworkbench==6.4
   - mpld3
   - numexpr
   - pandas

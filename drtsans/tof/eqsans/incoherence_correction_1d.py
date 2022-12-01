@@ -196,11 +196,17 @@ def calculate_b_factors(
             calculate_b_error=True,
             intensity_weighted=intensity_weighted,
         )
+        '''
+        We would rather see where the negative values happen if it happens.
+        In addition, if we later decide to discard b(lambda) from last wavelength
+        bins for getting min(b[lambda]), b[lambda_max] or b[lambda_min] may have negative values.
+        '''
         # verify
+        '''
         assert (
             b_array[np.isfinite(b_array)].min() >= -1e-20
         ), f"B array has negative values: {b_array}"
-
+        '''
     return b_array, ref_wl_ie
 
 

@@ -320,8 +320,12 @@ deploy-dev:
     project: sns-hfir-scse/deployments/drtsans-deploy
     # run the downstream pipeline on branch main
     branch: main
-  only:
-    - next
+  rules:
+    # skip deployment for nightly builds (scheduled builds)
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_REF_SLUG == "next"
+      when: on_success
 
 deploy-qa:
   stage: analysis-update
@@ -336,8 +340,12 @@ deploy-qa:
     project: sns-hfir-scse/deployments/drtsans-deploy
     # run the downstream pipeline on branch main
     branch: main
-  only:
-    - qa
+  rules:
+    # skip deployment for nightly builds (scheduled builds)
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_REF_SLUG == "qa"
+      when: on_success
 
 deploy-prod:
   stage: analysis-update
@@ -352,5 +360,9 @@ deploy-prod:
     project: sns-hfir-scse/deployments/drtsans-deploy
     # run the downstream pipeline on branch main
     branch: main
-  only:
-    - main
+  rules:
+    # skip deployment for nightly builds (scheduled builds)
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_REF_SLUG == "main"
+      when: on_success

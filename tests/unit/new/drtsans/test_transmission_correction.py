@@ -12,7 +12,7 @@ I_sam = np.array(
         [105, 110, 115, 120, 125],
         [120, 125, 130, 135, 140],
     ],
-    dtype=np.float,
+    dtype=np.float64,
 )
 
 # Poisson uncertainties on counts

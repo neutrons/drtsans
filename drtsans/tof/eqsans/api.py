@@ -705,7 +705,7 @@ def reduce_single_configuration(
     bkg_trans_value = reduction_input["background"]["transmission"]["value"]
     theta_dependent_transmission = reduction_config["useThetaDepTransCorrection"]
     mask_panel = "back" if reduction_config["useMaskBackTubes"] is True else None
-    output_suffix = ""
+    output_suffix = "_processed"
 
     thickness = reduction_input["sample"]["thickness"]
     absolute_scale_method = reduction_config["absoluteScaleMethod"]

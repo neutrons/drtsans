@@ -84,7 +84,7 @@ def test_regular_setup(run_config, basename, generatecleanfile, reference_dir):
     input_config = update_reduction_parameters(input_config, amendments, validate=True)
 
     # expected output Nexus file
-    reduced_data_nexus = os.path.join(output_dir, f"{basename}.nxs")
+    reduced_data_nexus = os.path.join(output_dir, f"{basename}_processed.nxs")
     # remove files
     if os.path.exists(reduced_data_nexus):
         os.remove(reduced_data_nexus)
@@ -199,7 +199,7 @@ def test_weighted_binning_setup(run_config, basename, generatecleanfile, referen
     )  # final changes and validation
 
     # expected output Nexus file
-    reduced_data_nexus = os.path.join(output_dir, f"{basename}_corr.nxs")
+    reduced_data_nexus = os.path.join(output_dir, f"{basename}_corr_processed.nxs")
     # clean output directory
     if os.path.exists(reduced_data_nexus):
         os.remove(reduced_data_nexus)
@@ -411,7 +411,7 @@ def test_wavelength_step(reference_dir):
         reduction_output = reduce_single_configuration(loaded, input_config)
 
         # verify output file existence
-        output_file_name = os.path.join(test_dir, "test_wavelength_step_reg.nxs")
+        output_file_name = os.path.join(test_dir, "test_wavelength_step_reg_processed.nxs")
         assert os.path.isfile(
             output_file_name
         ), f"Expected output file {output_file_name} does not exists"
@@ -453,7 +453,7 @@ def test_wavelength_step(reference_dir):
         loaded = load_all_files(input_config)
         reduce_single_configuration(loaded, input_config)
         # verify output file existence
-        output_file_name = os.path.join(f"{test_dir}", "test_wavelength_step_com.nxs")
+        output_file_name = os.path.join(f"{test_dir}", "test_wavelength_step_com_processed.nxs")
         assert os.path.isfile(
             output_file_name
         ), f"Expected output file {output_file_name} does not exists"
@@ -482,7 +482,7 @@ def test_wavelength_step(reference_dir):
         reduce_single_configuration(loaded, input_config)
 
         # verify output file existence
-        output_file_name = os.path.join(f"{test_dir}", "test_wavelength_step_gauss.nxs")
+        output_file_name = os.path.join(f"{test_dir}", "test_wavelength_step_gauss_processed.nxs")
         assert os.path.isfile(
             output_file_name
         ), f"Expected output file {output_file_name} does not exist."

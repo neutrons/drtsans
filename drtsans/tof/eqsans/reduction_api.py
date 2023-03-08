@@ -393,7 +393,7 @@ def bin_i_with_correction(
         annular_angle_bin=annular_bin,
         wedges=wedges,
         symmetric_wedges=symmetric_wedges,
-        error_weighted=weighted_errors,
+        error_weighted=True,  # reduces high uncertainty in the high-Q limit when low statistics
     )
 
     return iq2d_main_out, iq1d_main_out

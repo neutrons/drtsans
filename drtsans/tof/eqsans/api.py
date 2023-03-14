@@ -118,9 +118,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     namedtuple
         Named tuple including all loaded workspaces
     """
-    reduction_config = reduction_input[
-        "configuration"
-    ]  # a handy shortcut to the configuration parameters dictionary
+    reduction_config = reduction_input["configuration"]  # a handy shortcut to the configuration parameters dictionary
 
     instrument_name = reduction_input["instrumentName"]
     ipts = reduction_input["iptsNumber"]
@@ -133,6 +131,8 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     # elastic reference and background: incoherence correction
     elastic_ref_run = reduction_config["elasticReference"].get("runNumber")
     elastic_ref_bkgd_run = reduction_config["elasticReferenceBkgd"].get("runNumber")
+    elastic_ref_trans_run = reduction_config["elasticReference"]["transmission"].get("runNumber")
+    elastic_ref_bkgd_trans_run = reduction_config["elasticReferenceBkgd"]["transmission"].get("runNumber")
 
     from drtsans.tof.eqsans.reduction_api import remove_workspaces
 
@@ -150,15 +150,15 @@ def load_all_files(reduction_input, prefix="", load_params=None):
             bkgd_trans,
             elastic_ref_run,
             elastic_ref_bkgd_run,
+            elastic_ref_trans_run,
+            elastic_ref_bkgd_trans_run,
         ],
     )
 
     filenames = set()
     default_mask = None
     if reduction_config["useDefaultMask"]:
-        configuration_file_parameters = _get_configuration_file_parameters(
-            sample.split(",")[0].strip()
-        )
+        configuration_file_parameters = _get_configuration_file_parameters(sample.split(",")[0].strip())
         default_mask = configuration_file_parameters["combined mask"]
 
     load_params = set_beam_center(
@@ -174,9 +174,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     )
 
     # Adjust pixel heights and widths
-    load_params["pixel_calibration"] = reduction_config.get(
-        "usePixelCalibration", False
-    )
+    load_params["pixel_calibration"] = reduction_config.get("usePixelCalibration", False)
 
     if reduction_config["detectorOffset"] is not None:
         load_params["detector_offset"] = reduction_config["detectorOffset"]
@@ -194,9 +192,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
 
     # FIXME the issues with the monitor on EQSANS has not been fixed. Enable normalization by monitor (issue #538)
     if load_params["monitors"]:
-        raise RuntimeError(
-            "Normalization by monitor option will be enabled in a later drt-sans release"
-        )
+        raise RuntimeError("Normalization by monitor option will be enabled in a later drt-sans release")
 
     # ----- END OF SETUP of load_params -----
 
@@ -257,9 +253,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
             filename = abspaths(sample.strip(), instrument=instrument_name, ipts=ipts)
             print(f"Loading filename {filename}")
             filenames.add(filename)
-            loaded_sample_tup = load_events_and_histogram(
-                filename, output_workspace=ws_name, **load_params
-            )
+            loaded_sample_tup = load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
             sample_bands = loaded_sample_tup.bands
             if default_mask:
                 apply_mask(ws_name, mask=default_mask)
@@ -269,21 +263,34 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     reduction_input["logslice_data"] = logslice_data_dict
 
     # Load all other files without further processing
-    # background, empty, sample transmission, background transmission
+    # background, empty, sample transmission, background transmission,
+    # elastic reference and its transmission, background, background transmission
     other_ws_list = list()
     for irun, run_number in enumerate(
-        [bkgd, empty, sample_trans, bkgd_trans, elastic_ref_run, elastic_ref_bkgd_run]
+        [
+            bkgd,
+            empty,
+            sample_trans,
+            bkgd_trans,
+            elastic_ref_run,
+            elastic_ref_bkgd_run,
+            elastic_ref_trans_run,
+            elastic_ref_bkgd_trans_run,
+        ]
     ):
+
+        def is_elastic_ref_run(index):
+            r"""Human way of saying the index refers to one of the elastic ref runs"""
+            return index > 3
+
         if run_number:
             # run number is given
             ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
             if not registered_workspace(ws_name):
-                filename = abspaths(
-                    run_number.strip(), instrument=instrument_name, ipts=ipts
-                )
+                filename = abspaths(run_number.strip(), instrument=instrument_name, ipts=ipts)
                 print(f"Loading filename {filename}")
                 filenames.add(filename)
-                if irun in [4, 5]:
+                if is_elastic_ref_run(irun):
                     # elastic reference run and background run, the bands must be same as sample's
                     load_events_and_histogram(
                         filename,
@@ -292,9 +299,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
                         **load_params,
                     )
                 else:
-                    load_events_and_histogram(
-                        filename, output_workspace=ws_name, **load_params
-                    )
+                    load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
                 if default_mask:
                     apply_mask(ws_name, mask=default_mask)
             other_ws_list.append(mtd[ws_name])
@@ -302,9 +307,11 @@ def load_all_files(reduction_input, prefix="", load_params=None):
             # run number is not given
             other_ws_list.append(None)
 
-    # elastic and elastic background reference run
+    # workspaces associated to the elastic reference correction
     elastic_ref_ws = other_ws_list[4]
     elastic_ref_bkgd_ws = other_ws_list[5]
+    elastic_ref_trans_ws = other_ws_list[6]
+    elastic_ref_bkgd_trans_ws = other_ws_list[7]
 
     # dark run (aka dark current run)
     dark_current_ws = None
@@ -317,57 +324,31 @@ def load_all_files(reduction_input, prefix="", load_params=None):
             dark_current_file = abspath(dark_current_file)
             print(f"Loading filename {dark_current_file}")
             filenames.add(dark_current_file)
-            loaded_dark = load_events_and_histogram(
-                dark_current_file, output_workspace=ws_name, **load_params
-            )
+            loaded_dark = load_events_and_histogram(dark_current_file, output_workspace=ws_name, **load_params)
             dark_current_ws = loaded_dark.data
             if default_mask:
                 apply_mask(ws_name, mask=default_mask)
         else:
             dark_current_ws = mtd[ws_name]
 
-    if registered_workspace(
-        f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
-    ):
+    if registered_workspace(f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"):
         sample_ws = mtd[f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"]
         sample_ws_list = [w for w in sample_ws]
     else:
         sample_ws_list = [mtd[f"{prefix}_{instrument_name}_{sample}_raw_histo"]]
-    background_ws = (
-        mtd[f"{prefix}_{instrument_name}_{bkgd}_raw_histo"] if bkgd else None
-    )
+    background_ws = mtd[f"{prefix}_{instrument_name}_{bkgd}_raw_histo"] if bkgd else None
     empty_ws = mtd[f"{prefix}_{instrument_name}_{empty}_raw_histo"] if empty else None
-    sample_transmission_ws = (
-        mtd[f"{prefix}_{instrument_name}_{sample_trans}_raw_histo"]
-        if sample_trans
-        else None
-    )
-    background_transmission_ws = (
-        mtd[f"{prefix}_{instrument_name}_{bkgd_trans}_raw_histo"]
-        if bkgd_trans
-        else None
-    )
+    sample_transmission_ws = mtd[f"{prefix}_{instrument_name}_{sample_trans}_raw_histo"] if sample_trans else None
+    background_transmission_ws = mtd[f"{prefix}_{instrument_name}_{bkgd_trans}_raw_histo"] if bkgd_trans else None
     if load_params["monitors"]:
         sample_mon_ws = mtd[f"{prefix}_{instrument_name}_{sample}_raw_histo_monitors"]
-        background_mon_ws = (
-            mtd[f"{prefix}_{instrument_name}_{bkgd}_raw_histo_monitors"]
-            if bkgd
-            else None
-        )
-        empty_mon_ws = (
-            mtd[f"{prefix}_{instrument_name}_{empty}_raw_histo_monitors"]
-            if empty
-            else None
-        )
+        background_mon_ws = mtd[f"{prefix}_{instrument_name}_{bkgd}_raw_histo_monitors"] if bkgd else None
+        empty_mon_ws = mtd[f"{prefix}_{instrument_name}_{empty}_raw_histo_monitors"] if empty else None
         sample_transmission_mon_ws = (
-            mtd[f"{prefix}_{instrument_name}_{sample_trans}" + "_raw_histo_monitors"]
-            if sample_trans
-            else None
+            mtd[f"{prefix}_{instrument_name}_{sample_trans}" + "_raw_histo_monitors"] if sample_trans else None
         )
         background_transmission_mon_ws = (
-            mtd[f"{prefix}_{instrument_name}_{bkgd_trans}" + "_raw_histo_monitors"]
-            if bkgd_trans
-            else None
+            mtd[f"{prefix}_{instrument_name}_{bkgd_trans}" + "_raw_histo_monitors"] if bkgd_trans else None
         )
     else:
         sample_mon_ws = None
@@ -437,7 +418,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
             smearing_pixel_size_x=smearing_pixel_size_x,
             smearing_pixel_size_y=smearing_pixel_size_y,
         )
-    # There is not extra setup for elastic reference background following typical background run
+    # There is no extra setup for elastic reference background following typical background run
 
     print("FILE PATH, FILE SIZE:")
     total_size = 0
@@ -450,8 +431,8 @@ def load_all_files(reduction_input, prefix="", load_params=None):
                 name = drtsans.path.abspath(hint, instrument="EQSANS")
                 file_size = os.path.getsize(name)
             total_size += file_size
-            print(name + ",", "{:.2f} MiB".format(file_size / 1024 ** 2))
-    print("TOTAL: ", "{:.2f} MB".format(total_size / 1024 ** 2))
+            print(name + ",", "{:.2f} MiB".format(file_size / 1024**2))
+    print("TOTAL: ", "{:.2f} MB".format(total_size / 1024**2))
 
     ws_mon_pair = namedtuple("ws_mon_pair", ["data", "monitor"])
 
@@ -459,17 +440,15 @@ def load_all_files(reduction_input, prefix="", load_params=None):
         sample=[ws_mon_pair(data=ws, monitor=sample_mon_ws) for ws in sample_ws_list],
         background=ws_mon_pair(data=background_ws, monitor=background_mon_ws),
         empty=ws_mon_pair(data=empty_ws, monitor=empty_mon_ws),
-        sample_transmission=ws_mon_pair(
-            data=sample_transmission_ws, monitor=sample_transmission_mon_ws
-        ),
-        background_transmission=ws_mon_pair(
-            data=background_transmission_ws, monitor=background_transmission_mon_ws
-        ),
+        sample_transmission=ws_mon_pair(data=sample_transmission_ws, monitor=sample_transmission_mon_ws),
+        background_transmission=ws_mon_pair(data=background_transmission_ws, monitor=background_transmission_mon_ws),
         dark_current=ws_mon_pair(data=dark_current_ws, monitor=dark_current_mon_ws),
         sensitivity=sensitivity_ws,
         mask=mask_ws,
         elastic_reference=ws_mon_pair(elastic_ref_ws, None),
         elastic_reference_background=ws_mon_pair(elastic_ref_bkgd_ws, None),
+        elastic_reference_transmission=ws_mon_pair(elastic_ref_trans_ws, None),
+        elastic_reference_background_transmission=ws_mon_pair(elastic_ref_bkgd_trans_ws, None),
     )
 
     return loaded_ws_dict
@@ -573,9 +552,7 @@ def pre_process_single_configuration(
     }
 
     # process sample
-    sample_ws = prepare_data_workspaces(
-        sample_ws_raw, output_workspace=output_workspace, **prepare_data_conf
-    )
+    sample_ws = prepare_data_workspaces(sample_ws_raw, output_workspace=output_workspace, **prepare_data_conf)
     # apply transmission to the sample
     if sample_trans_ws or sample_trans_value:
         if sample_trans_ws:
@@ -597,9 +574,7 @@ def pre_process_single_configuration(
         # process background run
         bkgd_ws_name = output_suffix + "_background"
         if not registered_workspace(bkgd_ws_name):
-            bkgd_ws = prepare_data_workspaces(
-                bkg_ws_raw, output_workspace=bkgd_ws_name, **prepare_data_conf
-            )
+            bkgd_ws = prepare_data_workspaces(bkg_ws_raw, output_workspace=bkgd_ws_name, **prepare_data_conf)
             # apply transmission to background
             if bkg_trans_ws or bkg_trans_value:
                 if bkg_trans_ws:
@@ -656,7 +631,7 @@ def reduce_single_configuration(
     Parameters
     ----------
     loaded_ws: namedtuple
-        loaded workspaces
+        loaded workspaces, usually the return value of `load_all_files()`
     reduction_input: dict
         reduction configuration
     prefix
@@ -674,9 +649,7 @@ def reduce_single_configuration(
     reduction_config = reduction_input["configuration"]
 
     # Process inelastic/incoherent scattering correction configuration if user does not specify
-    assert isinstance(
-        not_apply_incoherence_correction, bool
-    ), "Only boolean for not_apply flag is allowed"
+    assert isinstance(not_apply_incoherence_correction, bool), "Only boolean for not_apply flag is allowed"
     if not_apply_incoherence_correction is True:
         # allow user to override JSON setup
         incoherence_correction_setup = CorrectionConfiguration(do_correction=False)
@@ -716,9 +689,7 @@ def reduce_single_configuration(
     # Note: option {even_decades = reduction_config["useLogQBinsEvenDecade"]} is removed
     nybins_main = nxbins_main = reduction_config["numQxQyBins"]
     bin1d_type = reduction_config["1DQbinType"]
-    log_binning = (
-        reduction_config["QbinType"] == "log"
-    )  # FIXME - note: fixed to log binning
+    log_binning = reduction_config["QbinType"] == "log"  # FIXME - note: fixed to log binning
     decade_on_center = reduction_config["useLogQBinsDecadeCenter"]
     nbins_main = reduction_config["numQBins"]
     nbins_main_per_decade = reduction_config["LogQBinsPerDecade"]
@@ -729,21 +700,28 @@ def reduce_single_configuration(
     annular_bin = reduction_config["AnnularAngleBin"]
     wedges_min = reduction_config["WedgeMinAngles"]
     wedges_max = reduction_config["WedgeMaxAngles"]
-    wedges = (
-        None
-        if wedges_min is None or wedges_max is None
-        else list(zip(wedges_min, wedges_max))
-    )
+    wedges = None if wedges_min is None or wedges_max is None else list(zip(wedges_min, wedges_max))
     # set the found wedge values to the reduction input, this will allow correct plotting
     reduction_config["wedges"] = wedges
     reduction_config["symmetric_wedges"] = True
 
     # automatically determine wedge binning if it wasn't explicitly set
-    autoWedgeOpts, symmetric_wedges = parse_auto_wedge_setup(
-        reduction_config, bin1d_type, wedges_min
-    )
+    autoWedgeOpts, symmetric_wedges = parse_auto_wedge_setup(reduction_config, bin1d_type, wedges_min)
+
+    # set up subpixel binning options  FIXME - it does not seem to work
+    subpixel_kwargs = dict()
+    if reduction_config["useSubpixels"]:
+        subpixel_kwargs = {
+            "n_horizontal": reduction_config["subpixelsX"],
+            "n_vertical": reduction_config["subpixelsY"],
+        }
+
+    ##############################################
+    # PROCESS SAMPLE AND BACKGROUND TRANSMISSIONS
+    ##############################################
 
     # Prepare empty beam transmission workspace
+    #
     if loaded_ws.empty.data is not None:
         empty_trans_ws_name = f"{prefix}_empty"
         empty_trans_ws = prepare_data_workspaces(
@@ -757,7 +735,24 @@ def reduce_single_configuration(
     else:
         empty_trans_ws = None
 
+    # Sample transmission
+    #
+    sample_returned = process_transmission(
+        loaded_ws.sample_transmission,
+        empty_trans_ws,
+        transmission_radius,
+        loaded_ws.sensitivity,
+        flux_method,
+        flux,
+        prefix,
+        "sample",
+        output_dir,
+        outputFilename,
+    )
+    (sample_trans_ws, sample_transmission_dict, sample_transmission_raw_dict) = sample_returned
+
     # Background transmission
+    #
     # TODO 781 - to test and check for sanity
     # specific output filename (base) for background trans
     if loaded_ws.background_transmission.data:
@@ -777,62 +772,73 @@ def reduce_single_configuration(
             output_dir,
             base_out_name,
         )
-        (
-            bkgd_trans_ws,
-            background_transmission_dict,
-            background_transmission_raw_dict,
-        ) = bkgd_returned
     else:
-        # no background transmission
-        bkgd_trans_ws = (
-            background_transmission_dict
-        ) = background_transmission_raw_dict = None
+        bkgd_returned = (None, None, None)
+    bkgd_trans_ws, background_transmission_dict, background_transmission_raw_dict = bkgd_returned
 
-    # sample transmission
-    sample_returned = process_transmission(
-        loaded_ws.sample_transmission,
-        empty_trans_ws,
-        transmission_radius,
-        loaded_ws.sensitivity,
-        flux_method,
-        flux,
-        prefix,
-        "sample",
-        output_dir,
-        outputFilename,
-    )
-
-    (
-        sample_trans_ws,
-        sample_transmission_dict,
-        sample_transmission_raw_dict,
-    ) = sample_returned
-
-    # set up subpixel binning options  FIXME - it does not seem to work
-    subpixel_kwargs = dict()
-    if reduction_config["useSubpixels"]:
-        subpixel_kwargs = {
-            "n_horizontal": reduction_config["subpixelsX"],
-            "n_vertical": reduction_config["subpixelsY"],
-        }
-
-    # process elastic run
-    if (
-        incoherence_correction_setup.do_correction
-        and incoherence_correction_setup.elastic_reference
-    ):
+    ############################
+    # PROCESS ELASTIC REFERENCE
+    ############################
+    if incoherence_correction_setup.do_correction and incoherence_correction_setup.elastic_reference:
         # sanity check
         assert loaded_ws.elastic_reference.data, (
-            f"Reference run is not loaded: "
-            f"{incoherence_correction_setup.elastic_reference}"
+            f"Reference run is not loaded: " f"{incoherence_correction_setup.elastic_reference}"
         )
+
+        ##############################################
+        # PROCESS SAMPLE AND BACKGROUND TRANSMISSIONS
+        ##############################################
+
+        # Elastic reference transmission
+        #
+        if loaded_ws.elastic_reference_transmission.data:
+            # process transmission (returns a 3-item tuple)
+            output = process_transmission(
+                loaded_ws.elastic_reference_transmission,
+                empty_trans_ws,
+                transmission_radius,
+                loaded_ws.sensitivity,
+                flux_method,
+                flux,
+                prefix,
+                "elasticref",
+                None,
+                None,
+            )
+        else:
+            output = (None, None, None)
+        elasticref_trans_ws, _, _ = output
+
+        # Elastic reference background transmission
+        #
+        if loaded_ws.elastic_reference_background_transmission.data:
+            # process transmission (returns a 3-item tuple)
+            output = process_transmission(
+                loaded_ws.elastic_reference_background_transmission,
+                empty_trans_ws,
+                transmission_radius,
+                loaded_ws.sensitivity,
+                flux_method,
+                flux,
+                prefix,
+                "elasticrefbkgd",
+                None,
+                None,
+            )
+        else:
+            output = (None, None, None)
+        elasticrefbkgd_trans_ws, _, _ = output
+
+        ############################
+        # I(Q) OF ELASTIC REFERENCE
+        ############################
         elastic_ref = incoherence_correction_setup.elastic_reference
         processed_elastic_ref = pre_process_single_configuration(
             loaded_ws.elastic_reference,
-            sample_trans_ws=elastic_ref.transmission_run_number,
+            sample_trans_ws=elasticref_trans_ws,
             sample_trans_value=elastic_ref.transmission_value,
             bkg_ws_raw=loaded_ws.elastic_reference_background,
-            bkg_trans_ws=elastic_ref.background_transmission_run_number,  # noqa E502
+            bkg_trans_ws=elasticrefbkgd_trans_ws,
             bkg_trans_value=elastic_ref.background_transmission_value,  # noqa E502
             theta_dependent_transmission=theta_dependent_transmission,  # noqa E502
             dark_current=loaded_ws.dark_current,
@@ -852,22 +858,15 @@ def reduce_single_configuration(
             keep_processed_workspaces=False,
         )
         # convert to I(Q)
-        iq1d_elastic_ref = convert_to_q(
-            processed_elastic_ref, mode="scalar", **subpixel_kwargs
-        )
-        iq2d_elastic_ref = convert_to_q(
-            processed_elastic_ref, mode="azimuthal", **subpixel_kwargs
-        )
+        iq1d_elastic_ref = convert_to_q(processed_elastic_ref, mode="scalar", **subpixel_kwargs)
+        iq2d_elastic_ref = convert_to_q(processed_elastic_ref, mode="azimuthal", **subpixel_kwargs)
         # split to frames
-        iq1d_elastic_ref_frames = split_by_frame(
-            processed_elastic_ref, iq1d_elastic_ref, verbose=True
-        )
-        iq2d_elastic_ref_frames = split_by_frame(
-            processed_elastic_ref, iq2d_elastic_ref, verbose=True
-        )
-
+        iq1d_elastic_ref_frames = split_by_frame(processed_elastic_ref, iq1d_elastic_ref, verbose=True)
+        iq2d_elastic_ref_frames = split_by_frame(processed_elastic_ref, iq2d_elastic_ref, verbose=True)
     else:
         iq1d_elastic_ref_frames = iq2d_elastic_ref_frames = None
+
+    # --------------- END OF PROCESS ELASTIC REFERENCE -------------
 
     # Define output data structure
     output = []
@@ -906,20 +905,12 @@ def reduce_single_configuration(
         )
 
         # convert to Q
-        iq1d_main_in = convert_to_q(
-            processed_data_main, mode="scalar", **subpixel_kwargs
-        )
-        iq2d_main_in = convert_to_q(
-            processed_data_main, mode="azimuthal", **subpixel_kwargs
-        )
+        iq1d_main_in = convert_to_q(processed_data_main, mode="scalar", **subpixel_kwargs)
+        iq2d_main_in = convert_to_q(processed_data_main, mode="azimuthal", **subpixel_kwargs)
 
         # split to frames
-        iq1d_main_in_fr = split_by_frame(
-            processed_data_main, iq1d_main_in, verbose=True
-        )
-        iq2d_main_in_fr = split_by_frame(
-            processed_data_main, iq2d_main_in, verbose=True
-        )
+        iq1d_main_in_fr = split_by_frame(processed_data_main, iq1d_main_in, verbose=True)
+        iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in, verbose=True)
 
         # Save nexus processed
         filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}.nxs")
@@ -927,9 +918,7 @@ def reduce_single_configuration(
         print(f"SaveNexus to {filename}")
 
         # Work with wedges
-        if bool(
-            autoWedgeOpts
-        ):  # determine wedges automatically from the main detectora
+        if bool(autoWedgeOpts):  # determine wedges automatically from the main detectora
             wedges = process_auto_wedge(
                 autoWedgeOpts,
                 iq2d_main_in,
@@ -950,12 +939,8 @@ def reduce_single_configuration(
                 fr_log_label = "frame"
                 fr_label = ""
 
-            assert (
-                iq1d_main_in_fr[wl_frame] is not None
-            ), "Input I(Q)      main input cannot be None."
-            assert (
-                iq2d_main_in_fr[wl_frame] is not None
-            ), "Input I(qx, qy) main input cannot be None."
+            assert iq1d_main_in_fr[wl_frame] is not None, "Input I(Q)      main input cannot be None."
+            assert iq2d_main_in_fr[wl_frame] is not None, "Input I(qx, qy) main input cannot be None."
 
             iq2d_main_out, iq1d_main_out = bin_i_with_correction(
                 iq1d_main_in_fr,
@@ -988,9 +973,7 @@ def reduce_single_configuration(
             }
 
             # save ASCII files
-            filename = os.path.join(
-                output_dir, f"{outputFilename}{output_suffix}{fr_label}_Iqxqy.dat"
-            )
+            filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{fr_label}_Iqxqy.dat")
             if iq2d_main_out:
                 save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
 
@@ -999,9 +982,7 @@ def reduce_single_configuration(
                 if len(iq1d_main_out) > 1:
                     add_suffix = f"_wedge_{j}"
                 add_suffix += fr_label
-                ascii_1D_filename = os.path.join(
-                    output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq.dat"
-                )
+                ascii_1D_filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq.dat")
                 save_iqmod(iq1d_main_out[j], ascii_1D_filename, skip_nan=skip_nan)
 
             current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=iq1d_main_out)
@@ -1103,11 +1084,7 @@ def process_auto_wedge(
     logger.notice(f"Auto wedge options: {auto_wedge_setup}")
     auto_wedge_setup["debug_dir"] = output_dir
     wedges = getWedgeSelection(iq2d_input, **auto_wedge_setup)
-    logger.notice(
-        f"found wedge angles:\n"
-        f"              peak: {wedges[0]}\n"
-        f"        background: {wedges[1]}"
-    )
+    logger.notice(f"found wedge angles:\n" f"              peak: {wedges[0]}\n" f"        background: {wedges[1]}")
     # sanity check
     assert len(wedges) == 2, f"Auto-wedges {wedges} shall have 2 2-tuples"
     # set automated wedge to reduction configuration for correct plotting.
@@ -1118,9 +1095,7 @@ def process_auto_wedge(
     return wedges
 
 
-def parse_auto_wedge_setup(
-    reduction_config: Dict, bin1d_type: str, wedges_min
-) -> Tuple[Dict, bool]:
+def parse_auto_wedge_setup(reduction_config: Dict, bin1d_type: str, wedges_min) -> Tuple[Dict, bool]:
     """Parse JSON input for automatic wedge setup"""
     autoWedgeOpts = {}
     symmetric_wedges = True
@@ -1161,9 +1136,7 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
         qmin = reduction_config["Qmin"]
         qmax = reduction_config["Qmax"]
 
-        filename = os.path.join(
-            output_dir, f"{outputFilename}{output_suffix}_Iqxqy.png"
-        )
+        filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}_Iqxqy.png")
         plot_IQazimuthal(
             out.I2D_main,
             filename,
@@ -1180,9 +1153,7 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
             add_suffix = ""
             if len(out.I1D_main) > 1:
                 add_suffix = f"_wedge_{j}"
-            filename = os.path.join(
-                output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq.png"
-            )
+            filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq.png")
             plot_IQmod(
                 [out.I1D_main[j]],
                 filename,
@@ -1228,9 +1199,7 @@ def set_beam_center(
             if reduction_config["useDefaultMask"]:
                 apply_mask(center_ws_name, mask=default_mask)
         fbc_options = fbc_options_json(reduction_input)
-        center_x, center_y, fit_results = find_beam_center(
-            center_ws_name, **fbc_options
-        )
+        center_x, center_y, fit_results = find_beam_center(center_ws_name, **fbc_options)
         logger.notice(f"calculated center ({center_x}, {center_y})")
         beam_center_type = "calculated"
     else:
@@ -1398,9 +1367,7 @@ def prepare_data(
         if solid_angle is True:
             output_workspace = apply_solid_angle_correction(output_workspace)
         else:  # assume the solid_angle parameter is a workspace
-            output_workspace = apply_solid_angle_correction(
-                output_workspace, solid_angle_ws=solid_angle
-            )
+            output_workspace = apply_solid_angle_correction(output_workspace, solid_angle_ws=solid_angle)
 
     # Interestingly, this is the only use of the btp dictionary.
     # The BTP stands for banks, tubes and pixels - it is a Mantid thing.

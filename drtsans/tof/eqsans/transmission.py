@@ -7,7 +7,7 @@ Hyperlinks to Mantid algorithms
 CloneWorkspace <https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html>
 Fit <https://docs.mantidproject.org/nightly/algorithms/Fit-v1.html>
 Plus <https://docs.mantidproject.org/nightly/algorithms/Plus-v1.html>
-"""
+"""  # noqa: E501
 from mantid.simpleapi import CloneWorkspace, Fit, Plus
 
 r"""
@@ -32,7 +32,7 @@ def calculate_transmission(
     input_reference,
     radius=None,
     radius_unit="mm",
-    fit_function="name=UserFunction,Formula=a*x+b",
+    fit_function="name=LinearBackground",
     output_workspace=None,
     output_raw_transmission=None,
 ):
@@ -80,9 +80,7 @@ def calculate_transmission(
         output_raw_transmission = output_workspace  # we return the raw transmissions
 
     if radius is None:
-        insert_aperture_logs(
-            input_reference
-        )  # necessary for calculation of the beam radius
+        insert_aperture_logs(input_reference)  # necessary for calculation of the beam radius
         logger.information("Calculating beam radius from sample logs")
         radius = beam_radius(input_reference, unit="mm")
 
@@ -109,7 +107,7 @@ def calculate_transmission(
 def fit_band(
     input_workspace,
     band,
-    fit_function="name=UserFunction,Formula=a*x+b",
+    fit_function="name=LinearBackground",
     output_workspace=None,
 ):
     r"""
@@ -166,7 +164,7 @@ def fit_band(
 @namedtuplefy
 def fit_raw_transmission(
     input_workspace,
-    fit_function="name=UserFunction,Formula=a*x+b",
+    fit_function="name=LinearBackground",
     output_workspace=None,
 ):
     r"""
@@ -232,9 +230,7 @@ def fit_raw_transmission(
     # The overall fitted transmission workspace is either the transmission over the wavelength range of the lead
     # pulse or the sum of the fitted transmissions over the lead and skip pulses
     if wavelength_bands.skip is None:
-        fitted_workspace = CloneWorkspace(
-            lead_fit_output.fitted_workspace, OutputWorkspace=output_workspace
-        )
+        fitted_workspace = CloneWorkspace(lead_fit_output.fitted_workspace, OutputWorkspace=output_workspace)
     else:
         fitted_workspace = Plus(
             LHSWorkspace=lead_fit_output.fitted_workspace,
@@ -285,21 +281,13 @@ def insert_fitted(input_workspace, mantid_fit_workspace):
     # Find the array indexes enclosing the range of fitted wavelengths
     input_handle = mtd[str(input_workspace)]
     input_wavelength_range = input_handle.readX(0)
-    first_insertion_index = np.where(input_wavelength_range == first_fitted_wavelength)[
-        0
-    ][0]
-    last_insertion_index = np.where(input_wavelength_range == last_fitted_wavelength)[
-        0
-    ][0]
+    first_insertion_index = np.where(input_wavelength_range == first_fitted_wavelength)[0][0]
+    last_insertion_index = np.where(input_wavelength_range == last_fitted_wavelength)[0][0]
 
     # Insert the fitted transmission values, and set zero elsewhere.
-    fitted_transmission_values = mantid_fit_handle.readY(
-        1
-    )  # fitted values reside at workspace index 1
+    fitted_transmission_values = mantid_fit_handle.readY(1)  # fitted values reside at workspace index 1
     input_handle.dataY(0)[:] = np.zeros(input_handle.dataY(0).size)
-    input_handle.dataY(0)[
-        first_insertion_index:last_insertion_index
-    ] = fitted_transmission_values
+    input_handle.dataY(0)[first_insertion_index:last_insertion_index] = fitted_transmission_values
 
     # Insert the fitted transmission values and errors, and set zero elsewhere
     for target, fitted_values in (

@@ -39,7 +39,7 @@ flake8-feature:
     - time docker run -v $PWD:/opt/sans-backend -t code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master bash -c "flake8 --append-config /opt/sans-backend/setup.cfg /opt/sans-backend"
     - sudo chown -R gitlab-runner .
   tags:
-    - scse-mantid-builder
+    - scse-drtsans-builder
   except:
     - next
 
@@ -54,7 +54,7 @@ flake8-next:
     - time docker run -v $PWD:/opt/sans-backend -t code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master bash -c "flake8 --append-config /opt/sans-backend/setup.cfg /opt/sans-backend"
     - sudo chown -R gitlab-runner .
   tags:
-    - scse-mantid-builder
+    - scse-drtsans-builder
   only:
     - next
 
@@ -79,7 +79,7 @@ dockerbuild:
   after_script:
     - *teardown_cleanup
   tags:
-    - scse-mantid-builder
+    - scse-drtsans-builder
   artifacts:
     paths:
     - scripts/sans-backend-run.sh
@@ -103,7 +103,7 @@ docker-update-test:
   after_script:
     - *teardown_cleanup
   tags:
-    - scse-mantid-builder    #scse-sans-demo
+    - scse-drtsans-builder    #scse-sans-demo
 
 docker-no-update-test:
   stage: test
@@ -124,7 +124,7 @@ docker-no-update-test:
   after_script:
     - *teardown_cleanup
   tags:
-    - scse-mantid-builder   #scse-sans-demo
+    - scse-drtsans-builder   #scse-sans-demo
 
 docs-feature:
   stage: test
@@ -209,7 +209,7 @@ code-unit-test:
     reports:
       junit: unit_test_results.xml
   tags:
-    - scse-mantid-builder
+    - scse-drtsans-builder
 
 code-integration-test:
   stage: test
@@ -241,7 +241,7 @@ code-integration-test:
     reports:
       junit: integration_test_results.xml
   tags:
-    - scse-mantid-builder
+    - scse-drtsans-builder
 
 code-pylint:
   allow_failure: true

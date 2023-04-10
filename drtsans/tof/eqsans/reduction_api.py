@@ -376,6 +376,11 @@ def bin_i_with_correction(
         qmax = user_qmax
     # END-IF-ELSE
 
+    # If incoherence correction is turned on, then weighted_errors is always ture.
+    # Or just use the user defined value.
+    if incoherence_correction_setup.do_correction:
+        weighted_errors = True
+
     iq2d_main_out, iq1d_main_out = bin_all(
         finite_iq2d,
         finite_iq1d,
@@ -393,7 +398,7 @@ def bin_i_with_correction(
         annular_angle_bin=annular_bin,
         wedges=wedges,
         symmetric_wedges=symmetric_wedges,
-        error_weighted=True,  # reduces high uncertainty in the high-Q limit when low statistics
+        error_weighted=weighted_errors,  # When set to true, reduces high uncertainty in the high-Q limit when low statistics
     )
 
     return iq2d_main_out, iq1d_main_out

@@ -399,7 +399,7 @@ def bin_i_with_correction(
         wedges=wedges,
         symmetric_wedges=symmetric_wedges,
         # When set to true, reduces high uncertainty in the high-Q limit when low statistics
-        error_weighted=weighted_errors,  
+        error_weighted=weighted_errors,
     )
 
     return iq2d_main_out, iq1d_main_out

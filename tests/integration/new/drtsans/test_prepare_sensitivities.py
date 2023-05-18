@@ -131,7 +131,7 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
     DeleteWorkspace("test_sens_ws")
 
 
-@pytest.mark.skip(reason="This test is too large to run on build server")
+@pytest.mark.requires_large_memory
 def test_cg3_main_prepare_sensitivities():
     """Integration test on algorithms to prepare sensitivities for BIOSANS's main detector
 

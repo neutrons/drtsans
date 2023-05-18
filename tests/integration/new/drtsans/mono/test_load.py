@@ -71,7 +71,7 @@ def test_load_gpsans():
     DeleteWorkspace(ws)
 
 
-@pytest.mark.skip(reason="Too large to run on build server")
+@pytest.mark.requires_large_memory
 def test_load_biosans():
     """Test load BIOSANS data
 
@@ -129,7 +129,7 @@ def test_load_biosans():
     DeleteWorkspace(ws)
 
 
-@pytest.mark.skip(reason="Too large to run on build server")
+@pytest.mark.requires_large_memory
 def test_load_biosans_sample_off_nominal():
     """Test load BIOSANS data with sample position off nominal position
 
@@ -205,7 +205,7 @@ def test_load_biosans_sample_off_nominal():
     DeleteWorkspace(ws)
 
 
-@pytest.mark.skip(reason="Too large to run on build server")
+@pytest.mark.requires_large_memory
 def test_load_biosans_overwrite_swd():
     """Test load BIOSANS data with overwriting sample Si window distance
 
@@ -263,7 +263,7 @@ def test_load_biosans_overwrite_swd():
     DeleteWorkspace(ws)
 
 
-@pytest.mark.skip(reason="Too large to run on build server")
+@pytest.mark.requires_large_memory
 def test_load_biosans_overwrite_sdd():
     """Test load BIOSANS data with overwriting sample detector distance related meta data
 

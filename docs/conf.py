@@ -199,10 +199,10 @@ napoleon_numpy_docstring = True
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/3': None,
-                       'https://numpy.org/doc/1.22/': None,
-                       'https://docs.mantidproject.org/nightly/': None,
-                       'https://matplotlib.org/': None}
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
+                       'numpy': ('https://numpy.org/doc/1.22/', None),
+                       'mantid': ('https://docs.mantidproject.org/nightly/', None),
+                       'matplotlib': ('https://matplotlib.org/', None)}
 
 # -- Custom directives ----------------------------------------------------
 

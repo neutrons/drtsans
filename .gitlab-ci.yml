@@ -32,6 +32,7 @@ flake8-feature:
   stage: flake8
   retry: 1
   before_script:
+    - *startup_cleanup
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:

@@ -25,14 +25,14 @@ used in the virtual environment
 1. Checkout the code.
 
   .. code-block:: shell
-  
+
      $ git clone git@code.ornl.gov:sns-hfir-scse/sans/sans-backend.git
      $ cd sans-backend
 
 
 2. Create the development environment.
 
- There are two approaches to create development environment. 
+ There are two approaches to create development environment.
 
 a) Create the virtual environment and activate it.
 
@@ -43,7 +43,7 @@ a) Create the virtual environment and activate it.
     that were used for compiling `mantid <https://developer.mantidproject.org/BuildingWithCMake.html>`_.
 
  .. code-block:: shell
- 
+
     $ virtualenv -p $(which python3) --system-site-packages .venv
     $ source .venv/bin/activate
 
@@ -86,20 +86,20 @@ a) Create the virtual environment and activate it.
     $ pip install -r requirements.txt -r requirements_dev.txt
 
 b) Create a conda environment and activate it.
-  
-* It will use Mantid’s conda package. 
- 
+
+* It will use Mantid’s conda package.
+
 * miniconda/conda is required.
- 
-* Linux command: 
+
+* Linux command: Use the `libmamba solver <https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community>`_ for faster install
 
  .. code-block:: shell
- 
+
     $ conda config --add channels conda-forge
     $ conda config --add channels mantid
     $ conda create -n mydrtsans python=3.7
     $ conda activate mydrtsans
-    $ conda install -c mantid/label/nightly mantid-framework=6 --file requirements.txt --file requirements_dev.txt 
+    $ conda install -c mantid/label/nightly mantid-framework=6 --file requirements.txt --file requirements_dev.txt
 
  **Warning**: if you create the conda environment on SNS’s analysis cluster, avoid naming your environment as ‘drtsans’,
  ‘drtsans-qa’ and ‘drtsans-dev’, which are reserved.
@@ -107,31 +107,31 @@ b) Create a conda environment and activate it.
 3. Install the code in ``develop`` mode.
 
  .. code-block:: shell
-  
+
     $ python setup.py develop
 
 4. Try it out. Start ``python`` and try
 
  .. code-block:: python
-  
+
     import mantid
     import drtsans
 
  Verify you can run the unit tests:
 
  .. code-block:: shell
- 
+
     $ python -m pytest tests/unit/new/
     $ python -m pytest tests/integration/new/
 
- Some unit and integration tests require testing data.  Thus these tests can be either run on 
+ Some unit and integration tests require testing data.  Thus these tests can be either run on
  * SNS analysis cluster or
  * Local computer with mount to `/SNS/` archive. Here is the `instruction <https://code.ornl.gov/pf9/sns-mounts>`_ to mount SNS data directories.
 
 5. When done, deactivate the virtual environment using
 
  .. code-block:: shell
- 
+
     $ deactivate
 
  for virtual environment.  Or
@@ -207,7 +207,7 @@ Test Driven Development (TDD)
    All software developments are tracked by repeatedly testing the software against all test cases.
 
 * Unit test
-   
+
   All methods and modules shall have unit tests implemented.
   Unit tests are located in `repo/tests/unit/new <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/tree/next/tests/unit/new>`_.
   A unit test shall be created in the corresponding directory to the method or module that it tests against.
@@ -224,7 +224,7 @@ Test Driven Development (TDD)
 
   * general for all instrument, for instance `tests/integration/new/drtsans/test_stitch.py`.
   * specific to a suite of similar instruments, for instance `tests/integration/new/drtsans/mono/test_transmission.py` for all mono-wavelength instruments including Bio-SANS and GP-SANS.
-  * specific to an individual instrument, for instance, `tests/integration/new/drtsans/mono/gpsans/test_find_beam_center.py` for GP-SANS and 
+  * specific to an individual instrument, for instance, `tests/integration/new/drtsans/mono/gpsans/test_find_beam_center.py` for GP-SANS and
     `tests/integration/new/drtsans/tof/eqsans/test_apply_solid_angle.py` for EQ-SANS.
 
 * Testing data location
@@ -253,6 +253,6 @@ Required libraries
 
 * For unit and integration tests: pytest, pytest-xdist
 
-* For documentation: sphinx, sphinxcontrib-napoleon, 
+* For documentation: sphinx, sphinxcontrib-napoleon,
 
 * For linting and formatting: autopep8, flake8, pylint

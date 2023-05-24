@@ -1,5 +1,4 @@
 docutils
-h5py
 ipywidgets
 jsonschema>=3.0.2
 lmfit

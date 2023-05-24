@@ -22,7 +22,6 @@ repos:
     rev: 23.1.0
     hooks:
       - id: black
-        args: ['--line-length=119']
         exclude: |
           (?x)^(
           ^versioneer.py

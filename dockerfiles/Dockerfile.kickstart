@@ -9,7 +9,7 @@ COPY drtsans-dev.yml /tmp/drtsans-dev.yml
 RUN apt-get update \
     && apt-get upgrade -y \
     # libgl1 is needed by mantidworkbench
-    && apt-get install -y libgl1 make \
+    && apt-get install -y libglu1 make \
     # for mounting SNS data file (equivalent to previous yum install nfs-utils)
     && apt-get install -y nfs-common nfs-kernel-server \
     && apt-get autoremove -y \

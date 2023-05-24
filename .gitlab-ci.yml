@@ -19,7 +19,7 @@ variables:
 # Job Stages
 #####
 stages:
-  - dockerbuild
+  - preparation
   - test
   - publish
   - analysis-update
@@ -28,7 +28,7 @@ stages:
 # Jobs
 #####
 dockerbuild:
-  stage: dockerbuild
+  stage: preparation
   retry: 1
   before_script:
     - *startup_cleanup
@@ -96,7 +96,7 @@ docker-no-update-test:
     - scse-drtsans-builder   #scse-sans-demo
 
 pre-commit:
-  stage: test
+  stage: preparation
   retry: 1
   before_script:
     - *startup_cleanup

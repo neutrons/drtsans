@@ -1,5 +1,6 @@
 variables:
   CONTAINER_URL: "code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_SLUG"
+  MINICONDA_CONTAINER: "code.ornl.gov:4567/rse/images/miniconda3:22.11.1-20230209.1219"
 
 #####
 # YAML anchors Section
@@ -18,7 +19,6 @@ variables:
 # Job Stages
 #####
 stages:
-  - flake8
   - dockerbuild
   - test
   - publish
@@ -27,40 +27,6 @@ stages:
 #####
 # Jobs
 #####
-flake8-feature:
-  stage: flake8
-  retry: 1
-  before_script:
-    - *startup_cleanup
-    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
-    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
-  script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master
-    - time docker run -v $PWD:/opt/sans-backend -t code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master bash -c "flake8 --append-config /opt/sans-backend/setup.cfg /opt/sans-backend"
-    - sudo chown -R gitlab-runner .
-  after_script:
-    - *teardown_cleanup
-  tags:
-    - scse-drtsans-builder
-  except:
-    - next
-
-flake8-next:
-  stage: flake8
-  retry: 1
-  before_script:
-    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
-    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
-  script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - time docker run -v $PWD:/opt/sans-backend -t code.ornl.gov:4567/sns-hfir-scse/docker-containers/mantid-framework-nightly/master bash -c "flake8 --append-config /opt/sans-backend/setup.cfg /opt/sans-backend"
-    - sudo chown -R gitlab-runner .
-  tags:
-    - scse-drtsans-builder
-  only:
-    - next
-
 dockerbuild:
   stage: dockerbuild
   retry: 1
@@ -128,6 +94,23 @@ docker-no-update-test:
     - *teardown_cleanup
   tags:
     - scse-drtsans-builder   #scse-sans-demo
+
+pre-commit:
+  stage: test
+  retry: 1
+  before_script:
+    - *startup_cleanup
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
+  script:
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $MINICONDA_CONTAINER
+    - time docker run -v $PWD:/opt/sans-backend -t $MINICONDA_CONTAINER bash -c "conda install -y pre-commit && cd /opt/sans-backend && pre-commit run --all"
+    - sudo chown -R gitlab-runner .
+  after_script:
+    - *teardown_cleanup
+  tags:
+    - scse-drtsans-builder
 
 docs-feature:
   stage: test

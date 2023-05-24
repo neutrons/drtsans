@@ -18,6 +18,15 @@ repos:
       - id: check-merge-conflict
       - id: end-of-file-fixer
       - id: sort-simple-yaml
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.260
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        exclude: |
+          (?x)^(
+          ^versioneer.py
+          )$
   - repo: https://github.com/psf/black
     rev: 23.1.0
     hooks:
@@ -26,7 +35,3 @@ repos:
           (?x)^(
           ^versioneer.py
           )$
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
-    hooks:
-    - id: flake8

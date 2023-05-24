@@ -69,7 +69,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "drt-sans"
-copyright = "2022, SCSE@ORNL"
+project_copyright = "2022, SCSE@ORNL"
 author = "SCSE@ORNL"
 
 # The version info for the project you're documenting, acts as replacement for

@@ -269,7 +269,7 @@ def load_all_files(
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
 
-                if not (logslicename is None):
+                if logslicename is not None:
                     for n in range(mtd[ws_name].getNumberOfEntries()):
                         samplelogs = SampleLogs(mtd[ws_name].getItem(n))
                         logslice_data_dict[str(n)] = {

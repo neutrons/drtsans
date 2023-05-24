@@ -1,2 +1,14 @@
 [tool.black]
 line-length = 119
+
+[tool.ruff]
+line-length = 119
+# https://beta.ruff.rs/docs/rules/
+# suggestions: BLE blind exceptions, I sorts imports, PL is pylint
+select = ["A", "ARG", "E", "F"]
+ignore = ["A002", "A003", # shadowing python built-ins
+          "ARG001", "ARG002", # unused argument
+          "E402", # import not at the top of the file
+	  "E712", # comparison to false
+          "E741", # ambiguous variable name
+]

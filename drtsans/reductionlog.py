@@ -257,18 +257,18 @@ def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
     _create_groupe(entry=entry, name="Idev", data=iqxqy.error, units="1/cm")
 
     # qx
-    if not (iqxqy.qx is None):
+    if iqxqy.qx is not None:
         _create_groupe(entry=entry, name="Qx", data=iqxqy.qx, units="1/A")
 
         _create_groupe(entry=entry, name="Qxdev", data=iqxqy.delta_qx, units="1/A")
 
     # qy
-    if not (iqxqy.qy is None):
+    if iqxqy.qy is not None:
         _create_groupe(entry=entry, name="Qy", data=iqxqy.qy, units="1/A")
 
         _create_groupe(entry=entry, name="Qydev", data=iqxqy.delta_qy, units="1/A")
     # wavelength
-    if not (iqxqy.wavelength is None):
+    if iqxqy.wavelength is not None:
         wavelength = "{}".format(iqxqy.wavelength)
         _create_groupe(entry=entry, name="Wavelength", data=wavelength, units="A")
 
@@ -289,7 +289,7 @@ def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=""):
     _create_groupe(entry=entry, name="Idev", data=iq.error, units="1/cm")
 
     # mod_q
-    if not (iq.mod_q is None):
+    if iq.mod_q is not None:
         _create_groupe(entry=entry, name="Q", data=iq.mod_q, units="1/A")
 
         logger.debug(f"delta mod q: {iq.delta_mod_q}")
@@ -398,33 +398,34 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
     if detectordata is None:
         raise RuntimeError("Provide at least one detector data  {}".format(filename))
 
-    if not type(detectordata) is dict:
+    if type(detectordata) is not dict:
         raise RuntimeError(
             "detectordata has the wrong type. It should be a dictionary " "and not a {}".format(type(detectordata))
         )
     for _slice_name in detectordata.keys():
-        if not type(detectordata[_slice_name]) is dict:
+        if type(detectordata[_slice_name]) is not dict:
             raise RuntimeError(
                 "detectordata value has the wrong type. It should be a dictionary "
                 "and not a {}".format(type(detectordata[_slice_name]))
             )
 
         for _detector_name in detectordata[_slice_name].keys():
-            if not type(detectordata[_slice_name][_detector_name]) is dict:
+            if type(detectordata[_slice_name][_detector_name]) is not dict:
                 raise RuntimeError(
                     f"detectordata[{_slice_name}][{_detector_name}] value has the wrong type. It "
                     f"should be a dictionary "
                     f"and not a {type(detectordata[_slice_name][_detector_name])}"
                 )
 
-            if not ("iq" in detectordata[_slice_name][_detector_name].keys()) and not (
-                "iqxqy" in detectordata[_slice_name][_detector_name].keys()
+            if (
+                "iq" not in detectordata[_slice_name][_detector_name].keys()
+                and "iqxqy" not in detectordata[_slice_name][_detector_name].keys()
             ):
                 raise KeyError("Provide at least a iq and/or iqxqy keys to {}".format(filename))
 
     logslicedata = kwargs.get("logslicedata", {})
     if logslicedata:
-        if not type(logslicedata) is dict:
+        if type(logslicedata) is not dict:
             raise RuntimeError(
                 "logslicedata has the wrong type. It should a dictionary " "and not a {}".format(type(logslicedata))
             )

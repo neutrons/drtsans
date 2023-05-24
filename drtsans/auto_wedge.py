@@ -153,9 +153,7 @@ def _plot_fit_results(rings, peak_fit_dict, output_dir):
         for param_name in peak_fit_dict[index]:
             if param_name not in ["fit_function", "error", "used"]:
                 # parameter value is recorded as tuple as value and error
-                _set_function_param_value(
-                    fit_function_set, param_name, peak_fit_dict[index][param_name][0]
-                )
+                _set_function_param_value(fit_function_set, param_name, peak_fit_dict[index][param_name][0])
 
         # calculate
         model_y = _calculate_function(fit_function_set, ring.mod_q)
@@ -190,11 +188,9 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
         360.0 - azimuthal_offset,
         bins=int(360.0 / azimuthal_delta),
     )
-    q1d = np.sqrt(iq2d.qx ** 2 + iq2d.qy ** 2)
+    q1d = np.sqrt(iq2d.qx**2 + iq2d.qy**2)
     logger.notice(f"[DEBUG] I(Qx, Qy) Q range: {q1d.min()}, {q1d.max()}")
-    full_range_annular = bin_annular_into_q1d(
-        iq2d, azimuthal_binning, q1d.min(), q1d.max(), BinningMethod.NOWEIGHT
-    )
+    full_range_annular = bin_annular_into_q1d(iq2d, azimuthal_binning, q1d.min(), q1d.max(), BinningMethod.NOWEIGHT)
 
     # open
     debug_h5 = h5py.File(os.path.join(output_dir, "auto_wedge_fit.h5"), "w")
@@ -245,9 +241,7 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
 
         # fit function
         if "fit_function" in peak_fit_dict[index]:
-            function_data_set = group.create_dataset(
-                "function", (1,), dtype=h5_string_type
-            )
+            function_data_set = group.create_dataset("function", (1,), dtype=h5_string_type)
             function_data_set[0] = peak_fit_dict[index]["fit_function"]
 
     # add peak fitting result
@@ -339,9 +333,7 @@ def getWedgeSelection(
     # verify that the results didn't predict wedges larger than half of the data
     if np.any(np.array(fwhm_vec) > 360.0 / 2):
         values = ["{:.1f}deg".format(value) for value in fwhm_vec]
-        raise RuntimeError(
-            "Encountered large fwhm values: {}".format(", ".join(values))
-        )
+        raise RuntimeError("Encountered large fwhm values: {}".format(", ".join(values)))
 
     # convert to min and max ranges
     min_vec, max_vec = [], []
@@ -399,7 +391,7 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
         Histogram of ```(intensity, error, azimuthal_bins, q_bins)```
     """
     # Export information for Q
-    data_q_vec = np.sqrt(data.qx ** 2 + data.qy ** 2)
+    data_q_vec = np.sqrt(data.qx**2 + data.qy**2)
     logger.notice(f"Raw I(Q). Q range: {data_q_vec.min()}, {data_q_vec.max()}")
     # the bonus two steps is to get the end-point in the array
     q_bins = np.arange(q_min, q_max + q_delta, q_delta, dtype=float)
@@ -417,9 +409,7 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     # debugging output file
     for qmin_ring, qmax_ring in zip(q_bins[:-1], q_bins[1:]):
         # bin into I(azimuthal)
-        I_azimuthal = bin_annular_into_q1d(
-            data, azimuthal_binning, qmin_ring, qmax_ring, BinningMethod.NOWEIGHT
-        )
+        I_azimuthal = bin_annular_into_q1d(data, azimuthal_binning, qmin_ring, qmax_ring, BinningMethod.NOWEIGHT)
 
         # Create a copy of the arrays with the 360->540deg region repeated
         # ignore - delta_mod_q wavelength
@@ -433,9 +423,7 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
 
         intensity_new = np.zeros(mod_q_new.size)
         intensity_new[:num_orig_bins] = I_azimuthal.intensity
-        intensity_new[-1 * num_repeated_bins :] = I_azimuthal.intensity[
-            :num_repeated_bins
-        ]
+        intensity_new[-1 * num_repeated_bins :] = I_azimuthal.intensity[:num_repeated_bins]
 
         error_new = np.zeros(mod_q_new.size)
         error_new[:num_orig_bins] = I_azimuthal.error
@@ -485,10 +473,7 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
         # the highest value in the window
         max_value = intensity[left_index:right_index].max()
         # where that is in the window
-        max_index = (
-            np.where(intensity[left_index:right_index] == max_value)[0].max()
-            + left_index
-        )
+        max_index = np.where(intensity[left_index:right_index] == max_value)[0].max() + left_index
         # update values
         azimuthal_last = azimuthal_new
         azimuthal_new = azimuthal[max_index]
@@ -507,16 +492,15 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
 
     # the position of the center of the peak is the first moment of the data. "mean" can be thought of as the
     # center of mass of the peak in azimuthal angle.
-    mean = np.sum(
-        intensity[left_index:right_index] * azimuthal[left_index:right_index]
-    ) / np.sum(intensity[left_index:right_index])
+    mean = np.sum(intensity[left_index:right_index] * azimuthal[left_index:right_index]) / np.sum(
+        intensity[left_index:right_index]
+    )
 
     # the fit uses sigma rather than fwhm
     # calculate the second moment about the mean as an approximation to a Gaussian's "sigma" parameter
-    sigma = np.sum(
+    sigma = np.sum(intensity[left_index:right_index] * np.square(azimuthal[left_index:right_index] - mean)) / np.sum(
         intensity[left_index:right_index]
-        * np.square(azimuthal[left_index:right_index] - mean)
-    ) / np.sum(intensity[left_index:right_index])
+    )
     sigma = np.sqrt(sigma)
 
     return max_value, mean, sigma
@@ -568,11 +552,7 @@ def _fitSpectrum(
     # filter out the nans
     mask = np.logical_not(np.isnan(spectrum.intensity))
     if np.sum(mask) < 10:  # do not allow fitting less points than there are parameters
-        raise RuntimeError(
-            "Less than 8 points being fit with 7 parameters (found {} points)".format(
-                np.sum(mask)
-            )
-        )
+        raise RuntimeError("Less than 8 points being fit with 7 parameters (found {} points)".format(np.sum(mask)))
 
     # first estimate background as minimum value
     # this will be subtracted off from found intensities during estimation
@@ -580,14 +560,10 @@ def _fitSpectrum(
 
     # check if there is signal to noise greater than 2
     # this calculation assumes that the background is positive
-    signal_to_noise = np.sum(spectrum.intensity[mask]) / (
-        float(np.sum(mask)) * background
-    )
+    signal_to_noise = np.sum(spectrum.intensity[mask]) / (float(np.sum(mask)) * background)
     if signal_to_noise < signal_to_noise_min:
         raise RuntimeError(
-            "Estimated signal to noise is smaller than {}: found {:.2f}".format(
-                signal_to_noise_min, signal_to_noise
-            )
+            "Estimated signal to noise is smaller than {}: found {:.2f}".format(signal_to_noise_min, signal_to_noise)
         )
 
     # start of what will eventually be the fit function by specifying the background
@@ -603,9 +579,7 @@ def _fitSpectrum(
         azimuthal_start=azimuthal_start,
         window_half_width=peak_search_window_size,
     )
-    function.append(
-        gaussian_str.format(intensity_peak - background, azimuthal_first, sigma)
-    )
+    function.append(gaussian_str.format(intensity_peak - background, azimuthal_first, sigma))
 
     for peak_index in range(1, NUM_PEAK):
         # assume the other peak is 360 / NUM_PEAK degrees away
@@ -616,9 +590,7 @@ def _fitSpectrum(
             azimuthal_start=azimuthal_start,
             window_half_width=peak_search_window_size,
         )
-        function.append(
-            gaussian_str.format(intensity_peak - background, azimuthal_second, sigma)
-        )
+        function.append(gaussian_str.format(intensity_peak - background, azimuthal_second, sigma))
 
     # create workspace version of data
     # this includes the nans so `Fit` has to be told to ignore them
@@ -638,9 +610,7 @@ def _fitSpectrum(
             IgnoreInvalidData=True,
         )
     except RuntimeError as e:
-        raise RuntimeError(
-            "Failed to fit Q={} with fit function {}".format(q_value, fit_function)
-        ) from e
+        raise RuntimeError("Failed to fit Q={} with fit function {}".format(q_value, fit_function)) from e
     finally:
         DeleteWorkspace(q_azimuthal_workspace)
 
@@ -677,9 +647,7 @@ def _toPositionAndFWHM(fitresult, peak_label, maxchisq):
     else:
         # height = fitresult[peak_label + '.Height']
         center = fitresult[peak_label + ".PeakCentre"]
-        fwhm = tuple(
-            [value * SIGMA_TO_FWHM for value in fitresult[peak_label + ".Sigma"]]
-        )
+        fwhm = tuple([value * SIGMA_TO_FWHM for value in fitresult[peak_label + ".Sigma"]])
 
     # Anything being nan suggests that a fit failed. Set everything to nan so they do not
     # contribute to the weighted average.
@@ -717,12 +685,7 @@ def _weighted_position_and_width(peaks):
         pos, pos_weight = peak[0]  # position and weight
         fwhm, fwhm_weight = peak[1]  # fwhm and weight
 
-        if (
-            np.isnan(pos_weight)
-            or np.isnan(fwhm_weight)
-            or pos_weight <= 0.0
-            or fwhm_weight <= 0.0
-        ):
+        if np.isnan(pos_weight) or np.isnan(fwhm_weight) or pos_weight <= 0.0 or fwhm_weight <= 0.0:
             continue  # don't use these points
 
         pos_accum += pos * pos_weight
@@ -806,36 +769,24 @@ def _fitQAndAzimuthal(
                 peak_search_window_size_factor=peak_search_window_size_factor,
                 verbose=verbose,
             )
-            newlyFittedPeaks = [
-                _toPositionAndFWHM(fitresult, label, maxchisq) for label in ["f1", "f2"]
-            ]
+            newlyFittedPeaks = [_toPositionAndFWHM(fitresult, label, maxchisq) for label in ["f1", "f2"]]
 
             # record the fit result
             fit_result_dict[index] = fitresult
 
-            if np.isnan(newlyFittedPeaks[0][0][0]) or np.isnan(
-                newlyFittedPeaks[1][0][0]
-            ):
-                error_reason = (
-                    f"spectrum {index}: failed to fit peaks due to NaN in fit result\n"
-                )
+            if np.isnan(newlyFittedPeaks[0][0][0]) or np.isnan(newlyFittedPeaks[1][0][0]):
+                error_reason = f"spectrum {index}: failed to fit peaks due to NaN in fit result\n"
                 unfit_message += error_reason
                 fit_result_dict[index]["error"] = error_reason
                 continue
             else:
-                fitted_peaks_message += (
-                    f"spectrum {index-1}: Fitted peaks: {newlyFittedPeaks}\n"
-                )
+                fitted_peaks_message += f"spectrum {index-1}: Fitted peaks: {newlyFittedPeaks}\n"
             for i in range(len(peakResults)):
                 peakResults[i].append(newlyFittedPeaks[i])
             q_centers_used.append(q_center)
             used_index.append(index)
         except RuntimeError as e:
-            error_reason = (
-                "spectrum {}: Not using information from Q-slice ({}A):".format(
-                    index, q_center
-                )
-            )
+            error_reason = "spectrum {}: Not using information from Q-slice ({}A):".format(index, q_center)
             error_reason += f"Encountered runtime error: {e}\n"  # don't worry about it
             unfit_message += error_reason
             fit_result_dict[index]["error"] = error_reason
@@ -864,8 +815,6 @@ def _fitQAndAzimuthal(
         fwhm_list.append(fwhm)
 
     logger.notice(f"Fitted peak centers:\n{fitted_peaks_message}\n")
-    logger.notice(
-        f"Summed peak centers: {center_list}\nFWHMs              : {fwhm_list}"
-    )
+    logger.notice(f"Summed peak centers: {center_list}\nFWHMs              : {fwhm_list}")
 
     return center_list, fwhm_list, fit_result_dict

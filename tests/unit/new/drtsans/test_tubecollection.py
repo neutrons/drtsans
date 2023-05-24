@@ -15,9 +15,7 @@ from drtsans import tubecollection
 
 @pytest.fixture(scope="function")
 def simple_tubes_panel(workspace_with_instrument):
-    workspace = workspace_with_instrument(
-        axis_values=[1.0, 2.0], intensities=np.arange(9).reshape((9, 1))
-    )
+    workspace = workspace_with_instrument(axis_values=[1.0, 2.0], intensities=np.arange(9).reshape((9, 1)))
     return dict(
         workspace=workspace,
         component_info=workspace.componentInfo(),
@@ -72,13 +70,9 @@ def test_decrement_arity(simple_tubes_panel):
     assert foo_one(True) is False
 
     # Bound methods for which inspect.signature doesn't work
-    element = tubecollection.ElementComponentInfo(
-        simple_tubes_panel["component_info"], 4
-    )
+    element = tubecollection.ElementComponentInfo(simple_tubes_panel["component_info"], 4)
     assert element.isDetector is True
-    set_position = (
-        element.setPosition
-    )  # setPosition as arity == 2 (excluding parameter 'self')
+    set_position = element.setPosition  # setPosition as arity == 2 (excluding parameter 'self')
     set_position(V3D(0.0, 0.0, 0.0))
     assert element.position == pytest.approx([0.0, 0.0, 0.0])
 
@@ -112,9 +106,7 @@ class TestSpectrumInfo:
         s.setMasked(True)  # setMasked takes two arguments: an index and a bool
         assert s.isMasked is True
         assert s.twoTheta == pytest.approx(1.57, abs=0.01)
-        assert s.readX == pytest.approx(
-            [1.0, 2.0]
-        )  # method borrowed from methods of the workspace object
+        assert s.readX == pytest.approx([1.0, 2.0])  # method borrowed from methods of the workspace object
         assert s.readY == pytest.approx([4.0])
         assert len(s) == 1
         # Test for more than one workspace index
@@ -152,15 +144,11 @@ class TestSpectrumInfo:
 @pytest.mark.usefixtures("simple_tubes_panel")
 class TestElementComponentInfo:
     def test_init(self, simple_tubes_panel):
-        collection = tubecollection.ElementComponentInfo(
-            simple_tubes_panel["component_info"], 4
-        )
+        collection = tubecollection.ElementComponentInfo(simple_tubes_panel["component_info"], 4)
         assert isinstance(collection, tubecollection.ElementComponentInfo)
 
     def test_some_methods(self, simple_tubes_panel):
-        el = tubecollection.ElementComponentInfo(
-            simple_tubes_panel["component_info"], 4
-        )
+        el = tubecollection.ElementComponentInfo(simple_tubes_panel["component_info"], 4)
         assert el.isDetector is True  # isDetector's arity is one
         assert el.position == pytest.approx([0.0, -0.5, 0.0])  # position's arity is one
         el.setPosition(V3D(0.0, 0.0, 0.0))  # setPosition's arity is two
@@ -227,9 +215,7 @@ class TestPixelSpectrum(object):
 
     def test_component_info(self, simple_tubes_panel):
         # test accessibility of componentInfo's methods
-        pixel = tubecollection.PixelSpectrum(
-            simple_tubes_panel["workspace"], workspace_index=4
-        )
+        pixel = tubecollection.PixelSpectrum(simple_tubes_panel["workspace"], workspace_index=4)
         assert pixel.isDetector is True
         assert pixel.scaleFactor == pytest.approx([1.0, 1.0, 1.0])
         pixel.setScaleFactor(V3D(0.98, 1.03, 1.11))
@@ -237,9 +223,7 @@ class TestPixelSpectrum(object):
 
     def test_detector_info(self, simple_tubes_panel):
         # test accessibility of detectorInfo's methods
-        pixel = tubecollection.PixelSpectrum(
-            simple_tubes_panel["workspace"], workspace_index=4
-        )
+        pixel = tubecollection.PixelSpectrum(simple_tubes_panel["workspace"], workspace_index=4)
         assert pixel.l2 == pytest.approx(0.5, abs=0.01)
         assert pixel.twoTheta == pytest.approx(1.57, abs=0.01)
         assert pixel.isMasked is False
@@ -248,17 +232,13 @@ class TestPixelSpectrum(object):
 
     def test_spectrum_info(self, simple_tubes_panel):
         # test accessibility of spectrumInfo's methods
-        pixel = tubecollection.PixelSpectrum(
-            simple_tubes_panel["workspace"], workspace_index=4
-        )
+        pixel = tubecollection.PixelSpectrum(simple_tubes_panel["workspace"], workspace_index=4)
         assert pixel.hasUniqueDetector is True
         assert pixel.samplePosition == pytest.approx([0.0, 0.0, 0.0])
         assert pixel.signedTwoTheta == pytest.approx(1.57, abs=0.01)
 
     def test_properties(self, simple_tubes_panel):
-        pixel = tubecollection.PixelSpectrum(
-            simple_tubes_panel["workspace"], workspace_index=4
-        )
+        pixel = tubecollection.PixelSpectrum(simple_tubes_panel["workspace"], workspace_index=4)
         # Test property 'position'
         assert pixel.position == pytest.approx([0, -0.5, 0])
         pixel.position = ("y", 0.0)
@@ -299,57 +279,41 @@ class TestPixelSpectrum(object):
 class TestTubeSpectrum(object):
     def test_is_valid_tube(self, simple_tubes_panel):
         workspace = simple_tubes_panel["workspace"]
-        assert tubecollection.TubeSpectrum(
-            workspace, 11, [0, 1, 2]
-        )  # 11 is the first tube
+        assert tubecollection.TubeSpectrum(workspace, 11, [0, 1, 2])  # 11 is the first tube
         with pytest.raises(ValueError):
             tubecollection.TubeSpectrum(workspace, 10, [0, 1, 2])  # this is a detector
         with pytest.raises(ValueError):
-            tubecollection.TubeSpectrum(
-                workspace, 15, [0, 1, 2]
-            )  # this is the whole panel
+            tubecollection.TubeSpectrum(workspace, 15, [0, 1, 2])  # this is the whole panel
 
     def test_pixels(self, simple_tubes_panel):
-        tube = tubecollection.TubeSpectrum(
-            simple_tubes_panel["workspace"], 11, [0, 1, 2]
-        )
+        tube = tubecollection.TubeSpectrum(simple_tubes_panel["workspace"], 11, [0, 1, 2])
         pixels = tube.pixels
         assert pixels[0].position == pytest.approx([1, -1.5, 0])
         assert pixels[2].position == pytest.approx([1, 0.5, 0])
 
     def test_getitem(self, simple_tubes_panel):
-        tube = tubecollection.TubeSpectrum(
-            simple_tubes_panel["workspace"], 11, [0, 1, 2]
-        )
+        tube = tubecollection.TubeSpectrum(simple_tubes_panel["workspace"], 11, [0, 1, 2])
         assert tube[0].position == pytest.approx([1, -1.5, 0])
         assert tube[2].position == pytest.approx([1, 0.5, 0])
 
     def test_len(self, simple_tubes_panel):
-        tube = tubecollection.TubeSpectrum(
-            simple_tubes_panel["workspace"], 11, [0, 1, 2]
-        )
+        tube = tubecollection.TubeSpectrum(simple_tubes_panel["workspace"], 11, [0, 1, 2])
         assert len(tube) == 3
 
     def test_spectrum_info(self, simple_tubes_panel):
         # test some of spectrum info's methods
-        tube = tubecollection.TubeSpectrum(
-            simple_tubes_panel["workspace"], 11, [0, 1, 2]
-        )
+        tube = tubecollection.TubeSpectrum(simple_tubes_panel["workspace"], 11, [0, 1, 2])
         assert list(tube.hasUniqueDetector) == [True, True, True]
         tube[1].setMasked(True)
         assert list(tube.isMasked) == [False, True, False]
         assert tube.setMasked(True)  # mask all spectra
         assert list(tube.isMasked) == [True, True, True]
-        assert tube.readX == pytest.approx(
-            np.array([[1.0, 2.0], [1.0, 2.0], [1.0, 2.0]])
-        )
+        assert tube.readX == pytest.approx(np.array([[1.0, 2.0], [1.0, 2.0], [1.0, 2.0]]))
         assert tube.readY == pytest.approx(np.array([[0.0], [1.0], [2.0]]))
 
     def test_component_info(self, simple_tubes_panel):
         # test accessibility of componentInfo's methods
-        tube = tubecollection.TubeSpectrum(
-            simple_tubes_panel["workspace"], 11, [0, 1, 2]
-        )
+        tube = tubecollection.TubeSpectrum(simple_tubes_panel["workspace"], 11, [0, 1, 2])
         assert tube.isDetector is False
         assert tube.scaleFactor == pytest.approx([1.0, 1.0, 1.0])
         tube.setScaleFactor(V3D(0.98, 1.03, 1.11))
@@ -379,36 +343,22 @@ class TestTubeSpectrum(object):
 @pytest.mark.usefixtures("simple_tubes_panel")
 class TestTubeCollection(object):
     def test_init(self, simple_tubes_panel):
-        collection = tubecollection.TubeCollection(
-            simple_tubes_panel["workspace"], "detector1"
-        )
+        collection = tubecollection.TubeCollection(simple_tubes_panel["workspace"], "detector1")
         assert isinstance(collection, tubecollection.TubeCollection)
 
     def test_len(self, simple_tubes_panel):
-        collection = tubecollection.TubeCollection(
-            simple_tubes_panel["workspace"], "detector1"
-        )
+        collection = tubecollection.TubeCollection(simple_tubes_panel["workspace"], "detector1")
         assert len(collection) == 3
 
     def test_getitem(self, simple_tubes_panel):
-        collection = tubecollection.TubeCollection(
-            simple_tubes_panel["workspace"], "detector1"
-        )
-        assert collection[0][0].position == pytest.approx(
-            [1.0, -1.5, 0.0]
-        )  # first pixel in first tube
-        assert collection[2][2].position == pytest.approx(
-            [-1.0, 0.5, 0.0]
-        )  # last pixel in last tube
+        collection = tubecollection.TubeCollection(simple_tubes_panel["workspace"], "detector1")
+        assert collection[0][0].position == pytest.approx([1.0, -1.5, 0.0])  # first pixel in first tube
+        assert collection[2][2].position == pytest.approx([-1.0, 0.5, 0.0])  # last pixel in last tube
 
     def test_sorted(self, simple_tubes_panel):
-        collection = tubecollection.TubeCollection(
-            simple_tubes_panel["workspace"], "detector1"
-        )
+        collection = tubecollection.TubeCollection(simple_tubes_panel["workspace"], "detector1")
         sorted_tubes = collection.sorted(view="decreasing X")
-        assert (
-            sorted_tubes == collection.tubes
-        )  # true for the simple_tubes_panel instrument
+        assert sorted_tubes == collection.tubes  # true for the simple_tubes_panel instrument
 
 
 @pytest.mark.parametrize(
@@ -429,9 +379,7 @@ class TestTubeCollection(object):
 )
 def test_flat_panel(workspace_with_instrument):
     r"""Make sure a flat detector is pieced into 'tubes'"""
-    workspace = workspace_with_instrument(
-        axis_values=[1.0, 2.0], intensities=np.random.rand(9).reshape((9, 1))
-    )
+    workspace = workspace_with_instrument(axis_values=[1.0, 2.0], intensities=np.random.rand(9).reshape((9, 1)))
     collection = tubecollection.TubeCollection(workspace, "detector1")
     assert len(collection) == 3
 

@@ -54,17 +54,13 @@ class SpiceRun(NamedTuple):
         # data file path
         if data_dir is None:
             # default: on the HFIR data server
-            data_dir = os.path.join(
-                self.hfir_ipts_dir, f"exp{self.exp_number}/Datafiles"
-            )
+            data_dir = os.path.join(self.hfir_ipts_dir, f"exp{self.exp_number}/Datafiles")
 
         spice_file_path = os.path.join(data_dir, spice_file_name)
 
         # check file existence
         if raise_if_not_exist and not os.path.exists(spice_file_path):
-            raise RuntimeError(
-                f"SPICE file {spice_file_name} cannot be found in directory {data_dir}"
-            )
+            raise RuntimeError(f"SPICE file {spice_file_name} cannot be found in directory {data_dir}")
 
         return spice_file_path
 
@@ -109,8 +105,7 @@ class SpiceRun(NamedTuple):
 
         if raise_if_not_exist and not os.path.exists(nexus_path):
             raise RuntimeError(
-                f"Spice converted Nexus file {base_nexus_name} does not exist in "
-                f"directory {nexus_dir}"
+                f"Spice converted Nexus file {base_nexus_name} does not exist in " f"directory {nexus_dir}"
             )
 
         return nexus_path
@@ -150,9 +145,9 @@ def map_to_nexus(
             nexus_file = None
         else:
             scan, pt = scan_pt
-            nexus_file = SpiceRun(
-                beam_line, ipts_number, exp_number, scan, pt
-            ).unique_nexus_name(nexus_dir, raise_if_not_exist=True)
+            nexus_file = SpiceRun(beam_line, ipts_number, exp_number, scan, pt).unique_nexus_name(
+                nexus_dir, raise_if_not_exist=True
+            )
         nexus_list.append(nexus_file)
 
     return nexus_list

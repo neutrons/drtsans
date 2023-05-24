@@ -31,8 +31,7 @@ def determine_1d_linear_bins(x_min, x_max, bins):
     # Check input x min and x max
     if x_min is None or x_max is None or x_min >= x_max:
         raise RuntimeError(
-            "x min {} and x max {} must not be None and x min shall be less than x max"
-            "".format(x_min, x_max)
+            "x min {} and x max {} must not be None and x min shall be less than x max" "".format(x_min, x_max)
         )
     # force the number of bins to be an integer and error check it
     bins = int(bins)
@@ -52,9 +51,7 @@ def determine_1d_linear_bins(x_min, x_max, bins):
     return linear_bins
 
 
-def determine_1d_log_bins(
-    x_min, x_max, decade_on_center, n_bins_per_decade=None, n_bins=None
-):
+def determine_1d_log_bins(x_min, x_max, decade_on_center, n_bins_per_decade=None, n_bins=None):
     """
 
     Parameters
@@ -123,7 +120,7 @@ def determine_1d_log_bins(
     # init an array ranging from 0 to (n_bins - 1)
     bin_centers = np.arange(n_bins).astype("float64")
     # Equation 11.34: Q_k = Q_ref * 10^(k * delta L)
-    bin_centers = x_ref * n_step ** bin_centers
+    bin_centers = x_ref * n_step**bin_centers
 
     # Calculate bin edges (aka boundaries)
     # Equation 11.35
@@ -153,9 +150,7 @@ def _calculate_x_ref(x_min, n_bins_per_decade):
     -------
 
     """
-    ref_x = 10 ** (
-        (1.0 / n_bins_per_decade) * (np.round(n_bins_per_decade * np.log10(x_min)))
-    )
+    ref_x = 10 ** ((1.0 / n_bins_per_decade) * (np.round(n_bins_per_decade * np.log10(x_min))))
 
     return ref_x
 
@@ -179,11 +174,7 @@ def _calculate_n_bins(x_min, x_max, n_step):
     -------
 
     """
-    n_bins = np.floor(
-        np.ceil(
-            (np.log10(x_max / x_min) + np.log10((n_step + 1) * 0.5)) / np.log10(n_step)
-        )
-    )
+    n_bins = np.floor(np.ceil((np.log10(x_max / x_min) + np.log10((n_step + 1) * 0.5)) / np.log10(n_step)))
 
     # to avoid round off error such that n_bins = |n_bins| + epsilon, where epsilon is an infinitesimally
     # small value

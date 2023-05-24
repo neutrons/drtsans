@@ -48,7 +48,6 @@ def prepare_data_workspaces(
     sensitivity_workspace=None,
     output_workspace=None,
 ):
-
     r"""
     Given a " raw"data workspace, this function provides the following:
 
@@ -97,13 +96,9 @@ def prepare_data_workspaces(
     """
     if not output_workspace:
         output_workspace = str(data.data)
-        output_workspace = (
-            output_workspace.replace("_raw_histo", "") + "_processed_histo"
-        )
+        output_workspace = output_workspace.replace("_raw_histo", "") + "_processed_histo"
 
-    mtd[str(data.data)].clone(
-        OutputWorkspace=output_workspace
-    )  # name gets into workspace
+    mtd[str(data.data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
 
     # Dark current
     if dark_current is not None and dark_current.data is not None:
@@ -127,9 +122,7 @@ def prepare_data_workspaces(
 
     # Sensitivity
     if sensitivity_workspace is not None:
-        apply_sensitivity_correction(
-            output_workspace, sensitivity_workspace=sensitivity_workspace
-        )
+        apply_sensitivity_correction(output_workspace, sensitivity_workspace=sensitivity_workspace)
 
     return mtd[output_workspace]
 
@@ -154,9 +147,7 @@ def process_transmission(
 
     if transmission_ws.data is not None and empty_trans_ws is not None:
         # process transition workspace from raw
-        processed_trans_ws_name = (
-            f"{prefix}_{type_name}_trans"  # type_name: sample/background
-        )
+        processed_trans_ws_name = f"{prefix}_{type_name}_trans"  # type_name: sample/background
         processed_trans_ws = prepare_data_workspaces(
             transmission_ws,
             flux_method=flux_method,
@@ -177,9 +168,7 @@ def process_transmission(
         # optionally save
         if output_dir:
             # save calculated transmission
-            transmission_filename = os.path.join(
-                output_dir, f"{output_file_name}_trans.txt"
-            )
+            transmission_filename = os.path.join(output_dir, f"{output_file_name}_trans.txt")
             SaveAscii(calculated_trans_ws, Filename=transmission_filename)
             # Prepare result for drtsans.savereductionlog
             processed_transmission_dict["value"] = calculated_trans_ws.extractY()
@@ -275,13 +264,10 @@ def bin_i_with_correction(
             n_wavelength_bin=None,
         )
         # Check due to functional limitation
-        assert isinstance(
-            iq1d_main_wl, list
-        ), f"Output I(Q) must be a list but not a {type(iq1d_main_wl)}"
+        assert isinstance(iq1d_main_wl, list), f"Output I(Q) must be a list but not a {type(iq1d_main_wl)}"
         if len(iq1d_main_wl) != 1:
             raise NotImplementedError(
-                f"Not expected that there are more than 1 IQmod main but "
-                f"{len(iq1d_main_wl)}"
+                f"Not expected that there are more than 1 IQmod main but " f"{len(iq1d_main_wl)}"
             )
 
         # Bin elastic reference run
@@ -307,21 +293,18 @@ def bin_i_with_correction(
                 error_weighted=weighted_errors,
                 n_wavelength_bin=None,
             )
-            if (iq1d_elastic_ref_fr):
+            if iq1d_elastic_ref_fr:
                 if len(iq1d_elastic_wl) != 1:
                     raise NotImplementedError(
-                        "Not expected that there are more than 1 IQmod of "
-                        "elastic reference run."
+                        "Not expected that there are more than 1 IQmod of " "elastic reference run."
                     )
                 # normalization
-                iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(
-                    iq1d_main_wl[0], iq1d_elastic_wl[0]
-                )
+                iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(iq1d_main_wl[0], iq1d_elastic_wl[0])
                 iq1d_main_wl[0] = iq1d_wl
                 # write
-                run_number = os.path.basename(
-                    str(incoherence_correction_setup.elastic_reference.run_number)
-                ).split(".")[0]
+                run_number = os.path.basename(str(incoherence_correction_setup.elastic_reference.run_number)).split(
+                    "."
+                )[0]
                 save_k_vector(
                     iq1d_wl.wavelength,
                     k_vec,
@@ -330,9 +313,7 @@ def bin_i_with_correction(
                 )
             else:
                 # 2D normalization
-                iq2d_wl, k_vec, k_error_vec = normalize_by_elastic_reference2D(
-                    iq2d_main_wl[0], iq2d_elastic_wl[0]
-                )
+                iq2d_wl, k_vec, k_error_vec = normalize_by_elastic_reference2D(iq2d_main_wl[0], iq2d_elastic_wl[0])
                 iq2d_main_wl[0] = iq2d_wl
 
                 save_k_vector(
@@ -366,8 +347,7 @@ def bin_i_with_correction(
         finite_iq2d = corrected_iq2d.be_finite()
         # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
         assert len(iq1d_main_wl) == 1, (
-            f"It is assumed that output I(Q) list contains 1 I(Q)"
-            f" but not {len(iq1d_main_wl)}"
+            f"It is assumed that output I(Q) list contains 1 I(Q)" f" but not {len(iq1d_main_wl)}"
         )
     else:
         finite_iq2d = iq2d_in_frames[wl_frame]
@@ -418,14 +398,9 @@ def remove_workspaces(
     from drtsans.path import registered_workspace  # noqa E402
 
     # In the future this should be made optional
-    ws_to_remove = [
-        f"{prefix}_{instrument_name}_{run_number}_raw_histo"
-        for run_number in extra_run_numbers
-    ]
+    ws_to_remove = [f"{prefix}_{instrument_name}_{run_number}_raw_histo" for run_number in extra_run_numbers]
     # List special workspaces and workspace groups
-    ws_to_remove.append(
-        f"{prefix}_{instrument_name}_{sample_run_number}_raw_histo_slice_group"
-    )
+    ws_to_remove.append(f"{prefix}_{instrument_name}_{sample_run_number}_raw_histo_slice_group")
     ws_to_remove.append(f"{prefix}_{instrument_name}_{center_run_number}_raw_events")
     ws_to_remove.append(f"{prefix}_sensitivity")
     ws_to_remove.append(f"{prefix}_mask")

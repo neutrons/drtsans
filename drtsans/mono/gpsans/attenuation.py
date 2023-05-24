@@ -129,8 +129,6 @@ def _attenuation_factor(A, A_e, B, B_e, C, C_e, wavelength):
     scale_error_exp_const = A * np.exp(-B * wavelength) * (-wavelength)
     scale_error_bkgd = 1
     scale_error = np.sqrt(
-        (scale_error_Amp * A_e) ** 2
-        + (scale_error_exp_const * B_e) ** 2
-        + (scale_error_bkgd * C_e) ** 2
+        (scale_error_Amp * A_e) ** 2 + (scale_error_exp_const * B_e) ** 2 + (scale_error_bkgd * C_e) ** 2
     )
     return scale, scale_error

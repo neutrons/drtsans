@@ -47,16 +47,10 @@ def sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y
     B = 0.5 * g * mn**2 * L2 * (L1 + L2) / h**2
     B = B / 10**20
     r = (delta_lambda / wavelength) ** 2
-    sigma_x = (
-        2 * np.pi * np.cos(theta) * np.cos(2 * theta) ** 2 / wavelength / L2
-    ) ** 2
-    sigma_x = sigma_x * (
-        (L2 / L1) ** 2 * R1**2 / 4 + (1 + L2 / L1) ** 2 * R2**2 / 4 + x3**2 / 12
-    )
+    sigma_x = (2 * np.pi * np.cos(theta) * np.cos(2 * theta) ** 2 / wavelength / L2) ** 2
+    sigma_x = sigma_x * ((L2 / L1) ** 2 * R1**2 / 4 + (1 + L2 / L1) ** 2 * R2**2 / 4 + x3**2 / 12)
     sigma_x = sigma_x + Qx**2 / 6 * r
-    sigma_y = (
-        2 * np.pi * np.cos(theta) * np.cos(2 * theta) ** 2 / wavelength / L2
-    ) ** 2
+    sigma_y = (2 * np.pi * np.cos(theta) * np.cos(2 * theta) ** 2 / wavelength / L2) ** 2
     sigma_y = (
         sigma_y
         * (
@@ -92,9 +86,7 @@ def test_mono_resolution():
     two_theta = 0.00092676  # radian (corner pixel)
     theta = 0.00092676 * 0.5  # radian (corner pixel)
 
-    dqx, dqy = sigma_neutron(
-        wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y3
-    )
+    dqx, dqy = sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y3)
 
     # Calculate by drtsans.mono method
     setup = drtsans.resolution.InstrumentSetupParameters(L1, L2, R1, R2)

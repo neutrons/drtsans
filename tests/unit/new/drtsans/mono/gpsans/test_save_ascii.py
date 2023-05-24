@@ -17,7 +17,6 @@ def numbers_in_line(line, numbers):
 
 
 def test_save_ascii(gpsans_f):
-
     ws = LoadHFIRSANS(
         Filename=gpsans_f["sample_transmission"],
         OutputWorkspace=unique_workspace_name(),

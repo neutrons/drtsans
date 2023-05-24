@@ -70,23 +70,18 @@ def prepare_spice_sensitivities_correction(
 
     # Load flood runs
     # map the run number to file name as it is SPICE
-    flood_nexus_files = [
-        spice_run.unique_nexus_name(nexus_dir, True) for spice_run in flood_spice_runs
-    ]
+    flood_nexus_files = [spice_run.unique_nexus_name(nexus_dir, True) for spice_run in flood_spice_runs]
     preparer.set_flood_runs(flood_nexus_files)
 
     # Process beam center/transmission runs
     if direct_beam_spice_runs is not None:
         transmission_nexus_files = [
-            spice_run.unique_nexus_name(nexus_dir, True)
-            for spice_run in direct_beam_spice_runs
+            spice_run.unique_nexus_name(nexus_dir, True) for spice_run in direct_beam_spice_runs
         ]
         preparer.set_direct_beam_runs(transmission_nexus_files)
 
     # Set extra masks
-    preparer.set_masks(
-        mask_file, masked_pixels, wing_det_mask_angle=None, main_det_mask_angle=None
-    )
+    preparer.set_masks(mask_file, masked_pixels, wing_det_mask_angle=None, main_det_mask_angle=None)
 
     # Set beam center radius
     if beam_center_mask_radius is not None:

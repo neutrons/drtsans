@@ -92,14 +92,10 @@ def test_normalization_by_time(data_test_16a):
     ws_samnorm = normalize_by_time(ws)
     # Compare normalized intensities to those of the test
     intensities_list = list(itertools.chain(*data_test_16a["I_samnorm"]))
-    assert ws_samnorm.extractY() == pytest.approx(
-        intensities_list, abs=data_test_16a["precision"]
-    )
+    assert ws_samnorm.extractY() == pytest.approx(intensities_list, abs=data_test_16a["precision"])
     # Compare normalized errors to those of the test
     errors_list = list(itertools.chain(*data_test_16a["I_samnorm_err"]))
-    assert ws_samnorm.extractE() == pytest.approx(
-        errors_list, abs=data_test_16a["precision"]
-    )
+    assert ws_samnorm.extractE() == pytest.approx(errors_list, abs=data_test_16a["precision"])
     ws_samnorm.delete()  # some clean up
 
 
@@ -142,15 +138,11 @@ def test_normalization_by_monitor(data_test_16a):
 
     # Compare normalized intensities to those of the test
     intensities_list = list(itertools.chain(*data_test_16a["I_samnorm"]))
-    assert ws_samnorm.extractY() == pytest.approx(
-        intensities_list, abs=data_test_16a["precision"]
-    )
+    assert ws_samnorm.extractY() == pytest.approx(intensities_list, abs=data_test_16a["precision"])
 
     # Compare normalized errors to those of the test
     intensities_errors = list(itertools.chain(*data_test_16a["I_samnorm_err"]))
-    assert ws_samnorm.extractE() == pytest.approx(
-        intensities_errors, abs=data_test_16a["precision"]
-    )
+    assert ws_samnorm.extractE() == pytest.approx(intensities_errors, abs=data_test_16a["precision"])
 
     ws_samnorm.delete()  # some clean up
 

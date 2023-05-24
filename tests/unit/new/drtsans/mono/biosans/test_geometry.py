@@ -7,7 +7,6 @@ from drtsans.mono.biosans.beam_finder import center_detector
 
 
 def test_api_geometry(biosans_f):
-
     ws = LoadHFIRSANS(Filename=biosans_f["beamcenter"])
 
     instrument = ws.getInstrument()

@@ -51,6 +51,7 @@ class ReferenceWavelengths2D:
     """
     Class for keeping track of reference wavelength for each momentum transfer Q (1D)
     """
+
     def __init__(self, qx_values, qy_values, ref_wavelengths, intensities, errors):
         """Initialization
 
@@ -99,9 +100,7 @@ def reshape_q_wavelength_matrix(i_of_q):
 
     # Create a matrix for q, wavelength, intensity and error
     if i_of_q.delta_mod_q is None:
-        i_q_wl_matrix = np.array(
-            [i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity, i_of_q.error]
-        )
+        i_q_wl_matrix = np.array([i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity, i_of_q.error])
     else:
         i_q_wl_matrix = np.array(
             [
@@ -115,9 +114,7 @@ def reshape_q_wavelength_matrix(i_of_q):
     i_q_wl_matrix = i_q_wl_matrix.transpose()
 
     # Order by wavelength and momentum transfer (Q)
-    i_q_wl_matrix = i_q_wl_matrix[
-        np.lexsort((i_q_wl_matrix[:, 1], i_q_wl_matrix[:, 0]))
-    ]
+    i_q_wl_matrix = i_q_wl_matrix[np.lexsort((i_q_wl_matrix[:, 1], i_q_wl_matrix[:, 0]))]
 
     # Unique wavelength and unique momentum transfer
     wl_vector = np.unique(i_of_q.wavelength)
@@ -126,9 +123,7 @@ def reshape_q_wavelength_matrix(i_of_q):
     assert wl_vector.shape[0] * q_vector.shape[0] == i_of_q.intensity.shape[0]
 
     # Reformat
-    intensity_array = i_q_wl_matrix[:, 2].reshape(
-        (q_vector.shape[0], wl_vector.shape[0])
-    )
+    intensity_array = i_q_wl_matrix[:, 2].reshape((q_vector.shape[0], wl_vector.shape[0]))
     error_array = i_q_wl_matrix[:, 3].reshape((q_vector.shape[0], wl_vector.shape[0]))
     if i_of_q.delta_mod_q is not None:
         dq_array = i_q_wl_matrix[:, 4].reshape((q_vector.shape[0], wl_vector.shape[0]))
@@ -156,18 +151,14 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
     """
     # check i_of_q and ref_i_of_q shall have same binning
     if not verify_same_q_bins(i_of_q, ref_i_of_q):
-        raise RuntimeError(
-            "Input I(Q) and elastic reference I(Q) have different Q and wavelength binning"
-        )
+        raise RuntimeError("Input I(Q) and elastic reference I(Q) have different Q and wavelength binning")
 
     # Reshape Q, wavelength, intensities and errors to unique 1D array or 2D array
     wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
     try:
         # in some case, I(Q) and ref I(Q) are the same
         np.testing.assert_allclose(i_of_q.mod_q, ref_i_of_q.mod_q)
-        np.testing.assert_allclose(
-            i_of_q.intensity, ref_i_of_q.intensity, equal_nan=True
-        )
+        np.testing.assert_allclose(i_of_q.intensity, ref_i_of_q.intensity, equal_nan=True)
         ref_i_array, ref_error_array = i_array, error_array
     except AssertionError:
         (
@@ -209,9 +200,7 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
     )
 
     # Convert normalized intensities and errors to IModQ
-    normalized_i_of_q = build_i_of_q1d(
-        wl_vec, q_vec, normalized[0], normalized[1], dq_array
-    )
+    normalized_i_of_q = build_i_of_q1d(wl_vec, q_vec, normalized[0], normalized[1], dq_array)
 
     return normalized_i_of_q, k_vec, k_error_vec
 
@@ -234,9 +223,7 @@ def normalize_by_elastic_reference2D(i_of_q, ref_i_of_q):
     """
     # check i_of_q and ref_i_of_q shall have same binning
     if not verify_same_q_bins(i_of_q, ref_i_of_q):
-        raise RuntimeError(
-            "Input I(Q) and elastic reference I(Q) have different Q and wavelength binning"
-        )
+        raise RuntimeError("Input I(Q) and elastic reference I(Q) have different Q and wavelength binning")
 
     # skip reshape step of the 1D case?
 
@@ -257,7 +244,7 @@ def normalize_by_elastic_reference2D(i_of_q, ref_i_of_q):
         k_vec,
         p_vec,
         s_vec,
-        mask
+        mask,
     )
 
     normalized_i_of_q = IQazimuthal(
@@ -267,7 +254,7 @@ def normalize_by_elastic_reference2D(i_of_q, ref_i_of_q):
         qy=i_of_q.qy,
         wavelength=i_of_q.wavelength,
         delta_qx=i_of_q.delta_qx,
-        delta_qy=i_of_q.delta_qy
+        delta_qy=i_of_q.delta_qy,
     )
 
     return normalized_i_of_q, k_vec, k_error2_vec
@@ -298,10 +285,7 @@ def build_i_of_q1d(wl_vector, q_vector, intensity_array, error_array, delta_q_ar
 
     """
     # assume that intensity, error and delta q have the same as (num_q, num_wl)
-    assert (
-        intensity_array.shape[0] == q_vector.shape[0]
-        and intensity_array.shape[1] == wl_vector.shape[0]
-    )
+    assert intensity_array.shape[0] == q_vector.shape[0] and intensity_array.shape[1] == wl_vector.shape[0]
 
     # tile wave length
     wl_array_1d = np.tile(wl_vector, q_vector.shape[0])
@@ -366,9 +350,7 @@ def determine_common_mod_q_range_mesh(q_vec, intensity_array):
     return qmin_index, qmax_index
 
 
-def calculate_scale_factor_mesh_grid(
-    wl_vec, intensity_array, error_array, ref_wl_intensities, qmin_index, qmax_index
-):
+def calculate_scale_factor_mesh_grid(wl_vec, intensity_array, error_array, ref_wl_intensities, qmin_index, qmax_index):
     """Same functionality as calculate_scale_factor but the algorithm is improved
     as I(Q, wavelength) are in meshgrid
 
@@ -417,7 +399,7 @@ def calculate_scale_factor_mesh_grid(
         term1 = (
             ref_wl_intensities.intensity_vec[qmin_index : qmax_index + 1] * s_value
             - 2.0 * intensity_array[:, i_wl][qmin_index : qmax_index + 1] * p_value
-        ) / s_value ** 2
+        ) / s_value**2
         term2 = ref_wl_intensities.error_vec[qmin_index : qmax_index + 1]
         term3 = intensity_array[:, i_wl][qmin_index : qmax_index + 1] / s_value
 
@@ -467,8 +449,7 @@ def determine_reference_wavelength_q1d_mesh(
     """
     # Sanity check
     assert wavelength_vec.shape[0] == intensity_array.shape[1], (
-        f"Wavelength dimension = {wavelength_vec.shape} ,"
-        f"Intensity  dimension = {intensity_array.shape}"
+        f"Wavelength dimension = {wavelength_vec.shape} ," f"Intensity  dimension = {intensity_array.shape}"
     )
 
     # Minimum wavelength bin is the reference wavelength
@@ -596,26 +577,20 @@ def calculate_K_2d(i_of_q):
         refError = refError.transpose()
 
         # P(wl) = sum_q I(qx, qy, ref_wl) * I(qx, qy, wl)
-        p_value = np.nansum(
-            refIntensity
-            * currentIntensity
-        )
+        p_value = np.nansum(refIntensity * currentIntensity)
 
         # S(wl) = sum_q I(qx, qy, wl)**2
-        s_value = np.nansum(currentIntensity ** 2)
+        s_value = np.nansum(currentIntensity**2)
 
         # assign
         p_vec[i_wl] = p_value
         s_vec[i_wl] = s_value
 
         # now calculate error
-        term0 = currentError ** 2
-        term1 = ((
-            refIntensity * s_value
-            - 2.0 * currentIntensity * p_value
-        ) / (s_value ** 2)) ** 2
+        term0 = currentError**2
+        term1 = ((refIntensity * s_value - 2.0 * currentIntensity * p_value) / (s_value**2)) ** 2
 
-        term2 = refError ** 2
+        term2 = refError**2
         term3 = (currentIntensity / s_value) ** 2
 
         k_error2_vec[i_wl] = np.nansum((term0 * term1) + (term2 * term3))
@@ -714,7 +689,7 @@ def normalize_intensity_q1d(
 
     # Sanity check
     assert wl_vec.shape[0] == intensity_array.shape[1]  # wavelength as lambda
-    assert q_vec.shape[0] == error_array.shape[0]       # points as q
+    assert q_vec.shape[0] == error_array.shape[0]  # points as q
     assert intensity_array.shape == error_array.shape
 
     # Normalized intensities
@@ -734,31 +709,24 @@ def normalize_intensity_q1d(
     # Loop over wavelength
     num_wl = wl_vec.shape[0]
     for i_wl in range(1, num_wl):
-
         intensity_vec = intensity_array[:, i_wl].reshape((q_vec.shape[0], 1))
 
         # Calculate Y: Y_ij = I_i * R_j * s - I_i * 2 * I_j * p
-        y_matrix = intensity_vec * (ri_vec.transpose()) * s_vec[
-            i_wl
-        ] - intensity_vec * (intensity_vec.transpose()) * (2 * p_vec[i_wl])
+        y_matrix = intensity_vec * (ri_vec.transpose()) * s_vec[i_wl] - intensity_vec * (intensity_vec.transpose()) * (
+            2 * p_vec[i_wl]
+        )
         y_diag = np.diag(y_matrix)
         # y_matrix[i, :] corresponds to a single q_i/r_i
         # y_matrix[:, j] corresponds to a single q_j/r_j
 
         # Term 1
         # t2 += [delta I(q', wl)]**2 * Y(q, q'', wl)**2 / S(lw)**4
-        t2sum_vec = (
-            error_array[qmin_index:i_qmax, i_wl] ** 2
-            * y_matrix[:, qmin_index:i_qmax] ** 2
-            / s_vec[i_wl] ** 4
-        )
+        t2sum_vec = error_array[qmin_index:i_qmax, i_wl] ** 2 * y_matrix[:, qmin_index:i_qmax] ** 2 / s_vec[i_wl] ** 4
 
         # Term 3
         # t3 += [delta I(q_j, ref_wl[q_j]]^2 * [I(q_j, wl) * I(q, wl)]^2 / S(wl)^2
         t3sum_vec = intensity_array[:, i_wl] ** 2 * np.sum(
-            re_vec[qmin_index:i_qmax] ** 2
-            * intensity_array[qmin_index:i_qmax, i_wl] ** 2
-            / s_vec[i_wl] ** 2
+            re_vec[qmin_index:i_qmax] ** 2 * intensity_array[qmin_index:i_qmax, i_wl] ** 2 / s_vec[i_wl] ** 2
         )
 
         # outside of qmin and qmax: t1 = [delta I(q, wl)]**2 * [P(wl) / S(wl)]**2
@@ -774,29 +742,16 @@ def normalize_intensity_q1d(
         )
 
         # sum up
-        normalized_error2_array[:, i_wl] += (
-            t1sum_vec + t2sum_vec.sum(axis=1) + t3sum_vec
-        )
+        normalized_error2_array[:, i_wl] += t1sum_vec + t2sum_vec.sum(axis=1) + t3sum_vec
 
     return normalized_intensity_array, np.sqrt(normalized_error2_array)
 
 
 def einsum_multiply(A, B):
-    return np.einsum('ij,kl', A, B)
+    return np.einsum("ij,kl", A, B)
 
 
-def normalize_intensity_q2d(
-    wl_vec,
-    qx,
-    qy,
-    intensity_array,
-    error_array,
-    ref_wl_ints_errs,
-    k_vec,
-    p_vec,
-    s_vec,
-    mask
-):
+def normalize_intensity_q2d(wl_vec, qx, qy, intensity_array, error_array, ref_wl_ints_errs, k_vec, p_vec, s_vec, mask):
     """Normalize Q1D intensities and errors
 
     Parameters
@@ -832,7 +787,7 @@ def normalize_intensity_q2d(
     # Sanity check
     assert wl_vec.shape[0] == intensity_array.shape[0]  # wavelength as lambda
     assert wl_vec.shape[1] == intensity_array.shape[1]
-    assert qx.shape[0] == error_array.shape[0]       # points as q
+    assert qx.shape[0] == error_array.shape[0]  # points as q
     assert qx.shape[1] == error_array.shape[1]
     assert intensity_array.shape == error_array.shape
 
@@ -875,33 +830,24 @@ def normalize_intensity_q2d(
         y_kl -= np.nan_to_num((i_kl * p_vec[i_wl] * 2 * i_kl))
 
         # Term 1 for each kl, so it would only be one member of y_mn
-        t1sum_vec = np.einsum('klmn->kl',np.nan_to_num(
-            (y_mn ** 2) * (i8_mn ** 2)
-            / (s_vec[i_wl] ** 4))
-        )
+        t1sum_vec = np.einsum("klmn->kl", np.nan_to_num((y_mn**2) * (i8_mn**2) / (s_vec[i_wl] ** 4)))
 
         # Term 2
         # outside of kl
-        t2sum_vec = (i8_kl ** 2) * (p_vec[i_wl] / s_vec[i_wl]) ** 2
+        t2sum_vec = (i8_kl**2) * (p_vec[i_wl] / s_vec[i_wl]) ** 2
 
         # inside kl
         kl_in_mn_mask = ~np.isnan(i_mn)
         t2sum_vec[kl_in_mn_mask] = (
-            (i8_kl ** 2)
-            * (
-                ((p_vec[i_wl] ** 2) * (s_vec[i_wl] ** 2))
-                + (2 * p_vec[i_wl] * s_vec[i_wl] * y_kl)
-            )
+            (i8_kl**2)
+            * (((p_vec[i_wl] ** 2) * (s_vec[i_wl] ** 2)) + (2 * p_vec[i_wl] * s_vec[i_wl] * y_kl))
             / (s_vec[i_wl] ** 4)
         )[kl_in_mn_mask]
 
         # Term 3
         # sum over m,n you can pull out kl terms
-        t3sum_vec = np.nansum(
-            (iref8_mn ** 2)
-            * (((i_kl * i_mn) / s_vec[i_wl]) ** 2)
-        )
+        t3sum_vec = np.nansum((iref8_mn**2) * (((i_kl * i_mn) / s_vec[i_wl]) ** 2))
         # sum up
-        normalized_error2_array[i_wl] += (t1sum_vec + t2sum_vec + t3sum_vec)
+        normalized_error2_array[i_wl] += t1sum_vec + t2sum_vec + t3sum_vec
 
     return normalized_intensity_array, np.sqrt(normalized_error2_array)

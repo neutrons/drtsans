@@ -42,8 +42,6 @@ def standard_sample_scaling(input_workspace, f, f_std, output_workspace=None):
         output_workspace = str(input_workspace)
 
     scaling_factor = Divide(LHSWorkspace=f_std, RHSWorkspace=f, OutputWorkspace=uwd())
-    output_workspace = Multiply(
-        LHSWorkspace=input_workspace, RHSWorkspace=scaling_factor
-    )
+    output_workspace = Multiply(LHSWorkspace=input_workspace, RHSWorkspace=scaling_factor)
     DeleteWorkspace(Workspace=scaling_factor)
     return output_workspace

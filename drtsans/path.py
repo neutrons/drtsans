@@ -82,9 +82,7 @@ def abspath(path, instrument="", ipts="", directory=None, search_archive=True):
         except RuntimeError:
             pass  # failed to extract instrument/runnumber
     if instrument:
-        instrument = instrument_filesystem_name(
-            instrument
-        )  # from GPSANS to CG2, since we need /HFIR/CG2/IPTS-....
+        instrument = instrument_filesystem_name(instrument)  # from GPSANS to CG2, since we need /HFIR/CG2/IPTS-....
         if instrument == InstrumentEnumName.UNDEFINED:
             raise RuntimeError("Failed to extract instrument name")
 
@@ -142,30 +140,21 @@ def abspath(path, instrument="", ipts="", directory=None, search_archive=True):
         if bool(search_archive) is False:
             config["datasearch.searcharchive"] = "Off"
         with amend_config(config, data_dir=directories):
-            options = [
-                os.path.abspath(item) for item in FileFinder.findRuns(str(runnumber))
-            ]
+            options = [os.path.abspath(item) for item in FileFinder.findRuns(str(runnumber))]
             found = "nothing" if len(options) == 0 else f"{options}"
-            message_archive = (
-                f"FileFinder.findRuns({runnumber}) found {found}  with {config}"
-            )
+            message_archive = f"FileFinder.findRuns({runnumber}) found {found}  with {config}"
     except RuntimeError as e:
         options = []  # marks things as broken
         message_archive = f"{e} with {config}"
 
     if not options:  # empty result
-        raise RuntimeError(
-            f'{message_archive}\nFailed to find location of file from hint "{path}"'
-        )
+        raise RuntimeError(f'{message_archive}\nFailed to find location of file from hint "{path}"')
 
     for option in options:
         if os.path.exists(option):
             return option
 
-    raise RuntimeError(
-        "None of the locations suggested by ONCat contain "
-        'existing files for "{}"'.format(path)
-    )
+    raise RuntimeError("None of the locations suggested by ONCat contain " 'existing files for "{}"'.format(path))
 
 
 def abspaths(runnumbers, instrument="", ipts="", directory=None, search_archive=True):

@@ -5,9 +5,7 @@ from drtsans import geometry
 from drtsans.tof.eqsans import geometry as e_geometry, correct_frame
 
 
-def load_w(
-    run, low_tof_clip=0, high_tof_clip=0, dw=0.1, data_dir=None, output_workspace=None
-):
+def load_w(run, low_tof_clip=0, high_tof_clip=0, dw=0.1, data_dir=None, output_workspace=None):
     r"""
     Load a run, correct the TOF frame, and convert to wavelength
 
@@ -40,7 +38,5 @@ def load_w(
             output_workspace, sdd, low_tof_clip, high_tof_clip, interior_clip=True
         )
         correct_frame.convert_to_wavelength(output_workspace, bands, dw, events=False)
-        correct_frame.log_tof_structure(
-            output_workspace, low_tof_clip, high_tof_clip, interior_clip=True
-        )
+        correct_frame.log_tof_structure(output_workspace, low_tof_clip, high_tof_clip, interior_clip=True)
         return mtd[output_workspace]

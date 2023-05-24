@@ -39,14 +39,10 @@ def test_create_monitor_node(reference_dir):
 
     # Create bank node for bank 9
     monitor_node = MonitorNode(name="/entry/monitor1", monitor_name="monitor")
-    monitor_node.set_monitor_events(
-        event_indexes, event_time_offsets, run_start_time, event_time_zeros
-    )
+    monitor_node.set_monitor_events(event_indexes, event_time_offsets, run_start_time, event_time_zeros)
 
     # Verify
-    expected_monitor_node = source_root.get_child("/entry").get_child(
-        "monitor1", is_short_name=True
-    )
+    expected_monitor_node = source_root.get_child("/entry").get_child("monitor1", is_short_name=True)
     expected_monitor_node.match(monitor_node)
 
     # Close file
@@ -84,14 +80,10 @@ def test_create_events_node(reference_dir):
 
     # Create bank node for bank 9
     bank9_node = BankNode(name="/entry/bank9_events", bank_name="bank9")
-    bank9_node.set_events(
-        event_ids, event_indexes, event_time_offsets, run_start_time, event_time_zeros
-    )
+    bank9_node.set_events(event_ids, event_indexes, event_time_offsets, run_start_time, event_time_zeros)
 
     # Verify
-    expected_bank9_node = source_root.get_child("/entry").get_child(
-        "bank9_events", is_short_name=True
-    )
+    expected_bank9_node = source_root.get_child("/entry").get_child("bank9_events", is_short_name=True)
     expected_bank9_node.match(bank9_node)
 
     # Close file
@@ -141,12 +133,8 @@ def test_create_das_log_node(reference_dir):
     )
 
     # match: to entry/DASlogs/sample_detector_distance
-    expected_node = source_root.get_child("entry", is_short_name=True).get_child(
-        "DASlogs", is_short_name=True
-    )
-    expected_node = expected_node.get_child(
-        "sample_detector_distance", is_short_name=True
-    )
+    expected_node = source_root.get_child("entry", is_short_name=True).get_child("DASlogs", is_short_name=True)
+    expected_node = expected_node.get_child("sample_detector_distance", is_short_name=True)
     expected_node.match(ssd_test_node)
 
     # Close HDF5
@@ -172,12 +160,8 @@ def test_create_instrument_node(reference_dir):
 
     # Create new instrument node
     test_node = InstrumentNode()
-    test_node.set_idf(
-        xml_idf, idf_type=b"text/xml", description=b"XML contents of the instrument IDF"
-    )
-    test_node.set_instrument_info(
-        target_station_number=1, beam_line=b"CG2", name=b"CG2", short_name=b"CG2"
-    )
+    test_node.set_idf(xml_idf, idf_type=b"text/xml", description=b"XML contents of the instrument IDF")
+    test_node.set_instrument_info(target_station_number=1, beam_line=b"CG2", name=b"CG2", short_name=b"CG2")
 
     # Verify
     # attributes
@@ -185,9 +169,7 @@ def test_create_instrument_node(reference_dir):
 
     # attributes
     # cannot get b'NXinstrument'
-    assert (
-        source_instrument.attributes == test_node.attributes
-    ), "{} shall be same as {}" "".format(
+    assert source_instrument.attributes == test_node.attributes, "{} shall be same as {}" "".format(
         source_instrument.attributes, test_node.attributes
     )
 

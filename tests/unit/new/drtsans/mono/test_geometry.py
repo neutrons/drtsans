@@ -13,9 +13,7 @@ def failed_test_beam_radius(reference_dir):
         MetaDataOnly=True,
         LoadLogs=True,
     )
-    assert beam_radius(workspace, unit="mm") == pytest.approx(
-        16.0, abs=0.1
-    )  # calculated value = 34.137181990397
+    assert beam_radius(workspace, unit="mm") == pytest.approx(16.0, abs=0.1)  # calculated value = 34.137181990397
     workspace.delete()
 
 

@@ -73,11 +73,8 @@ def reduce_biosans_nexus(
     refresh_cycle: int,
     nexus_dir: Union[str, None],
 ):
-
     # Convert SPICE scan-pt tuple to NeXus files
-    sample_runs = map_to_nexus(
-        CG3, ipts_number, experiment_number, sample_runs, nexus_dir=nexus_dir
-    )
+    sample_runs = map_to_nexus(CG3, ipts_number, experiment_number, sample_runs, nexus_dir=nexus_dir)
     sample_transmission_runs = map_to_nexus(
         CG3,
         ipts_number,
@@ -85,9 +82,7 @@ def reduce_biosans_nexus(
         sample_transmission_runs,
         nexus_dir=nexus_dir,
     )
-    background_runs = map_to_nexus(
-        CG3, ipts_number, experiment_number, background_runs, nexus_dir=nexus_dir
-    )
+    background_runs = map_to_nexus(CG3, ipts_number, experiment_number, background_runs, nexus_dir=nexus_dir)
     background_transmission_runs = map_to_nexus(
         CG3,
         ipts_number,
@@ -95,9 +90,7 @@ def reduce_biosans_nexus(
         background_transmission_runs,
         nexus_dir=nexus_dir,
     )
-    beam_center_runs = map_to_nexus(
-        CG3, ipts_number, experiment_number, [beam_center_runs], nexus_dir=nexus_dir
-    )[0]
+    beam_center_runs = map_to_nexus(CG3, ipts_number, experiment_number, [beam_center_runs], nexus_dir=nexus_dir)[0]
     empty_transmission_run = map_to_nexus(
         CG3,
         ipts_number,
@@ -184,22 +177,14 @@ def reduce_biosans_nexus(
         },
     }
 
-    common_configuration_full = reduction_parameters(
-        common_configuration, "BIOSANS", validate=False
-    )
+    common_configuration_full = reduction_parameters(common_configuration, "BIOSANS", validate=False)
     # pretty_print(common_configuration_full)
 
     if len(background_runs) == 1 and len(sample_runs) > len(background_runs):
         background_runs = background_runs * len(sample_runs)
-    if len(background_transmission_runs) == 1 and len(sample_transmission_runs) > len(
-        background_transmission_runs
-    ):
-        background_transmission_runs = background_transmission_runs * len(
-            sample_transmission_runs
-        )
-    if len(sample_thickness_list) == 1 and len(sample_runs) > len(
-        sample_thickness_list
-    ):
+    if len(background_transmission_runs) == 1 and len(sample_transmission_runs) > len(background_transmission_runs):
+        background_transmission_runs = background_transmission_runs * len(sample_transmission_runs)
+    if len(sample_thickness_list) == 1 and len(sample_runs) > len(sample_thickness_list):
         sample_thickness_list = sample_thickness_list * len(sample_runs)
 
     # Checking if output directory exists, if it doesn't, creates the folder
@@ -208,12 +193,7 @@ def reduce_biosans_nexus(
     if not overwrite_reduced_data:
         suffix = 0
         while os.path.exists(output_dir):
-            output_dir = (
-                base_output_directory[0, len(base_output_directory) - 2]
-                + "_"
-                + str(suffix)
-                + "/"
-            )
+            output_dir = base_output_directory[0, len(base_output_directory) - 2] + "_" + str(suffix) + "/"
             suffix += 1
 
     if sample_identifier != "":
@@ -254,9 +234,7 @@ def reduce_biosans_nexus(
         }
 
         # Update our common settings with the particulars of the current reduction
-        reduction_input = update_reduction_parameters(
-            common_configuration_full, run_data, validate=True
-        )
+        reduction_input = update_reduction_parameters(common_configuration_full, run_data, validate=True)
         # pretty_print(reduction_input)
         reduction_input["configuration"]["WedgeMinAngles"] = wedge_min_angles
         reduction_input["configuration"]["WedgeMaxAngles"] = wedge_max_angles
@@ -281,12 +259,8 @@ def reduce_biosans_nexus(
     test_log_files = list()
     for i_s, sample in enumerate(sample_runs):
         output_file_name = generate_output_base_name(sample, sample_names[i_s])
-        test_log_file = generate_output_log_file(
-            base_output_directory, output_file_name, ""
-        )
-        assert os.path.exists(
-            test_log_file
-        ), f"Output log file {test_log_file} cannot be found."
+        test_log_file = generate_output_log_file(base_output_directory, output_file_name, "")
+        assert os.path.exists(test_log_file), f"Output log file {test_log_file} cannot be found."
         test_log_files.append(test_log_file)
 
     return test_log_files
@@ -306,11 +280,7 @@ def generate_output_base_name(sample_run_i: Union[str, int], sample_name_i: str)
     return output_file_name_base
 
 
-def generate_output_log_file(
-    output_directory: str, file_base_name: str, file_suffix: str
-) -> str:
+def generate_output_log_file(output_directory: str, file_base_name: str, file_suffix: str) -> str:
     """Generate output log file name as the standard drtsans/biosans convention"""
-    filename = os.path.join(
-        output_directory, f"{file_base_name}_reduction_log{file_suffix}.hdf"
-    )
+    filename = os.path.join(output_directory, f"{file_base_name}_reduction_log{file_suffix}.hdf")
     return filename

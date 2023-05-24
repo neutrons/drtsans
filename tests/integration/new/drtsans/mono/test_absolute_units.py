@@ -87,11 +87,7 @@ def test_empty_beam_scaling(workspace_with_instrument, test_data_15b):
     """
 
     # save the intensities  of the empty beam in a numpy.ndarray.
-    intensities = [
-        float(x)
-        for line in test_data_15b.intensities.split("\n")
-        for x in line.split(",")
-    ]
+    intensities = [float(x) for line in test_data_15b.intensities.split("\n") for x in line.split(",")]
     intensities = np.array(intensities, dtype=float).reshape((15, 17, 1))
     number_of_pixels = intensities.size
 
@@ -110,20 +106,12 @@ def test_empty_beam_scaling(workspace_with_instrument, test_data_15b):
     (
         center_x,
         center_y,
-    ) = (
-        test_data_15b.center_xy
-    )  # coordinates of the highest-intensity pixel, in pixel coords.
-    center_pixel_id = (
-        center_x * test_data_15b.pixels_per_tube + center_y
-    )  # integer ID for the pixel
-    center_x, center_y, _ = (
-        mtd[empty_beam_workspace].spectrumInfo().position(center_pixel_id)
-    )  # now in meters
+    ) = test_data_15b.center_xy  # coordinates of the highest-intensity pixel, in pixel coords.
+    center_pixel_id = center_x * test_data_15b.pixels_per_tube + center_y  # integer ID for the pixel
+    center_x, center_y, _ = mtd[empty_beam_workspace].spectrumInfo().position(center_pixel_id)  # now in meters
     center_detector(empty_beam_workspace, center_x, center_y)
     # Verify that the XY coordinates of the pixel with the highest intensity are now at (0, 0)
-    center_x, center_y, _ = (
-        mtd[empty_beam_workspace].spectrumInfo().position(center_pixel_id)
-    )
+    center_x, center_y, _ = mtd[empty_beam_workspace].spectrumInfo().position(center_pixel_id)
     assert (center_x, center_y) == pytest.approx(
         (
             0.0,

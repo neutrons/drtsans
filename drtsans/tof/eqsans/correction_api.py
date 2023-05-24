@@ -76,8 +76,15 @@ class CorrectionConfiguration:
         optional, automatically determine the qmin qmax by checking the intensity profile
     """
 
-    def __init__(self, do_correction=False, select_min_incoherence=False,
-                 select_intensityweighted=False, qmin=None, qmax=None, factor=None):
+    def __init__(
+        self,
+        do_correction=False,
+        select_min_incoherence=False,
+        select_intensityweighted=False,
+        qmin=None,
+        qmax=None,
+        factor=None,
+    ):
         self._do_correction = do_correction
         self._select_min_incoherence = select_min_incoherence
         self._select_intensityweighted = select_intensityweighted
@@ -170,14 +177,9 @@ class ElasticReferenceRunSetup:
 
         # sanity check
         if trans_run_number is None and trans_value is None:
-            raise RuntimeError(
-                "Either transmission run or transmission value shall be given."
-            )
+            raise RuntimeError("Either transmission run or transmission value shall be given.")
         elif trans_run_number and trans_value:
-            raise RuntimeError(
-                "Either transmission run or transmission value can be given, but "
-                "not both"
-            )
+            raise RuntimeError("Either transmission run or transmission value can be given, but " "not both")
 
         # Background
         self.background_run_number = None
@@ -196,13 +198,10 @@ class ElasticReferenceRunSetup:
         self.background_transmission_value = trans_value
 
         if trans_run_number is None and trans_value is None:
-            raise RuntimeError(
-                "Either background transmission run or transmission value shall be given."
-            )
+            raise RuntimeError("Either background transmission run or transmission value shall be given.")
         elif trans_run_number and trans_value:
             raise RuntimeError(
-                "Either background transmission run or transmission value can be given, but "
-                "not both"
+                "Either background transmission run or transmission value can be given, but " "not both"
             )
 
 
@@ -235,8 +234,9 @@ def parse_correction_config(reduction_config):
         qmax = run_config.get("incohfit_qmax")
         factor = run_config.get("incohfit_factor")
 
-        _config = CorrectionConfiguration(do_correction, select_min_incoherence,
-                                          select_intensityweighted, qmin, qmax, factor)
+        _config = CorrectionConfiguration(
+            do_correction, select_min_incoherence, select_intensityweighted, qmin, qmax, factor
+        )
 
         # Optional elastic normalization
         elastic_ref_json = run_config.get("elasticReference")
@@ -245,12 +245,8 @@ def parse_correction_config(reduction_config):
             if elastic_ref_run is not None and elastic_ref_run != "":
                 # only set up elastic reference after checking run number
                 try:
-                    elastic_ref_trans_run = elastic_ref_json["transmission"].get(
-                        "runNumber"
-                    )
-                    elastic_ref_trans_value = elastic_ref_json["transmission"].get(
-                        "value"
-                    )
+                    elastic_ref_trans_run = elastic_ref_json["transmission"].get("runNumber")
+                    elastic_ref_trans_value = elastic_ref_json["transmission"].get("value")
                     elastic_ref_thickness = float(elastic_ref_json.get("thickness"))
                     elastic_ref_config = ElasticReferenceRunSetup(
                         elastic_ref_run,
@@ -264,12 +260,8 @@ def parse_correction_config(reduction_config):
                         elastic_bkgd_run = elastic_ref_bkgd.get("runNumber")
                         # only set up elastic reference background after checking run number
                         if elastic_bkgd_run is not None and elastic_bkgd_run != "":
-                            elastic_bkgd_trans_run = elastic_ref_bkgd[
-                                "transmission"
-                            ].get("runNumber")
-                            elastic_bkgd_trans_value = elastic_ref_bkgd[
-                                "transmission"
-                            ].get("value")
+                            elastic_bkgd_trans_run = elastic_ref_bkgd["transmission"].get("runNumber")
+                            elastic_bkgd_trans_value = elastic_ref_bkgd["transmission"].get("value")
                             elastic_ref_config.set_background(
                                 elastic_bkgd_run,
                                 elastic_bkgd_trans_run,
@@ -279,9 +271,7 @@ def parse_correction_config(reduction_config):
                     # Set to configuration
                     _config.set_elastic_reference(elastic_ref_config)
                 except IndexError as index_err:
-                    raise RuntimeError(
-                        f"Invalid JSON for elastic reference run setup: {index_err}"
-                    )
+                    raise RuntimeError(f"Invalid JSON for elastic reference run setup: {index_err}")
 
     return _config
 
@@ -318,17 +308,16 @@ def do_inelastic_incoherence_correction_q1d(
 
     """
     # type check
-    assert isinstance(
-        iq1d, IQmod
-    ), f"Assuming each element in input is IQmod but not {type(iq1d)}"
+    assert isinstance(iq1d, IQmod), f"Assuming each element in input is IQmod but not {type(iq1d)}"
 
     # do inelastic/incoherent correction
     corrected = correct_incoherence_inelastic_1d(
-        iq1d, correction_setup.select_min_incoherence,
+        iq1d,
+        correction_setup.select_min_incoherence,
         correction_setup.select_intensityweighted,
         correction_setup.qmin,
         correction_setup.qmax,
-        correction_setup.factor
+        correction_setup.factor,
     )
 
     # save file
@@ -348,14 +337,10 @@ def do_inelastic_incoherence_correction_q2d(
     output_filename: str = "",
 ) -> IQazimuthal:
     # type check
-    assert isinstance(
-        iq2d, IQazimuthal
-    ), f"iq2d must be IQazimuthal but not {type(iq2d)}"
+    assert isinstance(iq2d, IQazimuthal), f"iq2d must be IQazimuthal but not {type(iq2d)}"
 
     # apply the correction to each
-    corrected = correct_incoherence_inelastic_2d(
-        iq2d, correction_setup.select_min_incoherence
-    )
+    corrected = correct_incoherence_inelastic_2d(iq2d, correction_setup.select_min_incoherence)
 
     # save file
     save_b_factor(

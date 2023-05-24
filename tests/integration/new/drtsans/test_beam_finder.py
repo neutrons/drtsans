@@ -156,24 +156,16 @@ def test_center_detector():
     # look at the original instrument
     w_eqsans = LoadEmptyInstrument(InstrumentName="EQ-SANS")
     inst = w_eqsans.getInstrument()
-    assert inst.getDetector(0).getPos() == approx(
-        [0.524185, -0.520957, -0.0316256], abs=1e-5
-    )
-    assert inst.getDetector(49151).getPos() == approx(
-        [-0.525015, 0.520957, -0.0234656], abs=1e-5
-    )
+    assert inst.getDetector(0).getPos() == approx([0.524185, -0.520957, -0.0316256], abs=1e-5)
+    assert inst.getDetector(49151).getPos() == approx([-0.525015, 0.520957, -0.0234656], abs=1e-5)
 
     # move detector
     xcenter = 0.5
     ycenter = 0.7
     center_detector(w_eqsans, center_x=xcenter, center_y=ycenter)
     inst = w_eqsans.getInstrument()
-    assert inst.getDetector(0).getPos() == approx(
-        [0.024185, -1.220957, -0.0316256], abs=1e-5
-    )
-    assert inst.getDetector(49151).getPos() == approx(
-        [-1.025015, -0.179043, -0.0234656], abs=1e-5
-    )
+    assert inst.getDetector(0).getPos() == approx([0.024185, -1.220957, -0.0316256], abs=1e-5)
+    assert inst.getDetector(49151).getPos() == approx([-1.025015, -0.179043, -0.0234656], abs=1e-5)
 
     # cleanup
     DeleteWorkspace(w_eqsans)
@@ -514,9 +506,7 @@ def test_find_beam_center_arbitrary_assembly(arbitrary_assembly_IDF):
         UnitX="wavelength",
         OutputWorkspace="count",
     )
-    instrument_name = re.search(
-        r'instrument name="([A-Za-z0-9_-]+)"', arbitrary_assembly_IDF
-    ).groups()[0]
+    instrument_name = re.search(r'instrument name="([A-Za-z0-9_-]+)"', arbitrary_assembly_IDF).groups()[0]
     LoadInstrument(
         Workspace=workspace,
         InstrumentXML=arbitrary_assembly_IDF,
@@ -553,9 +543,7 @@ def test_find_beam_center_arbitrary_assembly(arbitrary_assembly_IDF):
     )
 
     # Finding the beam center
-    x_cen, y_cen, _ = find_beam_center(
-        sensitivity_corrected_counts, solid_angle_method="GenericShape"
-    )
+    x_cen, y_cen, _ = find_beam_center(sensitivity_corrected_counts, solid_angle_method="GenericShape")
     assert x_cen * 1000 == approx(27.41, abs=0.9)
     assert y_cen * 1000 == approx(22.5, abs=0.9)
 

@@ -34,9 +34,7 @@ IPTS_22699 = "/HFIR/CG3/IPTS-22699/nexus/"
 )
 def test_abspath_with_archivesearch(hint, fullpath, reference_dir):
     # set the data directory in the result using the test fixture
-    pytest.skip(
-        f"Search {hint} inside archive is skipped as build server cannot query through ONCAT."
-    )
+    pytest.skip(f"Search {hint} inside archive is skipped as build server cannot query through ONCAT.")
     assert abspath(hint, search_archive=True) == fullpath
 
 
@@ -78,9 +76,7 @@ def test_abspath_with_ipts(hint, instr, ipts, fullpath):
 
 def test_abspath_with_directory(reference_dir):
     filename = os.path.join(reference_dir.new.biosans, "CG3_5709.nxs.h5")
-    abspath(
-        "CG3_5709", directory=reference_dir.new.biosans, search_archive=False
-    ) == filename
+    abspath("CG3_5709", directory=reference_dir.new.biosans, search_archive=False) == filename
     abspath(
         "5709",
         instrument="CG3",

@@ -90,31 +90,21 @@ def test_main_detector(reference_dir, generatecleanfile, clean_workspace):
 
     # Output
     FILE_SURFIX = "wing" if WING_DETECTOR else "main"
-    SENSITIVITY_FILE = os.path.join(
-        output_dir, f"{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN}sac_tdc7m.nxs"
-    )
+    SENSITIVITY_FILE = os.path.join(output_dir, f"{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN}sac_tdc7m.nxs")
 
     # Convert SPICE file to NeXus file
     flood_run = SpiceRun(CG3, IPTS, EXPERIMENT, FLOOD_RUN[0], FLOOD_RUN[1])
     direct_beam_run = (
-        SpiceRun(CG3, IPTS, EXPERIMENT, DIRECT_BEAM_RUN[0], DIRECT_BEAM_RUN[1])
-        if DIRECT_BEAM_RUN
-        else None
+        SpiceRun(CG3, IPTS, EXPERIMENT, DIRECT_BEAM_RUN[0], DIRECT_BEAM_RUN[1]) if DIRECT_BEAM_RUN else None
     )
     open_beam_transmission = (
-        SpiceRun(
-            CG3, IPTS, EXPERIMENT, OPEN_BEAM_TRANSMISSION[0], OPEN_BEAM_TRANSMISSION[1]
-        )
+        SpiceRun(CG3, IPTS, EXPERIMENT, OPEN_BEAM_TRANSMISSION[0], OPEN_BEAM_TRANSMISSION[1])
         if OPEN_BEAM_TRANSMISSION
         else None
     )
-    transmission_flood_run = SpiceRun(
-        CG3, IPTS, EXPERIMENT, TRANSMISSION_FLOOD_RUN[0], TRANSMISSION_FLOOD_RUN[1]
-    )
+    transmission_flood_run = SpiceRun(CG3, IPTS, EXPERIMENT, TRANSMISSION_FLOOD_RUN[0], TRANSMISSION_FLOOD_RUN[1])
     dark_current_run = (
-        SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0], DARK_CURRENT_RUN[1])
-        if DARK_CURRENT_RUN
-        else None
+        SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0], DARK_CURRENT_RUN[1]) if DARK_CURRENT_RUN else None
     )
 
     prepare_spice_sensitivities_correction(
@@ -139,9 +129,7 @@ def test_main_detector(reference_dir, generatecleanfile, clean_workspace):
     )
 
     # Verify
-    gold_sens_file = os.path.join(
-        reference_dir.new.biosans, "CG3_sens_main_exp549_scan9.nxs"
-    )
+    gold_sens_file = os.path.join(reference_dir.new.biosans, "CG3_sens_main_exp549_scan9.nxs")
     assert os.path.exists(gold_sens_file)
     verify_results(SENSITIVITY_FILE, gold_sens_file, clean_workspace)
 
@@ -208,31 +196,21 @@ def test_wing_detector(reference_dir, generatecleanfile, clean_workspace):
 
     # Output
     FILE_SURFIX = "wing" if WING_DETECTOR else "main"
-    SENSITIVITY_FILE = os.path.join(
-        output_dir, f"{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN}sac_tdc7m.nxs"
-    )
+    SENSITIVITY_FILE = os.path.join(output_dir, f"{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN}sac_tdc7m.nxs")
 
     # Convert SPICE file to NeXus file
     flood_run = SpiceRun(CG3, IPTS, EXPERIMENT, FLOOD_RUN[0], FLOOD_RUN[1])
     direct_beam_run = (
-        SpiceRun(CG3, IPTS, EXPERIMENT, DIRECT_BEAM_RUN[0], DIRECT_BEAM_RUN[1])
-        if DIRECT_BEAM_RUN
-        else None
+        SpiceRun(CG3, IPTS, EXPERIMENT, DIRECT_BEAM_RUN[0], DIRECT_BEAM_RUN[1]) if DIRECT_BEAM_RUN else None
     )
     open_beam_transmission = (
-        SpiceRun(
-            CG3, IPTS, EXPERIMENT, OPEN_BEAM_TRANSMISSION[0], OPEN_BEAM_TRANSMISSION[1]
-        )
+        SpiceRun(CG3, IPTS, EXPERIMENT, OPEN_BEAM_TRANSMISSION[0], OPEN_BEAM_TRANSMISSION[1])
         if OPEN_BEAM_TRANSMISSION
         else None
     )
-    transmission_flood_run = SpiceRun(
-        CG3, IPTS, EXPERIMENT, TRANSMISSION_FLOOD_RUN[0], TRANSMISSION_FLOOD_RUN[1]
-    )
+    transmission_flood_run = SpiceRun(CG3, IPTS, EXPERIMENT, TRANSMISSION_FLOOD_RUN[0], TRANSMISSION_FLOOD_RUN[1])
     dark_current_run = (
-        SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0], DARK_CURRENT_RUN[1])
-        if DARK_CURRENT_RUN
-        else None
+        SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0], DARK_CURRENT_RUN[1]) if DARK_CURRENT_RUN else None
     )
 
     prepare_spice_sensitivities_correction(
@@ -256,9 +234,7 @@ def test_wing_detector(reference_dir, generatecleanfile, clean_workspace):
         nexus_dir=reference_dir.new.biosans,
     )
     # Verify
-    gold_sens_file = os.path.join(
-        reference_dir.new.biosans, "CG3_sens_wing_exp549_scan20.nxs"
-    )
+    gold_sens_file = os.path.join(reference_dir.new.biosans, "CG3_sens_wing_exp549_scan20.nxs")
     assert os.path.exists(gold_sens_file)
     verify_results(SENSITIVITY_FILE, gold_sens_file, clean_workspace)
 
@@ -268,9 +244,7 @@ def verify_results(test_sensitivities_file: str, gold_sens_file: str, clean_work
     # Get gold file
     # gold_sens_file = os.path.join(reference_dir.new.gpsans, 'calibrations/sens_CG2_spice_bar.nxs')
     if not os.path.exists(gold_sens_file):
-        raise RuntimeError(
-            f"Expected (gold) sensitivities cannot be found at {gold_sens_file}"
-        )
+        raise RuntimeError(f"Expected (gold) sensitivities cannot be found at {gold_sens_file}")
 
     # Compare sensitivities
     gold_sens_ws = LoadNexusProcessed(Filename=gold_sens_file)

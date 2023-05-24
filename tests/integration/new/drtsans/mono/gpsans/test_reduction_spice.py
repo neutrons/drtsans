@@ -60,9 +60,7 @@ def test_reduction_spice(reference_dir, generatecleanfile):
 
     # STAFF INPUT
     use_mask_file = True
-    mask_file_name = os.path.join(
-        reference_dir.new.gpsans, "calibrations/mask_pixel_map.nxs"
-    )
+    mask_file_name = os.path.join(reference_dir.new.gpsans, "calibrations/mask_pixel_map.nxs")
     use_dark_file = False
     dark_file_name = ""
     block_beam = (9, 1)
@@ -72,9 +70,7 @@ def test_reduction_spice(reference_dir, generatecleanfile):
     wedge_min_angles = None
     wedge_max_angles = None
 
-    sensitivity_file = os.path.join(
-        reference_dir.new.gpsans, "calibrations/sens_CG2_spice_bar.nxs"
-    )
+    sensitivity_file = os.path.join(reference_dir.new.gpsans, "calibrations/sens_CG2_spice_bar.nxs")
     use_log_2d_binning = False
     use_log_1d = True
     common_configuration = {
@@ -140,12 +136,8 @@ def test_reduction_spice(reference_dir, generatecleanfile):
     )
 
     # verify
-    expected_data_dir = os.path.join(
-        reference_dir.new.gpsans, "spice_reduction/exp280_normal_bin"
-    )
-    verify_cg2_reduction_results(
-        sample_names, output_dir, expected_data_dir, "SPICE reduction", prefix=""
-    )
+    expected_data_dir = os.path.join(reference_dir.new.gpsans, "spice_reduction/exp280_normal_bin")
+    verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, "SPICE reduction", prefix="")
 
     # clean up
     # mysterious leftover workspaces
@@ -213,9 +205,7 @@ def test_reduction_spice_subpixel(reference_dir, generatecleanfile):
 
     # STAFF INPUT
     use_mask_file = True
-    mask_file_name = os.path.join(
-        reference_dir.new.gpsans, "calibrations/mask_pixel_map.nxs"
-    )
+    mask_file_name = os.path.join(reference_dir.new.gpsans, "calibrations/mask_pixel_map.nxs")
     use_dark_file = False
     dark_file_name = ""
     block_beam = (9, 1)
@@ -226,9 +216,7 @@ def test_reduction_spice_subpixel(reference_dir, generatecleanfile):
     wedge_max_angles = None
 
     # sensitivity_file = '/HFIR/CG2/shared/drt_sensitivity/sens_CG2_spice_bar.nxs'
-    sensitivity_file = os.path.join(
-        reference_dir.new.gpsans, "calibrations/sens_CG2_spice_bar.nxs"
-    )
+    sensitivity_file = os.path.join(reference_dir.new.gpsans, "calibrations/sens_CG2_spice_bar.nxs")
     use_log_2d_binning = False
     use_log_1d = True
     common_configuration = {
@@ -294,12 +282,8 @@ def test_reduction_spice_subpixel(reference_dir, generatecleanfile):
     )
 
     # verify
-    expected_data_dir = os.path.join(
-        reference_dir.new.gpsans, "spice_reduction/exp280_subpixel_bin/"
-    )
-    verify_cg2_reduction_results(
-        sample_names, output_dir, expected_data_dir, "SPICE reduction", prefix=""
-    )
+    expected_data_dir = os.path.join(reference_dir.new.gpsans, "spice_reduction/exp280_subpixel_bin/")
+    verify_cg2_reduction_results(sample_names, output_dir, expected_data_dir, "SPICE reduction", prefix="")
 
     # clean up
     # mysterious leftover workspaces

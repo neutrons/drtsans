@@ -16,21 +16,15 @@ from drtsans.samplelogs import SampleLogs
 
 
 def test_load_events(reference_dir):
-    events_workspace = load_events(
-        "CG3_961.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True
-    )
+    events_workspace = load_events("CG3_961.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
     assert events_workspace.name() == "BIOSANS_961"
 
     sample_logs = SampleLogs(events_workspace)
     assert sample_logs.monitor.value == 19173627
 
     x, y, z = events_workspace.getInstrument().getComponentByName("detector1").getPos()
-    assert -1000 * x == pytest.approx(
-        sample_logs.single_value("detector_trans_Readback"), abs=0.001
-    )
-    assert z == pytest.approx(
-        sample_logs.single_value("sample_detector_distance"), abs=0.001
-    )
+    assert -1000 * x == pytest.approx(sample_logs.single_value("detector_trans_Readback"), abs=0.001)
+    assert z == pytest.approx(sample_logs.single_value("sample_detector_distance"), abs=0.001)
 
 
 def test_transform_to_wavelength(reference_dir):
@@ -74,9 +68,7 @@ def test_api_load(biosans_f):
     wavelength_spread_log = sl.find_log_with_units("wavelength-spread", "Angstrom")
     assert wavelength_spread_log == 1.0
     wavelength_spread_ratio_log = sl.single_value("wavelength-spread-ratio")
-    assert wavelength_spread_ratio_log == pytest.approx(
-        wavelength_spread_log / wavelength_log, abs=1e-3
-    )
+    assert wavelength_spread_ratio_log == pytest.approx(wavelength_spread_log / wavelength_log, abs=1e-3)
 
 
 def test_sum_data(reference_dir):
@@ -89,9 +81,7 @@ def test_sum_data(reference_dir):
 
     with pytest.raises(ValueError) as excinfo:
         sum_data("workspace1", "merged")
-    assert "is not a Workspace2D" in str(
-        excinfo.value
-    )  # Should complain about wrong workspace type
+    assert "is not a Workspace2D" in str(excinfo.value)  # Should complain about wrong workspace type
 
     workspace1 = transform_to_wavelength(workspace1)
     workspace1 = set_init_uncertainties(workspace1)
@@ -116,9 +106,7 @@ def test_sum_data(reference_dir):
     assert merged_sample_logs.monitor.value == 19173627 + 1039
     assert sample_logs1.duration.value == pytest.approx(1809.4842529296875, abs=1e-11)
     assert sample_logs2.duration.value == pytest.approx(0.0833325386047363, abs=1e-11)
-    assert merged_sample_logs.duration.value == pytest.approx(
-        1809.4842529296875 + 0.08333253860473633, abs=1e-11
-    )
+    assert merged_sample_logs.duration.value == pytest.approx(1809.4842529296875 + 0.08333253860473633, abs=1e-11)
 
     # Check Time Series properties increase length
     assert sample_logs1.wavelength.size() == 692
@@ -132,9 +120,7 @@ def test_sum_data(reference_dir):
 
     # Test different input formats
     # List of workspace names
-    merged_workspaces_2 = sum_data(
-        ["workspace1", "workspace2"], output_workspace="merged2"
-    )
+    merged_workspaces_2 = sum_data(["workspace1", "workspace2"], output_workspace="merged2")
     assert SampleLogs(merged_workspaces_2).duration.value == pytest.approx(
         1809.4842529296875 + 0.08333253860473633, abs=1e-11
     )
@@ -181,9 +167,7 @@ def test_load_events_and_histogram(reference_dir):
     sample_logs2 = SampleLogs(workspace2)
 
     assert sample_logs2.monitor.value == 19173627 + 1039
-    assert sample_logs2.duration.value == pytest.approx(
-        1809.4842529296875 + 0.08333253860473633, abs=1e-11
-    )
+    assert sample_logs2.duration.value == pytest.approx(1809.4842529296875 + 0.08333253860473633, abs=1e-11)
     assert sample_logs2.wavelength.size() == 692 + 2
     assert mtd[str(workspace2)].extractY().sum() == 11067715 + 1
 
@@ -197,9 +181,7 @@ def test_load_and_split(reference_dir):
             sample_to_si_name="CG3:CS:SampleToSi",
             si_nominal_distance=0.071,
         )
-    assert "Must provide with time_interval or log_name and log_value_interval" == str(
-        excinfo.value
-    )
+    assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
 
     filtered_ws = load_and_split(
         "CG3_961.nxs.h5",
@@ -211,12 +193,8 @@ def test_load_and_split(reference_dir):
 
     assert filtered_ws.size() == 2
 
-    assert SampleLogs(filtered_ws.getItem(0)).duration.value == pytest.approx(
-        1000, abs=1e-11
-    )
-    assert SampleLogs(filtered_ws.getItem(1)).duration.value == pytest.approx(
-        809.48427990000005, abs=1e-11
-    )
+    assert SampleLogs(filtered_ws.getItem(0)).duration.value == pytest.approx(1000, abs=1e-11)
+    assert SampleLogs(filtered_ws.getItem(1)).duration.value == pytest.approx(809.48427990000005, abs=1e-11)
 
     assert SampleLogs(filtered_ws.getItem(0)).monitor.value == 10553922
     assert SampleLogs(filtered_ws.getItem(1)).monitor.value == 8619525
@@ -229,22 +207,14 @@ def test_load_and_split(reference_dir):
     assert SampleLogs(filtered_ws.getItem(1)).slice.value == 2
     assert SampleLogs(filtered_ws.getItem(0)).number_of_slices.value == 2
     assert SampleLogs(filtered_ws.getItem(1)).number_of_slices.value == 2
-    assert (
-        SampleLogs(filtered_ws.getItem(0)).slice_parameter.value
-        == "relative time from start"
-    )
-    assert (
-        SampleLogs(filtered_ws.getItem(1)).slice_parameter.value
-        == "relative time from start"
-    )
+    assert SampleLogs(filtered_ws.getItem(0)).slice_parameter.value == "relative time from start"
+    assert SampleLogs(filtered_ws.getItem(1)).slice_parameter.value == "relative time from start"
     assert SampleLogs(filtered_ws.getItem(0)).slice_interval.value == 1000
     assert SampleLogs(filtered_ws.getItem(1)).slice_interval.value == 1000
     assert SampleLogs(filtered_ws.getItem(0)).slice_start.value == 0
     assert SampleLogs(filtered_ws.getItem(1)).slice_start.value == 1000
     assert SampleLogs(filtered_ws.getItem(0)).slice_end.value == 1000
-    assert SampleLogs(filtered_ws.getItem(1)).slice_end.value == pytest.approx(
-        1809.4842799, abs=1e-5
-    )
+    assert SampleLogs(filtered_ws.getItem(1)).slice_end.value == pytest.approx(1809.4842799, abs=1e-5)
     assert SampleLogs(filtered_ws.getItem(0)).slice_start.units == "seconds"
     assert SampleLogs(filtered_ws.getItem(1)).slice_start.units == "seconds"
     assert SampleLogs(filtered_ws.getItem(0)).slice_end.units == "seconds"
@@ -277,9 +247,7 @@ def test_load_and_split_overwrite_geometry(reference_dir):
             sample_to_si_name="CG3:CS:SampleToSi",
             si_nominal_distance=0.071,
         )
-    assert "Must provide with time_interval or log_name and log_value_interval" == str(
-        excinfo.value
-    )
+    assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
 
     filtered_ws = load_and_split(
         "CG3_961",
@@ -293,12 +261,8 @@ def test_load_and_split_overwrite_geometry(reference_dir):
 
     assert filtered_ws.size() == 2
 
-    assert SampleLogs(filtered_ws.getItem(0)).duration.value == pytest.approx(
-        1000, abs=1e-11
-    )
-    assert SampleLogs(filtered_ws.getItem(1)).duration.value == pytest.approx(
-        809.48427990000005, abs=1e-11
-    )
+    assert SampleLogs(filtered_ws.getItem(0)).duration.value == pytest.approx(1000, abs=1e-11)
+    assert SampleLogs(filtered_ws.getItem(1)).duration.value == pytest.approx(809.48427990000005, abs=1e-11)
 
     assert SampleLogs(filtered_ws.getItem(0)).monitor.value == 10553922
     assert SampleLogs(filtered_ws.getItem(1)).monitor.value == 8619525
@@ -311,22 +275,14 @@ def test_load_and_split_overwrite_geometry(reference_dir):
     assert SampleLogs(filtered_ws.getItem(1)).slice.value == 2
     assert SampleLogs(filtered_ws.getItem(0)).number_of_slices.value == 2
     assert SampleLogs(filtered_ws.getItem(1)).number_of_slices.value == 2
-    assert (
-        SampleLogs(filtered_ws.getItem(0)).slice_parameter.value
-        == "relative time from start"
-    )
-    assert (
-        SampleLogs(filtered_ws.getItem(1)).slice_parameter.value
-        == "relative time from start"
-    )
+    assert SampleLogs(filtered_ws.getItem(0)).slice_parameter.value == "relative time from start"
+    assert SampleLogs(filtered_ws.getItem(1)).slice_parameter.value == "relative time from start"
     assert SampleLogs(filtered_ws.getItem(0)).slice_interval.value == 1000
     assert SampleLogs(filtered_ws.getItem(1)).slice_interval.value == 1000
     assert SampleLogs(filtered_ws.getItem(0)).slice_start.value == 0
     assert SampleLogs(filtered_ws.getItem(1)).slice_start.value == 1000
     assert SampleLogs(filtered_ws.getItem(0)).slice_end.value == 1000
-    assert SampleLogs(filtered_ws.getItem(1)).slice_end.value == pytest.approx(
-        1809.4842799, abs=1e-5
-    )
+    assert SampleLogs(filtered_ws.getItem(1)).slice_end.value == pytest.approx(1809.4842799, abs=1e-5)
     assert SampleLogs(filtered_ws.getItem(0)).slice_start.units == "seconds"
     assert SampleLogs(filtered_ws.getItem(1)).slice_start.units == "seconds"
     assert SampleLogs(filtered_ws.getItem(0)).slice_end.units == "seconds"

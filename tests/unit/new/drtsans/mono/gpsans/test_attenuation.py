@@ -57,17 +57,13 @@ def test_attenuation_factor_missing_logs(generic_workspace):
     # Missing attenuator and wavelength log
     with pytest.raises(RuntimeError) as excinfo:
         attenuation_factor(ws)
-    assert "attenuator" in str(
-        excinfo.value
-    )  # Should complain about missing attenuator
+    assert "attenuator" in str(excinfo.value)  # Should complain about missing attenuator
 
     # Add in attenuator so only missing wavelength log
     SampleLogs(ws).insert("attenuator", 4)
     with pytest.raises(RuntimeError) as excinfo:
         attenuation_factor(ws)
-    assert "wavelength" in str(
-        excinfo.value
-    )  # Should complain about missing wavelength
+    assert "wavelength" in str(excinfo.value)  # Should complain about missing wavelength
 
 
 if __name__ == "__main__":

@@ -94,9 +94,7 @@ def test_apply_mask_simple_histogram(generic_IDF):
     """
     # Four histograms, each containing three bins
     wavelength = np.array([1.0, 2.0, 3.0, 4.0] * 4)
-    intensities = np.array(
-        [[9, 10, 11, 3], [8, 12, 4, 14], [11, 15, 3, 16]]
-    ).transpose()
+    intensities = np.array([[9, 10, 11, 3], [8, 12, 4, 14], [11, 15, 3, 16]]).transpose()
     ws = CreateWorkspace(
         DataX=wavelength,
         DataY=intensities,

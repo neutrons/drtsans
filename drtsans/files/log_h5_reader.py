@@ -89,9 +89,7 @@ def compare_reduced_iq(test_log_file, gold_log_file, title: str, prefix: str):
         raise test_exception
 
 
-def report_difference(
-    test_data, gold_data, title: str, is_q_diff: bool, base_file_name: str
-):
+def report_difference(test_data, gold_data, title: str, is_q_diff: bool, base_file_name: str):
     test_q_vec, test_intensity_vec = test_data
     gold_q_vec, gold_intensity_vec = gold_data
 
@@ -149,7 +147,6 @@ def report_difference(
 
 
 def plot_data(plot_info_list, y_scale, title, fig_name):
-
     # clear the canvas
     plt.cla()
 
@@ -205,27 +202,18 @@ def verify_cg2_reduction_results(sample_names, output_dir, gold_path, title, pre
 
     for sample_name in sample_names:
         # output log file name
-        output_log_file = os.path.join(
-            output_dir, "{}_reduction_log.hdf".format(sample_name)
-        )
-        assert os.path.exists(output_log_file), "Output {} cannot be found".format(
-            output_log_file
-        )
+        output_log_file = os.path.join(output_dir, "{}_reduction_log.hdf".format(sample_name))
+        assert os.path.exists(output_log_file), "Output {} cannot be found".format(output_log_file)
         # gold file
-        gold_log_file = os.path.join(
-            gold_path, "{}_reduction_log.hdf".format(sample_name)
-        )
-        assert os.path.exists(gold_path), "Gold file {} cannot be found".format(
-            gold_log_file
-        )
+        gold_log_file = os.path.join(gold_path, "{}_reduction_log.hdf".format(sample_name))
+        assert os.path.exists(gold_path), "Gold file {} cannot be found".format(gold_log_file)
         # compare
         title_i = "{}: {}".format(sample_name, title)
         try:
             compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
         except AssertionError as unmatched_error:
-            unmatched_errors = (
-                "Testing output {} is different from gold result {}:\n{}"
-                "".format(output_log_file, gold_log_file, unmatched_error)
+            unmatched_errors = "Testing output {} is different from gold result {}:\n{}" "".format(
+                output_log_file, gold_log_file, unmatched_error
             )
     # END-FOR
 

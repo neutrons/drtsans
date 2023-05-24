@@ -53,9 +53,7 @@ def test_initial_uncertainty(generic_IDF, cleanfile):
     # Set uncertainties
     ws = set_init_uncertainties(ws)
 
-    print(
-        "[TEST INFO] Workspace {} has {} spectra".format(ws, ws.getNumberHistograms())
-    )
+    print("[TEST INFO] Workspace {} has {} spectra".format(ws, ws.getNumberHistograms()))
     for ws_index in range(4):
         if np.isnan(gold_delta_intensity[ws_index]):
             assert np.isnan(ws.dataE(ws_index)[0])

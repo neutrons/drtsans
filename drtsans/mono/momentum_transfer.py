@@ -55,21 +55,13 @@ def mono_resolution(*args, **kwargs):
     # return resolution according to formulas 10.5 and 10.6 in the master document
     if mode == "scalar":
         q = args[0]
-        return np.sqrt(
-            sigma_geom + np.square(q) * np.square(delta_wavelength / wavelength) / 6.0
-        )
+        return np.sqrt(sigma_geom + np.square(q) * np.square(delta_wavelength / wavelength) / 6.0)
     if mode == "azimuthal":
         qx = args[0]
         qy = args[1]
         return [
-            np.sqrt(
-                sigma_geom[0]
-                + np.square(qx) * np.square(delta_wavelength / wavelength) / 6.0
-            ),
-            np.sqrt(
-                sigma_geom[1]
-                + np.square(qy) * np.square(delta_wavelength / wavelength) / 6.0
-            ),
+            np.sqrt(sigma_geom[0] + np.square(qx) * np.square(delta_wavelength / wavelength) / 6.0),
+            np.sqrt(sigma_geom[1] + np.square(qy) * np.square(delta_wavelength / wavelength) / 6.0),
         ]
 
     # should not get here
@@ -163,9 +155,7 @@ def retrieve_instrument_setup(input_workspace):
     ~drtsans.resolution.InstrumentSetupParameters
     """
     l1 = source_sample_distance(input_workspace, unit="m")
-    l2 = sample_detector_distance(
-        input_workspace, unit="m", search_logs=False
-    )  # enforce to use calculated SDD/L2
+    l2 = sample_detector_distance(input_workspace, unit="m", search_logs=False)  # enforce to use calculated SDD/L2
     r1 = source_aperture_diameter(input_workspace, unit="m") / 2.0
     r2 = sample_aperture_diameter(input_workspace, unit="m") / 2.0
     pixel_width, pixel_height = logged_smearing_pixel_size(input_workspace)

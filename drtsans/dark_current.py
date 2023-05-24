@@ -41,11 +41,7 @@ def duration(input_workspace, log_key=None):
 
     """
     # Determine which log keys to use when finding out the duration of the run
-    log_keys = (
-        ("duration", "start_time", "proton_charge", "timer")
-        if log_key is None
-        else (log_key,)
-    )
+    log_keys = ("duration", "start_time", "proton_charge", "timer") if log_key is None else (log_key,)
 
     sample_logs = SampleLogs(input_workspace)
 

@@ -23,9 +23,7 @@ def test_create_functions():
     test_functions = _create_fit_function(input_function_str)
 
     # verify
-    assert (
-        len(test_functions) == 3
-    ), f"There shall be 3 functions in the list but not {len(test_functions)}"
+    assert len(test_functions) == 3, f"There shall be 3 functions in the list but not {len(test_functions)}"
     # background
     background = test_functions[0]
     assert background.name == "FlatBackground"

@@ -47,9 +47,7 @@ def test_transmission_correction(workspace_with_instrument):
     dev - Pete Peterson <petersonpf@ornl.gov>
     """
     # Create the workspaces
-    I_sam_wksp = workspace_with_instrument(
-        axis_values=[5.95, 6.075], intensities=I_sam, uncertainties=I_sam_err
-    )
+    I_sam_wksp = workspace_with_instrument(axis_values=[5.95, 6.075], intensities=I_sam, uncertainties=I_sam_err)
 
     transmission_wksp = workspace_with_instrument(
         axis_values=[5.95, 6.075],
@@ -68,14 +66,10 @@ def test_transmission_correction(workspace_with_instrument):
     I_tsam = I_sam / transmission
 
     # Propagate uncertainties to transmission corrected intensity
-    I_tsam_err = I_tsam * np.sqrt(
-        (I_sam_err / I_sam) ** 2 + (transmission_err / transmission) ** 2
-    )
+    I_tsam_err = I_tsam * np.sqrt((I_sam_err / I_sam) ** 2 + (transmission_err / transmission) ** 2)
 
     # Calculate the result with drtsans framework
-    result = apply_transmission_correction(
-        I_sam_wksp, transmission_wksp, theta_dependent=False
-    )
+    result = apply_transmission_correction(I_sam_wksp, transmission_wksp, theta_dependent=False)
 
     # Compare the result from drtsans and the result calcualted by hand
     np.testing.assert_almost_equal(result.extractY().reshape(I_tsam.shape), I_tsam)

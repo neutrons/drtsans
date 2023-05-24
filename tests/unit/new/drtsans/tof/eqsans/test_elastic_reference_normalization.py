@@ -118,9 +118,7 @@ def test_determine_reference_wavelength():
 
     # Verify
     # Must be all at wl = 3.0
-    np.testing.assert_allclose(
-        ref_wl_intensities.ref_wl_vec, np.zeros_like(q_vec) + 3.0
-    )
+    np.testing.assert_allclose(ref_wl_intensities.ref_wl_vec, np.zeros_like(q_vec) + 3.0)
     np.testing.assert_allclose(
         ref_wl_intensities.intensity_vec[6:11],
         np.array([28.727, 18.262, 12.076, 8.264, 5.827]),
@@ -143,16 +141,12 @@ def test_determine_q_range():
     # Create test data set and manually set the range of valid wavelength for each Q
     num_wl = 10
     num_q = 100
-    vec_intensity, vec_error, vec_q, vec_wl = create_configurable_testing_iq1d(
-        num_q, num_wl
-    )
+    vec_intensity, vec_error, vec_q, vec_wl = create_configurable_testing_iq1d(num_q, num_wl)
     # set wl index = 1 with min q = 300, max q = 70000
     vec_intensity[num_q : num_q + 2] = np.nan
     vec_intensity[num_q * 2 - 3 : num_q * 2] = np.nan
     # create the IQmod
-    test_i_q1d = IQmod(
-        intensity=vec_intensity, error=vec_error, mod_q=vec_q, wavelength=vec_wl
-    )
+    test_i_q1d = IQmod(intensity=vec_intensity, error=vec_error, mod_q=vec_q, wavelength=vec_wl)
 
     min_q, max_q = determine_common_mod_q_range(test_i_q1d)
 
@@ -177,9 +171,7 @@ def test_determine_reference_wavelength_q1d():
     # Create test data set and manually set the range of valid wavelength for each Q
     num_wl = 10
     num_q = 100
-    vec_intensity, vec_error, vec_q, vec_wl = create_configurable_testing_iq1d(
-        num_q, num_wl
-    )
+    vec_intensity, vec_error, vec_q, vec_wl = create_configurable_testing_iq1d(num_q, num_wl)
     # set minimum wavelength range: first 3 from wl_i, such as (wl_1, wl_2, wl_3)
     # q1, q2, q3
     vec_intensity[0:3] = np.nan
@@ -187,9 +179,7 @@ def test_determine_reference_wavelength_q1d():
     vec_intensity[num_q * 2 : num_q * 2 + 1] = np.nan
 
     # create the IQmod
-    test_i_q1d = IQmod(
-        intensity=vec_intensity, error=vec_error, mod_q=vec_q, wavelength=vec_wl
-    )
+    test_i_q1d = IQmod(intensity=vec_intensity, error=vec_error, mod_q=vec_q, wavelength=vec_wl)
 
     # Call method to calculate reference
     test_ref_lambda_vec = prototype_determine_reference_wavelength_q1d(test_i_q1d)
@@ -213,18 +203,14 @@ def test_calculate_scale_factor():
     # Get testing data and gold data
     test_i_of_q, gold_k_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
     # Reshape
-    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(
-        test_i_of_q
-    )
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(test_i_of_q)
 
     # Calculate Qmin and Qmax
     q_min, q_max = determine_common_mod_q_range(test_i_of_q)
     qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
 
     # Calculate reference
-    ref_wl_ie = determine_reference_wavelength_q1d_mesh(
-        wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index
-    )
+    ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index)
 
     # Calculate scale factor
     (
@@ -251,15 +237,11 @@ def test_workflow_q1d():
     test_i_of_q, gold_k_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
 
     # Normalize
-    normalized_iq1d, k_vec, delta_k_vec = normalize_by_elastic_reference(
-        test_i_of_q, ref_i_of_q=test_i_of_q
-    )
+    normalized_iq1d, k_vec, delta_k_vec = normalize_by_elastic_reference(test_i_of_q, ref_i_of_q=test_i_of_q)
 
     # Verify
     np.testing.assert_allclose(normalized_iq1d.mod_q, test_i_of_q.mod_q, rtol=1e-6)
-    np.testing.assert_allclose(
-        normalized_iq1d.wavelength, test_i_of_q.wavelength, rtol=1e-6
-    )
+    np.testing.assert_allclose(normalized_iq1d.wavelength, test_i_of_q.wavelength, rtol=1e-6)
     np.testing.assert_allclose(normalized_iq1d.intensity, gold_intensity_vec, 1e-3)
     np.testing.assert_allclose(normalized_iq1d.error, gold_error_vec, 1e-3)
 
@@ -269,17 +251,13 @@ def test_normalize_i_of_q1d():
     # Get testing data and gold data
     test_i_of_q, gold_k_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
     # Reshape
-    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(
-        test_i_of_q
-    )
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(test_i_of_q)
 
     # Calculate Qmin and Qmax
     qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
 
     # Calculate reference
-    ref_wl_ie = determine_reference_wavelength_q1d_mesh(
-        wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index
-    )
+    ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index)
 
     # Calculate scale factor
     mk_vec, mk_error_vec, mp_vec, ms_vec = calculate_scale_factor_mesh_grid(
@@ -302,12 +280,8 @@ def test_normalize_i_of_q1d():
     normalized_intensity = normalized[0].flatten()
     normalized_error = normalized[1].flatten()
 
-    np.testing.assert_allclose(
-        normalized_intensity, gold_intensity_vec, rtol=8e-4, equal_nan=True
-    )
-    np.testing.assert_allclose(
-        normalized_error, gold_error_vec, rtol=1e-3, equal_nan=True
-    )
+    np.testing.assert_allclose(normalized_intensity, gold_intensity_vec, rtol=8e-4, equal_nan=True)
+    np.testing.assert_allclose(normalized_error, gold_error_vec, rtol=1e-3, equal_nan=True)
 
 
 def test_normalize_i_of_q1d_prototype():
@@ -351,9 +325,7 @@ def test_normalize_i_of_q1d_prototype():
     np.testing.assert_allclose(k_vec, gold_k_vec, atol=1.0e-3)
     assert p_vec[3] == pytest.approx(1266.145, 0.005)
     assert s_vec[3] == pytest.approx(1139.531, 0.005)
-    assert delta_k_vec[3] == pytest.approx(
-        0.2063066, abs=0.00002
-    )  # numerical precision difference
+    assert delta_k_vec[3] == pytest.approx(0.2063066, abs=0.00002)  # numerical precision difference
 
     # Normalize
     # Due to the numerical precision issue when import data from Excel
@@ -374,9 +346,7 @@ def test_normalize_i_of_q1d_prototype():
         test_i_of_q.wavelength.reshape((20, 4)).transpose().flatten(),
     )
     # transpose as above
-    np.testing.assert_allclose(
-        corrected_iqmod.mod_q, test_i_of_q.mod_q.reshape((20, 4)).transpose().flatten()
-    )
+    np.testing.assert_allclose(corrected_iqmod.mod_q, test_i_of_q.mod_q.reshape((20, 4)).transpose().flatten())
 
     np.testing.assert_allclose(
         corrected_iqmod.intensity,
@@ -393,9 +363,7 @@ def test_normalize_i_of_q1d_prototype():
             buf += f"  = {corrected_iqmod.error[i] - gold_errors[i]}"
         print(buf)
 
-    np.testing.assert_allclose(
-        corrected_iqmod.error, gold_errors, equal_nan=True, rtol=8e-4
-    )
+    np.testing.assert_allclose(corrected_iqmod.error, gold_errors, equal_nan=True, rtol=8e-4)
 
 
 def create_configurable_testing_iq1d(num_q, num_wl):
@@ -608,14 +576,10 @@ def create_testing_iq1d():
     print(f"lambda: {wavelength_vec.shape}")
 
     # Construct IQmod
-    i_of_q = IQmod(
-        intensity=intensity_vec, error=error_vec, mod_q=vec_q, wavelength=wavelength_vec
-    )
+    i_of_q = IQmod(intensity=intensity_vec, error=error_vec, mod_q=vec_q, wavelength=wavelength_vec)
 
     # Expected K vector
-    expected_k_vec = np.array(
-        [1.0000, 0.9090909090909, 0.833333333333333, 1.11111111111111]
-    )
+    expected_k_vec = np.array([1.0000, 0.9090909090909, 0.833333333333333, 1.11111111111111])
 
     expected_corrected_intensities = np.array(
         [
@@ -870,9 +834,7 @@ def calculate_scale_factor_prototype(i_of_q, q_min, q_max):
 
     # Create a matrix for q, wavelength, intensity and error
     # output I'(Q, lambda) will be a complete new i_of_q instance
-    i_q_wl_matrix = np.array(
-        [i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity, i_of_q.error]
-    )
+    i_q_wl_matrix = np.array([i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity, i_of_q.error])
     i_q_wl_matrix = i_q_wl_matrix.transpose()
     # print(f'Q-WL-I-Sigma matrix shape = {i_q_wl_matrix.shape}')
 
@@ -920,9 +882,7 @@ def calculate_scale_factor_prototype(i_of_q, q_min, q_max):
             # delta I(q, lambda) = delta I^{lambda}(q)
             term0 = i_q_matrix[i_q, 3]
             # I(q, ref_wl(q)) * S(wl) - 2 * I(q, wl) * P(wl) / S(wl)**2
-            term1 = (
-                i_q_ref_wl * s_vec[i_wl] - 2 * i_q_matrix[i_q][2] * p_vec[i_wl]
-            ) / s_vec[i_wl] ** 2
+            term1 = (i_q_ref_wl * s_vec[i_wl] - 2 * i_q_matrix[i_q][2] * p_vec[i_wl]) / s_vec[i_wl] ** 2
             # delta I(q, lambda^ref)
             term2 = err_q_ref_wl
             # I(q, lambda)/S(lambda) = I^{lambda}(q) / S(lambda)
@@ -958,9 +918,7 @@ def prototype_determine_reference_wavelength_q1d(i_of_q):
 
     """
     # Construct nd array for Q, I and wavelength
-    combo_matrix = np.array(
-        [i_of_q.mod_q, i_of_q.intensity, i_of_q.wavelength, i_of_q.error]
-    )
+    combo_matrix = np.array([i_of_q.mod_q, i_of_q.intensity, i_of_q.wavelength, i_of_q.error])
     combo_matrix = combo_matrix.transpose()  # good for filter and slicing
     # Create a list of unique Q
     unique_q_vec = np.unique(i_of_q.mod_q)
@@ -974,9 +932,7 @@ def prototype_determine_reference_wavelength_q1d(i_of_q):
     for index, q_value in enumerate(unique_q_vec):
         # filter out the items with desired Q value
         filtered_combo_matrix = combo_matrix[combo_matrix[:, 0] == q_value]
-        filtered_combo_matrix = filtered_combo_matrix[
-            np.isfinite(filtered_combo_matrix[:, 1])
-        ]
+        filtered_combo_matrix = filtered_combo_matrix[np.isfinite(filtered_combo_matrix[:, 1])]
         # find minimum wavelength and add to output array
         min_index = np.argmin(filtered_combo_matrix[:, 2])
         # set values
@@ -988,9 +944,7 @@ def prototype_determine_reference_wavelength_q1d(i_of_q):
     return ref_wavelength_vec
 
 
-def prototype_normalize_q1d(
-    i_of_q, k_vec, ref_wl_vec, p_vec, s_vec, unique_wavelength_vec, q_min, q_max
-):
+def prototype_normalize_q1d(i_of_q, k_vec, ref_wl_vec, p_vec, s_vec, unique_wavelength_vec, q_min, q_max):
     """Prototype of normalizing I(Q)
 
     Parameters
@@ -1024,9 +978,7 @@ def prototype_normalize_q1d(
     qmax_index = np.argmin(np.abs(unique_q_vec - q_max))
     print(f"qmin = {q_min} @ {qmin_index}; qmax = {q_max} @ {qmax_index}")
 
-    i_q_wl_matrix = np.array(
-        [i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity, i_of_q.error, delta_q_vec]
-    )
+    i_q_wl_matrix = np.array([i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity, i_of_q.error, delta_q_vec])
     i_q_wl_matrix = i_q_wl_matrix.transpose()
 
     # Init arrays to start
@@ -1053,9 +1005,7 @@ def prototype_normalize_q1d(
         corrected_error_vec = np.zeros_like(corrected_intensity_vec)
         for i_q in range(i_q_matrix.shape[0]):
             #
-            print(
-                f"delta I({i_q_matrix[i_q, 0]}, {lambda_i}), I = {i_q_matrix[i_q, 2]}"
-            )
+            print(f"delta I({i_q_matrix[i_q, 0]}, {lambda_i}), I = {i_q_matrix[i_q, 2]}")
 
             # directly pass the nan values
             if np.isnan(i_q_matrix[i_q, 2]):
@@ -1085,7 +1035,6 @@ def prototype_normalize_q1d(
             t2_sum = t3_sum = 0.0
             print("Q     Y     T2     T3")
             for j_q in range(qmin_index, qmax_index + 1):
-
                 # calculate Y
                 # Y(q, q', wl) = I(q, wl) * I (q', ref_wl) * S(wl) - I(q, wl) * 2 * I(q', wl) * P(wl)
                 y_value = (
@@ -1097,10 +1046,7 @@ def prototype_normalize_q1d(
                     # inc = delta I_j(wl_i) * (P^2 * S^2 + 2 * P * S * Y_{q, q}) / S4
                     t1_inc = (
                         i_q_matrix[j_q, 3] ** 2
-                        * (
-                            p_vec[i_wl] ** 2 * s_vec[i_wl] ** 2
-                            + 2 * p_vec[i_wl] * s_vec[i_wl] * y_value
-                        )
+                        * (p_vec[i_wl] ** 2 * s_vec[i_wl] ** 2 + 2 * p_vec[i_wl] * s_vec[i_wl] * y_value)
                         / s_vec[i_wl] ** 4
                     )
                     t1_sum += t1_inc
@@ -1114,12 +1060,7 @@ def prototype_normalize_q1d(
                 # calculate t3_i
                 # t3: increment = [delta I(q_j, ref_wl[q_j]]^2 * [I(q_j, wl) * I(q, wl)]^2 / S(wl)^2
                 # reference: i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 2
-                t3_inc = (
-                    ref_wl_vec[j_q, 3] ** 2
-                    * i_q_matrix[j_q, 2] ** 2
-                    * i_q_matrix[i_q, 2] ** 2
-                    / s_vec[i_wl] ** 2
-                )
+                t3_inc = ref_wl_vec[j_q, 3] ** 2 * i_q_matrix[j_q, 2] ** 2 * i_q_matrix[i_q, 2] ** 2 / s_vec[i_wl] ** 2
                 t3_sum += t3_inc
 
                 # DEBUG OUTPUT 1: print(f'{i_q_matrix[i_q, 0]}    {y_value}    {t2_inc}    {t3_inc}')
@@ -1140,9 +1081,7 @@ def prototype_normalize_q1d(
     # construct a new instance of I(Q)
     if delta_q_none:
         new_q_error = None
-    corrected_i_of_q = IQmod(
-        new_intensity, np.sqrt(new_error_sq), new_mod_q, new_q_error, new_wavelength
-    )
+    corrected_i_of_q = IQmod(new_intensity, np.sqrt(new_error_sq), new_mod_q, new_q_error, new_wavelength)
 
     return corrected_i_of_q
 

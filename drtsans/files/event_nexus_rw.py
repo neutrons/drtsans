@@ -29,14 +29,10 @@ __all__ = [
 
 # Specify parameter
 # Histogram converted from TOF events
-TofHistogram = namedtuple(
-    "TofHistogram", ["pixel_ids", "counts", "pulse_duration", "tof_min", "tof_max"]
-)
+TofHistogram = namedtuple("TofHistogram", ["pixel_ids", "counts", "pulse_duration", "tof_min", "tof_max"])
 
 # TOF events generated from histogram
-NexusEvents = namedtuple(
-    "NexusEvents", ["event_id", "event_index", "event_time_offset", "event_time_zero"]
-)
+NexusEvents = namedtuple("NexusEvents", ["event_id", "event_index", "event_time_offset", "event_time_zero"])
 
 # Run time in ISO time string
 RunTime = namedtuple("RunTime", ["start", "stop"])
@@ -293,9 +289,7 @@ class EventNeXusWriter(object):
         nexus_events = generate_events_from_histogram(bank_histogram, 10.0)
 
         # Create bank node for bank
-        bank_node = BankNode(
-            name=f"/entry/bank{bank_id}_events", bank_name=f"bank{bank_id}"
-        )
+        bank_node = BankNode(name=f"/entry/bank{bank_id}_events", bank_name=f"bank{bank_id}")
         bank_node.set_events(
             nexus_events.event_id,
             nexus_events.event_index,
@@ -327,9 +321,7 @@ class EventNeXusWriter(object):
 
         tof_min = 0.0
         tof_max = 10000.0
-        monitor_events = generate_monitor_events_from_count(
-            monitor_counts, event_time_zeros, tof_min, tof_max
-        )
+        monitor_events = generate_monitor_events_from_count(monitor_counts, event_time_zeros, tof_min, tof_max)
 
         target_monitor_node.set_monitor_events(
             event_index_array=monitor_events.event_index,
@@ -391,16 +383,9 @@ class EventNeXusWriter(object):
         # set Bank 1 - 48
         max_pulse_time_array = None
         for bank_id in range(1, self._num_banks + 1):
-            bank_node_i = self._set_single_bank_node(
-                bank_id=bank_id, bank_histogram=self._banks_dict[bank_id]
-            )
-            event_time_zeros = bank_node_i.get_child(
-                "event_time_zero", is_short_name=True
-            ).value
-            if (
-                max_pulse_time_array is None
-                or event_time_zeros.shape[0] > max_pulse_time_array.shape[0]
-            ):
+            bank_node_i = self._set_single_bank_node(bank_id=bank_id, bank_histogram=self._banks_dict[bank_id])
+            event_time_zeros = bank_node_i.get_child("event_time_zero", is_short_name=True).value
+            if max_pulse_time_array is None or event_time_zeros.shape[0] > max_pulse_time_array.shape[0]:
                 max_pulse_time_array = event_time_zeros
 
         # Set monitor node
@@ -433,9 +418,7 @@ def init_event_nexus():
     return nexus_root_node
 
 
-def generate_monitor_events_from_count(
-    monitor_counts, event_time_zero_array, min_tof, max_tof
-):
+def generate_monitor_events_from_count(monitor_counts, event_time_zero_array, min_tof, max_tof):
     """Generate monitor events from a single monitor count
 
     Parameters
@@ -486,17 +469,13 @@ def generate_monitor_events_from_count(
         base_tof_array_p1 = np.arange(num_events_per_pulse + 1) * resolution + min_tof
         event_time_offset_plus1 = np.tile(base_tof_array_p1, num_plus_one)
         # create event index array: incrementing by (num_event_per_pulse + 1)
-        event_index_array_plus1 = np.arange(num_plus_one).astype("uint64") * (
-            num_events_per_pulse + 1
-        )
+        event_index_array_plus1 = np.arange(num_plus_one).astype("uint64") * (num_events_per_pulse + 1)
         event_shift = event_index_array[-1] + num_events_per_pulse
         # shift
         event_index_array_plus1 += int(event_shift)
 
         # concatenate
-        event_time_offset_array = np.concatenate(
-            (event_time_offset_array, event_time_offset_plus1)
-        )
+        event_time_offset_array = np.concatenate((event_time_offset_array, event_time_offset_plus1))
         event_index_array = np.concatenate((event_index_array, event_index_array_plus1))
 
     # construct output
@@ -629,20 +608,13 @@ def generate_events_from_histogram(bank_histogram, tof_resolution=0.1, verbose=F
     tof_max = 20000
     tof_min = 10000
     num_events_per_pulse = int((tof_max - tof_min) / tof_resolution)
-    num_pulses = (
-        total_counts // num_events_per_pulse
-    )  # This value is just a whole number. It could +1
+    num_pulses = total_counts // num_events_per_pulse  # This value is just a whole number. It could +1
     if verbose:
-        print(
-            f"Original TOF range = {bank_histogram.tof_min}, {bank_histogram.tof_max}"
-        )
+        print(f"Original TOF range = {bank_histogram.tof_min}, {bank_histogram.tof_max}")
         print(f"event/pulse = {num_events_per_pulse}; number pulses = {num_pulses}")
 
     # event_time_offset, event_index
-    single_pulse_tof = (
-        np.arange(num_events_per_pulse, dtype="float32") * tof_resolution
-        + bank_histogram.tof_min
-    )
+    single_pulse_tof = np.arange(num_events_per_pulse, dtype="float32") * tof_resolution + bank_histogram.tof_min
     # if verbose:
     #     print(f'single pulse TOF: {single_pulse_tof}')
     event_time_offset_array = np.tile(single_pulse_tof, num_pulses)
@@ -665,9 +637,7 @@ def generate_events_from_histogram(bank_histogram, tof_resolution=0.1, verbose=F
             event_index_array = np.concatenate(
                 (
                     event_index_array,
-                    np.array(
-                        [event_index_array[-1] + num_events_per_pulse], dtype="uint64"
-                    ),
+                    np.array([event_index_array[-1] + num_events_per_pulse], dtype="uint64"),
                 )
             )
         else:
@@ -680,9 +650,7 @@ def generate_events_from_histogram(bank_histogram, tof_resolution=0.1, verbose=F
         # add last pulse time (event time zeor)
         prev_last_pulse_time = event_time_zero_array[-1]
         last_pulse_time = prev_last_pulse_time + bank_histogram.pulse_duration
-        event_time_zero_array = np.concatenate(
-            (event_time_zero_array, np.array([last_pulse_time]))
-        )
+        event_time_zero_array = np.concatenate((event_time_zero_array, np.array([last_pulse_time])))
 
     # construct output
     faked_nexus_events = NexusEvents(

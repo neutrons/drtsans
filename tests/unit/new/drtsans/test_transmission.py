@@ -273,12 +273,8 @@ def test_transmission(generic_workspace):
     assert result.getNumberHistograms(), 1
     assert result.extractY().shape == (1, 1)
     # taken from the spreadsheet calculation
-    assert result.extractY()[0][0] == pytest.approx(
-        0.555555556
-    )  # expected transmission value
-    assert result.extractE()[0][0] == pytest.approx(
-        0.005683898
-    )  # expected transmission uncertainty
+    assert result.extractY()[0][0] == pytest.approx(0.555555556)  # expected transmission value
+    assert result.extractE()[0][0] == pytest.approx(0.005683898)  # expected transmission uncertainty
 
 
 if __name__ == "__main__":

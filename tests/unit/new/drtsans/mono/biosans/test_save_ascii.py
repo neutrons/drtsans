@@ -17,7 +17,6 @@ def numbers_in_line(line, numbers):
 
 
 def test_save_ascii(biosans_sensitivity_dataset):
-
     ws = LoadHFIRSANS(
         Filename=biosans_sensitivity_dataset["flood"],
         OutputWorkspace=unique_workspace_name(),

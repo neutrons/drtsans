@@ -37,9 +37,7 @@ def assert_IQazi_allclose(data2d_exp, data2d_obs, err_msg=""):
         if exp is None or obs is None:
             assert exp == obs, "{} are not both None".format(key)
         else:
-            np.testing.assert_allclose(
-                exp, obs, err_msg="{}{} doesn't match".format(err_msg, key)
-            )
+            np.testing.assert_allclose(exp, obs, err_msg="{}{} doesn't match".format(err_msg, key))
 
 
 @pytest.mark.parametrize("with_resolution", [True, False])

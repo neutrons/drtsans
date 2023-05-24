@@ -41,9 +41,7 @@ def test_1d_bin_log_wedge_no_wt():
     max_wedge_angle = 45
 
     # Get data
-    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(
-        2, True
-    )
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
     log_bins = determine_1d_log_bins(q_min, q_max, True, step_per_decade)
 
     # Test high level method
@@ -62,18 +60,14 @@ def test_1d_bin_log_wedge_no_wt():
     # Convert from Q2D to Q1d because the test case expects to I(Q)
     test_i_q1d = q_azimuthal_to_q_modulo(wedge_i_of_q)
 
-    binned_iq = bin_intensity_into_q1d(
-        test_i_q1d, log_bins, bin_method=BinningMethod.NOWEIGHT
-    )
+    binned_iq = bin_intensity_into_q1d(test_i_q1d, log_bins, bin_method=BinningMethod.NOWEIGHT)
 
     # Verification
     # bin index = 7, bin center = 0.005586, bin edges = (0.00631, 0.007033)
     assert binned_iq.intensity[7] == pytest.approx(70.0, abs=1e-10)
     assert binned_iq.error[7] == pytest.approx(3.741657387, abs=1e-5)
     assert binned_iq.delta_mod_q[7] == pytest.approx(0.011460, abs=1e-4), (
-        "Q resolution (Q[7] = {}) is "
-        "incorrect comparing to {}."
-        "".format(binned_iq.delta_mod_q[7], 0.0115)
+        "Q resolution (Q[7] = {}) is " "incorrect comparing to {}." "".format(binned_iq.delta_mod_q[7], 0.0115)
     )
 
 

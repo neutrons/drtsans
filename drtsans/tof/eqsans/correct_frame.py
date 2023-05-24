@@ -79,11 +79,7 @@ def transmitted_bands(input_workspace):
     # by the chopper system
     lead_band = ch.transmission_bands(pulsed=True)[0]
     # Wavelength from the previous, skipped pulse.
-    skip_band = (
-        ch.transmission_bands(delay=pulse_period, pulsed=True)[0]
-        if ch.frame_mode == FrameMode.skip
-        else None
-    )
+    skip_band = ch.transmission_bands(delay=pulse_period, pulsed=True)[0] if ch.frame_mode == FrameMode.skip else None
     return dict(lead=lead_band, skip=skip_band)
 
 
@@ -195,9 +191,7 @@ def transmitted_bands_clipped(
             bands = clipped_bands_from_logs(input_workspace)
             return dict(lead=bands.lead, skip=bands.skip)
         except AttributeError:
-            logger.warning(
-                "Clipped bands not present in the logs. Calculating using the chopper settings."
-            )
+            logger.warning("Clipped bands not present in the logs. Calculating using the chopper settings.")
 
     # If necessary, retrieve the clips from the logs
     sample_logs = SampleLogs(input_workspace)
@@ -211,9 +205,7 @@ def transmitted_bands_clipped(
         source_detector_dist = source_detector_distance(input_workspace, unit="m")
 
     ch = EQSANSDiskChopperSet(input_workspace)  # object representing the four choppers
-    lwc = wlg.from_tof(
-        low_tof_clip, source_detector_dist, ch.pulse_width
-    )  # low wavel. clip
+    lwc = wlg.from_tof(low_tof_clip, source_detector_dist, ch.pulse_width)  # low wavel. clip
     hwc = wlg.from_tof(high_tof_clip, source_detector_dist)  # high wavelength clip
     bands = transmitted_bands(input_workspace)
     if ch.frame_mode == FrameMode.not_skip:
@@ -307,9 +299,7 @@ def metadata_bands(input_workspace):
     """
     sample_logs = SampleLogs(input_workspace)
     try:
-        lead = wlg.Wband(
-            sample_logs.wavelength_lead_min.value, sample_logs.wavelength_lead_max.value
-        )
+        lead = wlg.Wband(sample_logs.wavelength_lead_min.value, sample_logs.wavelength_lead_max.value)
     except AttributeError as e:
         raise RuntimeError("Band structure not found in the logs") from e
     skip = None
@@ -320,16 +310,12 @@ def metadata_bands(input_workspace):
                 sample_logs.wavelength_skip_max.value,
             )
         except AttributeError as e:
-            raise RuntimeError(
-                "Bands from the skipped pulse missing in the logs"
-            ) from e
+            raise RuntimeError("Bands from the skipped pulse missing in the logs") from e
 
     return dict(lead=lead, skip=skip)
 
 
-def correct_tof_frame(
-    input_workspace, source_to_component_distance, path_to_pixel=True
-):
+def correct_tof_frame(input_workspace, source_to_component_distance, path_to_pixel=True):
     r"""
     Assign the correct TOF to each event.
 
@@ -377,9 +363,7 @@ def correct_tof_frame(
 
 
 def correct_detector_frame(ws, path_to_pixel=True):
-    correct_tof_frame(
-        ws, source_detector_distance(ws, unit="m"), path_to_pixel=path_to_pixel
-    )
+    correct_tof_frame(ws, source_detector_distance(ws, unit="m"), path_to_pixel=path_to_pixel)
 
 
 def correct_monitor_frame(input_workspace):
@@ -542,15 +526,11 @@ def band_gap_indexes(input_workspace, bands):
     if bands.skip is None:
         return list()
     else:
-        return (
-            np.where((ws.dataX(0) > bands.lead.max) & (ws.dataX(0) < bands.skip.min))[0]
-        ).tolist()
+        return (np.where((ws.dataX(0) > bands.lead.max) & (ws.dataX(0) < bands.skip.min))[0]).tolist()
 
 
 # flake8: noqa: C901
-def convert_to_wavelength(
-    input_workspace, bands=None, bin_width=0.1, events=True, output_workspace=None
-):
+def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=True, output_workspace=None):
     r"""
     Convert a time-of-flight events workspace to a wavelength workspace
 
@@ -612,11 +592,7 @@ def convert_to_wavelength(
         if w_max is not None:
             kwargs["XMax"] = w_max
         if kwargs:
-            CropWorkspace(
-                InputWorkspace=output_workspace,
-                OutputWorkspace=output_workspace,
-                **kwargs
-            )
+            CropWorkspace(InputWorkspace=output_workspace, OutputWorkspace=output_workspace, **kwargs)
 
     # Discard neutrons in between bands.lead.max and bands.skip.min
     if is_frame_skipping:
@@ -697,9 +673,7 @@ def transform_to_wavelength(
     if bands is None:
         if low_tof_clip > 0.0 or high_tof_clip > 0.0:
             sdd = source_detector_distance(input_workspace, unit="m")
-            bands = transmitted_bands_clipped(
-                input_workspace, sdd, low_tof_clip, high_tof_clip
-            )
+            bands = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip, high_tof_clip)
         else:
             bands = transmitted_bands(input_workspace)
 
@@ -712,8 +686,6 @@ def transform_to_wavelength(
         output_workspace=output_workspace,
     )
     log_band_structure(output_workspace, bands)
-    w = log_tof_structure(
-        output_workspace, low_tof_clip, high_tof_clip, interior_clip=interior_clip
-    )
+    w = log_tof_structure(output_workspace, low_tof_clip, high_tof_clip, interior_clip=interior_clip)
 
     return w, bands

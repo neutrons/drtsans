@@ -32,9 +32,7 @@ def test_concatenate():
         delta_qx=[13, 14, 15],
         delta_qy=[10, 11, 12],
     )
-    iq2 = IQazimuthal(
-        [4, 5, 6], [4, 5, 6], [7, 8, 9], [13, 14, 15], wavelength=[10, 11, 12]
-    )
+    iq2 = IQazimuthal([4, 5, 6], [4, 5, 6], [7, 8, 9], [13, 14, 15], wavelength=[10, 11, 12])
     iq3 = IQazimuthal([7, 8, 9], [4, 5, 6], [7, 8, 9], [16, 17, 18])
     iq = concatenate((iq1, iq2, iq3))
     assert iq.intensity == pytest.approx([1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -305,9 +303,7 @@ class TestIQazimuthal:
     def test_1d_creation(self):
         # these are expected to work
         IQazimuthal([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12])
-        IQazimuthal(
-            [1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15], [16, 17, 18]
-        )
+        IQazimuthal([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15], [16, 17, 18])
         IQazimuthal(
             [1, 2, 3],
             [4, 5, 6],
@@ -405,9 +401,7 @@ class TestIQazimuthal:
 
     def test_2d_creation(self):
         # these are expected to work
-        IQazimuthal(
-            [[1, 2], [3, 4]], [[4, 5], [6, 7]], [[7, 8], [9, 10]], [[10, 11], [12, 13]]
-        )
+        IQazimuthal([[1, 2], [3, 4]], [[4, 5], [6, 7]], [[7, 8], [9, 10]], [[10, 11], [12, 13]])
         IQazimuthal(
             [[1, 2], [3, 4]],
             [[4, 5], [6, 7]],
@@ -503,14 +497,10 @@ class TestIQazimuthal:
             IQazimuthal([[1, 2], [3, 4]], [[4, 5], [6, 7]], [[7, 8], [9, 10]])
 
         # qx and qy are linear
-        IQazimuthal(
-            [[1, 2, 3], [3, 4, 5]], [[4, 5, 6], [6, 7, 8]], [7, 8], [10, 11, 12]
-        )
+        IQazimuthal([[1, 2, 3], [3, 4, 5]], [[4, 5, 6], [6, 7, 8]], [7, 8], [10, 11, 12])
         # qx and qy are linear and not right dimension
         with pytest.raises(TypeError):
-            IQazimuthal(
-                [[1, 2, 3], [3, 4, 5]], [[4, 5, 6], [6, 7, 8]], [7, 8, 9], [10, 11]
-            )
+            IQazimuthal([[1, 2, 3], [3, 4, 5]], [[4, 5, 6], [6, 7, 8]], [7, 8, 9], [10, 11])
 
     def test_concatenate(self):
         iq1 = IQazimuthal(
@@ -521,11 +511,7 @@ class TestIQazimuthal:
             delta_qx=[13, 14, 15],
             delta_qy=[10, 11, 12],
         )
-        iq2 = iq1.concatenate(
-            IQazimuthal(
-                [4, 5, 6], [4, 5, 6], [7, 8, 9], [13, 14, 15], wavelength=[10, 11, 12]
-            )
-        )
+        iq2 = iq1.concatenate(IQazimuthal([4, 5, 6], [4, 5, 6], [7, 8, 9], [13, 14, 15], wavelength=[10, 11, 12]))
         assert iq2.intensity == pytest.approx([1, 2, 3, 4, 5, 6])
         assert iq2.qy == pytest.approx([10, 11, 12, 13, 14, 15])
         assert iq2.delta_qx is None

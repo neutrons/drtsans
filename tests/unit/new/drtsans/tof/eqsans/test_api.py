@@ -47,10 +47,7 @@ def test_load_all_files_simple():
 
     assert history.size() == 11
     assert history.getAlgorithm(0).name() == "LoadEventNexus"
-    assert (
-        history.getAlgorithm(0).getProperty("Filename").value
-        == "/SNS/EQSANS/IPTS-22747/nexus/EQSANS_105428.nxs.h5"
-    )
+    assert history.getAlgorithm(0).getProperty("Filename").value == "/SNS/EQSANS/IPTS-22747/nexus/EQSANS_105428.nxs.h5"
     assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"
     assert history.getAlgorithm(3).name() == "ChangeBinOffset"
     assert history.getAlgorithm(4).name() == "SetInstrumentParameter"
@@ -93,9 +90,7 @@ def test_prepare_data_workspaces_simple(generic_workspace):
     assert ws.name() == "ws_raw_histo"
     assert output.name() == "ws_processed_histo"
 
-    output2 = prepare_data_workspaces(
-        ws_mon_pair(data=ws, monitor=None), output_workspace="foobar"
-    )
+    output2 = prepare_data_workspaces(ws_mon_pair(data=ws, monitor=None), output_workspace="foobar")
     # the ws name should change to what is set
     assert ws.name() == "ws_raw_histo"
     assert output2.name() == "foobar"
@@ -139,25 +134,19 @@ def test_prepare_data_workspaces_dark_current():
     assert str(excinfo.value) == '"tof_frame_width_clipped" not found in sample logs'
 
 
-@pytest.mark.parametrize(
-    "generic_workspace", [{"intensities": [[1, 2], [3, 4]]}], indirect=True
-)
+@pytest.mark.parametrize("generic_workspace", [{"intensities": [[1, 2], [3, 4]]}], indirect=True)
 def test_prepare_data_workspaces_flux_method(generic_workspace):
     ws = generic_workspace  # friendly name
     SampleLogs(ws).insert("duration", 2.0)
     SampleLogs(ws).insert("monitor", 2e9)
 
     # No normalization
-    output = prepare_data_workspaces(
-        ws_mon_pair(data=ws, monitor=None), flux_method=None, solid_angle=False
-    )
+    output = prepare_data_workspaces(ws_mon_pair(data=ws, monitor=None), flux_method=None, solid_angle=False)
     assert output.getHistory().size() == 3
     assert_almost_equal(output.extractY(), [[1], [2], [3], [4]])
 
     # Normalize by time
-    output = prepare_data_workspaces(
-        ws_mon_pair(data=ws, monitor=None), flux_method="time", solid_angle=False
-    )
+    output = prepare_data_workspaces(ws_mon_pair(data=ws, monitor=None), flux_method="time", solid_angle=False)
     assert output.getHistory().size() == 4
     assert_almost_equal(output.extractY(), [[0.5], [1], [1.5], [2]])
 
@@ -168,9 +157,7 @@ def test_prepare_data_workspaces_apply_mask(generic_workspace):
     ws = generic_workspace
 
     # mask_ws
-    output = prepare_data_workspaces(
-        ws_mon_pair(data=ws, monitor=None), mask_ws=[0, 2], solid_angle=False
-    )
+    output = prepare_data_workspaces(ws_mon_pair(data=ws, monitor=None), mask_ws=[0, 2], solid_angle=False)
     history = output.getHistory()
     assert history.size() == 4
     alg3 = history.getAlgorithm(3)
@@ -178,22 +165,16 @@ def test_prepare_data_workspaces_apply_mask(generic_workspace):
     assert alg3.getPropertyValue("DetectorList") == "0,2"
 
 
-@pytest.mark.parametrize(
-    "generic_workspace", [{"intensities": [[1, 1], [1, 1]]}], indirect=True
-)
+@pytest.mark.parametrize("generic_workspace", [{"intensities": [[1, 1], [1, 1]]}], indirect=True)
 def test_prepare_data_workspaces_solid_angle(generic_workspace):
     ws = generic_workspace  # friendly name
 
     # No normalization
-    output = prepare_data_workspaces(
-        ws_mon_pair(data=ws, monitor=None), solid_angle=True
-    )
+    output = prepare_data_workspaces(ws_mon_pair(data=ws, monitor=None), solid_angle=True)
     # CreateWorkspace, LoadInstrument, CloneWorkspace, CloneWorkspace,
     # ClearMaskFlag, SolidAngle, Divide, ReplaceSpecialValues
     assert output.getHistory().size() == 8
-    assert_almost_equal(
-        output.extractY(), [[25.6259267], [25.6259267], [25.6259267], [25.6259267]]
-    )
+    assert_almost_equal(output.extractY(), [[25.6259267], [25.6259267], [25.6259267], [25.6259267]])
 
 
 def test_prepare_data_workspaces_sensitivity():
@@ -231,9 +212,7 @@ def test_prepare_data_workspaces_sensitivity():
     assert_almost_equal(output.extractE(), [[0.6123724], [1.0]])
 
 
-@pytest.mark.parametrize(
-    "generic_workspace", [{"intensities": [[1, 2], [3, 4]]}], indirect=True
-)
+@pytest.mark.parametrize("generic_workspace", [{"intensities": [[1, 2], [3, 4]]}], indirect=True)
 def test_process_single_configuration_thickness_absolute_scale(generic_workspace):
     ws = generic_workspace
 

@@ -61,17 +61,13 @@ def load_events_monitor(run, data_dir=None, output_workspace=None):
             output_workspace = "EQSANS_{}{}".format(run, suffix)
 
     with amend_config({"default.instrument": "EQSANS"}, data_dir=data_dir):
-        LoadNexusMonitors(
-            Filename=str(run), LoadOnly="Events", OutputWorkspace=output_workspace
-        )
+        LoadNexusMonitors(Filename=str(run), LoadOnly="Events", OutputWorkspace=output_workspace)
 
     smd = source_monitor_distance(output_workspace, unit="mm")
     SampleLogs(output_workspace).insert("source-monitor-distance", smd, unit="mm")
 
     # DAS automatically corrects the frame for the monitor only on or after June 1 2019,
-    day_stamp = int(
-        SampleLogs(output_workspace).start_time.value[0:10].replace("-", "")
-    )
+    day_stamp = int(SampleLogs(output_workspace).start_time.value[0:10].replace("-", ""))
     if day_stamp < 20190601:
         correct_monitor_frame(output_workspace)
 
@@ -329,20 +325,12 @@ def load_events_and_histogram(
     else:
         # Load multiple runs
         if keep_events:
-            raise NotImplementedError(
-                "Cannot merge runs together with keep_events=True."
-            )
+            raise NotImplementedError("Cannot merge runs together with keep_events=True.")
 
-        instrument_unique_name = instrument_enum_name(
-            run[0]
-        )  # determine which SANS instrument
+        instrument_unique_name = instrument_enum_name(run[0])  # determine which SANS instrument
 
         # create default name for output workspace, uses all input
-        if (
-            (output_workspace is None)
-            or (not output_workspace)
-            or (output_workspace == "None")
-        ):
+        if (output_workspace is None) or (not output_workspace) or (output_workspace == "None"):
             output_workspace = "{}_{}{}".format(
                 instrument_unique_name,
                 "_".join(str(extract_run_number(r)) for r in run),
@@ -377,9 +365,7 @@ def load_events_and_histogram(
                     method=centering_method,
                     centering_options=centering_options,
                 )
-            center_detector(
-                temp_workspace_name, center_x=center_x, center_y=center_y
-            )  # operates in-place
+            center_detector(temp_workspace_name, center_x=center_x, center_y=center_y)  # operates in-place
             # FIXME 792, whether the 2nd workspace shall use the bands from the first one?
             ws, bands = transform_to_wavelength(
                 temp_workspace_name,
@@ -393,9 +379,7 @@ def load_events_and_histogram(
 
         # Sum temporary loaded monitor workspaces
         if monitors:
-            ws_monitors = sum_data(
-                temp_monitors_workspaces, output_workspace=monitor_workspace
-            )
+            ws_monitors = sum_data(temp_monitors_workspaces, output_workspace=monitor_workspace)
             # After summing data re-calculate initial uncertainties
             ws_monitors = set_init_uncertainties(ws_monitors)
         else:

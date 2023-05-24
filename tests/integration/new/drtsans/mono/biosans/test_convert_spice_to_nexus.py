@@ -7,9 +7,7 @@ from drtsans.mono.biosans.cg3_spice_to_nexus import convert_spice_to_nexus
 from mantid.simpleapi import LoadEventNexus, LoadHFIRSANS, DeleteWorkspace
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/HFIR/HB2B/shared/autoreduce/"), reason="On build server"
-)
+@pytest.mark.skipif(not os.path.exists("/HFIR/HB2B/shared/autoreduce/"), reason="On build server")
 def test_convert_spice(reference_dir, generatecleanfile, clean_workspace):
     """
     Test converting BIOSANS SPICE file to event Nexus
@@ -40,9 +38,7 @@ def test_convert_spice(reference_dir, generatecleanfile, clean_workspace):
         nexus_files.append(fake_nexus)
 
     # Verify result
-    raw_spice = os.path.join(
-        reference_dir.new.biosans, "BioSANS_exp402_scan0006_0001.xml"
-    )
+    raw_spice = os.path.join(reference_dir.new.biosans, "BioSANS_exp402_scan0006_0001.xml")
     verify_result(nexus_files[0], raw_spice, [70911], clean_workspace)
 
 
@@ -60,9 +56,7 @@ def verify_result(test_nexus, raw_spice, masked_pixels, clean_workspace):
     clean_workspace(raw_ws)
 
     # Compare counts
-    assert (
-        test_ws.getNumberHistograms() + 2 == raw_ws.getNumberHistograms()
-    ), "Spectra number unmatched"
+    assert test_ws.getNumberHistograms() + 2 == raw_ws.getNumberHistograms(), "Spectra number unmatched"
 
     # Compare counts
     # NOTE:

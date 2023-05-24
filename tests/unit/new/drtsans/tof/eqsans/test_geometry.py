@@ -25,29 +25,19 @@ from drtsans.samplelogs import SampleLogs
 def test_translate_detector_by_z(serve_events_workspace, reference_dir):
     # Load instrument with main panel at Z=0, then translate according to the logs
     workspace = serve_events_workspace("EQSANS_92353.nxs.h5")
-    assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(
-        0.0, abs=1e-3
-    )  # detector1 at z=0
+    assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(0.0, abs=1e-3)  # detector1 at z=0
     translate_detector_by_z(workspace)
-    assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(
-        4.0, abs=1e-3
-    )  # now at z=4.0
+    assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(4.0, abs=1e-3)  # now at z=4.0
 
     # Load instrument with main panel at Z=0, then apply latest IDF which will move the main panel. Subsequent
     # application of translate_detector_by_z will have no effect
     workspace = serve_events_workspace("EQSANS_92353.nxs.h5")
-    assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(
-        0.0, abs=1e-3
-    )  # detector1 at z=0
+    assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(0.0, abs=1e-3)  # detector1 at z=0
     idf = os.path.join(reference_dir.new.eqsans, "instrument", "EQ-SANS_Definition.xml")
     LoadInstrument(workspace, FileName=idf, RewriteSpectraMap=True)
-    assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(
-        4.0, abs=1e-3
-    )  # now at z=4.0
+    assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(4.0, abs=1e-3)  # now at z=4.0
     translate_detector_by_z(workspace)
-    assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(
-        4.0, abs=1e-3
-    )  # no effect
+    assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(4.0, abs=1e-3)  # no effect
 
 
 def test_sample_aperture_diameter(serve_events_workspace):
@@ -63,9 +53,7 @@ def test_sample_aperture_diameter(serve_events_workspace):
 # slits [(1, 7, 4,), (4, 1, 6), (6, 3, 3)] and for two different run numbers [9999, 10000].
 # Compare the diameter and Aperture-Sample-Distance (asd) from running source_aperture() against the values
 # stored here
-DataSourceAperture = namedtuple(
-    "DataSourceAperture", "run_number vBeamSlit vBeamSlit2 vBeamSlit3 diameter asd"
-)
+DataSourceAperture = namedtuple("DataSourceAperture", "run_number vBeamSlit vBeamSlit2 vBeamSlit3 diameter asd")
 data_source_aperture = [
     DataSourceAperture(9999, 1, 7, 4, 0.005, 4.042),
     DataSourceAperture(10000, 1, 7, 4, 0.005, 4.042),
@@ -77,9 +65,7 @@ data_source_aperture = [
 
 
 @pytest.mark.parametrize("data", data_source_aperture)
-@pytest.mark.parametrize(
-    "generic_workspace", [{"name": "EQ-SANS", "l1": -14.122}], indirect=True
-)
+@pytest.mark.parametrize("generic_workspace", [{"name": "EQ-SANS", "l1": -14.122}], indirect=True)
 def test_source_aperture(generic_workspace, data):
     r"""
     Test function source_aperture for different aperture settings and run numbers.
@@ -89,9 +75,7 @@ def test_source_aperture(generic_workspace, data):
     sample_logs = SampleLogs(workspace)
     sample_logs.insert("run_number", data.run_number)
     for log_key in ["vBeamSlit", "vBeamSlit2", "vBeamSlit3"]:
-        data_index = data._fields.index(
-            log_key
-        )  # which item in object `data` stores info for this particular slit?
+        data_index = data._fields.index(log_key)  # which item in object `data` stores info for this particular slit?
         diameter_index = data[data_index]  # diameter index for the particular slit
         times = [
             0.0,
@@ -113,30 +97,22 @@ def test_source_aperture_diameter(serve_events_workspace):
 
 
 @pytest.mark.parametrize("data", data_source_aperture)
-@pytest.mark.parametrize(
-    "generic_workspace", [{"name": "EQ-SANS", "l1": -14.122}], indirect=True
-)
+@pytest.mark.parametrize("generic_workspace", [{"name": "EQ-SANS", "l1": -14.122}], indirect=True)
 def test_source_aperture_sample_distance(generic_workspace, data):
     workspace = generic_workspace
     sample_logs = SampleLogs(workspace)
     sample_logs.insert("run_number", data.run_number)
     for log_key in ["vBeamSlit", "vBeamSlit2", "vBeamSlit3"]:
-        data_index = data._fields.index(
-            log_key
-        )  # which item in object `data` stores info for this particular slit?
+        data_index = data._fields.index(log_key)  # which item in object `data` stores info for this particular slit?
         diameter_index = data[data_index]  # diameter index for the particular slit
         times = [
             0.0,
             3600,
         ]  # the run started at time 0.0 and ended after one hour, here in seconds
         sample_logs.insert_time_series(log_key, times, [diameter_index, diameter_index])
-    assert source_aperture_sample_distance(workspace, unit="m") == pytest.approx(
-        data.asd, abs=1.0e-05
-    )
+    assert source_aperture_sample_distance(workspace, unit="m") == pytest.approx(data.asd, abs=1.0e-05)
     # Check the distance was inserted in the metadata, in units of mili-meters
-    assert SampleLogs(workspace).source_aperture_sample_distance.value == pytest.approx(
-        1000 * data.asd, abs=1.0e-05
-    )
+    assert SampleLogs(workspace).source_aperture_sample_distance.value == pytest.approx(1000 * data.asd, abs=1.0e-05)
 
 
 def test_source_monitor_distance(serve_events_workspace):

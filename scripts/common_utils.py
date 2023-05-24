@@ -49,9 +49,7 @@ def setup_configuration(json_params, instrument):
 
     # Sensitivity
     if json_params["configuration"]["sensitivityFileName"] is not None:
-        config["sensitivity_file_path"] = json_params["configuration"][
-            "sensitivityFileName"
-        ]
+        config["sensitivity_file_path"] = json_params["configuration"]["sensitivityFileName"]
 
     # Normalization
     config["flux_method"] = json_params["configuration"]["normalization"].lower()
@@ -108,14 +106,10 @@ def get_Iq(
         bin_method = BinningMethod.NOWEIGHT
     if linear_binning:
         linear_bins = determine_1d_linear_bins(q_min, q_max, nbins)
-        iq_output = drtsans.iq.bin_intensity_into_q1d(
-            q_data, linear_bins, bin_method=bin_method
-        )
+        iq_output = drtsans.iq.bin_intensity_into_q1d(q_data, linear_bins, bin_method=bin_method)
     else:
         log_bins = determine_1d_log_bins(q_min, q_max, nbins, even_decade=True)
-        iq_output = drtsans.iq.bin_intensity_into_q1d(
-            q_data, log_bins, bin_method=bin_method
-        )
+        iq_output = drtsans.iq.bin_intensity_into_q1d(q_data, log_bins, bin_method=bin_method)
     filename = os.path.join(output_dir, output_file + label + "_Iq.txt")
     save_ascii_binned_1D(filename, "I(Q)", iq_output)
 
@@ -143,9 +137,7 @@ def get_Iqxqy(q_data, output_dir, output_file, label="", weighting=False, nbins=
     qy_max = np.max(q_data.qy)
     linear_y_bins = determine_1d_linear_bins(qy_min, qy_max, nbins)
 
-    iq_output = drtsans.iq.bin_intensity_into_q2d(
-        q_data, linear_x_bins, linear_y_bins, method=bin_method
-    )
+    iq_output = drtsans.iq.bin_intensity_into_q2d(q_data, linear_x_bins, linear_y_bins, method=bin_method)
 
     filename = os.path.join(output_dir, output_file + label + "_Iqxqy.txt")
     save_ascii_binned_2D(filename, "I(Qx,Qy)", iq_output)

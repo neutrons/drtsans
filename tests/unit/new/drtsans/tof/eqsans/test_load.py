@@ -72,9 +72,7 @@ def test_merge_Data(reference_dir):
     assert sample_logs0.duration.value == pytest.approx(215.531066895, abs=1e-9)
     assert sample_logs1.duration.value == pytest.approx(289.029266357, abs=1e-9)
     assert sample_logs2.duration.value == pytest.approx(72.3323135376, abs=1e-9)
-    assert merged_sample_logs.duration.value == pytest.approx(
-        215.531066895 + 289.029266357 + 72.3323135376, abs=1e-9
-    )
+    assert merged_sample_logs.duration.value == pytest.approx(215.531066895 + 289.029266357 + 72.3323135376, abs=1e-9)
 
     # Check proton charge is correct
     assert sample_logs0.getProtonCharge() == pytest.approx(83.37074628055555, abs=1e-9)
@@ -103,9 +101,7 @@ def test_merge_Data(reference_dir):
 
 
 def test_load_events_and_histogram(reference_dir):
-    ws0 = load_events_and_histogram(
-        "EQSANS_101595.nxs.h5", data_dir=reference_dir.new.eqsans
-    )
+    ws0 = load_events_and_histogram("EQSANS_101595.nxs.h5", data_dir=reference_dir.new.eqsans)
 
     assert ws0.data.getAxis(0).getUnit().caption() == "Wavelength"
     assert ws0.data.name() == "EQSANS_101595"
@@ -128,9 +124,7 @@ def test_load_events_and_histogram(reference_dir):
     assert ws1.monitor is None
 
     sample_logs1 = SampleLogs(ws1.data)
-    assert sample_logs1.duration.value == pytest.approx(
-        215.531066895 + 289.029266357 + 72.3323135376, abs=1e-9
-    )
+    assert sample_logs1.duration.value == pytest.approx(215.531066895 + 289.029266357 + 72.3323135376, abs=1e-9)
     assert sample_logs1.getProtonCharge() == pytest.approx(
         83.37074628055555, +111.1237739861111 + 27.799524525, abs=1e-9
     )
@@ -156,15 +150,9 @@ def test_generic_load_and_split(reference_dir):
     assert filtered_ws.name() == "EQSANS_104088"
     assert filtered_ws_monitors.name() == "EQSANS_104088_monitors"
 
-    assert SampleLogs(filtered_ws.getItem(0)).duration.value == pytest.approx(
-        8.007968453, abs=1e-7
-    )
-    assert SampleLogs(filtered_ws.getItem(1)).duration.value == pytest.approx(
-        277.040577412, abs=1e-7
-    )
-    assert SampleLogs(filtered_ws.getItem(2)).duration.value == pytest.approx(
-        3.997389135, abs=1e-7
-    )
+    assert SampleLogs(filtered_ws.getItem(0)).duration.value == pytest.approx(8.007968453, abs=1e-7)
+    assert SampleLogs(filtered_ws.getItem(1)).duration.value == pytest.approx(277.040577412, abs=1e-7)
+    assert SampleLogs(filtered_ws.getItem(2)).duration.value == pytest.approx(3.997389135, abs=1e-7)
 
     assert filtered_ws.getItem(0).getNumberEvents() == 38038
     assert filtered_ws.getItem(1).getNumberEvents() == 1311447
@@ -217,15 +205,9 @@ def test_load_and_split(reference_dir):
 
     assert filtered_ws.name() == "EQSANS_104088"
 
-    assert SampleLogs(filtered_ws.getItem(0)).duration.value == pytest.approx(
-        8.007968453, abs=1e-7
-    )
-    assert SampleLogs(filtered_ws.getItem(1)).duration.value == pytest.approx(
-        277.040577412, abs=1e-7
-    )
-    assert SampleLogs(filtered_ws.getItem(2)).duration.value == pytest.approx(
-        3.997389135, abs=1e-7
-    )
+    assert SampleLogs(filtered_ws.getItem(0)).duration.value == pytest.approx(8.007968453, abs=1e-7)
+    assert SampleLogs(filtered_ws.getItem(1)).duration.value == pytest.approx(277.040577412, abs=1e-7)
+    assert SampleLogs(filtered_ws.getItem(2)).duration.value == pytest.approx(3.997389135, abs=1e-7)
 
     assert filtered_ws.getItem(0).getAxis(0).getUnit().caption() == "Wavelength"
     assert filtered_ws.getItem(1).getAxis(0).getUnit().caption() == "Wavelength"

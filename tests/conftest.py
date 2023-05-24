@@ -57,9 +57,7 @@ class GetWS(object):
             name = "_{}_{}".format(p, k)  # workspace name. Begins with '_'
             for other_k, other_v in processed.items():
                 if v == other_v:
-                    self._w[k] = mtds.CloneWorkspace(
-                        self._w[other_k], OutputWorkspace=name
-                    )
+                    self._w[k] = mtds.CloneWorkspace(self._w[other_k], OutputWorkspace=name)
             if k not in self._w:
                 loader_algm = mtds.Load
                 if loaders is not None:
@@ -214,9 +212,7 @@ def eqsans_f(reference_dir):
 def eqsans_w(reference_dir, eqsans_f):
     r"""Load EQSANS files into workspaces"""
     with amend_config(data_dir=reference_dir.new.eqsans):
-        return {
-            k: mtds.LoadEventNexus(v, OutputWorkspace=k) for (k, v) in eqsans_f.items()
-        }
+        return {k: mtds.LoadEventNexus(v, OutputWorkspace=k) for (k, v) in eqsans_f.items()}
 
 
 @pytest.fixture(scope="session")
@@ -385,23 +381,15 @@ def porasil_slice1m(reference_dir):
     # Absolute path to benchmark files
     f = dict(
         s=pjoin(reference_dir.new.eqsans, "EQSANS_92164.nxs.h5"),  # sample
-        m=pjoin(
-            reference_dir.new.eqsans, "2017B_mp/beamstop60_mask_4m.nxs"
-        ),  # noqa: E501 mask
+        m=pjoin(reference_dir.new.eqsans, "2017B_mp/beamstop60_mask_4m.nxs"),  # noqa: E501 mask
         dc=pjoin(reference_dir.new.eqsans, "EQSANS_89157.nxs.h5"),  # dark current
         se=pjoin(
             reference_dir.new.eqsans,
             "Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs",
         ),  # noqa: E501
-        dbc=pjoin(
-            reference_dir.new.eqsans, "EQSANS_92160.nxs.h5"
-        ),  # noqa: E501 direct_beam_center
-        dbts=pjoin(
-            reference_dir.new.eqsans, "EQSANS_92161.nxs.h5"
-        ),  # noqa: E501 direct beam transmission sample
-        dbte=pjoin(
-            reference_dir.new.eqsans, "EQSANS_92160.nxs.h5"
-        ),  # noqa: E501 direct beam transmission empty
+        dbc=pjoin(reference_dir.new.eqsans, "EQSANS_92160.nxs.h5"),  # noqa: E501 direct_beam_center
+        dbts=pjoin(reference_dir.new.eqsans, "EQSANS_92161.nxs.h5"),  # noqa: E501 direct beam transmission sample
+        dbte=pjoin(reference_dir.new.eqsans, "EQSANS_92160.nxs.h5"),  # noqa: E501 direct beam transmission empty
         b=pjoin(reference_dir.new.eqsans, "EQSANS_92163.nxs.h5"),  # background
         bdbts=pjoin(
             reference_dir.new.eqsans, "EQSANS_92161.nxs.h5"
@@ -475,8 +463,7 @@ def _getDataDimensions(req_params):
             Ny = int(Ny)
             if intensity.size % (Nx * Ny) != 0:
                 raise RuntimeError(
-                    "Supplied Nx={}, Ny={} not compatible with "
-                    "intensities[{}]".format(Nx, Ny, intensity.shape)
+                    "Supplied Nx={}, Ny={} not compatible with " "intensities[{}]".format(Nx, Ny, intensity.shape)
                 )
             else:
                 return Nx, Ny, int(intensity.size / (Nx * Ny))
@@ -515,6 +502,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
             from top to bottom, and the second index travels across tubes. In pixel-view the first index travels
             across tubes and the second index travels each tube from bottom to top. (default 'pixel').
     """
+
     #################
     # Below comes the functions in charge of creating specific instrument geometries
     #################
@@ -750,17 +738,10 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         )
         assert params["radius"] > [0] * number_pixels
         assert params["height"] > [0] * number_pixels
-        assert (
-            list(list(zip(*params["pixel_centers"]))[-1]) >= [0] * number_pixels
-        )  # zcenter has to be positive
-        pixel_blocks = [
-            pixel_block(i, params["radius"][i], params["height"][i])
-            for i in range(number_pixels)
-        ]
+        assert list(list(zip(*params["pixel_centers"]))[-1]) >= [0] * number_pixels  # zcenter has to be positive
+        pixel_blocks = [pixel_block(i, params["radius"][i], params["height"][i]) for i in range(number_pixels)]
         pixel_blocks = "\n".join(pixel_blocks)
-        pixel_locations = [
-            pixel_location(i, *params["pixel_centers"][i]) for i in range(number_pixels)
-        ]
+        pixel_locations = [pixel_location(i, *params["pixel_centers"][i]) for i in range(number_pixels)]
         pixel_locations = "\n".join(pixel_locations)
         template_xml = """<?xml version='1.0' encoding='UTF-8'?>
 <instrument name="{name}" valid-from   ="1900-01-31 23:59:59"
@@ -867,9 +848,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
         pixel_radius = float(req_params.get("diameter", 0.00805)) / 2.0
         pixel_height = float(req_params.get("height", 0.00225))
         # distance between tube centers along the X-axis
-        tube_center_spacing = 2 * pixel_radius + float(
-            req_params.get("spacing", 0.00295)
-        )
+        tube_center_spacing = 2 * pixel_radius + float(req_params.get("spacing", 0.00295))
         x_center = float(req_params.get("x_center", 0))
         y_center = float(req_params.get("y_center", 0))
         z_center = float(req_params.get("z_center", 5.0))
@@ -1209,9 +1188,7 @@ def generic_workspace(generic_IDF, request):
         x = np.array(x).ravel()
     else:
         x = np.zeros(Nx * Ny, dtype=float)
-    wksp = CreateWorkspace(
-        DataX=x, DataY=y, DataE=e, Nspec=Nx * Ny, UnitX=units, OutputWorkspace=name
-    )
+    wksp = CreateWorkspace(DataX=x, DataY=y, DataE=e, Nspec=Nx * Ny, UnitX=units, OutputWorkspace=name)
     LoadInstrument(
         Workspace=wksp,
         InstrumentXML=generic_IDF,
@@ -1279,9 +1256,7 @@ def workspace_with_instrument(request):
 
     """
     idf_interface = idf_xml_factory(None, request)
-    idf_xml, n_x, n_y, view = [
-        idf_interface[p] for p in ("idf_xml", "Nx", "Ny", "view")
-    ]
+    idf_xml, n_x, n_y, view = [idf_interface[p] for p in ("idf_xml", "Nx", "Ny", "view")]
 
     workspace_inventory = list()  # holds created workspaces
 
@@ -1301,9 +1276,7 @@ def workspace_with_instrument(request):
             output_workspace = unique_workspace_dundername()
 
         if view not in ["array", "pixel"]:
-            raise RuntimeError(
-                'Invalid value of view="{}". Must be "array" or "pixel"'.format(view)
-            )
+            raise RuntimeError('Invalid value of view="{}". Must be "array" or "pixel"'.format(view))
 
         if intensities is not None:
             if isinstance(intensities, np.ndarray) is False:
@@ -1326,9 +1299,7 @@ def workspace_with_instrument(request):
                 if uncertainties.ndim == 2:
                     uncertainties = uncertainties.transpose()[:, ::-1]
                 elif uncertainties.ndim == 3:
-                    uncertainties = np.transpose(uncertainties, axes=(1, 0, 2))[
-                        :, ::-1, :
-                    ]
+                    uncertainties = np.transpose(uncertainties, axes=(1, 0, 2))[:, ::-1, :]
             uncertainties = uncertainties.ravel()
         else:
             uncertainties = np.sqrt(intensities)
@@ -1348,9 +1319,7 @@ def workspace_with_instrument(request):
             UnitX=axis_units,
             OutputWorkspace=output_workspace,
         )
-        instrument_name = re.search(
-            r'instrument name="([A-Za-z0-9_-]+)"', idf_xml
-        ).groups()[0]
+        instrument_name = re.search(r'instrument name="([A-Za-z0-9_-]+)"', idf_xml).groups()[0]
         LoadInstrument(
             Workspace=workspace,
             InstrumentXML=idf_xml,
@@ -1392,9 +1361,7 @@ def serve_events_workspace(reference_dir):
 
         def uwd():
             while True:
-                name = "__" + "".join(
-                    random.choice(string.ascii_lowercase) for _ in range(9)
-                )
+                name = "__" + "".join(random.choice(string.ascii_lowercase) for _ in range(9))
                 if name not in names:
                     return name
 
@@ -1418,11 +1385,7 @@ def _assert_both_set_or_none(left, right, assert_func, err_msg):
         return
     if (left is not None) and (right is not None):
         assert_func(left, right, err_msg=err_msg)
-    raise AssertionError(
-        "{}Either both or neither should be None (left={}, right={})".format(
-            err_msg, left, right
-        )
-    )
+    raise AssertionError("{}Either both or neither should be None (left={}, right={})".format(err_msg, left, right))
 
 
 def assert_wksp_equal(left, right, rtol=0, atol=0, err_msg=""):  # noqa: C901
@@ -1446,43 +1409,31 @@ def assert_wksp_equal(left, right, rtol=0, atol=0, err_msg=""):  # noqa: C901
     # all of the comparison options - mixed modes first
     if id_left == DataType.WORKSPACE2D and id_right == DataType.IQ_MOD:
         units = left.getAxis(0).getUnit().caption()
-        assert units == "q", '{}: Found units="{}" rather than "q"'.format(
-            err_msg, units
-        )
-        assert_func(
-            left.extractX().ravel(), right.mod_q, err_msg=err_msg + "mod_q", **kwargs
-        )
+        assert units == "q", '{}: Found units="{}" rather than "q"'.format(err_msg, units)
+        assert_func(left.extractX().ravel(), right.mod_q, err_msg=err_msg + "mod_q", **kwargs)
         assert_func(
             left.extractY().ravel(),
             right.intensity,
             err_msg=err_msg + "intensity",
             **kwargs,
         )
-        assert_func(
-            left.extractE().ravel(), right.error, err_msg=err_msg + "error", **kwargs
-        )
+        assert_func(left.extractE().ravel(), right.error, err_msg=err_msg + "error", **kwargs)
     elif id_left == DataType.IQ_MOD and id_right == DataType.WORKSPACE2D:
         units = right.getAxis(0).getUnit().caption()
         assert units == "q", '{}Found units="{}" rather than "q"'.format(err_msg, units)
-        assert_func(
-            left.mod_q, right.extractX().ravel(), err_msg=err_msg + "mod_q", **kwargs
-        )
+        assert_func(left.mod_q, right.extractX().ravel(), err_msg=err_msg + "mod_q", **kwargs)
         assert_func(
             left.intensity,
             right.extractY().ravel(),
             err_msg=err_msg + "intensity",
             **kwargs,
         )
-        assert_func(
-            left.error, right.extractE().ravel(), err_msg=err_msg + "error", **kwargs
-        )
+        assert_func(left.error, right.extractE().ravel(), err_msg=err_msg + "error", **kwargs)
     elif id_left == id_right:  # compare things that are the same type
         if id_left == DataType.WORKSPACE2D:
             # let mantid do all the work
             if atol > 0:
-                cmp, messages = CompareWorkspaces(
-                    Workspace1=str(left), Workspace2=str(right), Tolerance=atol
-                )
+                cmp, messages = CompareWorkspaces(Workspace1=str(left), Workspace2=str(right), Tolerance=atol)
             else:
                 cmp, messages = CompareWorkspaces(
                     Workspace1=str(left),
@@ -1494,17 +1445,11 @@ def assert_wksp_equal(left, right, rtol=0, atol=0, err_msg=""):  # noqa: C901
             assert cmp, err_msg + "; ".join(messages)
         else:
             # all the other data objects share some attributes
-            assert_func(
-                left.intensity, right.intensity, err_msg=err_msg + "intensity", **kwargs
-            )
+            assert_func(left.intensity, right.intensity, err_msg=err_msg + "intensity", **kwargs)
             assert_func(left.error, right.error, err_msg=err_msg + "error", **kwargs)
-            _assert_both_set_or_none(
-                left.wavelength, right.wavelength, assert_func, err_msg + "wavelength"
-            )
+            _assert_both_set_or_none(left.wavelength, right.wavelength, assert_func, err_msg + "wavelength")
             if id_left == DataType.IQ_MOD:
-                assert_func(
-                    left.mod_q, right.mod_q, err_msg=err_msg + "mod_q", **kwargs
-                )
+                assert_func(left.mod_q, right.mod_q, err_msg=err_msg + "mod_q", **kwargs)
                 _assert_both_set_or_none(
                     left.delta_mod_q,
                     right.delta_mod_q,
@@ -1514,33 +1459,19 @@ def assert_wksp_equal(left, right, rtol=0, atol=0, err_msg=""):  # noqa: C901
             elif id_left == DataType.IQ_AZIMUTHAL:
                 assert_func(left.qx, right.qx, err_msg=err_msg + "qx", **kwargs)
                 assert_func(left.qy, right.qy, err_msg=err_msg + "qy", **kwargs)
-                _assert_both_set_or_none(
-                    left.delta_qx, right.delta_qx, assert_func, err_msg + "delta_qx"
-                )
-                _assert_both_set_or_none(
-                    left.delta_qy, right.delta_qy, assert_func, err_msg + "delta_qy"
-                )
+                _assert_both_set_or_none(left.delta_qx, right.delta_qx, assert_func, err_msg + "delta_qx")
+                _assert_both_set_or_none(left.delta_qy, right.delta_qy, assert_func, err_msg + "delta_qy")
             elif id_left == DataType.IQ_CRYSTAL:
                 assert_func(left.qx, right.qx, err_msg=err_msg + "qx", **kwargs)
                 assert_func(left.qy, right.qy, err_msg=err_msg + "qy", **kwargs)
                 assert_func(left.qz, right.qz, err_msg=err_msg + "qz", **kwargs)
-                _assert_both_set_or_none(
-                    left.delta_qx, right.delta_qx, assert_func, err_msg + "delta_qx"
-                )
-                _assert_both_set_or_none(
-                    left.delta_qy, right.delta_qy, assert_func, err_msg + "delta_qy"
-                )
-                _assert_both_set_or_none(
-                    left.delta_qz, right.delta_qz, assert_func, err_msg + "delta_qz"
-                )
+                _assert_both_set_or_none(left.delta_qx, right.delta_qx, assert_func, err_msg + "delta_qx")
+                _assert_both_set_or_none(left.delta_qy, right.delta_qy, assert_func, err_msg + "delta_qy")
+                _assert_both_set_or_none(left.delta_qz, right.delta_qz, assert_func, err_msg + "delta_qz")
             else:
-                raise NotImplementedError(
-                    "Do not know how to compare {} objects".format(id_left)
-                )
+                raise NotImplementedError("Do not know how to compare {} objects".format(id_left))
     else:
-        raise NotImplementedError(
-            "Do not know how to compare {} and {}".format(id_left, id_right)
-        )
+        raise NotImplementedError("Do not know how to compare {} and {}".format(id_left, id_right))
 
 
 def depth(L):

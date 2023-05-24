@@ -35,9 +35,7 @@ def test_parse_json(reference_dir):
             "cutTOFmax": "1500",
             "wavelengthStepType": "constant Delta lambda/lambda",
             "sampleApertureSize": "10",
-            "fluxMonitorRatioFile": (
-                "/SNS/EQSANS/" "IPTS-24769/shared/EQSANS_110943.out"
-            ),
+            "fluxMonitorRatioFile": ("/SNS/EQSANS/" "IPTS-24769/shared/EQSANS_110943.out"),
             "sensitivityFileName": (
                 "/SNS/EQSANS/"
                 "shared/NeXusFiles/EQSANS/"
@@ -68,10 +66,7 @@ def test_parse_json(reference_dir):
 
     # Check that inelastic incoherence config items were parsed
     assert input_config["configuration"].get("fitInelasticIncoh")
-    assert (
-        input_config["configuration"]["elasticReference"].get("runNumber")
-        == elastic_reference_run
-    )
+    assert input_config["configuration"]["elasticReference"].get("runNumber") == elastic_reference_run
     assert input_config["configuration"].get("selectMinIncoh")
 
     # Parse
@@ -107,9 +102,7 @@ def test_parse_invalid_json():
             "cutTOFmax": "1500",
             "wavelengthStepType": "constant Delta lambda/lambda",
             "sampleApertureSize": "10",
-            "fluxMonitorRatioFile": (
-                "/SNS/EQSANS/" "IPTS-24769/shared/EQSANS_110943.out"
-            ),
+            "fluxMonitorRatioFile": ("/SNS/EQSANS/" "IPTS-24769/shared/EQSANS_110943.out"),
             "sensitivityFileName": (
                 "/SNS/EQSANS/"
                 "shared/NeXusFiles/EQSANS/"
@@ -147,10 +140,7 @@ def test_parse_invalid_json():
 
     # Check that inelastic incoherence config items were parsed
     assert input_config["configuration"].get("fitInelasticIncoh")
-    assert (
-        input_config["configuration"]["elasticReference"].get("runNumber")
-        == valid_run_num
-    )
+    assert input_config["configuration"]["elasticReference"].get("runNumber") == valid_run_num
     assert input_config["configuration"].get("selectMinIncoh")
 
 
@@ -279,17 +269,11 @@ def test_incoherence_correction_step4only(reference_dir, generatecleanfile):
     loaded = load_all_files(input_config)
 
     # Reduce
-    reduction_output = reduce_single_configuration(
-        loaded, input_config, not_apply_incoherence_correction=False
-    )
+    reduction_output = reduce_single_configuration(loaded, input_config, not_apply_incoherence_correction=False)
 
     # Gold data directory
-    gold_dir = os.path.join(
-        reference_dir.new.eqsans, "gold_data/Incoherence_Corrected_113915/"
-    )
-    assert os.path.exists(
-        gold_dir
-    ), f"Gold/expected data directory {gold_dir} does not exist"
+    gold_dir = os.path.join(reference_dir.new.eqsans, "gold_data/Incoherence_Corrected_113915/")
+    assert os.path.exists(gold_dir), f"Gold/expected data directory {gold_dir} does not exist"
 
     # Verify with gold data
     gold_file_dict = dict()
@@ -309,12 +293,8 @@ def test_incoherence_correction_step4only(reference_dir, generatecleanfile):
 def test_incoherence_correction_elastic_normalization(reference_dir, generatecleanfile):
     """Test incoherence correction with elastic correction"""
     # Set up the configuration dict
-    config_json_file = os.path.join(
-        reference_dir.new.eqsans, "test_incoherence_correction/agbe_125707_test1.json"
-    )
-    assert os.path.exists(
-        config_json_file
-    ), f"Test JSON file {config_json_file} does not exist."
+    config_json_file = os.path.join(reference_dir.new.eqsans, "test_incoherence_correction/agbe_125707_test1.json")
+    assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
     with open(config_json_file, "r") as config_json:
         configuration = json.load(config_json)
     assert isinstance(configuration, dict)
@@ -337,9 +317,7 @@ def test_incoherence_correction_elastic_normalization(reference_dir, generatecle
     assert loaded.elastic_reference_background.data is None
 
     # Reduce
-    reduction_output = reduce_single_configuration(
-        loaded, input_config, not_apply_incoherence_correction=False
-    )
+    reduction_output = reduce_single_configuration(loaded, input_config, not_apply_incoherence_correction=False)
     assert reduction_output
     print(f"Output directory: {test_dir}")
 
@@ -350,15 +328,9 @@ def test_incoherence_correction_elastic_normalization(reference_dir, generatecle
     # gold data are changed a version prefix is added with date and developer
     # information. The old data will be kept as it is.
     version = "20220321_rys_"
-    assert os.path.exists(
-        test_iq1d_file
-    ), f"Expected test result {test_iq1d_file} does not exist"
-    gold_iq1d_file = os.path.join(
-        reference_dir.new.eqsans, "test_incoherence_correction", version + iq1d_base_name
-    )
-    assert os.path.exists(
-        gold_iq1d_file
-    ), f"Expected gold file {gold_iq1d_file} does not exist"
+    assert os.path.exists(test_iq1d_file), f"Expected test result {test_iq1d_file} does not exist"
+    gold_iq1d_file = os.path.join(reference_dir.new.eqsans, "test_incoherence_correction", version + iq1d_base_name)
+    assert os.path.exists(gold_iq1d_file), f"Expected gold file {gold_iq1d_file} does not exist"
     # compare
     import filecmp
 
@@ -393,12 +365,8 @@ def test_incoherence_correction_elastic_normalization_weighted(reference_dir, ge
     import filecmp
 
     # Set up the configuration dict
-    config_json_file = os.path.join(
-        reference_dir.new.eqsans, "test_incoherence_correction/porsil_29024_abs_inel.json"
-    )
-    assert os.path.exists(
-        config_json_file
-    ), f"Test JSON file {config_json_file} does not exist."
+    config_json_file = os.path.join(reference_dir.new.eqsans, "test_incoherence_correction/porsil_29024_abs_inel.json")
+    assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
     with open(config_json_file, "r") as config_json:
         configuration = json.load(config_json)
     assert isinstance(configuration, dict)

@@ -19,9 +19,7 @@ from mantid import __version__ as mantid_version
 
 def _getConfigJsonFile():
     _file_path = os.path.dirname(__file__)
-    config_json = os.path.abspath(
-        os.path.join(_file_path, "../../../../scripts/reduction.json")
-    )
+    config_json = os.path.abspath(os.path.join(_file_path, "../../../../scripts/reduction.json"))
     return config_json
 
 
@@ -34,9 +32,7 @@ def _strValue(group, name):
 
 def _strAttr(data, name):
     """Get an attribute as a string"""
-    assert name in data.attrs, '"{}" does not have attribute "{}"'.format(
-        data.name, name
-    )
+    assert name in data.attrs, '"{}" does not have attribute "{}"'.format(data.name, name)
     value = data.attrs[name]
     try:
         return value.decode("utf-8")
@@ -46,13 +42,9 @@ def _strAttr(data, name):
 
 def _getGroup(parent, name, klass):
     """Utility function to get a group in the hdf5 file. The default error messages are lacking."""
-    assert name in parent, '{} does not contain a group named "{}" '.format(
-        parent.name, name
-    )
+    assert name in parent, '{} does not contain a group named "{}" '.format(parent.name, name)
     child = parent[name]
-    assert _strAttr(child, "NX_class") == klass, '{} is not of type "{}" '.format(
-        name, klass
-    )
+    assert _strAttr(child, "NX_class") == klass, '{} is not of type "{}" '.format(name, klass)
     return child
 
 
@@ -80,9 +72,7 @@ def _create_iq():
 
 def _create_iqxqy():
     # Get data
-    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(
-        2, True
-    )
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
     test_iqxqy = IQazimuthal(
         intensity=intensities,
         error=sigmas,
@@ -127,9 +117,7 @@ def _checkNXcollection(nxentry, name, param_names):
     appropriate information"""
     nxcollection = _getGroup(nxentry, name, "NXcollection")
     for param in param_names:
-        assert param in nxcollection, 'Could not find "{}" in "{}"'.format(
-            param, nxcollection.name
-        )
+        assert param in nxcollection, 'Could not find "{}" in "{}"'.format(param, nxcollection.name)
         nxlog = nxcollection[param]
         assert "value" in nxlog, "{} did not have a value".format(param)
 
@@ -203,41 +191,21 @@ def test_writing_metadata_with_no_reductionparams(cleanfile):
         specialparameters=specialparameters,
     )
 
-    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(
-        tmp_log_filename
-    )
+    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, "r") as handle:
-        reduction_information_entry = _getGroup(
-            handle, "reduction_information", "NXentry"
-        )
+        reduction_information_entry = _getGroup(handle, "reduction_information", "NXentry")
 
-        assert (
-            _strValue(reduction_information_entry["reduction_script"], "data")
-            == pythonscript
-        )
-        assert (
-            _strValue(reduction_information_entry["reduction_script"], "file_name")
-            == pythonfile
-        )
+        assert _strValue(reduction_information_entry["reduction_script"], "data") == pythonscript
+        assert _strValue(reduction_information_entry["reduction_script"], "file_name") == pythonfile
         assert _strValue(reduction_information_entry, "start_time") == starttime
-        assert (
-            _strValue(reduction_information_entry["user"], "facility_user_id") == user
-        )
+        assert _strValue(reduction_information_entry["user"], "facility_user_id") == user
         assert _strValue(reduction_information_entry["user"], "name") == username
-        assert (
-            reduction_information_entry["special_parameters"]["key1"][()]
-            == specialparameters["key1"]
-        )
+        assert reduction_information_entry["special_parameters"]["key1"][()] == specialparameters["key1"]
         # str: h5py 3.0 need to decode
-        assert (
-            reduction_information_entry["special_parameters"]["key2"][()].decode()
-            == specialparameters["key2"]
-        )
+        assert reduction_information_entry["special_parameters"]["key2"][()].decode() == specialparameters["key2"]
         # str: h5py 3.0 need to decode
-        assert (
-            reduction_information_entry["special_parameters"]["key3"][()].decode() == ""
-        )
+        assert reduction_information_entry["special_parameters"]["key3"][()].decode() == ""
 
 
 def test_writing_metadata(cleanfile):
@@ -267,41 +235,21 @@ def test_writing_metadata(cleanfile):
         specialparameters=specialparameters,
     )
 
-    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(
-        tmp_log_filename
-    )
+    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, "r") as handle:
-        reduction_information_entry = _getGroup(
-            handle, "reduction_information", "NXentry"
-        )
+        reduction_information_entry = _getGroup(handle, "reduction_information", "NXentry")
 
-        assert (
-            _strValue(reduction_information_entry["reduction_script"], "data")
-            == pythonscript
-        )
-        assert (
-            _strValue(reduction_information_entry["reduction_script"], "file_name")
-            == pythonfile
-        )
+        assert _strValue(reduction_information_entry["reduction_script"], "data") == pythonscript
+        assert _strValue(reduction_information_entry["reduction_script"], "file_name") == pythonfile
         assert _strValue(reduction_information_entry, "start_time") == starttime
-        assert (
-            _strValue(reduction_information_entry["user"], "facility_user_id") == user
-        )
+        assert _strValue(reduction_information_entry["user"], "facility_user_id") == user
         assert _strValue(reduction_information_entry["user"], "name") == username
-        assert (
-            reduction_information_entry["special_parameters"]["key1"][()]
-            == specialparameters["key1"]
-        )
+        assert reduction_information_entry["special_parameters"]["key1"][()] == specialparameters["key1"]
         # str: h5py 3.0 need to decode
-        assert (
-            reduction_information_entry["special_parameters"]["key2"][()].decode()
-            == specialparameters["key2"]
-        )
+        assert reduction_information_entry["special_parameters"]["key2"][()].decode() == specialparameters["key2"]
         # str: h5py 3.0 need to decode
-        assert (
-            reduction_information_entry["special_parameters"]["key3"][()].decode() == ""
-        )
+        assert reduction_information_entry["special_parameters"]["key3"][()].decode() == ""
 
 
 def test_writing_iq_wedge_mode(cleanfile):
@@ -309,13 +257,9 @@ def test_writing_iq_wedge_mode(cleanfile):
     test_iq = list([test_iq_1, test_iq_1])
     tmp_log_filename = _create_tmp_log_filename()
     cleanfile(tmp_log_filename)
-    savereductionlog(
-        tmp_log_filename, detectordata={"slice_1": {"main_detector": {"iq": test_iq}}}
-    )
+    savereductionlog(tmp_log_filename, detectordata={"slice_1": {"main_detector": {"iq": test_iq}}})
 
-    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(
-        tmp_log_filename
-    )
+    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, "r") as handle:
         top_group = _getGroup(handle, "slice_1", "NXdata")
@@ -326,14 +270,10 @@ def test_writing_iq_wedge_mode(cleanfile):
         _test_data(tested_data=data, ref_data=np.array([93, 60]))
 
         data = iq_nxdata["Idev"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-7
-        )
+        _test_data(tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-7)
 
         data = iq_nxdata["Q"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([0.0078897, 0.0059338]), abs=1e-7
-        )
+        _test_data(tested_data=data, ref_data=np.array([0.0078897, 0.0059338]), abs=1e-7)
 
         data = iq_nxdata["Qdev"][:]
         _test_data(tested_data=data, ref_data=np.array([0.011912, 0.11912]), abs=1e-6)
@@ -343,13 +283,9 @@ def test_writing_iq_scalar_mode(cleanfile):
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
     cleanfile(tmp_log_filename)
-    savereductionlog(
-        tmp_log_filename, detectordata={"slice_1": {"main_detector": {"iq": test_iq}}}
-    )
+    savereductionlog(tmp_log_filename, detectordata={"slice_1": {"main_detector": {"iq": test_iq}}})
 
-    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(
-        tmp_log_filename
-    )
+    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, "r") as handle:
         top_group = _getGroup(handle, "slice_1", "NXdata")
@@ -360,14 +296,10 @@ def test_writing_iq_scalar_mode(cleanfile):
         _test_data(tested_data=data, ref_data=np.array([93, 60]))
 
         data = iq_nxdata["Idev"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-7
-        )
+        _test_data(tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-7)
 
         data = iq_nxdata["Q"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([0.0078897, 0.0059338]), abs=1e-7
-        )
+        _test_data(tested_data=data, ref_data=np.array([0.0078897, 0.0059338]), abs=1e-7)
 
         data = iq_nxdata["Qdev"][:]
         _test_data(tested_data=data, ref_data=np.array([0.011912, 0.11912]), abs=1e-6)
@@ -381,9 +313,7 @@ def test_slicelogdata_is_a_dict(cleanfile):
     detectordata = {"slice_1": {"main_detector": {"iq": test_iq}}}
 
     with pytest.raises(RuntimeError):
-        savereductionlog(
-            tmp_log_filename, detectordata=detectordata, logslicedata=logslice_data_dict
-        )
+        savereductionlog(tmp_log_filename, detectordata=detectordata, logslicedata=logslice_data_dict)
 
 
 def test_not_using_slicelogdata_if_empty(cleanfile):
@@ -393,9 +323,7 @@ def test_not_using_slicelogdata_if_empty(cleanfile):
     detectordata = {"slice_1": {"main_detector": {"iq": test_iq}}}
     logslice_data_dict = {}
 
-    savereductionlog(
-        tmp_log_filename, detectordata=detectordata, logslicedata=logslice_data_dict
-    )
+    savereductionlog(tmp_log_filename, detectordata=detectordata, logslicedata=logslice_data_dict)
 
 
 def test_slicelogdata_not_bigger_than_detectordata(cleanfile):
@@ -409,9 +337,7 @@ def test_slicelogdata_not_bigger_than_detectordata(cleanfile):
     detectordata = {"slice_1": {"main_detector": {"iq": test_iq}}}
 
     with pytest.raises(ValueError):
-        savereductionlog(
-            tmp_log_filename, detectordata=detectordata, logslicedata=logslice_data_dict
-        )
+        savereductionlog(tmp_log_filename, detectordata=detectordata, logslicedata=logslice_data_dict)
 
 
 def test_writing_slicelogdata(cleanfile):
@@ -426,13 +352,9 @@ def test_writing_slicelogdata(cleanfile):
         }
     }
     detectordata = {"slice_1": {"main_detector": {"iq": test_iq}}}
-    savereductionlog(
-        tmp_log_filename, detectordata=detectordata, logslicedata=logslice_data_dict
-    )
+    savereductionlog(tmp_log_filename, detectordata=detectordata, logslicedata=logslice_data_dict)
 
-    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(
-        tmp_log_filename
-    )
+    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, "r") as handle:
         top_group = _getGroup(handle, "slice_1", "NXdata")
@@ -451,9 +373,7 @@ def test_writing_iqxqy(cleanfile):
         detectordata={"slice_1": {"main_detector": {"iqxqy": test_iqxqy}}},
     )
 
-    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(
-        tmp_log_filename
-    )
+    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
     #
     with h5py.File(tmp_log_filename, "r") as handle:
         top_group = _getGroup(handle, "slice_1", "NXdata")
@@ -464,14 +384,10 @@ def test_writing_iqxqy(cleanfile):
         _test_data(tested_data=data, ref_data=np.array([93, 60]))
 
         data = iqxqy_nxdata["Idev"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-8
-        )
+        _test_data(tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-8)
 
         data = iqxqy_nxdata["Qx"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([-0.006134, -0.003254]), abs=1e-6
-        )
+        _test_data(tested_data=data, ref_data=np.array([-0.006134, -0.003254]), abs=1e-6)
 
         data = iqxqy_nxdata["Qxdev"][:]
         _test_data(tested_data=data, ref_data=np.array([0.008423, 0.008423]), abs=1e-6)
@@ -490,14 +406,10 @@ def test_writing_iq_and_iqxqy_scalar_mode(cleanfile):
     cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename,
-        detectordata={
-            "slice_1": {"main_detector": {"iq": test_iq, "iqxqy": test_iqxqy}}
-        },
+        detectordata={"slice_1": {"main_detector": {"iq": test_iq, "iqxqy": test_iqxqy}}},
     )
 
-    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(
-        tmp_log_filename
-    )
+    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, "r") as handle:
         top_group = _getGroup(handle, "slice_1", "NXdata")
@@ -508,14 +420,10 @@ def test_writing_iq_and_iqxqy_scalar_mode(cleanfile):
         _test_data(tested_data=data, ref_data=np.array([93, 60]))
 
         data = iq_nxdata["Idev"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-7
-        )
+        _test_data(tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-7)
 
         data = iq_nxdata["Q"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([0.0078897, 0.0059338]), abs=1e-7
-        )
+        _test_data(tested_data=data, ref_data=np.array([0.0078897, 0.0059338]), abs=1e-7)
 
         data = iq_nxdata["Qdev"][:]
         _test_data(tested_data=data, ref_data=np.array([0.011912, 0.11912]), abs=1e-6)
@@ -526,14 +434,10 @@ def test_writing_iq_and_iqxqy_scalar_mode(cleanfile):
         _test_data(tested_data=data, ref_data=np.array([93, 60]))
 
         data = iqxqy_nxdata["Idev"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-8
-        )
+        _test_data(tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-8)
 
         data = iqxqy_nxdata["Qx"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([-0.006134, -0.003254]), abs=1e-6
-        )
+        _test_data(tested_data=data, ref_data=np.array([-0.006134, -0.003254]), abs=1e-6)
 
         data = iqxqy_nxdata["Qxdev"][:]
         _test_data(tested_data=data, ref_data=np.array([0.008423, 0.008423]), abs=1e-6)
@@ -553,14 +457,10 @@ def test_writing_iq_and_iqxqy_wedge_mode(cleanfile):
     cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename,
-        detectordata={
-            "slice_1": {"main_detector": {"iq": test_iq, "iqxqy": test_iqxqy}}
-        },
+        detectordata={"slice_1": {"main_detector": {"iq": test_iq, "iqxqy": test_iqxqy}}},
     )
 
-    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(
-        tmp_log_filename
-    )
+    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, "r") as handle:
         top_group = _getGroup(handle, "slice_1", "NXdata")
@@ -571,14 +471,10 @@ def test_writing_iq_and_iqxqy_wedge_mode(cleanfile):
         _test_data(tested_data=data, ref_data=np.array([93, 60]))
 
         data = iq_nxdata["Idev"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-7
-        )
+        _test_data(tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-7)
 
         data = iq_nxdata["Q"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([0.0078897, 0.0059338]), abs=1e-7
-        )
+        _test_data(tested_data=data, ref_data=np.array([0.0078897, 0.0059338]), abs=1e-7)
 
         data = iq_nxdata["Qdev"][:]
         _test_data(tested_data=data, ref_data=np.array([0.011912, 0.11912]), abs=1e-6)
@@ -589,14 +485,10 @@ def test_writing_iq_and_iqxqy_wedge_mode(cleanfile):
         _test_data(tested_data=data, ref_data=np.array([93, 60]))
 
         data = iqxqy_nxdata["Idev"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-8
-        )
+        _test_data(tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-8)
 
         data = iqxqy_nxdata["Qx"][:]
-        _test_data(
-            tested_data=data, ref_data=np.array([-0.006134, -0.003254]), abs=1e-6
-        )
+        _test_data(tested_data=data, ref_data=np.array([-0.006134, -0.003254]), abs=1e-6)
 
         data = iqxqy_nxdata["Qxdev"][:]
         _test_data(tested_data=data, ref_data=np.array([0.008423, 0.008423]), abs=1e-6)
@@ -619,36 +511,22 @@ def test_reduction_parameters(cleanfile):
     detectordata = {"slice_1": {"main_detector": {"iqxqy": test_iqxqy}}}
     savereductionlog(tmp_log_filename, detectordata=detectordata, reductionparams=data)
 
-    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(
-        tmp_log_filename
-    )
+    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
 
     with h5py.File(tmp_log_filename, "r") as handle:
-        reduction_information_entry = _getGroup(
-            handle, "reduction_information", "NXentry"
-        )
+        reduction_information_entry = _getGroup(handle, "reduction_information", "NXentry")
 
         try:
-            assert (
-                _strValue(reduction_information_entry["drtsans"], "version")
-                == drtsans_version
-            )
+            assert _strValue(reduction_information_entry["drtsans"], "version") == drtsans_version
         except AttributeError as att_err:
             info = f'h5py version = {h5py.__version__}: type: {type(reduction_information_entry["drtsans"])}'
             info += f'\nmethods: {dir(reduction_information_entry["drtsans"])}'
             info += f"\nError: {att_err}"
             raise AttributeError(info)
-        assert (
-            _strValue(reduction_information_entry["mantid"], "version")
-            == mantid_version
-        )
+        assert _strValue(reduction_information_entry["mantid"], "version") == mantid_version
 
-        red_val = reduction_information_entry["reduction_parameters"]["background"][
-            "transmission"
-        ]["runNumber"][()]
-        test_val = data["data"]["background"]["transmission"][
-            "runNumber"
-        ]  # this is string from json file
+        red_val = reduction_information_entry["reduction_parameters"]["background"]["transmission"]["runNumber"][()]
+        test_val = data["data"]["background"]["transmission"]["runNumber"]  # this is string from json file
         assert red_val.decode() == test_val
 
         red_val = reduction_information_entry["reduction_parameters"]["iptsNumber"][()]

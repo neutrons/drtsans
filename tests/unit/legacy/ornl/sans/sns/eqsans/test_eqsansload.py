@@ -30,9 +30,7 @@ def test_get_parameters():
     assert params["rectangular mask"].split("\n")[0] == "0 0;7 255"
 
 
-@pytest.mark.skip(
-    reason="No access to /SNS/EQSANS/shared/instrument_configuration"
-)  # noqa: E501
+@pytest.mark.skip(reason="No access to /SNS/EQSANS/shared/instrument_configuration")  # noqa: E501
 def test_EQSANSLoad(eqsans_f):
     """
     EQSANSLoad workflow algorithm as called by Mantid

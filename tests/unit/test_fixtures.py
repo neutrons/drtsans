@@ -435,9 +435,7 @@ class TestWorkspaceWithInstrument(object):
         assert spectum_info.position(0) == V3D(1.0, -1.0, 0.0)  # row=0, col=0
         assert spectum_info.position(3) == V3D(0.0, 0.0, 0.0)  # row=1, col=0
 
-    @pytest.mark.parametrize(
-        "workspace_with_instrument", [{"Nx": 3, "Ny": 2}], indirect=True
-    )
+    @pytest.mark.parametrize("workspace_with_instrument", [{"Nx": 3, "Ny": 2}], indirect=True)
     def test_generate_workspace_tof(self, workspace_with_instrument):
         ws = workspace_with_instrument(
             axis_units="tof",
@@ -455,13 +453,9 @@ class TestWorkspaceWithInstrument(object):
         for i in range(ws.getNumberHistograms()):
             assert ws.readX(i).tolist() == [100.0, 8000.0, 16000.0]
         # supplied y-values
-        assert ws.extractY().ravel() == approx(
-            [1.0, 1.0, 4.0, 4.0, 9.0, 9.0, 16.0, 16.0, 25.0, 25.0, 36.0, 36.0]
-        )
+        assert ws.extractY().ravel() == approx([1.0, 1.0, 4.0, 4.0, 9.0, 9.0, 16.0, 16.0, 25.0, 25.0, 36.0, 36.0])
         # e-values is sqrt of y
-        assert ws.extractE().ravel() == approx(
-            [1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, 5.0, 5.0, 6.0, 6.0]
-        )
+        assert ws.extractE().ravel() == approx([1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, 5.0, 5.0, 6.0, 6.0])
 
         # verify particular pixels
         assert ws.readY(1).tolist() == [4.0, 4.0]
@@ -470,28 +464,20 @@ class TestWorkspaceWithInstrument(object):
         assert spectrum_info.position(0) == V3D(1.0, -0.5, 5.0)  # row=0, col=0
         assert spectrum_info.position(3) == V3D(0.0, 0.5, 5.0)  # row=1, col=0
 
-    @pytest.mark.parametrize(
-        "workspace_with_instrument", [{"Nx": 3, "Ny": 4}], indirect=True
-    )
+    @pytest.mark.parametrize("workspace_with_instrument", [{"Nx": 3, "Ny": 4}], indirect=True)
     def test_correct_pixel_id(self, workspace_with_instrument):
         intensities = np.array(
             [[3, 7, 11], [2, 6, 10], [1, 5, 9], [0, 4, 8]]
         )  # three tubes, intensities are pixel id's
-        ws = workspace_with_instrument(
-            axis_values=[1.0], intensities=intensities, view="array"
-        )
+        ws = workspace_with_instrument(axis_values=[1.0], intensities=intensities, view="array")
         assert ws.extractY().ravel().tolist() == list(range(12))
         intensities = np.array(
             [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11]]
         )  # pixel view, each tube along the column axis
-        ws = workspace_with_instrument(
-            axis_values=[1.0], intensities=intensities, view="pixel"
-        )
+        ws = workspace_with_instrument(axis_values=[1.0], intensities=intensities, view="pixel")
         assert ws.extractY().ravel().tolist() == list(range(12))
 
-    @pytest.mark.parametrize(
-        "workspace_with_instrument", [dict(name="Theod-osius_IV4")], indirect=True
-    )
+    @pytest.mark.parametrize("workspace_with_instrument", [dict(name="Theod-osius_IV4")], indirect=True)
     def test_instrument_name(self, workspace_with_instrument):
         ws = workspace_with_instrument()
         assert ws.getInstrument().getName() == "Theod-osius_IV4"

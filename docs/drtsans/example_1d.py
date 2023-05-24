@@ -6,25 +6,26 @@ from ornl.sans.sns import eqsans
 config = dict()
 
 # files
-config['mask'] = '/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs'
-config['flux'] = '/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample'
-config['sensitivity_file_path'] \
-    = '/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017A_mp/Sensitivity_patched_thinPMMA_4m_79165_event.nxs'
-config['dark_current'] = '/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/EQSANS_86275.nxs.h5'
+config["mask"] = "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs"
+config["flux"] = "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample"
+config[
+    "sensitivity_file_path"
+] = "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017A_mp/Sensitivity_patched_thinPMMA_4m_79165_event.nxs"
+config["dark_current"] = "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/EQSANS_86275.nxs.h5"
 
 # numeric values
-config['low_tof_clip'] = 500
-config['high_tof_clip'] = 2000
-config['detector_offset'] = 0.
-config['sample_offset'] = 0.
-config['bin_width'] = 0.5
+config["low_tof_clip"] = 500
+config["high_tof_clip"] = 2000
+config["detector_offset"] = 0.0
+config["sample_offset"] = 0.0
+config["bin_width"] = 0.5
 
 # find the beam center
-empty_fn = 'EQSANS_88973'
+empty_fn = "EQSANS_88973"
 db_ws = eqsans.load_events(empty_fn)
 center = eqsans.center_detector(db_ws)
-config['center_x'] = center[0]
-config['center_y'] = center[1]
+config["center_x"] = center[0]
+config["center_y"] = center[1]
 
 # load and prepare scattering data
 sample_file = "EQSANS_88980"
@@ -45,25 +46,24 @@ ws /= sample_thickness
 ws *= absolute_scale
 
 # If frame_skipping we will have more than one table workspace
-table_ws_list = eqsans.prepare_momentum_transfer(ws, wavelength_binning=[config['bin_width']])
+table_ws_list = eqsans.prepare_momentum_transfer(ws, wavelength_binning=[config["bin_width"]])
 
-outputFilename = 'EQSANS_88980'
-fig, ax = plt.subplots(subplot_kw={'projection': 'mantid'})
+outputFilename = "EQSANS_88980"
+fig, ax = plt.subplots(subplot_kw={"projection": "mantid"})
 for index, table_ws in enumerate(table_ws_list):
-
     # TODO check the configuration-numQbins and configuration_QbinType
     numQBins = 100
 
     iq_ws = eqsans.cal_iq(table_ws, bins=numQBins, log_binning=False)
 
-    suffix = '.txt'
+    suffix = ".txt"
     if len(table_ws_list) > 1:
-        suffix = '_frame_{}{}'.format(index+1, suffix)
+        suffix = "_frame_{}{}".format(index + 1, suffix)
     outfile = outputFilename + suffix
 
     if index == 0:
         ax.plot(iq_ws)
-        ax.set_yscale('log')
+        ax.set_yscale("log")
 
     eqsans.save_ascii_1D(iq_ws, outputFilename + suffix, outfile)
-fig.savefig(outputFilename + '.png')
+fig.savefig(outputFilename + ".png")

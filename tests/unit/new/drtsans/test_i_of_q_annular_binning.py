@@ -38,9 +38,7 @@ def test_1d_annular_no_wt():
     q_max = 0.006
 
     # Generate testing data: Get Q2D data
-    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(
-        2, True
-    )
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
 
     # Test the high level method
     # Define input data
@@ -55,26 +53,16 @@ def test_1d_annular_no_wt():
 
     # Annular binning
     theta_binning = BinningParams(theta_min, theta_max, num_bins)
-    binned_iq = bin_annular_into_q1d(
-        test_i_q, theta_binning, q_min, q_max, BinningMethod.NOWEIGHT
-    )
+    binned_iq = bin_annular_into_q1d(test_i_q, theta_binning, q_min, q_max, BinningMethod.NOWEIGHT)
 
     # Verify I(Q), sigma I(Q) and dQ
-    assert binned_iq.intensity[1] == pytest.approx(
-        63.66666667, abs=1e-8
-    ), "Binned intensity is wrong"
-    assert binned_iq.error[1] == pytest.approx(
-        3.257470048, abs=1e-8
-    ), "Binned sigma I is wrong"
+    assert binned_iq.intensity[1] == pytest.approx(63.66666667, abs=1e-8), "Binned intensity is wrong"
+    assert binned_iq.error[1] == pytest.approx(3.257470048, abs=1e-8), "Binned sigma I is wrong"
     assert binned_iq.delta_mod_q[1] == pytest.approx(1.154e-02, abs=1e-5), (
-        "Binned Q resolution {} "
-        "is incorrect comparing to {}."
-        "".format(binned_iq.delta_mod_q[1], 0.01154)
+        "Binned Q resolution {} " "is incorrect comparing to {}." "".format(binned_iq.delta_mod_q[1], 0.01154)
     )
     # this is actually theta
-    np.testing.assert_almost_equal(
-        binned_iq.mod_q, np.linspace(start=18, stop=theta_max - 18, num=num_bins)
-    )
+    np.testing.assert_almost_equal(binned_iq.mod_q, np.linspace(start=18, stop=theta_max - 18, num=num_bins))
 
 
 def test_1d_annular_out_of_range_angles():
@@ -97,9 +85,7 @@ def test_1d_annular_out_of_range_angles():
     q_max = 0.006
 
     # Generate testing data: Get Q2D data
-    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(
-        2, True
-    )
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
 
     # Test the high level method
     # Define input data
@@ -115,9 +101,7 @@ def test_1d_annular_out_of_range_angles():
     # Annular binning
     theta_binning = BinningParams(theta_min, theta_max, num_bins)
     with pytest.raises(ValueError):
-        bin_annular_into_q1d(
-            test_i_q, theta_binning, q_min, q_max, BinningMethod.NOWEIGHT
-        )
+        bin_annular_into_q1d(test_i_q, theta_binning, q_min, q_max, BinningMethod.NOWEIGHT)
 
 
 def test_1d_flat_data():
@@ -131,9 +115,7 @@ def test_1d_flat_data():
 
     # perform the annular binning
     theta_binning = BinningParams(0, 360, 18)  # 20 deg bins
-    binned_iq = bin_annular_into_q1d(
-        data2d, theta_binning, q_min=9.0, q_max=10.0, method=BinningMethod.NOWEIGHT
-    )
+    binned_iq = bin_annular_into_q1d(data2d, theta_binning, q_min=9.0, q_max=10.0, method=BinningMethod.NOWEIGHT)
 
     # verify the results
     assert binned_iq.intensity.size == 18

@@ -44,25 +44,19 @@ def test_standard_sample_measurement():
     F_std_err = 10.0  # value from supplied test
     tmp_wsn = unique_workspace_name()
     wsn_list.append(tmp_wsn)
-    F_std_ws = CreateSingleValuedWorkspace(
-        DataValue=F_std, ErrorValue=F_std_err, OutputWorkspace=tmp_wsn
-    )
+    F_std_ws = CreateSingleValuedWorkspace(DataValue=F_std, ErrorValue=F_std_err, OutputWorkspace=tmp_wsn)
     #
     F = 10.0  # value from supplied test
     F_err = 2.0  # value from supplied test
     tmp_wsn = unique_workspace_name()
     wsn_list.append(tmp_wsn)
-    F_ws = CreateSingleValuedWorkspace(
-        DataValue=F, ErrorValue=F_err, OutputWorkspace=tmp_wsn
-    )
+    F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=F_err, OutputWorkspace=tmp_wsn)
     #
     Iq = 100.0  # value from supplied test
     Iq_err = np.sqrt(Iq)
     tmp_wsn = unique_workspace_name()
     wsn_list.append(tmp_wsn)
-    Iq_ws = CreateSingleValuedWorkspace(
-        DataValue=Iq, ErrorValue=Iq_err, OutputWorkspace=tmp_wsn
-    )
+    Iq_ws = CreateSingleValuedWorkspace(DataValue=Iq, ErrorValue=Iq_err, OutputWorkspace=tmp_wsn)
     # perform calculation done by function standard_sample_scaling
     Iq_abs = Iq / F * F_std
     # calculate uncertainty as described in the supplied test. Symbolically this is identical to the calculation below,
@@ -71,9 +65,9 @@ def test_standard_sample_measurement():
     # err2 = F_std_err**2 / F**2 * Iq**2
     # err3 = F_std**2 / F**2 * Iq_err*2
     # Iq_abs_err = np.sqrt(err1 + err2 + err3)
-    err1 = F_err ** 2 / F ** 2
-    err2 = F_std_err ** 2 / F_std ** 2
-    err3 = Iq_err ** 2 / Iq ** 2
+    err1 = F_err**2 / F**2
+    err2 = F_std_err**2 / F_std**2
+    err3 = Iq_err**2 / Iq**2
     Iq_abs_err = Iq / F * F_std * np.sqrt(err1 + err2 + err3)
     # run absolute_units.standard_sample_scaling
     Iq_abs_ws = standard_sample_scaling(Iq_ws, F_ws, F_std_ws)

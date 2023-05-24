@@ -15,16 +15,19 @@ def verify_images(test_png: str, gold_png):
     AssertionError will be raised if they do not match
     """
     # check
-    assert os.path.exists(gold_png), f'Gold/reference data file {gold_png} cannot be located'
-    assert os.path.exists(test_png), f'Test result data file {test_png} cannot be located'
+    assert os.path.exists(gold_png), f"Gold/reference data file {gold_png} cannot be located"
+    assert os.path.exists(test_png), f"Test result data file {test_png} cannot be located"
 
     # Import PNG to 2d array
     tested_image = imread(test_png)
     gold_image = imread(gold_png)
 
     # Verify
-    np.testing.assert_allclose(tested_image, gold_image, err_msg=f'Testing result {tested_image} does not match '
-                                                                 f'the expected result {gold_image}')
+    np.testing.assert_allclose(
+        tested_image,
+        gold_image,
+        err_msg=f"Testing result {tested_image} does not match " f"the expected result {gold_image}",
+    )
 
 
 def fileCheckAndRemove(filename, remove=True):
@@ -70,11 +73,10 @@ def test_IQmod_multi(backend, filename):
 
 @pytest.fixture
 def test_iq2d_data() -> Tuple[Any, Any, Any, Any]:
-    """Generate Qx, Qy, I(qx, qy), Error(qx, qy) data
-    """
+    """Generate Qx, Qy, I(qx, qy), Error(qx, qy) data"""
     # Qx: 60 values, Qy: 40 values
-    x = np.linspace(0.0, 4 * np.pi, 60) - 3.
-    y = np.linspace(0.5 * np.pi, 4.5 * np.pi, 40) - 3.
+    x = np.linspace(0.0, 4 * np.pi, 60) - 3.0
+    y = np.linspace(0.5 * np.pi, 4.5 * np.pi, 40) - 3.0
     # Calculate intensity and error
     mesh_x, mesh_y = np.meshgrid(x, y, sparse=False, indexing="ij")
     intensity = np.abs(np.sin(mesh_x) + np.cos(mesh_y))
@@ -98,10 +100,11 @@ def test_iq2d_data() -> Tuple[Any, Any, Any, Any]:
             error[center_y_index][center_x_index] = np.nan
 
     # mark lower right corner
-    intensity[1, 59] = 8.
+    intensity[1, 59] = 8.0
 
-    assert intensity.shape == (40, 60), f'Expected intensity is 40 row (Qy) and 60 column (Qx) ' \
-                                        f'but not {intensity.shape}'
+    assert intensity.shape == (40, 60), (
+        f"Expected intensity is 40 row (Qy) and 60 column (Qx) " f"but not {intensity.shape}"
+    )
 
     return mesh_x, mesh_y, intensity, error
 
@@ -109,8 +112,8 @@ def test_iq2d_data() -> Tuple[Any, Any, Any, Any]:
 @pytest.mark.parametrize(
     "backend, filename, reference_name",
     [
-        ("mpl", "test_IQazimuthal_1d.png", 'tests/unit/references/gold_IQazimuthal_2d_T.png'),
-        ("d3", "test_IQazimuthal_1d.json", None)
+        ("mpl", "test_IQazimuthal_1d.png", "tests/unit/references/gold_IQazimuthal_2d_T.png"),
+        ("d3", "test_IQazimuthal_1d.json", None),
     ],
     ids=["mpl_test", "d3"],
 )
@@ -140,8 +143,10 @@ def test_IQazimuthal_1d(backend, filename, reference_name, test_iq2d_data):
 
 @pytest.mark.parametrize(
     "backend, filename, reference_name",
-    [("mpl", "test_IQazimuthal_2d.png", 'tests/unit/references/gold_IQazimuthal_2d_T.png'),
-     ("d3", "test_IQazimuthal_2d.json", None)],
+    [
+        ("mpl", "test_IQazimuthal_2d.png", "tests/unit/references/gold_IQazimuthal_2d_T.png"),
+        ("d3", "test_IQazimuthal_2d.json", None),
+    ],
     ids=["mpl", "d3"],
 )
 def test_IQazimuthal_2d(backend, filename, reference_name, test_iq2d_data):
@@ -163,8 +168,10 @@ def test_IQazimuthal_2d(backend, filename, reference_name, test_iq2d_data):
 
 @pytest.mark.parametrize(
     "backend, filename, reference_name",
-    [("mpl", "test_IQazimuthal_2d_T.png", 'tests/unit/references/gold_IQazimuthal_2d_T.png'),
-     ("d3", "test_IQazimuthal_2d_T.json", None)],
+    [
+        ("mpl", "test_IQazimuthal_2d_T.png", "tests/unit/references/gold_IQazimuthal_2d_T.png"),
+        ("d3", "test_IQazimuthal_2d_T.json", None),
+    ],
     ids=["mpl", "d3"],
 )
 def test_IQazimuthal_2d_transposed(backend, filename, reference_name, test_iq2d_data):
@@ -188,7 +195,7 @@ def test_IQazimuthal_2d_transposed(backend, filename, reference_name, test_iq2d_
 @pytest.mark.parametrize(
     "backend, filename, reference_name",
     [
-        ("mpl", "test_IQazimuthal_2d_selections.png", 'tests/unit/references/new_IQazimuthal_2d_selections.png'),
+        ("mpl", "test_IQazimuthal_2d_selections.png", "tests/unit/references/new_IQazimuthal_2d_selections.png"),
         ("d3", "test_IQazimuthal_2d_selections.json", None),
     ],
     ids=["mpl", "d3"],
@@ -221,8 +228,11 @@ def test_IQazimuthal_2d_selections(backend, filename, reference_name, test_iq2d_
 @pytest.mark.parametrize(
     "backend, filename, reference_name",
     [
-        ("mpl", "test_IQazimuthal_2d_asymmetric_wedge.png",
-         'tests/unit/references/new_IQazimuthal_2d_asymmetric_wedge.png'),
+        (
+            "mpl",
+            "test_IQazimuthal_2d_asymmetric_wedge.png",
+            "tests/unit/references/new_IQazimuthal_2d_asymmetric_wedge.png",
+        ),
         ("d3", "test_IQazimuthal_2d_asymmetric_wedge.json", None),
     ],
     ids=["mpl", "d3"],
@@ -238,7 +248,7 @@ def test_IQazimuthal_2d_asymmetric_wedge(backend, filename, reference_name, test
         data,
         filename=filename,
         backend=backend,
-        wedges=[(-35.0, 45.0), (125., 145.)],
+        wedges=[(-35.0, 45.0), (125.0, 145.0)],
         symmetric_wedges=False,
     )
     plt.close()
@@ -253,7 +263,7 @@ def test_IQazimuthal_2d_asymmetric_wedge(backend, filename, reference_name, test
 @pytest.mark.parametrize(
     "backend, filename, reference_name",
     [
-        ("mpl", "test_IQazimuthal_2d_ring.png", 'tests/unit/references/gold_IQazimuthal_2d_ring.png'),
+        ("mpl", "test_IQazimuthal_2d_ring.png", "tests/unit/references/gold_IQazimuthal_2d_ring.png"),
         ("d3", "test_IQazimuthal_2d_ring.json", None),
     ],
     ids=["mpl", "d3"],
@@ -284,7 +294,7 @@ def test_IQazimuthal_2d_ring(backend, filename, reference_name, test_iq2d_data):
 @pytest.mark.parametrize(
     "backend, filename, reference_name",
     [
-        ("mpl", "test_IQazimuthal_2d_ring_T.png", 'tests/unit/references/gold_IQazimuthal_2d_ring.png'),
+        ("mpl", "test_IQazimuthal_2d_ring_T.png", "tests/unit/references/gold_IQazimuthal_2d_ring.png"),
         ("d3", "test_IQazimuthal_2d_ring_T.json", None),
     ],
     ids=["mpl", "d3"],
@@ -313,9 +323,7 @@ def test_IQazimuthal_2d_transposed_ring(backend, filename, reference_name, test_
 )
 def test_detector(backend, filename):
     """Test plotting in detector space from a mantid workspace"""
-    workspace = LoadEmptyInstrument(
-        InstrumentName="CG3"
-    )  # this will load monitors as well
+    workspace = LoadEmptyInstrument(InstrumentName="CG3")  # this will load monitors as well
     plot_detector(workspace, filename, backend)
     plt.close()
     fileCheckAndRemove(filename, False)
@@ -324,9 +332,7 @@ def test_detector(backend, filename):
 def test_xaxis_direction(reference_dir):
     r"""Test values of X-axis in plot_detector decrease when looking at the picture from left to right"""
     # wing_detector.nxs contains intensities for the wing detector that can be plotted
-    workspace = LoadNexus(
-        os.path.join(reference_dir.new.sans, "plots", "wing_detector.nxs")
-    )
+    workspace = LoadNexus(os.path.join(reference_dir.new.sans, "plots", "wing_detector.nxs"))
     filename = "test_xaxis_direction.png"
     plot_detector(
         workspace,

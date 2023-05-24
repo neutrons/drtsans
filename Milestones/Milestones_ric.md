@@ -3,7 +3,7 @@
     1. Using the center of mass: Done
     1. Using a User/ predefined funtion: Summer 2019
 
-1. Specify data reduction Log: October 2018 
+1. Specify data reduction Log: October 2018
 
 1. Load File and Calculate transmission: December 2018
 

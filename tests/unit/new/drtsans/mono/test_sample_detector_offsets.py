@@ -35,11 +35,7 @@ def test_zero_offsets(generic_IDF):
     # clean
     os.remove(idf_name)
 
-    print(
-        "TestZeroOffsets: sample detector distance [0] = {}".format(
-            sample_detector_distance(ws, unit="m")
-        )
-    )
+    print("TestZeroOffsets: sample detector distance [0] = {}".format(sample_detector_distance(ws, unit="m")))
 
     # Add sample log
     sample_logs = SampleLogs(ws)
@@ -47,9 +43,7 @@ def test_zero_offsets(generic_IDF):
     sample_logs.insert("Generic:CS:SampleToSi", 71, unit="mm")
 
     # Test method
-    sample_offset, detector_offset = get_sample_detector_offset(
-        ws, "Generic:CS:SampleToSi", 0.071
-    )
+    sample_offset, detector_offset = get_sample_detector_offset(ws, "Generic:CS:SampleToSi", 0.071)
 
     # Verify: sample_offset = detector_offset = 0. as expecgted
     assert sample_offset == pytest.approx(0, 1e-12)
@@ -92,9 +86,7 @@ def test_non_zero_offsets(generic_IDF):
     sample_logs.insert("Generic:CS:SampleToSi", 75.32, unit="mm")
 
     # Test method
-    sample_offset, detector_offset = get_sample_detector_offset(
-        ws, "Generic:CS:SampleToSi", 0.071
-    )
+    sample_offset, detector_offset = get_sample_detector_offset(ws, "Generic:CS:SampleToSi", 0.071)
 
     # Verify
     assert sample_offset == pytest.approx(-4.32 * 1e-3, 1e-12)
@@ -129,11 +121,7 @@ def test_overwrite_sample_si_distance(generic_IDF):
 
     # Set up sample logs
     sdd = sample_detector_distance(ws, unit="m")
-    print(
-        "TestOverwriteSampleSiDistance: sample detector distance [1] = {} meter".format(
-            sdd
-        )
-    )
+    print("TestOverwriteSampleSiDistance: sample detector distance [1] = {} meter".format(sdd))
 
     # Add sample log
     sample_logs = SampleLogs(ws)
@@ -187,11 +175,7 @@ def test_overwrite_sample_detector_distance(generic_IDF):
 
     # Set up sample logs
     sdd = sample_detector_distance(ws, unit="m")
-    print(
-        "TestOverwriteSampleDetectorDistance: sample detector distance [1] = {} meter".format(
-            sdd
-        )
-    )
+    print("TestOverwriteSampleDetectorDistance: sample detector distance [1] = {} meter".format(sdd))
 
     # Add sample log
     sample_logs = SampleLogs(ws)
@@ -243,11 +227,7 @@ def test_overwrite_both_distance(generic_IDF):
 
     # Set up sample logs
     sdd = sample_detector_distance(ws, unit="m")
-    print(
-        "TestOverwriteSampleDetectorDistance: sample detector distance [1] = {} meter".format(
-            sdd
-        )
-    )
+    print("TestOverwriteSampleDetectorDistance: sample detector distance [1] = {} meter".format(sdd))
 
     # Add sample log
     sample_logs = SampleLogs(ws)

@@ -14,6 +14,7 @@ from tests.unit.new.drtsans.i_of_q_binning_tests_data import (
 # DEV - Wenduo Zhou <zhouw@ornl.gov>
 # SME - William Heller <hellerwt@ornl.gov>
 
+
 # Some tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
 def no_more_supported_test_log_bins_backward_compatible():
     """Test log bins determination with 'old' API
@@ -122,22 +123,14 @@ def test_example1():
     n_bins_per_decade = 10
 
     # Test drtsans.determine_bins.determine_1d_log_bins
-    test_bins = determine_1d_log_bins(
-        q_min, q_max, decade_on_center=True, n_bins_per_decade=n_bins_per_decade
-    )
+    test_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=True, n_bins_per_decade=n_bins_per_decade)
 
     # verify bin center
-    np.testing.assert_allclose(
-        test_bins.centers, expected_log_bin_example1[:, 1], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.centers, expected_log_bin_example1[:, 1], rtol=1e-7, atol=1e-6)
     # verify bin boundaries min
-    np.testing.assert_allclose(
-        test_bins.edges[:-1], expected_log_bin_example1[:, 0], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.edges[:-1], expected_log_bin_example1[:, 0], rtol=1e-7, atol=1e-6)
     # verify bin boundaries max
-    np.testing.assert_allclose(
-        test_bins.edges[1:], expected_log_bin_example1[:, 2], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.edges[1:], expected_log_bin_example1[:, 2], rtol=1e-7, atol=1e-6)
 
 
 # Tests are from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/643
@@ -182,22 +175,14 @@ def test_example2():
     n_bins_per_decade = 10
 
     # Test drtsans.determine_bins.determine_1d_log_bins
-    test_bins = determine_1d_log_bins(
-        q_min, q_max, decade_on_center=False, n_bins_per_decade=n_bins_per_decade
-    )
+    test_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False, n_bins_per_decade=n_bins_per_decade)
 
     # verify bin center
-    np.testing.assert_allclose(
-        test_bins.centers, expected_log_bin_example2[:, 1], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.centers, expected_log_bin_example2[:, 1], rtol=1e-7, atol=1e-6)
     # verify bin boundaries min
-    np.testing.assert_allclose(
-        test_bins.edges[:-1], expected_log_bin_example2[:, 0], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.edges[:-1], expected_log_bin_example2[:, 0], rtol=1e-7, atol=1e-6)
     # verify bin boundaries max
-    np.testing.assert_allclose(
-        test_bins.edges[1:], expected_log_bin_example2[:, 2], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.edges[1:], expected_log_bin_example2[:, 2], rtol=1e-7, atol=1e-6)
 
 
 # Tests are from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/643
@@ -258,22 +243,14 @@ def test_example3():
     n_bins = 30
 
     # Test drtsans.determine_bins.determine_1d_log_bins
-    test_bins = determine_1d_log_bins(
-        q_min, q_max, decade_on_center=False, n_bins_per_decade=None, n_bins=n_bins
-    )
+    test_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False, n_bins_per_decade=None, n_bins=n_bins)
 
     # verify bin center
-    np.testing.assert_allclose(
-        test_bins.centers, expected_log_bin_example3[:, 1], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.centers, expected_log_bin_example3[:, 1], rtol=1e-7, atol=1e-6)
     # verify bin boundaries min
-    np.testing.assert_allclose(
-        test_bins.edges[:-1], expected_log_bin_example3[:, 0], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.edges[:-1], expected_log_bin_example3[:, 0], rtol=1e-7, atol=1e-6)
     # verify bin boundaries max
-    np.testing.assert_allclose(
-        test_bins.edges[1:], expected_log_bin_example3[:, 2], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.edges[1:], expected_log_bin_example3[:, 2], rtol=1e-7, atol=1e-6)
 
 
 # Tests are from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/643
@@ -334,22 +311,14 @@ def test_example4():
     n_bins = 30
 
     # Test drtsans.determine_bins.determine_1d_log_bins
-    test_bins = determine_1d_log_bins(
-        q_min, q_max, decade_on_center=False, n_bins_per_decade=None, n_bins=n_bins
-    )
+    test_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False, n_bins_per_decade=None, n_bins=n_bins)
 
     # verify bin center
-    np.testing.assert_allclose(
-        test_bins.centers, expected_log_bin_example4[:, 1], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.centers, expected_log_bin_example4[:, 1], rtol=1e-7, atol=1e-6)
     # verify bin boundaries min
-    np.testing.assert_allclose(
-        test_bins.edges[:-1], expected_log_bin_example4[:, 0], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.edges[:-1], expected_log_bin_example4[:, 0], rtol=1e-7, atol=1e-6)
     # verify bin boundaries max
-    np.testing.assert_allclose(
-        test_bins.edges[1:], expected_log_bin_example4[:, 2], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.edges[1:], expected_log_bin_example4[:, 2], rtol=1e-7, atol=1e-6)
 
 
 # Tests are from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/643
@@ -403,22 +372,14 @@ def test_example5():
     n_bins_per_decade = 10
 
     # Test drtsans.determine_bins.determine_1d_log_bins
-    test_bins = determine_1d_log_bins(
-        q_min, q_max, decade_on_center=False, n_bins_per_decade=n_bins_per_decade
-    )
+    test_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False, n_bins_per_decade=n_bins_per_decade)
 
     # verify bin center
-    np.testing.assert_allclose(
-        test_bins.centers, expected_log_bin_example5[:, 1], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.centers, expected_log_bin_example5[:, 1], rtol=1e-7, atol=1e-6)
     # verify bin boundaries min
-    np.testing.assert_allclose(
-        test_bins.edges[:-1], expected_log_bin_example5[:, 0], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.edges[:-1], expected_log_bin_example5[:, 0], rtol=1e-7, atol=1e-6)
     # verify bin boundaries max
-    np.testing.assert_allclose(
-        test_bins.edges[1:], expected_log_bin_example5[:, 2], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bins.edges[1:], expected_log_bin_example5[:, 2], rtol=1e-7, atol=1e-6)
 
 
 # A unit test from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/599
@@ -434,17 +395,13 @@ def test_issue599():
     logqmax = np.log10(q_max)
     logqmin = delta * np.floor(logqmin / delta)
     expected_values = 10 ** np.arange(logqmin, logqmax + delta * 0.999999, delta)
-    test_bin = determine_1d_log_bins(
-        q_min, q_max, n_bins_per_decade=n_bins_per_decade, decade_on_center=True
-    )
+    test_bin = determine_1d_log_bins(q_min, q_max, n_bins_per_decade=n_bins_per_decade, decade_on_center=True)
 
     # verify that the Q min and Q max are in first and last bin
     assert test_bin.edges[0] < q_min < test_bin.edges[1]
     assert test_bin.edges[-1] > q_max > test_bin.edges[-2]
     # very bin centers with expected data
-    np.testing.assert_allclose(
-        test_bin.centers, expected_values[1:], rtol=1e-7, atol=1e-6
-    )
+    np.testing.assert_allclose(test_bin.centers, expected_values[1:], rtol=1e-7, atol=1e-6)
 
 
 if __name__ == "__main__":

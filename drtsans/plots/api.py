@@ -123,9 +123,7 @@ def _q_label(backend, subscript=""):
         return label + " (1/{})".format("\u212B")
 
 
-def plot_IQmod(
-    workspaces, filename, loglog=True, backend="d3", errorbar_kwargs={}, **kwargs
-):
+def plot_IQmod(workspaces, filename, loglog=True, backend="d3", errorbar_kwargs={}, **kwargs):
     """Save a plot representative of the supplied workspaces
 
     Parameters
@@ -157,9 +155,7 @@ def plot_IQmod(
 
     fig, ax = plt.subplots()
     for n, workspace in enumerate(workspaces):
-        eb, _, _ = ax.errorbar(
-            workspace.mod_q, workspace.intensity, yerr=workspace.error
-        )
+        eb, _, _ = ax.errorbar(workspace.mod_q, workspace.intensity, yerr=workspace.error)
         for key in errorbar_kwargs:
             value = [v.strip() for v in errorbar_kwargs[key].split(",")]
             plt.setp(eb, key, value[min(n, len(value) - 1)])
@@ -207,8 +203,9 @@ def _create_ring_roi(iq2d, q_min, q_max, input_roi) -> np.ndarray:
     return output_roi
 
 
-def _create_wedge_roi(iq2d, wedges, symmetric_wedges: bool,
-                      input_roi: np.ndarray, qx_limit: float = 1e10) -> np.ndarray:
+def _create_wedge_roi(
+    iq2d, wedges, symmetric_wedges: bool, input_roi: np.ndarray, qx_limit: float = 1e10
+) -> np.ndarray:
     """Create ROI matrix with
 
     Parameters
@@ -238,17 +235,13 @@ def _create_wedge_roi(iq2d, wedges, symmetric_wedges: bool,
     # expand the supplied variables into an easier form
     # get validated wedge in groups and flatten it to list of wedge angles
     wedge_angles = validate_wedges_groups(wedges, symmetric_wedges)
-    wedge_angles = [
-        wedge_angle for wedges_group in wedge_angles for wedge_angle in wedges_group
-    ]
+    wedge_angles = [wedge_angle for wedges_group in wedge_angles for wedge_angle in wedges_group]
 
     # create the individual selections and combine with 'or'
     # Note: qx is in [[qx0, qx0, qx0, ...], [qx1, qx1, qx1, ...], ...]
     #       qy is in [[qy0, qy1, qy2, ...], [qy0, qy1, qy2, ...], ...]
     # this is transposed comparing to how Qx and Qy is plotted for the output
-    azimuthal = np.rad2deg(
-        np.arctan2(iq2d.qy, iq2d.qx)
-    )
+    azimuthal = np.rad2deg(np.arctan2(iq2d.qy, iq2d.qx))
     # Try 1azimuthal = np.rad2deg(np.arctan2(workspace.qx, workspace.qy))
     azimuthal[azimuthal <= -90.0] += 360.0
     for lower_boundary_angle, upper_boundary_angle in wedge_angles:
@@ -279,7 +272,7 @@ def _require_transpose_intensity(iq2d) -> bool:
         # Qx have identical among rows:
         if qy2d.shape[1] > 1:
             # sanity check
-            assert (np.sum(qy2d[:, 0] == qy2d[:, 1]) == qy2d.shape[0]), "Qy shall have identical columns"
+            assert np.sum(qy2d[:, 0] == qy2d[:, 1]) == qy2d.shape[0], "Qy shall have identical columns"
     else:
         # I(Qx, Qy) is transposed to meshgrid(Qx, Qy)
         transpose_flag = True
@@ -439,9 +432,7 @@ def plot_detector(
     for i_detector, detector_name in enumerate(detector_names):
         collection = TubeCollection(workspace, detector_name)
         collection = collection.sorted(view="fbfb")
-        data = np.sum(
-            np.array([tube.readY for tube in collection]), axis=-1
-        )  # sum intensities for each pixel
+        data = np.sum(np.array([tube.readY for tube in collection]), axis=-1)  # sum intensities for each pixel
         if isinstance(imshow_kwargs.get("norm", None), LogNorm) is True:
             data[data < 1e-10] = 1e-10  # no negative values when doing a logarithm plot
         mask = np.array([tube.isMasked for tube in collection])
@@ -449,9 +440,7 @@ def plot_detector(
         # Add subfigure
         axis = fig.add_subplot(len(detector_names), 1, i_detector + 1)
         if axes_mode == "tube-pixel":
-            image = axis.imshow(
-                np.transpose(data), aspect="auto", origin="lower", **imshow_kwargs
-            )
+            image = axis.imshow(np.transpose(data), aspect="auto", origin="lower", **imshow_kwargs)
             axis_properties = {
                 "set_xlabel": "tube",
                 "set_ylabel": "pixel",
@@ -465,9 +454,7 @@ def plot_detector(
             # Append the "right" side of the last tube
             x.append(collection[-1].x_boundaries[1] * np.ones(n_pixels + 1))
             x = np.array(x)
-            axis.set_xlim(
-                max(x.ravel()), min(x.ravel())
-            )  # X-axis should plot from larger to smaller values
+            axis.set_xlim(max(x.ravel()), min(x.ravel()))  # X-axis should plot from larger to smaller values
             y = [tube.pixel_y_boundaries for tube in collection]
             y.append(collection[-1].pixel_y_boundaries)
             y = np.array(y)
@@ -479,9 +466,7 @@ def plot_detector(
                 "set_title": f"{detector_name}",
             }
         else:
-            raise ValueError(
-                'Unrecognized axes_mode. Valid options are "tube-pixel" and "xy"'
-            )
+            raise ValueError('Unrecognized axes_mode. Valid options are "tube-pixel" and "xy"')
         image.cmap.set_bad(alpha=0.5)
         [getattr(axis, prop)(value) for prop, value in axis_properties.items()]
         fig.colorbar(image, ax=axis)

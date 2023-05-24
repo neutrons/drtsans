@@ -30,8 +30,8 @@ def _calculate_neutron_drop(path_length, wavelength):
     neutron_mass = constants.neutron_mass
     gravity = constants.g
     h_planck = constants.Planck
-    y_drop = (gravity * neutron_mass ** 2 / (2.0 * h_planck ** 2)) * path_length ** 2
-    return wavelength ** 2 * y_drop
+    y_drop = (gravity * neutron_mass**2 / (2.0 * h_planck**2)) * path_length**2
+    return wavelength**2 * y_drop
 
 
 def _beam_center_gravitational_drop(
@@ -137,33 +137,21 @@ def find_beam_center(
 
     # get the distance to center of the main and wing detectors
     if sample_det_cent_main_detector is None or sample_det_cent_main_detector == 0.0:
-        sample_det_cent_main_detector = (
-            ws.getInstrument().getComponentByName("detector1").getPos().norm()
-        )
+        sample_det_cent_main_detector = ws.getInstrument().getComponentByName("detector1").getPos().norm()
 
     if sample_det_cent_wing_detector is None or sample_det_cent_wing_detector == 0.0:
-        sample_det_cent_wing_detector = (
-            ws.getInstrument().getComponentByName("wing_detector").getPos().norm()
-        )
+        sample_det_cent_wing_detector = ws.getInstrument().getComponentByName("wing_detector").getPos().norm()
         if sample_det_cent_wing_detector == 0.0:
             try:  # old IDF
-                sample_det_cent_wing_detector = (
-                    ws.getInstrument().getComponentByName("wing_tube_0").getPos().norm()
-                )
+                sample_det_cent_wing_detector = ws.getInstrument().getComponentByName("wing_tube_0").getPos().norm()
             except AttributeError:  # new IDF
-                sample_det_cent_wing_detector = (
-                    ws.getInstrument().getComponentByName("bank49").getPos().norm()
-                )
+                sample_det_cent_wing_detector = ws.getInstrument().getComponentByName("bank49").getPos().norm()
 
     center_y_wing = _beam_center_gravitational_drop(
         ws, center_y, sample_det_cent_main_detector, sample_det_cent_wing_detector
     )
 
-    logger.information(
-        "Beam Center: x={:.3} y={:.3} y_gravity={:.3}.".format(
-            center_x, center_y, center_y_wing
-        )
-    )
+    logger.information("Beam Center: x={:.3} y={:.3} y_gravity={:.3}.".format(center_x, center_y, center_y_wing))
     return center_x, center_y, center_y_wing, fit_results
 
 

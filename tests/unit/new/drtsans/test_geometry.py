@@ -35,27 +35,21 @@ def wss():
 def test_source_sample_distance(wss):
     for v in wss.values():
         if v is not None:
-            assert geo.source_sample_distance(v["ws"]) == pytest.approx(
-                v["ssd"], rel=0.01
-            )
+            assert geo.source_sample_distance(v["ws"]) == pytest.approx(v["ssd"], rel=0.01)
 
 
 @pytest.mark.offline
 def test_sample_detector_distance(wss):
     for v in wss.values():
         if v is not None:
-            assert geo.sample_detector_distance(v["ws"]) == pytest.approx(
-                v["sdd"], rel=0.01
-            )
+            assert geo.sample_detector_distance(v["ws"]) == pytest.approx(v["sdd"], rel=0.01)
 
 
 @pytest.mark.offline
 def test_source_detector_distance(wss):
     for v in wss.values():
         if v is not None:
-            assert geo.source_detector_distance(v["ws"]) == pytest.approx(
-                v["ssd"] + v["sdd"], rel=0.01
-            )
+            assert geo.source_detector_distance(v["ws"]) == pytest.approx(v["ssd"] + v["sdd"], rel=0.01)
 
 
 def test_detector_translation():
@@ -71,22 +65,13 @@ def test_detector_translation():
         component_detector = instrument.getComponentByName(detector_name)
         component_bank = instrument.getComponentByName("bank42")
         component_detector = instrument.getDetector(42)
-        initial_positions = [
-            c.getPos() for c in (component_detector, component_bank, component_detector)
-        ]
+        initial_positions = [c.getPos() for c in (component_detector, component_bank, component_detector)]
         MoveInstrumentComponent(
-            workspace,
-            ComponentName=detector_name,
-            RelativePosition=True,
-            **dict(zip(("X", "Y", "Z"), translation))
+            workspace, ComponentName=detector_name, RelativePosition=True, **dict(zip(("X", "Y", "Z"), translation))
         )
-        final_positions = [
-            c.getPos() for c in (component_detector, component_bank, component_detector)
-        ]
+        final_positions = [c.getPos() for c in (component_detector, component_bank, component_detector)]
         for i, final_position in enumerate(final_positions):
-            assert final_position == pytest.approx(
-                np.array(initial_positions[i]) + translation, abs=1e-4
-            )
+            assert final_position == pytest.approx(np.array(initial_positions[i]) + translation, abs=1e-4)
         workspace.delete()
 
 
@@ -100,9 +85,7 @@ def test_detector_translation():
     ],
 )
 def test_bank_detector_ids(instrument, component, detmin, detmax):
-    wksp = LoadEmptyInstrument(
-        InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername()
-    )
+    wksp = LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername())
     num_detectors = detmax - detmin + 1
 
     # None test
@@ -130,9 +113,7 @@ def test_bank_detector_ids(instrument, component, detmin, detmax):
     ],
 )
 def test_bank_workspace_indices(instrument, component, wksp_index_min, wksp_index_max):
-    wksp = LoadEmptyInstrument(
-        InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername()
-    )
+    wksp = LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername())
 
     wksp_indices = geo.bank_workspace_index_range(wksp, component)
     assert wksp_indices[0] >= 0
@@ -176,9 +157,7 @@ def test_pixel_centers(workspace_with_instrument):
         output_workspace=input_workspace,
     )
     pixel_positions = geo.pixel_centers(input_workspace, [0, 1, 2, 3])
-    expected = 1.0e-03 * np.array(
-        [[10, -20, 0.0], [10, 0, 0.0], [-10, -20, 0.0], [-10, 0, 0.0]]
-    )  # in meters
+    expected = 1.0e-03 * np.array([[10, -20, 0.0], [10, 0, 0.0], [-10, -20, 0.0], [-10, 0, 0.0]])  # in meters
     assert pixel_positions == pytest.approx(expected)
 
 
@@ -195,9 +174,7 @@ def test_logged_smearing_pixel_size(workspace_with_instrument):
         ["smearingPixelSizeX", "smearingPixelSizeY"],
         ["m", "m"],
     )
-    AddSampleLogMultiple(
-        Workspace=workspace, LogNames=names, LogValues=values, LogUnits=units
-    )
+    AddSampleLogMultiple(Workspace=workspace, LogNames=names, LogValues=values, LogUnits=units)
     # the order of `logged_values` should be the same as that of `values`
     logged_values = geo.logged_smearing_pixel_size(workspace)
     assert logged_values == pytest.approx(logged_values)
@@ -206,13 +183,9 @@ def test_logged_smearing_pixel_size(workspace_with_instrument):
 def test_sample_aperture_diameter(serve_events_workspace, reference_dir):
     input_workspace = serve_events_workspace("EQSANS_92353.nxs.h5")
     # diameter is retrieved from log 'beamslit4', and we convert the 10mm into 0.01 meters
-    assert geo.sample_aperture_diameter(input_workspace, unit="m") == pytest.approx(
-        0.01, abs=0.1
-    )
+    assert geo.sample_aperture_diameter(input_workspace, unit="m") == pytest.approx(0.01, abs=0.1)
     # verify entry 'sample_aperture_diameter' has been added to the logs
-    assert SampleLogs(input_workspace).single_value(
-        "sample_aperture_diameter"
-    ) == pytest.approx(10.0, abs=0.1)
+    assert SampleLogs(input_workspace).single_value("sample_aperture_diameter") == pytest.approx(10.0, abs=0.1)
     # test a run containing "sample_aperture_radius" instead of "sample_aperture_diameter"
     workspace = LoadEventNexus(
         Filename=path_join(reference_dir.new.gpsans, "geometry", "CG2_1338.nxs.h5"),
@@ -220,9 +193,7 @@ def test_sample_aperture_diameter(serve_events_workspace, reference_dir):
         MetaDataOnly=True,
         LoadLogs=True,
     )
-    assert geo.sample_aperture_diameter(workspace, unit="mm") == pytest.approx(
-        14.0, abs=0.1
-    )
+    assert geo.sample_aperture_diameter(workspace, unit="mm") == pytest.approx(14.0, abs=0.1)
     workspace.delete()
 
 
@@ -234,9 +205,7 @@ def test_source_aperture_diameter(reference_dir):
         MetaDataOnly=True,
         LoadLogs=True,
     )
-    assert geo.source_aperture_diameter(workspace, unit="mm") == pytest.approx(
-        40.0, abs=0.1
-    )
+    assert geo.source_aperture_diameter(workspace, unit="mm") == pytest.approx(40.0, abs=0.1)
     workspace.delete()
 
 
@@ -249,9 +218,7 @@ def test_translate_source_by_z(reference_dir):
         LoadLogs=True,
     )
     geo.translate_source_by_z(workspace)
-    assert workspace.getInstrument().getComponentByName(
-        "moderator"
-    ).getPos().Z() == pytest.approx(-7.283, abs=0.1)
+    assert workspace.getInstrument().getComponentByName("moderator").getPos().Z() == pytest.approx(-7.283, abs=0.1)
 
 
 @pytest.mark.parametrize(
@@ -263,9 +230,7 @@ def test_translate_source_by_z(reference_dir):
     ],
 )
 def test_nominal_pixel_size(instrument, pixel_size):
-    workspace = LoadEmptyInstrument(
-        InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername()
-    )
+    workspace = LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername())
     assert geo.nominal_pixel_size(workspace) == pytest.approx(pixel_size, abs=1.0e-04)
     workspace.delete()
 

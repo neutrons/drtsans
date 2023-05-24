@@ -44,24 +44,18 @@ def set_meta_data(
     """
     # Exception
     if wave_length is not None or wavelength_spread is not None:
-        raise RuntimeError(
-            "Wave length and wave length spread are not allowed to set to EQ-SANS"
-        )
+        raise RuntimeError("Wave length and wave length spread are not allowed to set to EQ-SANS")
 
     # Log value dictionary: 3-tuple (log name, log value, unit)
     meta_data_list = list()
 
     # Add the sample log dictionary to add
     if sample_aperture_diameter is not None:
-        meta_data_list.append(
-            ("sample_aperture_diameter", sample_aperture_diameter, "mm")
-        )
+        meta_data_list.append(("sample_aperture_diameter", sample_aperture_diameter, "mm"))
 
     # Source aperture radius
     if source_aperture_diameter is not None:
-        meta_data_list.append(
-            ("source_aperture_diameter", source_aperture_diameter, "mm")
-        )
+        meta_data_list.append(("source_aperture_diameter", source_aperture_diameter, "mm"))
 
     # Sample offset
     meta_data_list.append(("sample_offset", sample_offset, "mm"))
@@ -78,8 +72,7 @@ def set_meta_data(
         pass
     else:
         raise RuntimeError(
-            "Pixel size X ({}) and Y ({}) must be set together"
-            "".format(smearing_pixel_size_x, smearing_pixel_size_y)
+            "Pixel size X ({}) and Y ({}) must be set together" "".format(smearing_pixel_size_x, smearing_pixel_size_y)
         )
 
     # Add log value

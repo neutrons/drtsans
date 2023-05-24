@@ -11,25 +11,15 @@ class Detector:
 
     def __init__(self, workspace, component_name):
         self._workspace = workspace
-        self._current_start_ws_index = (
-            None  # first workspace index of the currently considered tube
-        )
-        self._current_stop_ws_index = (
-            None  # last workspace index of the currently considered tube
-        )
-        self._tube_ws_indices = (
-            None  # iterator for tube endpoints, given as workspace indexes
-        )
+        self._current_start_ws_index = None  # first workspace index of the currently considered tube
+        self._current_stop_ws_index = None  # last workspace index of the currently considered tube
+        self._tube_ws_indices = None  # iterator for tube endpoints, given as workspace indexes
 
         # Public variables
-        self.component_name = (
-            None  # name of the assembly of pixels making up the Detector
-        )
+        self.component_name = None  # name of the assembly of pixels making up the Detector
         self.n_tubes = None  # number of tubes in the detector
         self.n_pixels_per_tube = None
-        self.first_det_id = (
-            None  # pixel ID for first pixel detector that is not a monitor
-        )
+        self.first_det_id = None  # pixel ID for first pixel detector that is not a monitor
         self.last_det_id = None  # pixel ID for last pixel detector
         self.detector_id_to_ws_index = None  # mapping from pixel ID to workspace index
         self.data_y = None
@@ -57,10 +47,7 @@ class Detector:
         component = i.getComponentByName(component_name)
         num_pixels = 1
         # dive into subelements until get a detector
-        while (
-            component.type() != "DetectorComponent"
-            and component.type() != "GridDetectorPixel"
-        ):
+        while component.type() != "DetectorComponent" and component.type() != "GridDetectorPixel":
             self.n_pixels_per_tube = component.nelements()
             num_pixels *= self.n_pixels_per_tube
             component = component[0]
@@ -79,9 +66,7 @@ class Detector:
         for ws_index in range(self._workspace.getNumberHistograms()):
             if spectrum_info.isMonitor(ws_index) is True:
                 continue
-            detector_id_to_index.append(
-                (self._workspace.getSpectrum(ws_index).getDetectorIDs()[0], ws_index)
-            )
+            detector_id_to_index.append((self._workspace.getSpectrum(ws_index).getDetectorIDs()[0], ws_index))
         self.detector_id_to_ws_index = OrderedDict(detector_id_to_index)
 
     def _extract_data(self):
@@ -100,28 +85,18 @@ class Detector:
         """
         tube_ws_indices = []
         for tube_idx in range(self.n_tubes):
-            first_det_id = (
-                self.first_det_id + tube_idx * self.n_pixels_per_tube
-            )  # tube starts with this pixel ID
-            last_det_id = (
-                first_det_id + self.n_pixels_per_tube - 1
-            )  # tube ends with this pixel ID
+            first_det_id = self.first_det_id + tube_idx * self.n_pixels_per_tube  # tube starts with this pixel ID
+            last_det_id = first_det_id + self.n_pixels_per_tube - 1  # tube ends with this pixel ID
 
-            first_ws_index = self.detector_id_to_ws_index[
-                first_det_id
-            ]  # tube starts with this workspace index
-            last_ws_index = self.detector_id_to_ws_index[
-                last_det_id
-            ]  # tube ends with this workspace index
+            first_ws_index = self.detector_id_to_ws_index[first_det_id]  # tube starts with this workspace index
+            last_ws_index = self.detector_id_to_ws_index[last_det_id]  # tube ends with this workspace index
 
             tube_ws_indices.append((first_ws_index, last_ws_index))
         self._tube_ws_indices = iter(tube_ws_indices)  # return an iterator
 
     def next_tube(self):
         r"""Initializes/ updates attributes ``_current_start_ws_index`` and ``_current_stop_ws_index``"""
-        self._current_start_ws_index, self._current_stop_ws_index = next(
-            self._tube_ws_indices
-        )
+        self._current_start_ws_index, self._current_stop_ws_index = next(self._tube_ws_indices)
 
     def get_current_ws_indices(self):
         r"""
@@ -142,9 +117,7 @@ class Detector:
         ~numpy.ndarray
         """
 
-        return np.array(
-            range(self._current_start_ws_index, self._current_stop_ws_index + 1)
-        )
+        return np.array(range(self._current_start_ws_index, self._current_stop_ws_index + 1))
 
     def get_ws_data(self):
         r"""
@@ -156,12 +129,8 @@ class Detector:
             A two-item tuple containing, in this order, intensites and uncertainties in the shape of ~numpy.ndarray.
         """
         return (
-            self.data_y[
-                self._current_start_ws_index : self._current_stop_ws_index + 1
-            ].flatten(),
-            self.data_e[
-                self._current_start_ws_index : self._current_stop_ws_index + 1
-            ].flatten(),
+            self.data_y[self._current_start_ws_index : self._current_stop_ws_index + 1].flatten(),
+            self.data_e[self._current_start_ws_index : self._current_stop_ws_index + 1].flatten(),
         )
 
     def get_pixels_masked(self):
@@ -174,12 +143,7 @@ class Detector:
             Array of ``Bool`` values, with :py:obj:`True` for the masked pixels and :py:obj:`False` otherwise.
         """
         spectrum_info = self._workspace.spectrumInfo()
-        return np.array(
-            [
-                spectrum_info.isMasked(int(idx))
-                for idx in self.get_current_ws_indices_range()
-            ]
-        )
+        return np.array([spectrum_info.isMasked(int(idx)) for idx in self.get_current_ws_indices_range()])
 
     def get_pixels_infinite(self):
         r"""
@@ -194,10 +158,7 @@ class Detector:
             :py:obj:`False` otherwise.
         """
         return np.array(
-            [
-                self._workspace.readY(int(idx))[0] == Property.EMPTY_DBL
-                for idx in self.get_current_ws_indices_range()
-            ]
+            [self._workspace.readY(int(idx))[0] == Property.EMPTY_DBL for idx in self.get_current_ws_indices_range()]
         )
 
     def get_y_coordinates(self):
@@ -209,12 +170,7 @@ class Detector:
         ~numpy.ndarray
         """
         detector_info = self._workspace.spectrumInfo()
-        return np.array(
-            [
-                detector_info.position(int(idx))[1]
-                for idx in self.get_current_ws_indices_range()
-            ]
-        )
+        return np.array([detector_info.position(int(idx))[1] for idx in self.get_current_ws_indices_range()])
 
 
 class Component:
@@ -259,9 +215,7 @@ class Component:
         component_index = component_info.indexOfAny(self._component_name)
 
         total_pixels = len(component_info.detectorsInSubtree(component_index))
-        tube_index, self.dim_y = self._num_pixels_in_tube(
-            component_info, component_index
-        )
+        tube_index, self.dim_y = self._num_pixels_in_tube(component_info, component_index)
         self.dim_x = total_pixels // self.dim_y
         self.dims = total_pixels
 
@@ -270,16 +224,11 @@ class Component:
     def _detector_first_ws_index(self, first_det_id):
         """sets the first_index of this component"""
         for ws_index in range(self._workspace.getNumberHistograms()):
-            if (
-                self._workspace.getSpectrum(ws_index).getDetectorIDs()[0]
-                == first_det_id
-            ):
+            if self._workspace.getSpectrum(ws_index).getDetectorIDs()[0] == first_det_id:
                 self.first_index = ws_index
                 break
         else:
-            raise ValueError(
-                "Iterared WS and did not find first det id = " "{}".format(first_det_id)
-            )
+            raise ValueError("Iterared WS and did not find first det id = " "{}".format(first_det_id))
 
     def masked_ws_indices(self):
         """
@@ -293,10 +242,7 @@ class Component:
             not for all the component
         """
         si = self._workspace.spectrumInfo()
-        mask_array = [
-            si.isMasked(i)
-            for i in range(self.first_index, self.first_index + self.dim_x * self.dim_y)
-        ]
+        mask_array = [si.isMasked(i) for i in range(self.first_index, self.first_index + self.dim_x * self.dim_y)]
         return np.array(mask_array)
 
     # TODO - Implement!
@@ -310,13 +256,10 @@ class Component:
         return np.array([])
 
     def __str__(self):
-        return (
-            "Component: {} with {} pixels (dim x={}, dim y={})."
-            " First index = {}.".format(
-                self._component_name,
-                self.dims,
-                self.dim_x,
-                self.dim_y,
-                self.first_index,
-            )
+        return "Component: {} with {} pixels (dim x={}, dim y={})." " First index = {}.".format(
+            self._component_name,
+            self.dims,
+            self.dim_x,
+            self.dim_y,
+            self.first_index,
         )

@@ -79,9 +79,7 @@ def calculate_sensitivity_correction(
         # More than 1 bins in spectra: do integration to single bin
         # This is for EQSANS specially
         # output workspace name shall be unique and thus won't overwrite any existing one
-        input_workspace = Integration(
-            InputWorkspace=input_workspace, OutputWorkspace=uwd()
-        )
+        input_workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
         # set flag to delete input workspace later
         delete_input_workspace = True
     else:
@@ -97,27 +95,14 @@ def calculate_sensitivity_correction(
     # Normalize the counts and uncertainty on each pixel by total average counts on detector
     # calculate the number of spectra that is not masked out (i.e., either NaN or -Infinity)
     n_elements = (
-        input_workspace.getNumberHistograms()
-        - np.count_nonzero(np.isnan(y))
-        - np.count_nonzero(np.isneginf(y))
+        input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(y)) - np.count_nonzero(np.isneginf(y))
     )
     # calculate average counts on non-masked spectra
     # F = sum_i^{|N|}(Y_i)/N: i \in spectra such that Y_i is not NaN or -Infinity
-    F = (
-        np.sum([value for value in y if not np.isnan(value) and not np.isneginf(value)])
-        / n_elements
-    )
+    F = np.sum([value for value in y if not np.isnan(value) and not np.isneginf(value)]) / n_elements
     # Calculate the average uncertainties on non-masked spectra
     dF = (
-        np.sqrt(
-            np.sum(
-                [
-                    value ** 2
-                    for value in y_uncertainty
-                    if not np.isnan(value) and not np.isneginf(value)
-                ]
-            )
-        )
+        np.sqrt(np.sum([value**2 for value in y_uncertainty if not np.isnan(value) and not np.isneginf(value)]))
         / n_elements
     )
     # calculate the normalized counts on each pixel by average count
@@ -181,9 +166,7 @@ def calculate_sensitivity_correction(
         # covariance matrix is calculated differently from numpy 1.6
         # Refer to: https://numpy.org/devdocs/release/
         #                   1.16.0-notes.html#the-scaling-of-the-covariance-matrix-in-np-polyfit-is-different
-        polynomial_coeffs, cov_matrix = np.polyfit(
-            xx, yy, poly_order, w=np.array(ee), cov=True
-        )
+        polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, poly_order, w=np.array(ee), cov=True)
 
         # Errors in the least squares is the sqrt of the covariance matrix
         # (correlation between the coefficients)
@@ -207,28 +190,10 @@ def calculate_sensitivity_correction(
     # per Equations A3.13 and A3.14
     # numpy.flatten() used to more easily find the mean and uncertainty using numpy.
     n_elements = (
-        input_workspace.getNumberHistograms()
-        - np.count_nonzero(np.isnan(II))
-        - np.count_nonzero(np.isneginf(II))
+        input_workspace.getNumberHistograms() - np.count_nonzero(np.isnan(II)) - np.count_nonzero(np.isneginf(II))
     )
-    F = (
-        np.sum(
-            [value for value in II if not np.isnan(value) and not np.isneginf(value)]
-        )
-        / n_elements
-    )
-    dF = (
-        np.sqrt(
-            np.sum(
-                [
-                    value ** 2
-                    for value in dI
-                    if not np.isnan(value) and not np.isneginf(value)
-                ]
-            )
-        )
-        / n_elements
-    )
+    F = np.sum([value for value in II if not np.isnan(value) and not np.isneginf(value)]) / n_elements
+    dF = np.sqrt(np.sum([value**2 for value in dI if not np.isnan(value) and not np.isneginf(value)])) / n_elements
     output = II / F
     # propagate uncertainties from covariance matrix to sensitivities' uncertainty
     output_uncertainty = output * np.sqrt(np.square(dI / II) + np.square(dF / F))

@@ -130,9 +130,7 @@ def instrument_label(input_query):
         for instrument_string_label in INSTRUMENT_LABELS:
             if instrument_string_label in name:
                 return instrument_string_label
-    raise RuntimeError(
-        'Instrument name can not be resolved from "{}"'.format(input_query)
-    )
+    raise RuntimeError('Instrument name can not be resolved from "{}"'.format(input_query))
 
 
 def extract_run_number(input_query):
@@ -183,6 +181,4 @@ def is_time_of_flight(input_query):
     -------
     bool
     """
-    return (
-        instrument_enum_name(input_query) is InstrumentEnumName.EQSANS
-    )  # we only have one, for the moment
+    return instrument_enum_name(input_query) is InstrumentEnumName.EQSANS  # we only have one, for the moment

@@ -1,8 +1,8 @@
-<!-- 
+<!--
 	defect.md
 	Version 2.2
 	This is a GitLab Issue description template to be used to create a defect
-	
+
 	Provide a unique descriptive title with "[Defect]"
 		- [Defect] <unique descriptive title>
 

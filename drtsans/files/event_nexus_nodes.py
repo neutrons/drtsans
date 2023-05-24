@@ -80,9 +80,7 @@ class MonitorNode(drtsans.files.hdf5_rw.GroupNode):
 
         # Set pulse time node (event time zero)
         node_name = self._create_child_name("event_time_zero")
-        pulse_time_node = generate_event_time_zero_node(
-            node_name, event_time_zero_array, run_start_time
-        )
+        pulse_time_node = generate_event_time_zero_node(node_name, event_time_zero_array, run_start_time)
         # link to self/its parent
         self.set_child(pulse_time_node)
 
@@ -183,9 +181,7 @@ class BankNode(drtsans.files.hdf5_rw.GroupNode):
         # create child node name with full path
         node_name = self._create_child_name("event_time_zero")
         # create child node for event time zero (pulse time)
-        pulse_time_node = generate_event_time_zero_node(
-            node_name, event_time_zero_array, run_start_time
-        )
+        pulse_time_node = generate_event_time_zero_node(node_name, event_time_zero_array, run_start_time)
         # link to self/its parent
         self.set_child(pulse_time_node)
 
@@ -451,9 +447,7 @@ def calculate_time_offsets(iso_time):
 
     # convert date time in IOS string to datetime instance
     run_start_time = dateutil.parser.parse(iso_time)
-    epoch_time = datetime.datetime(
-        1990, 1, 1, tzinfo=datetime.timezone(datetime.timedelta(0))
-    )
+    epoch_time = datetime.datetime(1990, 1, 1, tzinfo=datetime.timezone(datetime.timedelta(0)))
     # offsets
     time_offset = run_start_time.timestamp() - epoch_time.timestamp()
     time_offset_second = int(time_offset)

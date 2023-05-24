@@ -36,9 +36,7 @@ def test_pixel_calibration(reference_dir, generatecleanfile):
     flood_scan = 4
     flood_pt = 1
 
-    mask_file = os.path.join(
-        reference_dir.new.gpsans, "calibrations/mask_pixel_map.nxs"
-    )
+    mask_file = os.path.join(reference_dir.new.gpsans, "calibrations/mask_pixel_map.nxs")
     assert os.path.exists(mask_file), f"Mask file {mask_file} does not exist"
 
     # Calculate pixel calibration file
@@ -73,9 +71,7 @@ def test_pixel_calibration(reference_dir, generatecleanfile):
         else:
             raise RuntimeError(f"Index = {index} is not defined")
 
-    print(
-        f"Calibraton file {calibration_table_file} of type {type(calibration_table_file)}"
-    )
+    print(f"Calibraton file {calibration_table_file} of type {type(calibration_table_file)}")
     assert os.path.exists(calibration_table_file)
 
     # Get expected data file
@@ -83,9 +79,7 @@ def test_pixel_calibration(reference_dir, generatecleanfile):
         reference_dir.new.gpsans,
         f"calibrations/CG2_Pixel_Calibration_Expected_{last_pt - first_pt + 1}.nxs",
     )
-    assert os.path.exists(
-        expected_calib_nexus
-    ), f"Gold result (file) {expected_calib_nexus} cannot be found."
+    assert os.path.exists(expected_calib_nexus), f"Gold result (file) {expected_calib_nexus} cannot be found."
 
     # Compare 2 NeXus file
     compare_pixel_calibration_files(calibration_table_file, expected_calib_nexus)

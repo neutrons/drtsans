@@ -49,58 +49,40 @@ def show_bar_scan_files(bar_scan_histogram_files, pt_numbers):
         if index % delta != 0:
             continue
         output_workspace = f"Demo_Pt{pt_number:04}"
-        LoadNexus(
-            Filename=bar_scan_histogram_files[index], OutputWorkspace=output_workspace
-        )
+        LoadNexus(Filename=bar_scan_histogram_files[index], OutputWorkspace=output_workspace)
         plot_workspace(output_workspace)
     plt.show()
     plt.savefig("until_and_center.png")
 
 
-def show_calibration_stage0(
-    barscan_dataset, calibration, pt_numbers, flood_nexus_file, database_file
-):
+def show_calibration_stage0(barscan_dataset, calibration, pt_numbers, flood_nexus_file, database_file):
     # Report calibration
     report_tilt(calibration.positions)
 
     print("#####\n\nComparison before and after applying the calibration")
     middle_run = (pt_numbers[0] + pt_numbers[-1]) // 2
-    middle_workspace = "CG2_Exp{}_Scan{}_Pt{}".format(
-        exp_number, scan_number, middle_run
-    )
+    middle_workspace = "CG2_Exp{}_Scan{}_Pt{}".format(exp_number, scan_number, middle_run)
     print(f"Middle Pt workspace: {middle_workspace}")
     if middle_workspace not in mtd:
         # Load middle Pt data if it is not loaded
-        LoadNexus(
-            Filename=barscan_dataset[middle_run], OutputWorkspace=middle_workspace
-        )
+        LoadNexus(Filename=barscan_dataset[middle_run], OutputWorkspace=middle_workspace)
     # LoadNexus(Filename=os.path.join(save_dir, middle_workspace + '.nxs'),
     #           OutputWorkspace=middle_workspace)
     middle_workspace_calibrated = middle_workspace + "_calibrated"
     calibration.apply(middle_workspace, output_workspace=middle_workspace_calibrated)
-    plot_workspace(
-        middle_workspace, axes_mode="xy", prefix="before_calibration_"
-    )  # before calibration
-    plot_workspace(
-        middle_workspace_calibrated, axes_mode="xy", prefix="after_calibration"
-    )  # calibrated
+    plot_workspace(middle_workspace, axes_mode="xy", prefix="before_calibration_")  # before calibration
+    plot_workspace(middle_workspace_calibrated, axes_mode="xy", prefix="after_calibration")  # calibrated
 
     # Load flood file, plot raw and first stage calibration
     flood_base_name = os.path.basename(flood_nexus_file).split(".")[0]
     raw_flood_ws_name = f"demo_raw_flood_{flood_base_name}"
     LoadEventNexus(Filename=flood_nexus_file, OutputWorkspace=raw_flood_ws_name)
-    HFIRSANS2Wavelength(
-        InputWorkspace=raw_flood_ws_name, OutputWorkspace=raw_flood_ws_name
-    )
+    HFIRSANS2Wavelength(InputWorkspace=raw_flood_ws_name, OutputWorkspace=raw_flood_ws_name)
     plot_workspace(raw_flood_ws_name, axes_mode="xy", prefix="Raw Flood")
     # apply calibration and plot again
     calib_flood_ws_name = f"demo_calibrated0_flood_{flood_base_name}"
-    apply_calibrations(
-        raw_flood_ws_name, output_workspace=calib_flood_ws_name, database=database_file
-    )
-    plot_workspace(
-        calib_flood_ws_name, axes_mode="xy", prefix="Calibrated (Step1 0) Flood"
-    )
+    apply_calibrations(raw_flood_ws_name, output_workspace=calib_flood_ws_name, database=database_file)
+    plot_workspace(calib_flood_ws_name, axes_mode="xy", prefix="Calibrated (Step1 0) Flood")
 
     # show
     plt.show()
@@ -116,17 +98,13 @@ def show_calibration_stage1(raw_flood_ws_name, database_file):
     # Plot flood workspace raw and calibrated
     print("#####\n\nCompare applying the calibration to flood (stage 1)")
 
-    calibrated_flood_ws_name = (
-        f'demo_calibrated1_flood_{raw_flood_ws_name.split("flood_")[1]}'
-    )
+    calibrated_flood_ws_name = f'demo_calibrated1_flood_{raw_flood_ws_name.split("flood_")[1]}'
     apply_calibrations(
         raw_flood_ws_name,
         output_workspace=calibrated_flood_ws_name,
         database=database_file,
     )
-    plot_workspace(
-        calibrated_flood_ws_name, axes_mode="xy", prefix="Calibrated (Step 2) Flood"
-    )
+    plot_workspace(calibrated_flood_ws_name, axes_mode="xy", prefix="Calibrated (Step 2) Flood")
 
     print(
         "#####\n\nPlot the linear densities of the tubes before and after calibration.",

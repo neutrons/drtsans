@@ -43,9 +43,7 @@ def beam_flux(reference_dir):
 @pytest.fixture(scope="module")
 def flux_to_monitor(reference_dir):
     r"""Filepath to the flux-to-monitor-ratio file"""
-    return pj(
-        reference_dir.new.eqsans, "test_normalization", "flux_to_monitor_ratio.nxs"
-    )
+    return pj(reference_dir.new.eqsans, "test_normalization", "flux_to_monitor_ratio.nxs")
 
 
 @pytest.fixture(scope="module")
@@ -107,21 +105,15 @@ def test_normalize_by_proton_charge_and_flux(beam_flux, data_ws):
     normalized_total_intensities = SumSpectra(
         normalized_data_workspace, OutputWorkspace=unique_workspace_dundername()
     ).dataY(0)
-    unnormalized_total_intensities = SumSpectra(
-        data_workspace, OutputWorkspace=unique_workspace_dundername()
-    ).dataY(0)
+    unnormalized_total_intensities = SumSpectra(data_workspace, OutputWorkspace=unique_workspace_dundername()).dataY(0)
 
     # Manually normalize the unnormalized_total_intensities and compare to the result from using drtsans
     # normalizing function
     good_proton_charge = SampleLogs(data_workspace).getProtonCharge()
-    manual_normalized_intensities = unnormalized_total_intensities / (
-        flux_workspace.readY(0) * good_proton_charge
-    )
+    manual_normalized_intensities = unnormalized_total_intensities / (flux_workspace.readY(0) * good_proton_charge)
 
     # compare the two spectra don't deviate more than 1%.
-    assert normalized_total_intensities == approx(
-        manual_normalized_intensities, rel=0.01
-    )
+    assert normalized_total_intensities == approx(manual_normalized_intensities, rel=0.01)
 
 
 def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws):
@@ -135,25 +127,17 @@ def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws):
     # wavelength binning as in the file.
     flux_to_monitor_workspace = load_flux_to_monitor_ratio_file(flux_to_monitor)
     # check that the workspace is a histogram (the number of wavelength boundaries is the number of ratios plus one)
-    assert len(flux_to_monitor_workspace.dataX(0)) == 1 + len(
-        flux_to_monitor_workspace.dataY(0)
-    )
+    assert len(flux_to_monitor_workspace.dataX(0)) == 1 + len(flux_to_monitor_workspace.dataY(0))
     # check the number of wavelength bin boundaries is that of the input file.
     assert len(flux_to_monitor_workspace.dataX(0)) == 48664
 
     # Passing the file and a reference workspace to function load_flux_to_monitor_ratio_file will result
     # in a workspace with the wavelength binning as in the reference workspace.
     data_workspace = data_ws["88565"]  # our reference workspace
-    flux_to_monitor_workspace = load_flux_to_monitor_ratio_file(
-        flux_to_monitor, data_workspace=data_workspace
-    )
+    flux_to_monitor_workspace = load_flux_to_monitor_ratio_file(flux_to_monitor, data_workspace=data_workspace)
     # Check the wavelength bin boundaries are those of the reference workspace.
-    assert flux_to_monitor_workspace.dataX(0) == approx(
-        data_workspace.dataX(0), abs=1e-3
-    )
-    assert max(flux_to_monitor_workspace.dataY(0)) == approx(
-        0.569, abs=1e-3
-    )  # a simple check
+    assert flux_to_monitor_workspace.dataX(0) == approx(data_workspace.dataX(0), abs=1e-3)
+    assert max(flux_to_monitor_workspace.dataY(0)) == approx(0.569, abs=1e-3)  # a simple check
 
 
 def test_normalize_by_monitor(flux_to_monitor, data_ws, monitor_ws):
@@ -187,9 +171,7 @@ def test_normalize_by_monitor(flux_to_monitor, data_ws, monitor_ws):
     # Simplified test by checking the intensity integrated over all pixel detectors and over all wavelength bins
     # after normalization
     # First we add the spectrum of all pixels into a single pixel
-    data_workspace_normalized = SumSpectra(
-        data_workspace_normalized, OutputWorkspace=data_workspace_normalized.name()
-    )
+    data_workspace_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=data_workspace_normalized.name())
     # Second we integrate over all wavelength bins and check the value  will not change as the code in the
     # repository evolves
     assert sum(data_workspace_normalized.dataY(0)) == approx(0.621, abs=1e-03)
@@ -204,25 +186,17 @@ def test_normalize_by_time(data_ws):
     data_workspace = data_ws["92353"]  # intensities versus wavelength for run 92353
 
     # use drtsans normalizing function
-    data_workspace_normalized = normalize_by_time(
-        data_workspace, output_workspace=unique_workspace_dundername()
-    )
+    data_workspace_normalized = normalize_by_time(data_workspace, output_workspace=unique_workspace_dundername())
 
     # check we looked log entry 'duration' in order to find out the time duration of the run
-    assert (
-        SampleLogs(data_workspace_normalized).normalizing_duration.value == "duration"
-    )
-    run_duration = SampleLogs(
-        data_workspace_normalized
-    ).duration.value  # run duration, in seconds
+    assert SampleLogs(data_workspace_normalized).normalizing_duration.value == "duration"
+    run_duration = SampleLogs(data_workspace_normalized).duration.value  # run duration, in seconds
     assert run_duration == pytest.approx(101.8, abs=0.1)
 
     # Simplified test by checking the intensity integrated over all pixel detectors and over all wavelength bins
     # after normalization
     # First we add the spectrum of all pixels into a single pixel
-    data_workspace_normalized = SumSpectra(
-        data_workspace_normalized, OutputWorkspace=data_workspace_normalized.name()
-    )
+    data_workspace_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=data_workspace_normalized.name())
     # Second we integrate over all wavelength bins and check the value will not change as the code in the repository
     # evolves
     assert sum(data_workspace_normalized.dataY(0)) == approx(2560.5, abs=1.0)
@@ -246,35 +220,20 @@ def test_normalize_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
         output_workspace=unique_workspace_dundername(),
     )
     # we carry a simplified test whereby we will sum all pixel-detector spectra into a single spectrum
-    summed_normalized = SumSpectra(
-        data_workspace_normalized, OutputWorkspace=unique_workspace_dundername()
-    )
-    summed_normalized_intensities = summed_normalized.readY(
-        0
-    )  # there's only one spectrum, that with index 0
+    summed_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=unique_workspace_dundername())
+    summed_normalized_intensities = summed_normalized.readY(0)  # there's only one spectrum, that with index 0
 
     # Compare the output of calling function "normalize_by_flux" to a "manual" normalization by carrying out the
     # individual normalizing steps one after the other.
-    flux_workspace = load_beam_flux_file(
-        beam_flux, data_workspace=data_workspace
-    )  # first load the flux file
-    proton_charge = SampleLogs(
-        data_workspace
-    ).getProtonCharge()  # find the proton charge
+    flux_workspace = load_beam_flux_file(beam_flux, data_workspace=data_workspace)  # first load the flux file
+    proton_charge = SampleLogs(data_workspace).getProtonCharge()  # find the proton charge
     summed = SumSpectra(data_workspace, OutputWorkspace=unique_workspace_dundername())
-    manual_summed_normalized_intensities = summed.readY(0) / (
-        flux_workspace.readY(0) * proton_charge
-    )
+    manual_summed_normalized_intensities = summed.readY(0) / (flux_workspace.readY(0) * proton_charge)
 
     # compare now output of calling function "normalize_by_flux" to the "manual" normalization
-    assert summed_normalized_intensities == pytest.approx(
-        manual_summed_normalized_intensities, rel=0.001
-    )
+    assert summed_normalized_intensities == pytest.approx(manual_summed_normalized_intensities, rel=0.001)
 
-    [
-        ws.delete()
-        for ws in [data_workspace_normalized, flux_workspace, summed, summed_normalized]
-    ]  # clean-up
+    [ws.delete() for ws in [data_workspace_normalized, flux_workspace, summed, summed_normalized]]  # clean-up
 
     #
     # Second we normalize by monitor and flux-to-monitor ratio with method='monitor'
@@ -288,9 +247,7 @@ def test_normalize_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
         output_workspace=unique_workspace_dundername(),
     )
     # we carry a simplified test whereby we will sum all pixel-detector spectra into a single spectrum
-    summed_normalized = SumSpectra(
-        data_workspace_normalized, OutputWorkspace=unique_workspace_dundername()
-    )
+    summed_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=unique_workspace_dundername())
     # then we integrate this single spectrum over all wavelengths
     total_normalized_intensity = sum(summed_normalized.readY(0))
     # here we just check that the result will not change as the code in the repository evolves
@@ -311,20 +268,14 @@ def test_normalize_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
     )
 
     # check we looked log entry 'duration' in order to find out the time duration of the run
-    assert (
-        SampleLogs(data_workspace_normalized).normalizing_duration.value == "duration"
-    )
-    run_duration = SampleLogs(
-        data_workspace_normalized
-    ).duration.value  # run duration, in seconds
+    assert SampleLogs(data_workspace_normalized).normalizing_duration.value == "duration"
+    run_duration = SampleLogs(data_workspace_normalized).duration.value  # run duration, in seconds
     assert run_duration == pytest.approx(101.8, abs=0.1)
 
     # Simplified test by checking the intensity integrated over all pixel detectors and over all wavelength bins
     # after normalization
     # First we add the spectrum of all pixels into a single pixel
-    data_workspace_normalized = SumSpectra(
-        data_workspace_normalized, OutputWorkspace=data_workspace_normalized.name()
-    )
+    data_workspace_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=data_workspace_normalized.name())
     # Second we integrate over all wavelength bins and check the value will not change as the code in the repository
     # evolves
     assert sum(data_workspace_normalized.dataY(0)) == approx(2560, abs=1.0)

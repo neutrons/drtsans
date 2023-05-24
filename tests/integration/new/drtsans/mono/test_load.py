@@ -19,9 +19,7 @@ def test_load_gpsans():
     """
     nexus_file_name = "/HFIR/CG2/IPTS-23801/nexus/CG2_7116.nxs.h5"
     if not os.path.exists(nexus_file_name):
-        pytest.skip(
-            "Skip due to NeXus file {} is not accessible.".format(nexus_file_name)
-        )
+        pytest.skip("Skip due to NeXus file {} is not accessible.".format(nexus_file_name))
 
     # Load data
     ws = load_events(
@@ -34,27 +32,19 @@ def test_load_gpsans():
 
     # Check current instrument setup and meta data (sample logs)
     logs = SampleLogs(ws)
-    print(
-        "[TEST INFO] SampleToSi = {} mm".format(
-            logs.find_log_with_units("CG2:CS:SampleToSi", unit="mm")
-        )
-    )
+    print("[TEST INFO] SampleToSi = {} mm".format(logs.find_log_with_units("CG2:CS:SampleToSi", unit="mm")))
     raw_sample_det_distance = sample_detector_distance(ws, unit="m", search_logs=False)
     print(
         "[TEST INFO] Sample to detector distance = {} /{} meter"
         "".format(
             raw_sample_det_distance,
-            sample_detector_distance(
-                ws, unit="m", log_key="sample_detector_distance", search_logs=True
-            ),
+            sample_detector_distance(ws, unit="m", log_key="sample_detector_distance", search_logs=True),
         )
     )
 
     # sample and detector offsets can only be retrieved from a loaded workspace
     # This is a technical debt
-    sample_offset, detector_offset = get_sample_detector_offset(
-        ws, "CG2:CS:SampleToSi", 0.0
-    )
+    sample_offset, detector_offset = get_sample_detector_offset(ws, "CG2:CS:SampleToSi", 0.0)
 
     assert sample_offset == -0.088
     assert detector_offset == -0.088
@@ -72,16 +62,8 @@ def test_load_gpsans():
 
     # Verify
     new_sample_det_distance = sample_detector_distance(ws, unit="m", search_logs=False)
-    print(
-        "[TEST INFO] Sample detector distance after moving = {} meter".format(
-            new_sample_det_distance
-        )
-    )
-    print(
-        "[TEST INFO] Sample position = {}".format(
-            ws.getInstrument().getSample().getPos()
-        )
-    )
+    print("[TEST INFO] Sample detector distance after moving = {} meter".format(new_sample_det_distance))
+    print("[TEST INFO] Sample position = {}".format(ws.getInstrument().getSample().getPos()))
 
     assert new_sample_det_distance == raw_sample_det_distance
 
@@ -100,9 +82,7 @@ def test_load_biosans():
     # Decide to skip data or not
     nexus_file_name = "/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"
     if not os.path.exists(nexus_file_name):
-        pytest.skip(
-            "Skip due to NeXus file {} is not accessible.".format(nexus_file_name)
-        )
+        pytest.skip("Skip due to NeXus file {} is not accessible.".format(nexus_file_name))
 
     # Load data
     ws = load_events(
@@ -115,32 +95,21 @@ def test_load_biosans():
 
     # Check current instrument setup and meta data (sample logs)
     logs = SampleLogs(ws)
-    print(
-        "[TEST INFO] (Raw) sampleToSi = {} mm".format(
-            logs.find_log_with_units("CG3:CS:SampleToSi", unit="mm")
-        )
-    )
+    print("[TEST INFO] (Raw) sampleToSi = {} mm".format(logs.find_log_with_units("CG3:CS:SampleToSi", unit="mm")))
     raw_sample_det_distance = sample_detector_distance(ws)
     print(
         "[TEST INFO] (Raw) sample to detector distance = {} /{} meter"
         "".format(
             raw_sample_det_distance,
-            sample_detector_distance(
-                ws, log_key="sample_detector_distance", search_logs=True
-            ),
+            sample_detector_distance(ws, log_key="sample_detector_distance", search_logs=True),
         )
     )
 
     # Calculate offset without any overwriting
     # sample and detector offsets can only be retrieved from a loaded workspace
     # This is a technical debt
-    sample_offset, detector_offset = get_sample_detector_offset(
-        ws, "CG3:CS:SampleToSi", 71.0 * 1e-3
-    )
-    print(
-        "[TEST INFO] Sample offset = {}, Detector offset = {}"
-        "".format(sample_offset, detector_offset)
-    )
+    sample_offset, detector_offset = get_sample_detector_offset(ws, "CG3:CS:SampleToSi", 71.0 * 1e-3)
+    print("[TEST INFO] Sample offset = {}, Detector offset = {}" "".format(sample_offset, detector_offset))
 
     # Verify: No sample offset from nominal position (origin)
     assert sample_offset == pytest.approx(0.0, 1e-12)
@@ -153,9 +122,7 @@ def test_load_biosans():
     # Verify: sample detector distance is equal to 7.00000019 meter
     sample_det_distance_cal = sample_detector_distance(ws, unit="m", search_logs=False)
     sample_det_distance_meta = sample_detector_distance(ws, unit="mm", search_logs=True)
-    assert sample_det_distance_cal == pytest.approx(
-        sample_det_distance_meta * 1e-3, 1e-7
-    )
+    assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1e-3, 1e-7)
     assert sample_det_distance_cal == pytest.approx(7.00000019, 1e-7)
 
     # cleanup
@@ -173,9 +140,7 @@ def test_load_biosans_sample_off_nominal():
     # Decide to skip data or not
     nexus_file_name = "/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"
     if not os.path.exists(nexus_file_name):
-        pytest.skip(
-            "Skip due to NeXus file {} is not accessible.".format(nexus_file_name)
-        )
+        pytest.skip("Skip due to NeXus file {} is not accessible.".format(nexus_file_name))
 
     # Load data
     ws = load_events(
@@ -193,9 +158,7 @@ def test_load_biosans_sample_off_nominal():
     # Verify: sample detector distance is equal to 7.00000019 meter
     sample_det_distance_cal = sample_detector_distance(ws, unit="m", search_logs=False)
     sample_det_distance_meta = sample_detector_distance(ws, unit="mm", search_logs=True)
-    assert sample_det_distance_cal == pytest.approx(
-        sample_det_distance_meta * 1e-3, 1e-7
-    )
+    assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1e-3, 1e-7)
     assert sample_det_distance_cal == pytest.approx(7.00000019, 1e-7)
 
     # Second test on SampleToSi distance other than 71.00 mm
@@ -210,13 +173,8 @@ def test_load_biosans_sample_off_nominal():
     )
 
     # Calculate offset without any overwriting
-    sample_offset, detector_offset = get_sample_detector_offset(
-        ws, "CG3:CS:SampleToSi", 71.0 * 1e-3
-    )
-    print(
-        "[TEST INFO 2] Sample offset = {}, Detector offset = {}"
-        "".format(sample_offset, detector_offset)
-    )
+    sample_offset, detector_offset = get_sample_detector_offset(ws, "CG3:CS:SampleToSi", 71.0 * 1e-3)
+    print("[TEST INFO 2] Sample offset = {}, Detector offset = {}" "".format(sample_offset, detector_offset))
 
     # Both sample and detector shall move toward souce (-Y direction) with (74.21 - 71.) = 3.21 mm
     assert sample_offset == pytest.approx(-0.00321, 1e-12)
@@ -240,9 +198,7 @@ def test_load_biosans_sample_off_nominal():
     # Verify the sample detector distance which shall be same as raw meta data
     sample_det_distance_cal = sample_detector_distance(ws, unit="m", search_logs=False)
     sample_det_distance_meta = sample_detector_distance(ws, unit="mm", search_logs=True)
-    assert sample_det_distance_cal == pytest.approx(
-        sample_det_distance_meta * 1e-3, 1e-7
-    )
+    assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1e-3, 1e-7)
     assert sample_det_distance_cal == pytest.approx(7.00000019, 1e-7)
 
     # cleanup
@@ -260,9 +216,7 @@ def test_load_biosans_overwrite_swd():
     # Decide to skip data or not
     nexus_file_name = "/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"
     if not os.path.exists(nexus_file_name):
-        pytest.skip(
-            "Skip due to NeXus file {} is not accessible.".format(nexus_file_name)
-        )
+        pytest.skip("Skip due to NeXus file {} is not accessible.".format(nexus_file_name))
 
     # Load data
     ws = load_events(
@@ -277,10 +231,7 @@ def test_load_biosans_overwrite_swd():
     sample_offset, detector_offset = get_sample_detector_offset(
         ws, "CG3:CS:SampleToSi", 71.0 * 1e-3, overwrite_sample_si_distance=0.07421
     )
-    print(
-        "[TEST INFO] Sample offset = {}, Detector offset = {}"
-        "".format(sample_offset, detector_offset)
-    )
+    print("[TEST INFO] Sample offset = {}, Detector offset = {}" "".format(sample_offset, detector_offset))
 
     # Move sample and detector
     ws = move_instrument(
@@ -302,9 +253,7 @@ def test_load_biosans_overwrite_swd():
     assert sample_det_distance_cal == pytest.approx(7.00321, 1e-7)
     # verify the values from calculated and from meta data are identical
     sample_det_distance_meta = sample_detector_distance(ws, unit="mm", search_logs=True)
-    assert sample_det_distance_cal == pytest.approx(
-        sample_det_distance_meta * 1e-3, 1e-7
-    )
+    assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1e-3, 1e-7)
     # verify that SampleToSi is overwritten to 74.21 mm
     logs = SampleLogs(ws)
     swd = logs.find_log_with_units("CG3:CS:SampleToSi", unit="mm")
@@ -325,9 +274,7 @@ def test_load_biosans_overwrite_sdd():
     # Decide to skip data or not
     nexus_file_name = "/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"
     if not os.path.exists(nexus_file_name):
-        pytest.skip(
-            "Skip due to NeXus file {} is not accessible.".format(nexus_file_name)
-        )
+        pytest.skip("Skip due to NeXus file {} is not accessible.".format(nexus_file_name))
 
     # Load data
     ws = load_events(
@@ -340,19 +287,13 @@ def test_load_biosans_overwrite_sdd():
 
     # Check current instrument setup and meta data (sample logs)
     logs = SampleLogs(ws)
-    print(
-        "[TEST INFO] SampleToSi = {} mm".format(
-            logs.find_log_with_units("CG3:CS:SampleToSi", unit="mm")
-        )
-    )
+    print("[TEST INFO] SampleToSi = {} mm".format(logs.find_log_with_units("CG3:CS:SampleToSi", unit="mm")))
     raw_sample_det_distance = sample_detector_distance(ws)
     print(
         "[TEST INFO] Sample to detector distance = {} /{} meter"
         "".format(
             raw_sample_det_distance,
-            sample_detector_distance(
-                ws, log_key="sample_detector_distance", search_logs=True
-            ),
+            sample_detector_distance(ws, log_key="sample_detector_distance", search_logs=True),
         )
     )
 
@@ -360,10 +301,7 @@ def test_load_biosans_overwrite_sdd():
     sample_offset, detector_offset = get_sample_detector_offset(
         ws, "CG3:CS:SampleToSi", 71.0 * 1e-3, overwrite_sample_detector_distance=7.1234
     )
-    print(
-        "[TEST INFO] Sample offset = {}, Detector offset = {}"
-        "".format(sample_offset, detector_offset)
-    )
+    print("[TEST INFO] Sample offset = {}, Detector offset = {}" "".format(sample_offset, detector_offset))
 
     # Move sample and detector
     ws = move_instrument(
@@ -385,9 +323,7 @@ def test_load_biosans_overwrite_sdd():
     assert sample_det_distance_cal == pytest.approx(7.1234, 1e-7)
     # verify the values from calculated and from meta data are identical
     sample_det_distance_meta = sample_detector_distance(ws, unit="mm", search_logs=True)
-    assert sample_det_distance_cal == pytest.approx(
-        sample_det_distance_meta * 1e-3, 1e-7
-    )
+    assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1e-3, 1e-7)
 
     # cleanup
     DeleteWorkspace(ws)

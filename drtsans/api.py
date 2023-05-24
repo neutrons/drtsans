@@ -20,9 +20,7 @@ import numpy as np
 __all__ = ["half_polarization", "subtract_background"]
 
 
-def subtract_background(
-    input_workspace, background, scale=1.0, scale_error=0.0, output_workspace=None
-):
+def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0, output_workspace=None):
     r"""
     Subtract a prepared background from a prepared sample.
 
@@ -61,11 +59,7 @@ def subtract_background(
 
     # the data types must be the same
     if id_input != id_background:
-        raise ValueError(
-            "Cannot subtract background(type={}) from data(type={})".format(
-                id_input, id_background
-            )
-        )
+        raise ValueError("Cannot subtract background(type={}) from data(type={})".format(id_input, id_background))
 
     # convert IQmod to a mantid workspace
     if id_input == DataType.IQ_MOD:
@@ -79,9 +73,7 @@ def subtract_background(
         try:
             assert np.all(input_workspace.qx == background.qx), "Qx must match"
         except AssertionError:
-            print(
-                f"{type(input_workspace)}: Qx size: {input_workspace.qx.shape}, {background.qx.shape}"
-            )
+            print(f"{type(input_workspace)}: Qx size: {input_workspace.qx.shape}, {background.qx.shape}")
             print(f"Qx min: {input_workspace.qx[0]},  {background.qx[0]}")
             print(f"Qx max: {input_workspace.qx[-1]}, {background.qx[-1]}")
             assert np.all(input_workspace.qx == background.qx), "Qx must match"
@@ -127,16 +119,12 @@ def subtract_background(
         else:
             # subtract will check that the x-axis is identical
             # otherwise the subtraction will fail
-            background_rebinned = CloneWorkspace(
-                InputWorkspace=background, OutputWorkspace=uwd()
-            )
+            background_rebinned = CloneWorkspace(InputWorkspace=background, OutputWorkspace=uwd())
         workspaces_to_delete.append(str(background_rebinned))
 
         # need to create a special object if the uncertainty in the scale was specified
         if scale_error != 0.0:
-            scale = CreateSingleValuedWorkspace(
-                DataValue=scale, ErrorValue=scale_error, OutputWorkspace=uwd()
-            )
+            scale = CreateSingleValuedWorkspace(DataValue=scale, ErrorValue=scale_error, OutputWorkspace=uwd())
         workspaces_to_delete.append(str(scale))
 
         # this takes care of the uncertainties as well
@@ -191,11 +179,7 @@ def _calc_flipping_ratio(polarization):
         )
     else:
         # if it is an array should call CreateWorkspace(EnableLogging=False)
-        raise NotImplementedError(
-            "Somebody needs to create an output from {} (type={})".format(
-                value, type(value)
-            )
-        )
+        raise NotImplementedError("Somebody needs to create an output from {} (type={})".format(value, type(value)))
 
 
 def _set_uncertainty_from_numpy(wksp, uncertainty):
@@ -228,9 +212,7 @@ def _calc_half_polarization_up(flipper_off, flipper_on, efficiency, flipping_rat
     ~mantid.api.MatrixWorkspace
         The spin up workspace
     """
-    __spin_up = flipper_off + (flipper_off - flipper_on) / (
-        efficiency * (flipping_ratio - 1.0)
-    )
+    __spin_up = flipper_off + (flipper_off - flipper_on) / (efficiency * (flipping_ratio - 1.0))
 
     e = efficiency.extractY()[0]
     F = flipping_ratio.extractY()[0]
@@ -240,12 +222,8 @@ def _calc_half_polarization_up(flipper_off, flipper_on, efficiency, flipping_rat
     m0_part = np.square(flipper_off.extractE()[0][0] * (1 + 1 / (e * (F - 1))))
     m1_part = np.square(flipper_on.extractE()[0][0] * (1 / (e * (F - 1))))
 
-    mixed = np.square(
-        (flipper_off.extractY()[0][0] - flipper_on.extractY()[0][0]) / (e * (F - 1))
-    )
-    mixed *= np.square(efficiency.extractE()[0][0] / e) + np.square(
-        flipping_ratio.extractE()[0][0] / (F - 1)
-    )
+    mixed = np.square((flipper_off.extractY()[0][0] - flipper_on.extractY()[0][0]) / (e * (F - 1)))
+    mixed *= np.square(efficiency.extractE()[0][0] / e) + np.square(flipping_ratio.extractE()[0][0] / (F - 1))
     sup_err = np.sqrt(m0_part + m1_part + mixed)
 
     # set the uncertainty in the workspace
@@ -273,9 +251,7 @@ def _calc_half_polarization_down(flipper_off, flipper_on, efficiency, flipping_r
     ~mantid.api.MatrixWorkspace
         The spin down workspace
     """
-    __spin_down = flipper_off - (flipper_off - flipper_on) / (
-        efficiency * (1.0 - 1.0 / flipping_ratio)
-    )
+    __spin_down = flipper_off - (flipper_off - flipper_on) / (efficiency * (1.0 - 1.0 / flipping_ratio))
 
     e = efficiency.extractY()[0]
     F = flipping_ratio.extractY()[0]
@@ -284,9 +260,7 @@ def _calc_half_polarization_down(flipper_off, flipper_on, efficiency, flipping_r
     # Recalculate them based on the proper equation based on a hand calculation of the partial derivatives
     m0_part = np.square(flipper_off.extractE()[0][0] * (1 - 1 / (e * (1 - 1 / F))))
     m1_part = np.square(flipper_on.extractE()[0][0] * (1 / (e * (1 - 1 / F))))
-    mixed = np.square(
-        (flipper_off.extractY()[0][0] - flipper_on.extractY()[0][0]) / (e * (1 - 1 / F))
-    )
+    mixed = np.square((flipper_off.extractY()[0][0] - flipper_on.extractY()[0][0]) / (e * (1 - 1 / F)))
     mixed *= np.square(efficiency.extractE()[0][0] / e) + np.square(
         flipping_ratio.extractE()[0][0] / (F * F * (1 - 1 / F))
     )
@@ -341,18 +315,10 @@ def half_polarization(
     # this is denoted as "F" in the master document
     flipping_ratio = _calc_flipping_ratio(polarization)
 
-    __spin_up = _calc_half_polarization_up(
-        flipper_off_workspace, flipper_on_workspace, efficiency, flipping_ratio
-    )
-    __spin_down = _calc_half_polarization_down(
-        flipper_off_workspace, flipper_on_workspace, efficiency, flipping_ratio
-    )
+    __spin_up = _calc_half_polarization_up(flipper_off_workspace, flipper_on_workspace, efficiency, flipping_ratio)
+    __spin_down = _calc_half_polarization_down(flipper_off_workspace, flipper_on_workspace, efficiency, flipping_ratio)
 
-    spin_up_workspace = RenameWorkspace(
-        InputWorkspace=__spin_up, OutputWorkspace=spin_up_workspace
-    )
-    spin_down_workspace = RenameWorkspace(
-        InputWorkspace=__spin_down, OutputWorkspace=spin_down_workspace
-    )
+    spin_up_workspace = RenameWorkspace(InputWorkspace=__spin_up, OutputWorkspace=spin_up_workspace)
+    spin_down_workspace = RenameWorkspace(InputWorkspace=__spin_down, OutputWorkspace=spin_down_workspace)
 
     return (spin_up_workspace, spin_down_workspace)

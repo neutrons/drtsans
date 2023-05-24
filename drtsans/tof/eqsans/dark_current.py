@@ -73,28 +73,20 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
 
     # rescale counts by the ratio of trusted TOF frame and available frame
     sample_logs = SampleLogs(data_workspace_name)
-    tof_clipping_factor = (
-        sample_logs.tof_frame_width_clipped.value / sample_logs.tof_frame_width.value
-    )
+    tof_clipping_factor = sample_logs.tof_frame_width_clipped.value / sample_logs.tof_frame_width.value
 
     # rescale counts by the range of wavelengths over which there should be measurable intensities
     bands = clipped_bands_from_logs(data_workspace_name)  # lead and pulse bands
-    wavelength_range = (
-        bands.lead.max - bands.lead.min
-    )  # wavelength range from lead skipped pulse
+    wavelength_range = bands.lead.max - bands.lead.min  # wavelength range from lead skipped pulse
     if bands.skip is not None:
-        wavelength_range += (
-            bands.skip.max - bands.skip.min
-        )  # add the wavelength range from the skipped pulse
+        wavelength_range += bands.skip.max - bands.skip.min  # add the wavelength range from the skipped pulse
 
     # Find out the binning of the sample run
     bin_boundaries = mtd[data_workspace_name].readX(0)
     bin_widths = bin_boundaries[1:] - bin_boundaries[0:-1]
 
     # Gather all factors into a "rescaling" array, of size len(bin_widths)
-    rescalings = (
-        tof_clipping_factor * bin_widths / (dark_duration.value * wavelength_range)
-    )
+    rescalings = tof_clipping_factor * bin_widths / (dark_duration.value * wavelength_range)
 
     # If running in skip-mode, find the range of wavelengths between the lead and skip pulses.
     # Also find the indexes of the bins that fall in this wavelength gap.
@@ -102,18 +94,14 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
     gap_bin_indexes = None
     if bands.skip is not None:
         bin_centers = 0.5 * (bin_boundaries[0:-1] + bin_boundaries[1:])
-        gap_bin_indexes = np.where(
-            (bin_centers > bands.lead.max) & (bin_centers < bands.skip.min)
-        )[0]
+        gap_bin_indexes = np.where((bin_centers > bands.lead.max) & (bin_centers < bands.skip.min))[0]
         rescalings[gap_bin_indexes] = 0.0
 
     counts, errors = counts_in_detector(dark_workspace_name)
     pixel_indexes_with_no_counts = np.where(counts == 0)[0]
 
     # Multiply the rescalings array by the counts-per-pixel array
-    normalized_counts = (
-        counts[:, np.newaxis] * rescalings
-    )  # array.shape = (#pixels, #bins)
+    normalized_counts = counts[:, np.newaxis] * rescalings  # array.shape = (#pixels, #bins)
     normalized_errors = errors[:, np.newaxis] * rescalings
 
     # Recall that if a pixel had no counts, then we insert a special error values: error is one for all
@@ -174,9 +162,7 @@ def subtract_normalized_dark_current(input_workspace, dark_ws, output_workspace=
 
     duration_log_key = SampleLogs(dark_ws).normalizing_duration.value
     d = duration(input_workspace, log_key=duration_log_key).value
-    scaled = Scale(
-        InputWorkspace=dark_ws, Factor=d, OutputWorkspace=unique_workspace_dundername()
-    )
+    scaled = Scale(InputWorkspace=dark_ws, Factor=d, OutputWorkspace=unique_workspace_dundername())
     Minus(
         LHSWorkspace=input_workspace,
         RHSWorkspace=scaled,
@@ -197,15 +183,13 @@ def load_dark_current_workspace(dark_current_filename, output_workspace):
     output_workspace: int, str
         run number or file path for dark current
     """
-    if (
-        isinstance(dark_current_filename, str) and exists(dark_current_filename)
-    ) or isinstance(dark_current_filename, int):
+    if (isinstance(dark_current_filename, str) and exists(dark_current_filename)) or isinstance(
+        dark_current_filename, int
+    ):
         with amend_config({"default.instrument": "EQSANS"}):
             load_events(run=dark_current_filename, output_workspace=output_workspace)
     else:
-        message = "Unable to find or load the dark current {}".format(
-            dark_current_filename
-        )
+        message = "Unable to find or load the dark current {}".format(dark_current_filename)
         raise RuntimeError(message)
     return mtd[output_workspace]
 
@@ -238,12 +222,8 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
     else:
         _dark = load_dark_current_workspace(dark, unique_workspace_dundername())
 
-    _dark_normal = normalize_dark_current(
-        _dark, input_workspace, output_workspace=unique_workspace_dundername()
-    )
-    subtract_normalized_dark_current(
-        input_workspace, _dark_normal, output_workspace=output_workspace
-    )
+    _dark_normal = normalize_dark_current(_dark, input_workspace, output_workspace=unique_workspace_dundername())
+    subtract_normalized_dark_current(input_workspace, _dark_normal, output_workspace=output_workspace)
     _dark_normal.delete()
     if _dark is not dark:
         _dark.delete()

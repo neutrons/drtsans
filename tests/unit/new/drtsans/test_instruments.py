@@ -21,17 +21,9 @@ def test_instrument_name(serve_events_workspace):
     assert str(instrument_enum_name("EQ-SANS")) == "EQSANS"
     assert str(instrument_enum_name("CG3")) == "BIOSANS"
     assert str(instrument_enum_name("somepath/CG3_961.nxs.h5")) == "BIOSANS"
-    assert (
-        instrument_enum_name("nonexistantsansinstrument")
-        == InstrumentEnumName.UNDEFINED
-    )
-    assert (
-        instrument_enum_name(serve_events_workspace("EQSANS_92353.nxs.h5"))
-        == InstrumentEnumName.EQSANS
-    )
-    workspace = CreateWorkspace(
-        DataX=range(42), DataY=range(42), OutputWorkspace=unique_workspace_dundername()
-    )
+    assert instrument_enum_name("nonexistantsansinstrument") == InstrumentEnumName.UNDEFINED
+    assert instrument_enum_name(serve_events_workspace("EQSANS_92353.nxs.h5")) == InstrumentEnumName.EQSANS
+    workspace = CreateWorkspace(DataX=range(42), DataY=range(42), OutputWorkspace=unique_workspace_dundername())
     assert instrument_enum_name(workspace) == InstrumentEnumName.UNDEFINED
     workspace.delete()
 

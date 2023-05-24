@@ -50,7 +50,7 @@ sample_thickness:
 source_aperture_diameter:
   - source_aperture_size
   - mm
-source_distance:  
+source_distance:
 # same AS source-aperture-sample-aperture
   - source_distance
   - m

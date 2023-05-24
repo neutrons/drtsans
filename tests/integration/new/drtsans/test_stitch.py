@@ -426,9 +426,7 @@ def test_stitch(data_test_16b):
     """
     data = data_test_16b  # handy shortcut
     # call the drtsans function
-    result = stitch_profiles(
-        data.profiles, data.overlaps, target_profile_index=data.target_index
-    )
+    result = stitch_profiles(data.profiles, data.overlaps, target_profile_index=data.target_index)
     # Check for differences between "result" and "data.stitched" profiles. We check for differences in:
     # - intensities
     # - uncertainties in intensities

@@ -84,9 +84,7 @@ def load_all_files(
         Flag to save internal data for debugging
 
     """
-    reduction_config = reduction_input[
-        "configuration"
-    ]  # a handy shortcut to the configuration parameters dictionary
+    reduction_config = reduction_input["configuration"]  # a handy shortcut to the configuration parameters dictionary
 
     instrument_name = reduction_input["instrumentName"]
     ipts = reduction_input["iptsNumber"]
@@ -134,9 +132,7 @@ def load_all_files(
         load_params["LoadNexusInstrumentXML"] = use_nexus_idf
 
     # Adjust pixel heights and widths
-    load_params["pixel_calibration"] = reduction_config.get(
-        "usePixelCalibration", False
-    )
+    load_params["pixel_calibration"] = reduction_config.get("usePixelCalibration", False)
 
     # wave length and wave length spread
     (
@@ -146,11 +142,7 @@ def load_all_files(
 
     if reduction_config["useDefaultMask"]:
         # reduction_config["defaultMask"] is a list of python dictionaries
-        default_mask = (
-            reduction_config["defaultMask"]
-            if reduction_config["defaultMask"] is not None
-            else []
-        )
+        default_mask = reduction_config["defaultMask"] if reduction_config["defaultMask"] is not None else []
     else:
         default_mask = []
 
@@ -164,9 +156,7 @@ def load_all_files(
     # thickness is written to sample log if it is defined...
     thickness = reduction_input["sample"]["thickness"]
     sample_aperture_diameter = reduction_config["sampleApertureSize"]  # in milimiters
-    source_aperture_diameter = reduction_config[
-        "sourceApertureDiameter"
-    ]  # in milimiters
+    source_aperture_diameter = reduction_config["sourceApertureDiameter"]  # in milimiters
 
     # Parse smearing pixel size x and y for all runs
     smearing_pixel_size_x_dict = parse_json_meta_data(
@@ -228,9 +218,7 @@ def load_all_files(
     if timeslice or logslice:
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
         if not registered_workspace(ws_name):
-            filename = abspath(
-                sample.strip(), instrument=instrument_name, ipts=ipts, directory=path
-            )
+            filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
             print(f"Loading filename {filename}")
             if timeslice:
                 timesliceinterval = float(reduction_config["timeSliceInterval"])
@@ -283,9 +271,7 @@ def load_all_files(
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo"
         if not registered_workspace(ws_name):
             # if sample is not an absolute path to nexus file, convert it to the absolute path
-            filename = abspaths(
-                sample, instrument=instrument_name, ipts=ipts, directory=path
-            )
+            filename = abspaths(sample, instrument=instrument_name, ipts=ipts, directory=path)
             logger.notice(f"Loading filename {filename} from sample {sample}")
             biosans.load_events_and_histogram(
                 filename,
@@ -329,9 +315,7 @@ def load_all_files(
         if run_number:
             ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
             if not registered_workspace(ws_name):
-                filename = abspaths(
-                    run_number, instrument=instrument_name, ipts=ipts, directory=path
-                )
+                filename = abspaths(run_number, instrument=instrument_name, ipts=ipts, directory=path)
                 print(f"Loading filename {filename}")
                 biosans.load_events_and_histogram(
                     filename,
@@ -407,14 +391,10 @@ def load_all_files(
         sensitivity_wing_ws_name = f"{prefix}_wing_sensitivity"
         if not registered_workspace(sensitivity_main_ws_name):
             print(f"Loading filename {flood_file_main}")
-            load_sensitivity_workspace(
-                flood_file_main, output_workspace=sensitivity_main_ws_name
-            )
+            load_sensitivity_workspace(flood_file_main, output_workspace=sensitivity_main_ws_name)
         if not registered_workspace(sensitivity_wing_ws_name):
             print(f"Loading filename {flood_file_wing}")
-            load_sensitivity_workspace(
-                flood_file_wing, output_workspace=sensitivity_wing_ws_name
-            )
+            load_sensitivity_workspace(flood_file_wing, output_workspace=sensitivity_wing_ws_name)
 
     mask_ws = None
     custom_mask_file = reduction_input["configuration"]["maskFileName"]
@@ -426,41 +406,19 @@ def load_all_files(
         else:
             mask_ws = mtd[mask_ws_name]
 
-    if registered_workspace(
-        f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
-    ):
-        raw_sample_ws = mtd[
-            f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
-        ]
+    if registered_workspace(f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"):
+        raw_sample_ws = mtd[f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"]
         raw_sample_ws_list = [w for w in raw_sample_ws]
     else:
         raw_sample_ws_list = [mtd[f"{prefix}_{instrument_name}_{sample}_raw_histo"]]
     raw_bkgd_ws = mtd[f"{prefix}_{instrument_name}_{bkgd}_raw_histo"] if bkgd else None
-    raw_blocked_ws = (
-        mtd[f"{prefix}_{instrument_name}_{blocked_beam}_raw_histo"]
-        if blocked_beam
-        else None
-    )
+    raw_blocked_ws = mtd[f"{prefix}_{instrument_name}_{blocked_beam}_raw_histo"] if blocked_beam else None
     raw_center_ws = mtd[f"{prefix}_{instrument_name}_{center}_raw_histo"]
-    raw_empty_ws = (
-        mtd[f"{prefix}_{instrument_name}_{empty}_raw_histo"] if empty else None
-    )
-    raw_sample_trans_ws = (
-        mtd[f"{prefix}_{instrument_name}_{sample_trans}_raw_histo"]
-        if sample_trans
-        else None
-    )
-    raw_bkg_trans_ws = (
-        mtd[f"{prefix}_{instrument_name}_{bkgd_trans}_raw_histo"]
-        if bkgd_trans
-        else None
-    )
-    sensitivity_main_ws = (
-        mtd[sensitivity_main_ws_name] if sensitivity_main_ws_name else None
-    )
-    sensitivity_wing_ws = (
-        mtd[sensitivity_wing_ws_name] if sensitivity_wing_ws_name else None
-    )
+    raw_empty_ws = mtd[f"{prefix}_{instrument_name}_{empty}_raw_histo"] if empty else None
+    raw_sample_trans_ws = mtd[f"{prefix}_{instrument_name}_{sample_trans}_raw_histo"] if sample_trans else None
+    raw_bkg_trans_ws = mtd[f"{prefix}_{instrument_name}_{bkgd_trans}_raw_histo"] if bkgd_trans else None
+    sensitivity_main_ws = mtd[sensitivity_main_ws_name] if sensitivity_main_ws_name else None
+    sensitivity_wing_ws = mtd[sensitivity_wing_ws_name] if sensitivity_wing_ws_name else None
 
     if debug_output:
         for raw_sample in raw_sample_ws_list:
@@ -551,9 +509,7 @@ def dark_current_correction(
     if not registered_workspace(ws_name):
         print(f"Loading filename {dark_current_file}")
         # identify to use exact given path to NeXus or use OnCat instead
-        temp_name = abspath(
-            dark_current_file, instrument=instrument_name, ipts=ipts, directory=path
-        )
+        temp_name = abspath(dark_current_file, instrument=instrument_name, ipts=ipts, directory=path)
         if os.path.exists(temp_name):
             dark_current_file = temp_name
         biosans.load_events_and_histogram(
@@ -659,9 +615,7 @@ def prepare_data_workspaces(
     """
     if not output_workspace:
         output_workspace = str(data)
-        output_workspace = (
-            output_workspace.replace("_raw_histo", "") + "_processed_histo"
-        )
+        output_workspace = output_workspace.replace("_raw_histo", "") + "_processed_histo"
 
     mtd[str(data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
 
@@ -711,9 +665,7 @@ def prepare_data_workspaces(
 
     # Sensitivity
     if sensitivity_workspace is not None:
-        apply_sensitivity_correction(
-            output_workspace, sensitivity_workspace=sensitivity_workspace
-        )
+        apply_sensitivity_correction(output_workspace, sensitivity_workspace=sensitivity_workspace)
 
     return mtd[output_workspace]
 
@@ -837,16 +789,12 @@ def process_single_configuration(
     if blocked_ws_raw:
         blocked_ws_name = output_suffix + "_blocked"
         if not registered_workspace(blocked_ws_name):
-            blocked_ws = prepare_data_workspaces(
-                blocked_ws_raw, output_workspace=blocked_ws_name, **prepare_data_conf
-            )
+            blocked_ws = prepare_data_workspaces(blocked_ws_raw, output_workspace=blocked_ws_name, **prepare_data_conf)
         else:
             blocked_ws = mtd[blocked_ws_name]
 
     # process sample
-    sample_ws = prepare_data_workspaces(
-        sample_ws_raw, output_workspace=output_workspace, **prepare_data_conf
-    )
+    sample_ws = prepare_data_workspaces(sample_ws_raw, output_workspace=output_workspace, **prepare_data_conf)
     if blocked_ws_raw:
         sample_ws = subtract_background(sample_ws, blocked_ws)
     # apply transmission to the sample
@@ -872,9 +820,7 @@ def process_single_configuration(
     if bkg_ws_raw:
         bkgd_ws_name = output_suffix + "_background"
         if not registered_workspace(bkgd_ws_name):
-            bkgd_ws = prepare_data_workspaces(
-                bkg_ws_raw, output_workspace=bkgd_ws_name, **prepare_data_conf
-            )
+            bkgd_ws = prepare_data_workspaces(bkg_ws_raw, output_workspace=bkgd_ws_name, **prepare_data_conf)
             if blocked_ws_raw:
                 bkgd_ws = subtract_background(bkgd_ws, blocked_ws)
             # apply transmission to bkgd
@@ -899,9 +845,7 @@ def process_single_configuration(
         else:
             bkgd_ws = mtd[bkgd_ws_name]
         # subtract background
-        sample_ws = subtract_background(
-            sample_ws, bkgd_ws, output_workspace=output_workspace
-        )
+        sample_ws = subtract_background(sample_ws, bkgd_ws, output_workspace=output_workspace)
 
         if not keep_processed_workspaces:
             bkgd_ws.delete()
@@ -937,9 +881,7 @@ def process_single_configuration(
     }
 
 
-def plot_reduction_output(
-    reduction_output, reduction_input, loglog=True, imshow_kwargs=None
-):
+def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow_kwargs=None):
     reduction_config = reduction_input["configuration"]
     output_dir = reduction_config["outputDir"]
     outputFilename = reduction_input["outputFileName"]
@@ -961,9 +903,7 @@ def plot_reduction_output(
         qmin_wing = reduction_config["QminWing"]
         qmax_wing = reduction_config["QmaxWing"]
 
-        filename = os.path.join(
-            output_dir, "2D", f"{outputFilename}{output_suffix}_2D_main.png"
-        )
+        filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_main.png")
         plot_IQazimuthal(
             out.I2D_main,
             filename,
@@ -976,9 +916,7 @@ def plot_reduction_output(
             qmax=qmax_main,
         )
         plt.clf()
-        filename = os.path.join(
-            output_dir, "2D", f"{outputFilename}{output_suffix}_2D_wing.png"
-        )
+        filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_wing.png")
         plot_IQazimuthal(
             out.I2D_wing,
             filename,
@@ -995,9 +933,7 @@ def plot_reduction_output(
             add_suffix = ""
             if len(out.I1D_main) > 1:
                 add_suffix = f"_wedge_{j}"
-            filename = os.path.join(
-                output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}.png"
-            )
+            filename = os.path.join(output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}.png")
             plot_IQmod(
                 [out.I1D_main[j], out.I1D_wing[j], out.I1D_combined[j]],
                 filename,
@@ -1012,9 +948,7 @@ def plot_reduction_output(
     allow_overwrite(os.path.join(output_dir, "2D"))
 
 
-def reduce_single_configuration(
-    loaded_ws, reduction_input, prefix="", skip_nan=True, debug_output=False
-):
+def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=True, debug_output=False):
     reduction_config = reduction_input["configuration"]
 
     flux_method = reduction_config["normalization"]
@@ -1028,20 +962,11 @@ def reduce_single_configuration(
     if reduction_config["useMaskBackTubes"] is True:
         mask_panel = "back"
     output_suffix = ""
-    thickness = reduction_input["sample"][
-        "thickness"
-    ]  # default thickness set in BIOSANS.json schema
-    absolute_scale_method = reduction_config[
-        "absoluteScaleMethod"
-    ]  # FIXME default value in the schemay may be wrong
-    beam_radius = reduction_config[
-        "DBScalingBeamRadius"
-    ]  # FIXME missing keyword in the schema
+    thickness = reduction_input["sample"]["thickness"]  # default thickness set in BIOSANS.json schema
+    absolute_scale_method = reduction_config["absoluteScaleMethod"]  # FIXME default value in the schemay may be wrong
+    beam_radius = reduction_config["DBScalingBeamRadius"]  # FIXME missing keyword in the schema
     absolute_scale = reduction_config["StandardAbsoluteScale"]
-    time_slice_transmission = (
-        reduction_config["useTimeSlice"]
-        and reduction_config["useTimeSliceTransmission"]
-    )
+    time_slice_transmission = reduction_config["useTimeSlice"] and reduction_config["useTimeSliceTransmission"]
     output_dir = reduction_config["outputDir"]
 
     nxbins_main = reduction_config["numMainQxQyBins"]
@@ -1053,9 +978,7 @@ def reduce_single_configuration(
     log_binning = reduction_config["QbinType"] == "log"
     # FIXME - NO MORE USE OF Even_Decades
     # even_decades = reduction_config["useLogQBinsEvenDecade"]  # default set in the schema
-    decade_on_center = reduction_config[
-        "useLogQBinsDecadeCenter"
-    ]  # default set in the schema
+    decade_on_center = reduction_config["useLogQBinsDecadeCenter"]  # default set in the schema
 
     nbins_main = reduction_config["numMainQBins"]
     nbins_main_per_decade = reduction_config["LogQBinsPerDecadeMain"]
@@ -1072,11 +995,7 @@ def reduce_single_configuration(
 
     wedges_min = reduction_config["WedgeMinAngles"]
     wedges_max = reduction_config["WedgeMaxAngles"]
-    wedges = (
-        None
-        if wedges_min is None or wedges_max is None
-        else list(zip(wedges_min, wedges_max))
-    )
+    wedges = None if wedges_min is None or wedges_max is None else list(zip(wedges_min, wedges_max))
 
     # automatically determine wedge binning if it wasn't explicitly set
     autoWedgeOpts = {}
@@ -1186,9 +1105,7 @@ def reduce_single_configuration(
 
     sample_trans_ws = None
     if loaded_ws.sample_transmission is not None and empty_trans_ws is not None:
-        sample_trans_ws_processed, sample_trans_ws = _prepare_sample_transmission_ws(
-            loaded_ws.sample_transmission
-        )
+        sample_trans_ws_processed, sample_trans_ws = _prepare_sample_transmission_ws(loaded_ws.sample_transmission)
         logger.notice(f"Sample transmission = {sample_trans_ws.extractY()[0, 0]}")
 
         if debug_output:
@@ -1299,12 +1216,8 @@ def reduce_single_configuration(
                 "n_horizontal": reduction_config["subpixelsX"],
                 "n_vertical": reduction_config["subpixelsY"],
             }
-        iq1d_main_in = biosans.convert_to_q(
-            processed_data_main, mode="scalar", **subpixel_kwargs
-        )
-        iq2d_main_in = biosans.convert_to_q(
-            processed_data_main, mode="azimuthal", **subpixel_kwargs
-        )
+        iq1d_main_in = biosans.convert_to_q(processed_data_main, mode="scalar", **subpixel_kwargs)
+        iq2d_main_in = biosans.convert_to_q(processed_data_main, mode="azimuthal", **subpixel_kwargs)
         if bool(autoWedgeOpts):  # determine wedges automatically from the main detector
             logger.notice(f"Auto wedge options: {autoWedgeOpts}")
             autoWedgeOpts["debug_dir"] = output_dir
@@ -1361,13 +1274,9 @@ def reduce_single_configuration(
         create_output_dir(output_dir)
 
         # save ASCII files
-        filename = os.path.join(
-            output_dir, "2D", f"{outputFilename}{output_suffix}_2D_main.dat"
-        )
+        filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_main.dat")
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
-        filename = os.path.join(
-            output_dir, "2D", f"{outputFilename}{output_suffix}_2D_wing.dat"
-        )
+        filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_wing.dat")
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_wing_out)
 
         def olt_q_boundary(boundary):
@@ -1377,13 +1286,9 @@ def reduce_single_configuration(
             """
             if boundary not in ("min", "max"):
                 raise ValueError('Only "min" or "max" are valid arguments')
-            olt_q = reduction_config[
-                f"overlapStitchQ{boundary}"
-            ]  # guaranteed `None` or `list`
+            olt_q = reduction_config[f"overlapStitchQ{boundary}"]  # guaranteed `None` or `list`
             if olt_q is None:
-                extremum_function = getattr(
-                    iq1d_wing_in.mod_q, boundary
-                )  # either min() or max() method
+                extremum_function = getattr(iq1d_wing_in.mod_q, boundary)  # either min() or max() method
                 return np.repeat(extremum_function(), len(iq1d_main_out))
             elif len(olt_q) == 1:
                 return np.repeat(olt_q[0], len(iq1d_main_out))
@@ -1622,9 +1527,7 @@ def prepare_data(
     """
     # Detector offset and sample offset are disabled
     if abs(detector_offset) > 1e-8 or abs(sample_offset) > 1e-8:
-        raise RuntimeError(
-            "biosans.api.prepare_data does not work with detector_offset or sample_offset"
-        )
+        raise RuntimeError("biosans.api.prepare_data does not work with detector_offset or sample_offset")
 
     # Load data and enforce to use nexus IDF
     if "enforce_use_nexus_idf" in kwargs:
@@ -1656,9 +1559,7 @@ def prepare_data(
     set_init_uncertainties(ws_name)
 
     if center_x is not None and center_y is not None and center_y_wing is not None:
-        biosans.center_detector(
-            ws_name, center_x=center_x, center_y=center_y, center_y_wing=center_y_wing
-        )
+        biosans.center_detector(ws_name, center_x=center_x, center_y=center_y, center_y_wing=center_y_wing)
 
     # Mask either detector
     if mask_detector is not None:

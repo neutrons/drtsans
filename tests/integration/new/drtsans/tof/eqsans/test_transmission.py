@@ -102,9 +102,7 @@ def test_data_9a_part_1():
     [dict(name="EQSANS", Nx=10, Ny=10, dx=1.0e-3, dy=1.0e-3, zc=1.0)],
     indirect=True,
 )
-def test_calculate_transmission_single_bin(
-    test_data_9a_part_1, reference_dir, workspace_with_instrument
-):
+def test_calculate_transmission_single_bin(test_data_9a_part_1, reference_dir, workspace_with_instrument):
     r"""
     This test calculates the raw transmission at zero scattering angle starting with sample and empty-beam datasets,
     integrated on wavelength, over a predefined region of interest.
@@ -130,9 +128,7 @@ def test_calculate_transmission_single_bin(
 
     # Load the empty reference into a workspace
     reference_counts = np.array(data.emtpy_reference, dtype=float).reshape((10, 10, 1))
-    reference_workspace = (
-        unique_workspace_dundername()
-    )  # some temporary random name for the workspace
+    reference_workspace = unique_workspace_dundername()  # some temporary random name for the workspace
     workspace_with_instrument(
         axis_values=data.wavelength_range,
         intensities=reference_counts,
@@ -144,9 +140,7 @@ def test_calculate_transmission_single_bin(
 
     # Load the sample into a workspace
     sample_counts = np.array(data.sample, dtype=float).reshape((10, 10, 1))
-    sample_workspace = (
-        unique_workspace_dundername()
-    )  # some temporary random name for the workspace
+    sample_workspace = unique_workspace_dundername()  # some temporary random name for the workspace
     workspace_with_instrument(
         axis_values=data.wavelength_range,
         intensities=sample_counts,
@@ -176,12 +170,8 @@ def test_calculate_transmission_single_bin(
     )
 
     # Verify transmission and associated uncertainty
-    assert transmission.readY(0)[0] == pytest.approx(
-        data.transmission, abs=data.precision
-    )
-    assert transmission.readE(0)[0] == pytest.approx(
-        data.transmission_uncertainty, abs=data.precision
-    )
+    assert transmission.readY(0)[0] == pytest.approx(data.transmission, abs=data.precision)
+    assert transmission.readE(0)[0] == pytest.approx(data.transmission_uncertainty, abs=data.precision)
 
 
 @pytest.fixture(scope="module")
@@ -261,9 +251,7 @@ def test_fit_transmission_and_calc(test_data_9a_part_2):
     data = test_data_9a_part_2  # let's cut-down on the verbosity
 
     # Load the raw transmissions at zero scattering angle into a workspace.
-    raw_transmission_workspace = (
-        unique_workspace_dundername()
-    )  # some temporary random name for the workspace
+    raw_transmission_workspace = unique_workspace_dundername()  # some temporary random name for the workspace
     CreateWorkspace(
         DataX=data.wavelength_bin_boundaries,
         UnitX="Wavelength",
@@ -276,39 +264,23 @@ def test_fit_transmission_and_calc(test_data_9a_part_2):
     # already be present in a prepared workspace.
     sample_logs = SampleLogs(raw_transmission_workspace)
     sample_logs.insert("is_frame_skipping", 0)
-    sample_logs.insert(
-        "wavelength_lead_min", data.wavelength_bin_boundaries[0], unit="Angstrom"
-    )
-    sample_logs.insert(
-        "wavelength_lead_max", data.wavelength_bin_boundaries[-1], unit="Angstrom"
-    )
+    sample_logs.insert("wavelength_lead_min", data.wavelength_bin_boundaries[0], unit="Angstrom")
+    sample_logs.insert("wavelength_lead_max", data.wavelength_bin_boundaries[-1], unit="Angstrom")
 
     # use drtsans to fit the raw transmission values
-    fitted_transmission_workspace = (
-        unique_workspace_dundername()
-    )  # some temporary random name for the workspace
-    fit_results = fit_raw_transmission(
-        raw_transmission_workspace, output_workspace=fitted_transmission_workspace
-    )
+    fitted_transmission_workspace = unique_workspace_dundername()  # some temporary random name for the workspace
+    fit_results = fit_raw_transmission(raw_transmission_workspace, output_workspace=fitted_transmission_workspace)
 
     # Verify fitted transmission values
-    assert mtd[fitted_transmission_workspace].readY(0) == pytest.approx(
-        data.fitted_transmissions, abs=data.precision
-    )
-    assert mtd[fitted_transmission_workspace].readE(0) == pytest.approx(
-        data.fitted_uncertainties, abs=data.precision
-    )
+    assert mtd[fitted_transmission_workspace].readY(0) == pytest.approx(data.fitted_transmissions, abs=data.precision)
+    assert mtd[fitted_transmission_workspace].readE(0) == pytest.approx(data.fitted_uncertainties, abs=data.precision)
 
     # Verify values for the fit parameters
     parameter_table_workspace = fit_results.lead_mantid_fit.OutputParameters
     _, slope_value, slope_error = list(parameter_table_workspace.row(0).values())
     assert (slope_value, slope_error) == pytest.approx(data.slope, abs=data.precision)
-    _, intercept_value, intercept_error = list(
-        parameter_table_workspace.row(1).values()
-    )
-    assert (intercept_value, intercept_error) == pytest.approx(
-        data.intercept, abs=data.precision
-    )
+    _, intercept_value, intercept_error = list(parameter_table_workspace.row(1).values())
+    assert (intercept_value, intercept_error) == pytest.approx(data.intercept, abs=data.precision)
 
 
 @pytest.fixture(scope="module")
@@ -319,9 +291,7 @@ def transmission_fixture(reference_dir):
 
     def quick_compare(tentative, asset):
         r"""asset: str, name of golden standard nexus file"""
-        ws = LoadNexus(
-            pjn(cmp_dir, asset), OutputWorkspace=unique_workspace_dundername()
-        )
+        ws = LoadNexus(pjn(cmp_dir, asset), OutputWorkspace=unique_workspace_dundername())
         return CompareWorkspaces(tentative, ws, Tolerance=1.0e-4).Result
 
     a = LoadNexus(pjn(data_dir, "sample.nxs"), OutputWorkspace=unique_workspace_dundername())
@@ -351,12 +321,8 @@ def test_masked_beam_center(reference_dir, transmission_fixture):
     """
     mask = pjn(transmission_fixture.data_dir, "beam_center_masked.xml")
     with amend_config(data_dir=reference_dir.new.eqsans):
-        sample_workspace = prepare_data(
-            "EQSANS_88975", mask=mask, output_workspace=unique_workspace_dundername()
-        )
-        reference_workspace = prepare_data(
-            "EQSANS_88973", mask=mask, output_workspace=unique_workspace_dundername()
-        )
+        sample_workspace = prepare_data("EQSANS_88975", mask=mask, output_workspace=unique_workspace_dundername())
+        reference_workspace = prepare_data("EQSANS_88973", mask=mask, output_workspace=unique_workspace_dundername())
     with pytest.raises(RuntimeError, match=r"Transmission at zero-angle is NaN"):
         calculate_transmission(sample_workspace, reference_workspace)
     [workspace.delete() for workspace in (sample_workspace, reference_workspace)]
@@ -366,9 +332,7 @@ def test_calculate_raw_transmission(transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)
     """
-    raw = calculate_transmission(
-        transmission_fixture.sample, transmission_fixture.reference, fit_function=None
-    )
+    raw = calculate_transmission(transmission_fixture.sample, transmission_fixture.reference, fit_function=None)
     assert transmission_fixture.compare(raw, "raw_transmission.nxs")
     # big radius because detector is not centered
     raw = calculate_transmission(
@@ -385,29 +349,21 @@ def test_calculate_fitted_transmission(transmission_fixture):
     (this test was written previously to the testset with the instrument team)
     Gold data is changed due to a bugfix on Mantid.Fit's error bar calculation
     """
-    fitted_transmission_workspace = calculate_transmission(
-        transmission_fixture.sample, transmission_fixture.reference
-    )
-    assert transmission_fixture.compare(
-        fitted_transmission_workspace, "fitted_transmission_mtd6.nxs"
-    )
+    fitted_transmission_workspace = calculate_transmission(transmission_fixture.sample, transmission_fixture.reference)
+    assert transmission_fixture.compare(fitted_transmission_workspace, "fitted_transmission_mtd6.nxs")
 
     # big radius because detector is not centered
     fitted_transmission_workspace = calculate_transmission(
         transmission_fixture.sample_skip, transmission_fixture.reference_skip, radius=50
     )
-    assert transmission_fixture.compare(
-        fitted_transmission_workspace, "fitted_transmission_skip_mtd6.nxs"
-    )
+    assert transmission_fixture.compare(fitted_transmission_workspace, "fitted_transmission_skip_mtd6.nxs")
 
 
 def test_apply_transmission(transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)
     """
-    trans = calculate_transmission(
-        transmission_fixture.sample, transmission_fixture.reference
-    )
+    trans = calculate_transmission(transmission_fixture.sample, transmission_fixture.reference)
     corr = apply_transmission_correction(
         transmission_fixture.sample,
         trans,
@@ -416,9 +372,7 @@ def test_apply_transmission(transmission_fixture):
     corr = SumSpectra(corr, OutputWorkspace=corr.name())
     transmission_fixture.compare(corr, "sample_corrected.nxs")
     # big radius because detector is not centered
-    trans = calculate_transmission(
-        transmission_fixture.sample_skip, transmission_fixture.reference_skip, radius=50
-    )
+    trans = calculate_transmission(transmission_fixture.sample_skip, transmission_fixture.reference_skip, radius=50)
     corr = apply_transmission_correction(
         transmission_fixture.sample_skip,
         trans,

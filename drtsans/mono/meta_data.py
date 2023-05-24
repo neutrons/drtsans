@@ -77,19 +77,14 @@ def parse_json_meta_data(
 
     if isinstance(reduction_input["configuration"][meta_name], dict):
         # new JSON code: parse each key
-        _parse_new_meta_data_json(
-            reduction_input, meta_name, unit_conversion_factor, overwrite_dict
-        )
+        _parse_new_meta_data_json(reduction_input, meta_name, unit_conversion_factor, overwrite_dict)
 
     else:
         # current JSON format
         # Parse for sample run
         try:
             # Get sample run's overwrite value
-            overwrite_value = (
-                float(reduction_input["configuration"][meta_name])
-                * unit_conversion_factor
-            )
+            overwrite_value = float(reduction_input["configuration"][meta_name]) * unit_conversion_factor
             overwrite_dict[SAMPLE] = overwrite_value
 
             # Apply to runs other than sample run
@@ -118,16 +113,13 @@ def parse_json_meta_data(
         except KeyError as key_error:
             # Required value cannot be found
             raise KeyError(
-                "JSON file shall have key as [configuration][{}]. Error message: {}"
-                "".format(meta_name, key_error)
+                "JSON file shall have key as [configuration][{}]. Error message: {}" "".format(meta_name, key_error)
             )
 
     return overwrite_dict
 
 
-def _parse_new_meta_data_json(
-    reduction_input, meta_name, unit_conversion_factor, meta_value_dict
-):
+def _parse_new_meta_data_json(reduction_input, meta_name, unit_conversion_factor, meta_value_dict):
     """Parse JSON with new format such that each run will have its own value
 
     Parameters
@@ -150,10 +142,7 @@ def _parse_new_meta_data_json(
     run_type = SAMPLE
     try:
         # Get sample run's overwrite value
-        overwrite_value = (
-            float(reduction_input["configuration"][meta_name][run_type])
-            * unit_conversion_factor
-        )
+        overwrite_value = float(reduction_input["configuration"][meta_name][run_type]) * unit_conversion_factor
     except ValueError:
         # Overwritten value error
         overwrite_value = None
@@ -176,9 +165,7 @@ def _parse_new_meta_data_json(
             BLOCK_BEAM,
             DARK_CURRENT,
         ]:
-            over_write_value_temp = reduction_input["configuration"][meta_name][
-                run_type
-            ]
+            over_write_value_temp = reduction_input["configuration"][meta_name][run_type]
             if over_write_value_temp is True:
                 # input is True/true: follow SAMPLE run
                 meta_value_dict[run_type] = overwrite_value
@@ -187,9 +174,7 @@ def _parse_new_meta_data_json(
                 pass
             else:
                 # otherwise do the conversion
-                meta_value_dict[run_type] = (
-                    float(over_write_value_temp) * unit_conversion_factor
-                )
+                meta_value_dict[run_type] = float(over_write_value_temp) * unit_conversion_factor
         # END-FOR
     except ValueError as value_error:
         # Overwritten value error
@@ -254,9 +239,7 @@ def parse_json_wave_length_and_spread(reduction_input):
     # Check valid or not
     if wave_length_dict[SAMPLE] is None and wave_length_spread_dict[SAMPLE] is not None:
         # the case that is not allowed such that only wave length spread is overwritten
-        raise RuntimeError(
-            "It is not allowed to overwrite wavelengthSpread only but not wavelength"
-        )
+        raise RuntimeError("It is not allowed to overwrite wavelengthSpread only but not wavelength")
 
     return wave_length_dict, wave_length_spread_dict
 
@@ -326,15 +309,11 @@ def set_meta_data(
 
     # Add the sample log dictionary to add
     if sample_aperture_diameter is not None:
-        meta_data_list.append(
-            ("sample_aperture_diameter", sample_aperture_diameter, "mm")
-        )
+        meta_data_list.append(("sample_aperture_diameter", sample_aperture_diameter, "mm"))
 
     # Source aperture radius
     if source_aperture_diameter is not None:
-        meta_data_list.append(
-            ("source_aperture_diameter", source_aperture_diameter, "mm")
-        )
+        meta_data_list.append(("source_aperture_diameter", source_aperture_diameter, "mm"))
 
     # Sample offset
     meta_data_list.append(("sample_offset", sample_offset, "mm"))
@@ -351,8 +330,7 @@ def set_meta_data(
         pass
     else:
         raise RuntimeError(
-            "Pixel size X ({}) and Y ({}) must be set together"
-            "".format(smearing_pixel_size_x, smearing_pixel_size_y)
+            "Pixel size X ({}) and Y ({}) must be set together" "".format(smearing_pixel_size_x, smearing_pixel_size_y)
         )
 
     # Add log value
@@ -413,8 +391,7 @@ def get_sample_detector_offset(
     )
     logger.notice("[META] EPICS Sample to Si = {} meter".format(sample_to_si))
     logger.notice(
-        "[META] Hardcoded Sample to nominal distance = {} meter"
-        "".format(zero_sample_offset_sample_si_distance)
+        "[META] Hardcoded Sample to nominal distance = {} meter" "".format(zero_sample_offset_sample_si_distance)
     )
 
     # Offsets: shift both sample and detector to conserve sample-detector distance
@@ -424,20 +401,11 @@ def get_sample_detector_offset(
     detector_offset = sample_offset
 
     # Get sample detector distance by calculation from instrument geometry directly
-    real_sample_det_distance = sample_detector_distance(
-        workspace, unit="m", search_logs=False
-    )
-    logger.notice(
-        "[META] EPICS Sample detector distance = {} (calculated)".format(
-            real_sample_det_distance
-        )
-    )
+    real_sample_det_distance = sample_detector_distance(workspace, unit="m", search_logs=False)
+    logger.notice("[META] EPICS Sample detector distance = {} (calculated)".format(real_sample_det_distance))
 
     # With overwriting distance(s)
-    if (
-        overwrite_sample_si_distance is not None
-        or overwrite_sample_detector_distance is not None
-    ):
+    if overwrite_sample_si_distance is not None or overwrite_sample_detector_distance is not None:
         # 2 cases to handle.  The order must be conserved
         if overwrite_sample_si_distance is not None:
             # Sample-Si distance is overwritten. NeXus-recorded sample-detector-distance is thus inaccurate.
@@ -460,9 +428,7 @@ def get_sample_detector_offset(
             # make the sample-detector-distance to the overwriting value
             # Move instrument_component detector1 relatively
             # [0, 0, sample_detector_distance_overwrite - sample_detector_distance_nexus]
-            overwrite_offset = (
-                overwrite_sample_detector_distance - real_sample_det_distance
-            )
+            overwrite_offset = overwrite_sample_detector_distance - real_sample_det_distance
             detector_offset += overwrite_offset
             real_sample_det_distance += overwrite_offset
     # END-IF
@@ -470,9 +436,7 @@ def get_sample_detector_offset(
     logger.notice(
         "[META FINAL] Sample offset = {}, Detector offset = {}, Sample-detector-distance = {}, "
         "Sample-Si-window-distance = {}"
-        "".format(
-            sample_offset, detector_offset, real_sample_det_distance, sample_to_si
-        )
+        "".format(sample_offset, detector_offset, real_sample_det_distance, sample_to_si)
     )
 
     return sample_offset, detector_offset

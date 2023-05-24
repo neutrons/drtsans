@@ -51,9 +51,7 @@ def test_william(generic_workspace):
         # distance to detector pixel in meters
         sample_detector = specInfo.l2(i)
         # equation supplied by SME applied to time-of-flight
-        lambda_exp = (
-            3.9560346e-3 * np.array([15432.0]) / (source_sample + sample_detector)
-        )
+        lambda_exp = 3.9560346e-3 * np.array([15432.0]) / (source_sample + sample_detector)
 
         # verify the results
         assert ws.dataX(i)[0] == pytest.approx(lambda_exp[0])

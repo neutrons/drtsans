@@ -104,9 +104,7 @@ def apply_sensitivity_correction(
         output_workspace = str(input_workspace)
 
     cleanupSensitivity = False
-    if (
-        sensitivity_workspace is None or str(sensitivity_workspace) not in mtd
-    ):  # load the file
+    if sensitivity_workspace is None or str(sensitivity_workspace) not in mtd:  # load the file
         if sensitivity_workspace is None:
             sensitivity_workspace = os.path.split(sensitivity_filename)[-1]
             sensitivity_workspace = sensitivity_workspace.split(".")[0]
@@ -120,9 +118,7 @@ def apply_sensitivity_correction(
     MaskDetectors(Workspace=output_workspace, MaskedWorkspace=sensitivity_workspace)
 
     temp_sensitivity = uwn(prefix="__sensitivity_")
-    CloneWorkspace(
-        InputWorkspace=sensitivity_workspace, OutputWorkspace=temp_sensitivity
-    )
+    CloneWorkspace(InputWorkspace=sensitivity_workspace, OutputWorkspace=temp_sensitivity)
     if min_threshold is not None:
         MaskDetectorsIf(
             InputWorkspace=temp_sensitivity,

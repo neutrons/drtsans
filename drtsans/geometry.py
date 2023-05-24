@@ -116,10 +116,7 @@ def bank_workspace_index_range(input_workspace, component=""):
     for i in range(input_workspace.getNumberHistograms()):
         ids = input_workspace.getSpectrum(i).getDetectorIDs()
         if len(ids) > 1:
-            raise RuntimeError(
-                "do not know how to work with more than one "
-                "detector per spectrum ({})".format(ids)
-            )
+            raise RuntimeError("do not know how to work with more than one " "detector per spectrum ({})".format(ids))
         if ids[0] == detector_id_first:
             first = i
             break
@@ -265,10 +262,7 @@ def logged_smearing_pixel_size(input_workspace):
     # Get sample logs
     sample_logs = SampleLogs(workspace)
 
-    if (
-        "smearingPixelSizeX" in sample_logs.keys()
-        and "smearingPixelSizeY" in sample_logs.keys()
-    ):
+    if "smearingPixelSizeX" in sample_logs.keys() and "smearingPixelSizeY" in sample_logs.keys():
         smearing_pixel_size_x = sample_logs["smearingPixelSizeX"].value
         smearing_pixel_size_y = sample_logs["smearingPixelSizeY"].value
     else:
@@ -299,9 +293,7 @@ def nominal_pixel_size(input_workspace):
     while True:
         detector = workspace.getDetector(workspace_index)
         if detector.isMonitor() is False:
-            detector_shape = (
-                detector.shape().getBoundingBox().width()
-            )  # (X, Y, Z) values
+            detector_shape = detector.shape().getBoundingBox().width()  # (X, Y, Z) values
             return {"width": detector_shape.X(), "height": detector_shape.Y()}
         workspace_index += 1
 
@@ -389,11 +381,7 @@ def source_sample_distance(source, unit="mm", log_key=None, search_logs=True):
             # motor position and rest of them are aliases
             # Take the first one shall work
             meta_data_name, meta_distance, meta_data_unit = meta_info_list[0]
-            distance = (
-                meta_distance * m2units[unit]
-                if meta_data_unit == "m"
-                else meta_distance * mm2units[unit]
-            )
+            distance = meta_distance * m2units[unit] if meta_data_unit == "m" else meta_distance * mm2units[unit]
             return distance
 
     # Calculate the distance using the instrument definition file
@@ -485,11 +473,7 @@ def sample_detector_distance(
             # In case there are more than 1 log is found, it is assumed that all of them shall have the same
             # value, i.e., some of them are alias
             meta_data_name, meta_data_value, meta_data_unit = meta_info_list[0]
-            distance = (
-                meta_data_value * m2units[unit]
-                if meta_data_unit == "m"
-                else meta_data_value * mm2units[unit]
-            )
+            distance = meta_data_value * m2units[unit] if meta_data_unit == "m" else meta_data_value * mm2units[unit]
             return distance
 
     # Calculate the distance using the instrument definition file
@@ -651,14 +635,10 @@ def sample_aperture_diameter(input_workspace, unit="mm"):
             InstrumentEnumName.BIOSANS: 1791,
         }.get(instrument_enum_name(input_workspace), 0)
         if int(SampleLogs(input_workspace).run_number.value) < run_limit:
-            diameter = SampleLogs(input_workspace).single_value(
-                "sample_aperture_radius"
-            )
+            diameter = SampleLogs(input_workspace).single_value("sample_aperture_radius")
 
     if diameter is None:
-        raise RuntimeError(
-            "Unable to retrieve the sample aperture diameter from the logs"
-        )
+        raise RuntimeError("Unable to retrieve the sample aperture diameter from the logs")
 
     # If the diameter was found using the additional logs, then insert a log for the diameter under key
     # "sample_aperture_diameter"
@@ -701,9 +681,7 @@ def source_aperture_diameter(input_workspace, unit="mm"):
                 diameter = sample_logs.single_value("source_aperture_radius")
 
     if diameter is None:
-        raise ValueError(
-            "Unable to retrieve the source aperture diameter from the logs"
-        )
+        raise ValueError("Unable to retrieve the source aperture diameter from the logs")
 
     return diameter if unit == "mm" else diameter / 1.0e3
 
@@ -739,29 +717,20 @@ def translate_source_by_z(input_workspace, z=None, relative=False):
 
         if source_z_log is not None:
             factor = 1.0 if sample_logs[source_z_log].units == "m" else 1e-3
-            distance_from_log = factor * sample_logs.single_value(
-                source_z_log
-            )  # assumed in millimeters
+            distance_from_log = factor * sample_logs.single_value(source_z_log)  # assumed in millimeters
             # Has the detector already been translated by this quantity?
             for source_name in ("moderator", "source"):
-                moderator = get_instrument(input_workspace).getComponentByName(
-                    source_name
-                )
+                moderator = get_instrument(input_workspace).getComponentByName(source_name)
                 if moderator is not None:
                     _, _, current_z = moderator.getPos()
-                    if (
-                        abs(distance_from_log - abs(current_z)) > 1e-03
-                    ):  # differ by more than one millimeter
+                    if abs(distance_from_log - abs(current_z)) > 1e-03:  # differ by more than one millimeter
                         z = -distance_from_log
                     break
 
     if z is not None:
         if (not relative) or (z != 0.0):
             for source_name in ("moderator", "source"):
-                if (
-                    get_instrument(input_workspace).getComponentByName(source_name)
-                    is not None
-                ):
+                if get_instrument(input_workspace).getComponentByName(source_name) is not None:
                     MoveInstrumentComponent(
                         Workspace=input_workspace,
                         Z=z,
@@ -793,8 +762,7 @@ def translate_sample_by_z(workspace, z):
         )
         workspace = mtd[ws_name]
         logger.debug(
-            "Instrument sample position is moved to {}"
-            "".format(workspace.getInstrument().getSample().getPos())
+            "Instrument sample position is moved to {}" "".format(workspace.getInstrument().getSample().getPos())
         )
 
     # update the appropriate log
@@ -833,19 +801,11 @@ def translate_detector_by_z(input_workspace, z=None, relative=True):
         sample_logs = SampleLogs(input_workspace)
         # If detector_z_log exists in the sample logs, use it
         if detector_z_log in sample_logs:
-            translation_from_log = 1e-3 * sample_logs.single_value(
-                detector_z_log
-            )  # assumed in millimeters
+            translation_from_log = 1e-3 * sample_logs.single_value(detector_z_log)  # assumed in millimeters
             # Has the detector already been translated by this quantity?
             main_detector_array = main_detector_name(input_workspace)
-            _, _, current_z = (
-                get_instrument(input_workspace)
-                .getComponentByName(main_detector_array)
-                .getPos()
-            )
-            if (
-                abs(translation_from_log - current_z) > 1e-03
-            ):  # differ by more than one millimeter
+            _, _, current_z = get_instrument(input_workspace).getComponentByName(main_detector_array).getPos()
+            if abs(translation_from_log - current_z) > 1e-03:  # differ by more than one millimeter
                 z = translation_from_log
 
     if z is not None:

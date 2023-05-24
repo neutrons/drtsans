@@ -63,9 +63,7 @@ def reduce_gpsans_data(data_dir, reduction_input_common, output_dir, prefix):
             },
             "outputFileName": sample_names[i],
         }
-        reduction_input = update_reduction_parameters(
-            reduction_input_common, specs, validate=True
-        )
+        reduction_input = update_reduction_parameters(reduction_input_common, specs, validate=True)
         loaded = load_all_files(reduction_input, path=data_dir, prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
         plot_reduction_output(out, reduction_input, loglog=False, close_figures=True)
@@ -88,9 +86,7 @@ def test_no_overwrite(reference_dir, generatecleanfile):
     -------
 
     """
-    sensitivity_file = os.path.join(
-        reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
-    )
+    sensitivity_file = os.path.join(reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs")
     output_dir = generatecleanfile(prefix="meta_overwrite_test1")
     specs = {
         "iptsNumber": 21981,
@@ -116,12 +112,8 @@ def test_no_overwrite(reference_dir, generatecleanfile):
             "useSubpixels": False,
         },
     }
-    reduction_input = reduction_parameters(
-        specs, "GPSANS", validate=False
-    )  # add defaults and defer validation
-    reduce_gpsans_data(
-        reference_dir.new.gpsans, reduction_input, output_dir, prefix="CG2MetaRaw"
-    )
+    reduction_input = reduction_parameters(specs, "GPSANS", validate=False)  # add defaults and defer validation
+    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, prefix="CG2MetaRaw")
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
@@ -181,9 +173,7 @@ def test_overwrite_sample2si(reference_dir, generatecleanfile):
     -------
 
     """
-    sensitivity_file = os.path.join(
-        reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
-    )
+    sensitivity_file = os.path.join(reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs")
     output_dir = generatecleanfile(prefix="meta_overwrite_test2")
     specs = {
         "iptsNumber": 21981,
@@ -210,12 +200,8 @@ def test_overwrite_sample2si(reference_dir, generatecleanfile):
             "useSubpixels": False,
         },
     }
-    reduction_input = reduction_parameters(
-        specs, "GPSANS", validate=False
-    )  # add defaults and defer validation
-    reduce_gpsans_data(
-        reference_dir.new.gpsans, reduction_input, output_dir, "CG2MetaSWD"
-    )
+    reduction_input = reduction_parameters(specs, "GPSANS", validate=False)  # add defaults and defer validation
+    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, "CG2MetaSWD")
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
@@ -275,9 +261,7 @@ def test_overwrite_sdd(reference_dir, generatecleanfile):
 
     """
     # Set test and run: sample to detector distance is changed to 40 meter
-    sensitivity_file = os.path.join(
-        reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
-    )
+    sensitivity_file = os.path.join(reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs")
     output_dir = generatecleanfile(prefix="meta_overwrite_test3")
 
     # Set up reduction
@@ -306,23 +290,14 @@ def test_overwrite_sdd(reference_dir, generatecleanfile):
             "useSubpixels": False,
         },
     }
-    reduction_input = reduction_parameters(
-        specs, "GPSANS", validate=False
-    )  # add defaults and defer validation
-    reduce_gpsans_data(
-        reference_dir.new.gpsans, reduction_input, output_dir, "CG2MetaSDD"
-    )
+    reduction_input = reduction_parameters(specs, "GPSANS", validate=False)  # add defaults and defer validation
+    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, "CG2MetaSDD")
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    output_log_files = [
-        os.path.join(output_dir, "{}_reduction_log.hdf".format(sn))
-        for sn in sample_names
-    ]
+    output_log_files = [os.path.join(output_dir, "{}_reduction_log.hdf".format(sn)) for sn in sample_names]
     for output_file_path in output_log_files:
-        assert os.path.exists(output_file_path), "Output {} cannot be found".format(
-            output_file_path
-        )
+        assert os.path.exists(output_file_path), "Output {} cannot be found".format(output_file_path)
 
     # Verify results
     gold_path = os.path.join(reference_dir.new.gpsans, "overwrite_gold_20201027/test3/")
@@ -380,9 +355,7 @@ def test_overwrite_both(reference_dir, generatecleanfile):
 
     """
     # Set test and run: sample to silicon window to 94 mm and sample to detector distance to 15 meter
-    sensitivity_file = os.path.join(
-        reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
-    )
+    sensitivity_file = os.path.join(reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs")
     output_dir = generatecleanfile(prefix="meta_overwrite_test4")
     specs = {
         "iptsNumber": 21981,
@@ -410,23 +383,14 @@ def test_overwrite_both(reference_dir, generatecleanfile):
             "useSubpixels": False,
         },
     }
-    reduction_input = reduction_parameters(
-        specs, "GPSANS", validate=False
-    )  # add defaults and defer validation
-    reduce_gpsans_data(
-        reference_dir.new.gpsans, reduction_input, output_dir, "CG2MetaBoth"
-    )
+    reduction_input = reduction_parameters(specs, "GPSANS", validate=False)  # add defaults and defer validation
+    reduce_gpsans_data(reference_dir.new.gpsans, reduction_input, output_dir, "CG2MetaBoth")
 
     # Get result files
     sample_names = ["Al4", "PorasilC3", "PTMA-15"]
-    output_log_files = [
-        os.path.join(output_dir, "{}_reduction_log.hdf".format(sn))
-        for sn in sample_names
-    ]
+    output_log_files = [os.path.join(output_dir, "{}_reduction_log.hdf".format(sn)) for sn in sample_names]
     for output_file_path in output_log_files:
-        assert os.path.exists(output_file_path), "Output {} cannot be found".format(
-            output_file_path
-        )
+        assert os.path.exists(output_file_path), "Output {} cannot be found".format(output_file_path)
 
     # Verify results
     gold_path = os.path.join(reference_dir.new.gpsans, "overwrite_gold_20201027/test4/")

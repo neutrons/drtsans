@@ -7,10 +7,7 @@ from drtsans.transmission import apply_transmission_correction
 __all__ = ["calculate_transmission", "apply_transmission_correction"]
 
 
-def calculate_transmission(
-    input_sample, input_reference, radius=None, radius_unit="mm", output_workspace=None
-):
-
+def calculate_transmission(input_sample, input_reference, radius=None, radius_unit="mm", output_workspace=None):
     if radius is None:
         logger.information("Calculating beam radius from sample logs")
         radius = beam_radius(input_reference, unit="mm")

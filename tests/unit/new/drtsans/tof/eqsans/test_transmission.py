@@ -49,9 +49,7 @@ def test_fit_band(trasmission_data):
     assert_almost_equal(mantid_fit_output.OutputChi2overDoF, 1.1, decimal=1)
 
     # Frame-skipping mode
-    bands = transmitted_bands(
-        trasmission_data.raw_skip
-    )  # obtain the lead and skipped wavelength bands
+    bands = transmitted_bands(trasmission_data.raw_skip)  # obtain the lead and skipped wavelength bands
     # fit raw transmission values in the wavelength band corresponding to the lead pulse
     _, mantid_fit_output = fit_band(trasmission_data.raw_skip, bands.lead)
     assert_almost_equal(mantid_fit_output.OutputChi2overDoF, 1.1, decimal=1)
@@ -68,23 +66,13 @@ def test_fit_raw(trasmission_data):
     changes to the source code are introduced. We use the goodness of fit (chi-square) to assess no changes.
     """
     # Non-skip mode
-    fitting_results = fit_raw_transmission(
-        trasmission_data.raw, output_workspace=unique_workspace_dundername()
-    )
-    assert_almost_equal(
-        fitting_results.lead_mantid_fit.OutputChi2overDoF, 1.1, decimal=1
-    )
+    fitting_results = fit_raw_transmission(trasmission_data.raw, output_workspace=unique_workspace_dundername())
+    assert_almost_equal(fitting_results.lead_mantid_fit.OutputChi2overDoF, 1.1, decimal=1)
 
     # Frame-skipping mode
-    fitting_results = fit_raw_transmission(
-        trasmission_data.raw_skip, output_workspace=unique_workspace_dundername()
-    )
-    assert_almost_equal(
-        fitting_results.lead_mantid_fit.OutputChi2overDoF, 1.1, decimal=1
-    )
-    assert_almost_equal(
-        fitting_results.skip_mantid_fit.OutputChi2overDoF, 3.6, decimal=1
-    )
+    fitting_results = fit_raw_transmission(trasmission_data.raw_skip, output_workspace=unique_workspace_dundername())
+    assert_almost_equal(fitting_results.lead_mantid_fit.OutputChi2overDoF, 1.1, decimal=1)
+    assert_almost_equal(fitting_results.skip_mantid_fit.OutputChi2overDoF, 3.6, decimal=1)
 
 
 if __name__ == "__main__":

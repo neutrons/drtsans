@@ -348,9 +348,7 @@ def _create_2d_histogram_data():
 
     azimuthal_rings = []
     for i in range(intensity.shape[1]):
-        azimuthal_rings.append(
-            IQmod(intensity=intensity.T[i], error=error.T[i], mod_q=azimuthal_bins)
-        )
+        azimuthal_rings.append(IQmod(intensity=intensity.T[i], error=error.T[i], mod_q=azimuthal_bins))
 
     return q_bins, azimuthal_rings
 
@@ -368,7 +366,8 @@ def test_calc_qmod_and_azimuthal():
     assert azimuthal.shape == intensity.shape
 
     from drtsans.plots.api import plot_IQazimuthal
-    plot_IQazimuthal(data2d, 'input_wedge.png', backend='mpl')
+
+    plot_IQazimuthal(data2d, "input_wedge.png", backend="mpl")
 
     # numbers taken from the spreadsheet
     q_exp = np.array(
@@ -441,17 +440,11 @@ def test_bin_into_q_and_azimuthal():
 
     for spectrum, spectrum_exp in zip(azimuthal_rings, azimuthal_rings_exp):
         assert spectrum.intensity.shape == spectrum_exp.intensity.shape
-        np.testing.assert_allclose(
-            spectrum.mod_q, spectrum_exp.mod_q, atol=0.05, equal_nan=True
-        )
+        np.testing.assert_allclose(spectrum.mod_q, spectrum_exp.mod_q, atol=0.05, equal_nan=True)
         assert spectrum.delta_mod_q is None
 
-        np.testing.assert_allclose(
-            spectrum.intensity, spectrum_exp.intensity, atol=0.05, equal_nan=True
-        )
-        np.testing.assert_allclose(
-            spectrum.error, spectrum_exp.error, atol=0.05, equal_nan=True
-        )
+        np.testing.assert_allclose(spectrum.intensity, spectrum_exp.intensity, atol=0.05, equal_nan=True)
+        np.testing.assert_allclose(spectrum.error, spectrum_exp.error, atol=0.05, equal_nan=True)
 
 
 def test_fitting():
@@ -509,15 +502,11 @@ def test_integration():
 
     # verify peaks
     # first peak
-    assert 0.5 * (peak_wedge[0][0] + peak_wedge[0][1]) == pytest.approx(
-        180.0, abs=3.0
-    ), "First peak center is at 180."
+    assert 0.5 * (peak_wedge[0][0] + peak_wedge[0][1]) == pytest.approx(180.0, abs=3.0), "First peak center is at 180."
     assert peak_wedge[0][0] == pytest.approx(171.0, abs=0.5)
     assert peak_wedge[0][1] == pytest.approx(195.0, abs=0.5)
     # second peak
-    assert 0.5 * (peak_wedge[1][0] + peak_wedge[1][1]) == pytest.approx(
-        3.0, abs=1.0
-    ), "Second peak center is at 0."
+    assert 0.5 * (peak_wedge[1][0] + peak_wedge[1][1]) == pytest.approx(3.0, abs=1.0), "Second peak center is at 0."
     assert peak_wedge[1][0] == pytest.approx(-9.0, abs=0.5)
     assert peak_wedge[1][1] == pytest.approx(16.0, abs=0.5)
 
@@ -540,12 +529,8 @@ def test_real_data_biosans(reference_dir):
     MSamp_fn = os.path.join(reference_dir.new.biosans, "CG3_127_5532_mBSub.h5")
     MBuff_fn = os.path.join(reference_dir.new.biosans, "CG3_127_5562_mBSub.h5")
 
-    ws_ms = LoadNexusProcessed(
-        Filename=MSamp_fn, OutputWorkspace="sample", LoadHistory=False
-    )
-    ws_mb = LoadNexusProcessed(
-        Filename=MBuff_fn, OutputWorkspace="Main_buffer", LoadHistory=False
-    )
+    ws_ms = LoadNexusProcessed(Filename=MSamp_fn, OutputWorkspace="sample", LoadHistory=False)
+    ws_mb = LoadNexusProcessed(Filename=MBuff_fn, OutputWorkspace="Main_buffer", LoadHistory=False)
     ws_ms -= ws_mb  # subtract the buffer
     ws_mb.delete()
 
@@ -590,20 +575,12 @@ def test_real_data_biosans(reference_dir):
     assert len(iq1d_rebinned) == 2, "Expect exactly 2 output 1d spectra"
 
     # rebin the data onto a regular grid for plotting
-    linear_x_bins = determine_1d_linear_bins(
-        q2d_data.qx.min(), q2d_data.qx.max(), nbins
-    )
-    linear_y_bins = determine_1d_linear_bins(
-        q2d_data.qy.min(), q2d_data.qy.max(), nbins
-    )
-    q2d_data = bin_intensity_into_q2d(
-        q2d_data, linear_x_bins, linear_y_bins, BinningMethod.NOWEIGHT
-    )
+    linear_x_bins = determine_1d_linear_bins(q2d_data.qx.min(), q2d_data.qx.max(), nbins)
+    linear_y_bins = determine_1d_linear_bins(q2d_data.qy.min(), q2d_data.qy.max(), nbins)
+    q2d_data = bin_intensity_into_q2d(q2d_data, linear_x_bins, linear_y_bins, BinningMethod.NOWEIGHT)
 
     # save an image
-    filename = NamedTemporaryFile(
-        delete=False, prefix="CG3_127_5532_Iqxqy", suffix=".png"
-    ).name
+    filename = NamedTemporaryFile(delete=False, prefix="CG3_127_5532_Iqxqy", suffix=".png").name
     plot_IQazimuthal(
         q2d_data,
         filename,
@@ -624,12 +601,8 @@ def test_real_data_biosans_manual(reference_dir):
     MSamp_fn = os.path.join(reference_dir.new.biosans, "CG3_127_5532_mBSub.h5")
     MBuff_fn = os.path.join(reference_dir.new.biosans, "CG3_127_5562_mBSub.h5")
 
-    ws_ms = LoadNexusProcessed(
-        Filename=MSamp_fn, OutputWorkspace="sample", LoadHistory=False
-    )
-    ws_mb = LoadNexusProcessed(
-        Filename=MBuff_fn, OutputWorkspace="Main_buffer", LoadHistory=False
-    )
+    ws_ms = LoadNexusProcessed(Filename=MSamp_fn, OutputWorkspace="sample", LoadHistory=False)
+    ws_mb = LoadNexusProcessed(Filename=MBuff_fn, OutputWorkspace="Main_buffer", LoadHistory=False)
     ws_ms -= ws_mb  # subtract the buffer
     ws_mb.delete()
 
@@ -654,9 +627,7 @@ def test_real_data_biosans_manual(reference_dir):
         symmetric_wedges=False,
         error_weighted=False,
     )
-    assert (
-        len(iq1d_rebinned) == 1
-    ), "Expect exactly 1 output 1d spectra for manual wedge"
+    assert len(iq1d_rebinned) == 1, "Expect exactly 1 output 1d spectra for manual wedge"
 
 
 if __name__ == "__main__":

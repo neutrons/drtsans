@@ -28,12 +28,8 @@ def read_requirements_from_file(filepath):
         return req_file.readlines()
 
 
-install_requires = read_requirements_from_file(
-    os.path.join(THIS_DIR, "requirements.txt")
-)
-test_requires = read_requirements_from_file(
-    os.path.join(THIS_DIR, "requirements_dev.txt")
-)
+install_requires = read_requirements_from_file(os.path.join(THIS_DIR, "requirements.txt"))
+test_requires = read_requirements_from_file(os.path.join(THIS_DIR, "requirements_dev.txt"))
 
 CLASSIFIERS = [
     "Development Status :: 5 - Production/Stable",

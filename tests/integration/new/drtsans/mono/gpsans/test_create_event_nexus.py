@@ -50,9 +50,7 @@ def test_duplicate_event_nexus(reference_dir, generatecleanfile):
     # Get the source file
     source_nexus_file = "CG2_9177.nxs.h5"
     source_nexus_file = os.path.join(reference_dir.new.gpsans, source_nexus_file)
-    assert os.path.exists(
-        source_nexus_file
-    ), f"Test data {source_nexus_file} does not exist"
+    assert os.path.exists(source_nexus_file), f"Test data {source_nexus_file} does not exist"
 
     # Duplicate the source file to the temporary directory
     output_dir = generatecleanfile(prefix="dupnexus")
@@ -66,14 +64,10 @@ def test_duplicate_event_nexus(reference_dir, generatecleanfile):
     generate_event_nexus(source_nexus_file, product_dup_nexus)
 
     # Load source file to workspace
-    target_ws = load_events(
-        product_dup_nexus, output_workspace="cg2_product", NumberOfBins=2
-    )
+    target_ws = load_events(product_dup_nexus, output_workspace="cg2_product", NumberOfBins=2)
 
     # Load the duplicated
-    prototype_ws = load_events(
-        prototype_dup_nexus, output_workspace="cg2_prototype", NumberOfBins=2
-    )
+    prototype_ws = load_events(prototype_dup_nexus, output_workspace="cg2_prototype", NumberOfBins=2)
 
     # Compare pixels' positions
     num_hist = prototype_ws.getNumberHistograms()
@@ -134,9 +128,7 @@ def test_reduction(reference_dir, generatecleanfile):
         nexus_file_dict[run_number] = target_nexus
 
     # Set up reduction JSON
-    sensitivity_file = os.path.join(
-        reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs"
-    )
+    sensitivity_file = os.path.join(reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs")
     specs = {
         "iptsNumber": 21981,
         "beamCenter": {"runNumber": nexus_file_dict[9177]},
@@ -161,9 +153,7 @@ def test_reduction(reference_dir, generatecleanfile):
             "useSubpixels": False,
         },
     }
-    reduction_input = reduction_parameters(
-        specs, "GPSANS", validate=False
-    )  # add defaults and defer validation
+    reduction_input = reduction_parameters(specs, "GPSANS", validate=False)  # add defaults and defer validation
     reduce_gpsans_data(
         reference_dir.new.gpsans,
         reduction_input,
@@ -270,9 +260,7 @@ def reduce_gpsans_data(
             },
             "outputFileName": sample_names[i],
         }
-        reduction_input = update_reduction_parameters(
-            reduction_input_common, specs, validate=True
-        )
+        reduction_input = update_reduction_parameters(reduction_input_common, specs, validate=True)
         loaded = load_all_files(reduction_input, path=data_dir, prefix=prefix)
         out = reduce_single_configuration(loaded, reduction_input)
         plot_reduction_output(out, reduction_input, loglog=False, close_figures=True)
@@ -311,9 +299,7 @@ def generate_event_nexus(source_nexus, target_nexus):
     end_time = nexus_contents[4]
 
     # Write file
-    event_nexus_writer.generate_event_nexus(
-        target_nexus, start_time, end_time, nexus_contents[2]
-    )
+    event_nexus_writer.generate_event_nexus(target_nexus, start_time, end_time, nexus_contents[2])
 
 
 def generate_event_nexus_prototype(source_nexus, target_nexus):
@@ -386,27 +372,18 @@ def generate_event_nexus_prototype(source_nexus, target_nexus):
             bank_id=bank_id,
             run_start_time=nexus_contents[3],
         )
-        event_time_zeros = bank_node_i.get_child(
-            "event_time_zero", is_short_name=True
-        ).value
-        if (
-            max_pulse_time_array is None
-            or event_time_zeros.shape[0] > max_pulse_time_array.shape[0]
-        ):
+        event_time_zeros = bank_node_i.get_child("event_time_zero", is_short_name=True).value
+        if max_pulse_time_array is None or event_time_zeros.shape[0] > max_pulse_time_array.shape[0]:
             max_pulse_time_array = event_time_zeros
 
     # Set monitor node
-    set_monitor_node(
-        nexus_contents[2], nexus_contents[3], target_entry_node, max_pulse_time_array
-    )
+    set_monitor_node(nexus_contents[2], nexus_contents[3], target_entry_node, max_pulse_time_array)
 
     # write
     target_nexus_root.write(target_nexus)
 
 
-def set_monitor_node(
-    monitor_counts, run_start_time, target_entry_node, event_time_zeros
-):
+def set_monitor_node(monitor_counts, run_start_time, target_entry_node, event_time_zeros):
     """
 
     Parameters
@@ -427,9 +404,7 @@ def set_monitor_node(
 
     tof_min = 0.0
     tof_max = 10000.0
-    monitor_events = generate_monitor_events_from_count(
-        monitor_counts, event_time_zeros, tof_min, tof_max
-    )
+    monitor_events = generate_monitor_events_from_count(monitor_counts, event_time_zeros, tof_min, tof_max)
 
     target_monitor_node.set_monitor_events(
         event_index_array=monitor_events.event_index,
@@ -470,9 +445,7 @@ def set_single_bank_node(bank_histogram, target_entry_node, bank_id, run_start_t
         pass
 
     # Create bank node for bank
-    bank_node = BankNode(
-        name=f"/entry/bank{bank_id}_events", bank_name=f"bank{bank_id}"
-    )
+    bank_node = BankNode(name=f"/entry/bank{bank_id}_events", bank_name=f"bank{bank_id}")
     bank_node.set_events(
         nexus_events.event_id,
         nexus_events.event_index,
@@ -505,12 +478,8 @@ def set_instrument_node(xml_idf, target_entry_node):
     target_entry_node.set_child(instrument_node)
 
     # Set values
-    instrument_node.set_idf(
-        xml_idf, idf_type=b"text/xml", description=b"XML contents of the instrument IDF"
-    )
-    instrument_node.set_instrument_info(
-        target_station_number=1, beam_line=b"CG2", name=b"CG2", short_name=b"CG2"
-    )
+    instrument_node.set_idf(xml_idf, idf_type=b"text/xml", description=b"XML contents of the instrument IDF")
+    instrument_node.set_instrument_info(target_station_number=1, beam_line=b"CG2", name=b"CG2", short_name=b"CG2")
 
 
 def set_das_log_node(das_log_dict, run_start_time, target_entry_node):
@@ -617,12 +586,8 @@ def verify_histogram(source_nexus, test_nexus):
 
     """
     # Load NeXus file
-    src_ws = LoadEventNexus(
-        Filename=source_nexus, OutputWorkspace="gold", NumberOfBins=1
-    )
-    test_ws = LoadEventNexus(
-        Filename=test_nexus, OutputWorkspace="test", NumberOfBins=1
-    )
+    src_ws = LoadEventNexus(Filename=source_nexus, OutputWorkspace="gold", NumberOfBins=1)
+    test_ws = LoadEventNexus(Filename=test_nexus, OutputWorkspace="test", NumberOfBins=1)
 
     # Compare counts
     error_message = ""
@@ -654,9 +619,7 @@ def test_convert_spice_to_nexus(reference_dir, generatecleanfile):
 
     """
     # Specify the test data
-    spice_data_file = os.path.join(
-        reference_dir.new.gpsans, "CG2_exp315_scan0005_0060.xml"
-    )
+    spice_data_file = os.path.join(reference_dir.new.gpsans, "CG2_exp315_scan0005_0060.xml")
     template_nexus_file = os.path.join(reference_dir.new.gpsans, "CG2_9177.nxs.h5")
     assert os.path.exists(spice_data_file)
     assert os.path.exists(template_nexus_file)
@@ -750,9 +713,7 @@ def test_convert_spice_to_nexus(reference_dir, generatecleanfile):
         test_pixel_pos = test_nexus_ws.getDetector(iws).getPos()
         expected_pixel_pos = template_ws.getDetector(iws).getPos()
         # constant difference at x
-        assert test_pixel_pos[0] - diff_x == pytest.approx(
-            expected_pixel_pos[0], abs=1e-7
-        )
+        assert test_pixel_pos[0] - diff_x == pytest.approx(expected_pixel_pos[0], abs=1e-7)
         # y shall be exactly same
         assert test_pixel_pos[1] == pytest.approx(expected_pixel_pos[1], abs=1e-7)
         # z shall have constant difference
@@ -768,9 +729,7 @@ def test_convert_spice_to_nexus(reference_dir, generatecleanfile):
 
     # compare histograms
     for iws in range(0, test_nexus_ws.getNumberHistograms()):
-        assert test_nexus_ws.readY(iws)[0] == pytest.approx(
-            spice_ws.readY(iws + 2)[0], abs=1e-3
-        )
+        assert test_nexus_ws.readY(iws)[0] == pytest.approx(spice_ws.readY(iws + 2)[0], abs=1e-3)
 
     # compare DAS logs (partial)
     for log_name in [

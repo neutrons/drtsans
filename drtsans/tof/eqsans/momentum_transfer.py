@@ -64,36 +64,22 @@ def eqsans_resolution(*args, **kwargs):
     )
     # get the moderator part of the resolution (only EQSANS)
     moderator_part = (
-        3.9650
-        * 0.001
-        * moderator_time_uncertainty(wavelength)
-        / (wavelength * (L1 + samp_det_distance))
+        3.9650 * 0.001 * moderator_time_uncertainty(wavelength) / (wavelength * (L1 + samp_det_distance))
     ) ** 2
 
     # return resolution according to formulas 10.5 and 10.6 in the master document
     if mode == "scalar":
         q = args[0]
-        return np.sqrt(
-            sigma_geom
-            + np.square(q)
-            * (np.square(delta_wavelength / wavelength) + moderator_part)
-            / 12.0
-        )
+        return np.sqrt(sigma_geom + np.square(q) * (np.square(delta_wavelength / wavelength) + moderator_part) / 12.0)
     if mode == "azimuthal":
         qx = args[0]
         qy = args[1]
         return [
             np.sqrt(
-                sigma_geom[0]
-                + np.square(qx)
-                * (np.square(delta_wavelength / wavelength) + moderator_part)
-                / 12.0
+                sigma_geom[0] + np.square(qx) * (np.square(delta_wavelength / wavelength) + moderator_part) / 12.0
             ),
             np.sqrt(
-                sigma_geom[1]
-                + np.square(qy)
-                * (np.square(delta_wavelength / wavelength) + moderator_part)
-                / 12.0
+                sigma_geom[1] + np.square(qy) * (np.square(delta_wavelength / wavelength) + moderator_part) / 12.0
             ),
         ]
 
@@ -188,14 +174,10 @@ def retrieve_instrument_setup(input_workspace):
     ~drtsans.resolution.InstrumentSetupParameters
     """
     l1 = source_aperture_sample_distance(input_workspace, unit="m")
-    l2 = sans_geometry.sample_detector_distance(
-        input_workspace, unit="m", search_logs=False
-    )
+    l2 = sans_geometry.sample_detector_distance(input_workspace, unit="m", search_logs=False)
     r1 = 0.5 * source_aperture_diameter(input_workspace, unit="m")
     r2 = 0.5 * sample_aperture_diameter(input_workspace, unit="m")
-    pixel_width, pixel_height = sans_geometry.logged_smearing_pixel_size(
-        input_workspace
-    )
+    pixel_width, pixel_height = sans_geometry.logged_smearing_pixel_size(input_workspace)
 
     nominal_pixel = sans_geometry.nominal_pixel_size(input_workspace)
     pixel_width_ratio = None
@@ -231,9 +213,7 @@ def moderator_time_uncertainty(wl):
 
     # formula for lambda >= 2
     mask = wl >= 2.0
-    time_error[mask] = (
-        0.0148 * wl[mask] ** 3 - 0.5233 * wl[mask] ** 2 + 6.4797 * wl[mask] + 231.99
-    )
+    time_error[mask] = 0.0148 * wl[mask] ** 3 - 0.5233 * wl[mask] ** 2 + 6.4797 * wl[mask] + 231.99
 
     # formula for lambda < 2
     mask = wl < 2.0
@@ -332,9 +312,7 @@ def split_by_frame(input_workspace, *args, **kwargs):
         output = dict()
         wavelength = kwargs["wavelength"]
         # use only data between the given wavelengths
-        kept_data_indexes = np.logical_and(
-            np.greater_equal(wavelength, wl_min), np.less_equal(wavelength, wl_max)
-        )
+        kept_data_indexes = np.logical_and(np.greater_equal(wavelength, wl_min), np.less_equal(wavelength, wl_max))
         # filter each data/key
         for k in keys:
             output[k] = kwargs[k][kept_data_indexes]

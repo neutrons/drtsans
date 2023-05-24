@@ -104,10 +104,7 @@ class CG3EventNexusConvert(EventNexusConverter):
                 bank_count_start_index = bank_tube_index * num_pixel_per_tube
                 self._bank_counts_dict[bank_id][
                     bank_count_start_index : bank_count_start_index + num_pixel_per_tube
-                ] = self._spice_detector_counts[
-                    spice_count_start_index : spice_count_start_index
-                    + num_pixel_per_tube
-                ]
+                ] = self._spice_detector_counts[spice_count_start_index : spice_count_start_index + num_pixel_per_tube]
 
     def get_pid_range(self, bank_id):
         """Set GPSANS bank and pixel ID relation
@@ -129,10 +126,7 @@ class CG3EventNexusConvert(EventNexusConverter):
 
         # Check input valid
         if bank_id < 1 or bank_id > self.num_banks:
-            raise RuntimeError(
-                f"CG3 (BioSANS) has 88 banks indexed from 1 to 88. "
-                f"Bank {bank_id} is out of range."
-            )
+            raise RuntimeError(f"CG3 (BioSANS) has 88 banks indexed from 1 to 88. " f"Bank {bank_id} is out of range.")
 
         # calculate starting PID
         if bank_id <= 24:
@@ -198,31 +192,19 @@ def convert_spice_to_nexus(
     if spice_dir is not None:
         # construct SPICE file from IPTS, experiment and etc.
         # path processing
-        spice_dir = (
-            f"/HFIR/CG3/IPTS-{ipts_number}/exp{exp_number}/Datafiles"
-            if spice_dir is None
-            else spice_dir
-        )
+        spice_dir = f"/HFIR/CG3/IPTS-{ipts_number}/exp{exp_number}/Datafiles" if spice_dir is None else spice_dir
 
         # construct  SPICE
         spice_data = f"BioSANS_exp{exp_number}_scan{scan_number:04}_{pt_number:04}.xml"
         spice_data = os.path.join(spice_dir, spice_data)
-        output_dir = (
-            f"/HFIR/CG3/IPTS-{ipts_number}/shared/spice_nexus"
-            if output_dir is None
-            else output_dir
-        )
+        output_dir = f"/HFIR/CG3/IPTS-{ipts_number}/shared/spice_nexus" if output_dir is None else output_dir
 
         # Input (Path&File) validation
-        assert os.path.exists(
-            spice_dir
-        ), f"SPICE data directory {spice_dir} cannot be found"
+        assert os.path.exists(spice_dir), f"SPICE data directory {spice_dir} cannot be found"
 
     # check SPICE file
     assert os.path.exists(spice_data), f"SPICE file {spice_data} cannot be located"
-    assert os.path.exists(
-        template_nexus
-    ), f"Template NeXus file {template_nexus} cannot be located"
+    assert os.path.exists(template_nexus), f"Template NeXus file {template_nexus} cannot be located"
 
     # Check output directory exist.  If not, create it
     if not os.path.exists(output_dir):
@@ -230,8 +212,7 @@ def convert_spice_to_nexus(
             os.mkdir(output_dir)
         except (OSError, IOError) as dir_err:
             raise RuntimeError(
-                f"Output directory {output_dir} doesn't exist."
-                f"Unable to create {output_dir} due to {dir_err}"
+                f"Output directory {output_dir} doesn't exist." f"Unable to create {output_dir} due to {dir_err}"
             )
 
     # output file name
@@ -240,9 +221,7 @@ def convert_spice_to_nexus(
 
     # load mapping reference from yaml
     _file_parent_dir = os.path.dirname(os.path.realpath(__file__))
-    with open(
-        os.path.join(_file_parent_dir, "cg3_to_nexus_mapping.yml"), "r"
-    ) as stream:
+    with open(os.path.join(_file_parent_dir, "cg3_to_nexus_mapping.yml"), "r") as stream:
         das_log_map = yaml.safe_load(stream)
 
     # init converter
@@ -315,9 +294,7 @@ def generate_event_nexus(source_nexus, target_nexus, das_log_list=None):
     end_time = nexus_contents[4]
 
     # Write file
-    event_nexus_writer.generate_event_nexus(
-        target_nexus, start_time, end_time, nexus_contents[2]
-    )
+    event_nexus_writer.generate_event_nexus(target_nexus, start_time, end_time, nexus_contents[2])
 
 
 if __name__ == "__main__":

@@ -43,10 +43,7 @@ class CG2EventNexusConvert(EventNexusConverter):
         """
         # Check input valid
         if bank_id < 1 or bank_id > 48:
-            raise RuntimeError(
-                f"CG2 (GP-SANS) has 88 banks indexed from 1 to 48. "
-                f"Bank {bank_id} is out of range."
-            )
+            raise RuntimeError(f"CG2 (GP-SANS) has 88 banks indexed from 1 to 48. " f"Bank {bank_id} is out of range.")
 
         # calculate starting PID
         if bank_id <= 24:
@@ -102,21 +99,13 @@ def convert_spice_to_nexus(
         spice_dir = f"/HFIR/CG2/IPTS-{ipts_number}/exp{exp_number}/Datafiles"
     print(f"[INFO] SPICE file will be read from to directory {spice_dir}")
     # verify path
-    assert os.path.exists(
-        spice_dir
-    ), f"SPICE data directory {spice_dir} cannot be found"
-    spice_data_file = os.path.join(
-        spice_dir, f"CG2_exp{exp_number}_scan{scan_number:04}_{pt_number:04}.xml"
-    )
-    assert os.path.exists(
-        spice_data_file
-    ), f"SPICE file {spice_data_file} cannot be located"
+    assert os.path.exists(spice_dir), f"SPICE data directory {spice_dir} cannot be found"
+    spice_data_file = os.path.join(spice_dir, f"CG2_exp{exp_number}_scan{scan_number:04}_{pt_number:04}.xml")
+    assert os.path.exists(spice_data_file), f"SPICE file {spice_data_file} cannot be located"
 
     # Template Nexus file
     template_nexus_file = template_nexus
-    assert os.path.exists(
-        template_nexus_file
-    ), f"Template NeXus file {template_nexus_file} cannot be located"
+    assert os.path.exists(template_nexus_file), f"Template NeXus file {template_nexus_file} cannot be located"
 
     # Specify the default output directory
     if output_dir is None:

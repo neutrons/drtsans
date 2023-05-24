@@ -4,7 +4,7 @@ from drtsans.tof.eqsans.elastic_reference_normalization import (
     calculate_K_2d,
     determine_common_mod_q2d_range_mesh,
     determine_reference_wavelength_q2d,
-    normalize_intensity_q2d
+    normalize_intensity_q2d,
 )
 import numpy as np
 
@@ -45,7 +45,7 @@ def create_testing_iq2d():
 
     # Q vector
     vec_q = np.linspace(-0.1, 0.1, num=11, endpoint=True, dtype=np.float64)
-    qx_matrix, qy_matrix = np.meshgrid(vec_q, vec_q, indexing='ij')
+    qx_matrix, qy_matrix = np.meshgrid(vec_q, vec_q, indexing="ij")
     qx_vec = qx_matrix
     qx_vec = np.concatenate((qx_vec, qx_matrix), axis=1)
     qx_vec = np.concatenate((qx_vec, qx_matrix), axis=1)
@@ -54,23 +54,19 @@ def create_testing_iq2d():
     qy_vec = np.concatenate((qy_vec, qy_matrix), axis=1)
 
     # Wavelength vector
-    wavelength_vec = np.full((11, 11), 3., dtype=np.float64)
-    wavelength_vec = np.concatenate((wavelength_vec, np.full((11, 11), 4., dtype=np.float64)), axis=1)
-    wavelength_vec = np.concatenate((wavelength_vec, np.full((11, 11), 5., dtype=np.float64)), axis=1)
+    wavelength_vec = np.full((11, 11), 3.0, dtype=np.float64)
+    wavelength_vec = np.concatenate((wavelength_vec, np.full((11, 11), 4.0, dtype=np.float64)), axis=1)
+    wavelength_vec = np.concatenate((wavelength_vec, np.full((11, 11), 5.0, dtype=np.float64)), axis=1)
 
     # Construct IQmod
-    i_of_q = IQazimuthal(intensity=intensity_vec,
-                         error=error_vec,
-                         qx=qx_vec,
-                         qy=qy_vec,
-                         wavelength=wavelength_vec)
+    i_of_q = IQazimuthal(intensity=intensity_vec, error=error_vec, qx=qx_vec, qy=qy_vec, wavelength=wavelength_vec)
 
     expected_output = np.ones((11, 11), dtype=np.float64)
     expected_output[5, 5] = np.nan
 
     expected_output_before_renormalization = np.ones((11, 11), dtype=np.float64)
     expected_output_before_renormalization[1:10, 1:10] = 1.1
-    expected_output_before_renormalization[2:9, 2:9] = 31. / 30.
+    expected_output_before_renormalization[2:9, 2:9] = 31.0 / 30.0
     expected_output_before_renormalization[3:8, 3:8] = 1.05
     expected_output_before_renormalization[4:7, 4:7] = 0.9
     expected_output_before_renormalization[5, 5] = np.nan
@@ -88,12 +84,10 @@ def create_testing_iq2d():
 
     expected_normalized_error_vec = expected_normalized_error_vec_3
     expected_normalized_error_vec = np.concatenate(
-        (expected_normalized_error_vec, expected_normalized_error_vec_4),
-        axis=1
+        (expected_normalized_error_vec, expected_normalized_error_vec_4), axis=1
     )
     expected_normalized_error_vec = np.concatenate(
-        (expected_normalized_error_vec, expected_normalized_error_vec_5),
-        axis=1
+        (expected_normalized_error_vec, expected_normalized_error_vec_5), axis=1
     )
 
     return i_of_q, expected_output, expected_output_before_renormalization, expected_normalized_error_vec
@@ -101,15 +95,20 @@ def create_testing_iq2d():
 
 def test_verify_q2d_functions():
     np.set_printoptions(edgeitems=30, linewidth=100000)
-    i_of_q, expected_output, expected_output_before_renormalization, expected_normalized_error_vec = create_testing_iq2d() # noqa E501
+    (
+        i_of_q,
+        expected_output,
+        expected_output_before_renormalization,
+        expected_normalized_error_vec,
+    ) = create_testing_iq2d()  # noqa E501
 
     # print(i_of_q)
     k_vec, k_error2_vec, p_vec, s_vec = calculate_K_2d(i_of_q)
 
     np.testing.assert_allclose(k_vec, [1, 0.833333333333333, 1.11111111111111], rtol=1e-5, atol=0)
-    np.testing.assert_allclose(p_vec, [24,28.8,21.6], rtol=1e-5, atol=0)
-    np.testing.assert_allclose(s_vec, [24,34.56,19.44], rtol=1e-5, atol=0)
-    np.testing.assert_allclose(k_error2_vec, [3.33333E-05, 2.96586E-05, 4.59788E-05], rtol=1e-5, atol=0)
+    np.testing.assert_allclose(p_vec, [24, 28.8, 21.6], rtol=1e-5, atol=0)
+    np.testing.assert_allclose(s_vec, [24, 34.56, 19.44], rtol=1e-5, atol=0)
+    np.testing.assert_allclose(k_error2_vec, [3.33333e-05, 2.96586e-05, 4.59788e-05], rtol=1e-5, atol=0)
 
     mask = determine_common_mod_q2d_range_mesh(i_of_q.qx, i_of_q.qy, i_of_q.wavelength, i_of_q.intensity)
 
@@ -125,14 +124,16 @@ def test_verify_q2d_functions():
         k_vec,
         p_vec,
         s_vec,
-        mask
+        mask,
     )
     ma = np.ma.MaskedArray(normalized_intensity_array.transpose(), mask=np.isnan(normalized_intensity_array))
-    averaged_normalized_intensity_array = np.ma.average(ma,axis=2)
+    averaged_normalized_intensity_array = np.ma.average(ma, axis=2)
     np.testing.assert_allclose(averaged_normalized_intensity_array, expected_output, rtol=1e-5, atol=0)
 
-    np.testing.assert_allclose(normalized_error2_array, expected_normalized_error_vec.transpose().reshape((3, 11, 11)), rtol=1e-5, atol=0) # noqa E501
+    np.testing.assert_allclose(
+        normalized_error2_array, expected_normalized_error_vec.transpose().reshape((3, 11, 11)), rtol=1e-5, atol=0
+    )  # noqa E501
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main([__file__])

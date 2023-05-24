@@ -74,9 +74,7 @@ def test_log(fake_events):
     # rebin using Mantid algorithm Rebin
     ws = Rebin(InputWorkspace=ws, Params="{}, {}, {}".format(start, step, end))
     # verify
-    assert np.allclose(
-        ws.readX(0), [2.5, 2.625, 2.75625, 2.894063, 3.038766, 3.190704, 3.36]
-    )
+    assert np.allclose(ws.readX(0), [2.5, 2.625, 2.75625, 2.894063, 3.038766, 3.190704, 3.36])
     assert np.allclose(ws.readY(0), [1.0, 0.0, 2.0, 0.0, 2.0, 0.0])
     return
 

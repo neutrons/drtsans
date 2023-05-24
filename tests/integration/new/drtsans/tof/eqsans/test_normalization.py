@@ -41,9 +41,7 @@ def test_normalize_by_time(reference_dir):
     # Verify we selected 'duration' as the log entry to find out the duration of the run
     assert SampleLogs(output_workspace).normalizing_duration.value == "duration"
 
-    assert workspace_normalized.readY(42) == pytest.approx(
-        intensity / time_duration, abs=1.0e-6
-    )
+    assert workspace_normalized.readY(42) == pytest.approx(intensity / time_duration, abs=1.0e-6)
     assert workspace_normalized.readE(42) == pytest.approx(uncertainty / time_duration)
 
     workspace_normalized.delete()  # some cleanup
@@ -121,9 +119,7 @@ def test_normalization_by_time(data_test_16a_by_time):
         NSpec=data_test_16a_by_time["n_pixels"],
         OutputWorkspace=data_workspace,
     )
-    SampleLogs(data_workspace).insert(
-        "duration", data_test_16a_by_time["t_sam"], "Second"
-    )
+    SampleLogs(data_workspace).insert("duration", data_test_16a_by_time["t_sam"], "Second")
 
     # Carry out the normalization by time
     normalize_by_time(data_workspace)
@@ -136,9 +132,7 @@ def test_normalization_by_time(data_test_16a_by_time):
 
     # Compare calculated errors of normalized intensities with test output
     test_errors = np.array(data_test_16a_by_time["I_samnorm_error"]).ravel()
-    assert mtd[data_workspace].extractE().ravel() == pytest.approx(
-        test_errors, abs=data_test_16a_by_time["precision"]
-    )
+    assert mtd[data_workspace].extractE().ravel() == pytest.approx(test_errors, abs=data_test_16a_by_time["precision"])
 
 
 @pytest.fixture(scope="module")
@@ -284,12 +278,8 @@ def test_normalization_by_monitor(data_test_16a_by_monitor):
 
     # The intensity in a detector pixel is the same for all wavelength bins. Thus, we replicate the one value per
     # detector pixel to be the same for all wavelength bins
-    number_wavelength_bins = (
-        len(data_test_16a_by_monitor["wavelength_bin_boundaries"]) - 1
-    )
-    intensities_list = np.repeat(
-        intensities_list[:, np.newaxis], number_wavelength_bins, axis=1
-    )
+    number_wavelength_bins = len(data_test_16a_by_monitor["wavelength_bin_boundaries"]) - 1
+    intensities_list = np.repeat(intensities_list[:, np.newaxis], number_wavelength_bins, axis=1)
     errors_list = np.repeat(errors_list[:, np.newaxis], number_wavelength_bins, axis=1)
 
     # Create the workspace with the intensities and errors. It has 25 spectra and each spectra has 10 wavelength bins
@@ -300,9 +290,7 @@ def test_normalization_by_monitor(data_test_16a_by_monitor):
         NSpec=data_test_16a_by_monitor["n_pixels"],
         OutputWorkspace=unique_workspace_dundername(),
     )
-    SampleLogs(data_workspace).insert(
-        "is_frame_skipping", False
-    )  # Monitor normalization does not work in skip-frame
+    SampleLogs(data_workspace).insert("is_frame_skipping", False)  # Monitor normalization does not work in skip-frame
 
     # In the reduction framework, counts at the monitor will be stored in a Mantid workspace
     monitor_workspace = CreateWorkspace(
@@ -322,18 +310,12 @@ def test_normalization_by_monitor(data_test_16a_by_monitor):
         OutputWorkspace=unique_workspace_dundername(),
     )
     # Carry out the normalization with the reduction framework
-    data_workspace = normalize_by_monitor(
-        data_workspace, flux_to_monitor_workspace, monitor_workspace
-    )
+    data_workspace = normalize_by_monitor(data_workspace, flux_to_monitor_workspace, monitor_workspace)
 
     # Compare to test data. Notice that data_test_16a_by_monitor['I_samnorm'] has shape (10, 5, 5) but
     # data_workspace.extractY() has shape (25, 10). A transpose operation is necessary
-    test_intensities = np.transpose(
-        np.array(data_test_16a_by_monitor["I_samnorm"]).reshape((10, 25))
-    )
-    assert data_workspace.extractY() == pytest.approx(
-        test_intensities, abs=data_test_16a_by_monitor["precision"]
-    )
+    test_intensities = np.transpose(np.array(data_test_16a_by_monitor["I_samnorm"]).reshape((10, 25)))
+    assert data_workspace.extractY() == pytest.approx(test_intensities, abs=data_test_16a_by_monitor["precision"])
 
 
 @pytest.fixture(scope="module")
@@ -481,9 +463,7 @@ def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton_charge_and_
     # The intensity in a detector pixel is the same for all wavelength bins. Thus, we replicate the one value per
     # detector pixel to be the same for all wavelength bins
     number_wavelength_bins = len(test_data["wavelength_bin_boundaries"]) - 1
-    intensities_list = np.repeat(
-        intensities_list[:, np.newaxis], number_wavelength_bins, axis=1
-    )
+    intensities_list = np.repeat(intensities_list[:, np.newaxis], number_wavelength_bins, axis=1)
     errors_list = np.repeat(errors_list[:, np.newaxis], number_wavelength_bins, axis=1)
 
     # Create the workspace with the intensities and errors. It has 25 spectra and each spectra has 10 wavelength bins
@@ -510,9 +490,7 @@ def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton_charge_and_
     # Compare to test data. Notice that test_data['I_samnorm'] has shape (10, 5, 5) but
     # data_workspace.extractY() has shape (25, 10). A transpose operation is necessary
     test_intensities = np.transpose(np.array(test_data["I_samnorm"]).reshape((10, 25)))
-    assert data_workspace.extractY() == pytest.approx(
-        test_intensities, abs=test_data["precision"]
-    )
+    assert data_workspace.extractY() == pytest.approx(test_intensities, abs=test_data["precision"])
 
 
 if __name__ == "__main__":

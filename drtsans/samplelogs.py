@@ -66,9 +66,7 @@ class SampleLogs(object):
 
         self._ws.mutableRun().addProperty(name, value, unit, True)
 
-    def insert_time_series(
-        self, name, elapsed_times, values, start_time="2000-01-01T00:00:00", unit=""
-    ):
+    def insert_time_series(self, name, elapsed_times, values, start_time="2000-01-01T00:00:00", unit=""):
         r"""
         Insert a ~mantid.kernel.FloatTimeSeriesProperty in the logs
 
@@ -92,17 +90,13 @@ class SampleLogs(object):
             int: Int64TimeSeriesProperty,
             str: StringTimeSeriesProperty,
         }
-        series_property = series_types.get(type(values[0]), FloatTimeSeriesProperty)(
-            name
-        )
+        series_property = series_types.get(type(values[0]), FloatTimeSeriesProperty)(name)
 
         # Insert one pair of (time, elapsed_time) at a time
         seconds_to_nanoseconds = 1.0e09  # from seconds to nanoseconds
         start = DateAndTime(start_time)
-        for (elapsed_time, value) in zip(elapsed_times, values):
-            series_property.addValue(
-                start + int(elapsed_time * seconds_to_nanoseconds), value
-            )
+        for elapsed_time, value in zip(elapsed_times, values):
+            series_property.addValue(start + int(elapsed_time * seconds_to_nanoseconds), value)
 
         # include the whole time series property in the metadata
         self._ws.mutableRun().addProperty(name, series_property, unit, True)
@@ -159,8 +153,7 @@ class SampleLogs(object):
         if len(finders) == 0:
             # In case no items found
             raise RuntimeError(
-                'Input "other" of value {} is not supported to retrieve Mantid '
-                '"run" object'.format(other)
+                'Input "other" of value {} is not supported to retrieve Mantid ' '"run" object'.format(other)
             )
         finder = finders[0]
         return finder(other)
@@ -186,6 +179,4 @@ class SampleLogs(object):
                 error_msg += " [%s]" % self[log_key].units
                 raise RuntimeError(error_msg)
             return np.average(self[log_key].value)
-        raise RuntimeError(
-            f"Could not find {log_key} with unit {unit} in logs: {self.keys()}"
-        )
+        raise RuntimeError(f"Could not find {log_key} with unit {unit} in logs: {self.keys()}")

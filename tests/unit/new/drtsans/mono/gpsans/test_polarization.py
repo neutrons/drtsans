@@ -17,13 +17,9 @@ def test_flipping_ratio():
           Mike Fitzsimmons <fitzsimmonsm@ornl.gov>
     """
     # this is called "P" in the document
-    polarization = CreateSingleValuedWorkspace(
-        DataValue=0.95, ErrorValue=0.01, OutputWorkspace=uwd()
-    )
+    polarization = CreateSingleValuedWorkspace(DataValue=0.95, ErrorValue=0.01, OutputWorkspace=uwd())
     flipping_ratio_expected = (1.0 + 0.95) / (1.0 - 0.95)
-    flipping_ratio_err_expected = (
-        2.0 * polarization.readE(0)[0]
-    ) / 0.0025  # denominator is (1-p)^2
+    flipping_ratio_err_expected = (2.0 * polarization.readE(0)[0]) / 0.0025  # denominator is (1-p)^2
 
     flipping_ratio = _calc_flipping_ratio(polarization)
 
@@ -40,29 +36,19 @@ def test_half_polarization():
           Mike Fitzsimmons <fitzsimmonsm@ornl.gov>
     """
     # this is called "P" in the document
-    polarization = CreateSingleValuedWorkspace(
-        DataValue=0.95, ErrorValue=0.01, OutputWorkspace=uwd()
-    )
+    polarization = CreateSingleValuedWorkspace(DataValue=0.95, ErrorValue=0.01, OutputWorkspace=uwd())
     # this is called "e" in the document
-    efficiency = CreateSingleValuedWorkspace(
-        DataValue=0.998, ErrorValue=0.001, OutputWorkspace=uwd()
-    )
+    efficiency = CreateSingleValuedWorkspace(DataValue=0.998, ErrorValue=0.001, OutputWorkspace=uwd())
 
     # values for the measured flipper off (M0) and flipper on (M1)
-    M0 = CreateSingleValuedWorkspace(
-        DataValue=10000, ErrorValue=100, OutputWorkspace=uwd()
-    )
-    M1 = CreateSingleValuedWorkspace(
-        DataValue=8100, ErrorValue=90, OutputWorkspace=uwd()
-    )
+    M0 = CreateSingleValuedWorkspace(DataValue=10000, ErrorValue=100, OutputWorkspace=uwd())
+    M1 = CreateSingleValuedWorkspace(DataValue=8100, ErrorValue=90, OutputWorkspace=uwd())
 
     # expected results
     SpinUpExp = CreateSingleValuedWorkspace(
         DataValue=10050.100, ErrorValue=103.2046, OutputWorkspace=uwd()  # was 103.205
     )
-    SpinDownExp = CreateSingleValuedWorkspace(
-        DataValue=8046.0925, ErrorValue=93.2163, OutputWorkspace=uwd()
-    )
+    SpinDownExp = CreateSingleValuedWorkspace(DataValue=8046.0925, ErrorValue=93.2163, OutputWorkspace=uwd())
 
     # do the calculation
     SpinUp, SpinDown = half_polarization(M0, M1, polarization, efficiency)

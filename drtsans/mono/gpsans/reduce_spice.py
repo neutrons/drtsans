@@ -36,7 +36,6 @@ def reduce_gpsans_nexus(
     use_mask_back_tubes: bool,
     debug_output: bool = False,
 ):
-
     # Never touch!  drtsans specific
 
     # convert SPICE to Nexus
@@ -62,9 +61,7 @@ def reduce_gpsans_nexus(
         log_flag = {"vmin": 0, "vmax": 100}
 
     # Add on the other reduction parameters with their default values (most will be empty)
-    common_configuration_full = reduction_parameters(
-        common_configuration, "GPSANS", validate=False
-    )
+    common_configuration_full = reduction_parameters(common_configuration, "GPSANS", validate=False)
 
     # Create output directory
     output_dir = common_configuration_full["configuration"]["outputDir"]
@@ -97,9 +94,7 @@ def reduce_gpsans_nexus(
         }
 
         # Update our common settings with the particulars of the current reduction
-        reduction_input = update_reduction_parameters(
-            common_configuration_full, run_data, validate=True
-        )
+        reduction_input = update_reduction_parameters(common_configuration_full, run_data, validate=True)
 
         # Begin reduction. Be sure to validate the parameters before.
         # Load files
@@ -110,19 +105,13 @@ def reduce_gpsans_nexus(
             debug_output=debug_output,
         )
         # Reduce data from workspaces
-        out = reduce_single_configuration(
-            loaded, reduction_input, debug_output=debug_output
-        )
+        out = reduce_single_configuration(loaded, reduction_input, debug_output=debug_output)
         # Output
-        plot_reduction_output(
-            out, reduction_input, loglog=use_log_1d, imshow_kwargs=log_flag
-        )
+        plot_reduction_output(out, reduction_input, loglog=use_log_1d, imshow_kwargs=log_flag)
 
         # Save the reduction parameters of each reduction session to a JSON file
         output_dir = reduction_input["configuration"]["outputDir"]
-        output_json_file = os.path.join(
-            output_dir, f"{sample_names[i]}.json"
-        )  # full path to the JSON file
+        output_json_file = os.path.join(output_dir, f"{sample_names[i]}.json")  # full path to the JSON file
         with open(output_json_file, "w") as file_handle:
             json.dump(reduction_input, file_handle, indent=2)
 

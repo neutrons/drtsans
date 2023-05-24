@@ -23,18 +23,14 @@ import sys
 
 def locate_bar_scan_files(ipts_number, exp_number, scan_number, pt_numbers, root_dir):
     # Convert from SPICE xml to event Nexus
-    ipts_directory = os.path.join(
-        root_dir, f"IPTS-{ipts_number}/shared/Exp{exp_number}/"
-    )
+    ipts_directory = os.path.join(root_dir, f"IPTS-{ipts_number}/shared/Exp{exp_number}/")
     if os.path.exists(ipts_directory) is False:
         os.mkdir(ipts_directory)
 
     data_files = list()
     err_msg = ""
     for pt_number in pt_numbers:  # bar_scan_files.items():
-        event_nexus_name = "CG2_{:04}{:04}{:04}.nxs.h5".format(
-            exp_number, scan_number, pt_number
-        )
+        event_nexus_name = "CG2_{:04}{:04}{:04}.nxs.h5".format(exp_number, scan_number, pt_number)
         event_nexus_name = os.path.join(ipts_directory, event_nexus_name)
         if not os.path.exists(event_nexus_name):
             err_msg += f"Pt {pt_number} has been not been converted to {event_nexus_name} yet\n"
@@ -48,9 +44,7 @@ def locate_bar_scan_files(ipts_number, exp_number, scan_number, pt_numbers, root
     return data_files
 
 
-def locate_flood_file(
-    ipts_number, exp_number, scan_number, pt_number, root_dir="/HFIR/CG2"
-):
+def locate_flood_file(ipts_number, exp_number, scan_number, pt_number, root_dir="/HFIR/CG2"):
     """Locate flood Nexus file
 
     Parameters
@@ -67,15 +61,11 @@ def locate_flood_file(
         flood Nexus file path
 
     """
-    flood_ipts_directory = os.path.join(
-        root_dir, f"IPTS-{ipts_number}/shared/Exp{exp_number}/"
-    )
+    flood_ipts_directory = os.path.join(root_dir, f"IPTS-{ipts_number}/shared/Exp{exp_number}/")
 
     if os.path.exists(flood_ipts_directory) is False:
         os.mkdir(flood_ipts_directory)
-    flood_nexus_name = "CG2_{:04}{:04}{:04}.nxs.h5".format(
-        exp_number, scan_number, pt_number
-    )
+    flood_nexus_name = "CG2_{:04}{:04}{:04}.nxs.h5".format(exp_number, scan_number, pt_number)
     flood_nexus_name = os.path.join(flood_ipts_directory, flood_nexus_name)
     if not os.path.exists(flood_nexus_name):
         raise RuntimeError(f"Flood Nexus file {flood_nexus_name} does not exist")
@@ -84,9 +74,7 @@ def locate_flood_file(
 
 
 def generate_intermediate_files(bar_scan_files, save_dir):
-    print(
-        "####\n\nCreating intermediate files, one for each barscan run. This can take up to one hour"
-    )
+    print("####\n\nCreating intermediate files, one for each barscan run. This can take up to one hour")
 
     barscan_dataset = list()  # list of histogram files
     # Convert to histogram for future use with efficiency
@@ -106,9 +94,7 @@ def generate_intermediate_files(bar_scan_files, save_dir):
             )
 
             workspace_counts = f"{base_name}_counts"
-            HFIRSANS2Wavelength(
-                InputWorkspace=workspace_events, OutputWorkspace=workspace_counts
-            )
+            HFIRSANS2Wavelength(InputWorkspace=workspace_events, OutputWorkspace=workspace_counts)
 
             SaveNexus(InputWorkspace=workspace_counts, Filename=file_histogram)
             # Clean workspace
@@ -162,9 +148,7 @@ def generate_pixel_map(
     # return bar scan data set
     yield barscan_dataset, flood_file
 
-    print(
-        "#####\n\nCalculating the barscan calibration with the default formula. This takes ~10 minutes"
-    )
+    print("#####\n\nCalculating the barscan calibration with the default formula. This takes ~10 minutes")
     start_time = time.time()
     # TODO - THIS IS SO MAGIC!
     formula = "565 - {y} - 0.0914267 * (191 - {tube})"
@@ -179,21 +163,13 @@ def generate_pixel_map(
 
     # table file name (find out)
     database_file = os.path.join(save_dir, database_file_base)
-    print(
-        f"[INFO] Database file {database_file}: Exist = {os.path.exists(database_file)}"
-    )
-    cal_dir = os.path.join(
-        os.path.dirname(database_file), "tables"
-    )  # directory where to save the table file
-    os.makedirs(
-        cal_dir, exist_ok=True
-    )  # Create directory, and don't complain if already exists
+    print(f"[INFO] Database file {database_file}: Exist = {os.path.exists(database_file)}")
+    cal_dir = os.path.join(os.path.dirname(database_file), "tables")  # directory where to save the table file
+    os.makedirs(cal_dir, exist_ok=True)  # Create directory, and don't complain if already exists
     calibration_table_nexus = os.path.join(cal_dir, f"{calib_name_base}.nxs")
 
     # save
-    calibration.save(
-        overwrite=True, database=database_file, tablefile=calibration_table_nexus
-    )
+    calibration.save(overwrite=True, database=database_file, tablefile=calibration_table_nexus)
 
     # return first calibration
     calibration.state_flag = 1
@@ -208,17 +184,13 @@ def generate_pixel_map(
     print("#####\n\nCalculating the Tube Width Calibration")
     apply_mask(flood_ws_name, mask=mask_file)
     start_time = time.time()
-    calibration = calculate_apparent_tube_width(
-        flood_ws_name, load_barscan_calibration=True, db_file=database_file
-    )
+    calibration = calculate_apparent_tube_width(flood_ws_name, load_barscan_calibration=True, db_file=database_file)
     print("Calibration took ", int(time.time() - start_time), "seconds")
 
     print("#####\n\nSaving the Tube Width calibration")
     # Notice we overwrite the already saved calibration, which will happen if we run this notebook more than once.
     # calibration.save(overwrite=True)
-    calibration.save(
-        overwrite=True, database=database_file, tablefile=calibration_table_nexus
-    )
+    calibration.save(overwrite=True, database=database_file, tablefile=calibration_table_nexus)
     calibration.state_flag = 2
     yield calibration, flood_ws_name  # calibration 2
 
@@ -241,9 +213,7 @@ def generate_spice_pixel_map(
     save_dir_root,
     mask_file,
 ):
-    bar_scan_files = locate_bar_scan_files(
-        ipts_number, exp_number, scan_number, pt_numbers, root_dir
-    )
+    bar_scan_files = locate_bar_scan_files(ipts_number, exp_number, scan_number, pt_numbers, root_dir)
     flood_file = locate_flood_file(
         flood_ipts_number,
         flood_exp_number,
@@ -291,9 +261,7 @@ def untilt_and_center(a_calibration):
     # Create a 2D array of pixel heights, dimensions are (number_tubes x pixels_in_tube)
     pixel_in_tube_count = 256
     tube_count = int(len(a_calibration.positions) / pixel_in_tube_count)
-    positions = np.array(a_calibration.positions).reshape(
-        (tube_count, pixel_in_tube_count)
-    )
+    positions = np.array(a_calibration.positions).reshape((tube_count, pixel_in_tube_count))
     heights = np.array(a_calibration.heights).reshape((tube_count, pixel_in_tube_count))
 
     def fit(tube_tip_positions):
@@ -307,9 +275,7 @@ def untilt_and_center(a_calibration):
     _, fitted_bottom = fit(positions[:, 0])  # fitted positions of the tube bottom
     # We'll adjust the positions of the tubes to comply with the middle tube
     tube_reference_index = int(tube_count / 2)  # tube in the middle of the detector
-    tube_length_reference = (
-        fitted_top[tube_reference_index] - fitted_bottom[tube_reference_index]
-    )
+    tube_length_reference = fitted_top[tube_reference_index] - fitted_bottom[tube_reference_index]
     # shifts_top indicate the difference in fitted positions for the tube tops with respect to the fitted positions
     # for the top of the middle tube
     shifts_top = fitted_top[tube_reference_index] - fitted_top

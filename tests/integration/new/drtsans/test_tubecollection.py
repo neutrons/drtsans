@@ -44,20 +44,14 @@ class TestTubeCollection(TestCase):
 
     def test_getitem(self):
         collection = self.collection
-        assert collection.main[0][0].position == pytest.approx(
-            [0.53, -0.52, 0.00], abs=0.01
-        )  # first pixel
-        assert collection.main[-1][-1].position == pytest.approx(
-            [-0.53, 0.52, 0.00], abs=0.01
-        )  # last pixel
+        assert collection.main[0][0].position == pytest.approx([0.53, -0.52, 0.00], abs=0.01)  # first pixel
+        assert collection.main[-1][-1].position == pytest.approx([-0.53, 0.52, 0.00], abs=0.01)  # last pixel
 
     def test_sorted(self):
         collection = self.collection
         # Sort by decreasing tube position along the X-axis
         sorted_tubes = collection.main.sorted(view="decreasing X")
-        x_coords = [
-            tube.position[0] for tube in sorted_tubes
-        ]  # X coord for the center of each tube
+        x_coords = [tube.position[0] for tube in sorted_tubes]  # X coord for the center of each tube
         assert np.all(x_coords[1:] < x_coords[:-1])  # x_coords strictly decreasing
         # Sort by increasing spectrum index
         sorted_tubes = collection.main.sorted(view="workspace index")
@@ -98,9 +92,7 @@ class TestTubeCollection(TestCase):
         start_time = time.time()
         positions = [tube.pixel_y for tube in tubes]
         assert time.time() - start_time < 2.0  # below one second
-        assert (positions[0][0], positions[-1][-1]) == pytest.approx(
-            (-0.52096, 0.52096), abs=1e-5
-        )
+        assert (positions[0][0], positions[-1][-1]) == pytest.approx((-0.52096, 0.52096), abs=1e-5)
 
 
 if __name__ == "__main__":

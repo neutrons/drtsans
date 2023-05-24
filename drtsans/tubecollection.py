@@ -21,11 +21,7 @@ def unpack_v3d(function, *args):
         Arguments to be passed to function.
     """
     result = function(*args)
-    return (
-        np.array([result.X(), result.Y(), result.Z()])
-        if isinstance(result, V3D)
-        else result
-    )
+    return np.array([result.X(), result.Y(), result.Z()]) if isinstance(result, V3D) else result
 
 
 def _decrement_arity(attribute, index):
@@ -71,12 +67,8 @@ def _decrement_arity(attribute, index):
         if len(parameters) == 0:
             return unpack_v3d(attribute)  # attribute is a function of no arguments
         if len(parameters) == 1:
-            return unpack_v3d(
-                attribute, index
-            )  # attribute is a function of one argument
-        return functools.partial(
-            attribute, index
-        )  # attribute is a function of more than one argument
+            return unpack_v3d(attribute, index)  # attribute is a function of one argument
+        return functools.partial(attribute, index)  # attribute is a function of more than one argument
     return attribute  # nothing to do is `attribute` is not callable
 
 
@@ -138,21 +130,13 @@ class SpectrumInfo:
             if isinstance(self.spectrum_info_index, int):
                 return _decrement_arity(attribute, self.spectrum_info_index)
             # `self.spectrum_info_index` is a list of spectrum indexes
-            arity_decremented_attributes = [
-                _decrement_arity(attribute, i) for i in self.spectrum_info_index
-            ]
-            if (
-                callable(arity_decremented_attributes[0]) is True
-            ):  # attribute's arity was bigger than one
+            arity_decremented_attributes = [_decrement_arity(attribute, i) for i in self.spectrum_info_index]
+            if callable(arity_decremented_attributes[0]) is True:  # attribute's arity was bigger than one
                 # A partial function that will call each arity-decremented attribute with remaining method arguments
                 return functools.partial(_inverse_map, arity_decremented_attributes)
-            return np.array(
-                arity_decremented_attributes
-            )  # attribute's arity was less than two
+            return np.array(arity_decremented_attributes)  # attribute's arity was less than two
         except AttributeError:
-            return super().__getattr__(
-                item
-            )  # Next class in the Method Resolution Order
+            return super().__getattr__(item)  # Next class in the Method Resolution Order
 
     def __len__(self):
         if isinstance(self.spectrum_info_index, int):
@@ -182,9 +166,7 @@ class SpectrumInfo:
             return function(self.spectrum_info_index)
         # copy.deepcopy is necessary if we're dealing with event workspaces, as only 50 event lists are
         # stored at a time in memory. See function void EventWorkspaceMRU::ensureEnoughBuffersY() in Mantid's source.
-        return array_type(
-            [copy.deepcopy(function(index)) for index in self.spectrum_info_index]
-        )
+        return array_type([copy.deepcopy(function(index)) for index in self.spectrum_info_index])
 
     @property
     def readX(self):
@@ -230,16 +212,11 @@ class ElementComponentInfo:
             attribute = getattr(_component_info, item)
             return _decrement_arity(attribute, self.component_info_index)
         except AttributeError:
-            return super().__getattr__(
-                item
-            )  # Next class in the Method Resolution Order
+            return super().__getattr__(item)  # Next class in the Method Resolution Order
 
     @property
     def children(self):
-        return [
-            int(index)
-            for index in self._component_info.children(self.component_info_index)
-        ]  # cast to int
+        return [int(index) for index in self._component_info.children(self.component_info_index)]  # cast to int
 
     def __len__(self):
         return len(self.children)
@@ -253,9 +230,7 @@ def _resolve_indexes(input_workspace, component_info_index, workspace_index):
             workspace_index,
         )  # nothing to do if both were provided
     if workspace_index is None and component_info_index is None:
-        raise RuntimeError(
-            'Either "component/detector_info_index" or "spectrum_info/workspace_index" must be passed'
-        )
+        raise RuntimeError('Either "component/detector_info_index" or "spectrum_info/workspace_index" must be passed')
 
     input_workspace = mtd[str(input_workspace)]
     get_spectrum_definition = input_workspace.spectrumInfo().getSpectrumDefinition
@@ -278,9 +253,7 @@ def _resolve_indexes(input_workspace, component_info_index, workspace_index):
 
 
 class PixelSpectrum(ElementComponentInfo, SpectrumInfo):
-    def __init__(
-        self, input_workspace, component_info_index=None, workspace_index=None
-    ):
+    def __init__(self, input_workspace, component_info_index=None, workspace_index=None):
         r"""
         Wrapper of ~mantid.geometry.ComponentInfo, ~mantid.api.DetectorInfo, and ~mantid.api.SpectrumInfo for a pixel.
 
@@ -301,9 +274,7 @@ class PixelSpectrum(ElementComponentInfo, SpectrumInfo):
         )
         input_workspace = mtd[str(input_workspace)]
         self._detector_info = input_workspace.detectorInfo()
-        ElementComponentInfo.__init__(
-            self, input_workspace.componentInfo(), component_info_index
-        )
+        ElementComponentInfo.__init__(self, input_workspace.componentInfo(), component_info_index)
         SpectrumInfo.__init__(self, input_workspace, workspace_index)
 
     def __getattr__(self, item):
@@ -312,9 +283,7 @@ class PixelSpectrum(ElementComponentInfo, SpectrumInfo):
             attribute = getattr(_detector_info, item)
             return _decrement_arity(attribute, self.component_info_index)
         except AttributeError:
-            return super().__getattr__(
-                item
-            )  # next class in the Method Resolution Order, (SpectrumInfo.__getattr__)
+            return super().__getattr__(item)  # next class in the Method Resolution Order, (SpectrumInfo.__getattr__)
 
     @property
     def detector_id(self):
@@ -407,9 +376,7 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
             return False  # we hit a detector
         if component_info.isDetector(children_indexes[0]) is False:
             return False  # quick check. The first child is not a detector
-        children_are_detectors = [
-            component_info.isDetector(index) for index in children_indexes
-        ]
+        children_are_detectors = [component_info.isDetector(index) for index in children_indexes]
         if len(set(children_are_detectors)) != 1:
             return False  # at least one child is not a detector
         return True
@@ -429,9 +396,7 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
         self._detector_info = workspace.detectorInfo()
         self._pixels = list()
         SpectrumInfo.__init__(self, workspace, workspace_indexes)
-        ElementComponentInfo.__init__(
-            self, workspace.componentInfo(), component_info_index
-        )
+        ElementComponentInfo.__init__(self, workspace.componentInfo(), component_info_index)
 
     def __len__(self):
         return len(self.spectrum_info_index)
@@ -455,9 +420,7 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
         list
         """
         if len(self._pixels) == 0:
-            for component_info_index, workspace_index in zip(
-                self.children, self.spectrum_info_index
-            ):
+            for component_info_index, workspace_index in zip(self.children, self.spectrum_info_index):
                 self._pixels.append(
                     PixelSpectrum(
                         self._workspace,
@@ -474,22 +437,13 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
     @property
     def pixel_scale_factors(self):
         r"""Convenience property to get the size scale factors for each pixel"""
-        return np.array(
-            [
-                unpack_v3d(self._component_info.scaleFactor, i)
-                for i in self.detector_info_index
-            ]
-        )
+        return np.array([unpack_v3d(self._component_info.scaleFactor, i) for i in self.detector_info_index])
 
     @property
     def pixel_heights(self):
         r"""Convenience property to get/set the pixel heights"""
-        first_index = self.detector_info_index[
-            0
-        ]  # component info index of the first pixel in the tube
-        nominal_height = (
-            self._component_info.shape(first_index).getBoundingBox().width().Y()
-        )
+        first_index = self.detector_info_index[0]  # component info index of the first pixel in the tube
+        nominal_height = self._component_info.shape(first_index).getBoundingBox().width().Y()
         return nominal_height * self.pixel_scale_factors[:, 1]
 
     @pixel_heights.setter
@@ -514,12 +468,8 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
     @property
     def pixel_widths(self):
         r"""Convenience property to get/set the pixel widths"""
-        first_index = self.detector_info_index[
-            0
-        ]  # component info index of the first pixel in the tube
-        nominal_width = (
-            self._component_info.shape(first_index).getBoundingBox().width().X()
-        )
+        first_index = self.detector_info_index[0]  # component info index of the first pixel in the tube
+        nominal_width = self._component_info.shape(first_index).getBoundingBox().width().X()
         return nominal_width * self.pixel_scale_factors[:, 0]
 
     @pixel_widths.setter
@@ -543,12 +493,7 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
 
     @property
     def pixel_positions(self):
-        return np.array(
-            [
-                unpack_v3d(self._component_info.position, i)
-                for i in self.detector_info_index
-            ]
-        )
+        return np.array([unpack_v3d(self._component_info.position, i) for i in self.detector_info_index])
 
     @property
     def pixel_y(self):
@@ -569,28 +514,18 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
     @property
     def x_boundaries(self):
         r"""Coordinates along the X-axis of the tube boundaries."""
-        first_index = self.detector_info_index[
-            0
-        ]  # component info index of the lowest pixel in the tube
-        x = self._component_info.position(
-            first_index
-        ).X()  # X-coordinate for the center of the first pixel
+        first_index = self.detector_info_index[0]  # component info index of the lowest pixel in the tube
+        x = self._component_info.position(first_index).X()  # X-coordinate for the center of the first pixel
         dx = self.width
         return [x - dx / 2, x + dx / 2]
 
     @property
     def pixel_y_boundaries(self):
         r"""Coordinates along the Y-axis of the pixel boundaries"""
-        first_index = self.detector_info_index[
-            0
-        ]  # component info index of the lowest pixel in the tube
-        first_y = self._component_info.position(
-            first_index
-        ).Y()  # Y-coordinate for the center of the first pixel
+        first_index = self.detector_info_index[0]  # component info index of the lowest pixel in the tube
+        first_y = self._component_info.position(first_index).Y()  # Y-coordinate for the center of the first pixel
         heights = np.cumsum(self.pixel_heights)  # cummulative sum of the pixel heights
-        return np.insert(heights, 0, 0.0) + (
-            first_y - heights[0] / 2
-        )  # pixel boundaries
+        return np.insert(heights, 0, 0.0) + (first_y - heights[0] / 2)  # pixel boundaries
 
     @property
     def pixel_intensities(self):
@@ -600,19 +535,13 @@ class TubeSpectrum(ElementComponentInfo, SpectrumInfo):
     @property
     def isMasked(self):
         r"""Mask flag for each pixel in the tube"""
-        return np.array(
-            [self._spectrum_info.isMasked(i) for i in self.spectrum_info_index]
-        )
+        return np.array([self._spectrum_info.isMasked(i) for i in self.spectrum_info_index])
 
     @property
     def width(self):
         r"""Tube width, taken as width of the first pixel"""
-        first_index = self.detector_info_index[
-            0
-        ]  # component info index of the first pixel in the tube
-        nominal_width = (
-            self._component_info.shape(first_index).getBoundingBox().width().X()
-        )
+        first_index = self.detector_info_index[0]  # component info index of the first pixel in the tube
+        nominal_width = self._component_info.shape(first_index).getBoundingBox().width().X()
         scaling = self._component_info.scaleFactor(first_index).X()
         return nominal_width * scaling
 
@@ -638,9 +567,7 @@ class TubeCollection(ElementComponentInfo):
 
         detector_to_spectrum = dict()
         for spectrum_index in range(input_workspace.getNumberHistograms()):
-            detector_to_spectrum[
-                get_detector_info_index(spectrum_index)
-            ] = spectrum_index
+            detector_to_spectrum[get_detector_info_index(spectrum_index)] = spectrum_index
 
         return detector_to_spectrum
 
@@ -661,12 +588,8 @@ class TubeCollection(ElementComponentInfo):
             if component_info.name(component_index) == component_name:
                 super().__init__(component_info, component_index)
                 break
-            if (
-                component_info.isDetector(component_index) is True
-            ):  # we reached the detector with the highest index
-                raise RuntimeError(
-                    f'Could not find a component with name "{component_name}"'
-                )
+            if component_info.isDetector(component_index) is True:  # we reached the detector with the highest index
+                raise RuntimeError(f'Could not find a component with name "{component_name}"')
         self._tubes = list()
         self._sorting_permutations = {}
         self._input_workspace = input_workspace
@@ -685,31 +608,16 @@ class TubeCollection(ElementComponentInfo):
         from smallest to highest index."""
         if len(self._tubes) == 0:
             # Initialize the mapping between spectrum indexes and detectorInfo indexes
-            self.detector_to_spectrum = self.map_detector_to_spectrum(
-                self._input_workspace
-            )
+            self.detector_to_spectrum = self.map_detector_to_spectrum(self._input_workspace)
             # Iterate over the components of the instrument that are not detectors
             non_detector_indexes = sorted(
-                [
-                    int(i)
-                    for i in set(self.componentsInSubtree)
-                    - set(self.detectorsInSubtree)
-                ]
+                [int(i) for i in set(self.componentsInSubtree) - set(self.detectorsInSubtree)]
             )
             for component_info_index in non_detector_indexes:
-                if (
-                    TubeSpectrum.is_valid_tube(
-                        self._component_info, component_info_index
-                    )
-                    is True
-                ):
-                    tube_info = ElementComponentInfo(
-                        self._component_info, component_info_index
-                    )
+                if TubeSpectrum.is_valid_tube(self._component_info, component_info_index) is True:
+                    tube_info = ElementComponentInfo(self._component_info, component_info_index)
                     # Find workspace indexes associated to the component/detector info indexes
-                    workspace_indexes = [
-                        self.detector_to_spectrum[index] for index in tube_info.children
-                    ]
+                    workspace_indexes = [self.detector_to_spectrum[index] for index in tube_info.children]
                     self._tubes.append(
                         TubeSpectrum(
                             self._input_workspace,
@@ -750,24 +658,18 @@ class TubeCollection(ElementComponentInfo):
         permutation = self._sorting_permutations.get(view, None)
         if permutation is None:
             if view == "fbfb":
-                number_front_tubes = int(
-                    len(self.tubes) / 2
-                )  # also the number of back tubes
+                number_front_tubes = int(len(self.tubes) / 2)  # also the number of back tubes
                 permutation = []
                 for i in range(number_front_tubes):
                     permutation.extend([i, i + number_front_tubes])
                 self._sorting_permutations["fbfb"] = permutation
             elif view == "decreasing X":  # initialize this view
-                x_coords = [
-                    tube.position[0] for tube in self.tubes
-                ]  # X coords of each tube
+                x_coords = [tube.position[0] for tube in self.tubes]  # X coords of each tube
                 permutation = np.flip(np.argsort(x_coords), axis=0).tolist()
                 self._sorting_permutations["decreasing X"] = permutation
             elif view == "workspace index":  # initialize this view
                 # spectrum index of first pixel for each tube
-                permutation = np.argsort(
-                    [tube.spectrum_info_index[0] for tube in self.tubes]
-                )
+                permutation = np.argsort([tube.spectrum_info_index[0] for tube in self.tubes])
                 self._sorting_permutations["workspace index"] = permutation
 
         sorted_list = [self._tubes[i] for i in permutation]

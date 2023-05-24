@@ -46,16 +46,12 @@ class TestScriptUtility:
 
     def test_create_non_default_output_directory(self):
         """make sure non default folders are created"""
-        script_utility.create_output_directory(
-            output_dir=self.output_dir_name, hfir_sans=False
-        )
+        script_utility.create_output_directory(output_dir=self.output_dir_name, hfir_sans=False)
         assert Path(self.output_dir_name).exists()
 
     def test_create_custom_subfolders_for_hfir(self):
         """make sure subfolder list of folders are created for hfir sans"""
-        script_utility.create_output_directory(
-            output_dir=self.output_dir_name, subfolder=["folder1", "folder2"]
-        )
+        script_utility.create_output_directory(output_dir=self.output_dir_name, subfolder=["folder1", "folder2"])
         assert Path(self.output_dir_name).exists()
         assert Path(self.output_dir_name).joinpath("folder1").exists()
         assert Path(self.output_dir_name).joinpath("folder2").exists()

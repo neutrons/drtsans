@@ -148,9 +148,7 @@ def test_prepare_moving_det_sensitivity():
     # verify that the refactored high level method renders the same result from prototype
     # compare infinities and convert to NaN
     gold_sens_array = gold_final_sen_matrix.flatten()
-    np.testing.assert_allclose(
-        np.where(np.isinf(gold_sens_array))[0], np.where(np.isinf(test_sens_array))[0]
-    )
+    np.testing.assert_allclose(np.where(np.isinf(gold_sens_array))[0], np.where(np.isinf(test_sens_array))[0])
 
     gold_sens_array[np.isinf(gold_sens_array)] = np.nan
     test_sens_array[np.isinf(test_sens_array)] = np.nan
@@ -209,9 +207,7 @@ def test_mask_zero_pixels():
     ), "Data shape changed"
 
     # No zero
-    assert (
-        test_data_matrix[np.isfinite(test_data_matrix)].min() > 0.5
-    ), "Minimum value is not zero"
+    assert test_data_matrix[np.isfinite(test_data_matrix)].min() > 0.5, "Minimum value is not zero"
 
     # 4 NaN
     assert len(np.where(np.isnan(test_data_matrix))[0]) == 4, "There shall be 4 NaNs"

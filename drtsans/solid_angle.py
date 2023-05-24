@@ -13,9 +13,7 @@ from drtsans.settings import unique_workspace_dundername
 __all__ = ["calculate_solid_angle", "solid_angle_correction"]
 
 
-def calculate_solid_angle(
-    input_workspace, detector_type="VerticalTube", output_workspace=None, **kwargs
-):
+def calculate_solid_angle(input_workspace, detector_type="VerticalTube", output_workspace=None, **kwargs):
     """Calculate the solid angle from the ``input_workspace``.
 
     **Mantid algorithms used:**
@@ -49,22 +47,13 @@ def calculate_solid_angle(
     ClearMaskFlag(Workspace=output_workspace)
 
     # calculate the solid angle
-    SolidAngle(
-        InputWorkspace=output_workspace,
-        OutputWorkspace=output_workspace,
-        Method=detector_type,
-        **kwargs
-    )
+    SolidAngle(InputWorkspace=output_workspace, OutputWorkspace=output_workspace, Method=detector_type, **kwargs)
 
     return mtd[output_workspace]
 
 
 def solid_angle_correction(
-    input_workspace,
-    detector_type="VerticalTube",
-    output_workspace=None,
-    solid_angle_ws=None,
-    **kwargs
+    input_workspace, detector_type="VerticalTube", output_workspace=None, solid_angle_ws=None, **kwargs
 ):
     r"""
     The algorithm calculates solid angles subtended by the individual pixel-detectors when vieved from the sample

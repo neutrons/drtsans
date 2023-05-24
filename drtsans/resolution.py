@@ -134,9 +134,7 @@ def calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameter
     """
     two_theta = pixel_info.two_theta.reshape(-1, 1)
     L2 = instrument_parameters.sample_det_center_distance
-    return np.square(
-        2 * np.pi * np.cos(0.5 * two_theta) * np.cos(two_theta) ** 2 / wavelength / L2
-    )
+    return np.square(2 * np.pi * np.cos(0.5 * two_theta) * np.cos(two_theta) ** 2 / wavelength / L2)
 
 
 def calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters):
@@ -193,11 +191,7 @@ def calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters):
         pixel_size2 = 0.5 * (dx2 + dy2)
     elif mode == "azimuthal":
         pixel_size2 = np.array([dx2, dy2])
-    return (
-        0.25 * np.square(L2 / L1 * R1)
-        + 0.25 * np.square((L1 + L2) / L1 * R2)
-        + pixel_size2 / 12.0
-    )
+    return 0.25 * np.square(L2 / L1 * R1) + 0.25 * np.square((L1 + L2) / L1 * R2) + pixel_size2 / 12.0
 
 
 def calculate_sigma_theta_gravity(wavelength, delta_wavelength, instrument_parameters):
@@ -233,18 +227,14 @@ def calculate_sigma_theta_gravity(wavelength, delta_wavelength, instrument_param
     # h = 6.626e-34    # m^2 kg s^-1
     # m_n = 1.675e-27  # kg
     # g = 9.8          # m s^-2
-    G_MN2_OVER_H2 = constants.g * np.square(
-        constants.neutron_mass / constants.h
-    )  # Unit as m, s, Kg
+    G_MN2_OVER_H2 = constants.g * np.square(constants.neutron_mass / constants.h)  # Unit as m, s, Kg
     L1 = instrument_parameters.l1
     L2 = instrument_parameters.sample_det_center_distance
     B = 0.5 * G_MN2_OVER_H2 * L2 * (L1 + L2) * 1.0e-20
     return 2.0 * np.square(B * wavelength * delta_wavelength) / 3.0
 
 
-def calculate_sigma_geometry(
-    mode, wavelength, delta_wavelength, pixel_info, instrument_parameters
-):
+def calculate_sigma_geometry(mode, wavelength, delta_wavelength, pixel_info, instrument_parameters):
     r"""
     Calculates the Q independent part of the resolution, the common parts in formula 10.3 - 10.6
 
@@ -270,15 +260,9 @@ def calculate_sigma_geometry(
     =======
     ~np.array
     """
-    factor = calculate_sigma_theta_prefactor(
-        wavelength, pixel_info, instrument_parameters
-    )
-    geometry_part = calculate_sigma_theta_geometry(
-        mode, pixel_info, instrument_parameters
-    )
-    gravity_part = calculate_sigma_theta_gravity(
-        wavelength, delta_wavelength, instrument_parameters
-    )
+    factor = calculate_sigma_theta_prefactor(wavelength, pixel_info, instrument_parameters)
+    geometry_part = calculate_sigma_theta_geometry(mode, pixel_info, instrument_parameters)
+    gravity_part = calculate_sigma_theta_gravity(wavelength, delta_wavelength, instrument_parameters)
 
     if mode == "scalar":
         return factor * (geometry_part[:, np.newaxis] * 2 + gravity_part)

@@ -54,9 +54,7 @@ def test_get_das_logs(reference_dir):
 
     # Attenuator: special case
     atten_value, atten_unit = xml_parser._read_attenuator()
-    assert atten_value == pytest.approx(
-        52.997100, 0.00001
-    ), f"Attenuator value {atten_value} shall be 52.997100"
+    assert atten_value == pytest.approx(52.997100, 0.00001), f"Attenuator value {atten_value} shall be 52.997100"
     assert atten_unit == "mm", f"Attenuator unit {atten_unit} shall be mm"
 
     # close

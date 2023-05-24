@@ -20,18 +20,14 @@ sample_thick = ["0.1"]  # Do not repeat if sample for ALL samples
 samples = [(217, 1)]  # Enter the list of runs for 'samples'
 samples_trans = samples  # Enter its own list if different from 'samples' list
 backgrounds = [None]  # Do not repeat multiple times if SAME for ALL samples
-backgrounds_trans = (
-    backgrounds  # Enter its own list if different from 'backgrounds' list
-)
+backgrounds_trans = backgrounds  # Enter its own list if different from 'backgrounds' list
 
 # Change if reducing a subset of 'samples' list
 start_index = 1  # Default start index is 1; DO NOT START FROM 'ZERO'
 end_index = len(samples)  # Default is 'len(samples)'
 
 # Setup once at the beginning of the experiment
-User3LetInitial = (
-    "whoever"  # 3-Letter initials that identifies you in the output directory
-)
+User3LetInitial = "whoever"  # 3-Letter initials that identifies you in the output directory
 overWrite = True  # Option to overwrite existing data or create another folder (Default is 'False')
 
 # ## Instrument Scientist or Local contact input below (And Expert Users)
@@ -62,25 +58,15 @@ flexible_pixelsizes = True  # 'True'- if use barscan/flood information for flexi
 # Make sure the barscan used sensitivity file used above if 'True'
 
 # Plotting Options--
-Plot_type = (
-    "scalar"  # 'scalar' for isotropic and 'wedge' for anisotropic (manual or auto)
-)
+Plot_type = "scalar"  # 'scalar' for isotropic and 'wedge' for anisotropic (manual or auto)
 Plot_binning = "log"  # 'log' or 'linear' Q-binning
 # LINEAR BINNING
-Lin1DQbins_Main = (
-    ""  # No. of bins for linear binning of 1D Main Detector, Default is 100;
-)
+Lin1DQbins_Main = ""  # No. of bins for linear binning of 1D Main Detector, Default is 100;
 # If per decade is used default is ''
-Lin1DQbins_Wing = (
-    ""  # No. of bins for linear binning of 1D Wing Detector, Default is 100;
-)
+Lin1DQbins_Wing = ""  # No. of bins for linear binning of 1D Wing Detector, Default is 100;
 # If per decade is used default is ''
-Lin2DQxy_Main = (
-    100  # No. of bins for linear binning of 2D Main Detector, Default is 100
-)
-Lin2DQxy_Wing = (
-    100  # No. of bins for linear binning of 2D Main Detector, Default is 100
-)
+Lin2DQxy_Main = 100  # No. of bins for linear binning of 2D Main Detector, Default is 100
+Lin2DQxy_Wing = 100  # No. of bins for linear binning of 2D Main Detector, Default is 100
 
 # LOGARITHMIC BINNING
 LogQbinsPerDecade_Main = 25  # No. of bins per decade of 1D Main Detector, Default is 33

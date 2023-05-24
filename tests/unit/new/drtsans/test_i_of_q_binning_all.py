@@ -131,9 +131,7 @@ def test_bin_modq():
         error_weighted=False,
     )
     binned1d = binned1d[0]
-    expected_q = determine_1d_log_bins(
-        1.0, 4.0, decade_on_center=False, n_bins=4
-    ).centers
+    expected_q = determine_1d_log_bins(1.0, 4.0, decade_on_center=False, n_bins=4).centers
     assert binned1d.mod_q == pytest.approx(expected_q)
 
     # test log scale: decade on center, qmin and qmax are not given
@@ -153,9 +151,7 @@ def test_bin_modq():
         error_weighted=False,
     )
     binned1d = binned1d[0]
-    expected_q = determine_1d_log_bins(
-        1.0, 4.0, decade_on_center=True, n_bins_per_decade=4
-    ).centers
+    expected_q = determine_1d_log_bins(1.0, 4.0, decade_on_center=True, n_bins_per_decade=4).centers
     assert binned1d.mod_q == pytest.approx(expected_q)
     expected_intensity = np.array([(1.0 + 16) / 2, np.nan, (32 + 17.0) / 2])
     assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)
@@ -177,9 +173,7 @@ def test_bin_modq():
         error_weighted=False,
     )
     binned1d = binned1d[0]
-    expected_q = determine_1d_log_bins(
-        2.0, 10.0, decade_on_center=False, n_bins=4
-    ).centers
+    expected_q = determine_1d_log_bins(2.0, 10.0, decade_on_center=False, n_bins=4).centers
     assert binned1d.mod_q == pytest.approx(expected_q)
     expected_intensity = np.array([np.nan, (32 + 17.0) / 2, np.nan, np.nan])
     assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)
@@ -228,12 +222,8 @@ def test_wedges():
     expected_intensity_wedge0 = np.array([7.66666, np.nan, np.nan, 23.66666])
     expected_intensity_wedge1 = np.array([9, np.nan, np.nan, 25])
     assert len(binned1d) == 2
-    assert binned1d[0].intensity == pytest.approx(
-        expected_intensity_wedge0, nan_ok=True, abs=1e-5
-    )
-    assert binned1d[1].intensity == pytest.approx(
-        expected_intensity_wedge1, nan_ok=True, abs=1e-5
-    )
+    assert binned1d[0].intensity == pytest.approx(expected_intensity_wedge0, nan_ok=True, abs=1e-5)
+    assert binned1d[1].intensity == pytest.approx(expected_intensity_wedge1, nan_ok=True, abs=1e-5)
 
 
 if __name__ == "__main__":

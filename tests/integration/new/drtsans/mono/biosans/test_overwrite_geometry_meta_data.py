@@ -32,21 +32,15 @@ def crash_worker_test_no_overwrite(reference_dir, generatecleanfile):
 
     """
     # Set up test: specify sensitivity file
-    json_str = generate_testing_json(
-        os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), None, None
-    )
+    json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), None, None)
     output_dir = generatecleanfile(prefix="meta_overwrite_bio_test1")
 
     # Run
-    reduce_biosans_data(
-        reference_dir.new.biosans, json_str, output_dir, prefix="BioMetaRaw"
-    )
+    reduce_biosans_data(reference_dir.new.biosans, json_str, output_dir, prefix="BioMetaRaw")
 
     # Get result files
     sample_names = ["csmb_ecoli1h_n2", "insect1hTime_n2"]
-    gold_path = os.path.join(
-        reference_dir.new.biosans, "overwrite_gold_20200815/test1/"
-    )
+    gold_path = os.path.join(reference_dir.new.biosans, "overwrite_gold_20200815/test1/")
 
     # Verify
     verify_reduction_results(
@@ -76,21 +70,15 @@ def crash_worker_test_overwrite_both_minor(reference_dir, generatecleanfile):
 
     """
     # Set up test
-    json_file = generate_testing_json(
-        os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), 61, 6.9
-    )
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), 61, 6.9)
     output_dir = generatecleanfile(prefix="meta_overwrite_bio_test1a")
 
     # Run
-    reduce_biosans_data(
-        reference_dir.new.biosans, json_file, output_dir, prefix="BioMetaMinor"
-    )
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix="BioMetaMinor")
 
     # Get result files
     sample_names = ["csmb_ecoli1h_n2", "insect1hTime_n2"]
-    gold_path = os.path.join(
-        reference_dir.new.biosans, "overwrite_gold_20200815/test1a/"
-    )
+    gold_path = os.path.join(reference_dir.new.biosans, "overwrite_gold_20200815/test1a/")
     # Verify
     verify_reduction_results(
         sample_names,
@@ -119,21 +107,15 @@ def Failed_test_overwrite_both_major(reference_dir, generatecleanfile):
 
     """
     # Set up test
-    json_file = generate_testing_json(
-        os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), 200, 14
-    )
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), 200, 14)
     output_dir = generatecleanfile(prefix="meta_overwrite_bio_test4")
 
     # Run
-    reduce_biosans_data(
-        reference_dir.new.biosans, json_file, output_dir, prefix="CG3MetaMajor2"
-    )
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix="CG3MetaMajor2")
 
     # Get result files
     sample_names = ["csmb_ecoli1h_n2", "insect1hTime_n2"]
-    gold_path = os.path.join(
-        reference_dir.new.biosans, "overwrite_gold_04282020/test4/"
-    )
+    gold_path = os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020/test4/")
     # Verify
     verify_reduction_results(
         sample_names,
@@ -147,8 +129,7 @@ def Failed_test_overwrite_both_major(reference_dir, generatecleanfile):
 # dev - Wenduo Zhou <wzz@ornl.gov>
 # SME - Shuo Qian <qians@ornl.gov>
 @pytest.mark.skip(
-    reason="Underlying geometry algorithm is incorrect but can be tolerated in real experiment"
-    ". Refer to MR #784."
+    reason="Underlying geometry algorithm is incorrect but can be tolerated in real experiment" ". Refer to MR #784."
 )
 def skip_test_overwrite_sample_to_si(reference_dir, generatecleanfile):
     """Test reduce 3 sets of data overwriting sampleToSi but not sampleDetectorDistance
@@ -167,21 +148,15 @@ def skip_test_overwrite_sample_to_si(reference_dir, generatecleanfile):
     """
     pytest.skip("")
     # Set up test
-    json_file = generate_testing_json(
-        os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), 500, None
-    )
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), 500, None)
     output_dir = generatecleanfile(prefix="meta_overwrite_bio_test2")
 
     # Run
-    reduce_biosans_data(
-        reference_dir.new.biosans, json_file, output_dir, prefix="BioMetaSWD"
-    )
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix="BioMetaSWD")
 
     # Get result files
     sample_names = ["csmb_ecoli1h_n2", "insect1hTime_n2"]
-    gold_path = os.path.join(
-        reference_dir.new.biosans, "overwrite_gold_04282020/test2/"
-    )
+    gold_path = os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020/test2/")
     # Verify
     verify_reduction_results(
         sample_names,
@@ -211,21 +186,15 @@ def crash_gw0_test_overwrite_sample_to_detector(reference_dir, generatecleanfile
 
     """
     # Set up test
-    json_file = generate_testing_json(
-        os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), None, 14
-    )
+    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), None, 14)
     output_dir = generatecleanfile(prefix="meta_overwrite_bio_test3")
 
     # Run
-    reduce_biosans_data(
-        reference_dir.new.biosans, json_file, output_dir, prefix="CG3MetaSDD"
-    )
+    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix="CG3MetaSDD")
 
     # Get result files
     sample_names = ["csmb_ecoli1h_n2", "insect1hTime_n2"]
-    gold_path = os.path.join(
-        reference_dir.new.biosans, "overwrite_gold_20200815/test3/"
-    )
+    gold_path = os.path.join(reference_dir.new.biosans, "overwrite_gold_20200815/test3/")
     # Verify
     verify_reduction_results(
         sample_names,
@@ -278,9 +247,7 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
         reduction_input["sample"]["runNumber"] = samples[i]
         reduction_input["sample"]["transmission"]["runNumber"] = samples_trans[i]
         reduction_input["background"]["runNumber"] = backgrounds[i]
-        reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[
-            i
-        ]
+        reduction_input["background"]["transmission"]["runNumber"] = backgrounds_trans[i]
         reduction_input["outputFileName"] = sample_names[i]
         # always check after updating the parameters
         reduction_input = validate_reduction_parameters(reduction_input)
@@ -292,9 +259,7 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     print(end_time - start_time)
 
 
-def generate_testing_json(
-    sens_nxs_dir, sample_to_si_window_distance, sample_to_detector_distance
-):
+def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_detector_distance):
     """Generating testing JSON
 
     Parameters
@@ -353,9 +318,7 @@ def generate_testing_json(
             "useSubpixels": False,
         },
     }
-    reduction_input = reduction_parameters(
-        specs, "BIOSANS", validate=False
-    )  # add defaults and defer validation
+    reduction_input = reduction_parameters(specs, "BIOSANS", validate=False)  # add defaults and defer validation
     reduction_config = reduction_input["configuration"]  # a handy shortcut
 
     #  '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4829m7p0_TDC_SAC.h5'
@@ -376,25 +339,16 @@ def generate_testing_json(
 
 
 def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix):
-
     # Over all message
     unmatched_errors = ""
 
     for sample_name in sample_names:
         # output log file name
-        output_log_file = os.path.join(
-            output_dir, "{}_reduction_log.hdf".format(sample_name)
-        )
-        assert os.path.exists(output_log_file), "Output {} cannot be found".format(
-            output_log_file
-        )
+        output_log_file = os.path.join(output_dir, "{}_reduction_log.hdf".format(sample_name))
+        assert os.path.exists(output_log_file), "Output {} cannot be found".format(output_log_file)
         # gold file
-        gold_log_file = os.path.join(
-            gold_path, "{}_{}_reduction_log.hdf".format(sample_name, prefix)
-        )
-        assert os.path.exists(gold_path), "Gold file {} cannot be found".format(
-            gold_log_file
-        )
+        gold_log_file = os.path.join(gold_path, "{}_{}_reduction_log.hdf".format(sample_name, prefix))
+        assert os.path.exists(gold_path), "Gold file {} cannot be found".format(gold_log_file)
         # compare
         title_i = "{}: {}".format(sample_name, title)
 
@@ -402,9 +356,8 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
         try:
             compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
         except AssertionError as unmatched_error:
-            unmatched_errors += (
-                "Testing output {} does not match gold result {}:\n{}\n"
-                "".format(output_log_file, gold_log_file, unmatched_error)
+            unmatched_errors += "Testing output {} does not match gold result {}:\n{}\n" "".format(
+                output_log_file, gold_log_file, unmatched_error
             )
     # END-FOR
 
@@ -454,17 +407,13 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
                 vec_q_a,
                 vec_i_a,
                 color="red",
-                label="{} Test Data.     Q in {:.5f}, {:.5f}".format(
-                    flag, vec_q_a[0], vec_q_a[-1]
-                ),
+                label="{} Test Data.     Q in {:.5f}, {:.5f}".format(flag, vec_q_a[0], vec_q_a[-1]),
             )
             plt.plot(
                 vec_q_b,
                 vec_i_b,
                 color="black",
-                label="{} Expected Data. Q in {:.5f}, {:.5f}".format(
-                    flag, vec_q_b[0], vec_q_b[-1]
-                ),
+                label="{} Expected Data. Q in {:.5f}, {:.5f}".format(flag, vec_q_b[0], vec_q_b[-1]),
             )
             plt.yscale("log")
             plt.title(title)
@@ -475,12 +424,7 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
                 prefix = "compare"
             if test_log_file is None:
                 test_log_file = "iq"
-            out_name = (
-                prefix
-                + "_"
-                + os.path.basename(test_log_file).split(".")[0]
-                + "_{}.png".format(flag)
-            )
+            out_name = prefix + "_" + os.path.basename(test_log_file).split(".")[0] + "_{}.png".format(flag)
             plt.savefig(out_name)
     # END-FOR
 

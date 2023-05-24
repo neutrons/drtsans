@@ -282,9 +282,7 @@ def generate_test_data_wavelength(q_dimension, num_wavelengths):
         (intensity, sigma, q, dq, wavelength) or (intensity, sigma, qx, dqx, qy, dqy, wavelength)
 
     """
-    assert isinstance(num_wavelengths, int) and num_wavelengths > 0, (
-        "Number of wavelength must be greater" "than 0."
-    )
+    assert isinstance(num_wavelengths, int) and num_wavelengths > 0, "Number of wavelength must be greater" "than 0."
 
     if q_dimension == 1:
         # get initial 1D arrays
@@ -375,9 +373,7 @@ def get_gold_1d_linear_bins():
         ]
     )
 
-    center_array = np.array(
-        [0.0005, 0.0015, 0.0025, 0.0035, 0.0045, 0.0055, 0.0065, 0.0075, 0.0085, 0.0095]
-    )
+    center_array = np.array([0.0005, 0.0015, 0.0025, 0.0035, 0.0045, 0.0055, 0.0065, 0.0075, 0.0085, 0.0095])
 
     return edge_array, center_array
 

@@ -53,7 +53,7 @@ __all__ = [
     "load_all_files",
     "plot_reduction_output",
     "reduce_single_configuration",
-    'adjust_back_panels_to_effective_position',
+    "adjust_back_panels_to_effective_position",
 ]
 
 
@@ -69,7 +69,7 @@ def load_all_files(
     path=None,
     use_nexus_idf: bool = False,
     debug_output: bool = False,
-    back_panel_correction: bool = False
+    back_panel_correction: bool = False,
 ):
     """load all required files at the beginning, and transform them to histograms
 
@@ -135,9 +135,7 @@ def load_all_files(
         load_params["LoadNexusInstrumentXML"] = use_nexus_idf
 
     # Adjust pixel heights and widths
-    load_params["pixel_calibration"] = reduction_config.get(
-        "usePixelCalibration", False
-    )
+    load_params["pixel_calibration"] = reduction_config.get("usePixelCalibration", False)
 
     # wave length and wave length spread
     (
@@ -147,11 +145,7 @@ def load_all_files(
 
     if reduction_config["useDefaultMask"]:
         # reduction_config["defaultMask"] is a list of python dictionaries
-        default_mask = (
-            reduction_config["defaultMask"]
-            if reduction_config["defaultMask"] is not None
-            else []
-        )
+        default_mask = reduction_config["defaultMask"] if reduction_config["defaultMask"] is not None else []
     else:
         default_mask = []
 
@@ -236,9 +230,7 @@ def load_all_files(
         # Load data and split
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
         if not registered_workspace(ws_name):
-            filename = abspath(
-                sample.strip(), instrument=instrument_name, ipts=ipts, directory=path
-            )
+            filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
             logger.notice(f"Loading filename {filename} to slice")
             if timeslice:
                 timesliceinterval = reduction_config["timeSliceInterval"]
@@ -289,9 +281,7 @@ def load_all_files(
         # Load single data
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo"
         if not registered_workspace(ws_name):
-            filename = abspaths(
-                sample, instrument=instrument_name, ipts=ipts, directory=path
-            )
+            filename = abspaths(sample, instrument=instrument_name, ipts=ipts, directory=path)
             logger.notice(f"Loading filename {filename} to {ws_name}")
             load_events_and_histogram(
                 filename,
@@ -338,9 +328,7 @@ def load_all_files(
         if run_number:
             ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
             if not registered_workspace(ws_name):
-                filename = abspaths(
-                    run_number, instrument=instrument_name, ipts=ipts, directory=path
-                )
+                filename = abspaths(run_number, instrument=instrument_name, ipts=ipts, directory=path)
                 logger.notice(f"Loading {run_type} filename {filename} to {ws_name}")
                 load_events_and_histogram(
                     filename,
@@ -378,9 +366,7 @@ def load_all_files(
             # load dark current file
             logger.notice(f"Loading dark current file {dark_current_file} to {ws_name}")
             # identify to use exact given path to NeXus or use OnCat instead
-            temp_name = os.path.join(
-                path, "{}_{}.nxs.h5".format(instrument_name, run_number)
-            )
+            temp_name = os.path.join(path, "{}_{}.nxs.h5".format(instrument_name, run_number))
             if os.path.exists(temp_name):
                 dark_current_file = temp_name
             load_events_and_histogram(
@@ -400,12 +386,8 @@ def load_all_files(
                 sample_thickness=None,
                 sample_aperture_diameter=None,
                 source_aperture_diameter=None,
-                smearing_pixel_size_x=smearing_pixel_size_x_dict[
-                    meta_data.DARK_CURRENT
-                ],
-                smearing_pixel_size_y=smearing_pixel_size_y_dict[
-                    meta_data.DARK_CURRENT
-                ],
+                smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
+                smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.DARK_CURRENT],
             )
             # Re-transform X-axis to wave length with spread
             if wave_length_dict[meta_data.DARK_CURRENT]:
@@ -434,42 +416,22 @@ def load_all_files(
     if custom_mask_file is not None:
         mask_ws_name = f"{prefix}_mask"
         if not registered_workspace(mask_ws_name):
-            logger.notice(
-                f"Loading user mask file {custom_mask_file} to {mask_ws_name}"
-            )
+            logger.notice(f"Loading user mask file {custom_mask_file} to {mask_ws_name}")
             mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
         else:
             mask_ws = mtd[mask_ws_name]
 
-    if registered_workspace(
-        f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
-    ):
-        raw_sample_ws = mtd[
-            f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
-        ]
+    if registered_workspace(f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"):
+        raw_sample_ws = mtd[f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"]
         raw_sample_ws_list = [w for w in raw_sample_ws]
     else:
         raw_sample_ws_list = [mtd[f"{prefix}_{instrument_name}_{sample}_raw_histo"]]
     raw_bkgd_ws = mtd[f"{prefix}_{instrument_name}_{bkgd}_raw_histo"] if bkgd else None
-    raw_blocked_ws = (
-        mtd[f"{prefix}_{instrument_name}_{blocked_beam}_raw_histo"]
-        if blocked_beam
-        else None
-    )
+    raw_blocked_ws = mtd[f"{prefix}_{instrument_name}_{blocked_beam}_raw_histo"] if blocked_beam else None
     raw_center_ws = mtd[f"{prefix}_{instrument_name}_{center}_raw_histo"]
-    raw_empty_ws = (
-        mtd[f"{prefix}_{instrument_name}_{empty}_raw_histo"] if empty else None
-    )
-    raw_sample_trans_ws = (
-        mtd[f"{prefix}_{instrument_name}_{sample_trans}_raw_histo"]
-        if sample_trans
-        else None
-    )
-    raw_bkg_trans_ws = (
-        mtd[f"{prefix}_{instrument_name}_{bkgd_trans}_raw_histo"]
-        if bkgd_trans
-        else None
-    )
+    raw_empty_ws = mtd[f"{prefix}_{instrument_name}_{empty}_raw_histo"] if empty else None
+    raw_sample_trans_ws = mtd[f"{prefix}_{instrument_name}_{sample_trans}_raw_histo"] if sample_trans else None
+    raw_bkg_trans_ws = mtd[f"{prefix}_{instrument_name}_{bkgd_trans}_raw_histo"] if bkgd_trans else None
     sensitivity_ws = mtd[sensitivity_ws_name] if sensitivity_ws_name else None
 
     # Plot
@@ -637,9 +599,7 @@ def prepare_data(
     """
     # Detector offset and sample offset are disabled
     if abs(detector_offset) > 1e-8 or abs(sample_offset) > 1e-8:
-        raise RuntimeError(
-            "gpsans.api.prepare_data does not work with detector_offset or sample_offset"
-        )
+        raise RuntimeError("gpsans.api.prepare_data does not work with detector_offset or sample_offset")
 
     # Load data and enforce to use nexus IDF
     if "enforce_use_nexus_idf" in kwargs:
@@ -689,9 +649,7 @@ def prepare_data(
     if sensitivity_workspace is None and sensitivity_file_path:
         sensitivity_workspace = os.path.split(sensitivity_file_path)[-1]
         sensitivity_workspace = sensitivity_workspace.split(".")[0]
-        sensitivity_workspace = load_sensitivity_workspace(
-            sensitivity_file_path, sensitivity_workspace
-        )
+        sensitivity_workspace = load_sensitivity_workspace(sensitivity_file_path, sensitivity_workspace)
 
     # Mask either detector
     if mask_detector is not None:
@@ -799,13 +757,9 @@ def prepare_data_workspaces(
 
     if not output_workspace_name:
         output_workspace_name = str(data)
-        output_workspace_name = (
-            output_workspace_name.replace("_raw_histo", "") + "_processed_histo"
-        )
+        output_workspace_name = output_workspace_name.replace("_raw_histo", "") + "_processed_histo"
 
-    mtd[str(data)].clone(
-        OutputWorkspace=output_workspace_name
-    )  # name gets into workspace
+    mtd[str(data)].clone(OutputWorkspace=output_workspace_name)  # name gets into workspace
 
     if center_x is not None and center_y is not None:
         center_detector(output_workspace_name, center_x=center_x, center_y=center_y)
@@ -844,11 +798,7 @@ def prepare_data_workspaces(
         mask_btp = dict()
     if debug:
         # output masking information
-        logger.notice(
-            f"mask panel: {mask_panel}\n"
-            f"mask ws   : {str(mask_ws)}\n"
-            f"mask btp  : {mask_btp}"
-        )
+        logger.notice(f"mask panel: {mask_panel}\n" f"mask ws   : {str(mask_ws)}\n" f"mask btp  : {mask_btp}")
         if mask_ws is not None:
             SaveNexusProcessed(
                 InputWorkspace=mask_ws,
@@ -874,9 +824,7 @@ def prepare_data_workspaces(
 
     # Sensitivity
     if sensitivity_workspace is not None:
-        apply_sensitivity_correction(
-            output_workspace_name, sensitivity_workspace=sensitivity_workspace
-        )
+        apply_sensitivity_correction(output_workspace_name, sensitivity_workspace=sensitivity_workspace)
 
     if debug:
         out_ws = mtd[output_workspace_name]
@@ -986,9 +934,7 @@ def process_single_configuration(
         Reference to the processed workspace
     """
     if debug:
-        SaveNexusProcessed(
-            InputWorkspace=sample_ws_raw, Filename="sample_raw", Title="Raw"
-        )
+        SaveNexusProcessed(InputWorkspace=sample_ws_raw, Filename="sample_raw", Title="Raw")
 
     if not output_workspace:
         output_workspace = output_suffix + "_sample.nxs"
@@ -1066,9 +1012,7 @@ def process_single_configuration(
     if bkg_ws_raw:
         bkgd_ws_name = output_suffix + "_background"
         if not registered_workspace(bkgd_ws_name):
-            bkgd_ws = prepare_data_workspaces(
-                bkg_ws_raw, output_workspace_name=bkgd_ws_name, **prepare_data_conf
-            )
+            bkgd_ws = prepare_data_workspaces(bkg_ws_raw, output_workspace_name=bkgd_ws_name, **prepare_data_conf)
             if blocked_ws_raw:
                 bkgd_ws = subtract_background(bkgd_ws, blocked_ws)
             # apply transmission to bkgd
@@ -1130,9 +1074,7 @@ def process_single_configuration(
     return mtd[output_workspace]
 
 
-def reduce_single_configuration(
-    loaded_ws, reduction_input, prefix="", skip_nan=True, debug_output=False
-):
+def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=True, debug_output=False):
     reduction_config = reduction_input["configuration"]
 
     flux_method = reduction_config["normalization"]
@@ -1167,11 +1109,7 @@ def reduce_single_configuration(
     annular_bin = reduction_config["AnnularAngleBin"]
     wedges_min = reduction_config["WedgeMinAngles"]
     wedges_max = reduction_config["WedgeMaxAngles"]
-    wedges = (
-        None
-        if wedges_min is None or wedges_max is None
-        else list(zip(wedges_min, wedges_max))
-    )
+    wedges = None if wedges_min is None or wedges_max is None else list(zip(wedges_min, wedges_max))
 
     # automatically determine wedge binning if it wasn't explicitly set
     autoWedgeOpts = {}
@@ -1186,15 +1124,11 @@ def reduce_single_configuration(
             "peak_width": reduction_config["autoWedgePeakWidth"],
             "background_width": reduction_config["autoWedgeBackgroundWidth"],
             "signal_to_noise_min": reduction_config["autoWedgeSignalToNoiseMin"],
-            "peak_search_window_size_factor": reduction_config[
-                "autoWedgePeakSearchWindowSizeFactor"
-            ],
+            "peak_search_window_size_factor": reduction_config["autoWedgePeakSearchWindowSizeFactor"],
         }
         # auto-aniso returns all of the wedges
         symmetric_wedges = False
-        logger.debug(
-            f'Wedge peak search window size factor: {autoWedgeOpts["peak_search_window_size_factor"]}'
-        )
+        logger.debug(f'Wedge peak search window size factor: {autoWedgeOpts["peak_search_window_size_factor"]}')
 
     fbc_options = fbc_options_json(reduction_input)
     xc, yc, fit_results = find_beam_center(loaded_ws.center, **fbc_options)
@@ -1330,20 +1264,14 @@ def reduce_single_configuration(
                 "n_horizontal": reduction_config["subpixelsX"],
                 "n_vertical": reduction_config["subpixelsY"],
             }
-        iq1d_main_in = convert_to_q(
-            processed_data_main, mode="scalar", **subpixel_kwargs
-        )
-        iq2d_main_in = convert_to_q(
-            processed_data_main, mode="azimuthal", **subpixel_kwargs
-        )
+        iq1d_main_in = convert_to_q(processed_data_main, mode="scalar", **subpixel_kwargs)
+        iq2d_main_in = convert_to_q(processed_data_main, mode="azimuthal", **subpixel_kwargs)
         if bool(autoWedgeOpts):  # determine wedges automatically
             logger.notice(f"Auto wedge options: {autoWedgeOpts}")
             autoWedgeOpts["debug_dir"] = output_dir
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
             logger.notice(
-                f"found wedge angles:\n"
-                f"              peak: {wedges[0]}\n"
-                f"        background: {wedges[1]}"
+                f"found wedge angles:\n" f"              peak: {wedges[0]}\n" f"        background: {wedges[1]}"
             )
             # sanity check
             assert len(wedges) == 2, f"Auto-wedges {wedges} shall have 2 2-tuples"
@@ -1371,18 +1299,14 @@ def reduce_single_configuration(
         )
 
         # save ASCII files
-        filename = os.path.join(
-            output_dir, "2D", f"{outputFilename}{output_suffix}_2D.dat"
-        )
+        filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D.dat")
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
 
         for j in range(len(iq1d_main_out)):
             add_suffix = ""
             if len(iq1d_main_out) > 1:
                 add_suffix = f"_wedge_{j}"
-            ascii_1D_filename = os.path.join(
-                output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}.txt"
-            )
+            ascii_1D_filename = os.path.join(output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}.txt")
             save_iqmod(iq1d_main_out[j], ascii_1D_filename, skip_nan=skip_nan)
 
         IofQ_output = namedtuple("IofQ_output", ["I2D_main", "I1D_main"])
@@ -1456,9 +1380,7 @@ def plot_reduction_output(
     for i, out in enumerate(reduction_output):
         if len(reduction_output) > 1:
             output_suffix = f"_{i}"
-        filename = os.path.join(
-            output_dir, "2D", f"{outputFilename}{output_suffix}_2D.png"
-        )
+        filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D.png")
 
         wedges = reduction_config["wedges"] if bin1d_type == "wedge" else None
         symmetric_wedges = reduction_config.get("symmetric_wedges", True)
@@ -1483,9 +1405,7 @@ def plot_reduction_output(
             add_suffix = ""
             if len(out.I1D_main) > 1:
                 add_suffix = f"_wedge_{j}"
-            filename = os.path.join(
-                output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}.png"
-            )
+            filename = os.path.join(output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}.png")
             plot_IQmod(
                 [out.I1D_main[j]],
                 filename,
@@ -1498,8 +1418,8 @@ def plot_reduction_output(
         if close_figures:
             plt.close()
     # allow overwrite
-    allow_overwrite(os.path.join(output_dir, '1D'))
-    allow_overwrite(os.path.join(output_dir, '2D'))
+    allow_overwrite(os.path.join(output_dir, "1D"))
+    allow_overwrite(os.path.join(output_dir, "2D"))
 
 
 def adjust_back_panels_to_effective_position(workspace):
@@ -1513,7 +1433,6 @@ def adjust_back_panels_to_effective_position(workspace):
 
     @NOTE: this adjustment must be done right before convert to q space
     """
-    MoveInstrumentComponent(Workspace=workspace,
-                            ComponentName="detector1/back-panel",
-                            Z=-0.0082,
-                            RelativePosition=True)
+    MoveInstrumentComponent(
+        Workspace=workspace, ComponentName="detector1/back-panel", Z=-0.0082, RelativePosition=True
+    )

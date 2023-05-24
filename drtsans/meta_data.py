@@ -12,9 +12,7 @@ __all__ = [
 ]
 
 
-def set_up_source_sample_distance(
-    workspace, source_sample_distance, distance_unit, non_exist_default_name
-):
+def set_up_source_sample_distance(workspace, source_sample_distance, distance_unit, non_exist_default_name):
     """Set source to sample distance to meta data
 
     Parameters
@@ -47,9 +45,7 @@ def set_up_source_sample_distance(
     )
 
 
-def set_up_sample_detector_distance(
-    workspace, sample_detector_distance, distance_unit, non_exist_default_name
-):
+def set_up_sample_detector_distance(workspace, sample_detector_distance, distance_unit, non_exist_default_name):
     """Set detector to sample distance to meta data
 
     Parameters
@@ -82,9 +78,7 @@ def set_up_sample_detector_distance(
     )
 
 
-def set_up_distance(
-    workspace, distance, distance_unit, meta_search_function, non_exist_default_name
-):
+def set_up_distance(workspace, distance, distance_unit, meta_search_function, non_exist_default_name):
     """Set up (i.e., overwrite) sample-detector or source-sample distance to workspace's run
 
     Parameters

@@ -45,9 +45,7 @@ def create_output_directory(output_dir="", subfolder=None, hfir_sans=True):
             Path(output_folder).mkdir(parents=True, exist_ok=True)
 
 
-def run_reduction(
-    reduction_input, q_type="", sample_name="", instrument=InstrumentEnumName.GPSANS
-):
+def run_reduction(reduction_input, q_type="", sample_name="", instrument=InstrumentEnumName.GPSANS):
     r"""Run a full reduction for GP or BIO sans instruments
 
     :param reduction_input: dictionary
@@ -71,12 +69,5 @@ def run_reduction(
         out = reduce_single_biosans_configuration(loaded, reduction_input)
     else:
         raise NotImplementedError("instrument not implemented yet!")
-    filename = (
-        reduction_input["configuration"]["outputDir"]
-        + "/2D/"
-        + sample_name
-        + "_"
-        + q_type
-        + "q.jpg"
-    )
+    filename = reduction_input["configuration"]["outputDir"] + "/2D/" + sample_name + "_" + q_type + "q.jpg"
     return out, filename

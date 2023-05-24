@@ -75,9 +75,7 @@ def prepare_spice_sensitivities_correction(
 
     # Process beam center runs
     if direct_beam_run is not None:
-        preparer.set_direct_beam_runs(
-            [direct_beam_run.unique_nexus_name(nexus_dir, True)]
-        )
+        preparer.set_direct_beam_runs([direct_beam_run.unique_nexus_name(nexus_dir, True)])
 
     # Set extra masks
     preparer.set_masks(

@@ -154,10 +154,7 @@ def redparms_data():
 def test_load_schema(instrument_name):
     r"""correct loading of the schema for each instrument"""
     schema = load_schema(instrument_name)
-    assert (
-        instrument_standard_name(schema["properties"]["instrumentName"]["default"])
-        == instrument_name
-    )
+    assert instrument_standard_name(schema["properties"]["instrumentName"]["default"]) == instrument_name
 
 
 class TestReferenceResolver:
@@ -240,9 +237,7 @@ class TestReferenceResolver:
             "type": "object",
             "configuration": {
                 "type": "object",
-                "properties": {
-                    "outputDir": {"$ref": "common.json#/configuration/outputDir"}
-                },
+                "properties": {"outputDir": {"$ref": "common.json#/configuration/outputDir"}},
                 "required": ["outputDir"],
             },
         }
@@ -252,9 +247,7 @@ class TestReferenceResolver:
             "type": "object",
             "configuration": {
                 "type": "object",
-                "properties": {
-                    "outputDir": {"type": "string", "description": "Output folder"}
-                },
+                "properties": {"outputDir": {"type": "string", "description": "Output folder"}},
                 "required": ["outputDir"],
             },
         }
@@ -265,11 +258,7 @@ class TestReferenceResolver:
             "type": "object",
             "configuration": {
                 "type": "object",
-                "properties": {
-                    "timeSliceInterval": {
-                        "$ref": "common.json#/configuration/timeSliceInterval"
-                    }
-                },
+                "properties": {"timeSliceInterval": {"$ref": "common.json#/configuration/timeSliceInterval"}},
             },
         }
         resolved = resolver.dereference(unresolved)
@@ -369,11 +358,7 @@ class TestReferenceResolver:
                 "sample": {"$ref": "common.json#/sample"},
                 "configuration": {
                     "type": "object",
-                    "properties": {
-                        "timeSliceInterval": {
-                            "$ref": "common.json#/configuration/timeSliceInterval"
-                        }
-                    },
+                    "properties": {"timeSliceInterval": {"$ref": "common.json#/configuration/timeSliceInterval"}},
                 },
             },
             "maxProperties": 2,
@@ -473,7 +458,6 @@ class TestReferenceResolver:
 
 
 class TestSuggest:
-
     property_names = [
         "instrumentName",
         "iptsNumber",
@@ -495,9 +479,7 @@ class TestSuggest:
         entries = Suggest(self.property_names)
         assert len(entries) == len(self.property_names) - 1
 
-    @pytest.mark.parametrize(
-        "query, top_match", [("runumber", "runNumber"), ("Sample", "sample")]
-    )
+    @pytest.mark.parametrize("query, top_match", [("runumber", "runNumber"), ("Sample", "sample")])
     def test_top_match(self, query, top_match):
         entries = Suggest(self.property_names)
         assert entries.top_match(query) == top_match
@@ -619,13 +601,10 @@ configuration:
 
 class TestReductionParameters:
     def test_init(self, redparms_data):
-        ReductionParameters(
-            redparms_data["reduction_parameters"], redparms_data["schema_instrument"]
-        )
+        ReductionParameters(redparms_data["reduction_parameters"], redparms_data["schema_instrument"])
 
 
 class TestReductionParametersGPSANS:
-
     parameters_common = {
         "instrumentName": "GPSANS",
         "iptsNumber": 21981,

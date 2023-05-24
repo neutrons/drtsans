@@ -9,9 +9,7 @@ import xml.etree.ElementTree as ET
 
 
 def test_save_ascii_1d(reference_dir):
-    ws = Load(
-        Filename=join(reference_dir.new.eqsans, "test_save_output/EQSANS_68200_iq.nxs")
-    )
+    ws = Load(Filename=join(reference_dir.new.eqsans, "test_save_output/EQSANS_68200_iq.nxs"))
 
     with tempfile.NamedTemporaryFile("wt") as tmp:
         save_ascii_1D(ws, "test_reduction_log.hdf", tmp.name)
@@ -43,9 +41,7 @@ def test_save_ascii_1d(reference_dir):
                 ]
             )
         reference = []
-        tree = ET.parse(
-            join(reference_dir.new.eqsans, "test_save_output/EQSANS_68200_Iq.xml")
-        )
+        tree = ET.parse(join(reference_dir.new.eqsans, "test_save_output/EQSANS_68200_Iq.xml"))
         root = tree.getroot()
         for node in root[0][2]:
             reference.append(

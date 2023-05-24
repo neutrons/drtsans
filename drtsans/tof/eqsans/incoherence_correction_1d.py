@@ -17,11 +17,9 @@ __all__ = ["correct_incoherence_inelastic_1d", "CorrectedIQ1D"]
 CorrectedIQ1D = namedtuple("CorrectedIQ1D", "iq1d b_factor b_error")
 
 
-def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence,
-                                     intensity_weighted=False,
-                                     qmin=None,
-                                     qmax=None,
-                                     factor=None):
+def correct_incoherence_inelastic_1d(
+    i_of_q, select_minimum_incoherence, intensity_weighted=False, qmin=None, qmax=None, factor=None
+):
     """Correct I(Q1D) accounting wavelength dependant incoherent inelastic scattering
 
     This is the envelop method for the complete workflow to correct I(Q1D) accounting
@@ -62,8 +60,10 @@ def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence,
         print(f"Using automated (qmin, qmax) finder with factor={factor}")
         qmin_index, qmax_index = tuneqmin(qmin_index, qmax_index, i_array, factor=factor)
 
-    print(f"Incoherent correction using qmin={q_vec[qmin_index]} qmax={q_vec[qmax_index]} "
-          f"with qmin_index={qmin_index}, qmax_index={qmax_index}")
+    print(
+        f"Incoherent correction using qmin={q_vec[qmin_index]} qmax={q_vec[qmax_index]} "
+        f"with qmin_index={qmin_index}, qmax_index={qmax_index}"
+    )
 
     # calculate B factors and errors
     b_array, ref_wl_ie = calculate_b_factors(
@@ -83,9 +83,7 @@ def correct_incoherence_inelastic_1d(i_of_q, select_minimum_incoherence,
     )
 
     # construct the output and return
-    corrected_i_of_q = build_i_of_q1d(
-        wl_vec, q_vec, corrected_intensities, corrected_errors, dq_array
-    )
+    corrected_i_of_q = build_i_of_q1d(wl_vec, q_vec, corrected_intensities, corrected_errors, dq_array)
 
     corrected = {
         "iq1d": corrected_i_of_q,
@@ -196,17 +194,17 @@ def calculate_b_factors(
             calculate_b_error=True,
             intensity_weighted=intensity_weighted,
         )
-        '''
+        """
         We would rather see where the negative values happen if it happens.
         In addition, if we later decide to discard b(lambda) from last wavelength
         bins for getting min(b[lambda]), b[lambda_max] or b[lambda_min] may have negative values.
-        '''
+        """
         # verify
-        '''
+        """
         assert (
             b_array[np.isfinite(b_array)].min() >= -1e-20
         ), f"B array has negative values: {b_array}"
-        '''
+        """
     return b_array, ref_wl_ie
 
 
@@ -266,21 +264,18 @@ def calculate_b_error_b(
         # operation into a (num_q, num_wl) 2D array
 
         ref_intensity_vec = unumpy.uarray(
-            (ref_wavelengths.intensity_vec[qmin_index : qmax_index + 1].reshape((num_q, 1)),
-             ref_wavelengths.error_vec[qmin_index : qmax_index + 1].reshape((num_q, 1)))
+            (
+                ref_wavelengths.intensity_vec[qmin_index : qmax_index + 1].reshape((num_q, 1)),
+                ref_wavelengths.error_vec[qmin_index : qmax_index + 1].reshape((num_q, 1)),
+            )
         )
         intensity_vec = unumpy.uarray(
-            (intensity_array[qmin_index : qmax_index + 1, :],
-             error_array[qmin_index : qmax_index + 1, :])
+            (intensity_array[qmin_index : qmax_index + 1, :], error_array[qmin_index : qmax_index + 1, :])
         )
 
-        b_vec = (
-            ref_intensity_vec
-            - intensity_vec
-        ) / ref_intensity_vec
+        b_vec = (ref_intensity_vec - intensity_vec) / ref_intensity_vec
 
-        b_array = -1.0 * np.sum(b_vec, axis=0) * \
-            1 / np.sum(1 / ref_intensity_vec)
+        b_array = -1.0 * np.sum(b_vec, axis=0) * 1 / np.sum(1 / ref_intensity_vec)
 
         b_factor_array[0] = unumpy.nominal_values(b_array)
 
@@ -305,9 +300,9 @@ def calculate_b_error_b(
         if calculate_b_error:
             # delta b(wl)^2 = 1/N^2 sum_{q_k=qmin}^{qmax} [(delta I(q_k, ref_wl))^2 + (delta I(q_k, wl))^2]
             # operation into a (num_q, num_wl) 2D array
-            b2_vec = (
-                ref_wavelengths.error_vec[qmin_index : qmax_index + 1].reshape((num_q, 1))
-            ) ** 2 + (error_array[qmin_index : qmax_index + 1, :]) ** 2
+            b2_vec = (ref_wavelengths.error_vec[qmin_index : qmax_index + 1].reshape((num_q, 1))) ** 2 + (
+                error_array[qmin_index : qmax_index + 1, :]
+            ) ** 2
             b_factor_array[1] = 1.0 / num_q * np.sqrt(b2_vec.sum(axis=0))
 
     return b_factor_array
@@ -355,9 +350,9 @@ def correct_intensity_error(
     assert intensity_array.shape == error_array.shape
     assert wavelength_vec.shape[0] == intensity_array.shape[1]
     assert q_vec.shape[0] == error_array.shape[0]
-    assert len(b_array2d.shape) == 2 and b_array2d.shape[0] == 2, (
-        f"Expected input B and B error but not of shape {b_array2d.shape}"
-    )
+    assert (
+        len(b_array2d.shape) == 2 and b_array2d.shape[0] == 2
+    ), f"Expected input B and B error but not of shape {b_array2d.shape}"
     assert b_array2d.shape[1] == wavelength_vec.shape[0]
 
     # Init data structure
@@ -379,7 +374,7 @@ def correct_intensity_error(
         # term2 is a single value
         term2 = (
             1.0
-            / num_common_q ** 2
+            / num_common_q**2
             * np.sum(
                 ref_wl_ie.error_vec[qmin_index : qmax_index + 1] ** 2
                 + error_array[qmin_index : qmax_index + 1, i_wl] ** 2

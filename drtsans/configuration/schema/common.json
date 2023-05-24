@@ -236,7 +236,7 @@
         "additionalProperties": {
           "CenterX": {
             "type": "number",
-            "description": "Estimate for the beam center in X [m]. Default: 0" 
+            "description": "Estimate for the beam center in X [m]. Default: 0"
           },
           "CenterY": {
             "type": "number",

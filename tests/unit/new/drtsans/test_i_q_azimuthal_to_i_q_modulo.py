@@ -28,9 +28,7 @@ def test_i_q_azimuthal_to_i_q_modulo():
     max_wedge_angle = 45
 
     # Get data
-    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(
-        2, True
-    )
+    intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array = generate_test_data(2, True)
 
     # Test high level method
     # Define input data

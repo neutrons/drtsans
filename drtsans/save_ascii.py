@@ -27,11 +27,11 @@ def save_ascii_binned_1D(filename, title, *args, **kwargs):
     except AttributeError:
         pass
     # Read the value of skip_nan from kwargs or True as default
-    skip_nan = kwargs.get('skip_nan', True)
+    skip_nan = kwargs.get("skip_nan", True)
     # Delete NaNs if requested
     if skip_nan:
-        finites = np.isfinite(kwargs['intensity'])
-        q = kwargs['mod_q'][finites]
+        finites = np.isfinite(kwargs["intensity"])
+        q = kwargs["mod_q"][finites]
         intensity = kwargs["intensity"][finites]
         error = kwargs["error"][finites]
         dq = kwargs["delta_mod_q"][finites]
@@ -130,9 +130,7 @@ def save_ascii_binned_2D(filename, title, *args, **kwargs):
         f.write("ASCII data\n\n")
 
         for i in range(len(intensity)):
-            line = "{:.6E}\t{:.6E}\t{:.6E}\t{:.6E}".format(
-                qx[i], qy[i], intensity[i], error[i]
-            )
+            line = "{:.6E}\t{:.6E}\t{:.6E}\t{:.6E}".format(qx[i], qy[i], intensity[i], error[i])
             if dqx is not None:
                 line += "\t{:.6E}\t{:.6E}".format(dqx[i], dqy[i])
             f.write(line + "\n")
@@ -152,9 +150,7 @@ def load_ascii_binned_2D(filename):
     """
     csv_data = np.genfromtxt(filename, comments="#", dtype=np.float64, skip_header=3)
     num_cols = len(csv_data[0])
-    assert (
-        num_cols == 4 or num_cols == 6
-    ), "Incompatible number of colums: {} should be 4 or 6".format(num_cols)
+    assert num_cols == 4 or num_cols == 6, "Incompatible number of colums: {} should be 4 or 6".format(num_cols)
 
     if num_cols == 4:
         delta_qx = None
@@ -194,10 +190,7 @@ def save_ascii_2D(q2, q2x, q2y, title, filename):
 
     f = open(filename, "w+")
     f.write("# " + title + "\n")
-    f.write(
-        "#Qx (1/A)       Qy (1/A)        I (1/cm)        dI (1/cm)"
-        + "       dQx (1/A)       dQy (1/A)\n"
-    )
+    f.write("#Qx (1/A)       Qy (1/A)        I (1/cm)        dI (1/cm)" + "       dQx (1/A)       dQy (1/A)\n")
     f.write("#ASCII data\n\n")
     for i in range(len(q2.readY(0))):
         for j in range(q2.getNumberHistograms()):

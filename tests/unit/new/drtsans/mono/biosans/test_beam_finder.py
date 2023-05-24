@@ -14,9 +14,7 @@ from drtsans.samplelogs import SampleLogs
 
 def _verify_pixel(wksp, index, position, counts):
     assert wksp.readY(index)[0] == counts, "wksp_index={}".format(index)
-    assert wksp.detectorInfo().position(index) == pytest.approx(
-        position
-    ), "wksp_index={}".format(index)
+    assert wksp.detectorInfo().position(index) == pytest.approx(position), "wksp_index={}".format(index)
 
 
 @pytest.mark.parametrize(
@@ -167,15 +165,9 @@ def test_beam_finder(biosans_f):
     pos_main_centered = instrument.getComponentByName("detector1").getPos()
     pos_wing_centered = instrument.getComponentByName("wing_detector").getPos()
 
-    assert pos_main[0] - pos_main_centered[0] == pytest.approx(
-        x, abs=1e-6
-    )  # micron precision
-    assert pos_main[1] - pos_main_centered[1] == pytest.approx(
-        y, abs=1e-6
-    )  # micron precision
-    assert pos_wing_centered[1] == pytest.approx(
-        pos_main_centered[1] + (abs(y_gravity) - abs(y)), abs=1e-6
-    )
+    assert pos_main[0] - pos_main_centered[0] == pytest.approx(x, abs=1e-6)  # micron precision
+    assert pos_main[1] - pos_main_centered[1] == pytest.approx(y, abs=1e-6)  # micron precision
+    assert pos_wing_centered[1] == pytest.approx(pos_main_centered[1] + (abs(y_gravity) - abs(y)), abs=1e-6)
 
     # After the re-centring we should be at (0,0)
     # Note that to give the same results we need to enter the center
@@ -187,9 +179,7 @@ def test_beam_finder(biosans_f):
     assert y1 == pytest.approx(0.0, abs=1e-4)
 
     # let's the test our wrap function. The results should be the same.
-    x2, y2, y_gravity2, _ = beam_finder.find_beam_center(
-        ws, centering_options=dict(CenterX=-x, CenterY=-y)
-    )
+    x2, y2, y_gravity2, _ = beam_finder.find_beam_center(ws, centering_options=dict(CenterX=-x, CenterY=-y))
 
     assert x2 == pytest.approx(0.0, abs=1e-3) == x1
     assert y2 == pytest.approx(0.0, abs=1e-4) == y1

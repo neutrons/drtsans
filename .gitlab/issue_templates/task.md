@@ -1,9 +1,9 @@
-<!-- 
+<!--
 	task.md
 	Version 2.1
 	This is a GitLab Issue description template to be used as a unit of work for implementing a user story
-	
-	Note: The Task title should be either: 
+
+	Note: The Task title should be either:
 		- [Task] Imp Story <technique acronym> #<user story number>: <clear descriptive title>
 			- Technique acronyms: SCD, PD, IM, REF, SANS, ED, DGSTAS, IGS, SE
 
@@ -43,7 +43,7 @@ List of Tasks:
      Note: Use the GitLab Related relationship for related Tasks
            Use the GitLab Blocked By / Blocks relationship for blocked Tasks
 		   Use the GitLab Blocked By / Blocks for relationships with Stories and Defects
-	 Note: The default milestone will override a manually set milestone.  
+	 Note: The default milestone will override a manually set milestone.
 	       Remove default milestone if setting manually
 -->
 

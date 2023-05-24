@@ -30,9 +30,7 @@ from drtsans.mask_utils import circular_mask_from_beam_center, masked_detectors
 __all__ = ["apply_transmission_correction", "calculate_transmission"]
 
 
-def calculate_transmission(
-    input_sample, input_reference, radius, radius_unit="mm", output_workspace=None
-):
+def calculate_transmission(input_sample, input_reference, radius, radius_unit="mm", output_workspace=None):
     """
     Calculate the raw transmission coefficients at zero scattering angle
     from already prepared sample and reference data.
@@ -85,9 +83,7 @@ def calculate_transmission(
 
     # Warn when masking many pixels around the beam center
     warning_message = (
-        "Warning: More than half of the detectors within a radius of {:.2f} mm ".format(
-            radius
-        )
+        "Warning: More than half of the detectors within a radius of {:.2f} mm ".format(radius)
         + "from the beam center are masked in the input {0}"
     )
     for run, workspace in dict(sample=input_sample, reference=input_reference).items():
@@ -134,12 +130,8 @@ def calculate_transmission(
 
     # Notify of average transmission value
     non_gap_indexes = np.isfinite(zero_angle_transmission_workspace.readY(0))
-    average_zero_angle_transmission = np.mean(
-        zero_angle_transmission_workspace.readY(0)[non_gap_indexes]
-    )
-    average_zero_angle_transmission_error = np.linalg.norm(
-        zero_angle_transmission_workspace.readE(0)[non_gap_indexes]
-    )
+    average_zero_angle_transmission = np.mean(zero_angle_transmission_workspace.readY(0)[non_gap_indexes])
+    average_zero_angle_transmission_error = np.linalg.norm(zero_angle_transmission_workspace.readE(0)[non_gap_indexes])
     message = "Average zero angle transmission = {0} +/- {1}".format(
         average_zero_angle_transmission, average_zero_angle_transmission_error
     )
@@ -210,9 +202,7 @@ def apply_transmission_correction(
         )
         kwargs["TransmissionWorkspace"] = clean_trans_workspace
     elif trans_value is not None:  # we are passing a single value for the transmission
-        kwargs.update(
-            dict(TransmissionValue=trans_value, TransmissionError=trans_error)
-        )
+        kwargs.update(dict(TransmissionValue=trans_value, TransmissionError=trans_error))
     else:  # we neither passed a transmission workspace nor a single transmission value
         raise RuntimeError("Provide either trans_workspace or trans_value")
 

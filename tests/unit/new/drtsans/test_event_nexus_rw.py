@@ -46,10 +46,7 @@ def test_convert_to_histogram(reference_dir):
     # pixel ID 17000 (ws index 17000 too) at index 597 has 224 counts
     assert bank9_histogram.pixel_ids[597] == 17000
     assert bank9_histogram.counts[597] == 224
-    assert (
-        bank9_histogram.pixel_ids.min() >= 16384
-        and bank9_histogram.pixel_ids.max() < 17408
-    )
+    assert bank9_histogram.pixel_ids.min() >= 16384 and bank9_histogram.pixel_ids.max() < 17408
     assert bank9_histogram.pulse_duration == pytest.approx(0.01666667, 1.0e-4)
     assert bank9_histogram.tof_min >= 0.0
     assert bank9_histogram.tof_max == pytest.approx(16666.2, 0.1)
@@ -103,9 +100,7 @@ def test_convert_monitor_counts_to_events():
     num_counts = 25000
 
     # Execute
-    monitor_events_even = generate_monitor_events_from_count(
-        num_counts, event_time_zero_array, tof_min, tof_max
-    )
+    monitor_events_even = generate_monitor_events_from_count(num_counts, event_time_zero_array, tof_min, tof_max)
 
     # Verify
     assert monitor_events_even.event_time_offset.shape == (num_counts,)
@@ -116,9 +111,7 @@ def test_convert_monitor_counts_to_events():
     num_counts = 25013
 
     # Execute
-    monitor_events_uneven = generate_monitor_events_from_count(
-        num_counts, event_time_zero_array, tof_min, tof_max
-    )
+    monitor_events_uneven = generate_monitor_events_from_count(num_counts, event_time_zero_array, tof_min, tof_max)
 
     # Verify
     assert monitor_events_uneven.event_time_offset.shape == (num_counts,)
@@ -135,9 +128,7 @@ def test_generate_event_nexus(cleanfile):
 
     """
     # Initialize writer
-    event_nexus_writer = EventNeXusWriter(
-        beam_line="TEST1", instrument_name="TestMonoSANS"
-    )
+    event_nexus_writer = EventNeXusWriter(beam_line="TEST1", instrument_name="TestMonoSANS")
 
     # Set variables
     # set instrument
@@ -158,9 +149,7 @@ def test_generate_event_nexus(cleanfile):
         ("SampleToSi", 81, "mm"),
         ("SampleToDetector", 2.323, "m"),
     ]:
-        meta_data = DasLog(
-            meta_name, np.array([0.0, 1000.0]), np.array([meta_value]), unit, None
-        )
+        meta_data = DasLog(meta_name, np.array([0.0, 1000.0]), np.array([meta_value]), unit, None)
         event_nexus_writer.set_meta_data(meta_data)
 
     # Generate
@@ -177,9 +166,7 @@ def test_generate_event_nexus(cleanfile):
     event_nexus_writer.generate_event_nexus(out_nexus_name, start_time, end_time, 12345)
 
     # Verify file existence
-    assert os.path.exists(
-        out_nexus_name
-    ), f"Output event nexus file {out_nexus_name} does not exist"
+    assert os.path.exists(out_nexus_name), f"Output event nexus file {out_nexus_name} does not exist"
 
     # Import file
     nexus_h5 = h5py.File(out_nexus_name, "r")

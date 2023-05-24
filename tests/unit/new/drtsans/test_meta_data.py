@@ -11,9 +11,7 @@ from drtsans.geometry import (
 )
 
 
-@pytest.mark.parametrize(
-    "workspace_with_instrument", [{"Nx": 3, "Ny": 3}], indirect=True
-)
+@pytest.mark.parametrize("workspace_with_instrument", [{"Nx": 3, "Ny": 3}], indirect=True)
 def test_set_mono_meta_data(workspace_with_instrument):
     """ """
     data = np.array([[7.0, 8.0, 12.0], [10.0, 17.0, 13.0], [10.0, 10.0, 9.0]])
@@ -54,9 +52,7 @@ def test_set_mono_meta_data(workspace_with_instrument):
     assert test_ps_y == 0.0022, "Expected: {}, Got: {}".format(0.0022, test_ps_y)
 
 
-@pytest.mark.parametrize(
-    "workspace_with_instrument", [{"Nx": 3, "Ny": 3}], indirect=True
-)
+@pytest.mark.parametrize("workspace_with_instrument", [{"Nx": 3, "Ny": 3}], indirect=True)
 def test_set_eqsans_meta_data(workspace_with_instrument):
     """ """
     data = np.array([[7.0, 8.0, 12.0], [10.0, 17.0, 13.0], [10.0, 10.0, 9.0]])

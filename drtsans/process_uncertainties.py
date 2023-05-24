@@ -51,9 +51,7 @@ def set_init_uncertainties(input_workspace, output_workspace=None):
         if input_workspace == output_workspace:
             return mtd[input_workspace]
         else:
-            return CloneWorkspace(
-                InputWorkspace=input_workspace, OutputWorkspace=output_workspace
-            )
+            return CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
 
     # Calculate uncertainties as square root and set 1 for 0 count
     # But SetUncertainties does not treat nan as SANS team desires

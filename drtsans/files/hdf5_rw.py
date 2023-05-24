@@ -36,9 +36,7 @@ def parse_h5_entry(h5_entry):
             break
     # Check
     if entry_node is None:
-        raise RuntimeError(
-            "HDF entry of type {} is not supported".format(type(h5_entry))
-        )
+        raise RuntimeError("HDF entry of type {} is not supported".format(type(h5_entry)))
 
     return entry_node
 
@@ -83,15 +81,12 @@ class HDFNode(object):
         # compare class type
         if not isinstance(other_node, type(self)):
             raise TypeError(
-                "Try to match instance of class {} (other) to {} (self)"
-                "".format(type(other_node), type(self))
+                "Try to match instance of class {} (other) to {} (self)" "".format(type(other_node), type(self))
             )
 
         # compare name
         if self._name != other_node.name:
-            raise ValueError(
-                "self.name = {}; other.name = {}".format(self.name, other_node.name)
-            )
+            raise ValueError("self.name = {}; other.name = {}".format(self.name, other_node.name))
 
         # compare attributes
         if set(self._attributes.keys()) != set(other_node.attributes.keys()):
@@ -116,13 +111,10 @@ class HDFNode(object):
         error_msg = ""
         for attr_name in self._attributes.keys():
             if self._attributes[attr_name] != other_node.attributes[attr_name]:
-                error_msg += (
-                    "Mismatch attribute {} value: self = {}, other = {}"
-                    "".format(
-                        attr_name,
-                        self._attributes[attr_name],
-                        other_node.attributes[attr_name],
-                    )
+                error_msg += "Mismatch attribute {} value: self = {}, other = {}" "".format(
+                    attr_name,
+                    self._attributes[attr_name],
+                    other_node.attributes[attr_name],
                 )
         if error_msg != "":
             raise ValueError(error_msg)
@@ -188,7 +180,6 @@ class HDFNode(object):
         raise NotImplementedError("Virtual method to write {}".format(inputs))
 
     def write_attributes(self, curr_entry):
-
         # attributes
         for attr_name in self._attributes:
             # ignore if an attribute is None (might be missing)
@@ -197,12 +188,9 @@ class HDFNode(object):
             try:
                 curr_entry.attrs[attr_name] = self._attributes[attr_name]
             except TypeError as type_error:
-                print(
-                    f"[ERROR] {self._name}-node attribute {attr_name} is of type {type(attr_name)}"
-                )
+                print(f"[ERROR] {self._name}-node attribute {attr_name} is of type {type(attr_name)}")
                 raise TypeError(
-                    f"[ERROR] {self._name}-node attribute {attr_name} is of type "
-                    f"{type(attr_name)}: {type_error}"
+                    f"[ERROR] {self._name}-node attribute {attr_name} is of type " f"{type(attr_name)}: {type_error}"
                 )
 
 
@@ -291,9 +279,7 @@ class GroupNode(HDFNode):
                 break
 
         if child_node is None:
-            raise RuntimeError(
-                f"There is no child node with name {child_name} for node {self.name})"
-            )
+            raise RuntimeError(f"There is no child node with name {child_name} for node {self.name})")
 
         return child_node
 
@@ -317,9 +303,7 @@ class GroupNode(HDFNode):
         # Check whether a child with same name exists
         for child_node_i in self._children:
             if child_node_i.name == child_node.name:
-                raise RuntimeError(
-                    f"Node {self.name} has child with name {child_node.name} already!"
-                )
+                raise RuntimeError(f"Node {self.name} has child with name {child_node.name} already!")
 
         # Attach
         self._children.append(child_node)
@@ -448,11 +432,7 @@ class DataSetNode(HDFNode):
             that_value = other_node.value.flatten()
             for i in range(this_value.shape[0]):
                 if this_value[i] != that_value[i]:
-                    raise ValueError(
-                        "Different values:\n 1: {}\n 2: {}".format(
-                            self._value, other_node.value
-                        )
-                    )
+                    raise ValueError("Different values:\n 1: {}\n 2: {}".format(self._value, other_node.value))
 
     def parse_h5_entry(self, h5_entry):
         """Parse HDF5 entry

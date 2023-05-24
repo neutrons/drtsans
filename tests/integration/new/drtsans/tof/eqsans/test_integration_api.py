@@ -85,12 +85,8 @@ class TestLoadEvents(object):
         assert run_infoset.sdd == pytest.approx(d1 * 1000, abs=1)
         # Check logs
         sl = SampleLogs(ws)
-        assert run_infoset.ssd == approx(
-            sl.single_value("source-sample-distance"), abs=1
-        )
-        assert run_infoset.sdd == approx(
-            sl.single_value("sample-detector-distance"), abs=1
-        )
+        assert run_infoset.ssd == approx(sl.single_value("source-sample-distance"), abs=1)
+        assert run_infoset.sdd == approx(sl.single_value("sample-detector-distance"), abs=1)
 
     def test_tofs(self, run_infoset):
         ws = mtd[run_infoset.ws]
@@ -139,22 +135,16 @@ def test_normalize_by_flux(run_infoset, flux_file):
         output_workspace=unique_workspace_dundername(),
     )
     normalized_data_workspace = SumSpectra(normalized_data_workspace)
-    assert 1.0e6 * np.average(normalized_data_workspace.readY(0)) == approx(
-        run_infoset.flux_normalized, abs=1.0
-    )
+    assert 1.0e6 * np.average(normalized_data_workspace.readY(0)) == approx(run_infoset.flux_normalized, abs=1.0)
     # clean up
     DeleteWorkspace(normalized_data_workspace)
 
 
 def test_subtract_background(reference_dir):
     data_dir = pj(reference_dir.new.eqsans, "test_subtract_background")
-    ws = LoadNexus(
-        pj(data_dir, "sample.nxs"), OutputWorkspace=unique_workspace_dundername()
-    )
+    ws = LoadNexus(pj(data_dir, "sample.nxs"), OutputWorkspace=unique_workspace_dundername())
     ws_name = ws.name()
-    wb = LoadNexus(
-        pj(data_dir, "background.nxs"), OutputWorkspace=unique_workspace_dundername()
-    )
+    wb = LoadNexus(pj(data_dir, "background.nxs"), OutputWorkspace=unique_workspace_dundername())
     ws_wb = eqsans.subtract_background(ws, wb, scale=0.42)
     assert ws_wb.name() == ws_name
     assert max(ws_wb.readY(0)) < 1.0e-09
@@ -179,9 +169,7 @@ def test_prepare_monitors(reference_dir):
             "EQSANS_88565_monitors_wav.nxs",
             OutputWorkspace=unique_workspace_dundername(),
         )
-        assert (
-            CompareWorkspaces(w, v, Tolerance=1e-3, ToleranceRelErr=True).Result is True
-        )
+        assert CompareWorkspaces(w, v, Tolerance=1e-3, ToleranceRelErr=True).Result is True
     # cleanup
     DeleteWorkspace(w)
     DeleteWorkspace(v)
@@ -201,9 +189,7 @@ def test_solid_angle(run_infoset):
     assert ws2.getNumberEvents() == run_infoset.num_events
 
 
-@pytest.mark.parametrize(
-    "name", ["save_ascii_1D", "save_xml_1D", "save_nist_dat", "save_nexus"]
-)
+@pytest.mark.parametrize("name", ["save_ascii_1D", "save_xml_1D", "save_nist_dat", "save_nexus"])
 def test_api_contents(name):
     assert name in dir(eqsans)
 

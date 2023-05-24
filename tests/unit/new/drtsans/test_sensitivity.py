@@ -11,9 +11,7 @@ FILENAME_IN = os.path.join(data_dir, "EQSANS_87680_integrated.nxs")
 MIN, MAX = 0.5, 2.0
 
 
-@pytest.mark.parametrize(
-    "workspace_with_instrument", [{"Nx": 3, "Ny": 3}], indirect=True
-)
+@pytest.mark.parametrize("workspace_with_instrument", [{"Nx": 3, "Ny": 3}], indirect=True)
 def test_apply_simple_sensitivity(workspace_with_instrument):
     r"""
     Testing section 5 in the master document
@@ -29,9 +27,7 @@ def test_apply_simple_sensitivity(workspace_with_instrument):
     data = np.array([[7.0, 8.0, 12.0], [10.0, 17.0, 13.0], [10.0, 10.0, 9.0]])
     sensitivity = np.array([[1.03, 0.99, 1.01], [0.96, 1.02, 0.98], [0.90, 1.00, 0.31]])
     data_error = np.sqrt(data)
-    sensitivity_error = np.array(
-        [[0.02, 0.02, 0.01], [0.03, 0.01, 0.01], [0.03, 0.01, 0.04]]
-    )
+    sensitivity_error = np.array([[0.02, 0.02, 0.01], [0.03, 0.01, 0.01], [0.03, 0.01, 0.04]])
     # create workspaces
     data_ws = workspace_with_instrument(
         axis_values=[6.0],  # fake wavelength
@@ -46,9 +42,7 @@ def test_apply_simple_sensitivity(workspace_with_instrument):
         view="pixel",
     )
     # run the function
-    data_ws = apply_sensitivity_correction(
-        data_ws, sensitivity_workspace=sensitivity_ws, min_threshold=0.5
-    )
+    data_ws = apply_sensitivity_correction(data_ws, sensitivity_workspace=sensitivity_ws, min_threshold=0.5)
     # check the results
     # masked pixels will show up as 0 (and they have a mask flag)
     assert data_ws.extractY() == pytest.approx(

@@ -22,14 +22,10 @@ class _Data1D(object):
     Sig_scale = 0.005 * scale_factor
 
     Q_Scale = np.linspace(0.01, 0.99, 99)  # 99 numbers from 0.01 to 0.99
-    I_Background_1d = (
-        np.power(Q_Scale * 10, -4) + 0.57
-    )  # power-law maximum (Porod-scattering)
+    I_Background_1d = np.power(Q_Scale * 10, -4) + 0.57  # power-law maximum (Porod-scattering)
     Sig_background_1d = I_Background_1d * 0.02
 
-    I_Data_1d = scale_factor * I_Background_1d + 0.2 * (
-        0.5 - np.absolute(0.5 - Q_Scale)
-    )
+    I_Data_1d = scale_factor * I_Background_1d + 0.2 * (0.5 - np.absolute(0.5 - Q_Scale))
     Sig_data_1d = 0.01 * I_Data_1d
 
     I_output_1d = I_Data_1d - scale_factor * I_Background_1d
@@ -70,9 +66,7 @@ class _Data1D(object):
         elif self.mode == DataType.IQ_MOD:
             return IQmod(intensity=y, error=e, mod_q=self.Q_Scale)
         else:
-            raise NotImplementedError(
-                'Cannot create test data of type "{}"'.format(self.mode)
-            )
+            raise NotImplementedError('Cannot create test data of type "{}"'.format(self.mode))
 
 
 # -------------------- 1d tests
@@ -108,9 +102,7 @@ def test_subtract_background_1d(mode):
     expected = factory.create("output")
 
     # do the calculation using the framework in-place
-    observed = subtract_background(
-        data, background, scale=factory.scale_factor, scale_error=factory.Sig_scale
-    )
+    observed = subtract_background(data, background, scale=factory.scale_factor, scale_error=factory.Sig_scale)
 
     # check the results
     assert_wksp_equal(observed, expected, rtol=1e-7)
@@ -149,9 +141,7 @@ class _Data2D(object):
         elif self.mode == "full_2d" or self.mode == "2d_edge":
             return np.array(qx), np.array(qy)
         else:
-            raise NotImplementedError(
-                'Do not know how to create data in mode "{}"'.format(self.mode)
-            )
+            raise NotImplementedError('Do not know how to create data in mode "{}"'.format(self.mode))
 
     def create(self, datatype):
         """This function creates data based on supplied information. There are pre-defined ``datatype``
@@ -162,15 +152,11 @@ class _Data2D(object):
         if datatype == "data":
             background = self.create("background")
 
-            y = self.scale_factor * background.intensity + 0.2 * (
-                0.5 - np.absolute(0.5 - qx)
-            )
+            y = self.scale_factor * background.intensity + 0.2 * (0.5 - np.absolute(0.5 - qx))
             e = 0.01 * y
         elif datatype == "background":
             qscalar = np.sqrt(np.square(qx) + np.square(qy))
-            y = (
-                np.power((qscalar * 10.0), -4) + 0.57
-            )  # power-law maximum (Porod-scattering)
+            y = np.power((qscalar * 10.0), -4) + 0.57  # power-law maximum (Porod-scattering)
             e = y * 0.01
         elif datatype == "output":
             signal = self.create("data")
@@ -211,9 +197,7 @@ def test_subtract_background_2d(mode):
     expected = factory.create("output")
 
     # do the calculation using the framework in-place
-    observed = subtract_background(
-        data, background, scale=factory.scale_factor, scale_error=factory.Sig_scale
-    )
+    observed = subtract_background(data, background, scale=factory.scale_factor, scale_error=factory.Sig_scale)
 
     # check the results
     assert_wksp_equal(observed, expected, rtol=1e-7)

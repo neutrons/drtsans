@@ -57,11 +57,7 @@ class EQSANSDiskChopperSet(object):
             ws = LoadNexusProcessed(other)
             sample_logs = SampleLogs(ws)
         else:
-            raise RuntimeError(
-                "{} is not a valid file name, workspace, Run object or run number".format(
-                    other
-                )
-            )
+            raise RuntimeError("{} is not a valid file name, workspace, Run object or run number".format(other))
 
         self._choppers = list()
         for chopper_index in range(self._n_choppers):

@@ -125,9 +125,7 @@ def test_convert_to_wavelength(reference_dir):
             MoveInstrumentComponent(ws, ComponentName="detector1", Z=sadd)
             correct_frame.correct_detector_frame(ws, path_to_pixel=False)
             sodd = source_detector_distance(ws, unit="m")
-            bands = correct_frame.transmitted_bands_clipped(
-                ws, sodd, 500, 2000, interior_clip=True
-            )
+            bands = correct_frame.transmitted_bands_clipped(ws, sodd, 500, 2000, interior_clip=True)
             ws = correct_frame.convert_to_wavelength(ws, bands, wavelength_bin)
             compare_to_eqsans_load(ws, wo, wavelength_bin, sadd, 500, 2000)
 

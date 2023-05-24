@@ -27,10 +27,10 @@
     "method": "gaussian",
     "gaussian_centering_options": {
       "theta": {
-        "value": 0.0, 
+        "value": 0.0,
         "vary": false
       }
-    } 
+    }
   },
   "outputFileName": "CG2_8944",
   "configuration": {

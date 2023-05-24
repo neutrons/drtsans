@@ -66,16 +66,12 @@ def empty_beam_intensity(
     if beam_radius is None:
         beam_radius = drtsans.geometry.beam_radius(empty_beam_workspace, unit=unit)
 
-    det_ids = circular_mask_from_beam_center(
-        empty_beam_workspace, beam_radius, unit=unit
-    )
+    det_ids = circular_mask_from_beam_center(empty_beam_workspace, beam_radius, unit=unit)
 
     # Warn when having too many pixels masked within the beam radius
     if len(masked_detectors(empty_beam_workspace, det_ids)) > len(det_ids) / 2:
         msg = (
-            "More than half of the detectors within a radius of {:.2f} {} ".format(
-                beam_radius, unit
-            )
+            "More than half of the detectors within a radius of {:.2f} {} ".format(beam_radius, unit)
             + "from the beam center are masked in the empty beam workspace"
         )
         sys.stdout.write("Warning: " + msg)
@@ -86,9 +82,7 @@ def empty_beam_intensity(
         DetectorList=det_ids,
         OutputWorkspace=output_workspace,
     )
-    chi = CreateSingleValuedWorkspace(
-        DataValue=attenuator_coefficient, ErrorValue=attenuator_error
-    )
+    chi = CreateSingleValuedWorkspace(DataValue=attenuator_coefficient, ErrorValue=attenuator_error)
     Divide(
         LHSWorkspace=output_workspace,
         RHSWorkspace=chi,
@@ -158,7 +152,5 @@ def empty_beam_scaling(
         OutputWorkspace=output_workspace,
     )
 
-    DeleteWorkspace(
-        Workspace=beam_intensity
-    )  # the temporary workspace is not needed anymore
+    DeleteWorkspace(Workspace=beam_intensity)  # the temporary workspace is not needed anymore
     return str(output_workspace)

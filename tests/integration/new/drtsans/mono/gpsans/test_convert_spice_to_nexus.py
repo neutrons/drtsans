@@ -20,9 +20,7 @@ def test_convert_spice(reference_dir, generatecleanfile):
     output_dir = generatecleanfile(prefix="cg2spiceconverter")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    temp_event_nexus = (
-        "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/CG2_9177.nxs.h5"
-    )
+    temp_event_nexus = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/CG2_9177.nxs.h5"
     nexus_files = list()
     for scan_num, pt_num in scan_pt_list:
         fake_nexus = convert_spice_to_nexus(
@@ -48,15 +46,11 @@ def test_convert_spice(reference_dir, generatecleanfile):
 
 def verify_result(test_nexus, raw_spice):
     # Load data
-    test_ws = LoadEventNexus(
-        Filename=test_nexus, OutputWorkspace="test2", NumberOfBins=1
-    )
+    test_ws = LoadEventNexus(Filename=test_nexus, OutputWorkspace="test2", NumberOfBins=1)
     raw_ws = LoadHFIRSANS(Filename=raw_spice, OutputWorkspace="raw")
 
     # Compare counts
-    assert (
-        test_ws.getNumberHistograms() + 2 == raw_ws.getNumberHistograms()
-    ), "Spectra number unmatched"
+    assert test_ws.getNumberHistograms() + 2 == raw_ws.getNumberHistograms(), "Spectra number unmatched"
 
     # Compare counts
     raw_y = raw_ws.extractY().flatten()

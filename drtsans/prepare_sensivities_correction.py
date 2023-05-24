@@ -255,9 +255,7 @@ class PrepareSensitivityCorrection(object):
             # shall be a list or tuple
             self._direct_beam_center_runs = list(direct_beam_runs)
 
-    def set_masks(
-        self, default_mask, pixels, wing_det_mask_angle=None, main_det_mask_angle=None
-    ):
+    def set_masks(self, default_mask, pixels, wing_det_mask_angle=None, main_det_mask_angle=None):
         """Set masks
 
         Parameters
@@ -306,9 +304,7 @@ class PrepareSensitivityCorrection(object):
         """
         self._beam_center_radius = radius
 
-    def set_transmission_correction(
-        self, transmission_flood_runs, transmission_reference_runs, beam_trap_factor=2
-    ):
+    def set_transmission_correction(self, transmission_flood_runs, transmission_reference_runs, beam_trap_factor=2):
         """Set transmission beam run and transmission flood runs
 
         Parameters
@@ -352,9 +348,7 @@ class PrepareSensitivityCorrection(object):
             return
 
         # transmission reference
-        self._transmission_reference_runs = format_run_or_runs(
-            transmission_reference_runs
-        )
+        self._transmission_reference_runs = format_run_or_runs(transmission_reference_runs)
 
         # transmission flood
         self._transmission_flood_runs = format_run_or_runs(transmission_flood_runs)
@@ -387,9 +381,7 @@ class PrepareSensitivityCorrection(object):
         """
         self._theta_dep_correction = flag
 
-    def _prepare_flood_data(
-        self, flood_run, beam_center, dark_current_run, enforce_use_nexus_idf
-    ):
+    def _prepare_flood_data(self, flood_run, beam_center, dark_current_run, enforce_use_nexus_idf):
         """Prepare flood data including
         (1) load
         (2) mask: default, pixels
@@ -448,9 +440,7 @@ class PrepareSensitivityCorrection(object):
 
         # prepare data
         if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict[
-                "enforce_use_nexus_idf"
-            ] = enforce_use_nexus_idf
+            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
         flood_ws = prepare_data(
             data=flood_run,  # self._flood_runs[index]),
             pixel_calibration=self._apply_calibration,
@@ -469,9 +459,7 @@ class PrepareSensitivityCorrection(object):
             # More than 1 bins in spectra: do integration to single bin
             # This is for EQSANS specially
             # output workspace name shall be unique and thus won't overwrite any existing one
-            flood_ws = Integration(
-                InputWorkspace=flood_ws, OutputWorkspace=str(flood_ws)
-            )
+            flood_ws = Integration(InputWorkspace=flood_ws, OutputWorkspace=str(flood_ws))
 
         return flood_ws
 
@@ -497,9 +485,7 @@ class PrepareSensitivityCorrection(object):
         return masked_array
 
     @staticmethod
-    def _set_mask_value(
-        flood_workspace, det_mask_array, use_moving_detector_method=True
-    ):
+    def _set_mask_value(flood_workspace, det_mask_array, use_moving_detector_method=True):
         """Set masked pixels' values to NaN or -infinity according to mask type and sensitivity correction
         algorithm
 
@@ -530,11 +516,7 @@ class PrepareSensitivityCorrection(object):
                 # Moving detector algorithm.  Any masked detector pixel is set to NaN
                 flood_workspace.dataY(i)[0] = np.nan
                 flood_workspace.dataE(i)[0] = np.nan
-            elif (
-                total_mask_array[i][0]
-                and not use_moving_detector_method
-                and det_mask_array[i][0]
-            ):
+            elif total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
                 # Patch detector method: Masked as the bad pixels and thus set to NaN
                 flood_workspace.dataY(i)[0] = np.nan
                 flood_workspace.dataE(i)[0] = np.nan
@@ -544,11 +526,7 @@ class PrepareSensitivityCorrection(object):
                 # value is set to -INF.
                 flood_workspace.dataY(i)[0] = np.NINF
                 flood_workspace.dataE(i)[0] = np.NINF
-            elif (
-                not total_mask_array[i][0]
-                and not use_moving_detector_method
-                and det_mask_array[i][0]
-            ):
+            elif not total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
                 # Logic error: impossible case
                 problematic_pixels.append(i)
         # END-FOR
@@ -565,20 +543,10 @@ class PrepareSensitivityCorrection(object):
             "identified as needing to have values set by the patch applied. To identify them, the"
             "value is set to -INF."
         )
-        logger.notice(
-            "Number of infinities = {}".format(
-                len(np.where(np.isinf(flood_workspace.extractY()))[0])
-            )
-        )
+        logger.notice("Number of infinities = {}".format(len(np.where(np.isinf(flood_workspace.extractY()))[0])))
 
-        logger.debug(
-            "Moving/Patch detector algorithm.  Any masked detector pixel is set to NaN"
-        )
-        logger.notice(
-            "Number of NaNs       = {}".format(
-                len(np.where(np.isnan(flood_workspace.extractY()))[0])
-            )
-        )
+        logger.debug("Moving/Patch detector algorithm.  Any masked detector pixel is set to NaN")
+        logger.notice("Number of NaNs       = {}".format(len(np.where(np.isnan(flood_workspace.extractY()))[0])))
 
         return flood_workspace
 
@@ -621,9 +589,7 @@ class PrepareSensitivityCorrection(object):
         for i in range(num_workspaces_set):
             beam_center_i = self._calculate_beam_center(i, enforce_use_nexus_idf)
             beam_centers.append(beam_center_i)
-            logger.notice(
-                "Calculated beam center ({}-th) = {}".format(i, beam_center_i)
-            )
+            logger.notice("Calculated beam center ({}-th) = {}".format(i, beam_center_i))
 
         # Set default value to dark current runs
         if self._dark_current_runs is None:
@@ -638,9 +604,7 @@ class PrepareSensitivityCorrection(object):
                 self._dark_current_runs[i],
                 enforce_use_nexus_idf,
             )
-            logger.notice(
-                f"Load {i}-th flood run {self._flood_runs[i]} to " f"{flood_ws_i}"
-            )
+            logger.notice(f"Load {i}-th flood run {self._flood_runs[i]} to " f"{flood_ws_i}")
             flood_workspaces.append(flood_ws_i)
 
         # Retrieve masked detectors
@@ -653,9 +617,7 @@ class PrepareSensitivityCorrection(object):
 
         # Mask beam centers
         for i in range(num_workspaces_set):
-            flood_workspaces[i] = self._mask_beam_center(
-                flood_workspaces[i], beam_centers[i]
-            )
+            flood_workspaces[i] = self._mask_beam_center(flood_workspaces[i], beam_centers[i])
 
         # Transmission correction as an option
         if self._instrument == CG3 and self._transmission_reference_runs is not None:
@@ -686,9 +648,7 @@ class PrepareSensitivityCorrection(object):
         # Debug output
         if debug_mode:
             for flood_ws in flood_workspaces:
-                SaveNexusProcessed(
-                    InputWorkspace=flood_ws, Filename=f"{str(flood_ws)}_flood.nxs"
-                )
+                SaveNexusProcessed(InputWorkspace=flood_ws, Filename=f"{str(flood_ws)}_flood.nxs")
 
         # Decide algorithm to prepare sensitivities
         if self._instrument in [CG2, CG3] and use_moving_detector_method is True:
@@ -697,9 +657,7 @@ class PrepareSensitivityCorrection(object):
                 self.sum_input_runs(flood_workspaces)
 
             # Prepare by using moving detector algorithm
-            calculate_sensitivity_correction = CALCULATE_SENSITIVITY_CORRECTION[
-                MOVING_DETECTORS
-            ]
+            calculate_sensitivity_correction = CALCULATE_SENSITIVITY_CORRECTION[MOVING_DETECTORS]
 
             # Calculate sensitivities for each file
             sens_ws = calculate_sensitivity_correction(
@@ -711,9 +669,7 @@ class PrepareSensitivityCorrection(object):
         else:
             # Prepare by using the sensitivity patch method for a single detector (image)
             # Such as GPSANS, BIOSANS Main detector, BIOSANS wing detector, EQSANS
-            calculate_sensitivity_correction = CALCULATE_SENSITIVITY_CORRECTION[
-                PATCHING_DETECTORS
-            ]
+            calculate_sensitivity_correction = CALCULATE_SENSITIVITY_CORRECTION[PATCHING_DETECTORS]
 
             # Default polynomial order: CG3 uses order 3.  Others use order 2.
             if self._instrument == CG3:
@@ -759,9 +715,7 @@ class PrepareSensitivityCorrection(object):
 
         """
         # Create a new workspace for output
-        instrument_name = {CG2: "GPSANS", CG3: "BIOSANS", EQSANS: "EQSANS_"}[
-            self._instrument
-        ]
+        instrument_name = {CG2: "GPSANS", CG3: "BIOSANS", EQSANS: "EQSANS_"}[self._instrument]
         if isinstance(parent_flood_run, int):
             event_nexus = "{}{}".format(instrument_name, parent_flood_run)
         else:
@@ -786,9 +740,7 @@ class PrepareSensitivityCorrection(object):
         mask_ws_indexes = list()
         for iws in range(new_sensitivity_ws.getNumberHistograms()):
             # get the workspace with -infinity or NaN for masking
-            if np.isnan(new_sensitivity_ws.readY(iws)[0]) or np.isinf(
-                new_sensitivity_ws.readY(iws)[0]
-            ):
+            if np.isnan(new_sensitivity_ws.readY(iws)[0]) or np.isinf(new_sensitivity_ws.readY(iws)[0]):
                 mask_ws_indexes.append(iws)
         MaskDetectors(Workspace=new_sensitivity_ws, WorkspaceIndexList=mask_ws_indexes)
 
@@ -798,9 +750,7 @@ class PrepareSensitivityCorrection(object):
             new_sensitivity_ws.dataY(iws)[0] = np.nan
 
         # Save
-        SaveNexusProcessed(
-            InputWorkspace=new_sensitivity_ws, Filename=output_nexus_name
-        )
+        SaveNexusProcessed(InputWorkspace=new_sensitivity_ws, Filename=output_nexus_name)
 
     def _calculate_beam_center(self, index, enforce_use_nexus_idf):
         """Find beam centers for all flood runs
@@ -821,26 +771,18 @@ class PrepareSensitivityCorrection(object):
             beam center as xc, yc and possible wc for BIOSANS
 
         """
-        if (
-            self._direct_beam_center_runs is None
-            and self._instrument == CG3
-            and self._wing_det_mask_angle is not None
-        ):
+        if self._direct_beam_center_runs is None and self._instrument == CG3 and self._wing_det_mask_angle is not None:
             # CG3, flood run as direct beam center and mask angle is defined
             # In this case, run shall be loaded to another workspace for masking
             beam_center_run = self._flood_runs[index]
         elif self._direct_beam_center_runs is None:
-            raise RuntimeError(
-                "Beam center runs must be given for {}".format(self._instrument)
-            )
+            raise RuntimeError("Beam center runs must be given for {}".format(self._instrument))
         else:
             # Direct beam run is specified
             beam_center_run = self._direct_beam_center_runs[index]
         if isinstance(beam_center_run, str):
             # beam center run shall be a file path
-            assert os.path.exists(
-                beam_center_run
-            ), f"Bean center run {beam_center_run} cannot be found"
+            assert os.path.exists(beam_center_run), f"Bean center run {beam_center_run} cannot be found"
         else:
             # run number (integer)
             beam_center_run = "{}_{}".format(self._instrument, beam_center_run)
@@ -866,9 +808,7 @@ class PrepareSensitivityCorrection(object):
 
         # FIXME - data shall be more flexible here for beam center run path
         if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict[
-                "enforce_use_nexus_idf"
-            ] = enforce_use_nexus_idf
+            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
         beam_center_workspace = prepare_data(
             data=beam_center_run,
             pixel_calibration=self._apply_calibration,
@@ -919,9 +859,7 @@ class PrepareSensitivityCorrection(object):
         # Calculate masking (masked file or detectors)
         if isinstance(beam_center, str):
             # beam center mask XML file: apply mask
-            apply_mask(
-                flood_ws, mask=beam_center
-            )  # data_ws reference shall not be invalidated here!
+            apply_mask(flood_ws, mask=beam_center)  # data_ws reference shall not be invalidated here!
         elif self._main_det_mask_angle is not None and self._instrument == CG3:
             # CG3 special: Mask 2-theta angle
             # Mask wing detector right top/bottom corners
@@ -933,19 +871,13 @@ class PrepareSensitivityCorrection(object):
                 component = "detector1"
             apply_mask(flood_ws, Components=component)
             # mask 2theta
-            MaskAngle(
-                Workspace=flood_ws, MaxAngle=self._main_det_mask_angle, Angle="TwoTheta"
-            )
+            MaskAngle(Workspace=flood_ws, MaxAngle=self._main_det_mask_angle, Angle="TwoTheta")
         else:
             # calculate beam center mask from beam center workspace
             # Mask the new beam center by 65 mm (Lisa's magic number)
-            masking = list(
-                circular_mask_from_beam_center(flood_ws, self._beam_center_radius)
-            )
+            masking = list(circular_mask_from_beam_center(flood_ws, self._beam_center_radius))
             # Mask
-            apply_mask(
-                flood_ws, mask=masking
-            )  # data_ws reference shall not be invalidated here!
+            apply_mask(flood_ws, mask=masking)  # data_ws reference shall not be invalidated here!
 
         # Set uncertainties
         # output: masked are zero intensity and zero error
@@ -992,13 +924,9 @@ class PrepareSensitivityCorrection(object):
 
         # Load, mask default and pixels, and normalize
         if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict[
-                "enforce_use_nexus_idf"
-            ] = enforce_use_nexus_idf
+            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
 
-        if isinstance(transmission_beam_run, str) and os.path.exists(
-            transmission_beam_run
-        ):
+        if isinstance(transmission_beam_run, str) and os.path.exists(transmission_beam_run):
             sans_data = transmission_beam_run
         elif (
             isinstance(transmission_beam_run, str)
@@ -1021,9 +949,7 @@ class PrepareSensitivityCorrection(object):
             solid_angle=False,
             center_x=beam_center[0],
             center_y=beam_center[1],
-            output_workspace="TRANS_{}_{}".format(
-                self._instrument, transmission_beam_run
-            ),
+            output_workspace="TRANS_{}_{}".format(self._instrument, transmission_beam_run),
             **instrument_specific_param_dict,
         )
         # Apply mask
@@ -1037,9 +963,7 @@ class PrepareSensitivityCorrection(object):
 
         # Load, mask default and pixels, normalize transmission flood run
         if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict[
-                "enforce_use_nexus_idf"
-            ] = enforce_use_nexus_idf
+            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
 
         if not os.path.exists(transmission_flood_run):
             # given run number: form to CG3_XXX
@@ -1056,9 +980,7 @@ class PrepareSensitivityCorrection(object):
             solid_angle=False,
             center_x=beam_center[0],
             center_y=beam_center[1],
-            output_workspace="TRANS_{}_{}".format(
-                self._instrument, transmission_flood_run
-            ),
+            output_workspace="TRANS_{}_{}".format(self._instrument, transmission_flood_run),
             **instrument_specific_param_dict,
         )
         # Apply mask
@@ -1074,9 +996,7 @@ class PrepareSensitivityCorrection(object):
 
         # Zero-Angle Transmission Co-efficients
         calculate_transmission = CALCULATE_TRANSMISSION[self._instrument]
-        transmission_corr_ws = calculate_transmission(
-            transmission_flood_ws, transmission_workspace
-        )
+        transmission_corr_ws = calculate_transmission(transmission_flood_ws, transmission_workspace)
         average_zero_angle = np.mean(transmission_corr_ws.readY(0))
         average_zero_angle_error = np.linalg.norm(transmission_corr_ws.readE(0))
         logger.notice(
@@ -1117,9 +1037,7 @@ class PrepareSensitivityCorrection(object):
         nan_sum_matrix = np.nansum(y_matrix, axis=0)
 
         # clone a workspace
-        cloned = CloneWorkspace(
-            InputWorkspace=flood_workspaces[0], OutputWorkspace="FloodSum"
-        )
+        cloned = CloneWorkspace(InputWorkspace=flood_workspaces[0], OutputWorkspace="FloodSum")
 
         for iws in range(cloned.getNumberHistograms()):
             cloned.dataY(iws)[0] = nan_sum_matrix[iws][0]

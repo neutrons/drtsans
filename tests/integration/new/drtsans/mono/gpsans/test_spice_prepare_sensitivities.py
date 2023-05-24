@@ -40,9 +40,7 @@ def test_sensitivities_with_bar(reference_dir, generatecleanfile):
 
     # Pixel calibration
     # PIXEL_CALIBRATION = None
-    pixel_calib_file = os.path.join(
-        reference_dir.new.gpsans, "calibrations/pixel_calibration_gold_sens.json"
-    )
+    pixel_calib_file = os.path.join(reference_dir.new.gpsans, "calibrations/pixel_calibration_gold_sens.json")
 
     # Corrections
     do_solid_angle_correction = True
@@ -64,22 +62,16 @@ def test_sensitivities_with_bar(reference_dir, generatecleanfile):
     nexus_dir = os.path.join(reference_dir.new.gpsans, f"Exp{experiment_number}")
     # Check
     if not os.path.exists(nexus_dir):
-        raise RuntimeError(
-            f"[ERROR] Converted NeXus-SPICE directory {nexus_dir} does not exist"
-        )
+        raise RuntimeError(f"[ERROR] Converted NeXus-SPICE directory {nexus_dir} does not exist")
 
     # Convert flood runs
     CG2 = "CG2"
-    flood_spice_runs = [
-        SpiceRun(CG2, -1, experiment_number, scan_i, pt_i)
-        for scan_i, pt_i in flood_scan_pt_list
-    ]
+    flood_spice_runs = [SpiceRun(CG2, -1, experiment_number, scan_i, pt_i) for scan_i, pt_i in flood_scan_pt_list]
     if direct_beam_scan_pt_list is None:
         transmission_spice_runs = None
     else:
         transmission_spice_runs = [
-            SpiceRun(CG2, -1, experiment_number, scan_i, pt_i)
-            for scan_i, pt_i in direct_beam_scan_pt_list
+            SpiceRun(CG2, -1, experiment_number, scan_i, pt_i) for scan_i, pt_i in direct_beam_scan_pt_list
         ]
 
     # Correction
@@ -144,13 +136,9 @@ def verify_results(test_sensitivities_file, reference_dir):
 
     """
     # Get gold file
-    gold_sens_file = os.path.join(
-        reference_dir.new.gpsans, "calibrations/sens_CG2_spice_bar.nxs"
-    )
+    gold_sens_file = os.path.join(reference_dir.new.gpsans, "calibrations/sens_CG2_spice_bar.nxs")
     if not os.path.exists(gold_sens_file):
-        raise RuntimeError(
-            f"Expected (gold) sensitivities cannot be found at {gold_sens_file}"
-        )
+        raise RuntimeError(f"Expected (gold) sensitivities cannot be found at {gold_sens_file}")
 
     # Compare sensitivities
     gold_sens_ws = LoadNexusProcessed(Filename=gold_sens_file)

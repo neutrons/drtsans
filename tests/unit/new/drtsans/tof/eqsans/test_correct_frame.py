@@ -30,9 +30,7 @@ def test_transmitted_bands_clipped(reference_dir):
         bands_0 = correct_frame.transmitted_bands_clipped(ws, sdd, 0.0, 0.0)
         lwc, hwc = (0.139, 0.560)  # expected clippings
         # With no interior clipping
-        bands = correct_frame.transmitted_bands_clipped(
-            ws, sdd, 500, 2000, interior_clip=False
-        )
+        bands = correct_frame.transmitted_bands_clipped(ws, sdd, 500, 2000, interior_clip=False)
         # Check clippings for the lead pulse
         b1_0, b2_0 = bands_0.lead.min, bands_0.lead.max
         b1, b2 = bands.lead.min, bands.lead.max
@@ -42,9 +40,7 @@ def test_transmitted_bands_clipped(reference_dir):
         b1, b2 = bands.skip.min, bands.skip.max
         assert (b1, b2) == approx((b1_0, b2_0 - hwc), 0.01)
         # With interior clipping
-        bands = correct_frame.transmitted_bands_clipped(
-            ws, sdd, 500, 2000, interior_clip=True
-        )
+        bands = correct_frame.transmitted_bands_clipped(ws, sdd, 500, 2000, interior_clip=True)
         b1_0, b2_0 = bands_0.lead.min, bands_0.lead.max
         b1, b2 = bands.lead.min, bands.lead.max
         assert (b1, b2) == approx((b1_0 + lwc, b2_0 - hwc), 0.01)
@@ -55,9 +51,7 @@ def test_transmitted_bands_clipped(reference_dir):
 
 @pytest.mark.offline
 def test_log_tof_structure(reference_dir):
-    file_name = pjoin(
-        reference_dir.new.eqsans, "test_correct_frame", "EQSANS_92353_no_events.nxs"
-    )
+    file_name = pjoin(reference_dir.new.eqsans, "test_correct_frame", "EQSANS_92353_no_events.nxs")
     for ny, refv in ((False, 30833), (True, 28333)):
         ws = Load(file_name, OutputWorkspace=unique_workspace_name())
         correct_frame.log_tof_structure(ws, 500, 2000, interior_clip=ny)
@@ -72,21 +66,15 @@ def test_band_structure_logs():
     with pytest.raises(RuntimeError, match="Band structure not found in the logs"):
         correct_frame.metadata_bands(w)
     SampleLogs(w).insert("is_frame_skipping", 0)
-    correct_frame.log_band_structure(
-        w, BandsTuple(sans_wavelength.Wband(1.5, 2.42), None)
-    )
+    correct_frame.log_band_structure(w, BandsTuple(sans_wavelength.Wband(1.5, 2.42), None))
     bands = correct_frame.metadata_bands(w)
     assert bands.lead.min, bands.lead.max == approx(1.5, 2.42)
     SampleLogs(w).insert("is_frame_skipping", 1)
-    with pytest.raises(
-        RuntimeError, match="Bands from the skipped pulse missing in the logs"
-    ):
+    with pytest.raises(RuntimeError, match="Bands from the skipped pulse missing in the logs"):
         correct_frame.metadata_bands(w)
     correct_frame.log_band_structure(
         w,
-        BandsTuple(
-            sans_wavelength.Wband(1.5, 2.42), sans_wavelength.Wband(6.07, 10.01)
-        ),
+        BandsTuple(sans_wavelength.Wband(1.5, 2.42), sans_wavelength.Wband(6.07, 10.01)),
     )
     bands = correct_frame.metadata_bands(w)
     assert bands.lead.min, bands.lead.max == approx(1.5, 2.42)
@@ -162,9 +150,7 @@ def test_correct_emission_time_60Hz():
     h = 6.62606896e-34
     m = 1.674927211e-27
     z = 15.4858856536088
-    assert_allclose(
-        w.getSpectrum(0).getTofs() * 10000 * h / (z * m), expected_wl, rtol=1e-4
-    )
+    assert_allclose(w.getSpectrum(0).getTofs() * 10000 * h / (z * m), expected_wl, rtol=1e-4)
 
 
 def test_correct_emission_time_30Hz():
@@ -344,9 +330,7 @@ def test_correct_emission_time_30Hz():
     h = 6.62606896e-34
     m = 1.674927211e-27
     z = 18.1395946855299
-    assert_allclose(
-        w.getSpectrum(0).getTofs() * 10000 * h / (z * m), expected_wl, rtol=1e-4
-    )
+    assert_allclose(w.getSpectrum(0).getTofs() * 10000 * h / (z * m), expected_wl, rtol=1e-4)
 
 
 def test_correct_tof_offset():

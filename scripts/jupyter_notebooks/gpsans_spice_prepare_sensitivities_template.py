@@ -38,9 +38,7 @@ MASKED_PIXELS = "1-8,249-256"
 # Pixel calibration
 # Pixel calibration: False/True (default database)/user specified calibration database
 # PIXEL_CALIBRATION = None
-PIXEL_CALIBRATION = (
-    "/HFIR/CG2/IPTS-828/shared/pixel_calibration/runs_1_111/pixel_calibration.json"
-)
+PIXEL_CALIBRATION = "/HFIR/CG2/IPTS-828/shared/pixel_calibration/runs_1_111/pixel_calibration.json"
 
 # Corrections
 SOLID_ANGLE_CORRECTION = True  # shall be on!
@@ -53,9 +51,7 @@ MIN_THRESHOLD = 0.5
 MAX_THRESHOLD = 1.5
 
 # Output directory
-OUTPUT_DIR = (
-    "/tmp/"  # use None for default: f'/HFIR/{MY_BEAM_LINE}/shared/drt_sensitivity/'
-)
+OUTPUT_DIR = "/tmp/"  # use None for default: f'/HFIR/{MY_BEAM_LINE}/shared/drt_sensitivity/'
 
 # ----------------- Some options not used so far ---------------------
 UNIVERSAL_MASK = None  # 'Mask.XML'
@@ -69,16 +65,11 @@ if not os.path.exists(NEXUS_DIR):
 
 # Convert flood runs
 CG2 = "CG2"
-flood_spice_runs = [
-    SpiceRun(CG2, IPTS, EXPERIMENT, scan_i, pt_i) for scan_i, pt_i in FLOOD_RUNS
-]
+flood_spice_runs = [SpiceRun(CG2, IPTS, EXPERIMENT, scan_i, pt_i) for scan_i, pt_i in FLOOD_RUNS]
 if DIRECT_BEAM_RUNS is None:
     transmission_spice_runs = None
 else:
-    transmission_spice_runs = [
-        SpiceRun(CG2, IPTS, EXPERIMENT, scan_i, pt_i)
-        for scan_i, pt_i in DIRECT_BEAM_RUNS
-    ]
+    transmission_spice_runs = [SpiceRun(CG2, IPTS, EXPERIMENT, scan_i, pt_i) for scan_i, pt_i in DIRECT_BEAM_RUNS]
 
 # Correction
 prepare_spice_sensitivities_correction(

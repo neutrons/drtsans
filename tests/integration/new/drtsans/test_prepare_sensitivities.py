@@ -51,17 +51,13 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
     FLOOD_RUNS = os.path.join(reference_dir.new.eqsans, "EQSANS_111030.nxs.h5")
 
     # Beam center
-    DIRECT_BEAM_RUNS = os.path.join(
-        reference_dir.new.eqsans, "EQSANS_111042.nxs.h5"
-    )  # 111042
+    DIRECT_BEAM_RUNS = os.path.join(reference_dir.new.eqsans, "EQSANS_111042.nxs.h5")  # 111042
 
     # Beam center size
     MASK_BEAM_CENTER_RADIUS = 65  # mm
 
     # Dark current: No mask, no solid angle
-    DARK_CURRENT_RUNS = os.path.join(
-        reference_dir.new.eqsans, "EQSANS_108764.nxs.h5"
-    )  # 108764
+    DARK_CURRENT_RUNS = os.path.join(reference_dir.new.eqsans, "EQSANS_108764.nxs.h5")  # 108764
 
     MASKED_PIXELS = "1-18,239-256"
 
@@ -109,14 +105,10 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
     )
 
     # Verify file existence
-    assert os.path.exists(
-        output_sens_file
-    ), "Output sensitivity file {} cannot be found".format(output_sens_file)
+    assert os.path.exists(output_sens_file), "Output sensitivity file {} cannot be found".format(output_sens_file)
 
     # Verify value
-    gold_eq_file = os.path.join(
-        reference_dir.new.sans, "sensitivities", "EQSANS_sens_patched_20200602.nxs"
-    )
+    gold_eq_file = os.path.join(reference_dir.new.sans, "sensitivities", "EQSANS_sens_patched_20200602.nxs")
 
     verify_sensitivities_file(output_sens_file, gold_eq_file)
 
@@ -131,9 +123,7 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
     # EQSANS_111030_sensitivity_new:	22.355925 MB
     # gold_sens_ws:	22.355492 MB
     # test_sens_ws:	22.355925 MB
-    DeleteWorkspace(
-        "BC_EQSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/sns/eqsans/EQSANS_111042.nxs.h5"
-    )
+    DeleteWorkspace("BC_EQSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/sns/eqsans/EQSANS_111042.nxs.h5")
     DeleteWorkspace("EQSANS_111030")
     DeleteWorkspace("EQSANS_111030_sensitivity")
     DeleteWorkspace("EQSANS_111030_sensitivity_new")
@@ -213,18 +203,13 @@ def test_cg3_main_prepare_sensitivities():
 
     # Run
     output_sens_file = "IntegrateTest_CG3_Main_Sens.nxs"
-    preparer.execute(
-        False, MIN_THRESHOLD, MAX_THRESHOLD, output_nexus_name=output_sens_file
-    )
+    preparer.execute(False, MIN_THRESHOLD, MAX_THRESHOLD, output_nexus_name=output_sens_file)
 
     # Verify file existence
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_eq_file = (
-        "/SNS/EQSANS/shared/sans-backend/data/new/ornl"
-        "/sans/sensitivities/CG3_Sens_Main.nxs"
-    )
+    gold_eq_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl" "/sans/sensitivities/CG3_Sens_Main.nxs"
 
     verify_sensitivities_file(output_sens_file, gold_eq_file)
 
@@ -312,10 +297,7 @@ def test_cg3_wing_prepare_sensitivities():
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_cg2_wing_file = (
-        "/SNS/EQSANS/shared/sans-backend/data/new/ornl"
-        "/sans/sensitivities/CG3_Sens_Wing.nxs"
-    )
+    gold_cg2_wing_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl" "/sans/sensitivities/CG3_Sens_Wing.nxs"
 
     verify_sensitivities_file(output_sens_file, gold_cg2_wing_file, atol=1e-7)
 
@@ -398,10 +380,7 @@ def test_cg2_sensitivities():
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_gp_file = (
-        "/SNS/EQSANS/shared/sans-backend/data/new/ornl"
-        "/sans/sensitivities/CG2_Sens_Moving_Dets.nxs"
-    )
+    gold_gp_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl" "/sans/sensitivities/CG2_Sens_Moving_Dets.nxs"
 
     verify_sensitivities_file(output_sens_file, gold_gp_file, atol=1e-7)
 

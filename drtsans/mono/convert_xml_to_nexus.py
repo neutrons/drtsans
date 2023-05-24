@@ -45,9 +45,7 @@ class EventNexusConverter(ABC):
         self._idf_content = None
 
         # counts
-        self._spice_detector_counts = (
-            None  # 1D array ranging from PID 0 (aka workspace index 0)
-        )
+        self._spice_detector_counts = None  # 1D array ranging from PID 0 (aka workspace index 0)
         self._bank_pid_dict = dict()
         self._bank_counts_dict = dict()
         self._monitor_counts = None
@@ -101,9 +99,7 @@ class EventNexusConverter(ABC):
         tof_max = 20000.0
 
         # Generate event nexus writer
-        event_nexus_writer = EventNeXusWriter(
-            beam_line=self._beam_line, instrument_name=self._instrument_name
-        )
+        event_nexus_writer = EventNeXusWriter(beam_line=self._beam_line, instrument_name=self._instrument_name)
 
         # set instrument
         event_nexus_writer.set_instrument_info(num_banks, self._idf_content)
@@ -132,9 +128,7 @@ class EventNexusConverter(ABC):
         event_nexus_writer.set_run_number(self._run_number)
 
         # Write file
-        event_nexus_writer.generate_event_nexus(
-            target_nexus, self._run_start, self._run_stop, self._monitor_counts
-        )
+        event_nexus_writer.generate_event_nexus(target_nexus, self._run_start, self._run_stop, self._monitor_counts)
 
     def load_sans_xml(self, xml_file_name, das_log_map, prefix=""):
         """Load data and meta data from legacy SANS XML data file
@@ -165,9 +159,7 @@ class EventNexusConverter(ABC):
 
         # get counts and reshape to (N, )
         sans_ws = mtd[sans_ws_name]
-        counts = (
-            sans_ws.extractY().transpose().reshape((sans_ws.getNumberHistograms(),))
-        )
+        counts = sans_ws.extractY().transpose().reshape((sans_ws.getNumberHistograms(),))
 
         # monitor counts
         monitor_counts = int(counts[0])
@@ -209,9 +201,7 @@ class EventNexusConverter(ABC):
         except OSError as os_err:
             raise RuntimeError(f"Unable to load {template_nexus_file} due to {os_err}")
         # IDF in XML
-        self._idf_content = source_nexus_h5["entry"]["instrument"]["instrument_xml"][
-            "data"
-        ][0]
+        self._idf_content = source_nexus_h5["entry"]["instrument"]["instrument_xml"]["data"][0]
         # Close
         source_nexus_h5.close()
 
@@ -228,9 +218,7 @@ class EventNexusConverter(ABC):
         """
         # Sanity check
         if self._spice_detector_counts is None:
-            raise RuntimeError(
-                "Detector counts array has not been set up yet.  Load data first"
-            )
+            raise RuntimeError("Detector counts array has not been set up yet.  Load data first")
 
         # Set masked pixels
         for pid in pixel_index_list:
@@ -238,8 +226,7 @@ class EventNexusConverter(ABC):
                 self._spice_detector_counts[pid] = 0
             except IndexError as index_error:
                 raise RuntimeError(
-                    f"Pixel ID {pid} is out of range {self._spice_detector_counts.shape}. "
-                    f"FYI: {index_error}"
+                    f"Pixel ID {pid} is out of range {self._spice_detector_counts.shape}. " f"FYI: {index_error}"
                 )
 
     @staticmethod
@@ -293,9 +280,7 @@ class EventNexusConverter(ABC):
                 value, unit = spice_reader.get_node_value(spice_log_name, data_type)
             except KeyError as key_err:
                 if nexus_log_name in mandatory_das_logs:
-                    raise ValueError(
-                        f"!Aborting: Cannot find mandaory node {nexus_log_name}"
-                    )
+                    raise ValueError(f"!Aborting: Cannot find mandaory node {nexus_log_name}")
                 else:
                     logger.warning(str(key_err))
                     logger.warning(f"skipping {nexus_log_name}")
@@ -310,8 +295,7 @@ class EventNexusConverter(ABC):
                     # check unit
                     if unit != default_unit:
                         raise RuntimeError(
-                            f"SPICE log {spice_log_name} has unit {unit} different from "
-                            f"expected {default_unit}"
+                            f"SPICE log {spice_log_name} has unit {unit} different from " f"expected {default_unit}"
                         )
 
                 das_log_values[nexus_log_name] = value, unit

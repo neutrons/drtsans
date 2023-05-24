@@ -7,10 +7,7 @@ import numpy as np
 
 
 def test_detector_biosans():
-
-    ws = LoadEmptyInstrument(
-        InstrumentName="biosans", OutputWorkspace=unique_workspace_name()
-    )
+    ws = LoadEmptyInstrument(InstrumentName="biosans", OutputWorkspace=unique_workspace_name())
 
     d = Component(ws, "detector1")
     assert 192 == d.dim_x
@@ -26,10 +23,7 @@ def test_detector_biosans():
 
 
 def test_detector_gpsans():
-
-    ws = LoadEmptyInstrument(
-        InstrumentName="cg2", OutputWorkspace=unique_workspace_name()
-    )
+    ws = LoadEmptyInstrument(InstrumentName="cg2", OutputWorkspace=unique_workspace_name())
 
     d = Component(ws, "detector1")
     assert 192 == d.dim_x
@@ -39,10 +33,7 @@ def test_detector_gpsans():
 
 
 def test_detector_eqsans():
-
-    ws = LoadEmptyInstrument(
-        InstrumentName="eqsans", OutputWorkspace=unique_workspace_name()
-    )
+    ws = LoadEmptyInstrument(InstrumentName="eqsans", OutputWorkspace=unique_workspace_name())
 
     d = Component(ws, "detector1")
     assert 192 == d.dim_x
@@ -53,9 +44,7 @@ def test_detector_eqsans():
 
 def test_detector_masked_gpsans():
     # flake8: noqa E712
-    ws = LoadEmptyInstrument(
-        InstrumentName="cg2", OutputWorkspace=unique_workspace_name()
-    )
+    ws = LoadEmptyInstrument(InstrumentName="cg2", OutputWorkspace=unique_workspace_name())
     d = Component(ws, "detector1")
     masked_array = d.masked_ws_indices()
     # No Masks applied yet, all should be false

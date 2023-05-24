@@ -86,9 +86,7 @@ def load_beam_flux_file(flux, data_workspace=None, output_workspace=None):
         OutputWorkspace=output_workspace,
     )
     # In histogram data we have as many intensities as wavelength bins
-    ConvertToHistogram(
-        InputWorkspace=output_workspace, OutputWorkspace=output_workspace
-    )
+    ConvertToHistogram(InputWorkspace=output_workspace, OutputWorkspace=output_workspace)
     if data_workspace is not None:
         RebinToWorkspace(
             WorkspaceToRebin=output_workspace,
@@ -139,9 +137,7 @@ def normalize_by_proton_charge_and_flux(input_workspace, flux, output_workspace=
     )
     DeleteWorkspace(rebinned_flux)  # remove the temporary rebinned flux workspace
     # Normalize by the proton charge
-    NormaliseByCurrent(
-        InputWorkspace=output_workspace, OutputWorkspace=output_workspace
-    )
+    NormaliseByCurrent(InputWorkspace=output_workspace, OutputWorkspace=output_workspace)
     return mtd[output_workspace]
 
 
@@ -180,14 +176,8 @@ def load_flux_to_monitor_ratio_file(
         output_workspace = unique_workspace_dundername()  # make a hidden workspace
 
     # Let Mantid figure out what kind file format is the flux file
-    Load(
-        Filename=flux_to_monitor_ratio_file,
-        OutputWorkspace=output_workspace,
-        **loader_kwargs
-    )
-    ConvertToHistogram(
-        InputWorkspace=output_workspace, OutputWorkspace=output_workspace
-    )
+    Load(Filename=flux_to_monitor_ratio_file, OutputWorkspace=output_workspace, **loader_kwargs)
+    ConvertToHistogram(InputWorkspace=output_workspace, OutputWorkspace=output_workspace)
     if data_workspace is not None:
         SplineInterpolation(
             WorkspaceToMatch=data_workspace,
@@ -197,9 +187,7 @@ def load_flux_to_monitor_ratio_file(
     return mtd[output_workspace]
 
 
-def normalize_by_monitor(
-    input_workspace, flux_to_monitor, monitor_workspace, output_workspace=None
-):
+def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, output_workspace=None):
     r"""
     Normalizes the input workspace by monitor count and flux-to-monitor
     ratio.
@@ -240,12 +228,8 @@ def normalize_by_monitor(
 
     # Only the first spectrum of the monitor is required
     monitor_workspace_rebinned = unique_workspace_dundername()
-    RebinToWorkspace(
-        monitor_workspace, input_workspace, OutputWorkspace=monitor_workspace_rebinned
-    )
-    excess_idx = range(
-        1, mtd[monitor_workspace_rebinned].getNumberHistograms()
-    )  # only one spectrum is needed
+    RebinToWorkspace(monitor_workspace, input_workspace, OutputWorkspace=monitor_workspace_rebinned)
+    excess_idx = range(1, mtd[monitor_workspace_rebinned].getNumberHistograms())  # only one spectrum is needed
     RemoveSpectra(
         monitor_workspace_rebinned,
         WorkspaceIndices=excess_idx,
@@ -396,9 +380,7 @@ def normalize_by_flux(
     kwargs = {"time": dict(log_key=flux)}
     kwargs = kwargs.get(method, dict())
 
-    normalizer[method](
-        input_workspace, *args, output_workspace=output_workspace, **kwargs
-    )
+    normalizer[method](input_workspace, *args, output_workspace=output_workspace, **kwargs)
 
     # A bit of cleanup
     if w_flux:

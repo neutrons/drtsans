@@ -43,9 +43,7 @@ def get_parameters(run_number):
     """
     raise RuntimeError("Deprecated function. Use eqsans.correct_frame instead")
     conf_file = _get_config_file(run_number)
-    parser = RawConfigParser(
-        dict_type=MultiOrderedDict, strict=False, inline_comment_prefixes="#"
-    )
+    parser = RawConfigParser(dict_type=MultiOrderedDict, strict=False, inline_comment_prefixes="#")
     with open(conf_file, "r") as f:
         f = chain(("[DEFAULT]",), f)  # This line does the trick.
         parser.read_file(f)

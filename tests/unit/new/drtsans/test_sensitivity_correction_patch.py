@@ -434,9 +434,7 @@ def create_gold_result():
     return gold_sens_matrix, gold_uncertainty_matrix
 
 
-@pytest.mark.parametrize(
-    "workspace_with_instrument", [dict(name="EQSANS", Nx=8, Ny=20)], indirect=True
-)
+@pytest.mark.parametrize("workspace_with_instrument", [dict(name="EQSANS", Nx=8, Ny=20)], indirect=True)
 def test_prepare_sensitivity(workspace_with_instrument):
     """This tests that prepare_sensitivity gives the expected result.
 
@@ -496,9 +494,7 @@ def test_prepare_sensitivity(workspace_with_instrument):
         uncertainties=ffm_uncertainty_with_mask,
         view="array",
     )
-    out = calculate_sensitivity_correction(
-        ws, min_threshold=0.5, max_threshold=2.0, min_detectors_per_tube=0
-    )
+    out = calculate_sensitivity_correction(ws, min_threshold=0.5, max_threshold=2.0, min_detectors_per_tube=0)
 
     out_result = np.flip(np.transpose(out.extractY().reshape(8, 20)), 0)
     out_uncertainty = np.flip(np.transpose(out.extractE().reshape(8, 20)), 0)
@@ -508,6 +504,4 @@ def test_prepare_sensitivity(workspace_with_instrument):
 
     # Verify the result
     assert_allclose(gold_sensitivity_matrix, out_result, equal_nan=True, atol=0.001)
-    assert_allclose(
-        gold_uncertainty_matrix, out_uncertainty, equal_nan=True, atol=0.001
-    )
+    assert_allclose(gold_uncertainty_matrix, out_uncertainty, equal_nan=True, atol=0.001)

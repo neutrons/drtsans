@@ -56,9 +56,7 @@ def normalize_by_time(input_workspace, output_workspace=None):
         try:
             duration = SampleLogs(input_workspace).single_value(log_key)
             # Cast the timer value into a Mantid workspace to later divide the input workspace by this workspace
-            duration_workspace = CreateSingleValuedWorkspace(
-                duration, OutputWorkspace=unique_workspace_dundername()
-            )
+            duration_workspace = CreateSingleValuedWorkspace(duration, OutputWorkspace=unique_workspace_dundername())
             break
         except RuntimeError:
             continue  # check next log entry
@@ -107,19 +105,14 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
     for entry_name in metadata_entry_names:
         monitor = None
         try:
-            monitor = (
-                SampleLogs(input_workspace).single_value(entry_name)
-                / reference_total_counts
-            )
+            monitor = SampleLogs(input_workspace).single_value(entry_name) / reference_total_counts
             break
         except RuntimeError:  # the entry is not found in the metadata
             continue  # search next entry
     else:
         raise RuntimeError("No monitor metadata found")
     # Cast the monitor value into a Mantid workspace to later divide the input workspace by this workspace
-    monitor_workspace = CreateSingleValuedWorkspace(
-        monitor, OutputWorkspace=unique_workspace_dundername()
-    )
+    monitor_workspace = CreateSingleValuedWorkspace(monitor, OutputWorkspace=unique_workspace_dundername())
     Divide(
         LHSWorkspace=input_workspace,
         RHSWorkspace=monitor_workspace,

@@ -147,7 +147,6 @@ def day_stamp(input_workspace):
 
 
 class BarPositionFormula:
-
     # Default formulae for each instrument and detector component
     _default_formula = "565 - {y} + 0.0 * {tube}"  # no dependency on the tube index
     _default_formulae = {
@@ -206,13 +205,9 @@ class BarPositionFormula:
             When the formula fails to contain symbols '{y}' and '{tube}'.
         """
         if "{y}" not in formula:
-            raise ValueError(
-                f'Formula does not contain "{{y}}", e.g. formula = "565-{{y}}+0.008*(191-{{tube}})"'
-            )
+            raise ValueError(f'Formula does not contain "{{y}}", e.g. formula = "565-{{y}}+0.008*(191-{{tube}})"')
         if "{tube}" not in formula:
-            warnings.warn(
-                f'Formula does not contain "{{tube}}", e.g. formula = "565-{{y}}+0.008*(191-{{tube}})"'
-            )
+            warnings.warn(f'Formula does not contain "{{tube}}", e.g. formula = "565-{{y}}+0.008*(191-{{tube}})"')
             formula += " + 0.0 * {tube}"
         return formula
 
@@ -332,9 +327,7 @@ class Table:
         return f'{m["caltype"].lower()}_{m["instrument"]}_{m["component"]}_{str(m["daystamp"])}'
 
     @classmethod
-    def load(
-        cls, database, caltype, instrument, component, daystamp, output_workspace=None
-    ):
+    def load(cls, database, caltype, instrument, component, daystamp, output_workspace=None):
         r"""
         Loading a calibration requires loading the calibration metadata from a ```database``` file along
         with loading a Nexus file containing the actual data.
@@ -371,40 +364,28 @@ class Table:
         # Search the database for a match to the required metadata
         not_found_message = f"No suitable {caltype}_{instrument}_{component} calibration found in {database}"
         with open(database, mode="r") as json_file:
-            entries = json.load(
-                json_file
-            )  # list of metadata entries stored in `database`
+            entries = json.load(json_file)  # list of metadata entries stored in `database`
         required = {
             caltype,
             instrument,
             component,
         }  # required metadata pieces of information
         # Filter the metadata entries, leaving out those not containing the required pieces of information
-        candidates = [
-            entry
-            for entry in entries
-            if required.issubset(set([str(v) for v in entry.values()]))
-        ]
+        candidates = [entry for entry in entries if required.issubset(set([str(v) for v in entry.values()]))]
         if len(candidates) == 0:
             raise CalibrationNotFound(not_found_message)
-        candidates.sort(
-            key=lambda c: c["daystamp"], reverse=True
-        )  # sort candidates by decreasing day stamp
+        candidates.sort(key=lambda c: c["daystamp"], reverse=True)  # sort candidates by decreasing day stamp
         # Find the metadata entry with the closest (equal or smaller) day stamp to the input `daystamp`
         for candidate in candidates:
             if candidate["daystamp"] <= daystamp:
                 if output_workspace is None:
                     output_workspace = Table.compose_table_name(candidate)
-                table = LoadNexus(
-                    candidate["tablefile"], OutputWorkspace=output_workspace
-                )
+                table = LoadNexus(candidate["tablefile"], OutputWorkspace=output_workspace)
                 return Table(candidate, table=table)
         raise CalibrationNotFound(not_found_message)
 
     @classmethod
-    def build_mantid_table(
-        cls, output_workspace, detector_ids, positions=None, heights=None, widths=None
-    ):
+    def build_mantid_table(cls, output_workspace, detector_ids, positions=None, heights=None, widths=None):
         r"""
         Instantiate a Table workspace with input calibration data.
 
@@ -443,11 +424,7 @@ class Table:
         }
         # Remove names not appropriate for the calibration type. For example, a barscan calibration will
         # not contain data for pixel widths (widths==None), so item 'Detector Width': widths is removed
-        [
-            columns_data.pop(column)
-            for column in list(columns_data.keys())
-            if columns_data[column] is None
-        ]
+        [columns_data.pop(column) for column in list(columns_data.keys()) if columns_data[column] is None]
         table = CreateEmptyTableWorkspace(OutputWorkspace=output_workspace)
         table.addColumn(type="int", name="Detector ID")
         [table.addColumn(type="double", name=column) for column in columns_data]
@@ -478,9 +455,7 @@ class Table:
         """
         required_keys = {"instrument", "component", "daystamp"}
         if required_keys.issubset(metadata.keys()) is False:
-            raise ValueError(
-                f"Metadata is missing one or more of these entries: {required_keys}"
-            )
+            raise ValueError(f"Metadata is missing one or more of these entries: {required_keys}")
 
     def __init__(
         self,
@@ -581,14 +556,10 @@ class Table:
         ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
         """
         if output_workspace is None:
-            output_workspace = str(
-                input_workspace
-            )  # calibrate the pixels of the input workspace
+            output_workspace = str(input_workspace)  # calibrate the pixels of the input workspace
         else:
             # Copy the input workspace and calibrate the pixels of the copy
-            CloneWorkspace(
-                InputWorkspace=input_workspace, OutputWorkspace=output_workspace
-            )
+            CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
         ApplyCalibration(Workspace=output_workspace, CalibrationTable=self.table)
         return mtd[output_workspace]
 
@@ -624,15 +595,11 @@ class Table:
             If we save a calibration already in the database with option ```overwrite=False```.
         """
         if database is None:
-            database = database_file[
-                instrument_enum_name(self.instrument)
-            ]  # default database file
+            database = database_file[instrument_enum_name(self.instrument)]  # default database file
 
         # Load existing calibrations
         entries = list()
-        if os.path.exists(
-            database
-        ):  # the database may not exist if we're not saving to the default database
+        if os.path.exists(database):  # the database may not exist if we're not saving to the default database
             with open(database, mode="r") as json_file:
                 entries = json.load(json_file)  # list of metadata entries
 
@@ -651,18 +618,10 @@ class Table:
 
         # Save the table containing the actual data.
         if tablefile is None:
-            cal_dir = os.path.join(
-                os.path.dirname(database), "tables"
-            )  # directory where to save the table file
-            os.makedirs(
-                cal_dir, exist_ok=True
-            )  # Create directory, and don't complain if already exists
-            tablefile = (
-                os.path.join(cal_dir, Table.compose_table_name(self.metadata)) + ".nxs"
-            )
-        self.metadata[
-            "tablefile"
-        ] = tablefile  # store the location in the metadata, used later when loading.
+            cal_dir = os.path.join(os.path.dirname(database), "tables")  # directory where to save the table file
+            os.makedirs(cal_dir, exist_ok=True)  # Create directory, and don't complain if already exists
+            tablefile = os.path.join(cal_dir, Table.compose_table_name(self.metadata)) + ".nxs"
+        self.metadata["tablefile"] = tablefile  # store the location in the metadata, used later when loading.
         # save new table and overwrite existing one if having the same name
         if os.path.exists(tablefile):
             os.remove(tablefile)
@@ -773,9 +732,7 @@ class Table:
         def transfer_values_to_workspace(property_values, property_name):
             r"""Create a workspace with the modified intensities, and overlay them in the appropriate instrument"""
             output_workspace = f"{self.table.name()}_{property_name}"
-            workspace = CloneWorkspace(
-                InputWorkspace=reference, OutputWorkspace=output_workspace
-            )
+            workspace = CloneWorkspace(InputWorkspace=reference, OutputWorkspace=output_workspace)
             # substitute the intensity in this histogram with the calibration datum for the detector pixel
             for wi, ri in wi_to_ri:
                 workspace.dataY(wi)[:] = property_values[ri]
@@ -906,9 +863,7 @@ def apply_calibrations(
     for component in components[instrument_enum_name(input_workspace)]:
         for caltype in calibrations:
             try:
-                calibration = load_calibration(
-                    input_workspace, caltype, component, database=database
-                )
+                calibration = load_calibration(input_workspace, caltype, component, database=database)
             except CalibrationNotFound as e:
                 calibration = None
                 warnings.warn(str(e))
@@ -1045,16 +1000,11 @@ def find_edges(
 
     # Find the first illuminated pixel above the bar.
     illuminated = [
-        bool(i > shadow_threshold)
-        for i in intensities[
-            bottom_shadow_pixel + shadow_edge_min_width : top_pixel + 1
-        ]
+        bool(i > shadow_threshold) for i in intensities[bottom_shadow_pixel + shadow_edge_min_width : top_pixel + 1]
     ]
     # Don't raise if the pixel is not found
     above_shadow_pixel = (
-        bottom_shadow_pixel
-        + shadow_edge_min_width
-        + _consecutive_true_values(illuminated, 1, raise_message=None)
+        bottom_shadow_pixel + shadow_edge_min_width + _consecutive_true_values(illuminated, 1, raise_message=None)
     )
 
     # Check for a faulty tube: we want a certain number of pixels not in the bar shaddow
@@ -1130,15 +1080,11 @@ def fit_positions(
 
     try:
         # fit the bar positions to a 5th degree polynomial in edge_pixels
-        coefficients = np.polynomial.polynomial.polyfit(
-            valid_edge_pixels, valid_bar_positions, int(order)
-        )
+        coefficients = np.polynomial.polynomial.polyfit(valid_edge_pixels, valid_bar_positions, int(order))
         # calculate the coefficients of the derivative
         deriv_coefficients = np.polynomial.polynomial.polyder(coefficients)
         # evaluate the positions. Should be monotonically increasing
-        calculated_positions = np.polynomial.polynomial.polyval(
-            np.arange(tube_pixels), coefficients
-        )
+        calculated_positions = np.polynomial.polynomial.polyval(np.arange(tube_pixels), coefficients)
         position_jumps = np.diff(calculated_positions)
         if permissive is False and position_jumps[position_jumps <= 0.0].size > 0:
             raise ValueError(
@@ -1146,17 +1092,9 @@ def fit_positions(
                 f"Positions = : {calculated_positions}"
             )
         # evaluate the heights. All should be positive
-        calculated_heights = np.polynomial.polynomial.polyval(
-            np.arange(tube_pixels), deriv_coefficients
-        )
-        if (
-            permissive is False
-            and calculated_heights[calculated_heights <= 0.0].size > 0
-        ):
-            raise ValueError(
-                f"Some of the calculated heights are negative.\n"
-                f"Heights = {calculated_heights}"
-            )
+        calculated_heights = np.polynomial.polynomial.polyval(np.arange(tube_pixels), deriv_coefficients)
+        if permissive is False and calculated_heights[calculated_heights <= 0.0].size > 0:
+            raise ValueError(f"Some of the calculated heights are negative.\n" f"Heights = {calculated_heights}")
     except Exception:
         coefficients = np.ones(int(order)) * np.nan
         calculated_positions = np.ones(tube_pixels) * np.nan
@@ -1209,19 +1147,14 @@ def event_splitter(
     # Find the amount by which the position of the bar is shifted every time we go on to the next scan.
     # It is assumed that this shift is a fixed amount
     bar_positions = SampleLogs(barscan_workspace)[bar_position_log].value
-    bar_delta_positions = (
-        bar_positions[1:] - bar_positions[:-1]
-    )  # list of shifts in the position of the bar
+    bar_delta_positions = bar_positions[1:] - bar_positions[:-1]  # list of shifts in the position of the bar
     # Only retain shifts where the bar position increases
     bar_delta_positions = bar_delta_positions[bar_delta_positions > 0]
     # Find the most likely shift of the bar position, within two significant figures. Even thought the shift
     # is supposed to be constant, minute fluctuations over this value (<1%) are often encountered
     # We round-off bar shifts up to two decimal places, then create a histogram of these values, and pick
     # the shift having the largest count.
-    bar_step = (
-        float(np.bincount(np.round(100 * bar_delta_positions).astype("int")).argmax())
-        / 100.0
-    )
+    bar_step = float(np.bincount(np.round(100 * bar_delta_positions).astype("int")).argmax()) / 100.0
     # Mantid algorithm that creates the 'split' and 'info' workspaces using the bar positions stored in the
     # metadata
     GenerateEventsFilter(
@@ -1240,21 +1173,13 @@ def event_splitter(
     # We parse this string to fetch the 'min' and 'max' values of the bar
     bar_positions = list()
     for min_max_bar_position in mtd[info_workspace].column(1):
-        min_bar_position = float(
-            min_max_bar_position.split(".From.")[-1].split(".To.")[0]
-        )
-        max_bar_position = float(
-            min_max_bar_position.split(".To.")[-1].split(".Value")[0]
-        )
-        bar_positions.append(
-            (min_bar_position + max_bar_position) / 2
-        )  # average between 'min' and 'max'
+        min_bar_position = float(min_max_bar_position.split(".From.")[-1].split(".To.")[0])
+        max_bar_position = float(min_max_bar_position.split(".To.")[-1].split(".Value")[0])
+        bar_positions.append((min_bar_position + max_bar_position) / 2)  # average between 'min' and 'max'
     return bar_positions
 
 
-def barscan_workspace_generator(
-    barscan_dataset, bar_position_log="dcal_Readback", mask=None, delete_workspaces=True
-):
+def barscan_workspace_generator(barscan_dataset, bar_position_log="dcal_Readback", mask=None, delete_workspaces=True):
     r"""
     A python generator to be used when the user wants to iterate over the runs that hold the bar at a fixed
     position. Each iteration prompts this generator to return the position of the bar and a workspace containing the
@@ -1293,9 +1218,7 @@ def barscan_workspace_generator(
         spliter_workspace = unique_workspace_dundername()
         info_workspace = unique_workspace_dundername()
         barscan_workspace = unique_workspace_dundername()
-        temporary_workspaces.extend(
-            [spliter_workspace, info_workspace, barscan_workspace]
-        )
+        temporary_workspaces.extend([spliter_workspace, info_workspace, barscan_workspace])
         # BOTTLENECK
         LoadEventNexus(barscan_dataset, OutputWorkspace=barscan_workspace)
         # Create the splitting scheme and save it in table workspaces `spliter_workspace` and `info_workspace`.
@@ -1319,18 +1242,12 @@ def barscan_workspace_generator(
             ExcludeSpecifiedLogs=False,
         )
         temporary_workspaces.append(splitted_workspace_group)
-        temporary_workspaces.append(
-            "TOFCorrectWS"
-        )  # spurious workspace spawned by FilterEvents
-        barscan_workspaces = [
-            splitted_workspace_group + "_" + str(i) for i in range(len(bar_positions))
-        ]
+        temporary_workspaces.append("TOFCorrectWS")  # spurious workspace spawned by FilterEvents
+        barscan_workspaces = [splitted_workspace_group + "_" + str(i) for i in range(len(bar_positions))]
     else:  # of a set of files or workspaces, each contains intensities for a scan with the bar fixed
         # determine if the list contains files or workspaces
         first_scan = barscan_dataset[0]
-        if isinstance(first_scan, str) and os.path.exists(
-            first_scan
-        ):  # list of files, thus load into workspaces
+        if isinstance(first_scan, str) and os.path.exists(first_scan):  # list of files, thus load into workspaces
             loader = loader_algorithm(barscan_dataset[0])
             barscan_workspaces = list()
             barscan_workspace_basename = unique_workspace_dundername()
@@ -1346,9 +1263,7 @@ def barscan_workspace_generator(
         bar_positions = list()
         for barscan_workspace in barscan_workspaces:
             try:
-                bar_position = SampleLogs(barscan_workspace).find_log_with_units(
-                    bar_position_log, "mm"
-                )
+                bar_position = SampleLogs(barscan_workspace).find_log_with_units(bar_position_log, "mm")
             except RuntimeError as run_error:
                 raise RuntimeError(f"Workspace {str(barscan_workspace)}: {run_error}")
             bar_positions.append(bar_position)
@@ -1419,9 +1334,7 @@ def calculate_barscan_calibration(
         If ```inspect_data``` is :py:obj:`False`, only a table object is returned. Otherwise a tube is returned
         where the first component is the table, and the second item is a dictionary with the additional pieces of data.
     """
-    addons = dict(
-        bar_positions=[], bar_workspaces=[]
-    )  # for inspecting the result of the calibration
+    addons = dict(bar_positions=[], bar_workspaces=[])  # for inspecting the result of the calibration
     instrument_name, number_pixels_in_tube, number_tubes = (
         None,
         None,
@@ -1434,9 +1347,7 @@ def calculate_barscan_calibration(
     # Thus, bottom_shadow_pixels[:, 0] indicates bottom shadow pixel coordinates along the very first tube
     # bottom_shadow_pixels.shape = (number of scans, number of tubes)
     bottom_shadow_pixels = []
-    delete_workspaces = (
-        True if inspect_data is False else False
-    )  # retain workspace per scan if we want to inspect
+    delete_workspaces = True if inspect_data is False else False  # retain workspace per scan if we want to inspect
 
     for bar_position, barscan_workspace in barscan_workspace_generator(
         barscan_dataset,
@@ -1449,17 +1360,13 @@ def calculate_barscan_calibration(
             daystamp = day_stamp(barscan_workspace)
             # instantiate a bar formula using either the instrument default or a user's formula
             if formula is None:
-                bar_formula = BarPositionFormula(
-                    instrument_component=(instrument_name, component)
-                )
+                bar_formula = BarPositionFormula(instrument_component=(instrument_name, component))
             else:
                 bar_formula = BarPositionFormula(formula=formula)
             bar_formula.validate_top_position(bar_position)
         run_numbers.add(int(SampleLogs(barscan_workspace).run_number.value))
         # Find out the Y-coordinates of the bar in the reference-of-frame located at the sample
-        bottom_shadow_pixels_per_scan = (
-            []
-        )  # For the current scan, we have one bottom shadow pixel for each tube
+        bottom_shadow_pixels_per_scan = []  # For the current scan, we have one bottom shadow pixel for each tube
         if number_pixels_in_tube is None:
             # We create a tube collection to figure out the pixel indexes for each tube.
             # A TubeCollection is a list of TubeSpectrum objects, each representing a physical tube. Here
@@ -1468,33 +1375,23 @@ def calculate_barscan_calibration(
             # In this view, a double detector panel looks like a single detector panel. When looking at
             # the panel standing at the sample, the leftmost tube has the highest X-coordinate, so the
             # 'decreasing X' view orders the tubes from left to right.
-            collection = TubeCollection(barscan_workspace, component).sorted(
-                view="decreasing X"
-            )
+            collection = TubeCollection(barscan_workspace, component).sorted(view="decreasing X")
             # pixel_indexes is a list of length equal the number of tubes. Each item in the list is itself a list,
             # containing the pixel spectrumInfo indexes for a particular tube.
             pixel_indexes = [tube.spectrum_info_index for tube in collection]
             number_tubes, number_pixels_in_tube = len(collection), len(collection[0])
             # Find the detector ID's for the tube collection, that is, the selected component
             # BOTTLENECK, but it's run one time
-            detector_ids = list(
-                itertools.chain.from_iterable(tube.detector_ids for tube in collection)
-            )
-        bar_positions.append(
-            [bar_formula.evaluate(bar_position, i) for i in range(number_tubes)]
-        )
+            detector_ids = list(itertools.chain.from_iterable(tube.detector_ids for tube in collection))
+        bar_positions.append([bar_formula.evaluate(bar_position, i) for i in range(number_tubes)])
         # pixel_intensities is a list, whose items are the integrated intensities for each pixel. The index of this
         # list coincides with the spectrumInfo index.
         pixel_intensities = np.sum(mtd[barscan_workspace].extractY(), axis=1)
-        for (
-            pixel_indexes_in_tube
-        ) in pixel_indexes:  # iterate over each tube, retrieving its pixel indexes
+        for pixel_indexes_in_tube in pixel_indexes:  # iterate over each tube, retrieving its pixel indexes
             try:
                 # Find the bottom shadow pixel for the current tube and current barscan run
                 pixel_intensities_in_tube = pixel_intensities[pixel_indexes_in_tube]
-                bottom_shadow_pixels_per_scan.append(
-                    find_edges(pixel_intensities_in_tube).bottom_shadow_pixel
-                )
+                bottom_shadow_pixels_per_scan.append(find_edges(pixel_intensities_in_tube).bottom_shadow_pixel)
             except IndexError:  # tube masked or malfunctioning
                 bottom_shadow_pixels_per_scan.append(INCORRECT_PIXEL_ASSIGNMENT)
             except RuntimeError:  # tube masked or malfunctioning
@@ -1512,9 +1409,7 @@ def calculate_barscan_calibration(
     addons["bottom_shadow_pixels"] = bottom_shadow_pixels
 
     if len(bottom_shadow_pixels) <= order:
-        raise ValueError(
-            f"There are not enough bar positions to fo a fit with a polynomyal of order {order}."
-        )
+        raise ValueError(f"There are not enough bar positions to fo a fit with a polynomyal of order {order}.")
 
     # fit pixel positions for each tube
     positions, heights = [], []
@@ -1532,26 +1427,18 @@ def calculate_barscan_calibration(
             raise ValueError(f"In tube index {tube_index}: {e}")
         # Store the fitted Y-coordinates and heights of each pixel in the current tube
         # Store as lists so that they can be easily serializable
-        positions.append(
-            list(1.0e-03 * fit_results.calculated_positions)
-        )  # store with units of meters
-        heights.append(
-            list(1.0e-03 * fit_results.calculated_heights)
-        )  # store with units of meters
+        positions.append(list(1.0e-03 * fit_results.calculated_positions))  # store with units of meters
+        heights.append(list(1.0e-03 * fit_results.calculated_heights))  # store with units of meters
 
     # Find the average pixel positions and heights in a tube using all good tubes. Then apply these to
     # any bad tube
     positions = np.array(positions)  # shape = (number_tubes, number_pixels_in_tube)
     heights = np.array(heights)
-    bad_tube_indexes = np.isnan(
-        np.sum(positions, axis=1)
-    )  # array containing True at the index of a bad tube
+    bad_tube_indexes = np.isnan(np.sum(positions, axis=1))  # array containing True at the index of a bad tube
     if np.any(bad_tube_indexes):  # there's at least one bad tube
         average_positions = np.average(positions[~bad_tube_indexes], axis=0)
         average_heights = np.average(heights[~bad_tube_indexes], axis=0)
-        for tube_index in np.where(bad_tube_indexes)[
-            0
-        ]:  # insert averages in the bad tubes
+        for tube_index in np.where(bad_tube_indexes)[0]:  # insert averages in the bad tubes
             positions[tube_index] = average_positions
             heights[tube_index] = average_heights
     positions = list(positions.ravel())
@@ -1564,9 +1451,7 @@ def calculate_barscan_calibration(
         daystamp=daystamp,
         runnumbers=sorted(list(run_numbers)),
     )
-    calibration = Table(
-        metadata, detector_ids=detector_ids, positions=positions, heights=heights
-    )
+    calibration = Table(metadata, detector_ids=detector_ids, positions=positions, heights=heights)
 
     # decide on what to return
     if inspect_data is True:
@@ -1642,12 +1527,8 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
         y = bottom_shadow_pixels[:, tube_index]
         begin_index = number_bar_positions - 2  # start next to last index
         end_index = max(0, number_bar_positions - 12)  # look at the last 12 pixels
-        for i in range(
-            begin_index, end_index, -1
-        ):  # start from the bottom of the tube, work upwards
-            if abs(y[i] - y[i - 1]) > 10 * max(
-                1, abs(y[i + 1] - y[i])
-            ):  # value/factor of 10 selected as threshold
+        for i in range(begin_index, end_index, -1):  # start from the bottom of the tube, work upwards
+            if abs(y[i] - y[i - 1]) > 10 * max(1, abs(y[i + 1] - y[i])):  # value/factor of 10 selected as threshold
                 jump_index = i  # The position of the bar jumped by more than 10 pixels. Flags an incorrect assigment
                 break
         if jump_index is not None:
@@ -1666,9 +1547,7 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
             continue
         # Find residuals of correct pixels
         y_fitted = np.polynomial.polynomial.polyval(x_correct, coefficients)
-        residuals = np.abs(
-            y_correct - y_fitted
-        )  # deviations between the linear fit and the actual positions
+        residuals = np.abs(y_correct - y_fitted)  # deviations between the linear fit and the actual positions
         large_residual = np.average(residuals) + 1.5 * np.std(residuals)
         # Find residuals of correct and incorrect pixels. Residuals for incorrect pixels are nonsense,
         # but we include them because we need array `residuals` and array `y` of same length.
@@ -1676,14 +1555,10 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
         residuals = np.abs(y - y_fitted)
         # We flag as incorrect assignments those correct pixels with bar positions largely deviating from the linear
         # fit. The incorrect pixels already have nonsense large residuals
-        y[
-            (residuals > large_residual) & (y != INCORRECT_PIXEL_ASSIGNMENT)
-        ] = INCORRECT_PIXEL_ASSIGNMENT
+        y[(residuals > large_residual) & (y != INCORRECT_PIXEL_ASSIGNMENT)] = INCORRECT_PIXEL_ASSIGNMENT
 
 
-def calculate_apparent_tube_width(
-    flood_input, component="detector1", load_barscan_calibration=True, db_file=None
-):
+def calculate_apparent_tube_width(flood_input, component="detector1", load_barscan_calibration=True, db_file=None):
     r"""
     Determine the tube width most efficient for detecting neutrons. An effective tube (or pixel) diameter is
     determined for tubes in the front panel, and likewise for the tubes in the back panel.
@@ -1754,9 +1629,7 @@ def calculate_apparent_tube_width(
 
     # Update pixel positions and heights with the appropriate calibration, if so requested.
     if load_barscan_calibration is True:
-        calibration = load_calibration(
-            input_workspace, "BARSCAN", component=component, database=db_file
-        )
+        calibration = load_calibration(input_workspace, "BARSCAN", component=component, database=db_file)
         calibration.apply(integrated_intensities)
 
     # Calculate the count density for each tube. Notice that if the whole tube is masked, then the associated
@@ -1764,30 +1637,20 @@ def calculate_apparent_tube_width(
     #
     # Sort the tubes according to the X-coordinate in decreasing value. This is the order when sitting on the
     # sample and iterating over the tubes "from left to right"
-    collection = TubeCollection(integrated_intensities, component).sorted(
-        view="fbfb"
-    )  # BOTTLENECK
-    detector_ids = list(
-        itertools.chain.from_iterable(tube.detector_ids for tube in collection)
-    )
+    collection = TubeCollection(integrated_intensities, component).sorted(view="fbfb")  # BOTTLENECK
+    detector_ids = list(itertools.chain.from_iterable(tube.detector_ids for tube in collection))
     count_densities = list()
     for tube in collection:
         weighted_intensities = tube.readY.ravel() / tube.pixel_heights
         d = np.mean(weighted_intensities[~tube.isMasked])
         count_densities.append(d)
-    count_densities = np.array(
-        count_densities
-    )  # is convenient to cast densities into a numpy array data structure.
+    count_densities = np.array(count_densities)  # is convenient to cast densities into a numpy array data structure.
 
     # Determine the count densities per panel and for the whole detector array.
     # We must be careful to pick only tubes with finite densities (avoid 'nan')
     average_count_density = np.mean(count_densities[np.isfinite(count_densities)])
-    front_count_density = np.mean(
-        count_densities[::2][np.isfinite(count_densities[::2])]
-    )  # front tubes, even indexes
-    back_count_density = np.mean(
-        count_densities[1::2][np.isfinite(count_densities[1::2])]
-    )  # back tubes, odd indexes
+    front_count_density = np.mean(count_densities[::2][np.isfinite(count_densities[::2])])  # front tubes, even indexes
+    back_count_density = np.mean(count_densities[1::2][np.isfinite(count_densities[1::2])])  # back tubes, odd indexes
 
     # Determine the front and back pixel widths
     nominal_width = collection[0][0].width  # width of the first pixel in the first tube
@@ -1815,9 +1678,7 @@ def calculate_apparent_tube_width(
 
 
 @namedtuplefy
-def as_intensities(
-    input_workspace, component="detector1", views=["positions", "heights", "widths"]
-):
+def as_intensities(input_workspace, component="detector1", views=["positions", "heights", "widths"]):
     r"""
     Returns one workspace for each pixel property that is calibrated (e.g., pixel height),
     and the calibration datum is stored as the intensity value for that pixel. Intended to
@@ -1873,27 +1734,19 @@ def as_intensities(
     workspace_indexes = np.array([], dtype=int)
     pixel_props = dict()  # on entry for each view, each entry is a 1D numpy array
     for current_component in components:
-        collection = TubeCollection(input_workspace, current_component).sorted(
-            view="decreasing X"
-        )
+        collection = TubeCollection(input_workspace, current_component).sorted(view="decreasing X")
         for tube in collection:
             workspace_indexes = np.hstack(
                 (workspace_indexes, tube.spectrum_info_index)
             )  # workspace indexes for the tube
             for view in views:  # 'positions', 'heights', 'widths'
-                pixel_props_collected = pixel_props.get(
-                    view, np.array([])
-                )  # pixel properties up to the current tube
-                addition = getattr(
-                    tube, tube_properties[view]
-                )  # pixel properties for the current tube
+                pixel_props_collected = pixel_props.get(view, np.array([]))  # pixel properties up to the current tube
+                addition = getattr(tube, tube_properties[view])  # pixel properties for the current tube
                 pixel_props[view] = np.hstack((pixel_props_collected, addition))
 
     # Mantid can only show positive quantities in the instrument view
     if "positions" in pixel_props:
-        pixel_props["positions_mantid"] = pixel_props["positions"] - np.min(
-            pixel_props["positions"]
-        )
+        pixel_props["positions_mantid"] = pixel_props["positions"] - np.min(pixel_props["positions"])
 
     number_histograms = mtd[str(input_workspace)].getNumberHistograms()
     intensities = np.zeros(number_histograms)
@@ -1903,9 +1756,7 @@ def as_intensities(
         output_workspace = f"{str(input_workspace)}_{cal_prop}"  # Workspace containing the property as  intensity
         # intensties will be non-zero only for workpace indexes that have associated pixels of interests
         intensities[workspace_indexes] = pixel_props[cal_prop]
-        workspace = Integration(
-            InputWorkspace=input_workspace, OutputWorkspace=output_workspace
-        )
+        workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
         for index in range(number_histograms):
             workspace.dataY(index)[:] = intensities[index]
         returned_views[cal_prop] = mtd[output_workspace]
@@ -1951,9 +1802,7 @@ def split_barscan_run(input_file, output_directory, bar_position_log="dcal_Readb
         TimeSeriesPropertyLogs=[bar_position_log],
         ExcludeSpecifiedLogs=False,
     )
-    os.makedirs(
-        output_directory, exist_ok=True
-    )  # Create directory, and don't complain if already exists
+    os.makedirs(output_directory, exist_ok=True)  # Create directory, and don't complain if already exists
     basename = os.path.basename(input_file).split(".nxs")[0]
     for i in range(len(bar_positions)):
         workspace = splitted_workspace_group + "_" + str(i)
@@ -1974,9 +1823,5 @@ def split_barscan_run(input_file, output_directory, bar_position_log="dcal_Readb
         SaveNexus(InputWorkspace=workspace, Filename=out_file)
 
     # Clean up all workspaces
-    DeleteWorkspaces(
-        [splitted_workspace_group + "_" + str(i) for i in range(len(bar_positions))]
-    )
-    DeleteWorkspaces(
-        [splitted_workspace_group, info_workspace, spliter_workspace, barscan_workspace]
-    )
+    DeleteWorkspaces([splitted_workspace_group + "_" + str(i) for i in range(len(bar_positions))])
+    DeleteWorkspaces([splitted_workspace_group, info_workspace, spliter_workspace, barscan_workspace])

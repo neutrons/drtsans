@@ -17,9 +17,7 @@ def test_gpsans_find_beam_center():
     """
     # Check data mount to decide to skip or not
     if not os.path.exists("/HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5"):
-        pytest.skip(
-            "Testing file /HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5 cannot be accessed"
-        )
+        pytest.skip("Testing file /HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5 cannot be accessed")
 
     # Load data
     beam_center_ws = prepare_data(
@@ -45,15 +43,11 @@ def test_gpsans_find_beam_center():
 
     # Calculate shift:
     center_x, center_y, _ = beam_center
-    beam_center_shift = np.sqrt(
-        (center_x - det_center[0]) ** 2 + (center_y - det_center[1]) ** 2
-    )
+    beam_center_shift = np.sqrt((center_x - det_center[0]) ** 2 + (center_y - det_center[1]) ** 2)
 
     assert beam_center_shift == pytest.approx(
         0.400, abs=0.007
-    ), "Beam center shift {} to {} is beyond" "0.4 +/- 7E-3".format(
-        beam_center, det_center
-    )
+    ), "Beam center shift {} to {} is beyond" "0.4 +/- 7E-3".format(beam_center, det_center)
 
     # cleanup
     DeleteWorkspace(beam_center_ws)

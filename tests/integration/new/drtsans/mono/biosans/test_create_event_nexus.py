@@ -32,9 +32,7 @@ def test_duplicate_event_nexus(reference_dir, generatecleanfile, clean_workspace
     # Get the source file
     source_nexus_file = "CG3_5709.nxs.h5"
     source_nexus_file = os.path.join(reference_dir.new.biosans, source_nexus_file)
-    assert os.path.exists(
-        source_nexus_file
-    ), f"Test data {source_nexus_file} does not exist"
+    assert os.path.exists(source_nexus_file), f"Test data {source_nexus_file} does not exist"
 
     # Duplicate the source file to the temporary directory
     output_dir = generatecleanfile(prefix="dupcg3nexus")
@@ -84,9 +82,7 @@ def test_duplicate_event_nexus(reference_dir, generatecleanfile, clean_workspace
     # Check source position
     source_moderator_pos = source_ws.getInstrument().getSource().getPos()
     target_moderator_pos = target_ws.getInstrument().getSource().getPos()
-    print(
-        f"source moderator @ {source_moderator_pos}; re-generated moderator @ {target_moderator_pos}"
-    )
+    print(f"source moderator @ {source_moderator_pos}; re-generated moderator @ {target_moderator_pos}")
     np.testing.assert_allclose(
         source_moderator_pos,
         target_moderator_pos,
@@ -138,12 +134,8 @@ def verify_histogram(source_nexus, test_nexus):
 
     # Compare with NeXus
     # Load NeXus file
-    src_ws = LoadEventNexus(
-        Filename=source_nexus, OutputWorkspace="gold", NumberOfBins=500
-    )
-    test_ws = LoadEventNexus(
-        Filename=test_nexus, OutputWorkspace="test", NumberOfBins=1
-    )
+    src_ws = LoadEventNexus(Filename=source_nexus, OutputWorkspace="gold", NumberOfBins=500)
+    test_ws = LoadEventNexus(Filename=test_nexus, OutputWorkspace="test", NumberOfBins=1)
 
     # Compare with raw counts
     error_message = ""
@@ -163,9 +155,7 @@ def verify_histogram(source_nexus, test_nexus):
         raise AssertionError(error_message)
 
     # A more tricky situation: Rebin throws away events
-    src_ws = Rebin(
-        InputWorkspace=src_ws, Params="-20000,40000,20000", PreserveEvents=False
-    )
+    src_ws = Rebin(InputWorkspace=src_ws, Params="-20000,40000,20000", PreserveEvents=False)
 
     # Compare counts
     error_message = ""
@@ -196,9 +186,7 @@ def crashed_worker_test_reduction(reference_dir, generatecleanfile):
 
     """
     # Set up test
-    json_str = generate_testing_json(
-        os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), None, None
-    )
+    json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), None, None)
 
     # Create output directory
     output_dir = generatecleanfile(prefix="nexuscg3reduction")
@@ -206,15 +194,11 @@ def crashed_worker_test_reduction(reference_dir, generatecleanfile):
         os.mkdir(output_dir)
 
     # Run
-    reduce_biosans_data(
-        reference_dir.new.biosans, json_str, output_dir, prefix="BioMetaRaw"
-    )
+    reduce_biosans_data(reference_dir.new.biosans, json_str, output_dir, prefix="BioMetaRaw")
 
     # Get result files
     sample_names = ["csmb_ecoli1h_n2"]
-    gold_path = os.path.join(
-        reference_dir.new.biosans, "overwrite_gold_20200815/test1/"
-    )
+    gold_path = os.path.join(reference_dir.new.biosans, "overwrite_gold_20200815/test1/")
 
     # Verify
     try:
@@ -231,9 +215,7 @@ def crashed_worker_test_reduction(reference_dir, generatecleanfile):
         raise AssertionError(f"Reduction result does not match {a_error}")
 
 
-def generate_testing_json(
-    sens_nxs_dir, sample_to_si_window_distance, sample_to_detector_distance
-):
+def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_detector_distance):
     """Generating testing JSON
 
     Parameters
@@ -292,9 +274,7 @@ def generate_testing_json(
             "useSubpixels": False,
         },
     }
-    reduction_input = reduction_parameters(
-        specs, "BIOSANS", validate=False
-    )  # add defaults and defer validation
+    reduction_input = reduction_parameters(specs, "BIOSANS", validate=False)  # add defaults and defer validation
     reduction_config = reduction_input["configuration"]  # a handy shortcut
 
     #  '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4829m7p0_TDC_SAC.h5'
@@ -354,18 +334,14 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
 
     # generate sample
     source_sample_nexus = os.path.join(nexus_dir, f"CG3_{sample}.nxs.h5")
-    os.path.exists(
-        source_sample_nexus
-    ), f"Source sample NeXus {source_sample_nexus} does not exist"
+    os.path.exists(source_sample_nexus), f"Source sample NeXus {source_sample_nexus} does not exist"
     test_sample_nexus = os.path.join(output_dir, f"CG3_{sample}.nxs.h5")
     generate_event_nexus(source_sample_nexus, test_sample_nexus, logs_white_list)
     verify_histogram(source_sample_nexus, test_sample_nexus)
 
     # generate background
     source_bkgd_nexus = os.path.join(nexus_dir, f"CG3_{background}.nxs.h5")
-    os.path.exists(
-        source_bkgd_nexus
-    ), f"Source background NeXus {source_bkgd_nexus} does not exist"
+    os.path.exists(source_bkgd_nexus), f"Source background NeXus {source_bkgd_nexus} does not exist"
     test_bkgd_nexus = os.path.join(output_dir, f"CG3_{background}.nxs.h5")
     generate_event_nexus(source_bkgd_nexus, test_bkgd_nexus, logs_white_list)
 
@@ -398,9 +374,7 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     # beam center: convert and reset
     beam_center_run = reduction_input["beamCenter"]["runNumber"]
     source_bc_nexus = os.path.join(nexus_dir, f"CG3_{beam_center_run}.nxs.h5")
-    os.path.exists(
-        source_bc_nexus
-    ), f"Source background NeXus {source_bc_nexus} does not exist"
+    os.path.exists(source_bc_nexus), f"Source background NeXus {source_bc_nexus} does not exist"
     test_bc_nexus = os.path.join(output_dir, f"CG3_{beam_center_run}.nxs.h5")
     # specific log: there is no source_aperture_diameter in run 1322
     das_1322_list = [
@@ -423,37 +397,23 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     reduce_single_configuration(loaded, reduction_input)
 
 
-def verify_reduction_results(
-    sample_names, output_dir, gold_path, title, prefix, rel_tol=1e-7
-):
-
+def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix, rel_tol=1e-7):
     unmatched_errors = ""
 
     for sample_name in sample_names:
         # output log file name
-        output_log_file = os.path.join(
-            output_dir, "{}_reduction_log.hdf".format(sample_name)
-        )
-        assert os.path.exists(output_log_file), "Output {} cannot be found".format(
-            output_log_file
-        )
+        output_log_file = os.path.join(output_dir, "{}_reduction_log.hdf".format(sample_name))
+        assert os.path.exists(output_log_file), "Output {} cannot be found".format(output_log_file)
         # gold file
-        gold_log_file = os.path.join(
-            gold_path, "{}_test1_reduction_log.hdf".format(sample_name)
-        )
-        assert os.path.exists(gold_path), "Gold file {} cannot be found".format(
-            gold_log_file
-        )
+        gold_log_file = os.path.join(gold_path, "{}_test1_reduction_log.hdf".format(sample_name))
+        assert os.path.exists(gold_path), "Gold file {} cannot be found".format(gold_log_file)
         # compare
         title_i = "{}: {}".format(sample_name, title)
         try:
-            compare_reduced_iq(
-                output_log_file, gold_log_file, title_i, prefix, rel_tol=rel_tol
-            )
+            compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix, rel_tol=rel_tol)
         except AssertionError as unmatched_error:
-            unmatched_errors = (
-                "Testing output {} is different from gold result {}:\n{}"
-                "".format(output_log_file, gold_log_file, unmatched_error)
+            unmatched_errors = "Testing output {} is different from gold result {}:\n{}" "".format(
+                output_log_file, gold_log_file, unmatched_error
             )
     # END-FOR
 
@@ -515,12 +475,7 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix, rel_tol=1e-7
                 prefix = "compare"
             if test_log_file is None:
                 test_log_file = "iq"
-            out_name = (
-                prefix
-                + "_"
-                + os.path.basename(test_log_file).split(".")[0]
-                + "_{}.png".format(flag)
-            )
+            out_name = prefix + "_" + os.path.basename(test_log_file).split(".")[0] + "_{}.png".format(flag)
             plt.savefig(out_name)
     # END-FOR
 

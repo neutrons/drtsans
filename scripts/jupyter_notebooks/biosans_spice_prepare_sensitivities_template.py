@@ -56,9 +56,7 @@ MAX_THRESHOLD = 2.0
 # Output: surfix as wing or main
 FILE_SURFIX = "wing" if WING_DETECTOR else "main"
 output_dir = os.getcwd()  # current directory
-SENSITIVITY_FILE = os.path.join(
-    output_dir, f"{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN[0]}.nxs"
-)
+SENSITIVITY_FILE = os.path.join(output_dir, f"{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN[0]}.nxs")
 
 # where to find converted NeXus file
 nexus_dir = None  # as default synchronized with default output directory of SPICE-NeXus converter
@@ -67,25 +65,15 @@ nexus_dir = None  # as default synchronized with default output directory of SPI
 
 # Convert SPICE file to NeXus file
 flood_run = SpiceRun(CG3, IPTS, EXPERIMENT, FLOOD_RUN[0], FLOOD_RUN[1])
-direct_beam_run = (
-    SpiceRun(CG3, IPTS, EXPERIMENT, DIRECT_BEAM_RUN[0], DIRECT_BEAM_RUN[1])
-    if DIRECT_BEAM_RUN
-    else None
-)
+direct_beam_run = SpiceRun(CG3, IPTS, EXPERIMENT, DIRECT_BEAM_RUN[0], DIRECT_BEAM_RUN[1]) if DIRECT_BEAM_RUN else None
 open_beam_transmission = (
-    SpiceRun(
-        CG3, IPTS, EXPERIMENT, OPEN_BEAM_TRANSMISSION[0], OPEN_BEAM_TRANSMISSION[1]
-    )
+    SpiceRun(CG3, IPTS, EXPERIMENT, OPEN_BEAM_TRANSMISSION[0], OPEN_BEAM_TRANSMISSION[1])
     if OPEN_BEAM_TRANSMISSION
     else None
 )
-transmission_flood_run = SpiceRun(
-    CG3, IPTS, EXPERIMENT, TRANSMISSION_FLOOD_RUN[0], TRANSMISSION_FLOOD_RUN[1]
-)
+transmission_flood_run = SpiceRun(CG3, IPTS, EXPERIMENT, TRANSMISSION_FLOOD_RUN[0], TRANSMISSION_FLOOD_RUN[1])
 dark_current_run = (
-    SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0], DARK_CURRENT_RUN[1])
-    if DARK_CURRENT_RUN
-    else None
+    SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0], DARK_CURRENT_RUN[1]) if DARK_CURRENT_RUN else None
 )
 
 # prepare data

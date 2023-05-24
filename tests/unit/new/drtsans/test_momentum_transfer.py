@@ -86,15 +86,11 @@ def test_convert_to_mod_q(generic_workspace):
     # we are not passing any resolution function as argument 'resolution_function' in function
     # 'convert_to_q'. Thus, we assume infinite precision and the error in Q is therefore zero.
     assert dq == pytest.approx([0, 0, 0], abs=1e-5)
-    assert lam == pytest.approx(
-        [6, 6, 6], abs=1e-5
-    )  # 6 Angstroms is the middle point of the bin [5.9, 6.1]
+    assert lam == pytest.approx([6, 6, 6], abs=1e-5)  # 6 Angstroms is the middle point of the bin [5.9, 6.1]
 
     # All detector pixels subtend the same scattering angle. Detectors are located at coordinates
     # (x, y, z) = (+-0.5, +-0.5, 5.0)
-    two_theta = np.arccos(
-        5.0 / np.sqrt(5**2 + 0.5**2 + 0.5**2)
-    )  # cos(two_theta) = z / sqrt(x^2 + y^2 + z^2)
+    two_theta = np.arccos(5.0 / np.sqrt(5**2 + 0.5**2 + 0.5**2))  # cos(two_theta) = z / sqrt(x^2 + y^2 + z^2)
     assert ws.spectrumInfo().twoTheta(0) == pytest.approx(two_theta, abs=1e-5)
 
     # assert the Q value for each detector pixel. Again, all Q-values are the same because all two_theta values
@@ -142,18 +138,12 @@ def test_convert_q_azimuthal(generic_workspace):
     assert result.wavelength == pytest.approx([6, 6, 6], abs=1e-5)
     two_theta = np.arccos(5.0 / np.sqrt(25.5))
     q = 4.0 * np.pi * np.sin(two_theta * 0.5) / 6.0
-    assert result.qx * (-1) == pytest.approx(
-        [q * np.sqrt(0.5), q * np.sqrt(0.5), -q * np.sqrt(0.5)], abs=1e-5
-    )
-    assert result.qy == pytest.approx(
-        [-q * np.sqrt(0.5), q * np.sqrt(0.5), q * np.sqrt(0.5)], abs=1e-5
-    )
+    assert result.qx * (-1) == pytest.approx([q * np.sqrt(0.5), q * np.sqrt(0.5), -q * np.sqrt(0.5)], abs=1e-5)
+    assert result.qy == pytest.approx([-q * np.sqrt(0.5), q * np.sqrt(0.5), q * np.sqrt(0.5)], abs=1e-5)
 
     # test with simple resolution
     result = convert_to_q(ws, mode="azimuthal", resolution_function=fake_resolution1)
-    assert result.delta_qx == pytest.approx(
-        [-q * np.sqrt(2.0), 0, q * np.sqrt(2.0)], abs=1e-5
-    )
+    assert result.delta_qx == pytest.approx([-q * np.sqrt(2.0), 0, q * np.sqrt(2.0)], abs=1e-5)
     assert result.delta_qy == pytest.approx([0, -q * np.sqrt(2.0), 0], abs=1e-5)
 
 
@@ -210,9 +200,7 @@ def test_convert_q_crystal(generic_workspace):
 
     # test with simple resolution - it should thow not implemented
     with pytest.raises(NotImplementedError):
-        assert convert_to_q(
-            ws, mode="crystallographic", resolution_function=fake_resolution1
-        )
+        assert convert_to_q(ws, mode="crystallographic", resolution_function=fake_resolution1)
 
 
 @pytest.fixture(scope="module")
@@ -280,23 +268,16 @@ def test_subpixel_info(data_subpixel_info, workspace_with_instrument):
         intensities=data.intensities,
         output_workspace=input_workspace,
     )
-    workspace.detectorInfo().setMasked(
-        2, True
-    )  # Mask the third pixel. No subpixes will be calculated for this one
+    workspace.detectorInfo().setMasked(2, True)  # Mask the third pixel. No subpixes will be calculated for this one
 
     # Compare the positions of the pixels in the workspace against data.pixel_positions
     spectrum_info = workspace.spectrumInfo()
     get_spectrum_definition = spectrum_info.getSpectrumDefinition
     # Find the detectorInfo() indexes starting from the workspace indexes. These indexes are neccessary to later
     # find out the (x, y) coordinates of the pixels
-    info_indexes = [
-        get_spectrum_definition(idx)[0][0]
-        for idx in range(workspace.getNumberHistograms())
-    ]
+    info_indexes = [get_spectrum_definition(idx)[0][0] for idx in range(workspace.getNumberHistograms())]
     pixel_positions = pixel_centers(input_workspace, info_indexes)
-    assert 1.0e03 * pixel_positions[:, :-1] == pytest.approx(
-        np.array(data.pixel_positions), abs=1e-6
-    )
+    assert 1.0e03 * pixel_positions[:, :-1] == pytest.approx(np.array(data.pixel_positions), abs=1e-6)
 
     # Find the position of the subpixels in polar coordinates, contained in data structure "info"
     info = subpixel_info(input_workspace, data.n_horizontal, data.n_vertical)
@@ -306,9 +287,7 @@ def test_subpixel_info(data_subpixel_info, workspace_with_instrument):
     z = info.l2 * np.cos(info.two_theta)
     # All subpixels have the same Z-coordinate. Test this (factor 1.e-03 to convert from mili-meters to meters)
     assert z == pytest.approx(
-        1.0e-03
-        * data.sample_detector_distance
-        * np.ones(len(info.keep) * data.number_subpixels),
+        1.0e-03 * data.sample_detector_distance * np.ones(len(info.keep) * data.number_subpixels),
         abs=1e-6,
     )
 
@@ -327,9 +306,7 @@ def test_subpixel_info(data_subpixel_info, workspace_with_instrument):
     #    for a parent pixel having its position at (x, y) = (0, 0).
     xy = 1000 * (xy - pixel_positions[info.keep, :-1][:, None, :])
     for subpixel_positions in xy:  # unmasked pixels
-        assert subpixel_positions == pytest.approx(
-            np.array(data.subpixel_positions), abs=1e-6
-        )
+        assert subpixel_positions == pytest.approx(np.array(data.subpixel_positions), abs=1e-6)
 
 
 def test_filter_and_replicate():
@@ -343,17 +320,13 @@ def test_filter_and_replicate():
         to_np([10.0, 9.0, 8.0]),
     )
     # lam is numpy array array([[1.0], [2.0], [3.0]])
-    keep = np.array(
-        [1, 2]
-    )  # Keep only data with indexes 1 and 2 (i.e., discard the data with index 0)
+    keep = np.array([1, 2])  # Keep only data with indexes 1 and 2 (i.e., discard the data with index 0)
     # Apply function _filter_and_replicate to arrays 'lam', 'intensity', and 'error'.
     # 1. discard the first item of array 'lam'. Array 'lam' becomes array([[2.0], [3.0]])
     # 2. replicate each item a total number of n_horizontal * n_vertical = 2. Array 'lam' becomes
     #    array([[2.0, 2.0], [3.0, 3.0]])
     # 3. flatten array 'lam' by dropping the second dimension. Array 'lam' becomes array([2., 2., 3., 3.])
-    lam, intensity, error = _filter_and_replicate(
-        (lam, intensity, error), keep, n_horizontal=2, n_vertical=1
-    )
+    lam, intensity, error = _filter_and_replicate((lam, intensity, error), keep, n_horizontal=2, n_vertical=1)
     assert lam == pytest.approx([2.0, 2.0, 3.0, 3.0])
     assert intensity == pytest.approx([81.0, 81.0, 64.0, 64.0])
     assert error == pytest.approx([9.0, 9.0, 8.0, 8.0])

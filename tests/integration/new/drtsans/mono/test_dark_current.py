@@ -105,9 +105,7 @@ def test_subtract_dark_current(data_test_16a):
     """
     # Create dark current workspace, insert the duration of the dark current run as one of the log entries in the
     # dark current workspace.
-    dark_current_workspace = (
-        unique_workspace_dundername()
-    )  # arbitrary name for the dark current workspace
+    dark_current_workspace = unique_workspace_dundername()  # arbitrary name for the dark current workspace
     CreateWorkspace(
         DataX=data_test_16a["wavelength_bin_boundaries"],
         DataY=np.array(data_test_16a["I_dc"]).ravel(),
@@ -115,14 +113,10 @@ def test_subtract_dark_current(data_test_16a):
         NSpec=data_test_16a["number_of_pixels"],
         OutputWorkspace=dark_current_workspace,
     )
-    SampleLogs(dark_current_workspace).insert(
-        "duration", data_test_16a["dark_current_duration"], "second"
-    )
+    SampleLogs(dark_current_workspace).insert("duration", data_test_16a["dark_current_duration"], "second")
 
     # Create a sample run workspace.
-    data_workspace = (
-        unique_workspace_dundername()
-    )  # arbitrary name for the sample workspace
+    data_workspace = unique_workspace_dundername()  # arbitrary name for the sample workspace
     CreateWorkspace(
         DataX=data_test_16a["wavelength_bin_boundaries"],
         DataY=np.array(data_test_16a["I_data"]).ravel(),
@@ -132,9 +126,7 @@ def test_subtract_dark_current(data_test_16a):
     )
     # Insert the duration of the sample run. The log key must be the same as that used for the dark current,
     # which turns out to be 'duration'
-    SampleLogs(data_workspace).insert(
-        "duration", data_test_16a["sample_run_duration"], "second"
-    )
+    SampleLogs(data_workspace).insert("duration", data_test_16a["sample_run_duration"], "second")
 
     # Call the reduction workflow function
     subtract_dark_current(data_workspace, dark_current_workspace)
@@ -142,9 +134,7 @@ def test_subtract_dark_current(data_test_16a):
     # Compare the normalized intensities.
     computed_intensities = mtd[data_workspace].extractY().ravel()
     test_intensities = np.array(data_test_16a["I_data_norm"]).ravel()
-    assert computed_intensities == pytest.approx(
-        test_intensities, abs=data_test_16a["precision"]
-    )
+    assert computed_intensities == pytest.approx(test_intensities, abs=data_test_16a["precision"])
 
     # Compare the errors of the normalized intensities
     computed_errors = mtd[data_workspace].extractE().ravel()

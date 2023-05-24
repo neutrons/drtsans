@@ -94,9 +94,7 @@ def transform_to_wavelength(input_workspace, output_workspace=None):
     if output_workspace is None:
         output_workspace = str(input_workspace)
 
-    HFIRSANS2Wavelength(
-        InputWorkspace=input_workspace, OutputWorkspace=output_workspace
-    )
+    HFIRSANS2Wavelength(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
 
     return mtd[output_workspace]
 
@@ -175,9 +173,7 @@ def load_events_and_histogram(
     """
     # Check inputs
     if sample_to_si_name is None:
-        raise NotImplementedError(
-            f"For {run} Sample to Si window name must be specified thus cannot be None"
-        )
+        raise NotImplementedError(f"For {run} Sample to Si window name must be specified thus cannot be None")
 
     # If needed convert comma separated string list of workspaces in list of strings
     if isinstance(run, str):
@@ -186,21 +182,13 @@ def load_events_and_histogram(
         runs = run
     # sanity check
     if not isinstance(runs, list):
-        raise RuntimeError(
-            f"runs {runs} of type {type(runs)} must be a list at this stage"
-        )
+        raise RuntimeError(f"runs {runs} of type {type(runs)} must be a list at this stage")
     single_run = len(runs) == 1
 
     # Specify a default name for non-single run output workspace
-    if not single_run and (
-        (output_workspace is None)
-        or (not output_workspace)
-        or (output_workspace == "None")
-    ):
+    if not single_run and ((output_workspace is None) or (not output_workspace) or (output_workspace == "None")):
         # create default name for output workspace, uses all input
-        instrument_unique_name = instrument_enum_name(
-            runs[0]
-        )  # determine which SANS instrument
+        instrument_unique_name = instrument_enum_name(runs[0])  # determine which SANS instrument
         output_workspace = "{}_{}{}".format(
             instrument_unique_name,
             "_".join(str(extract_run_number(r)) for r in runs),
@@ -295,9 +283,7 @@ def set_sample_detector_position(
     logs = SampleLogs(ws)
 
     # Input verification: DAS record SDD must be same as calculated SDD
-    das_sdd = sample_detector_distance(
-        ws, search_logs=True, unit="mm", forbid_calculation=True
-    )
+    das_sdd = sample_detector_distance(ws, search_logs=True, unit="mm", forbid_calculation=True)
     real_sdd = sample_detector_distance(ws, search_logs=False, unit="mm")
     if abs(das_sdd - real_sdd) > 1.0:
         raise RuntimeError(
@@ -311,9 +297,7 @@ def set_sample_detector_position(
         # respect the das-recorded SDD
         expected_sdd = sample_detector_distance(ws, search_logs=True, unit="mm")
         if sample_si_window_overwrite_value is not None:
-            das_sample_si_distance = (
-                ws.getRun().getProperty(sample_to_si_window_name).value.mean() * 1e-3
-            )  # meter
+            das_sample_si_distance = ws.getRun().getProperty(sample_to_si_window_name).value.mean() * 1e-3  # meter
             shift = sample_si_window_overwrite_value - das_sample_si_distance  # meter
             expected_sdd += shift * 1e3
 
@@ -341,9 +325,7 @@ def set_sample_detector_position(
         overwrite_sample_detector_distance=sample_detector_distance_overwrite_value,
     )
     # log
-    prior_geom_info += "Sample offset = {}, Detector offset = {}\n".format(
-        sample_offset, detector_offset
-    )
+    prior_geom_info += "Sample offset = {}, Detector offset = {}\n".format(sample_offset, detector_offset)
 
     # Move sample and detector
     ws = move_instrument(
@@ -370,9 +352,7 @@ def set_sample_detector_position(
 
     # FIXME - absolute 0.01 mm is not a criteria restrict enough: 10E-2 mm will fail the test
     criteria_mm = 1e-3
-    if (
-        abs(expected_sdd - calculated_sdd) > criteria_mm
-    ):  # absolute difference: 0.02 mm.  not good!
+    if abs(expected_sdd - calculated_sdd) > criteria_mm:  # absolute difference: 0.02 mm.  not good!
         logs = SampleLogs(ws)
         prior_geom_info += (
             f"Result from geometry operation:\n"
@@ -382,15 +362,11 @@ def set_sample_detector_position(
         )
         # add detector information
         prior_geom_info += f"Detector[0] pos = {ws.getDetector(0).getPos()}\n"
-        prior_geom_info += (
-            f"Detector[{192 * 256 - 1}] = {ws.getDetector(192 * 256 - 1).getPos()}"
-        )
+        prior_geom_info += f"Detector[{192 * 256 - 1}] = {ws.getDetector(192 * 256 - 1).getPos()}"
 
         shift_det_x = ws.getRun().getProperty("detector_trans_Readback").value
         shift_det_x_unit = ws.getRun().getProperty("detector_trans_Readback").units
-        prior_geom_info += (
-            f"Detector translation X-axis = {shift_det_x} ({shift_det_x_unit})\n"
-        )
+        prior_geom_info += f"Detector translation X-axis = {shift_det_x} ({shift_det_x_unit})\n"
 
         # form error message
         error_msg = (
@@ -518,11 +494,7 @@ def load_and_split(
     instrument_name = instrument_enum_name(run)
 
     # create default name for output workspace
-    if (
-        (output_workspace is None)
-        or (not output_workspace)
-        or (output_workspace == "None")
-    ):
+    if (output_workspace is None) or (not output_workspace) or (output_workspace == "None"):
         run_number = extract_run_number(run) if isinstance(run, str) else ""
         output_workspace = "{}_{}{}".format(instrument_name, run_number, output_suffix)
 

@@ -81,9 +81,7 @@ def type_selector(preferred_type):  # noqa: C901
             """
             if isinstance(a_list, (int, float)):
                 a_list = [a_list]
-            elif (
-                isinstance(a_list, str) is True
-            ):  # a_list is the string representation of a list
+            elif isinstance(a_list, str) is True:  # a_list is the string representation of a list
                 for brace in ("[", "]", "(", ")"):
                     a_list = a_list.replace(brace, "")
                 if "," in a_list:
@@ -115,15 +113,11 @@ def type_selector(preferred_type):  # noqa: C901
                 try:
                     list_of_dictionaries.append(ast.literal_eval(item))
                 except ValueError:
-                    raise ValueError(
-                        f'Could not translate "{item}" into a python dictionary'
-                    )
+                    raise ValueError(f'Could not translate "{item}" into a python dictionary')
             elif isinstance(item, dict):
                 list_of_dictionaries.append(item)
             else:
-                raise ValueError(
-                    f"{instance} must be a list of strings or a list of dictionaries"
-                )
+                raise ValueError(f"{instance} must be a list of strings or a list of dictionaries")
         return list_of_dictionaries
 
     def run_str(instance):
@@ -150,9 +144,7 @@ def type_selector(preferred_type):  # noqa: C901
             try:
                 all_runs = IntArrayProperty("_", run_range_no_whitespaces).valueAsStr
             except RuntimeError as e:
-                raise ValueError(
-                    "Invalid range format: {}".format(run_range_no_whitespaces)
-                ) from e
+                raise ValueError("Invalid range format: {}".format(run_range_no_whitespaces)) from e
             instance = instance.replace(run_range, all_runs)
         return instance
 
@@ -210,9 +202,7 @@ class ReferenceResolver:
             to_resolve.update(resolved)
         for name, value in to_resolve.items():
             if isinstance(value, dict):
-                value = self.dereference(
-                    value
-                )  # nested dictionary must be resolved, too
+                value = self.dereference(value)  # nested dictionary must be resolved, too
                 to_resolve[name] = value
         return to_resolve
 
@@ -404,9 +394,7 @@ class DefaultJson:
         kwargs: dict
             Optional arguments for json.dump
         """
-        file_handle = (
-            output_json  # initialize assuming the file handle is a file-like object
-        )
+        file_handle = output_json  # initialize assuming the file handle is a file-like object
         if isinstance(output_json, str):
             if output_json.endswith(".json") is False:
                 raise RuntimeError(f'"{output_json}" extension is not ".json"')
@@ -442,14 +430,7 @@ class DefaultJson:
         def_dict = list()
         # Split long lines
         for line in self.dumps(indent=2).split("\n"):
-            def_dict.extend(
-                quote_in(
-                    [
-                        line[i : i + line_length_max]
-                        for i in range(0, len(line), line_length_max)
-                    ]
-                )
-            )
+            def_dict.extend(quote_in([line[i : i + line_length_max] for i in range(0, len(line), line_length_max)]))
         # Three white spaces for proper indentation of restructuredtext blockquotes
         def_dict = "\n   ".join(def_dict)
         # Change back some keywords from JSON representation to Python
@@ -604,9 +585,7 @@ class ReductionParameters:
         jsonschema.ValidationError
         """
         self._json_validator.check_schema(self._schema)
-        validator = self._json_validator(
-            self._schema, resolver=self._reference_resolver
-        )
+        validator = self._json_validator(self._schema, resolver=self._reference_resolver)
         errors = iter(validator.iter_errors(self._parameters))
         best = next(errors, None)
         if best is None:
@@ -630,9 +609,7 @@ class ReductionParameters:
             Optional arguments for json.dump
         """
         target_selector = dict(parameters=self.parameters, schema=self._schema)
-        file_handle = (
-            output_json  # initialize assuming the file handle is a file-like object
-        )
+        file_handle = output_json  # initialize assuming the file handle is a file-like object
         if isinstance(output_json, str):
             if output_json.endswith(".json") is False:
                 raise RuntimeError(f'"{output_json}" extension is not ".json"')
@@ -701,29 +678,21 @@ class ReductionParameters:
     def __setitem__(self, key, value):
         top_match = self._entries.top_match(key)
         if top_match != key:
-            warnings.warn(
-                f'{key} not found in the parameters dictionary. Closest match is "{top_match}"'
-            )
+            warnings.warn(f'{key} not found in the parameters dictionary. Closest match is "{top_match}"')
         self._parameters.__setitem__(key, value)
 
     def _initialize_json_validator(self):
         # Elucidate the draft version for the meta-schema
         meta_schemas = {"draft-07": jsonschema.Draft7Validator}
         # Find which schema-draft version in self._schema
-        meta_schema_key = re.search("(draft-[0-9]+)", self._schema["$schema"]).groups()[
-            0
-        ]
-        meta_schema = meta_schemas[
-            meta_schema_key
-        ]  # select schema appropriate to the schema-draft version
+        meta_schema_key = re.search("(draft-[0-9]+)", self._schema["$schema"]).groups()[0]
+        meta_schema = meta_schemas[meta_schema_key]  # select schema appropriate to the schema-draft version
         #
         all_validators = dict(meta_schema.VALIDATORS)
         for keyword, function_name in self._validators.items():
             function = getattr(self, function_name)
             all_validators[keyword] = function
-        return jsonschema.validators.create(
-            meta_schema=meta_schema.META_SCHEMA, validators=all_validators
-        )
+        return jsonschema.validators.create(meta_schema=meta_schema.META_SCHEMA, validators=all_validators)
 
     def _initialize_parameters(self, schema=None, parameters=None):
         r"""
@@ -738,9 +707,7 @@ class ReductionParameters:
         # We need list() in order to capture the initial state of parameter values
         for name, parameter_value in list(parameters.items()):
             try:
-                schema_value = schema["properties"][
-                    name
-                ]  # schema dictionary associated to parameter_value
+                schema_value = schema["properties"][name]  # schema dictionary associated to parameter_value
             except KeyError:
                 try:
                     schema_value = schema["additionalProperties"][name]
@@ -753,15 +720,11 @@ class ReductionParameters:
             if isinstance(parameter_value, dict) is True:
                 # recursive call for nested dictionaries. We pass references to the child dictionaries
                 # for the schema and the reduction parameters
-                self._initialize_parameters(
-                    schema=schema_value, parameters=parameter_value
-                )
+                self._initialize_parameters(schema=schema_value, parameters=parameter_value)
             else:
                 # initialization of parameters[name begins
                 if parameter_value in ("", None):
-                    parameters[name] = schema_value.get(
-                        "default", None
-                    )  # is there a default value?
+                    parameters[name] = schema_value.get("default", None)  # is there a default value?
                 elif "preferredType" in schema_value:  # parameter_value is not empty
                     cast = type_selector(schema_value["preferredType"])
                     parameters[name] = cast(parameter_value)
@@ -811,14 +774,10 @@ class ReductionParameters:
                         search_archive=True,
                     )
                 except RuntimeError:
-                    yield jsonschema.ValidationError(
-                        f"Cannot find events file associated to {instance}"
-                    )
+                    yield jsonschema.ValidationError(f"Cannot find events file associated to {instance}")
             else:
                 sources = ("file", "events")
-                yield jsonschema.ValidationError(
-                    f"{value} is not valid data source. Try one of {sources}"
-                )
+                yield jsonschema.ValidationError(f"{value} is not valid data source. Try one of {sources}")
 
     def _validate_evaluate_condition(self, validator, value, instance, schema):
         r"""
@@ -846,19 +805,13 @@ class ReductionParameters:
         condition = value.replace("{this}", str(instance))
         # replace keywords of other reduction parameters with their corresponding values
         composite_keys = re.findall(r"{#([\w,/]+)}", value)
-        condition = condition.replace(
-            "#", ""
-        )  # python has trouble formatting strings containing '#'
+        condition = condition.replace("#", "")  # python has trouble formatting strings containing '#'
         for composite_key in composite_keys:
             other_instance = self.get_parameter_value(composite_key)
-            other_instance_key = (
-                f"{{{composite_key}}}"  # the key is enclosed by curly braces
-            )
+            other_instance_key = f"{{{composite_key}}}"  # the key is enclosed by curly braces
             condition = condition.replace(other_instance_key, str(other_instance))
         if eval(condition) is False:
-            yield jsonschema.ValidationError(
-                f"{value} condition has evaluated to False"
-            )
+            yield jsonschema.ValidationError(f"{value} condition has evaluated to False")
 
     def _validate_less_than(self, validator, value, instance, schema):
         r"""
@@ -892,9 +845,7 @@ class ReductionParameters:
                 if isinstance(other_instance, (int, float)) is False:
                     yield jsonschema.ValidationError(f"{entry_path} is not a number")
                 if instance >= other_instance:
-                    yield jsonschema.ValidationError(
-                        f"{instance} is not smaller than {entry_path}"
-                    )
+                    yield jsonschema.ValidationError(f"{instance} is not smaller than {entry_path}")
 
     def _validate_exclusive_or(self, validator, value, instance, schema):
         r"""
@@ -1049,9 +1000,7 @@ class ReductionParameters:
             `instance` evaluates to :py:obj:`True`.
         """
         if instance is not None:
-            if isinstance(
-                instance, str
-            ):  # instance is a string representation of a list
+            if isinstance(instance, str):  # instance is a string representation of a list
                 instance = instance.replace("[", "").replace("]", "").split(",")
             target_len = len(instance)
             composite_keys = (
@@ -1064,17 +1013,11 @@ class ReductionParameters:
             for composite_key in composite_keys:
                 other_instance = self.get_parameter_value(composite_key)
                 if instance is None:
-                    yield jsonschema.ValidationError(
-                        f"list(s) {composite_keys} have different length than instance"
-                    )
-                if isinstance(
-                    other_instance, str
-                ):  # instance is a string representation of a list
+                    yield jsonschema.ValidationError(f"list(s) {composite_keys} have different length than instance")
+                if isinstance(other_instance, str):  # instance is a string representation of a list
                     instance = instance.replace("[", "").replace("]", "").split(",")
                 if len(other_instance) != target_len:
-                    yield jsonschema.ValidationError(
-                        f"list(s) {composite_keys} have different length than instance"
-                    )
+                    yield jsonschema.ValidationError(f"list(s) {composite_keys} have different length than instance")
 
     def _validate_wedge_sources(self, validator, value, instance, schema):
         r"""
@@ -1112,8 +1055,7 @@ class ReductionParameters:
                     source_set_valid_found = True  # all instances in the source set are not empty. It's a valid set
             if source_set_valid_found is False:
                 yield jsonschema.ValidationError(
-                    f"We cannot define the wedge angles given the current"
-                    f"values or parameters {value}"
+                    f"We cannot define the wedge angles given the current" f"values or parameters {value}"
                 )
 
     def _validate_flux_file_tof(self, validator, value, instance, schema):
@@ -1142,13 +1084,9 @@ class ReductionParameters:
         # assigns `None` for 'Time' normalization, since there's no flux file associated to this type of normalization
         composite_key = value.get(instance, None)
         if composite_key is not None:
-            other_instance = self.get_parameter_value(
-                composite_key
-            )  # path to the flux file
+            other_instance = self.get_parameter_value(composite_key)  # path to the flux file
             if other_instance is None:
-                yield jsonschema.ValidationError(
-                    f"No flux file was specified for {instance} normalization"
-                )
+                yield jsonschema.ValidationError(f"No flux file was specified for {instance} normalization")
 
 
 def _instrument_json_generator(instrument=None, field="default"):
@@ -1168,11 +1106,7 @@ def _instrument_json_generator(instrument=None, field="default"):
         A two item tuple. First item is instrument name and second item is the schema trimmed instance
     """
     schema_dir = os.path.join(configdir, "schema")
-    instrument_names = (
-        instrument_standard_names()
-        if instrument is None
-        else [instrument_standard_name(instrument)]
-    )
+    instrument_names = instrument_standard_names() if instrument is None else [instrument_standard_name(instrument)]
     for name in instrument_names:
         schema_file = os.path.join(schema_dir, f"{name}.json")
         with open(schema_file, "r") as file_handle:
@@ -1193,9 +1127,7 @@ def default_reduction_parameters(instrument_name):
     -------
     dict
     """
-    _, generated_parameters = list(
-        _instrument_json_generator(instrument=instrument_name)
-    )[0]
+    _, generated_parameters = list(_instrument_json_generator(instrument=instrument_name))[0]
     return generated_parameters.parameters
 
 
@@ -1299,9 +1231,7 @@ def _update_reduction_parameters(parameters_original, parameter_changes):
             parameters_original[name] = value
 
 
-def reduction_parameters(
-    parameters_particular=None, instrument_name=None, validate=True
-):
+def reduction_parameters(parameters_particular=None, instrument_name=None, validate=True):
     r"""
     Serve all necessary (and validated if so desired) parameters for a reduction session of
     a particular instrument.
@@ -1322,22 +1252,16 @@ def reduction_parameters(
     dict
     """
     if parameters_particular is None and instrument_name is None:
-        raise RuntimeError(
-            "Either `parameters_particular` or `instrument_name` must be specified"
-        )
+        raise RuntimeError("Either `parameters_particular` or `instrument_name` must be specified")
     if instrument_name is None:
         instrument_name = parameters_particular["instrumentName"]
-    instrument_name = instrument_standard_name(
-        instrument_name
-    )  # e.g. change CG2 to GPSANS
+    instrument_name = instrument_standard_name(instrument_name)  # e.g. change CG2 to GPSANS
     reduction_input = default_reduction_parameters(instrument_name)
     if parameters_particular is None:
         if validate is False:
             return reduction_input  # nothing else to do
         return validate_reduction_parameters(reduction_input)
-    return update_reduction_parameters(
-        reduction_input, parameters_particular, validate=validate
-    )
+    return update_reduction_parameters(reduction_input, parameters_particular, validate=validate)
 
 
 def load_schema(instrument_name):

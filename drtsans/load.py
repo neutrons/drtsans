@@ -49,9 +49,7 @@ def __monitor_counts(filename, monitor_name="monitor1"):
     counts = 0  # default value is zero
     with h5py.File(filename, "r") as handle:
         if monitor_name not in handle["entry"]:
-            raise RuntimeError(
-                'File "{}" does not contain /entry/{}'.format(filename, monitor_name)
-            )
+            raise RuntimeError('File "{}" does not contain /entry/{}'.format(filename, monitor_name))
         # open the monitor group
         nxmonitor = handle["entry"][monitor_name]
 
@@ -113,23 +111,13 @@ def load_events(
     ~mantid.api.IEventWorkspace
         Reference to the events workspace
     """
-    instrument_unique_name = instrument_enum_name(
-        run
-    )  # determine which SANS instrument
+    instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
     run_number = extract_run_number(run) if isinstance(run, str) else ""
-    filename = (
-        run if path_exists(run) else "{}{}".format(instrument_unique_name, run_number)
-    )
+    filename = run if path_exists(run) else "{}{}".format(instrument_unique_name, run_number)
 
     # create default name for output workspace
-    if (
-        (output_workspace is None)
-        or (not output_workspace)
-        or (output_workspace == "None")
-    ):
-        output_workspace = "{}_{}{}".format(
-            instrument_unique_name, run_number, output_suffix
-        )
+    if (output_workspace is None) or (not output_workspace) or (output_workspace == "None"):
+        output_workspace = "{}_{}{}".format(instrument_unique_name, run_number, output_suffix)
 
     # determine if this is a monochromatic measurement
     is_mono = not is_time_of_flight(instrument_unique_name)
@@ -140,9 +128,7 @@ def load_events(
         return mtd[output_workspace]
     else:
         # load the data into the appropriate workspace
-        with amend_config(
-            {"default.instrument": str(instrument_unique_name)}, data_dir=data_dir
-        ):
+        with amend_config({"default.instrument": str(instrument_unique_name)}, data_dir=data_dir):
             # not loading the instrument xml from the nexus file will use the correct one that is inside mantid
             # decide the value of LoadNexusInstrumentXML
             # if not specified, determine by overwrite_instrument
@@ -150,9 +136,7 @@ def load_events(
                 kwargs["LoadNexusInstrumentXML"] = not overwrite_instrument
 
             logger.notice(f"Loading {filename} to {output_workspace}")
-            LoadEventNexus(
-                Filename=filename, OutputWorkspace=output_workspace, **kwargs
-            )
+            LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
 
             # FIXME - what is the difference from: pixel_calibration is True?
             if pixel_calibration is not False:
@@ -177,9 +161,7 @@ def load_events(
         try:
             SampleLogs(output_workspace).insert("monitor", __monitor_counts(filename))
         except RuntimeError as e:
-            logger.warning(
-                str(e)
-            )  # log a warning that monitor info not found in filename
+            logger.warning(str(e))  # log a warning that monitor info not found in filename
 
     # move instrument components - sample position must happen first
 
@@ -205,9 +187,7 @@ def load_events(
         # For TOF (i.e., EQSANS), still translate sample and detector as usual
         try:
             # get DAS recorded SDD
-            das_sdd = sample_detector_distance(
-                output_workspace, search_logs=True, forbid_calculation=True
-            )
+            das_sdd = sample_detector_distance(output_workspace, search_logs=True, forbid_calculation=True)
         except RuntimeError as run_err:
             # it may  not exist
             if "Unable to find any meta data related to SDD" in str(run_err):
@@ -216,23 +196,15 @@ def load_events(
             else:
                 raise run_err
 
-        translate_sample_by_z(
-            output_workspace, 1e-3 * float(sample_offset)
-        )  # convert sample offset from mm to meter
-        translate_detector_by_z(
-            output_workspace, None
-        )  # search logs and translate if necessary
+        translate_sample_by_z(output_workspace, 1e-3 * float(sample_offset))  # convert sample offset from mm to meter
+        translate_detector_by_z(output_workspace, None)  # search logs and translate if necessary
         translate_detector_by_z(output_workspace, 1e-3 * float(detector_offset))
 
         real_sdd = sample_detector_distance(output_workspace, search_logs=False)
-        logger.notice(
-            f"EQSANS workspace {str(output_workspace)} SDD is equal to {real_sdd}"
-        )
+        logger.notice(f"EQSANS workspace {str(output_workspace)} SDD is equal to {real_sdd}")
 
         if das_sdd is not None:
-            assert (
-                real_sdd == das_sdd
-            ), f"EQSANS DAS SDD = {das_sdd}, Calculated SDD = {real_sdd}"
+            assert real_sdd == das_sdd, f"EQSANS DAS SDD = {das_sdd}, Calculated SDD = {real_sdd}"
 
     return mtd[output_workspace]
 
@@ -378,9 +350,7 @@ def load_and_split(
 
     """
     if not (time_interval or (log_name and log_value_interval)):
-        raise ValueError(
-            "Must provide with time_interval or log_name and log_value_interval"
-        )
+        raise ValueError("Must provide with time_interval or log_name and log_value_interval")
 
     # Check whether need to load or not
     run = str(run)
@@ -391,9 +361,7 @@ def load_and_split(
         assert instrument_unique_name is not None, "Instrument name must be given!"
     else:
         # determine if this is a monochromatic measurement
-        instrument_unique_name = instrument_enum_name(
-            run
-        )  # determine which SANS instrument
+        instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
         is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or (
             instrument_unique_name == InstrumentEnumName.GPSANS
         )
@@ -415,15 +383,9 @@ def load_and_split(
         )
 
     # create default name for output workspace
-    if (
-        (output_workspace is None)
-        or (not output_workspace)
-        or (output_workspace == "None")
-    ):
+    if (output_workspace is None) or (not output_workspace) or (output_workspace == "None"):
         run_number = extract_run_number(run) if isinstance(run, str) else ""
-        output_workspace = "{}_{}{}".format(
-            instrument_unique_name, run_number, output_suffix
-        )
+        output_workspace = "{}_{}{}".format(instrument_unique_name, run_number, output_suffix)
 
     # Create event filter workspace
     GenerateEventsFilter(
@@ -447,10 +409,7 @@ def load_and_split(
     )
 
     # Remove empty workspaces from event filtering
-    split_ws_list = [
-        mtd[output_workspace].getItem(n)
-        for n in range(mtd[output_workspace].getNumberOfEntries())
-    ]
+    split_ws_list = [mtd[output_workspace].getItem(n) for n in range(mtd[output_workspace].getNumberOfEntries())]
     for split_ws in split_ws_list:
         num_events = split_ws.getNumberEvents()
         if num_events == 0:
@@ -484,9 +443,7 @@ def load_and_split(
     for n in range(mtd[output_workspace].getNumberOfEntries()):
         samplelogs = SampleLogs(mtd[output_workspace].getItem(n))
         samplelogs.insert("slice", n + 1)
-        samplelogs.insert(
-            "number_of_slices", mtd[output_workspace].getNumberOfEntries()
-        )
+        samplelogs.insert("number_of_slices", mtd[output_workspace].getNumberOfEntries())
         slice_info = mtd[output_workspace].getItem(n).getComment()
         samplelogs.insert("slice_info", slice_info)
         if time_interval:
@@ -495,25 +452,19 @@ def load_and_split(
             # Calculate relative start and end time
             samplelogs.insert(
                 "slice_start",
-                (mtd["_filter"].cell(n, 0) - samplelogs.startTime().totalNanoseconds())
-                / 1e9,
+                (mtd["_filter"].cell(n, 0) - samplelogs.startTime().totalNanoseconds()) / 1e9,
                 "seconds",
             )
             samplelogs.insert(
                 "slice_end",
-                (mtd["_filter"].cell(n, 1) - samplelogs.startTime().totalNanoseconds())
-                / 1e9,
+                (mtd["_filter"].cell(n, 1) - samplelogs.startTime().totalNanoseconds()) / 1e9,
                 "seconds",
             )
         else:
             samplelogs.insert("slice_parameter", log_name)
             samplelogs.insert("slice_interval", log_value_interval)
-            slice_start, slice_end = re.sub(
-                r".*\.From\.|\.Value.*", "", slice_info
-            ).split(".To.")
-            samplelogs.insert(
-                "slice_start", float(slice_start), samplelogs[log_name].units
-            )
+            slice_start, slice_end = re.sub(r".*\.From\.|\.Value.*", "", slice_info).split(".To.")
+            samplelogs.insert("slice_start", float(slice_start), samplelogs[log_name].units)
             samplelogs.insert("slice_end", float(slice_end), samplelogs[log_name].units)
 
     if is_mono or not monitors:
@@ -522,9 +473,7 @@ def load_and_split(
         return mtd[output_workspace], mtd[output_workspace + "_monitors"]
 
 
-def sum_data(
-    data_list, output_workspace, sum_logs=("duration", "timer", "monitor", "monitor1")
-):
+def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monitor", "monitor1")):
     r"""
     Merge data set together, summing the listed logs
 
@@ -554,15 +503,10 @@ def sum_data(
         if not mtd.doesExist(str(data)):
             raise ValueError("Workspace " + data + " does not exist")
         if not isinstance(mtd[str(data)], mantid.dataobjects.Workspace2D):
-            raise ValueError(
-                data
-                + " is not a Workspace2D, this currently only works correctly for Workspace2D"
-            )
+            raise ValueError(data + " is not a Workspace2D, this currently only works correctly for Workspace2D")
 
     # Filter sum_logs list to only include logs that exist in data
-    sum_logs = [
-        log for log in sum_logs if mtd[str(data_list[0])].getRun().hasProperty(log)
-    ]
+    sum_logs = [log for log in sum_logs if mtd[str(data_list[0])].getRun().hasProperty(log)]
 
     # Merge workspaces together
     MergeRuns(

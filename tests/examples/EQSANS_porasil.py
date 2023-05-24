@@ -9,12 +9,8 @@ from reduction_workflow.instruments.sans.sns_command_interface import *  # noqa:
 
 
 mtd.clear()
-mask60_ws4m = Load(
-    Filename="/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs"
-)
-ws604m, masked60_detectors4m = ExtractMask(
-    InputWorkspace=mask60_ws4m, OutputWorkspace="__edited_mask604m"
-)
+mask60_ws4m = Load(Filename="/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs")
+ws604m, masked60_detectors4m = ExtractMask(InputWorkspace=mask60_ws4m, OutputWorkspace="__edited_mask604m")
 detector_ids604m = [int(i) for i in masked60_detectors4m]
 
 EQSANS()
@@ -26,9 +22,7 @@ SetTOFTailsCutoff(low_cut=500.0, high_cut=2000.0)
 
 SolidAngle(detector_tubes=True)
 DarkCurrent("/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/EQSANS_86275.nxs.h5")
-TotalChargeNormalization(
-    beam_file="/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample"
-)
+TotalChargeNormalization(beam_file="/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample")
 SetAbsoluteScale(0.0208641883)
 AzimuthalAverage(n_bins=100, n_subpix=1, log_binning=True)
 MaskDetectors(detector_ids604m)

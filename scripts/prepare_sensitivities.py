@@ -80,10 +80,7 @@ SENSITIVITY_FILE = "/HFIR/{}/shared/sens_f{}.nxs".format(INSTRUMENT, FILE_SURFIX
 
 # Load data files
 if INSTRUMENT not in ["CG2", "CG3", "EQSANS"]:
-    print(
-        "Instrument {} is not supported.  Supported are {}"
-        "".format(INSTRUMENT, "CG2, EQSANS, CG3")
-    )
+    print("Instrument {} is not supported.  Supported are {}" "".format(INSTRUMENT, "CG2, EQSANS, CG3"))
     sys.exit(-1)
 
 preparer = PrepareSensitivityCorrection(INSTRUMENT, WING_DETECTOR)

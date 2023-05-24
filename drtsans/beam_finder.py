@@ -42,22 +42,12 @@ def _results_to_dict(params):
 
 # defining 2D Gaussian fitting functions
 def _Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, CenterX, CenterY):
-    a = np.cos(theta) ** 2 / (2.0 * sigma_x ** 2) + np.sin(theta) ** 2 / (
-        2.0 * sigma_y ** 2
-    )
-    b = -np.sin(2.0 * theta) / (4.0 * sigma_x ** 2) + np.sin(2.0 * theta) / (
-        4.0 * sigma_y ** 2
-    )
-    c = np.sin(theta) ** 2 / (2.0 * sigma_x ** 2) + np.cos(theta) ** 2 / (
-        2.0 * sigma_y ** 2
-    )
+    a = np.cos(theta) ** 2 / (2.0 * sigma_x**2) + np.sin(theta) ** 2 / (2.0 * sigma_y**2)
+    b = -np.sin(2.0 * theta) / (4.0 * sigma_x**2) + np.sin(2.0 * theta) / (4.0 * sigma_y**2)
+    c = np.sin(theta) ** 2 / (2.0 * sigma_x**2) + np.cos(theta) ** 2 / (2.0 * sigma_y**2)
     amplitude = amp / (np.sqrt(2.0 * np.pi) * np.sqrt(sigma_x * sigma_y))
     val = amplitude * np.exp(
-        -(
-            a * (x1 - CenterX) ** 2
-            + 2.0 * b * (x1 - CenterX) * (y1 - CenterY)
-            + c * (y1 - CenterY) ** 2
-        )
+        -(a * (x1 - CenterX) ** 2 + 2.0 * b * (x1 - CenterX) * (y1 - CenterY) + c * (y1 - CenterY) ** 2)
     )
     return val
 
@@ -127,9 +117,7 @@ def _find_beam_center_gaussian(ws, parameters={}):
         params.add("CenterX", value=0.0)
     if "CenterY" not in params:
         params.add("CenterY", value=0.0)
-    results = model.fit(
-        intes, x1=x, y1=y, weights=1.0 / intes_err, params=params, nan_policy="omit"
-    )
+    results = model.fit(intes, x1=x, y1=y, weights=1.0 / intes_err, params=params, nan_policy="omit")
     fit_params = results.params
     return (
         fit_params["CenterX"].value,
@@ -145,14 +133,10 @@ def fbc_options_json(reduction_input):
         fbc_options["method"] = method
         if method == "gaussian":
             if "gaussian_centering_options" in reduction_input["beamCenter"].keys():
-                fbc_options["centering_options"] = reduction_input["beamCenter"][
-                    "gaussian_centering_options"
-                ]
+                fbc_options["centering_options"] = reduction_input["beamCenter"]["gaussian_centering_options"]
         elif method == "center_of_mass":
             if "com_centering_options" in reduction_input["beamCenter"].keys():
-                fbc_options["centering_options"] = reduction_input["beamCenter"][
-                    "com_centering_options"
-                ]
+                fbc_options["centering_options"] = reduction_input["beamCenter"]["com_centering_options"]
     return fbc_options
 
 

@@ -159,9 +159,7 @@ def test_reduce_single_configuration_slice_transmission_false(generatecleanfile)
         },
         "logslice_data": {},
     }
-    reduction_input["configuration"]["outputDir"] = generatecleanfile(
-        prefix="trans_slice_false"
-    )
+    reduction_input["configuration"]["outputDir"] = generatecleanfile(prefix="trans_slice_false")
 
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
     loaded = load_all_files(reduction_input, prefix)
@@ -295,9 +293,7 @@ def test_reduce_single_configuration_slice_transmission_true(generatecleanfile):
         },
         "logslice_data": {},
     }
-    reduction_input["configuration"]["outputDir"] = generatecleanfile(
-        prefix="trans_slice_true"
-    )
+    reduction_input["configuration"]["outputDir"] = generatecleanfile(prefix="trans_slice_true")
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
     loaded = load_all_files(reduction_input, prefix)
     _ = reduce_single_configuration(loaded, reduction_input)
@@ -310,9 +306,7 @@ def test_reduce_single_configuration_slice_transmission_true(generatecleanfile):
 
     transmission_val = transmission.extractY()[0][0]
     clean_all_ws(prefix)
-    assert isclose(
-        transmission_val, 0.7526460467895154  # from above config using older workflow
-    )
+    assert isclose(transmission_val, 0.7526460467895154)  # from above config using older workflow
     del _
 
 

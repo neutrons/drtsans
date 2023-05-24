@@ -28,9 +28,9 @@ A new developer, who joins the SANS backend software project, shall need to have
 * Slack channels/Onboarding buddy
 
   * ornlccsd.slack.com # sae-neutrons
- 
+
     Please contact the Project Managers for the access to the slack channel.
-    The project managers will know who to send an email to requesting access to our neutron slack channels. 
+    The project managers will know who to send an email to requesting access to our neutron slack channels.
     There may be more than one and if the person is outside CSMD that is a special invite.
 
 * SNS analysis cluster account and integration data access
@@ -106,7 +106,7 @@ Test Driven Development (TDD)
    All software developments are tracked by repeatedly testing the software against all test cases.
 
 * Unit test
-   
+
   All methods and modules shall have unit tests implemented.
   Unit tests are located in `repo/tests/unit/new <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/tree/next/tests/unit/new>`_.
   A unit test shall be created in the corresponding directory to the method or module that it tests against.
@@ -123,7 +123,7 @@ Test Driven Development (TDD)
 
   * general for all instrument, for instance `tests/integration/new/drtsans/test_stitch.py`.
   * specific to a suite of similar instruments, for instance `tests/integration/new/drtsans/mono/test_transmission.py` for all mono-wavelength instruments including Bio-SANS and GP-SANS.
-  * specific to an individual instrument, for instance, `tests/integration/new/drtsans/mono/gpsans/test_find_beam_center.py` for GP-SANS and 
+  * specific to an individual instrument, for instance, `tests/integration/new/drtsans/mono/gpsans/test_find_beam_center.py` for GP-SANS and
     `tests/integration/new/drtsans/tof/eqsans/test_apply_solid_angle.py` for EQ-SANS.
 
 * Testing data location
@@ -138,12 +138,12 @@ Glossaries
 
 * SANS
   Small-angle neutron scattering (SANS) is an experimental technique that uses elastic neutron scattering at small scattering angles to investigate the structure of various substances at a mesoscopic scale of about 1–100 nm.
-   
+
    * https://en.wikipedia.org/wiki/Small-angle_neutron_scattering
    * https://www.nist.gov/ncnr/neutron-instruments/small-angle-neutron-scattering-sans
 
 * drtSANS
-   
+
    Data reduction tool for small angle neutron scattering.
 
 
@@ -158,7 +158,6 @@ Required libraries
 
 * For unit and integration tests: pytest, pytest-xdist
 
-* For documentation: sphinx, sphinxcontrib-napoleon, 
+* For documentation: sphinx, sphinxcontrib-napoleon,
 
 * For linting and formatting: autopep8, flake8, pylint
-

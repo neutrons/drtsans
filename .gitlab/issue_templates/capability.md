@@ -1,10 +1,10 @@
-<!-- 
+<!--
 	capability.md
 	Version 1
 	This is a GitLab Issue description template to be used to create a capability.
-        Note: A capability (Big Rock) is a service that fulfills a stakeholder need.  
+        Note: A capability (Big Rock) is a service that fulfills a stakeholder need.
         Note: It is a larger, course grained item that must fit within a single milestone cycle.
-	
+
     Capability States:
         - Draft: The Capability is new and or being modified
         - Peer Review: The Capability is under review
@@ -12,9 +12,9 @@
         - In Progress: The Capability is being implemented
         - Complete: The capability has been completed
 
-	Derive a unique Title from the Summary prepended with "[Capability]" 
+	Derive a unique Title from the Summary prepended with "[Capability]"
 		- [Capability] <unique title>
-  
+
 -->
 
 ## **Summary**

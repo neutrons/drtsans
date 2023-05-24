@@ -31,9 +31,7 @@ def load_data(filename):
 data, run_number, title = load_data(sys.argv[1])
 
 fig, ax = plt.subplots()
-plot = ax.imshow(
-    data, norm=LogNorm(), extent=(0.5, 192.5, 0.5, 256.5), origin="lower", aspect="auto"
-)
+plot = ax.imshow(data, norm=LogNorm(), extent=(0.5, 192.5, 0.5, 256.5), origin="lower", aspect="auto")
 ax.set_title("EQSANS_{} - {}".format(run_number, title))
 ax.set_xlabel("Tube")
 ax.set_ylabel("Pixel")

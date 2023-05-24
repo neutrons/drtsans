@@ -62,9 +62,7 @@ def _savepythonscript(nxentry, pythonfile, pythonscript):
         with open(pythonfile, "r") as script:
             pythonscript = script.read()
 
-    return _savenxnote(
-        nxentry, "reduction_script", "text/x-python", pythonfile, pythonscript
-    )
+    return _savenxnote(nxentry, "reduction_script", "text/x-python", pythonfile, pythonscript)
 
 
 def _savereductionjson(nxentry, parameters):
@@ -146,9 +144,7 @@ def _savenxlog(nxcollection, property):
 
     try:
         if isinstance(property.value, str):
-            value = nxlog.create_dataset(
-                name="value", data=[np.string_(property.value)]
-            )
+            value = nxlog.create_dataset(name="value", data=[np.string_(property.value)])
         elif len(property.value) > 1:
             value = nxlog.create_dataset(name="value", data=property.value)
         else:
@@ -278,7 +274,6 @@ def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
 
 
 def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=""):
-
     entry_name = "I(Q)"
     if entryNameExt:
         entry_name += "_" + entryNameExt
@@ -307,12 +302,9 @@ def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=""):
 
 
 def _save_iq_to_log(iq=None, topEntry=None):
-
     if (type(iq) is list) and len(iq) > 1:
         for _index, _iq in enumerate(iq):
-            __save_individual_iq_to_log(
-                iq=_iq, topEntry=topEntry, entryNameExt="wedge{}".format(_index)
-            )
+            __save_individual_iq_to_log(iq=_iq, topEntry=topEntry, entryNameExt="wedge{}".format(_index))
     else:
         __save_individual_iq_to_log(iq=iq[0], topEntry=topEntry, entryNameExt="")
 
@@ -408,11 +400,9 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
 
     if not type(detectordata) is dict:
         raise RuntimeError(
-            "detectordata has the wrong type. It should be a dictionary "
-            "and not a {}".format(type(detectordata))
+            "detectordata has the wrong type. It should be a dictionary " "and not a {}".format(type(detectordata))
         )
     for _slice_name in detectordata.keys():
-
         if not type(detectordata[_slice_name]) is dict:
             raise RuntimeError(
                 "detectordata value has the wrong type. It should be a dictionary "
@@ -420,7 +410,6 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
             )
 
         for _detector_name in detectordata[_slice_name].keys():
-
             if not type(detectordata[_slice_name][_detector_name]) is dict:
                 raise RuntimeError(
                     f"detectordata[{_slice_name}][{_detector_name}] value has the wrong type. It "
@@ -431,17 +420,13 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
             if not ("iq" in detectordata[_slice_name][_detector_name].keys()) and not (
                 "iqxqy" in detectordata[_slice_name][_detector_name].keys()
             ):
-                raise KeyError(
-                    "Provide at least a iq and/or iqxqy keys to {}".format(filename)
-                )
+                raise KeyError("Provide at least a iq and/or iqxqy keys to {}".format(filename))
 
     logslicedata = kwargs.get("logslicedata", {})
     if logslicedata:
-
         if not type(logslicedata) is dict:
             raise RuntimeError(
-                "logslicedata has the wrong type. It should a dictionary "
-                "and not a {}".format(type(logslicedata))
+                "logslicedata has the wrong type. It should a dictionary " "and not a {}".format(type(logslicedata))
             )
 
         if len(logslicedata.keys()) > len(detectordata.keys()):
@@ -454,7 +439,6 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
 
     writing_flag = "w"
     for _index, _slice_name in enumerate(detectordata.keys()):
-
         if _index > 0:
             writing_flag = "a"
 
@@ -465,7 +449,6 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
             _current_detectordata = detectordata[_slice_name]
 
             for _frame_index, _frame_name in enumerate(_current_detectordata.keys()):
-
                 _current_frame = _current_detectordata[_frame_name]
                 midEntry = _createnxgroup(topEntry, _frame_name, "NXdata")
 
@@ -482,9 +465,7 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
                 else:
                     _save_iqxqy_to_log(iqxqy=_current_frame["iqxqy"], topEntry=midEntry)
 
-            _save_logslicedata(
-                logslicedata=logslicedata, index=_index, topEntry=topEntry
-            )
+            _save_logslicedata(logslicedata=logslicedata, index=_index, topEntry=topEntry)
 
     # re-open the file to append other information
     with h5py.File(filename, "a") as handle:

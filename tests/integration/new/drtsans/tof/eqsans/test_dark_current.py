@@ -129,13 +129,9 @@ def test_subtract_dark_current(data_test_16a):
     # The intensity in a detector pixel is the same for all wavelength bins by construction in the test. Thus,
     # we repeat the one given value per detector pixel to be the same for all wavelength bins.
     dark_intensities_list = np.array(data_test_16a["I_dc"]).flatten()
-    dark_intensities_list = np.repeat(
-        dark_intensities_list[:, np.newaxis], len(wavelength_bin_boundaries) - 1, axis=1
-    )
+    dark_intensities_list = np.repeat(dark_intensities_list[:, np.newaxis], len(wavelength_bin_boundaries) - 1, axis=1)
     dark_errors_list = np.array(data_test_16a["I_dc_err"]).flatten()
-    dark_errors_list = np.repeat(
-        dark_errors_list[:, np.newaxis], len(wavelength_bin_boundaries) - 1, axis=1
-    )
+    dark_errors_list = np.repeat(dark_errors_list[:, np.newaxis], len(wavelength_bin_boundaries) - 1, axis=1)
 
     # The test does not sum the dark current intensities over all wavelength channels, but the reduction framework
     # does as it follows the master document. In order to match the test results we have to first divide the
@@ -144,9 +140,7 @@ def test_subtract_dark_current(data_test_16a):
     dark_errors_list /= len(wavelength_bin_boundaries) - 1
 
     # The dark current workspace now becomes:
-    dark_workspace = (
-        unique_workspace_dundername()
-    )  # arbitrary name for the dark current workspace
+    dark_workspace = unique_workspace_dundername()  # arbitrary name for the dark current workspace
     CreateWorkspace(
         DataX=wavelength_bin_boundaries,
         UnitX="Wavelength",
@@ -163,19 +157,13 @@ def test_subtract_dark_current(data_test_16a):
 
     # Same procedure now in order to create the workspace for the sample run
     data_intensities_list = np.array(data_test_16a["I_data"]).flatten()
-    data_intensities_list = np.repeat(
-        data_intensities_list[:, np.newaxis], len(wavelength_bin_boundaries) - 1, axis=1
-    )
+    data_intensities_list = np.repeat(data_intensities_list[:, np.newaxis], len(wavelength_bin_boundaries) - 1, axis=1)
     data_intensities_list /= len(wavelength_bin_boundaries) - 1
     data_errors_list = np.array(data_test_16a["I_data_err"]).flatten()
-    data_errors_list = np.repeat(
-        data_errors_list[:, np.newaxis], len(wavelength_bin_boundaries) - 1, axis=1
-    )
+    data_errors_list = np.repeat(data_errors_list[:, np.newaxis], len(wavelength_bin_boundaries) - 1, axis=1)
     data_errors_list /= len(wavelength_bin_boundaries) - 1
 
-    data_workspace = (
-        unique_workspace_dundername()
-    )  # arbitrary name for the sample workspace
+    data_workspace = unique_workspace_dundername()  # arbitrary name for the sample workspace
     CreateWorkspace(
         DataX=wavelength_bin_boundaries,
         UnitX="Wavelength",
@@ -188,9 +176,7 @@ def test_subtract_dark_current(data_test_16a):
     # Initialize the sample logs. In the reduction framework this would have happened after loading the events file
     # and converting to wavelength
     data_sample_logs = SampleLogs(data_workspace)
-    SampleLogs(data_workspace).insert(
-        "duration", data_test_16a["sample_run_duration"], "second"
-    )
+    SampleLogs(data_workspace).insert("duration", data_test_16a["sample_run_duration"], "second")
     data_sample_logs.insert("tof_frame_width", data_test_16a["t_frame"])
     data_sample_logs.insert(
         "tof_frame_width_clipped",
@@ -198,12 +184,8 @@ def test_subtract_dark_current(data_test_16a):
     )  # noqa: E501
     data_sample_logs.insert("wavelength_min", data_test_16a["l_min"], unit="Angstrom")
     data_sample_logs.insert("wavelength_max", data_test_16a["l_max"], unit="Angstrom")
-    data_sample_logs.insert(
-        "wavelength_lead_min", data_test_16a["l_min"], unit="Angstrom"
-    )
-    data_sample_logs.insert(
-        "wavelength_lead_max", data_test_16a["l_max"], unit="Angstrom"
-    )
+    data_sample_logs.insert("wavelength_lead_min", data_test_16a["l_min"], unit="Angstrom")
+    data_sample_logs.insert("wavelength_lead_max", data_test_16a["l_max"], unit="Angstrom")
     data_sample_logs.insert("is_frame_skipping", False)
 
     # Call the reduction workflow function
@@ -212,17 +194,13 @@ def test_subtract_dark_current(data_test_16a):
     # Compare the normalized intensities.
     computed_intensities = np.transpose(mtd[data_workspace].extractY())[0].ravel()
     test_intensities = np.array(data_test_16a["I_data_norm"]).ravel()
-    assert computed_intensities == pytest.approx(
-        test_intensities, abs=data_test_16a["precision"]
-    )
+    assert computed_intensities == pytest.approx(test_intensities, abs=data_test_16a["precision"])
 
     # Compare the errors of the normalized intensities
     computed_errors = np.transpose(mtd[data_workspace].extractE())[0].ravel()
     test_errors = np.array(data_test_16a["I_data_norm_err"]).ravel()
     assert computed_errors == pytest.approx(test_errors, abs=data_test_16a["precision"])
-    assert computed_errors[-1] == pytest.approx(
-        test_errors[-1], abs=data_test_16a["precision"] * 0.01
-    )
+    assert computed_errors[-1] == pytest.approx(test_errors[-1], abs=data_test_16a["precision"] * 0.01)
 
 
 if __name__ == "__main__":

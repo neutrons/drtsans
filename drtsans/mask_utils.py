@@ -53,10 +53,7 @@ def mask_as_numpy_array(input_workspace, invert=False):
         Array of boolean values, with ``True`` representing masked spectra.
     """
     input_workspace = mtd[str(input_workspace)]  # handle to the workspace
-    mask = [
-        input_workspace.getDetector(i).isMasked()
-        for i in range(input_workspace.getNumberHistograms())
-    ]
+    mask = [input_workspace.getDetector(i).isMasked() for i in range(input_workspace.getNumberHistograms())]
     mask = np.asarray(mask)
     return mask if invert is False else np.invert(mask)
 
@@ -135,9 +132,7 @@ def apply_mask(input_workspace, mask=None, panel=None, **btp):
                 Angle=angle,
             )
         if bool(btp):  # see if any parameters are left
-            print(
-                "Try to mask BTP to workspace {} with {}".format(input_workspace, btp)
-            )
+            print("Try to mask BTP to workspace {} with {}".format(input_workspace, btp))
             MaskBTP(Workspace=input_workspace, **btp)
 
 
@@ -160,9 +155,7 @@ def load_mask(mask_file="", output_workspace=None):
     """
     if not output_workspace:
         output_workspace = unique_workspace_dundername()
-    mask_workspace = LoadNexusProcessed(
-        Filename=mask_file, OutputWorkspace=output_workspace
-    )
+    mask_workspace = LoadNexusProcessed(Filename=mask_file, OutputWorkspace=output_workspace)
     if isinstance(mask_workspace, IEventWorkspace):
         logger.warning(
             "Storing the mask on an EventWorkspace is inefficient. \
@@ -230,8 +223,7 @@ def mask_spectra_with_special_values(input_workspace, output_workspace=None):
     workspace = mtd[str(input_workspace)]
     intensities = workspace.extractY()
     non_finite_indexes = np.argwhere(
-        np.isfinite(np.sum(intensities, axis=-1))
-        == False  # NOTE: this is a awkward way to do it
+        np.isfinite(np.sum(intensities, axis=-1)) == False  # NOTE: this is a awkward way to do it
     )  # noqa: E712
     non_finite_indexes = non_finite_indexes.flatten().tolist()
     if len(non_finite_indexes) > 0:

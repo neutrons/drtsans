@@ -78,17 +78,11 @@ def _nary_operation(iq_objects, operation, unpack=True, **kwargs):
     ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or ~drtsans.dataobjects.IQcrystal
     """
     reference_object = iq_objects[0]
-    assert (
-        len(set([type(iq_object) for iq_object in iq_objects])) == 1
-    )  # check all objects of same type
+    assert len(set([type(iq_object) for iq_object in iq_objects])) == 1  # check all objects of same type
     new_components = list()
     for i in range(len(reference_object)):  # iterate over the IQ object components
-        i_components = [
-            iq_object[i] for iq_object in iq_objects
-        ]  # collect the ith components of each object
-        if True in [
-            i_component is None for i_component in i_components
-        ]:  # is any of these None?
+        i_components = [iq_object[i] for iq_object in iq_objects]  # collect the ith components of each object
+        if True in [i_component is None for i_component in i_components]:  # is any of these None?
             new_components.append(None)
         elif unpack is True:
             new_components.append(operation(*i_components, **kwargs))
@@ -122,9 +116,7 @@ def _extract(iq_object, selection):
             component_fragments.append(None)
         else:
             fragment = component.__getitem__(selection)
-            if (
-                isinstance(fragment, Iterable) is False
-            ):  # selection extracts only one data point
+            if isinstance(fragment, Iterable) is False:  # selection extracts only one data point
                 fragment = [
                     fragment,
                 ]
@@ -147,9 +139,7 @@ def scale_intensity(iq_object, scaling):
     """
     intensity = scaling * iq_object.intensity
     error = scaling * iq_object.error
-    return iq_object.__class__(
-        intensity, error, *[iq_object[i] for i in range(2, len(iq_object))]
-    )
+    return iq_object.__class__(intensity, error, *[iq_object[i] for i in range(2, len(iq_object))])
 
 
 def verify_same_q_bins(iq0, iq1, raise_exception_if_diffrent=False, tolerance=None):
@@ -167,9 +157,7 @@ def verify_same_q_bins(iq0, iq1, raise_exception_if_diffrent=False, tolerance=No
     """
     # Same class
     if iq0.__class__ != iq1.__class__:
-        raise RuntimeError(
-            f"Input I(Q)s are of different type: {type(iq0)} and {type(iq1)}"
-        )
+        raise RuntimeError(f"Input I(Q)s are of different type: {type(iq0)} and {type(iq1)}")
 
     # IQmod
     if isinstance(iq0, IQmod):
@@ -192,9 +180,7 @@ def verify_same_q_bins(iq0, iq1, raise_exception_if_diffrent=False, tolerance=No
             q0vec = np.array([iq0.qx, iq0.qy, iq0.wavelength])
             q1vec = np.array([iq1.qx, iq1.qy, iq0.wavelength])
     else:
-        raise RuntimeError(
-            f"I(Q) of type {type(iq0)} is not supported by verify same binning"
-        )
+        raise RuntimeError(f"I(Q) of type {type(iq0)} is not supported by verify same binning")
 
     # Verify
     same = True
@@ -232,15 +218,11 @@ def q_azimuthal_to_q_modulo(Iq):
     mod_q = np.sqrt(np.square(qx) + np.square(qy))
     delta_mode_q = np.sqrt(np.square(delta_qx) + np.square(delta_qy))
 
-    q_azimuthal_to_q_modulo = namedtuple(
-        "q_azimuthal_to_q_modulo", "mod_q, delta_mod_q"
-    )
+    q_azimuthal_to_q_modulo = namedtuple("q_azimuthal_to_q_modulo", "mod_q, delta_mod_q")
     q_azimuthal_to_q_modulo.mod_q = mod_q
     q_azimuthal_to_q_modulo.delta_mod_q = delta_mode_q
 
-    iqmod = IQmod(
-        intensity=Iq.intensity, error=Iq.error, mod_q=mod_q, delta_mod_q=delta_mode_q
-    )
+    iqmod = IQmod(intensity=Iq.intensity, error=Iq.error, mod_q=mod_q, delta_mod_q=delta_mode_q)
 
     return iqmod
 
@@ -305,14 +287,10 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"))
         """
         from pandas import read_csv as pd_read_csv
 
-        frame = pd_read_csv(
-            file, sep=sep, dtype=np.float64, na_values="NAN", comment="#"
-        )
+        frame = pd_read_csv(file, sep=sep, dtype=np.float64, na_values="NAN", comment="#")
         args = [frame[label].values for label in ["intensity", "error", "mod_q"]]
         kwargs = {
-            label: frame[label].values
-            for label in ["delta_mod_q", "wavelength"]
-            if label in list(frame.columns)
+            label: frame[label].values for label in ["delta_mod_q", "wavelength"] if label in list(frame.columns)
         }
         return IQmod(*args, **kwargs)
 
@@ -324,11 +302,7 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"))
 
         # if intensity is 1d, then everything else will be if they are parallel
         if len(intensity.shape) != 1:
-            raise TypeError(
-                '"intensity" must be a 1-dimensional array, found shape={}'.format(
-                    intensity.shape
-                )
-            )
+            raise TypeError('"intensity" must be a 1-dimensional array, found shape={}'.format(intensity.shape))
 
         # check that the manditory fields are parallel
         _check_parallel(intensity, error, mod_q)
@@ -342,9 +316,7 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"))
             _check_parallel(intensity, wavelength)
 
         # pass everything to namedtuple
-        return super(IQmod, cls).__new__(
-            cls, intensity, error, mod_q, delta_mod_q, wavelength
-        )
+        return super(IQmod, cls).__new__(cls, intensity, error, mod_q, delta_mod_q, wavelength)
 
     def __mul__(self, scaling):
         r"""Scale intensities and their uncertainties by a number"""
@@ -414,9 +386,7 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"))
     def be_finite(self):
         #  Remove NaN
         finite_locations = np.isfinite(self.intensity)
-        finite_delta_mod_q = (
-            None if self.delta_mod_q is None else self.delta_mod_q[finite_locations]
-        )
+        finite_delta_mod_q = None if self.delta_mod_q is None else self.delta_mod_q[finite_locations]
         finite_binned_iq_wl = IQmod(
             intensity=self.intensity[finite_locations],
             error=self.error[finite_locations],
@@ -463,13 +433,7 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"))
         # Convert to dictionary to construct a pandas DataFrame instance
         from pandas import DataFrame
 
-        frame = DataFrame(
-            {
-                label: value
-                for label, value in self._asdict().items()
-                if value is not None
-            }
-        )
+        frame = DataFrame({label: value for label, value in self._asdict().items() if value is not None})
 
         #  Create the order of the columns
         i_q_mod_cols = ["mod_q", "intensity", "error"]  # 3 mandatory columns
@@ -477,9 +441,7 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"))
             i_q_mod_cols.append("delta_mod_q")
         if "wavelength" in frame.keys():
             i_q_mod_cols.append("wavelength")
-        mode_nan = (
-            "w"  # write mode for csv file. If we add a header first, it will be 'a'
-        )
+        mode_nan = "w"  # write mode for csv file. If we add a header first, it will be 'a'
         # delete NANs if requested
         if skip_nan:
             finites = np.isfinite(frame["intensity"])
@@ -540,9 +502,7 @@ def load_iqmod(file, sep=" ", header_type=HeaderType.PANDAS.value):
     if header_type == HeaderType.MANTID_ASCII.value:
         csv_data = np.genfromtxt(file, comments="#", dtype=np.float64, skip_header=2)
         num_cols = len(csv_data[0])
-        assert num_cols == 4, "Incompatible number of colums: {} should be 4".format(
-            num_cols
-        )
+        assert num_cols == 4, "Incompatible number of colums: {} should be 4".format(num_cols)
 
         return IQmod(csv_data[:, 1], csv_data[:, 2], csv_data[:, 0], csv_data[:, 3])
     else:
@@ -591,9 +551,7 @@ def save_iqmod(
         iq.to_csv(file, sep=sep, float_format=float_format, skip_nan=skip_nan)
 
 
-class IQazimuthal(
-    namedtuple("IQazimuthal", "intensity error qx qy delta_qx delta_qy wavelength")
-):
+class IQazimuthal(namedtuple("IQazimuthal", "intensity error qx qy delta_qx delta_qy wavelength")):
     r"""
     This class holds the information for the azimuthal projection, I(Qx, Qy). The resolution terms,
     (``delta_qx``, ``delta_qy``) and ``wavelength`` fields are optional.
@@ -611,9 +569,7 @@ class IQazimuthal(
     because qx and qy will be created in such style.
     """
 
-    def __new__(
-        cls, intensity, error, qx, qy, delta_qx=None, delta_qy=None, wavelength=None
-    ):  # noqa: C901
+    def __new__(cls, intensity, error, qx, qy, delta_qx=None, delta_qy=None, wavelength=None):  # noqa: C901
         # these conversions do nothing if the supplied information is already a numpy.ndarray
         intensity = np.array(intensity)
         error = np.array(error)
@@ -629,35 +585,23 @@ class IQazimuthal(
                 _check_parallel(intensity, error)
                 if intensity.shape[0] != qx.shape[0]:
                     raise TypeError(
-                        "Incompatible dimensions intensity[{}] and qx[{}]".format(
-                            intensity.shape, qx.shape[0]
-                        )
+                        "Incompatible dimensions intensity[{}] and qx[{}]".format(intensity.shape, qx.shape[0])
                     )
                 if intensity.shape[1] != qy.shape[0]:
                     raise TypeError(
-                        "Incompatible dimensions intensity[{}] and qy[{}]".format(
-                            intensity.shape, qy.shape[0]
-                        )
+                        "Incompatible dimensions intensity[{}] and qy[{}]".format(intensity.shape, qy.shape[0])
                     )
             elif len(qx.shape) == 2:
                 # Qx and Qy are given in meshed 2D
                 _check_parallel(intensity, error, qx, qy)
             else:
-                raise TypeError(
-                    "Qx can only be of dimension 1 or 2, found {}".format(len(qx.shape))
-                )
+                raise TypeError("Qx can only be of dimension 1 or 2, found {}".format(len(qx.shape)))
         else:
-            raise TypeError(
-                "intensity can only be of dimension 1 or 2, found {}".format(
-                    len(intensity.shape)
-                )
-            )
+            raise TypeError("intensity can only be of dimension 1 or 2, found {}".format(len(intensity.shape)))
 
         # work with optional fields
         if np.logical_xor(delta_qx is None, delta_qy is None):
-            raise TypeError(
-                "Must specify either both or neither of delta_qx and delta_qy"
-            )
+            raise TypeError("Must specify either both or neither of delta_qx and delta_qy")
         if delta_qx is not None:
             delta_qx = np.array(delta_qx)
             delta_qy = np.array(delta_qy)
@@ -670,18 +614,18 @@ class IQazimuthal(
         if len(intensity.shape) == 2 and len(qx.shape) == 1 and len(qy.shape) == 1:
             # Using meshgrid to construct the Qx and Qy 2D arrays.  This is consistent with the algorithm
             # that is used in bin_iq_2d()
-            qx, qy = np.meshgrid(qx, qy, indexing='ij')
+            qx, qy = np.meshgrid(qx, qy, indexing="ij")
 
             # Sanity check
-            assert qx.shape == intensity.shape, f'qx and intensity must have same shapes.  ' \
-                                                f'It is not now: {qx.shape} vs {intensity.shape}'
-            assert qy.shape == intensity.shape, f'qy and intensity must have same shapes.  ' \
-                                                f'It is not now: {qy.shape} vs {intensity.shape}'
+            assert qx.shape == intensity.shape, (
+                f"qx and intensity must have same shapes.  " f"It is not now: {qx.shape} vs {intensity.shape}"
+            )
+            assert qy.shape == intensity.shape, (
+                f"qy and intensity must have same shapes.  " f"It is not now: {qy.shape} vs {intensity.shape}"
+            )
 
         # pass everything to namedtuple
-        return super(IQazimuthal, cls).__new__(
-            cls, intensity, error, qx, qy, delta_qx, delta_qy, wavelength
-        )
+        return super(IQazimuthal, cls).__new__(cls, intensity, error, qx, qy, delta_qx, delta_qy, wavelength)
 
     def be_finite(self):
         """Remove NaN by flattening first
@@ -707,17 +651,9 @@ class IQazimuthal(
         error = self.error.flatten()[finite_locations]
         qx = self.qx.flatten()[finite_locations]
         qy = self.qy.flatten()[finite_locations]
-        dqx = (
-            None if self.delta_qx is None else self.delta_qx.flatten()[finite_locations]
-        )
-        dqy = (
-            None if self.delta_qy is None else self.delta_qy.flatten()[finite_locations]
-        )
-        wavelength = (
-            None
-            if self.wavelength is None
-            else self.wavelength.flatten()[finite_locations]
-        )
+        dqx = None if self.delta_qx is None else self.delta_qx.flatten()[finite_locations]
+        dqy = None if self.delta_qy is None else self.delta_qy.flatten()[finite_locations]
+        wavelength = None if self.wavelength is None else self.wavelength.flatten()[finite_locations]
 
         finite_iq2d = IQazimuthal(
             intensity=intensity,
@@ -770,11 +706,7 @@ class IQazimuthal(
         )
 
 
-class IQcrystal(
-    namedtuple(
-        "IQazimuthal", "intensity error qx qy qz delta_qx delta_qy delta_qz wavelength"
-    )
-):
+class IQcrystal(namedtuple("IQazimuthal", "intensity error qx qy qz delta_qx delta_qy delta_qz wavelength")):
     """This class holds the information for the crystallographic projection, I(Qx, Qy, Qz). All of the
     arrays must be 1-dimensional and parallel (same length). The resolution terms, (``delta_qx``,
     ``delta_qy``, ``delta_qz``) and ``wavelength`` fields are optional."""
@@ -800,11 +732,7 @@ class IQcrystal(
 
         # check that the manditory fields are parallel
         if len(intensity.shape) != 1:
-            raise NotImplementedError(
-                "Do not currently support dimension != 1, found {}".format(
-                    len(intensity.shape)
-                )
-            )
+            raise NotImplementedError("Do not currently support dimension != 1, found {}".format(len(intensity.shape)))
         _check_parallel(intensity, error)
         _check_parallel(intensity, qx, qy, qz)  # TODO make more generic
 
@@ -817,9 +745,7 @@ class IQcrystal(
         if delta_qz is not None:
             count += 1
         if not (count == 0 or count == 3):
-            raise TypeError(
-                "Must specify either all or none of delta_qx, delta_qy, delta_qz"
-            )
+            raise TypeError("Must specify either all or none of delta_qx, delta_qy, delta_qz")
         if delta_qx is not None:
             delta_qx = np.array(delta_qx)
             delta_qy = np.array(delta_qy)
@@ -930,27 +856,17 @@ class _Testing:
         ------
         AssertionError
         """
-        reference_object = iq_objects[
-            0
-        ]  # pick the first of the list as reference object
-        assert (
-            len(set([type(iq_object) for iq_object in iq_objects])) == 1
-        )  # check all objects of same type
+        reference_object = iq_objects[0]  # pick the first of the list as reference object
+        assert len(set([type(iq_object) for iq_object in iq_objects])) == 1  # check all objects of same type
         for i in range(len(reference_object)):  # iterate over the IQ object components
             component_name = reference_object._fields[i]
             print(f"all_close on {component_name}")
-            i_components = [
-                iq_object[i] for iq_object in iq_objects
-            ]  # collect the ith components of each object
-            if True in [
-                i_component is None for i_component in i_components
-            ]:  # is any of these None?
+            i_components = [iq_object[i] for iq_object in iq_objects]  # collect the ith components of each object
+            if True in [i_component is None for i_component in i_components]:  # is any of these None?
                 if set(i_components) == set([None]):
                     continue  # all arrays are actually None, so they are identical
                 else:
-                    raise AssertionError(
-                        f"field {component_name} is None for some of the iQ objects"
-                    )
+                    raise AssertionError(f"field {component_name} is None for some of the iQ objects")
             elif unpack is True:
                 assertion_function(*i_components, **kwargs)
             else:
@@ -967,6 +883,4 @@ class _Testing:
         )
 
 
-testing = (
-    _Testing()
-)  # use it as if it were a module, e.g. testing.assert_allclose(iq_1, iq_2, atol=1.e-6)
+testing = _Testing()  # use it as if it were a module, e.g. testing.assert_allclose(iq_1, iq_2, atol=1.e-6)

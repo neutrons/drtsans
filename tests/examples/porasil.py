@@ -13,12 +13,8 @@ from reduction_workflow.instruments.sans.sns_command_interface import *
 config = ConfigService.Instance()
 config["instrumentName"] = "EQSANS"
 
-mask60_ws4m = Load(
-    Filename="/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs"
-)
-ws604m, masked60_detectors4m = ExtractMask(
-    InputWorkspace=mask60_ws4m, OutputWorkspace="__edited_mask604m"
-)
+mask60_ws4m = Load(Filename="/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs")
+ws604m, masked60_detectors4m = ExtractMask(InputWorkspace=mask60_ws4m, OutputWorkspace="__edited_mask604m")
 detector_ids604m = [int(i) for i in masked60_detectors4m]
 Mask_BS604m = detector_ids604m
 
@@ -92,16 +88,22 @@ while Sca1 <= Last:
             data_list = [str(Filename_lowq), str(Filename_hiq)]
             Stitch(data_list, q_min, q_max, scale=None, save_output=True)
 
-        except (RuntimeError):
-            print ""
-            print "RuntimeError - the data file " + Filename_lowq + " may not exist, but other issues certainly exist. Check this error message:"
-            print "RuntimeError - the data file " + Filename_hiq + " may not exist, but other issues certainly exist. Check this error message:"
-            print sys.exc_info()
+        except RuntimeError:
+            print("")
+            print(
+                "RuntimeError - the data file "
+                + Filename_lowq
+                + " may not exist, but other issues certainly exist. Check this error message:"
+            )
+            print(
+                "RuntimeError - the data file "
+                + Filename_hiq
+                + " may not exist, but other issues certainly exist. Check this error message:"
+            )
+            print(sys.exc_info())
 
         try:
-            RenameWorkspace(
-                InputWorkspace="combined_scaled_Iq", OutputWorkspace=WkSpMerge
-            )
+            RenameWorkspace(InputWorkspace="combined_scaled_Iq", OutputWorkspace=WkSpMerge)
             SaveAscii(
                 InputWorkspace=WkSpMerge,
                 Filename=FileNameOut2,
@@ -120,11 +122,11 @@ while Sca1 <= Last:
             junk = Filename_hiq + "_scaled"
             DeleteWorkspace(junk)
 
-        except (RuntimeError):
-            print ""
-            print "RuntimeError - the data file " + FileNameOut1 + " may not exist.  Check this error message:"
-            print "RuntimeError - the data file " + FileNameOut2 + " may not exist.  Check this error message:"
-            print sys.exc_info()
+        except RuntimeError:
+            print("")
+            print("RuntimeError - the data file " + FileNameOut1 + " may not exist.  Check this error message:")
+            print("RuntimeError - the data file " + FileNameOut2 + " may not exist.  Check this error message:")
+            print(sys.exc_info())
 
     Sca1 = Sca1 + 1
     Tra = Tra + 1

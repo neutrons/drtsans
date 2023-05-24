@@ -20,9 +20,7 @@ def test_cg2_pid_range(reference_dir):
         max_pid = np.max(pids)
         start_pid, end_pid = CG2EventNexusConvert().get_pid_range(bank_id)
 
-        assert (
-            start_pid <= min_pid <= max_pid <= end_pid
-        ), f"CG2 Bank {bank_id} PID is out of range"
+        assert start_pid <= min_pid <= max_pid <= end_pid, f"CG2 Bank {bank_id} PID is out of range"
 
     # close file
     nexus_h5.close()
@@ -67,9 +65,7 @@ def test_cg3_pid_range(reference_dir):
 def test_mask_detector(reference_dir):
     """Test mask detector"""
     # Load data
-    test_spice = os.path.join(
-        reference_dir.new.biosans, "BioSANS_exp549_scan0010_0001.xml"
-    )
+    test_spice = os.path.join(reference_dir.new.biosans, "BioSANS_exp549_scan0010_0001.xml")
     assert os.path.exists(test_spice)
 
     # Init CG3 convert

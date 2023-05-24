@@ -36,19 +36,12 @@ def test_load_all_files_simple():
     history = loaded.sample[0].getHistory()
     assert history.size() == 9
     assert history.getAlgorithm(0).name() == "LoadEventNexus"
-    assert (
-        history.getAlgorithm(0).getProperty("Filename").value
-        == "/HFIR/CG2/IPTS-23801/nexus/CG2_1338.nxs.h5"
-    )
+    assert history.getAlgorithm(0).getProperty("Filename").value == "/HFIR/CG2/IPTS-23801/nexus/CG2_1338.nxs.h5"
     assert history.getAlgorithm(1).name() == "MoveInstrumentComponent"  # moderator
-    assert (
-        history.getAlgorithm(2).name() == "MoveInstrumentComponent"
-    )  # sample-position
+    assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"  # sample-position
     assert history.getAlgorithm(3).name() == "MoveInstrumentComponent"  # detector1
     assert history.getAlgorithm(4).name() == "AddSampleLogMultiple"  # CG2:CS:SampleToSi
-    assert (
-        history.getAlgorithm(5).name() == "AddSampleLogMultiple"
-    )  # sample_detector_distance
+    assert history.getAlgorithm(5).name() == "AddSampleLogMultiple"  # sample_detector_distance
     assert history.getAlgorithm(6).name() == "HFIRSANS2Wavelength"
     assert history.getAlgorithm(7).name() == "SetUncertainties"
     assert history.getAlgorithm(8).name() == "AddSampleLogMultiple"  # sample_offset
@@ -82,18 +75,14 @@ def test_prepare_data_workspaces_simple(generic_workspace):
     assert history.getAlgorithm(2).name() == "CloneWorkspace"
 
     # the ws name should change to what is set
-    output2 = prepare_data_workspaces(
-        ws, output_workspace_name="foobar", solid_angle=False
-    )
+    output2 = prepare_data_workspaces(ws, output_workspace_name="foobar", solid_angle=False)
     assert output2.name() == "foobar"
 
 
 def test_prepare_data_workspaces_center(generic_workspace):
     ws = generic_workspace  # friendly name
 
-    output = prepare_data_workspaces(
-        ws, center_x=0.111, center_y=0.123, solid_angle=False
-    )
+    output = prepare_data_workspaces(ws, center_x=0.111, center_y=0.123, solid_angle=False)
 
     # this should make a clone of the workspace
     assert ws is not output
@@ -141,9 +130,7 @@ def test_prepare_data_workspaces_dark_current():
     # 'duration'
     SampleLogs(data_workspace).insert("duration", 36.0, "second")
 
-    output = prepare_data_workspaces(
-        data_workspace, dark_current=dark_current_workspace, solid_angle=False
-    )
+    output = prepare_data_workspaces(data_workspace, dark_current=dark_current_workspace, solid_angle=False)
 
     assert output.getHistory().size() == 8
 
@@ -151,9 +138,7 @@ def test_prepare_data_workspaces_dark_current():
     assert_almost_equal(output.extractE(), [[1.00498756], [1.41774469]])
 
 
-@pytest.mark.parametrize(
-    "generic_workspace", [{"intensities": [[1, 2], [3, 4]]}], indirect=True
-)
+@pytest.mark.parametrize("generic_workspace", [{"intensities": [[1, 2], [3, 4]]}], indirect=True)
 def test_prepare_data_workspaces_flux_method(generic_workspace):
     ws = generic_workspace  # friendly name
     SampleLogs(ws).insert("duration", 2.0)
@@ -187,9 +172,7 @@ def test_prepare_data_workspaces_apply_mask(generic_workspace):
     assert alg3.getPropertyValue("DetectorList") == "0,2"
 
 
-@pytest.mark.parametrize(
-    "generic_workspace", [{"intensities": [[1, 1], [1, 1]]}], indirect=True
-)
+@pytest.mark.parametrize("generic_workspace", [{"intensities": [[1, 1], [1, 1]]}], indirect=True)
 def test_prepare_data_workspaces_solid_angle(generic_workspace):
     ws = generic_workspace  # friendly name
 
@@ -198,9 +181,7 @@ def test_prepare_data_workspaces_solid_angle(generic_workspace):
     # CreateWorkspace, LoadInstrument, CloneWorkspace, CloneWorkspace,
     # ClearMaskFlag, SolidAngle, Divide, ReplaceSpecialValues
     assert output.getHistory().size() == 8
-    assert_almost_equal(
-        output.extractY(), [[25.6259267], [25.6259267], [25.6259267], [25.6259267]]
-    )
+    assert_almost_equal(output.extractY(), [[25.6259267], [25.6259267], [25.6259267], [25.6259267]])
 
 
 def test_prepare_data_workspaces_sensitivity():
@@ -226,9 +207,7 @@ def test_prepare_data_workspaces_sensitivity():
         OutputWorkspace=data_workspace,
     )
 
-    output = prepare_data_workspaces(
-        data_workspace, sensitivity_workspace=sensitivity_workspace, solid_angle=False
-    )
+    output = prepare_data_workspaces(data_workspace, sensitivity_workspace=sensitivity_workspace, solid_angle=False)
 
     assert output.getHistory().size() == 6
 
@@ -236,9 +215,7 @@ def test_prepare_data_workspaces_sensitivity():
     assert_almost_equal(output.extractE(), [[0.6123724], [1.0]])
 
 
-@pytest.mark.parametrize(
-    "generic_workspace", [{"intensities": [[1, 2], [3, 4]]}], indirect=True
-)
+@pytest.mark.parametrize("generic_workspace", [{"intensities": [[1, 2], [3, 4]]}], indirect=True)
 def test_process_single_configuration_thickness_absolute_scale(generic_workspace):
     ws = generic_workspace
 
@@ -261,9 +238,7 @@ def test_process_single_configuration_thickness_absolute_scale(generic_workspace
     output = process_single_configuration(ws, solid_angle=False, thickness=0.1)
     assert_equal(output.extractY(), [[10], [20], [30], [40]])
 
-    output = process_single_configuration(
-        ws, solid_angle=False, absolute_scale=1.5, thickness=0.1
-    )
+    output = process_single_configuration(ws, solid_angle=False, absolute_scale=1.5, thickness=0.1)
     assert_equal(output.extractY(), [[15], [30], [45], [60]])
 
 

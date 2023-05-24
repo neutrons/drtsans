@@ -102,23 +102,14 @@ def sigma_neutron(
     r = (delta_wave_length / wave_length) ** 2
 
     # dQx
-    sigma_x = (
-        2.0 * np.pi * np.cos(theta) * np.cos(2.0 * theta) ** 2 / wave_length / L2
-    ) ** 2
-    sigma_x = sigma_x * (
-        (L2 / L1) ** 2 * R1**2 / 4 + (1 + L2 / L1) ** 2 * R2**2 / 4 + x3**2 / 12
-    )  # geometry
+    sigma_x = (2.0 * np.pi * np.cos(theta) * np.cos(2.0 * theta) ** 2 / wave_length / L2) ** 2
+    sigma_x = sigma_x * ((L2 / L1) ** 2 * R1**2 / 4 + (1 + L2 / L1) ** 2 * R2**2 / 4 + x3**2 / 12)  # geometry
     sigma_x = np.sqrt(
-        sigma_x
-        + Qx**2
-        / 12
-        * (r + (3.9560 * sig_emission) ** 2 / (1000 * wave_length * (s2p + m2s)) ** 2)
+        sigma_x + Qx**2 / 12 * (r + (3.9560 * sig_emission) ** 2 / (1000 * wave_length * (s2p + m2s)) ** 2)
     )
 
     # dQy
-    sigma_y = (
-        2.0 * np.pi * np.cos(theta) * np.cos(2 * theta) ** 2 / wave_length / L2
-    ) ** 2
+    sigma_y = (2.0 * np.pi * np.cos(theta) * np.cos(2 * theta) ** 2 / wave_length / L2) ** 2
     sigma_y = sigma_y * (
         (L2 / L1) ** 2 * R1**2 / 4
         + (1 + L2 / L1) ** 2 * R2**2 / 4
@@ -126,10 +117,7 @@ def sigma_neutron(
         + B**2 * wave_length**4 * 2 / 3 * r
     )
     sigma_y = np.sqrt(
-        sigma_y
-        + Qy**2
-        / 12
-        * (r + (3.9560 * sig_emission) ** 2 / (1000 * wave_length * (s2p + m2s)) ** 2)
+        sigma_y + Qy**2 / 12 * (r + (3.9560 * sig_emission) ** 2 / (1000 * wave_length * (s2p + m2s)) ** 2)
     )
 
     return sigma_x, sigma_y

@@ -30,11 +30,7 @@ def load_data(filename):
     # Get mask from detector info
     di = ws.detectorInfo()
     offset = int(di.detectorIDs().searchsorted(0))
-    mask = (
-        np.array([di.isMasked(i + offset) for i in range(data.size)])
-        .reshape(-1, 8, 256)
-        .T
-    )
+    mask = np.array([di.isMasked(i + offset) for i in range(data.size)]).reshape(-1, 8, 256).T
     mask2 = mask[:, [0, 4, 1, 5, 2, 6, 3, 7], :]
     mask2 = mask2.transpose().reshape(-1, 256)
     return np.ma.masked_where(mask2, data2).T, ws.getRunNumber(), ws.getTitle()

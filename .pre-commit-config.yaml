@@ -9,6 +9,10 @@ repos:
       - id: check-json
       - id: check-added-large-files
       - id: check-yaml
+        exclude: |
+          (?x)^(
+          ^conda.recipe/meta.yaml
+          )$
       - id: debug-statements
       - id: requirements-txt-fixer
       - id: check-merge-conflict
@@ -19,6 +23,10 @@ repos:
     hooks:
       - id: black
         args: ['--line-length=119']
+        exclude: |
+          (?x)^(
+          ^versioneer.py
+          )$
   - repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
     hooks:

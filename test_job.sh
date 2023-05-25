@@ -12,7 +12,7 @@ while [[ $# -gt 0 ]]; do
 
     case $key in
         -m|--markers)
-        MARKERS="-m $2"
+        MARKERS="-m \"$2\""
         shift # past argument
         shift # past value
         ;;

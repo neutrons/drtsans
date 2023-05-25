@@ -6,7 +6,6 @@ cp -R /opt/sans-backend /tmp/
 cd /tmp/sans-backend/conda.recipe
 
 # setup and build the conda package
-conda install -y --solver=libmamba anaconda-client conda-build conda-verify boa
 conda render .
 conda mambabuild --output-folder . . -c mantid/label/nightly -c conda-forge -c defaults
 

@@ -1011,7 +1011,7 @@ def test_debug_biosans_wing_detector_barscan(reference_dir, tmp_path):
     )
     # WARNING: this will add a small file to runtime disk, which might cause issue on the
     #          build server in the long run.
-    calibration.save(database=path_join(tmp_path, "junk.json"), tablefile="junk.nxs")
+    calibration.save(database=path_join(tmp_path, "junk.json"), tablefile=path_join(tmp_path,"junk.nxs"))
     LoadNexus(barscan_files[0], OutputWorkspace="reference_workspace")
     views = calibration.as_intensities("reference_workspace")
     print(views)

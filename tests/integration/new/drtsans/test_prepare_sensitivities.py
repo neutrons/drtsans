@@ -4,6 +4,7 @@
 import pytest
 import numpy as np
 import os
+from os.path import join as path_join
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
 from mantid.simpleapi import LoadNexusProcessed
 from mantid.simpleapi import DeleteWorkspace
@@ -132,7 +133,7 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
 
 
 @pytest.mark.requires_large_memory
-def test_cg3_main_prepare_sensitivities():
+def test_cg3_main_prepare_sensitivities(tmp_path):
     """Integration test on algorithms to prepare sensitivities for BIOSANS's main detector
 
     Returns
@@ -202,7 +203,7 @@ def test_cg3_main_prepare_sensitivities():
     preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
 
     # Run
-    output_sens_file = "IntegrateTest_CG3_Main_Sens.nxs"
+    output_sens_file = path_join(tmp_path, "IntegrateTest_CG3_Main_Sens.nxs")
     preparer.execute(False, MIN_THRESHOLD, MAX_THRESHOLD, output_nexus_name=output_sens_file)
 
     # Verify file existence

@@ -135,9 +135,10 @@ def test_bank_workspace_indices(instrument, component, wksp_index_min, wksp_inde
             "z_center": 0.0,  # detector center
             "diameter": 0.02,
             "height": 0.02,  # pixel dimensions
-            "x_center": 0.0,
-            "y_center": 0.0,
-            "z_center": 0.0,
+            # ruff keeps removing the following 3 lines
+            # "x_center": 0.0,
+            # "y_center": 0.0,
+            # "z_center": 0.0,
         }
     ],
     indirect=True,

@@ -19,7 +19,8 @@ variables:
 # Job Stages
 #####
 stages:
-  - preparation
+  - static-analysis
+  - dockerbuild
   - test
   - publish
   - analysis-update
@@ -27,8 +28,25 @@ stages:
 #####
 # Jobs
 #####
+pre-commit:
+  stage: static-analysis
+  retry: 1
+  before_script:
+    - *startup_cleanup
+    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
+    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
+  script:
+    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $MINICONDA_CONTAINER
+    - time docker run -v $PWD:/opt/sans-backend -t $MINICONDA_CONTAINER bash -c "conda install -y pre-commit && cd /opt/sans-backend && pre-commit run --all"
+    - sudo chown -R gitlab-runner .
+  after_script:
+    - *teardown_cleanup
+  tags:
+    - scse-drtsans-builder
+
 dockerbuild:
-  stage: preparation
+  stage: dockerbuild
   retry: 1
   before_script:
     - *startup_cleanup
@@ -94,23 +112,6 @@ docker-no-update-test:
     - *teardown_cleanup
   tags:
     - scse-drtsans-builder   #scse-sans-demo
-
-pre-commit:
-  stage: preparation
-  retry: 1
-  before_script:
-    - *startup_cleanup
-    - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
-    - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
-  script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $MINICONDA_CONTAINER
-    - time docker run -v $PWD:/opt/sans-backend -t $MINICONDA_CONTAINER bash -c "conda install -y pre-commit && cd /opt/sans-backend && pre-commit run --all"
-    - sudo chown -R gitlab-runner .
-  after_script:
-    - *teardown_cleanup
-  tags:
-    - scse-drtsans-builder
 
 docs-feature:
   stage: test

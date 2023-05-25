@@ -218,7 +218,7 @@ def test_cg3_main_prepare_sensitivities(tmp_path):
     os.remove(output_sens_file)
 
 
-def test_cg3_wing_prepare_sensitivities():
+def test_cg3_wing_prepare_sensitivities(tmp_path):
     """Integration test on algorithms to prepare sensitivities for BIOSANS's wing detector
 
     Returns
@@ -291,7 +291,7 @@ def test_cg3_wing_prepare_sensitivities():
     preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
 
     # Run
-    output_sens_file = "IntegrateTest_CG3_Wing_Sens.nxs"
+    output_sens_file = path_join(tmp_path, "IntegrateTest_CG3_Wing_Sens.nxs")
     preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, output_sens_file)
 
     # Verify file existence
@@ -325,7 +325,7 @@ def test_cg3_wing_prepare_sensitivities():
     DeleteWorkspace("TRANS_CG3_4835")
 
 
-def test_cg2_sensitivities():
+def test_cg2_sensitivities(tmp_path):
     """Integration test on algorithms to prepare sensitivities for GPSANS's
     with moving detector method
 
@@ -374,7 +374,7 @@ def test_cg2_sensitivities():
     preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
 
     # Run
-    output_sens_file = "IntegrateTest_CG2_MovingDet.nxs"
+    output_sens_file = path_join(tmp_path, "IntegrateTest_CG2_MovingDet.nxs")
     preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, output_sens_file)
 
     # Verify file existence

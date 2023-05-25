@@ -18,6 +18,8 @@ ls */*.tar.bz2
 conda-verify ./noarch/drtsans-*.tar.bz2
 
 # Deploy tags to anaconda.org
+echo "CI_COMMIT_TAG=${CI_COMMIT_TAG}"
+echo "CI_COMMIT_REF_NAME=${CI_COMMIT_REF_NAME}"
 if [ -n "${CI_COMMIT_TAG}" ]; then
     CONDA_LABEL="main"
     if [ "${CI_COMMIT_TAG}" = "*rc*" ]; then
@@ -25,4 +27,6 @@ if [ -n "${CI_COMMIT_TAG}" ]; then
     fi
     echo pushing $CI_COMMIT_REF_SLUG with label $CONDA_LABEL
     anaconda upload --label $CONDA_LABEL ./noarch/drtsans-*.tar.bz2
+else
+    echo "Not publishing package to anaconda.org"
 fi

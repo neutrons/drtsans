@@ -25,7 +25,7 @@ workspaces = [
 ]
 
 
-@pytest.mark.skipif(True, reason="Job is too large to run on build server")
+@pytest.mark.requires_large_memory
 def test_main_detector(reference_dir, generatecleanfile, clean_workspace):
     """Test case for CG3 main detector
 

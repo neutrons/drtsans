@@ -940,7 +940,7 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
     DeleteWorkspace("barscan_UNDEFINED_detector1_20200219")
 
 
-@pytest.mark.skip(reason="takes too long for integration. Should be marked as nightly system test")
+@pytest.mark.long_execution_time
 def test_calculate_gpsans_barscan(reference_dir, tmp_path):
     r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
     barscan_file = path_join(reference_dir.new.gpsans, "pixel_calibration", "CG2_7465.nxs.h5")
@@ -962,7 +962,7 @@ def test_calculate_gpsans_barscan(reference_dir, tmp_path):
     DeleteWorkspace(table_worskpace)
 
 
-@pytest.mark.skip(reason="takes too long for integration. Should be marked as nightly system test")
+@pytest.mark.long_execution_time
 def test_gpsans_calibration(reference_dir, clean_workspace):
     # Load an events file to search a calibration for
     gpsans_file = path_join(reference_dir.new.gpsans, "pixel_calibration", "CG2_7465.nxs.h5")
@@ -988,7 +988,7 @@ def test_gpsans_calibration(reference_dir, clean_workspace):
     as_intensities(input_workspace)
 
 
-@pytest.mark.skip(reason="takes too long for integration. Should be marked as nightly system test")
+@pytest.mark.long_execution_time
 def test_biosans_main_detector_barscan(reference_dir):
     data_dir = path_join(reference_dir.new.biosans, "pixel_calibration", "runs_838_953")
     first_run, last_run = 838, 953
@@ -997,7 +997,7 @@ def test_biosans_main_detector_barscan(reference_dir):
     print(calibration)
 
 
-@pytest.mark.skip(reason="takes too long for integration. Should be marked as nightly system test")
+@pytest.mark.long_execution_time
 def test_debug_biosans_wing_detector_barscan(reference_dir, tmp_path):
     r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
     data_dir = path_join(reference_dir.new.biosans, "pixel_calibration", "runs_838_953")

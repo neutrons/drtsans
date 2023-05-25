@@ -12,7 +12,7 @@ while [[ $# -gt 0 ]]; do
 
     case $key in
         -m|--markers)
-        MARKERS="-m \"$2\""
+        MARKERS="$2"
         shift # past argument
         shift # past value
         ;;
@@ -33,4 +33,10 @@ source activate drtsans-dev
 cd /opt/sans-backend
 echo "Writing tests results to $(pwd)/${TEST_SCOPE}_test_results.xml"
 
-pytest --dist loadscope $MARKERS -v /opt/sans-backend/tests/${TEST_SCOPE} -n 4 --junitxml=./${TEST_SCOPE}_test_results.xml
+# Run tests
+ARGS_COMMON="--dist loadscope --collect-only -v ./tests/${TEST_SCOPE} -n 4 --junitxml=./${TEST_SCOPE}_test_results.xml"
+if [ -n "$MARKERS" ]; then
+    pytest -m "$MARKERS" ${ARGS_COMMON}
+else
+    pytest ${ARGS_COMMON}
+fi

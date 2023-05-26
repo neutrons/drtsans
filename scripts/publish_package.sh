@@ -2,6 +2,10 @@
 set -ex
 echo GITHUB REF $CI_COMMIT_REF_SLUG
 
+# activate conda environment
+source activate drtsans-dev
+
+# go to the code directory in /tmp
 cp -R /opt/sans-backend /tmp/
 cd /tmp/sans-backend/conda.recipe
 

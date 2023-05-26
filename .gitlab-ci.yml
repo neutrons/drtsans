@@ -43,7 +43,7 @@ pre-commit:
   after_script:
     - *teardown_cleanup
   tags:
-    - scse-drtsans-builder
+    - neutrons-multi-builder
 
 dockerbuild:
   stage: dockerbuild
@@ -66,7 +66,7 @@ dockerbuild:
   after_script:
     - *teardown_cleanup
   tags:
-    - scse-drtsans-builder
+    - neutrons-multi-builder
   artifacts:
     paths:
     - scripts/sans-backend-run.sh

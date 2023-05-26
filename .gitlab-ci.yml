@@ -276,7 +276,7 @@ conda-package:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - time docker run -e "CI_COMMIT_TAG=${CI_COMMIT_TAG}" -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/publish_package.sh"
+    - time docker run -e "CI_COMMIT_TAG=${CI_COMMIT_TAG}" -e "ANACONDA_API_TOKEN=${ANACONDA_TOKEN}" -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/publish_package.sh"
   after_script:
     - ls -l $CI_PROJECT_DIR
     - *teardown_cleanup

@@ -18,8 +18,6 @@ ls */*.tar.bz2
 conda-verify ./noarch/drtsans-*.tar.bz2
 
 # Deploy tags to anaconda.org
-echo "CI_COMMIT_TAG=${CI_COMMIT_TAG}"
-echo "CI_COMMIT_REF_NAME=${CI_COMMIT_REF_NAME}"
 if [ -n "${CI_COMMIT_TAG}" ]; then
     CONDA_LABEL="main"
     if [ "${CI_COMMIT_TAG}" = "*rc*" ]; then

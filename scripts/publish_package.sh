@@ -2,14 +2,16 @@
 set -ex
 echo GITHUB REF $CI_COMMIT_REF_SLUG
 
+# activate conda environment
+source activate drtsans-dev
+
+# go to the code directory in /tmp
 cp -R /opt/sans-backend /tmp/
 cd /tmp/sans-backend/conda.recipe
 
 # setup and build the conda package
-conda update -y -n base conda
-conda install -y anaconda-client conda-build conda-verify
 conda render .
-conda build --output-folder . . -c mantid/label/nightly -c conda-forge -c defaults
+conda mambabuild --output-folder . . -c mantid/label/nightly -c conda-forge -c defaults
 
 # show what tarballs were created
 ls */*.tar.bz2

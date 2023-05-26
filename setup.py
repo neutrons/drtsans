@@ -4,7 +4,7 @@ Setup script for ORNL SANS reduction
 # from __future__ import absolute_import, division, print_function
 import os
 from setuptools import setup, find_packages
-import versioneer
+from versioningit import get_cmdclasses
 
 THIS_DIR = os.path.dirname(__file__)
 
@@ -40,8 +40,7 @@ CLASSIFIERS = [
 
 setup(
     name="drtsans",
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
+    cmdclass=get_cmdclasses(),
     description="Data Reduction Toolkit SANS reduction",
     url="https://http://www.mantidproject.org",
     long_description="""ORNL SANS reduction""",

@@ -1,4 +1,5 @@
 # project specific things to ignore
+drtsans/_version.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

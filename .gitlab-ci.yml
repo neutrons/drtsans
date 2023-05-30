@@ -39,9 +39,10 @@ pre-commit:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker pull $MINICONDA_CONTAINER
     - time docker run -v $PWD:/opt/sans-backend -t $MINICONDA_CONTAINER bash -c "conda install -y pre-commit && cd /opt/sans-backend && pre-commit run --all"
-    - sudo chown -R gitlab-runner .
   after_script:
     - *teardown_cleanup
+    - sudo chown -R gitlab-runner .
+    - sudo chown -R gitlab-runner .ruff_cache
   tags:
     - neutrons-multi-builder
 

@@ -20,11 +20,11 @@ build:
 requirements:
   host:
     - python=3.8
+    - versioningit
 
   build:
     - python=3.8
     - setuptools
-    - versioneer
     - mantid
 
   run:

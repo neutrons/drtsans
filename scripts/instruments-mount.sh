@@ -21,7 +21,7 @@ add_instrument_mount () {
         fi
       done
     fi
-    ls ${DEST_DIR}/${INSTRUMENT}
+    ls ${DEST_DIR}/${INSTRUMENT} | head -1
 }
 
 add_sns_mount () {

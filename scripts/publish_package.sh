@@ -21,10 +21,21 @@ conda-verify ./noarch/drtsans-*.tar.bz2
 
 # Deploy tags to anaconda.org
 if [ -n "${CI_COMMIT_TAG}" ]; then
-    CONDA_LABEL="main"
-    if [ "${CI_COMMIT_TAG}" = "*rc*" ]; then
-        CONDA_LABEL="rc"
+    if [ -z "${ANACONDA_TOKEN}" ]; then
+	echo "ANACONDA_TOKEN is not set"
+	exit -1
     fi
+    # determine the label for anaconda
+    if echo "${CI_COMMIT_TAG}" | grep -q "v.\+rc.\+" ; then
+	CONDA_LABEL="rc"
+    elif echo "${CI_COMMIT_TAG}" | grep -q "v.\+" ; then
+	CONDA_LABEL="main"
+    else
+	CONDA_LABEL="dev"
+    fi
+    # push the package
     echo pushing $CI_COMMIT_REF_SLUG with label $CONDA_LABEL
-    anaconda upload --label $CONDA_LABEL ./noarch/drtsans-*.tar.bz2
+    anaconda --token ${ANACONDA_TOKEN} upload --label $CONDA_LABEL ./noarch/drtsans-*.tar.bz2
+else
+    echo "Not publishing package to anaconda.org"
 fi

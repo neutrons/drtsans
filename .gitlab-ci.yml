@@ -205,27 +205,6 @@ code-integration-test:
   tags:
     - scse-drtsans-builder
 
-code-pylint:
-  allow_failure: true
-  stage: test
-  dependencies:
-    - dockerbuild
-  script:
-    - *startup_cleanup
-    - sudo rm -rf /tmp/sans-backend || true
-    - sudo mkdir -p /tmp/sans-backend
-    - sudo cp -r . /tmp/sans-backend
-    - sudo chmod 777 /tmp/sans-backend
-    - pushd /tmp/sans-backend
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - time docker pull $CONTAINER_URL
-    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/pylint_job.sh"
-    - popd
-  after_script:
-    - *teardown_cleanup
-  tags:
-    - neutrons-multi-builder
-
 create-wheel:
   stage: test
   dependencies:

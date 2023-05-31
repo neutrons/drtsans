@@ -42,7 +42,7 @@ from drtsans.dataobjects import IQmod
 from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
 from drtsans.load import move_instrument
 from drtsans.mono.meta_data import parse_json_meta_data
-import drtsans.mono.meta_data as meta_data
+from drtsans.mono import meta_data
 
 
 # Functions exposed to the general user (public) API
@@ -1642,8 +1642,6 @@ def create_output_dir(output_dir):
         n_d_dir = os.path.join(output_dir, sub_dir)
         if not os.path.exists(n_d_dir):
             os.mkdir(n_d_dir)
-
-    return
 
 
 def form_output_name(workspace):

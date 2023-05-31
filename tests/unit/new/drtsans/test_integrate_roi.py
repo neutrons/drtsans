@@ -84,5 +84,3 @@ def test_integrate_detector_roi(generic_IDF, cleanfile):
     assert abs(roi_counts - 566) < 1e-10
     # sqrt(567) = 23.817
     assert abs(roi_error - np.sqrt(567.0)) < 1e-12
-
-    return

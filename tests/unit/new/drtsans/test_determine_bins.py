@@ -41,8 +41,6 @@ def no_more_supported_test_log_bins_backward_compatible():
     np.testing.assert_allclose(log_bins.edges, gold_edges, rtol=5.0e-4)
     np.testing.assert_allclose(log_bins.centers, gold_centers, rtol=5.0e-4)
 
-    return
-
 
 # Test EXCEL can be found at
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/

@@ -250,7 +250,7 @@ def calculate_b_error_b(
 
     print(f"Using intensity weighted B factor calculation: {intensity_weighted}")
 
-    import uncertainties.unumpy as unumpy
+    from uncertainties import unumpy
 
     if intensity_weighted:
         # if use reference intensity to normalize the function then b value should be

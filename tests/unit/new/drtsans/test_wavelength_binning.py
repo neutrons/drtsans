@@ -50,7 +50,6 @@ def test_linear(fake_events):
     # verify
     assert np.allclose(ws.readX(0), np.arange(2.5, 3.21, 0.1))
     assert np.allclose(ws.readY(0), [1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0])
-    return
 
 
 def test_log(fake_events):
@@ -76,7 +75,6 @@ def test_log(fake_events):
     # verify
     assert np.allclose(ws.readX(0), [2.5, 2.625, 2.75625, 2.894063, 3.038766, 3.190704, 3.36])
     assert np.allclose(ws.readY(0), [1.0, 0.0, 2.0, 0.0, 2.0, 0.0])
-    return
 
 
 if __name__ == "__main__":

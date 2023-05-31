@@ -337,7 +337,7 @@ def _appendCalculatedBeamRadius(specialparameters=None, json=None, outfolder="")
     except TypeError:
         return specialparameters
 
-    if beam_radius_in_json == "":
+    if not beam_radius_in_json:
         beam_radius_in_json = _retrieve_beam_radius_from_out_file(outfolder=outfolder)
 
     if specialparameters is None:
@@ -391,7 +391,7 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
     samplelogs: SampleLogs
         SampleLogs object of all the EPICS infos logged into the NeXus (and visible on ONCat)
     """
-    if filename == "":
+    if not filename:
         filename = "_reduction_log.hdf"
         # raise RuntimeError('Cannot write to file "{}"'.format(filename))
 

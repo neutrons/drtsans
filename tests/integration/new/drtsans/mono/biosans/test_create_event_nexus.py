@@ -418,7 +418,7 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix,
     # END-FOR
 
     # raise error for all
-    if unmatched_errors != "":
+    if unmatched_errors:
         raise AssertionError(unmatched_errors)
 
 

@@ -201,7 +201,7 @@ def verify_reduction_results(sample_names, test_log_files, gold_files, title, pr
     # END-FOR
 
     # raise error for all
-    if unmatched_errors != "":
+    if unmatched_errors:
         print("[VERIFICATION ERROR MESSAGE] {}".format(unmatched_errors))
         raise AssertionError(unmatched_errors)
 

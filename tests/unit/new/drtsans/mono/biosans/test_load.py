@@ -305,8 +305,6 @@ def test_load_and_split_overwrite_geometry(reference_dir):
         expected_sample_position_z=30.0 * 1e-3,
     )
 
-    return
-
 
 def very_geometry_meta(
     workspace_list,

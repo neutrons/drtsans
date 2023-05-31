@@ -205,8 +205,6 @@ class EventNexusConverter(ABC):
         # Close
         source_nexus_h5.close()
 
-        return
-
     def mask_spice_detector_pixels(self, pixel_index_list: List[int]):
         """Mask detector pixels with SPICE counts by set the counts to zero
 

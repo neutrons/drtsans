@@ -29,7 +29,7 @@ def create_output_directory(output_dir="", subfolder=None, hfir_sans=True):
        if not output_dir has been provided
     """
 
-    if output_dir == "":
+    if not output_dir:
         raise ValueError("Please provide an output_dir value!")
 
     subfolder_array = [] if subfolder is None else subfolder

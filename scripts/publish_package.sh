@@ -1,6 +1,6 @@
 # Build conda library
 set -ex
-echo GITHUB REF $CI_COMMIT_REF_SLUG
+echo "GITHUB REF ${CI_COMMIT_REF_SLUG}"
 
 # activate conda environment
 source activate drtsans-dev
@@ -10,13 +10,15 @@ cp -R /opt/sans-backend /tmp/
 cd /tmp/sans-backend/conda.recipe
 
 # setup and build the conda package
-conda render .
-conda mambabuild --output-folder . . -c mantid/label/nightly -c conda-forge -c defaults
+#conda render .
+echo "Building conda package"
+VERSION=$(python -m versioningit ../) conda mambabuild --output-folder . . -c mantid/label/nightly -c conda-forge || exit 1
 
 # show what tarballs were created
 ls */*.tar.bz2
 
 # verify
+echo "Verifying conda package"
 conda-verify ./noarch/drtsans-*.tar.bz2
 
 # Deploy tags to anaconda.org

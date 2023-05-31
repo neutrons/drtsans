@@ -31,6 +31,7 @@ done
 # the default environment in bash should already be drtsans-dev
 source activate drtsans-dev
 cd /opt/sans-backend
+python setup.py develop # have versioningit write drtsans/_version.py
 echo "Writing tests results to $(pwd)/${TEST_SCOPE}_test_results.xml"
 
 # Run tests

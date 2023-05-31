@@ -1,9 +1,11 @@
 # flake8: noqa
 from pathlib import Path
-from ._version import get_versions
 
-__version__ = get_versions()["version"]
-del get_versions
+try:
+    from ._version import __version__  # noqa: F401
+except ImportError:
+    __version__ = "unknown"
+
 #######
 # Ordered alphabetically
 #######

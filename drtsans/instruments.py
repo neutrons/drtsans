@@ -1,7 +1,14 @@
-import enum
-import os
+# local imports
+
+# third party imports
 from mantid.kernel import ConfigService
 from mantid.api import mtd
+
+# standard imports
+import enum
+import os
+import subprocess
+
 
 __all__ = [
     "InstrumentEnumName",
@@ -182,3 +189,26 @@ def is_time_of_flight(input_query):
     bool
     """
     return instrument_enum_name(input_query) is InstrumentEnumName.EQSANS  # we only have one, for the moment
+
+
+def fetch_idf(idf_xml, output_directory=os.getcwd()):
+    r"""
+    Download an IDF from the Mantid GitHub repository to a temporary directory.
+
+    Parameters
+    ----------
+    idf_xml : str
+        The name of the IDF file to download.
+    output_directory: str
+
+    Returns
+    -------
+    str
+        absolute path to the downloaded IDF file.
+    """
+    idf = os.path.join(output_directory, idf_xml)
+    url = f"https://raw.githubusercontent.com/mantidproject/mantid/main/instrument/{idf_xml}"
+    result = subprocess.run(f"curl -o {idf} {url}", shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Dowloading {idf_xml} failed with error: {result.stderr}")
+    return idf

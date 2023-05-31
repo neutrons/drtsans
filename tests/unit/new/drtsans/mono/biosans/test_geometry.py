@@ -1,9 +1,69 @@
-import pytest
-import numpy as np
-
-# https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
-from mantid.simpleapi import LoadHFIRSANS
+# local imports
 from drtsans.mono.biosans.beam_finder import center_detector
+from drtsans.mono.biosans.geometry import (
+    PHI_SPAN_MIDRANGE,
+    get_position_south_detector,
+    set_position_south_detector,
+    get_angle_wing_detector,
+    set_angle_wing_detector,
+    get_angle_midrange_detector,
+    set_angle_midrange_detector,
+    get_angle_south_detector,
+    adjust_midrange_detector,
+)
+from drtsans.samplelogs import SampleLogs
+
+# third party imports
+from mantid.simpleapi import LoadEmptyInstrument, LoadHFIRSANS, MoveInstrumentComponent
+import numpy as np
+from numpy.testing import assert_almost_equal
+import pytest
+
+# standard imports
+#
+
+
+def test_position_south_detector(fetch_idf):
+    workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
+    # set the sample 0.042 meters away from the origing
+    MoveInstrumentComponent(Workspace=workspace, ComponentName="sample-position", Z=-0.042, RelativePosition=False)
+    set_position_south_detector(workspace, distance=7.0)  # meters
+    assert_almost_equal(get_position_south_detector(workspace), 7.000, decimal=3)
+    assert_almost_equal(SampleLogs(workspace).sample_detector_distance.value, 7.042, decimal=3)
+
+
+def test_angle_wing_detector(fetch_idf):
+    workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
+    assert_almost_equal(get_angle_wing_detector(workspace), 0.0, decimal=3)
+    set_angle_wing_detector(workspace, angle=42.0)  # degrees
+    assert_almost_equal(get_angle_wing_detector(workspace), 42.0, decimal=3)
+
+
+def test_angle_midrange_detector(fetch_idf):
+    workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
+    assert_almost_equal(get_angle_midrange_detector(workspace), 0.0, decimal=3)
+    set_angle_midrange_detector(workspace, angle=42.0)  # degrees
+    assert_almost_equal(get_angle_midrange_detector(workspace), 42.0, decimal=3)
+
+
+def test_angle_south_detector(fetch_idf):
+    workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
+    set_position_south_detector(workspace, distance=7.0)  # meters
+    expected_angle = 4.3887  # arctan(0.537 / 7.0) and 0.537 is half the width of the south detector
+    assert_almost_equal(get_angle_south_detector(workspace), expected_angle, decimal=3)
+
+
+def test_midrange_rotation_by_criterium(fetch_idf):
+    workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
+    set_position_south_detector(workspace, distance=7.0)  # meters
+    # position the wing detector at an angle much bigger than the angle span of the midrange detector
+    set_angle_wing_detector(workspace, angle=30.0)  # degrees
+    phi = adjust_midrange_detector(workspace)
+    assert_almost_equal(phi, get_angle_south_detector(workspace), decimal=3)
+    # position the wing detector at an angle ensuring fair tube shadowing
+    set_angle_wing_detector(workspace, get_angle_south_detector(workspace) + PHI_SPAN_MIDRANGE / 2)
+    phi = adjust_midrange_detector(workspace)
+    assert_almost_equal(phi, 4.0342, decimal=3)
 
 
 def test_api_geometry(biosans_f):

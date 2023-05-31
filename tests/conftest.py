@@ -1,15 +1,9 @@
-import sys
-import os
-import re
-from pathlib import Path
-import pytest
-import random
-from shutil import rmtree
-import string
-import tempfile
-import numpy as np
-from os.path import join as pjoin
-from collections import namedtuple
+# local imports
+from drtsans.dataobjects import DataType, getDataType
+from drtsans.instruments import fetch_idf as instruments_fetch_idf
+from drtsans.settings import amend_config, unique_workspace_dundername
+
+# third party imports
 from mantid.api import AnalysisDataService
 import mantid.simpleapi as mtds
 from mantid.simpleapi import (
@@ -18,8 +12,20 @@ from mantid.simpleapi import (
     LoadInstrument,
     DeleteWorkspace,
 )
-from drtsans.dataobjects import DataType, getDataType
-from drtsans.settings import amend_config, unique_workspace_dundername
+import numpy as np
+import pytest
+
+# standard imports
+from collections import namedtuple
+import os
+from os.path import join as pjoin
+from pathlib import Path
+import random
+import re
+from shutil import rmtree
+import string
+import sys
+import tempfile
 
 # Resolve the path to the "external data"
 this_module_path = sys.modules[__name__].__file__
@@ -995,6 +1001,14 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
     idf_interface = constructor[idf_xml_name](req_params)
     idf_interface.update({"view": req_params.pop("view", "pixel")})
     return idf_interface
+
+
+@pytest.fixture
+def fetch_idf(tmpdir):
+    def _fetch_idf(idf_xml):
+        return instruments_fetch_idf(idf_xml, tmpdir)
+
+    return _fetch_idf
 
 
 @pytest.fixture(scope="function")

@@ -41,6 +41,7 @@ def panel_names(input_query):
     detector_names = ["detector1"]
     if instrument_enum_name(input_query) == InstrumentEnumName.BIOSANS:
         detector_names.append("wing_detector")
+        detector_names.append("midrange_detector")
     return detector_names
 
 

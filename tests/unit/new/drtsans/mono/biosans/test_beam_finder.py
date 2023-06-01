@@ -64,15 +64,15 @@ def test_beam_finder_excel(generic_workspace):
     _verify_pixel(ws, 88, [0.5115, 0.5625, 15.5], 64)
 
     # run the function to calculate the beam center
-    x, y, y_gravity, _ = beam_finder.find_beam_center(
-        ws, sample_det_cent_main_detector=15.5, sample_det_cent_wing_detector=1.13
+    x, y, y_gravity, y_midrange, _ = beam_finder.find_beam_center(
+        ws, sample_det_cent_main_detector=15.5, sample_det_cent_wing_detector=1.13, sample_det_cent_midrange_detector=4.0,
     )
 
     # within .1mm
     assert x == pytest.approx(0.5331, abs=0.0001)
     assert y == pytest.approx(0.5468, abs=0.0001)
     assert y_gravity == pytest.approx(0.54675 + 0.002694 + 0.0135, abs=0.0001)
-
+    assert y_midrange == pytest.approx(0.5468 + 0.002529 + 0.0135, abs=0.0001)
 
 @pytest.mark.parametrize(
     "generic_workspace",
@@ -121,16 +121,17 @@ def test_beam_finder_excel2(generic_workspace):
     _verify_pixel(ws, 88, [-0.0085, 0.0055, 15.5], 64)
 
     # run the function to calculate the beam center
-    x, y, y_gravity, _ = beam_finder.find_beam_center(
-        ws, sample_det_cent_main_detector=15.5, sample_det_cent_wing_detector=1.13
+    x, y, y_gravity, y_midrange,_ = beam_finder.find_beam_center(
+        ws, sample_det_cent_main_detector=15.5, sample_det_cent_wing_detector=1.13, sample_det_cent_midrange_detector=4.0,
     )
 
     # within .1mm
     assert x == pytest.approx(0.0131, abs=0.0001)
     assert y == pytest.approx(-0.0102, abs=0.0001)
     assert y_gravity == pytest.approx(-0.0102 + 0.002694 + 0.0135, abs=0.0001)
+    assert y_midrange == pytest.approx(-0.0102 + 0.002529 + 0.0135, abs=0.0001)
 
-
+#TODO one more like that with load instrument
 def test_beam_finder(biosans_f):
     """
     Test with the new beam finder
@@ -144,7 +145,8 @@ def test_beam_finder(biosans_f):
     ws = LoadHFIRSANS(Filename=biosans_f["beamcenter"])
 
     # 0.00144037741238 -0.0243732351545 -0.0267
-    x, y, y_gravity, _ = beam_finder.find_beam_center(ws)
+    #one more gravity is none
+    x, y, y_gravity, y_midrange,_ = beam_finder.find_beam_center(ws)
 
     assert x == pytest.approx(0.00214, abs=1e-4)
     assert y == pytest.approx(-0.02445, abs=1e-4)
@@ -179,7 +181,7 @@ def test_beam_finder(biosans_f):
     assert y1 == pytest.approx(0.0, abs=1e-4)
 
     # let's the test our wrap function. The results should be the same.
-    x2, y2, y_gravity2, _ = beam_finder.find_beam_center(ws, centering_options=dict(CenterX=-x, CenterY=-y))
+    x2, y2, y_gravity2, y_midrange2, _ = beam_finder.find_beam_center(ws, centering_options=dict(CenterX=-x, CenterY=-y))
 
     assert x2 == pytest.approx(0.0, abs=1e-3) == x1
     assert y2 == pytest.approx(0.0, abs=1e-4) == y1

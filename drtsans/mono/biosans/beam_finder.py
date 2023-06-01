@@ -38,12 +38,12 @@ def _beam_center_gravitational_drop(
     ws,
     beam_center_y,
     sample_det_cent_main_detector,
-    sample_det_cent_wing_detector,
+    sample_det_cent_curved_detector,
     vertical_offset=0.0135,
 ):
     """This method is used for correcting for gravitational drop by
-    finding the difference in drop between the main and wing
-    detectors. The center in the wing detector will be higher because
+    finding the difference in drop between the main and curved (wing or midrange)
+    detectors. The center in the curved detector will be higher because
     the neutrons fall due to gravity until they hit the main detector.
 
     Parameters
@@ -55,8 +55,8 @@ def _beam_center_gravitational_drop(
     sample_det_cent_main_detector: float
         :ref:`sample to detector center distance <devdocs-standardnames>` of the main detector
         in meters
-    sample_det_cent_wing_detector : float
-        :ref:`sample to detector center distance <devdocs-standardnames>` of the wing detector
+    sample_det_cent_curved_detector : float
+        :ref:`sample to detector center distance <devdocs-standardnames>` of the wing or midrange detector
         in meters
     vertical_offset: float
         :vertical offset between main detector and wing detector in m
@@ -64,7 +64,7 @@ def _beam_center_gravitational_drop(
     Returns
     -------
     float
-        The new y beam center of the wing detector
+        The new y beam center of the curved detector
 
     """
     sl = SampleLogs(ws)
@@ -73,13 +73,13 @@ def _beam_center_gravitational_drop(
 
     # this comes back as a positive number
     drop_main = _calculate_neutron_drop(sample_det_cent_main_detector, wavelength)
-    drop_wing = _calculate_neutron_drop(sample_det_cent_wing_detector, wavelength)
-
-    new_beam_center_y = beam_center_y + drop_main - drop_wing + (vertical_offset)
+    drop_curved = _calculate_neutron_drop(sample_det_cent_curved_detector, wavelength)
+    
+    new_beam_center_y = beam_center_y + drop_main - drop_curved + (vertical_offset)
     logger.information(
         "Beam Center Y before gravity (drop = {:.3}): {:.3}"
-        " after = {:.3} and vertical offset between main and wing detector= {:.3}.".format(
-            drop_main - drop_wing, beam_center_y, new_beam_center_y, vertical_offset
+        " after = {:.3} and vertical offset between main and curved detector= {:.3}.".format(
+            drop_main - drop_curved, beam_center_y, new_beam_center_y, vertical_offset
         )
     )
 
@@ -94,6 +94,7 @@ def find_beam_center(
     centering_options={},
     sample_det_cent_main_detector=None,
     sample_det_cent_wing_detector=None,
+    sample_det_cent_midrange_detector=None,
     solid_angle_method="VerticalTube",
 ) -> Tuple[float, float, float]:
     """Finds the beam center in a 2D SANS data set.
@@ -122,6 +123,9 @@ def find_beam_center(
         Three float numbers:
         ``(center_x, center_y, center_y_wing)`` corrected for gravity.
         ``center_y_wing`` is used to correct BIOSANS wing detector Y position.
+        ``center_y_midrange`` is returned as a last parameter.
+        if sample_det_cent_midrange_detector is specified then a float number is returned,
+        else None.
     """
     ws = mtd[str(input_workspace)]
 
@@ -135,10 +139,10 @@ def find_beam_center(
         solid_angle_method=solid_angle_method,
     )
 
-    # get the distance to center of the main and wing detectors
     if sample_det_cent_main_detector is None or sample_det_cent_main_detector == 0.0:
         sample_det_cent_main_detector = ws.getInstrument().getComponentByName("detector1").getPos().norm()
 
+    # get the distance to center of the main and wing detectors
     if sample_det_cent_wing_detector is None or sample_det_cent_wing_detector == 0.0:
         sample_det_cent_wing_detector = ws.getInstrument().getComponentByName("wing_detector").getPos().norm()
         if sample_det_cent_wing_detector == 0.0:
@@ -148,14 +152,27 @@ def find_beam_center(
                 sample_det_cent_wing_detector = ws.getInstrument().getComponentByName("bank49").getPos().norm()
 
     center_y_wing = _beam_center_gravitational_drop(
-        ws, center_y, sample_det_cent_main_detector, sample_det_cent_wing_detector
+        ws, center_y, sample_det_cent_main_detector, sample_det_cent_wing_detector,
     )
 
-    logger.information("Beam Center: x={:.3} y={:.3} y_gravity={:.3}.".format(center_x, center_y, center_y_wing))
-    return center_x, center_y, center_y_wing, fit_results
+    # get the distance to center of the main and the midrange detectors
+    center_y_midrange = None
+    if sample_det_cent_midrange_detector is None or sample_det_cent_midrange_detector == 0.0: 
+        if ws.getInstrument().getComponentByName("midrange_detector") is not None:
+            sample_det_cent_midrange_detector = ws.getInstrument().getComponentByName("midrange_detector").getPos().norm()
+            if sample_det_cent_midrange_detector == 0.0:        
+                sample_det_cent_midrange_detector = ws.getInstrument().getComponentByName("bank89").getPos().norm()
+    
+    if sample_det_cent_midrange_detector is not None:        
+        center_y_midrange = _beam_center_gravitational_drop(
+            ws, center_y, sample_det_cent_main_detector, sample_det_cent_midrange_detector
+        )
+
+    logger.information("Beam Center: x={:.3} y={:.3} y_gravity={:.3} y_midrange={}.".format(center_x, center_y, center_y_wing,center_y_midrange))
+    return center_x, center_y, center_y_wing,center_y_midrange, fit_results
 
 
-def center_detector(input_workspace, center_x, center_y, center_y_wing):
+def center_detector(input_workspace, center_x, center_y, center_y_wing,center_y_midrange=None):
     """Center the detector and adjusts the height for both the main and wing detectors
     This uses :func:`drtsans.center_detector`
 
@@ -172,6 +189,8 @@ def center_detector(input_workspace, center_x, center_y, center_y_wing):
         The y-coordinate of the beam center on the main detector in meters
     center_y_wing : float
         The y-coordinate of the beam center on the wing detector in meters
+    center_y_midrange : float
+        The y-coordinate of the beam center on the midrange detector in meters
 
     Returns
     -------
@@ -184,3 +203,7 @@ def center_detector(input_workspace, center_x, center_y, center_y_wing):
     # move the wing detector for the gravity drop
     # the x position of the wing is calibrated differently
     bf.center_detector(input_workspace, 0, center_y_wing, component="wing_detector")
+    
+    #move the midrange detector for the gravity drop
+    if center_y_midrange is not None:
+        bf.center_detector(input_workspace, 0, center_y_midrange, component="midrange_detector")

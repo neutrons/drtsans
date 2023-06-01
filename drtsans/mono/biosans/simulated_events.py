@@ -256,7 +256,7 @@ def insert_events_sin_squared(
 
 
 def insert_events_offset_center(
-    input_workspace, detector1_shift_x, detector1_shift_y, max_counts=10000, center_smear=0.05
+    input_workspace, detector1_shift_x, detector1_shift_y, max_counts=10000, bin_center_smear=0.05
 ):
     r"""
     Insert events into the South detector and shift its center on the XY plane. The intensity pattern is a smeared
@@ -264,17 +264,23 @@ def insert_events_offset_center(
 
     Parameters
     ----------
-    input_workspace
-    detector1_shift_x
-    detector1_shift_y
-    max_counts
-    center_smear
+    input_workspace : str, ~Mantid.api.Workspace
+        The workspace to insert events into.
+    detector1_shift_x : float
+        translate the South detector center by this amount in the X direction, in meters.
+    detector1_shift_y : float
+        translate the South detector center by this amount in the Y direction, in meters.
+    max_counts : int
+        The maximum number of counts to insert into a single pixel of optimal efficiency and situated in the front
+        panel of the component, at 1 meter from the sample. Default: 10000.
+    bin_center_smear : float
+        the width of the bright spot. Default: 0.05.
 
     Returns
     -------
 
     """
-    twotheta_dev = float(np.degrees(center_smear / get_position_south_detector(input_workspace)))
+    twotheta_dev = float(np.degrees(bin_center_smear / get_position_south_detector(input_workspace)))
     insert_events_ring(
         input_workspace,
         twotheta_center=0.0,

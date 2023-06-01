@@ -163,7 +163,6 @@ def plot_data(plot_info_list, y_scale, title, fig_name):
 
     plt.savefig(fig_name)
     plt.close()
-    return
     #
     # # Plot I(Q)
     # plt.cla()
@@ -218,5 +217,5 @@ def verify_cg2_reduction_results(sample_names, output_dir, gold_path, title, pre
     # END-FOR
 
     # raise error for all
-    if unmatched_errors != "":
+    if unmatched_errors:
         raise AssertionError(unmatched_errors)

@@ -10,7 +10,6 @@ check-wheel-contents
 flake8
 jinja2
 pre-commit
-pylint
 pytest >= 3.2
 pytest-runner
 pytest-xdist

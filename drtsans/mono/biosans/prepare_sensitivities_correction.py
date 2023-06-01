@@ -119,5 +119,3 @@ def prepare_spice_sensitivities_correction(
         enforce_use_nexus_idf=True,
         debug_mode=True,
     )
-
-    return

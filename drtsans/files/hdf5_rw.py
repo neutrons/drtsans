@@ -59,8 +59,6 @@ class HDFNode(object):
         # Set attributes and etc
         self._attributes = dict()
 
-        return
-
     def match(self, other_node):
         """Compare 2 HDFNode to see whether they are same
 
@@ -116,7 +114,7 @@ class HDFNode(object):
                     self._attributes[attr_name],
                     other_node.attributes[attr_name],
                 )
-        if error_msg != "":
+        if error_msg:
             raise ValueError(error_msg)
 
     def parse_h5_entry(self, h5_entry):

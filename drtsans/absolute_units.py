@@ -7,7 +7,7 @@ from mantid.simpleapi import DeleteWorkspace, Divide, Multiply
 from mantid.dataobjects import WorkspaceSingleValue
 
 # drtsans imports
-from drtsans.settings import unique_workspace_dundername as uwd  # pylint: disable=W0404
+from drtsans.settings import unique_workspace_dundername as uwd
 
 __all__ = [
     "standard_sample_scaling",

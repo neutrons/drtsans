@@ -205,7 +205,7 @@ def test_writing_metadata_with_no_reductionparams(cleanfile):
         # str: h5py 3.0 need to decode
         assert reduction_information_entry["special_parameters"]["key2"][()].decode() == specialparameters["key2"]
         # str: h5py 3.0 need to decode
-        assert reduction_information_entry["special_parameters"]["key3"][()].decode() == ""
+        assert reduction_information_entry["special_parameters"]["key3"][()].decode() == ""  # noqa: PLC1901
 
 
 def test_writing_metadata(cleanfile):
@@ -249,7 +249,7 @@ def test_writing_metadata(cleanfile):
         # str: h5py 3.0 need to decode
         assert reduction_information_entry["special_parameters"]["key2"][()].decode() == specialparameters["key2"]
         # str: h5py 3.0 need to decode
-        assert reduction_information_entry["special_parameters"]["key3"][()].decode() == ""
+        assert reduction_information_entry["special_parameters"]["key3"][()].decode() == ""  # noqa: PLC1901
 
 
 def test_writing_iq_wedge_mode(cleanfile):

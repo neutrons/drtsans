@@ -171,8 +171,6 @@ def test_prepare_moving_det_sensitivity():
         verbose=True,
     )
 
-    return
-
 
 def test_mask_zero_pixels():
     """Test the method to mask pixels with zero counts

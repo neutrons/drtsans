@@ -242,7 +242,7 @@ def parse_correction_config(reduction_config):
         elastic_ref_json = run_config.get("elasticReference")
         if elastic_ref_json:
             elastic_ref_run = elastic_ref_json.get("runNumber")
-            if elastic_ref_run is not None and elastic_ref_run != "":
+            if bool(elastic_ref_run):  # run is specified
                 # only set up elastic reference after checking run number
                 try:
                     elastic_ref_trans_run = elastic_ref_json["transmission"].get("runNumber")
@@ -259,7 +259,7 @@ def parse_correction_config(reduction_config):
                     if elastic_ref_bkgd:
                         elastic_bkgd_run = elastic_ref_bkgd.get("runNumber")
                         # only set up elastic reference background after checking run number
-                        if elastic_bkgd_run is not None and elastic_bkgd_run != "":
+                        if bool(elastic_bkgd_run):  # run is specified
                             elastic_bkgd_trans_run = elastic_ref_bkgd["transmission"].get("runNumber")
                             elastic_bkgd_trans_value = elastic_ref_bkgd["transmission"].get("value")
                             elastic_ref_config.set_background(

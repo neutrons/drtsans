@@ -160,4 +160,4 @@ Required libraries
 
 * For documentation: sphinx, sphinxcontrib-napoleon,
 
-* For linting and formatting: autopep8, flake8, pylint
+* For linting and formatting: ruff which is configred in pre-commit

@@ -45,6 +45,6 @@ def get_parameters(run_number):
     conf_file = _get_config_file(run_number)
     parser = RawConfigParser(dict_type=MultiOrderedDict, strict=False, inline_comment_prefixes="#")
     with open(conf_file, "r") as f:
-        f = chain(("[DEFAULT]",), f)  # This line does the trick.
+        f = chain(("[DEFAULT]",), f)  # noqa: PLW2901 This line does the trick.
         parser.read_file(f)
     return {i[0]: i[1] for i in parser["DEFAULT"].items()}

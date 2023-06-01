@@ -231,8 +231,6 @@ def test_2d_bin_no_sub_wt():
     assert binned_iq_2d.delta_qx[1][1] == pytest.approx(0.00815, abs=1e-5), "dQx is incorrect"
     assert binned_iq_2d.delta_qy[1][1] == pytest.approx(0.00815, abs=1e-5), "dQy is incorrect"
 
-    return
-
 
 if __name__ == "__main__":
     pytest.main([__file__])

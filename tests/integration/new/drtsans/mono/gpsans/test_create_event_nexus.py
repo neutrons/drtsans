@@ -598,7 +598,7 @@ def verify_histogram(source_nexus, test_nexus):
                 f"{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.readY(i)},"
                 f"Actual counts = {test_ws.readY(i)}\n"
             )
-    if error_message != "":
+    if error_message:
         raise AssertionError(error_message)
 
     # cleanup

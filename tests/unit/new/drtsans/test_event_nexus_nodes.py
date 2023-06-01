@@ -175,9 +175,9 @@ def test_create_instrument_node(reference_dir):
 
     # beam line
     for child_name in ["beamline", "instrument_xml", "name", "target_station_number"]:
-        child_name = f"/entry/instrument/{child_name}"
-        src_child_node = source_instrument.get_child(child_name)
-        test_child_node = test_node.get_child(child_name)
+        child_full_name = f"/entry/instrument/{child_name}"
+        src_child_node = source_instrument.get_child(child_full_name)
+        test_child_node = test_node.get_child(child_full_name)
         src_child_node.match(test_child_node)
 
     # Close HDF5

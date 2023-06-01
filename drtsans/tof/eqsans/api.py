@@ -428,7 +428,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
                 file_size = os.path.getsize(name)
             except FileNotFoundError:
                 hint = "EQSANS_{}".format(drtsans.instruments.extract_run_number(name))
-                name = drtsans.path.abspath(hint, instrument="EQSANS")
+                name = drtsans.path.abspath(hint, instrument="EQSANS")  # noqa: PLW2901
                 file_size = os.path.getsize(name)
             total_size += file_size
             print(name + ",", "{:.2f} MiB".format(file_size / 1024**2))
@@ -1185,7 +1185,7 @@ def set_beam_center(
 ):
     """Helping method to set beam center"""
     # find the center first
-    if center != "":
+    if center:
         # calculate beam center from center workspace
         center_ws_name = f"{prefix}_{instrument_name}_{center}_raw_events"
         if not registered_workspace(center_ws_name):

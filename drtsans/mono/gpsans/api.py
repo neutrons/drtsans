@@ -43,7 +43,7 @@ from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
 from drtsans.load import move_instrument
 from drtsans.path import allow_overwrite
 from drtsans.mono.meta_data import parse_json_meta_data
-import drtsans.mono.meta_data as meta_data
+from drtsans.mono import meta_data
 
 # Functions exposed to the general user (public) API
 __all__ = [

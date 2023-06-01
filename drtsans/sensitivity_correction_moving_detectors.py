@@ -105,8 +105,6 @@ def _mask_zero_count_pixel(flood_data_matrix, flood_sigma_matrix):
     flood_data_matrix[zero_count_elements] = np.nan
     flood_sigma_matrix[zero_count_elements] = np.nan
 
-    return
-
 
 def _calculate_weighted_average_with_error(normalized_data, normalized_error):
     """Calculated weighted average for normalized flood data and error

@@ -24,7 +24,6 @@ dependencies:
   - pandas
   - pip
   - pre-commit
-  - pylint
   - pytest >= 3.2
   - pytest-runner
   - pytest-xdist

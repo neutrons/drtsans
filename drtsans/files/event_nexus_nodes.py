@@ -412,8 +412,6 @@ class DasLogNode(drtsans.files.hdf5_rw.GroupNode):
             child_node.set_value(np.array(info_value))
             self.set_child(child_node)
 
-        return
-
 
 class DasLogsCollectionNode(drtsans.files.hdf5_rw.GroupNode):
     """

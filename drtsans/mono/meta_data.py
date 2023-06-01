@@ -189,8 +189,6 @@ def _parse_new_meta_data_json(reduction_input, meta_name, unit_conversion_factor
             "".format(meta_name, run_type, key_error)
         )
 
-    return
-
 
 def parse_json_wave_length_and_spread(reduction_input):
     """Parse wave length and wave length spread from JSON dict

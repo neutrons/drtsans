@@ -202,8 +202,8 @@ class ReferenceResolver:
             to_resolve.update(resolved)
         for name, value in to_resolve.items():
             if isinstance(value, dict):
-                value = self.dereference(value)  # nested dictionary must be resolved, too
-                to_resolve[name] = value
+                # nested dictionary must be resolved, too
+                to_resolve[name] = self.dereference(value)
         return to_resolve
 
     def _resolve_uri(self, reference):

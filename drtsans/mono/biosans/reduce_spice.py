@@ -196,17 +196,16 @@ def reduce_biosans_nexus(
             output_dir = base_output_directory[0, len(base_output_directory) - 2] + "_" + str(suffix) + "/"
             suffix += 1
 
-    if sample_identifier != "":
-        if sample_identifier != "":
-            output_dir = base_output_directory + str(sample_identifier) + "/"
-            change_outputdir = {
-                "configuration": {
-                    "outputDir": output_dir,
-                },
-            }
-            common_configuration_full = update_reduction_parameters(
-                common_configuration_full, change_outputdir, validate=False
-            )
+    if sample_identifier:
+        output_dir = base_output_directory + str(sample_identifier) + "/"
+        change_outputdir = {
+            "configuration": {
+                "outputDir": output_dir,
+            },
+        }
+        common_configuration_full = update_reduction_parameters(
+            common_configuration_full, change_outputdir, validate=False
+        )
         for subfolder in ["1D", "2D"]:
             output_folder = os.path.join(output_dir, subfolder)
             if not os.path.exists(output_folder):

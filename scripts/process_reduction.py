@@ -57,6 +57,6 @@ if __name__ == "__main__":
             rc = 42  # value denoting the error logfile is non-empty
 
         # exit with the final return code
-        exit(rc)
+        sys.exit(rc)
     else:
         raise RuntimeError("A parameter json string is required as input")

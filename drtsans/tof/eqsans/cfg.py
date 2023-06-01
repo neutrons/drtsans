@@ -239,7 +239,7 @@ class Cfg(object):
                     val, description = [x.strip() for x in val.split("#")]
                 if key in cfg:
                     cfg[key].insert(val)
-                    if description != "":
+                    if description:
                         cfg[key].help = description
                 else:
                     item_type = Cfg._item_types.get(key, CfgItemValue)

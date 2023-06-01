@@ -1,12 +1,12 @@
 # package imports
 from drtsans.instruments import fetch_idf
 from drtsans.samplelogs import SampleLogs
-from drtsans.mono.biosans.geometry import get_twothetas, get_solid_angles, info_ids
+from drtsans.mono.biosans.geometry import get_twothetas, get_solid_angles, get_position_south_detector, info_ids
 
 # third party imports
 from mantid.api import mtd
 from mantid.kernel import DateAndTime
-from mantid.simpleapi import LoadInstrument
+from mantid.simpleapi import LoadInstrument, MoveInstrumentComponent
 import numpy as np
 
 # standard library imports
@@ -252,4 +252,41 @@ def insert_events_sin_squared(
         twotheta_units="degrees",
         components=components,
         efficiencies=efficiencies,
+    )
+
+
+def insert_events_offset_center(
+    input_workspace, detector1_shift_x, detector1_shift_y, max_counts=10000, center_smear=0.05
+):
+    r"""
+    Insert events into the South detector and shift its center on the XY plane. The intensity pattern is a smeared
+    bright spot in the center of the detector, which after the shift is not centered on the beam.
+
+    Parameters
+    ----------
+    input_workspace
+    detector1_shift_x
+    detector1_shift_y
+    max_counts
+    center_smear
+
+    Returns
+    -------
+
+    """
+    twotheta_dev = float(np.degrees(center_smear / get_position_south_detector(input_workspace)))
+    insert_events_ring(
+        input_workspace,
+        twotheta_center=0.0,
+        twotheta_dev=twotheta_dev,
+        max_counts_in_pixel=max_counts,
+        components="detector1",
+        efficiencies=1.0,
+    )
+    MoveInstrumentComponent(
+        Workspace=input_workspace,
+        ComponentName="detector1",
+        X=detector1_shift_x,
+        Y=detector1_shift_y,
+        RelativePosition=True,
     )

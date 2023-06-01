@@ -1,7 +1,8 @@
 # local imports
-from drtsans.mono.biosans.midrange_events import (
+from drtsans.mono.biosans.simulated_events import (
     update_idf,
     insert_events_isotropic,
+    insert_events_offset_center,
     insert_events_ring,
     insert_events_sin_squared,
 )
@@ -13,7 +14,7 @@ from drtsans.mono.biosans.geometry import (
 from drtsans.samplelogs import SampleLogs
 
 # third party imports
-from mantid.simpleapi import LoadEmptyInstrument
+from mantid.simpleapi import LoadEmptyInstrument, SaveNexus
 import pytest
 
 # standard imports
@@ -74,6 +75,16 @@ def test_insert_events_sin_squared(fetch_idf):
         components=["detector1", "wing_detector", "midrange_detector"],
         efficiencies=[1.0, 0.1, 1.0],
     )
+
+
+def test_insert_events_offset_center(fetch_idf):
+    workspace = LoadEmptyInstrument(
+        InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"), MakeEventWorkspace=True
+    )
+    SampleLogs(workspace).insert("start_time", "2023-08-01 00:00:00")
+    set_position_south_detector(workspace, distance=5.0)  # meters
+    insert_events_offset_center(workspace, detector1_shift_x=-0.05, detector1_shift_y=-0.05)
+    SaveNexus(InputWorkspace=workspace, Filename="/tmp/test_insert_events_offset_center.nxs")
 
 
 if __name__ == "__main__":

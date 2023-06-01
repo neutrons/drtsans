@@ -14,6 +14,7 @@ variables:
 .teardown_cleanup: &teardown_cleanup
   - source rse-bash-modules.sh
   - func_rse_docker_cleanup
+  - sudo chown -R gitlab-runner .
 
 #####
 # Job Stages
@@ -63,7 +64,6 @@ dockerbuild:
     - docker push $DOCKER_TAG_BASE:$DOCKER_DATE
     - docker push $DOCKER_TAG_BASE
     # - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh
-    - sudo chown -R gitlab-runner .
   after_script:
     - *teardown_cleanup
   tags:
@@ -87,7 +87,6 @@ docker-update-test:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
     - time bash -x scripts/sans-backend-run.sh -u || cat SANS_output/*err
-    - sudo chown -R gitlab-runner .
   after_script:
     - *teardown_cleanup
   tags:
@@ -108,7 +107,6 @@ docker-no-update-test:
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
     - time bash -x scripts/sans-backend-run.sh || cat SANS_output/*err
-    - sudo chown -R gitlab-runner .
   after_script:
     - *teardown_cleanup
   tags:

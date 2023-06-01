@@ -31,22 +31,9 @@ def read_requirements_from_file(filepath):
 install_requires = read_requirements_from_file(os.path.join(THIS_DIR, "requirements.txt"))
 test_requires = read_requirements_from_file(os.path.join(THIS_DIR, "requirements_dev.txt"))
 
-CLASSIFIERS = [
-    "Development Status :: 5 - Production/Stable",
-    "Natural Language :: English",
-    "Operating System :: Linux",
-    "Programming Language :: Python",
-]
-
 setup(
-    name="drtsans",
     cmdclass=get_cmdclasses(),
-    description="Data Reduction Toolkit SANS reduction",
-    url="https://http://www.mantidproject.org",
-    long_description="""ORNL SANS reduction""",
-    license="Apache License 2.0",
     zip_safe=False,
-    classifiers=CLASSIFIERS,
     packages=find_packages(exclude=["tests", "tests.*"]),
     scripts=scripts,
     package_dir={},

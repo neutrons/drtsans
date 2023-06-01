@@ -1,5 +1,10 @@
-# this will reproduce the version from tags to match versioningit
-{% set version = environ.get('VERSION', '0.0.0') %}
+# load information from setup.cfg/setup.py
+{% set data = load_setup_py_data() %}
+{% set license = data.get('license') %}
+{% set description = data.get('description') %}
+{% set url = data.get('url') %}
+# this will get the version set by environment variable
+{% set version = environ.get('VERSION') %}
 {% set version_number = environ.get('GIT_DESCRIBE_NUMBER', '0') | string %}
 
 package:
@@ -26,6 +31,7 @@ requirements:
     - python=3.8
     - setuptools
     - mantid
+    - versioningit
 
   run:
     - jsonschema>=3.0.2
@@ -36,7 +42,7 @@ requirements:
     - sortedcontainers
     - tinydb  # not imported
     - ipywidgets # not imported
-    - python=3.8
+    - python {{ python }}
     - mantid
 
 test:
@@ -44,7 +50,8 @@ test:
     - drtsans
 
 about:
-  home: https://drtsans.readthedocs.io/
-  license: GPL (version 3)
-  license_family: GPL3
+  home: {{ url }}
+  license: {{ license }}
+  license_family: APACHE
   license_file: ../LICENSE
+  summary: {{ description }}

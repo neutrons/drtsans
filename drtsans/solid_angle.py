@@ -98,7 +98,7 @@ def solid_angle_correction(
             input_workspace=input_workspace,
             detector_type=detector_type,
             output_workspace=unique_workspace_dundername(),
-            **kwargs
+            **kwargs,
         )
 
     # correct the input workspace and get rid of nan and infinity

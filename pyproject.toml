@@ -19,6 +19,7 @@ dependencies = [
 "ipywidgets",
 "jsonschema>=3.0.2",
 "lmfit",
+# mantid is not here b/c it doesn't exist in pypi
 "matplotlib",  # is this necessary
 "mpld3",
 "numexpr",

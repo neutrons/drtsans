@@ -27,6 +27,11 @@ PIXELS_IN_TUBE = 256
 PIXEL_HEIGHT = TUBE_LENGTH / PIXELS_IN_TUBE  # meters
 
 
+def has_midrange_detector(input_workpace):
+    workspace = mtd[str(input_workpace)]
+    return workspace.getInstrument().getComponentByName("midrange_detector") is not None
+
+
 def get_position_south_detector(input_workspace):
     r"""
     Get the downstream position of the south detector.

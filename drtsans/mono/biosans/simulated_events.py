@@ -1,7 +1,13 @@
 # package imports
 from drtsans.instruments import fetch_idf
 from drtsans.samplelogs import SampleLogs
-from drtsans.mono.biosans.geometry import get_twothetas, get_solid_angles, get_position_south_detector, info_ids
+from drtsans.mono.biosans.geometry import (
+    get_twothetas,
+    get_solid_angles,
+    get_position_south_detector,
+    has_midrange_detector,
+    info_ids,
+)
 
 # third party imports
 from mantid.api import mtd
@@ -12,11 +18,6 @@ import numpy as np
 # standard library imports
 import math
 import tempfile
-
-
-def has_midrange_detector(input_workpace):
-    workspace = mtd[str(input_workpace)]
-    return workspace.getInstrument().getComponentByName("midrange_detector") is not None
 
 
 def update_idf(input_workspace):

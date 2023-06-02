@@ -3,7 +3,7 @@ Setup script for ORNL SANS reduction
 """
 # from __future__ import absolute_import, division, print_function
 import os
-from setuptools import setup, find_packages
+from setuptools import setup
 from versioningit import get_cmdclasses
 
 THIS_DIR = os.path.dirname(__file__)
@@ -33,15 +33,5 @@ test_requires = read_requirements_from_file(os.path.join(THIS_DIR, "requirements
 
 setup(
     cmdclass=get_cmdclasses(),
-    zip_safe=False,
-    packages=find_packages(exclude=["tests", "tests.*"]),
-    scripts=scripts,
-    package_dir={},
-    package_data={
-        "drtsans": [
-            "configuration/schema/*.json",
-            "mono/biosans/cg3_to_nexus_mapping.yml",
-        ]
-    },
     install_requires=install_requires,
 )

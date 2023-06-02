@@ -1,2 +1,0 @@
-include drtsans/_version.py
-include drtsans/mono/biosans/cg3_to_nexus_mapping.yml

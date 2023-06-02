@@ -29,24 +29,26 @@ requirements:
 
   build:
     - python=3.8
-    - setuptools
+    - setuptools>=42
     - mantid
     - versioningit
 
   run:
+    - docutils
+    - ipywidgets
     - jsonschema>=3.0.2
     - lmfit
+    - mantid=6.4
     - mpld3
     - numexpr
     - pandas
+    - python {{ python }}
     - sortedcontainers
     - tinydb  # not imported
-    - ipywidgets # not imported
-    - python {{ python }}
-    - mantid
 
 test:
   imports:
+    - mantid
     - drtsans
 
 about:

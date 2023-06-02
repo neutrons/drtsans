@@ -83,7 +83,7 @@ a) Create the virtual environment and activate it.
 
  .. code-block:: shell
 
-    $ pip install -r requirements.txt -r requirements_dev.txt
+    $ pip install -r requirements.txt
 
 b) Create a conda environment and activate it.
 
@@ -97,9 +97,8 @@ b) Create a conda environment and activate it.
 
     $ conda config --add channels conda-forge
     $ conda config --add channels mantid
-    $ conda create -n mydrtsans python=3.7
-    $ conda activate mydrtsans
-    $ conda install -c mantid/label/nightly mantid-framework=6 --file requirements.txt --file requirements_dev.txt
+    $ conda env create -f drtsans-dev.yml
+    $ conda activate drtsans-dev
 
  **Warning**: if you create the conda environment on SNS’s analysis cluster, avoid naming your environment as ‘drtsans’,
  ‘drtsans-qa’ and ‘drtsans-dev’, which are reserved.

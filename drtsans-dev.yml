@@ -35,5 +35,3 @@ dependencies:
   - versioningit
   - pip:
       - check-wheel-contents
-
-prefix: /opt/anaconda/envs/drtsans-dev

@@ -29,7 +29,6 @@ def read_requirements_from_file(filepath):
 
 
 install_requires = read_requirements_from_file(os.path.join(THIS_DIR, "requirements.txt"))
-test_requires = read_requirements_from_file(os.path.join(THIS_DIR, "requirements_dev.txt"))
 
 setup(
     cmdclass=get_cmdclasses(),

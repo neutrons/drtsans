@@ -295,11 +295,6 @@ def bin_all(
         binned_q1d_list.append(bin_annular_into_q1d(i_qxqy, bin_params, **kwargs))
     else:
         # regular binning including 'scalar' and 'wedge'
-        if qmin is None:
-            qmin = i_modq.mod_q.min()
-        if qmax is None:
-            qmax = i_modq.mod_q.max()
-
         if bin1d_type == "scalar":
             unbinned_1d = [i_modq]
         elif bin1d_type == "wedge":
@@ -307,6 +302,13 @@ def bin_all(
             unbinned_1d = bin_into_wedges(i_qxqy, wedges, symmetric_wedges)
         else:
             raise ValueError(f"bin1d_type of type {bin1d_type} is not available")
+
+        if qmin is None:
+            unbinned_1d_flattened = concatenate(unbinned_1d)
+            qmin = unbinned_1d_flattened.mod_q.min()
+        if qmax is None:
+            unbinned_1d_flattened = concatenate(unbinned_1d)
+            qmax = unbinned_1d_flattened.mod_q.max()
 
         if log_scale:
             # log bins

@@ -69,12 +69,14 @@ def insert_twotheta_events(
     components : str, list
         the component(s) to insert events into. Default: "midrange_detector". Can be one component (passed on as a
         string) or a list of components (passed on as a list of strings).
+
     efficiencies : float, list
         the probability that a neutron hitting a pixel in the component will be detected. Default: 1.0. Can be a
         single value (passed on as a float) or a list of values (passed on as a list of floats).
+
     solid_angle_correction : bool
         correct the number of neutrons returned by the `theta_cross_section` function by the solid angle of the
-        pixel, sin(vertical_angle) / L2^2 = R / L2^3, where L2 is the distance from the sample to the pixel center
+        pixel, cos(vertical_angle) / L2^2 = R / L2^3, where L2 is the distance from the sample to the pixel center
         and R is the projection of L2 onto the horizontal plane. Thus, this correction equals 1 for a pixel detector
         positioned on the horizontal plane at a unit distance from the sample.
 
@@ -114,9 +116,9 @@ def insert_twotheta_events(
 
 def insert_events_isotropic(input_workspace, counts_per_pixel=1000, components="midrange_detector", efficiencies=1.0):
     r"""
-    Insert events into the detector pixels of the designated components.
+    Isotropic scattering, all directions scatter equally.
 
-    The intensity at each pixel is rescaled by its solid angle, the efficiency of the component, and whether
+    The intensity at each pixel is rescaled by its solid angle, by the efficiency of the component, and whether
     the pixel is located in the front or back panel of the component.
 
     Parameters
@@ -166,9 +168,9 @@ def insert_events_ring(
 ):
     r"""
     Insert events into the detector pixels of the designated components according to a gaussian function dependent
-    on the two-theta scattering angle. The intensity pPattern on the detectors is a single ring.
+    on the two-theta scattering angle. The intensity pattern on the detectors is a single ring.
 
-    The intensity at each pixel is rescaled by its solid angle, the efficiency of the component, and whether
+    The intensity at each pixel is rescaled by its solid angle, by the efficiency of the component, and whether
     the pixel is located in the front or back panel of the component.
 
     Parameters
@@ -212,10 +214,10 @@ def insert_events_sin_squared(
     input_workspace, period=16.0, max_counts_in_pixel=1000, components="midrange_detector", efficiencies=1.0
 ):
     r"""
-    Insert events into the detector pixels of the designated components according to a sinusoidal function squared
-    dependent on the two-theta scattering angle. The intensity pPattern on the detectors is a sereis of rings.
+    Insert events into the detector pixels of the designated components according to a squared sinusoidal function
+    dependent on the two-theta scattering angle. The intensity pattern on the detectors is a series of rings.
 
-    The intensity at each pixel is rescaled by its solid angle, the efficiency of the component, and whether
+    The intensity at each pixel is rescaled by its solid angle, by the efficiency of the component, and whether
     the pixel is located in the front or back panel of the component.
 
     Parameters
@@ -261,7 +263,10 @@ def insert_events_offset_center(
 ):
     r"""
     Insert events into the South detector and shift its center on the XY plane. The intensity pattern is a smeared
-    bright spot in the center of the detector, which after the shift is not centered on the beam.
+    bright spot in the center of the detector.
+
+    The intensity at each pixel is rescaled by its solid angle, by the efficiency of the component, and whether
+    the pixel is located in the front or back panel of the component.
 
     Parameters
     ----------

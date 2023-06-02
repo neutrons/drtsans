@@ -18,7 +18,7 @@ _reference_tubes = dict(
 
 WING_RADIUS = 1.1633  # meters, radius of curvature of the wing detector
 MIDRANGE_RADIUS = 4.0000  # meters, radius of curvature of the midrange detector
-PHI_SPAN_MIDRANGE = 4.975  # degrees, horizontal angle (on the XY plane) span of the midrange detector
+PHI_SPAN_MIDRANGE = 4.975  # degrees, horizontal angle (on the XZ plane) span of the midrange detector
 #
 TUBE_LENGTH = 1.046  # meters
 REFERENCE_TUBES = dict(wing_detector="bank49/tube4", midrange_detector="bank104/tube4", detector1="bank1/tube1")
@@ -132,7 +132,7 @@ def get_angle_midrange_detector(input_workspace):
 def get_angle_south_detector(input_workspace):
     r"""
     Find the angle between the beam axis and the line joining the origin of coordinates and the edge
-    of the south detector intersecting the horizontal (XY) plane.
+    of the south detector intersecting the horizontal (XZ) plane.
 
     Parameters
     ----------
@@ -211,7 +211,7 @@ def set_angle_midrange_detector(input_workspace, angle):
 
 def adjust_midrange_detector(input_workspace, criterium="fair_tube_shadowing"):
     r"""
-    Find the optimal rotation angle on the horizontal (XY plane) for the midrange detector according to some criterium.
+    Find the optimal rotation angle on the horizontal (XZ plane) for the midrange detector according to some criterium.
 
     Criterium "fair_tube_shadowing" : the number of tubes in the south detector shadowed by the midrange detector
     coincides with the number of tubes in the mirrored-wing detector shadowing the midrange detector. The mirrored-wing

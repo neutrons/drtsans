@@ -6,14 +6,12 @@ channels:
 dependencies:
   - mantid==6.4
   - anaconda-client
-  - autopep8
   - black
   - boa
   - build
   - conda-build
   - conda-verify
   - docutils
-  - flake8
   - graphviz
   - ipywidgets
   - jinja2

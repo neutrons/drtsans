@@ -61,10 +61,12 @@
         "useMaskBackTubes": {"$ref":  "common.json#/configuration/useMaskBackTubes", "default": false},
         "darkMainFileName":    {"$ref":  "common.json#/configuration/darkFileName"},
         "darkWingFileName":    {"$ref":  "common.json#/configuration/darkFileName"},
+        "darkMidrangeFileName":    {"$ref":  "common.json#/configuration/darkFileName"},
         "normalization": {"$ref":  "common.json#/configuration/normalization", "default": "Monitor"},
         "normalizationResortToTime":  {"$ref":  "common.json#/configuration/normalizationResortToTime", "default": false},
         "sensitivityMainFileName":    {"$ref": "common.json#/configuration/sensitivityFileName"},
         "sensitivityWingFileName":    {"$ref": "common.json#/configuration/sensitivityFileName"},
+        "sensitivityMidrangeFileName":    {"$ref": "common.json#/configuration/sensitivityFileName"},
         "useSolidAngleCorrection":    {"$ref": "common.json#/configuration/useSolidAngleCorrection", "default": true},
         "blockedBeamRunNumber":        {"$ref": "common.json#/configuration/blockedBeamRunNumber"},
         "useThetaDepTransCorrection": {"$ref": "common.json#/configuration/useThetaDepTransCorrection", "default": true},
@@ -75,6 +77,7 @@
 
         "numMainQxQyBins":      {"$ref":  "common.json#/configuration/numQxQyBins"},
         "numWingQxQyBins":      {"$ref":  "common.json#/configuration/numQxQyBins"},
+        "numMidrangeQxQyBins":      {"$ref":  "common.json#/configuration/numQxQyBins"},
         "1DQbinType":           {"$ref":  "common.json#/configuration/1DQbinType", "default": "wedge"},
         "QbinType":             {"$ref":  "common.json#/configuration/QbinType"},
         "numMainQBins": {
@@ -85,8 +88,12 @@
           "$ref":  "common.json#/configuration/numQBins",
           "evaluateCondition": "('{#configuration/QbinType}' == 'linear' and {this} is not None) or ('{#configuration/QbinType}' == 'log' and (({this} is None) ^ ({#configuration/LogQBinsPerDecadeWing} is None)))"
         },
+        "numMidrangeQBins": {
+          "$ref":  "common.json#/configuration/numQBins"
+        },
         "LogQBinsPerDecadeMain": {"$ref":  "common.json#/configuration/LogQBinsPerDecade"},
         "LogQBinsPerDecadeWing": {"$ref":  "common.json#/configuration/LogQBinsPerDecade"},
+        "LogQBinsPerDecadeMidrange": {"$ref":  "common.json#/configuration/LogQBinsPerDecade"},
         "useLogQBinsDecadeCenter": {"$ref":  "common.json#/configuration/useLogQBinsDecadeCenter", "default": false},
         "useLogQBinsEvenDecade":   {"$ref":  "common.json#/configuration/useLogQBinsEvenDecade", "default": false},
 
@@ -118,7 +125,7 @@
           "$ref":  "common.json#/definitions/safeStringPositiveFloat",
           "default": 0.125,
           "pairedTo": "#configuration/QminMain",
-          "description": "The maximum |Q| value for scalar, wedge, or annular binning in the wing detector"
+          "description": "The maximum |Q| value for scalar, wedge, or annular binning in the main detector"
         },
         "QminWing": {
           "$ref":  "common.json#/definitions/safeStringPositiveFloat",
@@ -131,7 +138,20 @@
           "$ref":  "common.json#/definitions/safeStringPositiveFloat",
           "default": 1.0,
           "pairedTo": "#configuration/QminWing",
-          "description": "The maximum |Q| value for scalar, wedge, or annular binning in the main detector"
+          "description": "The maximum |Q| value for scalar, wedge, or annular binning in the wing detector"
+        },
+        "QminMidrange": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.06,
+          "pairedTo": "#configuration/QmaxMidrange",
+          "lessThan": "#configuration/QmaxMidrange",
+          "description": "The minimum |Q| value for scalar, wedge, or annular binning in the midrange detector"
+        },
+        "QmaxMidrange": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 1.0,
+          "pairedTo": "#configuration/QminMidrange",
+          "description": "The maximum |Q| value for scalar, wedge, or annular binning in the midrange detector"
         },
         "overlapStitchQmin": {
           "$ref":  "common.json#/definitions/safeStitchQbounsSpecs",
@@ -161,6 +181,17 @@
           "lessThan": "#configuration/wedge1QmaxWing"
         },
         "wedge1QmaxWing": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.09,
+          "pairedTo": "#configuration/wedge1QminWing"
+        },
+
+        "wedge1QminMidrange": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.08,
+          "lessThan": "#configuration/wedge1QmaxWing"
+        },
+        "wedge1QmaxMidrange": {
           "$ref":  "common.json#/definitions/safeStringPositiveFloat",
           "default": 0.09,
           "pairedTo": "#configuration/wedge1QminWing"
@@ -199,6 +230,17 @@
           "pairedTo": "#configuration/wedge2QminWing"
         },
 
+        "wedge2QminMidrange": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 0.06,
+          "lessThan": "#configuration/wedge2QmaxMidrange"
+        },
+        "wedge2QmaxMidrange": {
+          "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+          "default": 1.0,
+          "pairedTo": "#configuration/wedge2QminMidrange"
+        },
+
         "wedge2overlapStitchQmin": {
           "$ref":  "common.json#/definitions/safeStringPositiveFloat",
           "default": 0.075,
@@ -211,7 +253,7 @@
         }
       },
 
-      "maxProperties": 76,
+      "maxProperties": 87,
       "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "useTimeSliceTransmission",
         "timeSliceInterval", "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset",
         "sampleApertureSize", "sampleDetectorDistance", "sourceApertureDiameter",

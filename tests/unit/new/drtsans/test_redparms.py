@@ -18,6 +18,7 @@ from drtsans.redparms import (
     reduction_parameters,
     resolver_common,
     update_reduction_parameters,
+    validate_reduction_parameters,
 )
 
 
@@ -626,6 +627,41 @@ class TestReductionParametersGPSANS:
         with pytest.raises(jsonschema.ValidationError) as error_info:
             update_reduction_parameters(self.parameters_all, parameter_changes)
         assert validator_name in str(error_info.value)
+
+
+class TestReductionParametersBIOSANS:
+    parameters_common = {
+        "instrumentName": "BIOSANS",
+        "iptsNumber": "23782",
+        "sample": {"runNumber": "960", "transmission": {"runNumber": ""}},
+        "outputFileName": "test_validator_biosans",
+        "configuration": {
+            "useDefaultMask": False,
+            "outputDir": "/tmp",
+            "QbinType": "linear",
+            "numMainQBins": 100,
+            "numWingQBins": 100,
+            "numMidrangeQBins": 100,
+        },
+    }
+    parameters_all = reduction_parameters(parameters_common, validate=False)
+
+    def test_validators_midrange_parameters_optional(self, reference_dir):
+        parameters = self.parameters_all
+        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
+        # remove all parameters related to the midrange detector
+        config_no_midrange = {k: v for k, v in parameters["configuration"].items() if "Midrange" not in k}
+        parameters["configuration"] = config_no_midrange
+        validate_reduction_parameters(parameters)
+
+    def test_validators_midrange_qmin_qmax(self, reference_dir):
+        parameters = self.parameters_all
+        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
+        parameters["configuration"]["QminMidrange"] = 0.07
+        parameters["configuration"]["QmaxMidrange"] = 0.05
+        with pytest.raises(jsonschema.ValidationError) as error_info:
+            validate_reduction_parameters(parameters)
+        assert "0.07 is not smaller than #configuration/QmaxMidrange" in str(error_info.value)
 
 
 def test_generate_json_files(tmpdir, cleanfile):

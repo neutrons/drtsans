@@ -27,11 +27,13 @@ dependencies:
   - pytest >= 3.2
   - pytest-runner
   - pytest-xdist
+  - setuptools >= 42
   - sortedcontainers
   - sphinx >= 5.0.2
   - sphinxcontrib-napoleon
   - sphinx_rtd_theme
   - tinydb
+  - toml
   - versioningit
   - pip:
       - check-wheel-contents

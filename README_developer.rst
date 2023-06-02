@@ -32,60 +32,7 @@ used in the virtual environment
 
 2. Create the development environment.
 
- There are two approaches to create development environment.
-
-a) Create the virtual environment and activate it.
-
-* It requires a local build of Mantid as the prerequisite.
-
-  * How to build `Mantid <https://developer.mantidproject.org/BuildingWithCMake.html>`_ .
-  * The ``--system-site-packages`` argument gives the virtual environment access to the same system site-packages
-    that were used for compiling `mantid <https://developer.mantidproject.org/BuildingWithCMake.html>`_.
-
- .. code-block:: shell
-
-    $ virtualenv -p $(which python3) --system-site-packages .venv
-    $ source .venv/bin/activate
-
-
- As an alternative, you can use `direnv <https://direnv.net>`_ to do a
- fair amount of the work. Unfortunately, it doesn't currently handle
- ``--system-site-packages`` correctly so you'll have to work around
- it. Create the virtual environment using
-
- .. code-block:: shell
-
-    $ virtualenv -p $(which python3) --system-site-packages .direnv/python-$(python3 -c "import platform as p;print(p.python_version())")
-
- Then you create a file ``.envrc`` in your source directory
-
- .. code-block:: shell
-
-    $ echo "layout python3" > .envrc
-
- Finally, tell direnv that you want it to work in this directory
-
- .. code-block:: shell
-
-    $ direnv allow
-
- Then follow rest steps. After those, the virtual environment
- with load when you enter the source tree, and unload when you leave.
-
-
-* Add the built version of mantid to the python path in the virtual environment
-
- .. code-block:: shell
-
-    $ python ~/build/mantid/bin/AddPythonPath.py
-
-* Install the requirements for running the code
-
- .. code-block:: shell
-
-    $ pip install -r requirements.txt
-
-b) Create a conda environment and activate it.
+Create a conda environment and activate it.
 
 * It will use Mantid’s conda package.
 
@@ -102,6 +49,8 @@ b) Create a conda environment and activate it.
 
  **Warning**: if you create the conda environment on SNS’s analysis cluster, avoid naming your environment as ‘drtsans’,
  ‘drtsans-qa’ and ‘drtsans-dev’, which are reserved.
+
+To make it easier to use, configure `direnv <https://direnv.net>`_ to activate the conda environment when you enter the directory.
 
 3. Install the code in ``develop`` mode.
 

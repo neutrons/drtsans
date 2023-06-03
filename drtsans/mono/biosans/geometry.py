@@ -84,7 +84,7 @@ def set_position_south_detector(input_workspace, distance):
     SampleLogs(workspace).insert("sample_detector_distance", distance - sample.getPos().Z())
 
 
-def _get_angle_curved_detector(input_workspace, detector_name, offset_rotation, counter_clockwise=1.0):
+def _get_angle_curved_detector(input_workspace, detector_name, offset_rotation, counter_clockwise=True):
     instrument = mtd[str(input_workspace)].getInstrument()
     curved_detector = instrument.getComponentByName(detector_name)
     angle_sign_flipper = 1.0 if counter_clockwise is True else -1.0
@@ -149,7 +149,7 @@ def get_angle_south_detector(input_workspace):
     return np.degrees(np.arctan(half_span / position))
 
 
-def _set_angle_curved_panel(input_workspace, angle, detector_name, offset_rotation, counter_clockwise=1.0):
+def _set_angle_curved_panel(input_workspace, angle, detector_name, offset_rotation, counter_clockwise=True):
     if angle < 0.0:
         raise ValueError(f"Invalid angle: {angle}. Must be greater than 0 degrees.")
     workspace = mtd[str(input_workspace)]
@@ -176,34 +176,36 @@ def set_angle_wing_detector(input_workspace, angle):
     input_workspace : str, ~mantid.simpleapi.Workspace
         Mantid workspace object
     angle : float
-        Angle from the bean axis, in degrees. Increasing angles move the wing detector away from the beam axis.
+        Angle from the beam axis, in degrees. Increasing angles move the wing detector away from the beam axis.
 
     Raises
     ------
     ValueError : if angle is not between 0 and 90 degrees
     """
     OFFSET_ROTATION = -22.18  # (degrees) rotation of the wing detector such that it grazes the beam axis
+    SampleLogs(input_workspace).insert("ww_rot_Readback", angle)
     return _set_angle_curved_panel(input_workspace, angle, "wing_detector", OFFSET_ROTATION, counter_clockwise=False)
 
 
 def set_angle_midrange_detector(input_workspace, angle):
     r"""
-    Position the wing detector at a given angle away from the beam axis.
+    Position the midrange detector at a given angle away from the beam axis.
 
-    This will also update log entry "ww_rot_Readback" with the new angle.
+    This will also update log entry "md_rot_Readback" with the new angle.
 
     Parameters
     ----------
     input_workspace : str, ~mantid.simpleapi.Workspace
         Mantid workspace object
     angle : float
-        Angle from the bean axis, in degrees. Increasing angles move the wing detector away from the beam axis.
+        Angle from the beam axis, in degrees. Increasing angles move the wing detector away from the beam axis.
 
     Raises
     ------
     ValueError : if angle is not between 0 and 90 degrees
     """
     OFFSET_ROTATION = 2.48  # (degrees) rotation of the wing detector such that it grazes the beam axis
+    SampleLogs(input_workspace).insert("md_rot_Readback", angle)
     return _set_angle_curved_panel(
         input_workspace, angle, "midrange_detector", OFFSET_ROTATION, counter_clockwise=True
     )

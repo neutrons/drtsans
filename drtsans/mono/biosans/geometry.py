@@ -93,7 +93,7 @@ def _get_angle_curved_detector(input_workspace, detector_name, offset_rotation, 
 
 def get_angle_wing_detector(input_workspace):
     r"""
-    Get the angle of the wing detector away from the beam axis. Increasing angles move
+    Get the angle (in degrees) of the wing detector away from the beam axis. Increasing angles move
     the wing detector away from the beam axis.
 
     Parameters
@@ -112,7 +112,7 @@ def get_angle_wing_detector(input_workspace):
 
 def get_angle_midrange_detector(input_workspace):
     r"""
-    Get the angle of the wing detector away from the beam axis. Increasing angles move
+    Get the angle (in degrees) of the wing detector away from the beam axis. Increasing angles move
     the midrange detector away from the beam axis.
 
     Parameters
@@ -131,7 +131,7 @@ def get_angle_midrange_detector(input_workspace):
 
 def get_angle_south_detector(input_workspace):
     r"""
-    Find the angle between the beam axis and the line joining the origin of coordinates and the edge
+    Find the angle (in degrees) between the beam axis and the line joining the origin of coordinates and the edge
     of the south detector intersecting the horizontal (XZ) plane.
 
     Parameters
@@ -146,7 +146,7 @@ def get_angle_south_detector(input_workspace):
     workspace = mtd[str(input_workspace)]
     half_span = workspace.getInstrument().getComponentByName("bank1/tube1").getPos().X()
     position = workspace.getInstrument().getComponentByName("detector1").getPos().Z()
-    return np.degrees(np.arctan(half_span / position))
+    return float(np.degrees(np.arctan(half_span / position)))
 
 
 def _set_angle_curved_panel(input_workspace, angle, detector_name, offset_rotation, counter_clockwise=True):
@@ -304,12 +304,47 @@ info_ids = {
 
 
 def get_pixel_distances(input_workspace, component):
+    r"""
+    Get the distances from the sample to each of the pixel detectors in the given component.
+
+    Parameters
+    ----------
+    input_workspace : str, ~Mantid.api.Workspace
+        The workspace to calculate the solid angles for.
+
+    component : str
+        The component to calculate the solid angles for. Must be one of "midrange_detector", "wing_detector", or
+        "detector1".
+
+    Returns
+    -------
+    np.ndarray
+    """
     spectrum_info = mtd[str(input_workspace)].spectrumInfo()
     first, next_to_last = info_ids[component]["spectrum_info_range"]
     return np.array([spectrum_info.l2(idx) for idx in range(first, next_to_last)])
 
 
 def get_twothetas(input_workspace, component, units="degrees"):
+    r"""
+    Get the two-theta angles for each of the pixel detectors in the given component.
+
+    Parameters
+    ----------
+    input_workspace : str, ~Mantid.api.Workspace
+        The workspace to calculate the solid angles for.
+
+    component : str
+        The component to calculate the solid angles for. Must be one of "midrange_detector", "wing_detector", or
+
+        "detector1".
+    units : str
+        The units to return the two-theta angles in. Must be one of "degrees" or "radians".
+
+    Returns
+    -------
+    np.ndarray
+    """
     if units not in ["degrees", "radians"]:
         raise ValueError("units must be 'degrees' or 'radians'")
     spectrum_info = mtd[str(input_workspace)].spectrumInfo()

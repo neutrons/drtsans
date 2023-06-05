@@ -1,3 +1,4 @@
+from typing import Optional
 from scipy import constants
 import numpy as np
 import drtsans.beam_finder as bf
@@ -96,7 +97,7 @@ def find_beam_center(
     sample_det_cent_wing_detector=None,
     sample_det_cent_midrange_detector=None,
     solid_angle_method="VerticalTube",
-) -> Tuple[float, float, float]:
+) -> Tuple[float, float, float, Optional[float], dict]:
     """Finds the beam center in a 2D SANS data set.
     This is based on (and uses) :func:`drtsans.find_beam_center`
 
@@ -123,9 +124,12 @@ def find_beam_center(
         Three float numbers:
         ``(center_x, center_y, center_y_wing)`` corrected for gravity.
         ``center_y_wing`` is used to correct BIOSANS wing detector Y position.
-        ``center_y_midrange`` is returned as a last parameter.
-        if sample_det_cent_midrange_detector is specified then a float number is returned,
-        else None.
+        One float number or None:
+        ``center_y_midrange`` is used to correct BIOSANS midrange detector Y position.
+            if sample_det_cent_midrange_detector is specified then a float number is returned,
+            else None.
+        Dict:
+        ``fit_results``
     """
     ws = mtd[str(input_workspace)]
 
@@ -152,10 +156,7 @@ def find_beam_center(
                 sample_det_cent_wing_detector = ws.getInstrument().getComponentByName("bank49").getPos().norm()
 
     center_y_wing = _beam_center_gravitational_drop(
-        ws,
-        center_y,
-        sample_det_cent_main_detector,
-        sample_det_cent_wing_detector,
+        ws, center_y, sample_det_cent_main_detector, sample_det_cent_wing_detector
     )
 
     # get the distance to center of the main and the midrange detectors

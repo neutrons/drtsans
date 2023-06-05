@@ -5,6 +5,8 @@ import pytest
 from mantid.simpleapi import FindCenterOfMassPosition, LoadHFIRSANS
 from drtsans.mono.biosans import beam_finder, center_detector
 from drtsans.samplelogs import SampleLogs
+from drtsans.load import load_events
+from drtsans.mono.biosans.simulated_events import update_idf
 
 # Note for testing beam center: The FindCenterOfMassPosition algorithm
 # needs some pixels outside the given examples, to be able to perform
@@ -64,7 +66,7 @@ def test_beam_finder_excel(generic_workspace):
     _verify_pixel(ws, 88, [0.5115, 0.5625, 15.5], 64)
 
     # run the function to calculate the beam center
-    x, y, y_gravity, y_midrange, _ = beam_finder.find_beam_center(
+    x, y, y_wing, y_midrange, _ = beam_finder.find_beam_center(
         ws,
         sample_det_cent_main_detector=15.5,
         sample_det_cent_wing_detector=1.13,
@@ -74,7 +76,7 @@ def test_beam_finder_excel(generic_workspace):
     # within .1mm
     assert x == pytest.approx(0.5331, abs=0.0001)
     assert y == pytest.approx(0.5468, abs=0.0001)
-    assert y_gravity == pytest.approx(0.54675 + 0.002694 + 0.0135, abs=0.0001)
+    assert y_wing == pytest.approx(0.54675 + 0.002694 + 0.0135, abs=0.0001)
     assert y_midrange == pytest.approx(0.5468 + 0.002529 + 0.0135, abs=0.0001)
 
 
@@ -125,7 +127,7 @@ def test_beam_finder_excel2(generic_workspace):
     _verify_pixel(ws, 88, [-0.0085, 0.0055, 15.5], 64)
 
     # run the function to calculate the beam center
-    x, y, y_gravity, y_midrange, _ = beam_finder.find_beam_center(
+    x, y, y_wing, y_midrange, _ = beam_finder.find_beam_center(
         ws,
         sample_det_cent_main_detector=15.5,
         sample_det_cent_wing_detector=1.13,
@@ -135,30 +137,30 @@ def test_beam_finder_excel2(generic_workspace):
     # within .1mm
     assert x == pytest.approx(0.0131, abs=0.0001)
     assert y == pytest.approx(-0.0102, abs=0.0001)
-    assert y_gravity == pytest.approx(-0.0102 + 0.002694 + 0.0135, abs=0.0001)
+    assert y_wing == pytest.approx(-0.0102 + 0.002694 + 0.0135, abs=0.0001)
     assert y_midrange == pytest.approx(-0.0102 + 0.002529 + 0.0135, abs=0.0001)
 
 
-# TODO one more like that with load instrument
-def test_beam_finder(biosans_f):
+def test_beam_finder_wing(biosans_f):
     """
     Test with the new beam finder
 
     1. Find the beamcenter x,y
     2. Move detector1 x,y according to beamcenter x,y
-    3. Find gravity
-    4. Move wing_detector y according to Gravity
+    3. Find y_wing
+    4. Move wing_detector y according to y_wing
     """
 
     ws = LoadHFIRSANS(Filename=biosans_f["beamcenter"])
 
     # 0.00144037741238 -0.0243732351545 -0.0267
-    # one more gravity is none
-    x, y, y_gravity, y_midrange, _ = beam_finder.find_beam_center(ws)
+    x, y, y_wing, y_midrange, _ = beam_finder.find_beam_center(ws)
 
     assert x == pytest.approx(0.00214, abs=1e-4)
     assert y == pytest.approx(-0.02445, abs=1e-4)
-    assert y_gravity == pytest.approx(-0.008257, abs=1e-4)
+    assert y_wing == pytest.approx(-0.008257, abs=1e-4)
+    assert y_midrange is None
+
     # The position of the main detector is retrieved
     # The geometry of the detector setup is accessed through a workspace handle.
     # To access the detector geometry we must go through the instrument and
@@ -168,7 +170,7 @@ def test_beam_finder(biosans_f):
     pos_main = instrument.getComponentByName("detector1").getPos()
 
     # Let's center the instrument and get the new center:
-    center_detector(ws, x, y, y_gravity)
+    center_detector(ws, x, y, y_wing)
 
     # The position of the main detector and wing detector is retrieved after
     # relocating the beam center  to the origin of coordinates
@@ -177,7 +179,7 @@ def test_beam_finder(biosans_f):
 
     assert pos_main[0] - pos_main_centered[0] == pytest.approx(x, abs=1e-6)  # micron precision
     assert pos_main[1] - pos_main_centered[1] == pytest.approx(y, abs=1e-6)  # micron precision
-    assert pos_wing_centered[1] == pytest.approx(pos_main_centered[1] + (abs(y_gravity) - abs(y)), abs=1e-6)
+    assert pos_wing_centered[1] == pytest.approx(pos_main_centered[1] + (abs(y_wing) - abs(y)), abs=1e-6)
 
     # After the re-centring we should be at (0,0)
     # Note that to give the same results we need to enter the center
@@ -189,14 +191,76 @@ def test_beam_finder(biosans_f):
     assert y1 == pytest.approx(0.0, abs=1e-4)
 
     # let's the test our wrap function. The results should be the same.
-    x2, y2, y_gravity2, y_midrange2, _ = beam_finder.find_beam_center(
-        ws, centering_options=dict(CenterX=-x, CenterY=-y)
-    )
+    x2, y2, y_wing2, y_midrange2, _ = beam_finder.find_beam_center(ws, centering_options=dict(CenterX=-x, CenterY=-y))
 
     assert x2 == pytest.approx(0.0, abs=1e-3) == x1
     assert y2 == pytest.approx(0.0, abs=1e-4) == y1
-    assert y_gravity2 == pytest.approx(0.0 + y_gravity - y, abs=1e-4)
-    assert abs(y_gravity2) > abs(y2)
+    assert y_wing2 == pytest.approx(0.0 + y_wing - y, abs=1e-4)
+    assert abs(y_wing2) > abs(y2)
+    assert y_midrange2 is None
+
+
+def test_beam_finder_midrange(reference_dir):
+    """
+    Test with the new beam finder
+
+    1. Find the beamcenter x,y
+    2. Move detector1 x,y according to beamcenter x,y
+    3. Find y_midrange
+    4. Move midrange_detector y according to y_midrange
+    """
+    ws = load_events("CG3_957.nxs.h5", data_dir="/HFIR/CG3/IPTS-23782/", overwrite_instrument=True)
+    assert ws.getInstrument().getComponentByName("midrange_detector") is None
+    ws = update_idf(ws)
+    assert ws.getInstrument().getComponentByName("midrange_detector")
+
+    x, y, y_wing, y_midrange, _ = beam_finder.find_beam_center(ws)
+    # -0.07713017225601802 -0.00992194502726748 0.0038553824707935353 0.003690930024268133
+    assert x == pytest.approx(-0.0771, abs=1e-4)
+    assert y == pytest.approx(-0.0099, abs=1e-4)
+    assert y_wing == pytest.approx(0.00385, abs=1e-4)
+    assert y_midrange == pytest.approx(0.00369, abs=1e-4)
+
+    # The position of the main detector is retrieved
+    # The geometry of the detector setup is accessed through a workspace handle.
+    # To access the detector geometry we must go through the instrument and
+    # The vectors returned by getPos() act like 3D vectors and can be added
+    # and subtracted in a manner one would expect.
+    instrument = ws.getInstrument()
+    pos_main = instrument.getComponentByName("detector1").getPos()
+
+    # Let's center the instrument and get the new center:
+    center_detector(ws, x, y, y_wing, y_midrange)
+
+    # The position of the main detector, wing and midrange detector is retrieved after
+    # relocating the beam center  to the origin of coordinates
+    pos_main_centered = instrument.getComponentByName("detector1").getPos()
+    pos_wing_centered = instrument.getComponentByName("wing_detector").getPos()
+    pos_midrange_centered = instrument.getComponentByName("midrange_detector").getPos()
+
+    assert pos_main[0] - pos_main_centered[0] == pytest.approx(x, abs=1e-6)  # micron precision
+    assert pos_main[1] - pos_main_centered[1] == pytest.approx(y, abs=1e-6)  # micron precision
+    assert abs(pos_wing_centered[1]) == pytest.approx(pos_main_centered[1] + (abs(y_wing) - abs(y)), abs=1e-6)
+    assert abs(pos_midrange_centered[1]) == pytest.approx(pos_main_centered[1] + (abs(y_midrange) - abs(y)), abs=1e-6)
+
+    # After the re-centring we should be at (0,0)
+    # Note that to give the same results we need to enter the center
+    # estimates as the previous results!
+    center = FindCenterOfMassPosition(InputWorkspace=ws, CenterX=-x, CenterY=-y)
+    x1, y1 = center
+    # Tolerance 1e-3 == millimeters
+    assert x1 == pytest.approx(0.0, abs=1e-3)
+    assert y1 == pytest.approx(0.0, abs=1e-4)
+
+    # let's the test our wrap function. The results should be the same.
+    x2, y2, y_wing2, y_midrange2, _ = beam_finder.find_beam_center(ws, centering_options=dict(CenterX=-x, CenterY=-y))
+
+    assert x2 == pytest.approx(0.0, abs=1e-3) == x1
+    assert y2 == pytest.approx(0.0, abs=1e-4) == y1
+    assert y_wing2 == pytest.approx(0.0 + y_wing - y, abs=1e-4)
+    assert abs(y_wing2) > abs(y2)
+    assert y_midrange2 == pytest.approx(0.0 + y_midrange - y, abs=1e-4)
+    assert abs(y_midrange2) > abs(y2)
 
 
 if __name__ == "__main__":

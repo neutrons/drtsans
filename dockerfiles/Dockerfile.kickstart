@@ -1,9 +1,9 @@
 FROM code.ornl.gov:4567/rse/images/miniconda3:22.11.1-20230209.1219
 
-# This environment name matches the one in drtsans-dev.yml
+# This environment name matches the one in environment.yml
 ARG CONDA_ENV=drtsans-dev
 
-COPY drtsans-dev.yml /tmp/drtsans-dev.yml
+COPY environment.yml /tmp/drtsans-dev.yml
 
 # update packages
 RUN apt-get update \

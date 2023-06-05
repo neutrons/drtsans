@@ -44,7 +44,7 @@ Create a conda environment and activate it.
 
     $ conda config --add channels conda-forge
     $ conda config --add channels mantid
-    $ conda env create -f drtsans-dev.yml
+    $ conda env create # will use environment.yml
     $ conda activate drtsans-dev
 
  **Warning**: if you create the conda environment on SNS’s analysis cluster, avoid naming your environment as ‘drtsans’,

@@ -108,7 +108,7 @@ def load_events(
     data_dir=None,
     output_workspace=None,
     output_suffix="",
-    **kwargs
+    **kwargs,
 ):
     r"""
     Load events with initial corrections for geometry and time-of-flight
@@ -197,7 +197,7 @@ def load_events_and_histogram(
     monitors=False,
     keep_events=True,
     sample_bands=None,
-    **kwargs
+    **kwargs,
 ):
     r"""Load events from one or more NeXus files with initial corrections
     for geometry, time-of-flight and beam center. Convert to
@@ -299,7 +299,7 @@ def load_events_and_histogram(
             data_dir=data_dir,
             output_workspace=output_workspace,
             output_suffix=output_suffix,
-            **kwargs
+            **kwargs,
         )
 
         if center_x is None or center_y is None:
@@ -356,7 +356,7 @@ def load_events_and_histogram(
                 data_dir=data_dir,
                 output_workspace=temp_workspace_name,
                 output_suffix=output_suffix,
-                **kwargs
+                **kwargs,
             )
             if center_x is None or center_y is None:
                 center_x, center_y, _ = find_beam_center(
@@ -424,7 +424,7 @@ def load_and_split(
     log_name=None,
     log_value_interval=None,
     reuse_workspace=False,
-    **kwargs
+    **kwargs,
 ):
     r"""Load an event NeXus file and filter into a WorkspaceGroup depending
     on the provided filter options. Either a time_interval must be
@@ -462,7 +462,7 @@ def load_and_split(
         reuse_workspace=reuse_workspace,
         monitors=False,
         instrument_unique_name="EQSANS",
-        **kwargs
+        **kwargs,
     )
 
     # Init

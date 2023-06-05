@@ -45,7 +45,7 @@ def reshape_q_azimuthal(i_of_q):
         qx=flat_i_of_q.qx[index_sorted],
         qy=flat_i_of_q.qy[index_sorted],
         wavelength=flat_i_of_q.wavelength[index_sorted],
-        **kwargs
+        **kwargs,
     )
 
 

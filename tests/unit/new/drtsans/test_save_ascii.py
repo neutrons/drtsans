@@ -24,7 +24,7 @@ def createIQAzimuthal(with_resolution=True):
         error=np.full((21, 21), 1.0, dtype=float),
         qx=np.arange(-10, 11, 1, dtype=float),
         qy=np.arange(-10, 11, 1, dtype=float),
-        **resolutionArgs
+        **resolutionArgs,
     )
 
 

@@ -6,14 +6,12 @@ channels:
 dependencies:
   - mantid==6.4
   - anaconda-client
-  - autopep8
   - black
   - boa
   - build
   - conda-build
   - conda-verify
   - docutils
-  - flake8
   - graphviz
   - ipywidgets
   - jinja2
@@ -27,13 +25,13 @@ dependencies:
   - pytest >= 3.2
   - pytest-runner
   - pytest-xdist
+  - setuptools >= 42
   - sortedcontainers
   - sphinx >= 5.0.2
   - sphinxcontrib-napoleon
   - sphinx_rtd_theme
   - tinydb
+  - toml
   - versioningit
   - pip:
       - check-wheel-contents
-
-prefix: /opt/anaconda/envs/drtsans-dev

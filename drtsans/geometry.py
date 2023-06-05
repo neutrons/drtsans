@@ -38,10 +38,11 @@ def panel_names(input_query):
     -------
     list
     """
-    detector_names = ["detector1"]
-    if instrument_enum_name(input_query) == InstrumentEnumName.BIOSANS:
-        detector_names.append("wing_detector")
-    return detector_names
+    component_info = mtd[str(input_query)].componentInfo()
+    root_component_index = int(component_info.root())
+    top_components = [component_info.name(int(i)) for i in component_info.children(root_component_index)]
+    non_panel_components = ["moderator", "sample-position", "sample_aperture", "monitors"]
+    return [component for component in top_components if component not in non_panel_components]
 
 
 def main_detector_name(ipt):

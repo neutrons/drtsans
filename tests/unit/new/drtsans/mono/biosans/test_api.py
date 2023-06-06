@@ -54,8 +54,10 @@ def test_load_all_files_simple():
     assert loaded.blocked_beam is None
     assert loaded.dark_current_main is None
     assert loaded.dark_current_wing is None
+    assert loaded.dark_current_midrange is None
     assert loaded.sensitivity_main is None
     assert loaded.sensitivity_wing is None
+    assert loaded.sensitivity_midrange is None
     assert loaded.mask is None
 
 

@@ -114,15 +114,13 @@ class PrepareSensitivityCorrection(object):
 
     """
 
-    def __init__(self, instrument, is_wing_detector=False, component="detector1"):
+    def __init__(self, instrument, component="detector1"):
         """Initialization
 
         Parameters
         ----------
         instrument : str
             instrument name. One of CG2, CG3, EQSANS
-        is_wing_detector : bool
-            Flag to calculate sensivitities for 'wing' detector special to BIOSANS/CG3
         component : str
             One of the detector panels of the instrument (e.g. detector1, wing_detector, midrange_detector)
         """
@@ -130,12 +128,6 @@ class PrepareSensitivityCorrection(object):
         if instrument not in [CG2, CG3, EQSANS]:
             raise RuntimeError("Instrument {} is not supported".format(instrument))
         self._instrument = instrument
-
-        # TODO (jose borreguero) this is temporary check until option "is_wing_detector" is removed
-        if ((is_wing_detector is True) and (component != "wing_detector")) or (
-            (is_wing_detector is False) and (component == "wing_detector")
-        ):
-            raise RuntimeError("Options 'is_wing_detector' and 'component' are not congruent!")
 
         # validate the component as part of the instrument
         if component not in panel_names(instrument):

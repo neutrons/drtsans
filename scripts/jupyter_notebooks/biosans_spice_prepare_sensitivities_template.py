@@ -16,8 +16,7 @@ IPTS = 17241
 EXPERIMENT = 549
 
 # Main detector or wing detector
-WING_DETECTOR = False
-
+COMPONENT = "detector1"
 # Set flood run: scan, pt
 FLOOD_RUN = (9, 1)
 
@@ -54,7 +53,7 @@ MIN_THRESHOLD = 0.5
 MAX_THRESHOLD = 2.0
 
 # Output: surfix as wing or main
-FILE_SURFIX = "wing" if WING_DETECTOR else "main"
+FILE_SURFIX = "wing" if COMPONENT == "wing_detector" else "main"
 output_dir = os.getcwd()  # current directory
 SENSITIVITY_FILE = os.path.join(output_dir, f"{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN[0]}.nxs")
 
@@ -78,7 +77,7 @@ dark_current_run = (
 
 # prepare data
 prepare_spice_sensitivities_correction(
-    WING_DETECTOR,
+    COMPONENT,
     flood_run,
     direct_beam_run,
     dark_current_run,

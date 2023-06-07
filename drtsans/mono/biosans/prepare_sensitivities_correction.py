@@ -4,7 +4,7 @@ from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
 
 
 def prepare_spice_sensitivities_correction(
-    is_wing_detector: bool,
+    component: str,
     flood_run: SpiceRun,
     direct_beam_run: SpiceRun,
     dark_current_run: SpiceRun,
@@ -27,8 +27,8 @@ def prepare_spice_sensitivities_correction(
 
     Parameters
     ----------
-    is_wing_detector: bool
-        Flag to indicate the operation is on wing detector
+    component: str
+        Detector panel to use. One of "detector1" or "wing_detector"
     flood_run: SpiceRun
         flood run
     direct_beam_run: SpiceRun or None
@@ -69,8 +69,10 @@ def prepare_spice_sensitivities_correction(
     CG3 = "CG3"
 
     # Set up sensitivities preparation configurations
-    component = "wing_detector" if is_wing_detector else "detector1"
-    preparer = PrepareSensitivityCorrection(CG3, is_wing_detector, component=component)
+    if component not in ["detector1", "wing_detector"]:
+        raise ValueError(f"Unknown component {component}. Must be one of 'detector1' or 'wing_detector'")
+
+    preparer = PrepareSensitivityCorrection(CG3, component=component)
     # Load flood runs
     preparer.set_flood_runs([flood_run.unique_nexus_name(nexus_dir, True)])
 

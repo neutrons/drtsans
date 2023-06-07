@@ -66,7 +66,7 @@ def prepare_spice_sensitivities_correction(
     sens_file_name = os.path.join(output_dir, f"sens_gpsans_{file_suffix}.nxs")
 
     # Create the sensitivity preparation correction workflow object
-    preparer = PrepareSensitivityCorrection(MY_BEAM_LINE, is_wing_detector=False)
+    preparer = PrepareSensitivityCorrection(MY_BEAM_LINE)
 
     # Load flood runs
     # map the run number to file name as it is SPICE

@@ -175,7 +175,7 @@ def test_cg3_main_prepare_sensitivities(tmp_path):
     MIN_THRESHOLD = 0.5
     MAX_THRESHOLD = 2.0
 
-    preparer = PrepareSensitivityCorrection(INSTRUMENT, is_wing_detector=False)
+    preparer = PrepareSensitivityCorrection(INSTRUMENT, component="detector1")
     # Load flood runs
     preparer.set_flood_runs(FLOOD_RUNS)
 

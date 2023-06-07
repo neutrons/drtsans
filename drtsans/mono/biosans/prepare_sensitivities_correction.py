@@ -69,7 +69,8 @@ def prepare_spice_sensitivities_correction(
     CG3 = "CG3"
 
     # Set up sensitivities preparation configurations
-    preparer = PrepareSensitivityCorrection(CG3, is_wing_detector)
+    component = "wing_detector" if is_wing_detector else "detector1"
+    preparer = PrepareSensitivityCorrection(CG3, is_wing_detector, component=component)
     # Load flood runs
     preparer.set_flood_runs([flood_run.unique_nexus_name(nexus_dir, True)])
 

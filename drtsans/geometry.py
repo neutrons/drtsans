@@ -1,16 +1,19 @@
+# local imports
+from drtsans.samplelogs import SampleLogs
+from drtsans.settings import unpack_v3d, namedtuplefy
+from drtsans.instruments import InstrumentEnumName, instrument_enum_name, instrument_standard_name
+from collections import defaultdict
+
+# third-party imports
 from mantid.api import MatrixWorkspace
 from mantid.geometry import Instrument
 from mantid.kernel import logger
-
-# https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
 from mantid.simpleapi import mtd, MoveInstrumentComponent
 import numpy as np
+
+# standard imports
 from typing import Union
 
-from drtsans.samplelogs import SampleLogs
-from drtsans.settings import unpack_v3d, namedtuplefy
-from drtsans.instruments import InstrumentEnumName, instrument_enum_name
-from collections import defaultdict
 
 __all__ = [
     "sample_aperture_diameter",
@@ -31,18 +34,20 @@ def panel_names(input_query):
 
     Parameters
     ----------
-    input_query: str,  ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
-        string representing a filepath, a valid instrument name, or a Mantid workspace containing an instrument
+    input_query: str,  ~mantid.api.Workspace
+        string representing a valid instrument name, the name of a Mantid workspace,
+        or the handle to a Mantid workspace
 
     Returns
     -------
     list
     """
-    component_info = mtd[str(input_query)].componentInfo()
-    root_component_index = int(component_info.root())
-    top_components = [component_info.name(int(i)) for i in component_info.children(root_component_index)]
-    non_panel_components = ["moderator", "sample-position", "sample_aperture", "monitors"]
-    return [component for component in top_components if component not in non_panel_components]
+    panels = {
+        "BIOSANS": ["detector1", "wing_detector", "midrange_detector"],
+        "GPSANS": ["detector1"],
+        "EQSANS": ["detector1"],
+    }
+    return panels[instrument_standard_name(str(input_query))]
 
 
 def main_detector_name(ipt):

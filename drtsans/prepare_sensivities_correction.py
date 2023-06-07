@@ -1,20 +1,22 @@
-import numpy as np
-import h5py
+# local imports
 from drtsans.load import load_events
+from drtsans.geometry import panel_names
+from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 import drtsans.mono.gpsans
 import drtsans.mono.biosans
+from drtsans.process_uncertainties import set_init_uncertainties
+from drtsans.sensitivity_correction_moving_detectors import (
+    calculate_sensitivity_correction as calculate_sensitivity_correction_moving,
+)
+from drtsans.sensitivity_correction_patch import (
+    calculate_sensitivity_correction as calculate_sensitivity_correction_patch,
+)
 import drtsans.tof.eqsans
 
-r"""
-Links to mantid algorithms
-https://docs.mantidproject.org/nightly/algorithms/SaveNexusProcessed-v1.html
-https://docs.mantidproject.org/nightly/algorithms/MaskAngle-v1.html
-https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html
-https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html
-https://docs.mantidproject.org/nightly/algorithms/MaskDetectors-v1.html
-https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
-"""
-import os
+# third party imports
+import h5py
+from mantid.api import mtd
+from mantid.kernel import logger
 from mantid.simpleapi import (
     SaveNexusProcessed,
     MaskAngle,
@@ -22,21 +24,11 @@ from mantid.simpleapi import (
     MaskDetectors,
     CreateWorkspace,
 )
-from mantid.api import mtd
-from mantid.kernel import logger
+import numpy as np
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmask_utils.py
-from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
+# standard imports
+import os
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fprocess_uncertainties.py
-from drtsans.process_uncertainties import set_init_uncertainties
-
-from drtsans.sensitivity_correction_moving_detectors import (
-    calculate_sensitivity_correction as calculate_sensitivity_correction_moving,
-)
-from drtsans.sensitivity_correction_patch import (
-    calculate_sensitivity_correction as calculate_sensitivity_correction_patch,
-)
 
 # Constants
 CG2 = "CG2"
@@ -122,19 +114,33 @@ class PrepareSensitivityCorrection(object):
 
     """
 
-    def __init__(self, instrument, is_wing_detector=False):
+    def __init__(self, instrument, is_wing_detector=False, component="detector1"):
         """Initialization
 
         Parameters
         ----------
         instrument : str
-            instrument name, CG2, CG2, EQSANS
+            instrument name. One of CG2, CG3, EQSANS
         is_wing_detector : bool
             Flag to calculate sensivitities for 'wing' detector special to BIOSANS/CG3
+        component : str
+            One of the detector panels of the instrument (e.g. detector1, wing_detector, midrange_detector)
         """
+
         if instrument not in [CG2, CG3, EQSANS]:
             raise RuntimeError("Instrument {} is not supported".format(instrument))
         self._instrument = instrument
+
+        # TODO (jose borreguero) this is temporary check until option "is_wing_detector" is removed
+        if ((is_wing_detector is True) and (component != "wing_detector")) or (
+            (is_wing_detector is False) and (component == "wing_detector")
+        ):
+            raise RuntimeError("Options 'is_wing_detector' and 'component' are not congruent!")
+
+        # validate the component as part of the instrument
+        if component not in panel_names(instrument):
+            raise RuntimeError(f"Component {component} is not part of {instrument}")
+        self._component = component
 
         # flood runs
         self._flood_runs = None
@@ -159,13 +165,6 @@ class PrepareSensitivityCorrection(object):
 
         # Apply solid angle correction or not?
         self._solid_angle_correction = False
-
-        # BIOSANS special
-        # If the instrument is Bio-SANS, then check to see if we are working with the wing detector
-        if self._instrument == CG3:
-            self._is_wing_detector = is_wing_detector
-        else:
-            self._is_wing_detector = False
 
         # BIO-SANS special application to
         # mask the area around the direct beam to remove it and the associated parasitic scattering
@@ -677,12 +676,6 @@ class PrepareSensitivityCorrection(object):
             else:
                 polynomial_order = 2
 
-            # component name
-            if self._is_wing_detector:
-                detector = "wing_detector"
-            else:
-                detector = "detector1"
-
             # This only processes a single image, even for the Bio-SANS.
             # Each detector on the Bio-SANS must be treated independently
             sens_ws = calculate_sensitivity_correction(
@@ -691,7 +684,7 @@ class PrepareSensitivityCorrection(object):
                 max_threshold=max_threshold,
                 poly_order=polynomial_order,
                 min_detectors_per_tube=50,
-                component_name=detector,
+                component_name=self._component,
             )
 
         # Export
@@ -863,13 +856,11 @@ class PrepareSensitivityCorrection(object):
         elif self._main_det_mask_angle is not None and self._instrument == CG3:
             # CG3 special: Mask 2-theta angle
             # Mask wing detector right top/bottom corners
-            if self._is_wing_detector is False:
-                # main detector: mask wing
-                component = "wing_detector"
+            if self._component == "wing_detector":
+                component_to_mask = "detector1"
             else:
-                # wing detector: mask main
-                component = "detector1"
-            apply_mask(flood_ws, Components=component)
+                component_to_mask = "wing_detector"
+            apply_mask(flood_ws, Components=component_to_mask)
             # mask 2theta
             MaskAngle(Workspace=flood_ws, MaxAngle=self._main_det_mask_angle, Angle="TwoTheta")
         else:

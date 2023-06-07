@@ -77,7 +77,8 @@ def test_beam_finder_excel(generic_workspace):
     assert x == pytest.approx(0.5331, abs=0.0001)
     assert y == pytest.approx(0.5468, abs=0.0001)
     assert y_wing == pytest.approx(0.54675 + 0.002694 + 0.0135, abs=0.0001)
-    assert y_midrange == pytest.approx(0.5468 + 0.002529 + 0.0135, abs=0.0001)
+    #y = 0.5468, (drop_main - drop_curved) = 0.002529,vertical_offset = 0.0
+    assert y_midrange == pytest.approx(0.5468 + 0.002529 + 0.0, abs=0.0001)
 
 
 @pytest.mark.parametrize(
@@ -138,7 +139,7 @@ def test_beam_finder_excel2(generic_workspace):
     assert x == pytest.approx(0.0131, abs=0.0001)
     assert y == pytest.approx(-0.0102, abs=0.0001)
     assert y_wing == pytest.approx(-0.0102 + 0.002694 + 0.0135, abs=0.0001)
-    assert y_midrange == pytest.approx(-0.0102 + 0.002529 + 0.0135, abs=0.0001)
+    assert y_midrange == pytest.approx(-0.0102 + 0.002529 + 0.0, abs=0.0001)
 
 
 def test_beam_finder_wing(biosans_f):
@@ -215,11 +216,11 @@ def test_beam_finder_midrange(reference_dir):
     assert ws.getInstrument().getComponentByName("midrange_detector")
 
     x, y, y_wing, y_midrange, _ = beam_finder.find_beam_center(ws)
-    # -0.07713017225601802 -0.00992194502726748 0.0038553824707935353 0.003690930024268133
+    # -0.07713017225601802 -0.00992194502726748 0.0038553824707935353 -0.009809069975731867
     assert x == pytest.approx(-0.0771, abs=1e-4)
     assert y == pytest.approx(-0.0099, abs=1e-4)
     assert y_wing == pytest.approx(0.00385, abs=1e-4)
-    assert y_midrange == pytest.approx(0.00369, abs=1e-4)
+    assert y_midrange == pytest.approx(-0.0098, abs=1e-4)
 
     # The position of the main detector is retrieved
     # The geometry of the detector setup is accessed through a workspace handle.

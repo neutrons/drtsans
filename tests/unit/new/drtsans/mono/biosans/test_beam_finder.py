@@ -243,7 +243,7 @@ def test_beam_finder_midrange(reference_dir):
     assert pos_main[0] - pos_main_centered[0] == pytest.approx(x, abs=1e-6)  # micron precision
     assert pos_main[1] - pos_main_centered[1] == pytest.approx(y, abs=1e-6)  # micron precision
     assert abs(pos_wing_centered[1]) == pytest.approx(pos_main_centered[1] + (abs(y_wing) - abs(y)), abs=1e-6)
-    assert abs(pos_midrange_centered[1]) == pytest.approx(pos_main_centered[1] + (abs(y_midrange) - abs(y)), abs=1e-6)
+    assert pos_midrange_centered[1] == pytest.approx(pos_main_centered[1] + (abs(y_midrange) - abs(y)), abs=1e-6)
 
     # After the re-centring we should be at (0,0)
     # Note that to give the same results we need to enter the center

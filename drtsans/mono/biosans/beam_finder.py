@@ -129,7 +129,7 @@ def find_beam_center(
             if sample_det_cent_midrange_detector is specified then a float number is returned,
             else None.
         Dict:
-        ``fit_results``: results prodcued by fitting the beam center intensities
+        ``fit_results``: results produced by fitting the beam center intensities
         to a 2D Gaussian model in the lmfit package
     """
     ws = mtd[str(input_workspace)]
@@ -189,7 +189,7 @@ def find_beam_center(
 
 
 def center_detector(input_workspace, center_x, center_y, center_y_wing, center_y_midrange=None):
-    """Center the detector and adjusts the height for both the main and wing detectors
+    """Center the detector and adjusts the height for the main wing and midrange detectors
     This uses :func:`drtsans.center_detector`
 
     **Mantid algorithms used:**

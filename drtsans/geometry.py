@@ -42,12 +42,20 @@ def panel_names(input_query):
     -------
     list
     """
-    panels = {
+    # latest panels for each instrument
+    panels_for_instrument = {
         "BIOSANS": ["detector1", "wing_detector", "midrange_detector"],
         "GPSANS": ["detector1"],
         "EQSANS": ["detector1"],
     }
-    return panels[instrument_standard_name(str(input_query))]
+    instrument_name = instrument_standard_name(str(input_query))
+    panels = panels_for_instrument[instrument_name]
+    # the only troublemaker is BIOSANS, which may be missing the midrange detector
+    if instrument_name == "BIOSANS" and str(input_query) in mtd:
+        if mtd[str(input_query)].getInstrument().getComponentByName("midrange_detector") is None:
+            return ["detector1", "wing_detector"]
+    else:
+        return panels
 
 
 def main_detector_name(ipt):

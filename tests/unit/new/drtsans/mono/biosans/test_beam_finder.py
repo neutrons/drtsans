@@ -139,6 +139,7 @@ def test_beam_finder_excel2(generic_workspace):
     assert x == pytest.approx(0.0131, abs=0.0001)
     assert y == pytest.approx(-0.0102, abs=0.0001)
     assert y_wing == pytest.approx(-0.0102 + 0.002694 + 0.0135, abs=0.0001)
+    #y = -0.0102, (drop_main - drop_curved) = 0.002529,vertical_offset = 0.0
     assert y_midrange == pytest.approx(-0.0102 + 0.002529 + 0.0, abs=0.0001)
 
 

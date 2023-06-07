@@ -129,7 +129,7 @@ def find_beam_center(
             if sample_det_cent_midrange_detector is specified then a float number is returned,
             else None.
         Dict:
-        ``fit_results``: results prodcued by fitting the beam center intensities 
+        ``fit_results``: results prodcued by fitting the beam center intensities
         to a 2D Gaussian model in the lmfit package
     """
     ws = mtd[str(input_workspace)]
@@ -174,11 +174,11 @@ def find_beam_center(
         # vertical offset between the South and Midrange detectors
         vertical_offset = 0.00
         center_y_midrange = _beam_center_gravitational_drop(
-            ws, 
-            center_y, 
-            sample_det_cent_main_detector, 
-            sample_det_cent_midrange_detector, 
-            vertical_offset=vertical_offset
+            ws,
+            center_y,
+            sample_det_cent_main_detector,
+            sample_det_cent_midrange_detector,
+            vertical_offset=vertical_offset,
         )
     logger.information(
         "Beam Center: x={:.3} y={:.3} y_gravity={:.3} y_midrange={}.".format(

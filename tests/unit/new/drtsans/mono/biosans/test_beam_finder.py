@@ -209,7 +209,7 @@ def test_beam_finder_midrange(reference_dir):
     3. Find y_midrange
     4. Move midrange_detector y according to y_midrange
     """
-    ws = load_events("CG3_957.nxs.h5", data_dir="/HFIR/CG3/IPTS-23782/", overwrite_instrument=True)
+    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     ws = update_idf(ws)
     assert ws.getInstrument().getComponentByName("midrange_detector")

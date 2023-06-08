@@ -99,6 +99,20 @@ class PrepareSensitivityCorrection(PrepareBase):
         # Set the beam trap factor for transmission reference and flood run to mask angle
         self._biosans_beam_trap_factor = beam_trap_factor
 
+    def set_theta_dependent_correction_flag(self, flag):
+        """Set the flag to do theta dep with transmission correction
+
+        Parameters
+        ----------
+        flag : bool
+            True to do the correction
+
+        Returns
+        -------
+
+        """
+        self._theta_dep_correction = flag
+
 
 def prepare_spice_sensitivities_correction(
     component: str,

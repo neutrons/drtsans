@@ -3,9 +3,42 @@ from drtsans.mono.spice_data import SpiceRun
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
 
 
+# Constants
+PIXEL = "Pixel"
+
+
 class PrepareSensitivityCorrection(PrepareBase):
     def __int__(self):
         super().__init__()
+
+    def set_masks(self, default_mask, pixels, wing_det_mask_angle=None, main_det_mask_angle=None):
+        """Set masks
+
+        Parameters
+        ----------
+        default_mask : str or ~mantid.api.MaskWorkspace or :py:obj:`list` or None
+            Mask to be applied. If :py:obj:`list`, it is a list of
+            detector ID's. If `None`, it is expected that `maskbtp` is not empty.
+            mask file name
+        pixels : str or None
+            pixels to mask.  Example: '1-8,249-256'
+        wing_det_mask_angle : float or None
+            angle to mask (MaskAngle) to (BIOSANS) wing detector
+        main_det_mask_angle : float or None
+            angle to mask (MaskAngle) to main detector
+
+        Returns
+        -------
+        None
+
+        """
+
+        super().set_masks(default_mask, pixels)
+
+        if wing_det_mask_angle is not None:
+            self._wing_det_mask_angle = wing_det_mask_angle
+        if main_det_mask_angle is not None:
+            self._main_det_mask_angle = main_det_mask_angle
 
 
 def prepare_spice_sensitivities_correction(

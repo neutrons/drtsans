@@ -10,7 +10,7 @@
 """
 import sys
 import warnings
-from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
+from drtsans.mono.biosans.prepare_sensitivities_correction import PrepareSensitivityCorrection
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 

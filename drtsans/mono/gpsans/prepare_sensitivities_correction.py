@@ -81,7 +81,7 @@ def prepare_spice_sensitivities_correction(
         preparer.set_direct_beam_runs(transmission_nexus_files)
 
     # Set extra masks
-    preparer.set_masks(mask_file, masked_pixels, wing_det_mask_angle=None, main_det_mask_angle=None)
+    preparer.set_masks(mask_file, masked_pixels)
 
     # Set beam center radius
     if beam_center_mask_radius is not None:

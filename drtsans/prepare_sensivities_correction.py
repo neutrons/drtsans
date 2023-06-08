@@ -246,7 +246,7 @@ class PrepareSensitivityCorrection(object):
             # shall be a list or tuple
             self._direct_beam_center_runs = list(direct_beam_runs)
 
-    def set_masks(self, default_mask, pixels, wing_det_mask_angle=None, main_det_mask_angle=None):
+    def set_masks(self, default_mask, pixels):
         """Set masks
 
         Parameters
@@ -257,10 +257,6 @@ class PrepareSensitivityCorrection(object):
             mask file name
         pixels : str or None
             pixels to mask.  Example: '1-8,249-256'
-        wing_det_mask_angle : float or None
-            angle to mask (MaskAngle) to (BIOSANS) wing detector
-        main_det_mask_angle : float or None
-            angle to mask (MaskAngle) to main detector
 
         Returns
         -------
@@ -274,13 +270,6 @@ class PrepareSensitivityCorrection(object):
         # pixels to mask
         if pixels is not None:
             self._extra_mask_dict[PIXEL] = pixels
-
-        # angles to mask (BIOSANS)
-        if self._instrument == CG3:
-            if wing_det_mask_angle is not None:
-                self._wing_det_mask_angle = wing_det_mask_angle
-            if main_det_mask_angle is not None:
-                self._main_det_mask_angle = main_det_mask_angle
 
     def set_beam_center_radius(self, radius):
         """Set beam center radius

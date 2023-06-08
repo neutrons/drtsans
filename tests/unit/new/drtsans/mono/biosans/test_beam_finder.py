@@ -211,27 +211,28 @@ def test_find_beam_center_midrange(reference_dir):
     3. Find the beamcenter x,y again
     4. Make sure all values match
     """
-    
-    #collect values before adding the midrange_detector
+
+    # collect values before adding the midrange_detector
     ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     x_initial, y_initial, y_wing_initial, y_midrange_initial, _ = beam_finder.find_beam_center(ws)
-    
-    #midrange is not added yet
+
+    # midrange is not added yet
     assert y_midrange_initial is None
-    
-    #add the midrange detector 
+
+    # add the midrange detector
     ws = update_idf(ws)
     assert ws.getInstrument().getComponentByName("midrange_detector")
-    
-    #collect values 
+
+    # collect values
     x_final, y_final, y_wing_final, y_midrange_final, _ = beam_finder.find_beam_center(ws)
-    
-    #they should be the same
+
+    # they should be the same
     assert x_initial == x_final
     assert y_initial == y_final
     assert y_wing_initial == y_wing_final
-    #assert y_midrange_final == ?
+    # assert y_midrange_final == ?
+
 
 def test_beam_finder_midrange(reference_dir):
     """

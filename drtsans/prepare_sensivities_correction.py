@@ -399,6 +399,92 @@ class PrepareSensitivityCorrection(object):
         """
         self._beam_center_radius = radius
 
+    def _calculate_beam_center(self, index, enforce_use_nexus_idf):
+        """Find beam centers for all flood runs
+
+        Beam center run shall be
+        (1) masked properly (default mask + top/bottom)
+        (2) NOT corrected by solid angle
+
+        Parameters
+        ----------
+        index : int
+            beam center run index mapped to flood run
+        enforce_use_nexus_idf: bool
+            flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
+        Returns
+        -------
+        ~tuple
+            beam center as xc, yc and possible wc for BIOSANS
+
+        """
+        if self._direct_beam_center_runs is None and self._instrument == CG3 and self._wing_det_mask_angle is not None:
+            # CG3, flood run as direct beam center and mask angle is defined
+            # In this case, run shall be loaded to another workspace for masking
+            beam_center_run = self._flood_runs[index]
+        elif self._direct_beam_center_runs is None:
+            raise RuntimeError("Beam center runs must be given for {}".format(self._instrument))
+        else:
+            # Direct beam run is specified
+            beam_center_run = self._direct_beam_center_runs[index]
+        if isinstance(beam_center_run, str):
+            # beam center run shall be a file path
+            assert os.path.exists(beam_center_run), f"Bean center run {beam_center_run} cannot be found"
+        else:
+            # run number (integer)
+            beam_center_run = "{}_{}".format(self._instrument, beam_center_run)
+
+        # Prepare data
+        # Only applied for BIOSANS with mask_angle case!!! and GPSANS moving detector
+        # It is not necessary for EQSANS because data won't be modified at all!
+        prepare_data = PREPARE_DATA[self._instrument]
+
+        # Add instrument_specific_parameters
+        instrument_specific_param_dict = dict()
+        if self._instrument in [CG2, CG3]:
+            # HFIR spedific
+            instrument_specific_param_dict["overwrite_instrument"] = False
+
+        # Determine normalization method
+        if self._instrument == EQSANS:
+            # EQSANS requirs additional file with flux_method.  So set flux_method to None
+            flux_method = None
+        else:
+            # BIOSANS and GPSANS does not require extra flux file for normalization by monitor
+            flux_method = "monitor"
+
+        # FIXME - data shall be more flexible here for beam center run path
+        if self._instrument in [CG2, CG3]:
+            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
+        beam_center_workspace = prepare_data(
+            data=beam_center_run,
+            pixel_calibration=self._apply_calibration,
+            center_x=0.0,  # force to not to center
+            center_y=0.0,
+            mask=self._default_mask,
+            btp=self._extra_mask_dict,
+            flux_method=flux_method,
+            solid_angle=False,
+            output_workspace="BC_{}_{}".format(self._instrument, beam_center_run),
+            **instrument_specific_param_dict,
+        )
+        # Mask angle for CG3: apply mask on angle
+        if self._instrument == CG3 and self._wing_det_mask_angle is not None:
+            # mask wing detector
+            apply_mask(beam_center_workspace, Components="wing_detector")
+            # mask 2-theta angle on main detector
+            MaskAngle(
+                Workspace=beam_center_workspace,
+                MinAngle=self._wing_det_mask_angle,
+                Angle="TwoTheta",
+            )
+
+        # Find detector center
+        find_beam_center = FIND_BEAM_CENTER[self._instrument]
+        beam_center = find_beam_center(beam_center_workspace)
+
+        return beam_center[:-1]
+
     def _prepare_flood_data(self, flood_run, beam_center, dark_current_run, enforce_use_nexus_idf):
         """Prepare flood data including
         (1) load
@@ -480,6 +566,237 @@ class PrepareSensitivityCorrection(object):
             flood_ws = Integration(InputWorkspace=flood_ws, OutputWorkspace=str(flood_ws))
 
         return flood_ws
+
+    def _mask_beam_center(self, flood_ws, beam_center):
+        """Mask beam center
+
+        Mask beam center with 3 algorithms
+        1. if beam center mask is present, mask by file
+        2. Otherwise if beam center workspace is specified, find beam center from this workspace and mask
+        3. Otherwise find beam center for flood workspace and mask itself
+
+        Parameters
+        ----------
+        flood_ws : ~mantid.api.MatrixWorkspace
+            Mantid workspace for flood data
+        beam_center : tuple or str
+            if tuple, beam centers (xc, yc, wc) / (xc, yc); str: beam center masks file
+        Returns
+        -------
+
+        """
+        # Calculate masking (masked file or detectors)
+        if isinstance(beam_center, str):
+            # beam center mask XML file: apply mask
+            apply_mask(flood_ws, mask=beam_center)  # data_ws reference shall not be invalidated here!
+        elif self._main_det_mask_angle is not None and self._instrument == CG3:
+            # CG3 special: Mask 2-theta angle
+            # Mask wing detector right top/bottom corners
+            if self._component == "wing_detector":
+                component_to_mask = "detector1"
+            else:
+                component_to_mask = "wing_detector"
+            apply_mask(flood_ws, Components=component_to_mask)
+            # mask 2theta
+            MaskAngle(Workspace=flood_ws, MaxAngle=self._main_det_mask_angle, Angle="TwoTheta")
+        else:
+            # calculate beam center mask from beam center workspace
+            # Mask the new beam center by 65 mm (Lisa's magic number)
+            masking = list(circular_mask_from_beam_center(flood_ws, self._beam_center_radius))
+            # Mask
+            apply_mask(flood_ws, mask=masking)  # data_ws reference shall not be invalidated here!
+
+        # Set uncertainties
+        # output: masked are zero intensity and zero error
+        masked_flood_ws = set_init_uncertainties(flood_ws)
+
+        return masked_flood_ws
+
+    def _apply_transmission_correction(
+        self,
+        flood_ws,
+        transmission_beam_run,
+        transmission_flood_run,
+        beam_center,
+        enforce_use_nexus_idf,
+    ):
+        """Calculate and apply transmission correction
+
+        Parameters
+        ----------
+        flood_ws : MarixWorkspace
+            Flood run workspace to transmission correct workspace
+        transmission_beam_run : int or str
+            run number for transmission beam run
+        transmission_flood_run : int or str
+            run number for transmission flood run
+        beam_center : ~tuple
+            detector center
+        enforce_use_nexus_idf: bool
+            flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
+        Returns
+        -------
+        MatrixWorkspace
+            Flood workspace with transmission corrected
+
+        """
+        prepare_data = PREPARE_DATA[self._instrument]
+
+        instrument_specific_param_dict = dict()
+        if self._instrument == CG3:
+            instrument_specific_param_dict["center_y_wing"] = beam_center[2]
+        if self._instrument in [CG2, CG3]:
+            # HFIR specific
+            instrument_specific_param_dict["overwrite_instrument"] = False
+
+        # Load, mask default and pixels, and normalize
+        if self._instrument in [CG2, CG3]:
+            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
+
+        if isinstance(transmission_beam_run, str) and os.path.exists(transmission_beam_run):
+            sans_data = transmission_beam_run
+        elif (
+            isinstance(transmission_beam_run, str)
+            and transmission_beam_run.isdigit()
+            or isinstance(transmission_beam_run, int)
+        ):
+            sans_data = "{}_{}".format(self._instrument, transmission_beam_run)
+        else:
+            raise TypeError(
+                f"Transmission run {transmission_beam_run} of type {type(transmission_beam_run)} "
+                f"is not supported to load a NeXus run from it"
+            )
+
+        transmission_workspace = prepare_data(
+            data=sans_data,
+            pixel_calibration=self._apply_calibration,
+            mask=self._default_mask,
+            btp=self._extra_mask_dict,
+            flux_method="monitor",
+            solid_angle=False,
+            center_x=beam_center[0],
+            center_y=beam_center[1],
+            output_workspace="TRANS_{}_{}".format(self._instrument, transmission_beam_run),
+            **instrument_specific_param_dict,
+        )
+        # Apply mask
+        if self._instrument == CG3:
+            apply_mask(transmission_workspace, Components="wing_detector")
+            MaskAngle(
+                Workspace=transmission_workspace,
+                MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
+                Angle="TwoTheta",
+            )
+
+        # Load, mask default and pixels, normalize transmission flood run
+        if self._instrument in [CG2, CG3]:
+            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
+
+        if not os.path.exists(transmission_flood_run):
+            # given run number: form to CG3_XXX
+            mtd_trans_run = "{}_{}".format(self._instrument, transmission_flood_run)
+        else:
+            # already a file path
+            mtd_trans_run = transmission_flood_run
+        transmission_flood_ws = prepare_data(
+            data=mtd_trans_run,
+            pixel_calibration=self._apply_calibration,
+            mask=self._default_mask,
+            btp=self._extra_mask_dict,
+            flux_method="monitor",
+            solid_angle=False,
+            center_x=beam_center[0],
+            center_y=beam_center[1],
+            output_workspace="TRANS_{}_{}".format(self._instrument, transmission_flood_run),
+            **instrument_specific_param_dict,
+        )
+        # Apply mask
+        if self._instrument == CG3:
+            apply_mask(transmission_flood_ws, Components="wing_detector")
+            MaskAngle(
+                Workspace=transmission_flood_ws,
+                MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
+                Angle="TwoTheta",
+            )
+        elif self._instrument == EQSANS:
+            raise RuntimeError("Never tested EQSANS with Transmission correction")
+
+        # Zero-Angle Transmission Co-efficients
+        calculate_transmission = CALCULATE_TRANSMISSION[self._instrument]
+        transmission_corr_ws = calculate_transmission(transmission_flood_ws, transmission_workspace)
+        average_zero_angle = np.mean(transmission_corr_ws.readY(0))
+        average_zero_angle_error = np.linalg.norm(transmission_corr_ws.readE(0))
+        logger.notice(
+            f"Transmission Coefficient is {average_zero_angle:.3f} +/- "
+            f"{average_zero_angle_error:.3f}."
+            f"Transmission flood {str(transmission_flood_ws)} and "
+            f"transmission {str(transmission_workspace)}"
+        )
+
+        # Apply calculated transmission
+        apply_transmission_correction = APPLY_TRANSMISSION[self._instrument]
+        flood_ws = apply_transmission_correction(
+            flood_ws,
+            trans_workspace=transmission_corr_ws,
+            theta_dependent=self._theta_dep_correction,
+        )
+
+        return flood_ws
+
+    def _export_sensitivity(self, sensitivity_ws, output_nexus_name, parent_flood_run):
+        """Process and export sensitivities to a processed NeXus file
+
+        Parameters
+        ----------
+        sensitivity_ws :  ~mantid.api.MatrixWorkspace
+            MatrixWorkspace containing sensitivity and error
+        output_nexus_name : str
+            Output NeXus file  name
+        parent_flood_run : int
+            Flood run number to create parent workspace for sensitivity workspace
+
+        Returns
+        -------
+        None
+
+        """
+        # Create a new workspace for output
+        instrument_name = {CG2: "GPSANS", CG3: "BIOSANS", EQSANS: "EQSANS_"}[self._instrument]
+        if isinstance(parent_flood_run, int):
+            event_nexus = "{}{}".format(instrument_name, parent_flood_run)
+        else:
+            # must be a nexus file already
+            event_nexus = parent_flood_run
+            assert os.path.exists(event_nexus)
+
+        parent_ws = load_events(run=event_nexus, MetaDataOnly=True)
+
+        # Create new sensitivity workspace
+        new_sens_name = "{}_new".format(str(sensitivity_ws))
+        new_sensitivity_ws = CreateWorkspace(
+            DataX=sensitivity_ws.extractX().flatten(),
+            DataY=sensitivity_ws.extractY().flatten(),
+            DataE=sensitivity_ws.extractE().flatten(),
+            NSpec=parent_ws.getNumberHistograms(),
+            ParentWorkspace=parent_ws,
+            OutputWorkspace=new_sens_name,
+        )
+
+        # Mask detectors
+        mask_ws_indexes = list()
+        for iws in range(new_sensitivity_ws.getNumberHistograms()):
+            # get the workspace with -infinity or NaN for masking
+            if np.isnan(new_sensitivity_ws.readY(iws)[0]) or np.isinf(new_sensitivity_ws.readY(iws)[0]):
+                mask_ws_indexes.append(iws)
+        MaskDetectors(Workspace=new_sensitivity_ws, WorkspaceIndexList=mask_ws_indexes)
+
+        # Set all the mask values to NaN
+        new_sensitivity_ws = mtd[new_sens_name]
+        for iws in mask_ws_indexes:
+            new_sensitivity_ws.dataY(iws)[0] = np.nan
+
+        # Save
+        SaveNexusProcessed(InputWorkspace=new_sensitivity_ws, Filename=output_nexus_name)
 
     def execute(
         self,
@@ -621,323 +938,6 @@ class PrepareSensitivityCorrection(object):
 
         # Export
         self._export_sensitivity(sens_ws, output_nexus_name, self._flood_runs[0])
-
-    def _export_sensitivity(self, sensitivity_ws, output_nexus_name, parent_flood_run):
-        """Process and export sensitivities to a processed NeXus file
-
-        Parameters
-        ----------
-        sensitivity_ws :  ~mantid.api.MatrixWorkspace
-            MatrixWorkspace containing sensitivity and error
-        output_nexus_name : str
-            Output NeXus file  name
-        parent_flood_run : int
-            Flood run number to create parent workspace for sensitivity workspace
-
-        Returns
-        -------
-        None
-
-        """
-        # Create a new workspace for output
-        instrument_name = {CG2: "GPSANS", CG3: "BIOSANS", EQSANS: "EQSANS_"}[self._instrument]
-        if isinstance(parent_flood_run, int):
-            event_nexus = "{}{}".format(instrument_name, parent_flood_run)
-        else:
-            # must be a nexus file already
-            event_nexus = parent_flood_run
-            assert os.path.exists(event_nexus)
-
-        parent_ws = load_events(run=event_nexus, MetaDataOnly=True)
-
-        # Create new sensitivity workspace
-        new_sens_name = "{}_new".format(str(sensitivity_ws))
-        new_sensitivity_ws = CreateWorkspace(
-            DataX=sensitivity_ws.extractX().flatten(),
-            DataY=sensitivity_ws.extractY().flatten(),
-            DataE=sensitivity_ws.extractE().flatten(),
-            NSpec=parent_ws.getNumberHistograms(),
-            ParentWorkspace=parent_ws,
-            OutputWorkspace=new_sens_name,
-        )
-
-        # Mask detectors
-        mask_ws_indexes = list()
-        for iws in range(new_sensitivity_ws.getNumberHistograms()):
-            # get the workspace with -infinity or NaN for masking
-            if np.isnan(new_sensitivity_ws.readY(iws)[0]) or np.isinf(new_sensitivity_ws.readY(iws)[0]):
-                mask_ws_indexes.append(iws)
-        MaskDetectors(Workspace=new_sensitivity_ws, WorkspaceIndexList=mask_ws_indexes)
-
-        # Set all the mask values to NaN
-        new_sensitivity_ws = mtd[new_sens_name]
-        for iws in mask_ws_indexes:
-            new_sensitivity_ws.dataY(iws)[0] = np.nan
-
-        # Save
-        SaveNexusProcessed(InputWorkspace=new_sensitivity_ws, Filename=output_nexus_name)
-
-    def _calculate_beam_center(self, index, enforce_use_nexus_idf):
-        """Find beam centers for all flood runs
-
-        Beam center run shall be
-        (1) masked properly (default mask + top/bottom)
-        (2) NOT corrected by solid angle
-
-        Parameters
-        ----------
-        index : int
-            beam center run index mapped to flood run
-        enforce_use_nexus_idf: bool
-            flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
-        Returns
-        -------
-        ~tuple
-            beam center as xc, yc and possible wc for BIOSANS
-
-        """
-        if self._direct_beam_center_runs is None and self._instrument == CG3 and self._wing_det_mask_angle is not None:
-            # CG3, flood run as direct beam center and mask angle is defined
-            # In this case, run shall be loaded to another workspace for masking
-            beam_center_run = self._flood_runs[index]
-        elif self._direct_beam_center_runs is None:
-            raise RuntimeError("Beam center runs must be given for {}".format(self._instrument))
-        else:
-            # Direct beam run is specified
-            beam_center_run = self._direct_beam_center_runs[index]
-        if isinstance(beam_center_run, str):
-            # beam center run shall be a file path
-            assert os.path.exists(beam_center_run), f"Bean center run {beam_center_run} cannot be found"
-        else:
-            # run number (integer)
-            beam_center_run = "{}_{}".format(self._instrument, beam_center_run)
-
-        # Prepare data
-        # Only applied for BIOSANS with mask_angle case!!! and GPSANS moving detector
-        # It is not necessary for EQSANS because data won't be modified at all!
-        prepare_data = PREPARE_DATA[self._instrument]
-
-        # Add instrument_specific_parameters
-        instrument_specific_param_dict = dict()
-        if self._instrument in [CG2, CG3]:
-            # HFIR spedific
-            instrument_specific_param_dict["overwrite_instrument"] = False
-
-        # Determine normalization method
-        if self._instrument == EQSANS:
-            # EQSANS requirs additional file with flux_method.  So set flux_method to None
-            flux_method = None
-        else:
-            # BIOSANS and GPSANS does not require extra flux file for normalization by monitor
-            flux_method = "monitor"
-
-        # FIXME - data shall be more flexible here for beam center run path
-        if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
-        beam_center_workspace = prepare_data(
-            data=beam_center_run,
-            pixel_calibration=self._apply_calibration,
-            center_x=0.0,  # force to not to center
-            center_y=0.0,
-            mask=self._default_mask,
-            btp=self._extra_mask_dict,
-            flux_method=flux_method,
-            solid_angle=False,
-            output_workspace="BC_{}_{}".format(self._instrument, beam_center_run),
-            **instrument_specific_param_dict,
-        )
-        # Mask angle for CG3: apply mask on angle
-        if self._instrument == CG3 and self._wing_det_mask_angle is not None:
-            # mask wing detector
-            apply_mask(beam_center_workspace, Components="wing_detector")
-            # mask 2-theta angle on main detector
-            MaskAngle(
-                Workspace=beam_center_workspace,
-                MinAngle=self._wing_det_mask_angle,
-                Angle="TwoTheta",
-            )
-
-        # Find detector center
-        find_beam_center = FIND_BEAM_CENTER[self._instrument]
-        beam_center = find_beam_center(beam_center_workspace)
-
-        return beam_center[:-1]
-
-    def _mask_beam_center(self, flood_ws, beam_center):
-        """Mask beam center
-
-        Mask beam center with 3 algorithms
-        1. if beam center mask is present, mask by file
-        2. Otherwise if beam center workspace is specified, find beam center from this workspace and mask
-        3. Otherwise find beam center for flood workspace and mask itself
-
-        Parameters
-        ----------
-        flood_ws : ~mantid.api.MatrixWorkspace
-            Mantid workspace for flood data
-        beam_center : tuple or str
-            if tuple, beam centers (xc, yc, wc) / (xc, yc); str: beam center masks file
-        Returns
-        -------
-
-        """
-        # Calculate masking (masked file or detectors)
-        if isinstance(beam_center, str):
-            # beam center mask XML file: apply mask
-            apply_mask(flood_ws, mask=beam_center)  # data_ws reference shall not be invalidated here!
-        elif self._main_det_mask_angle is not None and self._instrument == CG3:
-            # CG3 special: Mask 2-theta angle
-            # Mask wing detector right top/bottom corners
-            if self._component == "wing_detector":
-                component_to_mask = "detector1"
-            else:
-                component_to_mask = "wing_detector"
-            apply_mask(flood_ws, Components=component_to_mask)
-            # mask 2theta
-            MaskAngle(Workspace=flood_ws, MaxAngle=self._main_det_mask_angle, Angle="TwoTheta")
-        else:
-            # calculate beam center mask from beam center workspace
-            # Mask the new beam center by 65 mm (Lisa's magic number)
-            masking = list(circular_mask_from_beam_center(flood_ws, self._beam_center_radius))
-            # Mask
-            apply_mask(flood_ws, mask=masking)  # data_ws reference shall not be invalidated here!
-
-        # Set uncertainties
-        # output: masked are zero intensity and zero error
-        masked_flood_ws = set_init_uncertainties(flood_ws)
-
-        return masked_flood_ws
-
-    def _apply_transmission_correction(
-        self,
-        flood_ws,
-        transmission_beam_run,
-        transmission_flood_run,
-        beam_center,
-        enforce_use_nexus_idf,
-    ):
-        """Calculate and pply transmission correction
-
-        Parameters
-        ----------
-        flood_ws : MarixWorkspace
-            Flood run workspace to transmission correct workspace
-        transmission_beam_run : int or str
-            run number for transmission beam run
-        transmission_flood_run : int or str
-            run number for transmission flood run
-        beam_center : ~tuple
-            detector center
-        enforce_use_nexus_idf: bool
-            flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
-        Returns
-        -------
-        MatrixWorkspace
-            Flood workspace with transmission corrected
-
-        """
-        prepare_data = PREPARE_DATA[self._instrument]
-
-        instrument_specific_param_dict = dict()
-        if self._instrument == CG3:
-            instrument_specific_param_dict["center_y_wing"] = beam_center[2]
-        if self._instrument in [CG2, CG3]:
-            # HFIR specific
-            instrument_specific_param_dict["overwrite_instrument"] = False
-
-        # Load, mask default and pixels, and normalize
-        if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
-
-        if isinstance(transmission_beam_run, str) and os.path.exists(transmission_beam_run):
-            sans_data = transmission_beam_run
-        elif (
-            isinstance(transmission_beam_run, str)
-            and transmission_beam_run.isdigit()
-            or isinstance(transmission_beam_run, int)
-        ):
-            sans_data = "{}_{}".format(self._instrument, transmission_beam_run)
-        else:
-            raise TypeError(
-                f"Transmission run {transmission_beam_run} of type {type(transmission_beam_run)} "
-                f"is not supported to load a NeXus run from it"
-            )
-
-        transmission_workspace = prepare_data(
-            data=sans_data,
-            pixel_calibration=self._apply_calibration,
-            mask=self._default_mask,
-            btp=self._extra_mask_dict,
-            flux_method="monitor",
-            solid_angle=False,
-            center_x=beam_center[0],
-            center_y=beam_center[1],
-            output_workspace="TRANS_{}_{}".format(self._instrument, transmission_beam_run),
-            **instrument_specific_param_dict,
-        )
-        # Apply mask
-        if self._instrument == CG3:
-            apply_mask(transmission_workspace, Components="wing_detector")
-            MaskAngle(
-                Workspace=transmission_workspace,
-                MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
-                Angle="TwoTheta",
-            )
-
-        # Load, mask default and pixels, normalize transmission flood run
-        if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
-
-        if not os.path.exists(transmission_flood_run):
-            # given run number: form to CG3_XXX
-            mtd_trans_run = "{}_{}".format(self._instrument, transmission_flood_run)
-        else:
-            # already a file path
-            mtd_trans_run = transmission_flood_run
-        transmission_flood_ws = prepare_data(
-            data=mtd_trans_run,
-            pixel_calibration=self._apply_calibration,
-            mask=self._default_mask,
-            btp=self._extra_mask_dict,
-            flux_method="monitor",
-            solid_angle=False,
-            center_x=beam_center[0],
-            center_y=beam_center[1],
-            output_workspace="TRANS_{}_{}".format(self._instrument, transmission_flood_run),
-            **instrument_specific_param_dict,
-        )
-        # Apply mask
-        if self._instrument == CG3:
-            apply_mask(transmission_flood_ws, Components="wing_detector")
-            MaskAngle(
-                Workspace=transmission_flood_ws,
-                MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
-                Angle="TwoTheta",
-            )
-        elif self._instrument == EQSANS:
-            raise RuntimeError("Never tested EQSANS with Transmission correction")
-
-        # Zero-Angle Transmission Co-efficients
-        calculate_transmission = CALCULATE_TRANSMISSION[self._instrument]
-        transmission_corr_ws = calculate_transmission(transmission_flood_ws, transmission_workspace)
-        average_zero_angle = np.mean(transmission_corr_ws.readY(0))
-        average_zero_angle_error = np.linalg.norm(transmission_corr_ws.readE(0))
-        logger.notice(
-            f"Transmission Coefficient is {average_zero_angle:.3f} +/- "
-            f"{average_zero_angle_error:.3f}."
-            f"Transmission flood {str(transmission_flood_ws)} and "
-            f"transmission {str(transmission_workspace)}"
-        )
-
-        # Apply calculated transmission
-        apply_transmission_correction = APPLY_TRANSMISSION[self._instrument]
-        flood_ws = apply_transmission_correction(
-            flood_ws,
-            trans_workspace=transmission_corr_ws,
-            theta_dependent=self._theta_dep_correction,
-        )
-
-        return flood_ws
 
 
 def debug_output(workspace, output_file):

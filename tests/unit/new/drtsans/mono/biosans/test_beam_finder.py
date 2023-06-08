@@ -201,6 +201,7 @@ def test_beam_finder_wing(biosans_f):
     assert abs(y_wing2) > abs(y2)
     assert y_midrange2 is None
 
+
 def test_beam_finder_midrange(reference_dir):
     """
     Test with the new beam finder

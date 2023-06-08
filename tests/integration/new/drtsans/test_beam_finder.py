@@ -16,6 +16,8 @@ from mantid.simpleapi import (
     LoadInstrument,
 )
 import numpy as np
+from drtsans.mono.biosans.simulated_events import update_idf
+from drtsans.load import load_events
 
 # Note for testing beam center: The FindCenterOfMassPosition algorithm
 # needs some pixels outside the given examples, to be able to perform
@@ -582,6 +584,54 @@ def test_fbc_options_json():
     assert len(fbc_options) == 2
     assert fbc_options["method"] == "gaussian"
     assert fbc_options["centering_options"] == {"CenterX": {"val": 0.0}}
+
+
+def test_find_beam_center_midrange(reference_dir):
+    """
+    Test with the find_beam_center
+
+    1. Find the beamcenter x,y
+    2. Include the midrange detector
+    3. Find the beamcenter x,y again
+    4. Make sure all values match
+    """
+
+    # beam_center parameters
+    method = "center_of_mass"
+    mask = None
+    mask_options = {}
+    centering_options = {}
+    solid_angle_method = "VerticalTube"
+
+    # collect values before adding the midrange_detector
+    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    assert ws.getInstrument().getComponentByName("midrange_detector") is None
+    x_initial, y_initial, fit_results_initial = find_beam_center(
+        ws,
+        method,
+        mask,
+        mask_options=mask_options,
+        centering_options=centering_options,
+        solid_angle_method=solid_angle_method,
+    )
+
+    # add the midrange detector
+    ws = update_idf(ws)
+    assert ws.getInstrument().getComponentByName("midrange_detector")
+
+    # collect values
+    x_final, y_final, fit_results_final = find_beam_center(
+        ws,
+        method,
+        mask,
+        mask_options=mask_options,
+        centering_options=centering_options,
+        solid_angle_method=solid_angle_method,
+    )
+
+    # they should be the same
+    assert x_initial == pytest.approx(x_final, abs=1e-4)
+    assert y_initial == pytest.approx(y_final, abs=1e-4)
 
 
 if __name__ == "__main__":

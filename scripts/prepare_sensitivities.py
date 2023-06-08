@@ -15,13 +15,7 @@ from drtsans.mono.biosans.prepare_sensitivities_correction import PrepareSensiti
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
-# INSTRUMENT = 'CG2'  # 'CG2'  # From 'EQSANS', 'CG3'
-INSTRUMENT = "CG3"  # Main
-
-# Input Flood Runs
-# CG2: FLOOD_RUNS = 7116, 7118, 7120  # Single value integer or a list or tuple
-
-# CG3: Main
+INSTRUMENT = "CG3"
 FLOOD_RUNS = 4829
 # BIO-SANS detector
 COMPONENT = "detector1"  # this is main detector
@@ -43,7 +37,6 @@ TRANSMISSION_FLOOD_RUNS = 4829
 
 # Default mask to detector
 UNIVERSAL_MASK = None  # 'Mask.XML'
-# CG2: MASKED_PIXELS = '1-8,249-256'
 # CG3:
 MASKED_PIXELS = "1-18,239-256"  # CG3
 # Mask angle: must 2 values as min and max or None

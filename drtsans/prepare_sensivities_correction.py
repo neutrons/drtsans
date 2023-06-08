@@ -284,69 +284,6 @@ class PrepareSensitivityCorrection(object):
         """
         self._beam_center_radius = radius
 
-    def set_transmission_correction(self, transmission_flood_runs, transmission_reference_runs, beam_trap_factor=2):
-        """Set transmission beam run and transmission flood runs
-
-        Parameters
-        ----------
-        transmission_flood_runs : int or tuple or list
-            transmission flood runs
-        transmission_reference_runs : int or tuple or list
-            transmission reference runs
-        beam_trap_factor : float, int
-            factor to beam trap size for masking angle
-
-        Returns
-        -------
-
-        """
-
-        def format_run_or_runs(run_s):
-            """Format input run or runs to list of run or file names
-
-            Parameters
-            ----------
-            run_s: int or str or ~list
-                a run, a NeXus file name, or a list of runs
-
-            Returns
-            -------
-            ~list
-
-            """
-            if isinstance(run_s, (int, str)):
-                # an integer or string as run number
-                run_list = [run_s]
-            else:
-                # a sequence, tuple or list
-                run_list = list(run_s)
-
-            return run_list
-
-        # Only BIO SANS use transmission correction
-        if self._instrument != CG3:
-            return
-
-        # transmission reference
-        self._transmission_reference_runs = format_run_or_runs(transmission_reference_runs)
-
-        # transmission flood
-        self._transmission_flood_runs = format_run_or_runs(transmission_flood_runs)
-
-        # if isinstance(transmission_reference_run, int):
-        #     # a run number
-        #     self._transmission_reference_runs = [transmission_reference_run]
-        # else:
-        #     self._transmission_reference_runs = list(transmission_reference_run)
-        #
-        # if isinstance(transmission_flood_runs, int):
-        #     self._transmission_flood_runs = [transmission_flood_runs]
-        # else:
-        #     self._transmission_flood_runs = list(transmission_flood_runs)
-
-        # Set the beam trap factor for transmission reference and flood run to mask angle
-        self._biosans_beam_trap_factor = beam_trap_factor
-
     def set_theta_dependent_correction_flag(self, flag):
         """Set the flag to do theta dep with transmission correction
 

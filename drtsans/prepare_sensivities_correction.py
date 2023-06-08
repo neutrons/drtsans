@@ -114,6 +114,121 @@ class PrepareSensitivityCorrection(object):
 
     """
 
+    @staticmethod
+    def _get_masked_detectors(workspace):
+        """Get the detector masking information
+
+        Parameters
+        ----------
+        workspace : ~mantid.api.MatrixWorkspace
+            Workspace to get masked detectors' masking status
+
+        Returns
+        -------
+        numpy.ndarray
+            (N, 1) bool array, True for being masked
+
+        """
+        # The masked pixels after `set_uncertainties()` will have zero uncertainty.
+        # Thus, it is an efficient way to identify them by check uncertainties (E) close to zero
+        masked_array = workspace.extractE() < 1e-5
+        return masked_array
+
+    @staticmethod
+    def _set_mask_value(flood_workspace, det_mask_array, use_moving_detector_method=True):
+        """Set masked pixels' values to NaN or -infinity according to mask type and sensitivity correction
+        algorithm
+
+        Parameters
+        ----------
+        flood_workspace :
+            Flood data workspace space to have masked pixels' value set
+        det_mask_array : numpy.ndarray
+            Array to indicate pixel to be masked or not
+        use_moving_detector_method : bool
+            True for calculating sensitivities by moving detector algorithm;
+            otherwise for detector patching algorithm
+
+        Returns
+        -------
+
+        """
+        # Complete mask array.  Flood workspace has been processed by set_uncertainties.  Therefore all the masked
+        # pixels' uncertainties are zero, which is different from other pixels
+        total_mask_array = flood_workspace.extractE() < 1e-6
+
+        # Loop through each detector pixel to check its masking state to determine whether its value shall be
+        # set to NaN, -infinity or not changed (i.e., for pixels without mask)
+        num_spec = flood_workspace.getNumberHistograms()
+        problematic_pixels = list()
+        for i in range(num_spec):
+            if total_mask_array[i][0] and use_moving_detector_method:
+                # Moving detector algorithm.  Any masked detector pixel is set to NaN
+                flood_workspace.dataY(i)[0] = np.nan
+                flood_workspace.dataE(i)[0] = np.nan
+            elif total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
+                # Patch detector method: Masked as the bad pixels and thus set to NaN
+                flood_workspace.dataY(i)[0] = np.nan
+                flood_workspace.dataE(i)[0] = np.nan
+            elif total_mask_array[i][0]:
+                # Patch detector method: Pixels that have not been masked as bad pixels, but have been
+                # identified as needing to have values set by the patch applied. To identify them, the
+                # value is set to -INF.
+                flood_workspace.dataY(i)[0] = np.NINF
+                flood_workspace.dataE(i)[0] = np.NINF
+            elif not total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
+                # Logic error: impossible case
+                problematic_pixels.append(i)
+        # END-FOR
+
+        # Array
+        if len(problematic_pixels) > 0:
+            raise RuntimeError(
+                f"Impossible case: pixels {problematic_pixels} has local detector mask is on, "
+                f"but total mask is off"
+            )
+
+        logger.debug(
+            "Patch detector method: Pixels that have not been masked as bad pixels, but have been"
+            "identified as needing to have values set by the patch applied. To identify them, the"
+            "value is set to -INF."
+        )
+        logger.notice("Number of infinities = {}".format(len(np.where(np.isinf(flood_workspace.extractY()))[0])))
+
+        logger.debug("Moving/Patch detector algorithm.  Any masked detector pixel is set to NaN")
+        logger.notice("Number of NaNs       = {}".format(len(np.where(np.isnan(flood_workspace.extractY()))[0])))
+
+        return flood_workspace
+
+    @staticmethod
+    def sum_input_runs(flood_workspaces):
+        """Do NaN sum to all input flood workspaces
+
+        Parameters
+        ----------
+        flood_workspaces
+
+        Returns
+        -------
+
+        """
+        from mantid.simpleapi import CloneWorkspace
+
+        # Do NaN sum
+        y_list = [ws.extractY() for ws in flood_workspaces]
+        y_matrix = np.array(y_list)
+
+        nan_sum_matrix = np.nansum(y_matrix, axis=0)
+
+        # clone a workspace
+        cloned = CloneWorkspace(InputWorkspace=flood_workspaces[0], OutputWorkspace="FloodSum")
+
+        for iws in range(cloned.getNumberHistograms()):
+            cloned.dataY(iws)[0] = nan_sum_matrix[iws][0]
+
+        # output
+        SaveNexusProcessed(InputWorkspace=cloned, Filename="SummedFlood.nxs")
+
     def __init__(self, instrument, component="detector1"):
         """Initialization
 
@@ -284,20 +399,6 @@ class PrepareSensitivityCorrection(object):
         """
         self._beam_center_radius = radius
 
-    def set_theta_dependent_correction_flag(self, flag):
-        """Set the flag to do theta dep with transmission correction
-
-        Parameters
-        ----------
-        flag : bool
-            True to do the correction
-
-        Returns
-        -------
-
-        """
-        self._theta_dep_correction = flag
-
     def _prepare_flood_data(self, flood_run, beam_center, dark_current_run, enforce_use_nexus_idf):
         """Prepare flood data including
         (1) load
@@ -379,93 +480,6 @@ class PrepareSensitivityCorrection(object):
             flood_ws = Integration(InputWorkspace=flood_ws, OutputWorkspace=str(flood_ws))
 
         return flood_ws
-
-    @staticmethod
-    def _get_masked_detectors(workspace):
-        """Get the detector masking information
-
-        Parameters
-        ----------
-        workspace : ~mantid.api.MatrixWorkspace
-            Workspace to get masked detectors' masking status
-
-        Returns
-        -------
-        numpy.ndarray
-            (N, 1) bool array, True for being masked
-
-        """
-        # The masked pixels after `set_uncertainties()` will have zero uncertainty.
-        # Thus, it is an efficient way to identify them by check uncertainties (E) close to zero
-        masked_array = workspace.extractE() < 1e-5
-
-        return masked_array
-
-    @staticmethod
-    def _set_mask_value(flood_workspace, det_mask_array, use_moving_detector_method=True):
-        """Set masked pixels' values to NaN or -infinity according to mask type and sensitivity correction
-        algorithm
-
-        Parameters
-        ----------
-        flood_workspace :
-            Flood data workspace space to have masked pixels' value set
-        det_mask_array : numpy.ndarray
-            Array to indicate pixel to be masked or not
-        use_moving_detector_method : bool
-            True for calculating sensitivities by moving detector algorithm;
-            otherwise for detector patching algorithm
-
-        Returns
-        -------
-
-        """
-        # Complete mask array.  Flood workspace has been processed by set_uncertainties.  Therefore all the masked
-        # pixels' uncertainties are zero, which is different from other pixels
-        total_mask_array = flood_workspace.extractE() < 1e-6
-
-        # Loop through each detector pixel to check its masking state to determine whether its value shall be
-        # set to NaN, -infinity or not changed (i.e., for pixels without mask)
-        num_spec = flood_workspace.getNumberHistograms()
-        problematic_pixels = list()
-        for i in range(num_spec):
-            if total_mask_array[i][0] and use_moving_detector_method:
-                # Moving detector algorithm.  Any masked detector pixel is set to NaN
-                flood_workspace.dataY(i)[0] = np.nan
-                flood_workspace.dataE(i)[0] = np.nan
-            elif total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
-                # Patch detector method: Masked as the bad pixels and thus set to NaN
-                flood_workspace.dataY(i)[0] = np.nan
-                flood_workspace.dataE(i)[0] = np.nan
-            elif total_mask_array[i][0]:
-                # Patch detector method: Pixels that have not been masked as bad pixels, but have been
-                # identified as needing to have values set by the patch applied. To identify them, the
-                # value is set to -INF.
-                flood_workspace.dataY(i)[0] = np.NINF
-                flood_workspace.dataE(i)[0] = np.NINF
-            elif not total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
-                # Logic error: impossible case
-                problematic_pixels.append(i)
-        # END-FOR
-
-        # Array
-        if len(problematic_pixels) > 0:
-            raise RuntimeError(
-                f"Impossible case: pixels {problematic_pixels} has local detector mask is on, "
-                f"but total mask is off"
-            )
-
-        logger.debug(
-            "Patch detector method: Pixels that have not been masked as bad pixels, but have been"
-            "identified as needing to have values set by the patch applied. To identify them, the"
-            "value is set to -INF."
-        )
-        logger.notice("Number of infinities = {}".format(len(np.where(np.isinf(flood_workspace.extractY()))[0])))
-
-        logger.debug("Moving/Patch detector algorithm.  Any masked detector pixel is set to NaN")
-        logger.notice("Number of NaNs       = {}".format(len(np.where(np.isnan(flood_workspace.extractY()))[0])))
-
-        return flood_workspace
 
     def execute(
         self,
@@ -924,35 +938,6 @@ class PrepareSensitivityCorrection(object):
         )
 
         return flood_ws
-
-    @staticmethod
-    def sum_input_runs(flood_workspaces):
-        """Do NaN sum to all input flood workspaces
-
-        Parameters
-        ----------
-        flood_workspaces
-
-        Returns
-        -------
-
-        """
-        from mantid.simpleapi import CloneWorkspace
-
-        # Do NaN sum
-        y_list = [ws.extractY() for ws in flood_workspaces]
-        y_matrix = np.array(y_list)
-
-        nan_sum_matrix = np.nansum(y_matrix, axis=0)
-
-        # clone a workspace
-        cloned = CloneWorkspace(InputWorkspace=flood_workspaces[0], OutputWorkspace="FloodSum")
-
-        for iws in range(cloned.getNumberHistograms()):
-            cloned.dataY(iws)[0] = nan_sum_matrix[iws][0]
-
-        # output
-        SaveNexusProcessed(InputWorkspace=cloned, Filename="SummedFlood.nxs")
 
 
 def debug_output(workspace, output_file):

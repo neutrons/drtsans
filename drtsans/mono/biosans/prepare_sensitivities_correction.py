@@ -1,6 +1,11 @@
 from typing import Union
 from drtsans.mono.spice_data import SpiceRun
-from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
+from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
+
+
+class PrepareSensitivityCorrection(PrepareBase):
+    def __int__(self):
+        super().__init__()
 
 
 def prepare_spice_sensitivities_correction(

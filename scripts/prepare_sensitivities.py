@@ -24,7 +24,7 @@ INSTRUMENT = "CG3"  # Main
 # CG3: Main
 FLOOD_RUNS = 4829
 # BIO-SANS detector
-WING_DETECTOR = False  # this is main detector
+COMPONENT = "detector1"  # this is main detector
 
 # About Masks
 # CG3 Main:
@@ -83,7 +83,7 @@ if INSTRUMENT not in ["CG2", "CG3", "EQSANS"]:
     print("Instrument {} is not supported.  Supported are {}" "".format(INSTRUMENT, "CG2, EQSANS, CG3"))
     sys.exit(-1)
 
-preparer = PrepareSensitivityCorrection(INSTRUMENT, WING_DETECTOR)
+preparer = PrepareSensitivityCorrection(INSTRUMENT, component=COMPONENT)
 # Load flood runs
 preparer.set_flood_runs(FLOOD_RUNS)
 

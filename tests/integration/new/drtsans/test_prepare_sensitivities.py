@@ -6,6 +6,9 @@ import numpy as np
 import os
 from os.path import join as path_join
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
+from drtsans.mono.biosans.prepare_sensitivities_correction import (
+    PrepareSensitivityCorrection as PrepareSensitivityCorrectionBiosans,
+)
 from mantid.simpleapi import LoadNexusProcessed
 from mantid.simpleapi import DeleteWorkspace
 from tempfile import mktemp
@@ -72,7 +75,7 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
     MIN_THRESHOLD = 0.5
     MAX_THRESHOLD = 2.0
 
-    preparer = PrepareSensitivityCorrection(INSTRUMENT, False)
+    preparer = PrepareSensitivityCorrection(INSTRUMENT)
 
     # Load flood runs
     preparer.set_flood_runs(FLOOD_RUNS)
@@ -175,7 +178,7 @@ def test_cg3_main_prepare_sensitivities(tmp_path):
     MIN_THRESHOLD = 0.5
     MAX_THRESHOLD = 2.0
 
-    preparer = PrepareSensitivityCorrection(INSTRUMENT, component="detector1")
+    preparer = PrepareSensitivityCorrectionBiosans(INSTRUMENT, component="detector1")
     # Load flood runs
     preparer.set_flood_runs(FLOOD_RUNS)
 
@@ -234,7 +237,6 @@ def test_cg3_wing_prepare_sensitivities(tmp_path):
     # CG3: Wing
     FLOOD_RUNS = 4835
     # BIO-SANS detector
-    WING_DETECTOR = True  # this is main detector
 
     # About Masks
     # CG3 Main:
@@ -265,7 +267,7 @@ def test_cg3_wing_prepare_sensitivities(tmp_path):
     MAX_THRESHOLD = 2.0
 
     # Prepare data
-    preparer = PrepareSensitivityCorrection(INSTRUMENT, WING_DETECTOR, component="wing_detector")
+    preparer = PrepareSensitivityCorrectionBiosans(INSTRUMENT, component="wing_detector")
     # Load flood runs
     preparer.set_flood_runs(FLOOD_RUNS)
 

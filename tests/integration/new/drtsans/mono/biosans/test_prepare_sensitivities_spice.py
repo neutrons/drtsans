@@ -54,7 +54,7 @@ def test_main_detector(reference_dir, generatecleanfile, clean_workspace):
 
     # CG3: Main
     FLOOD_RUN = (9, 1)  # BIO-SANS detector
-    WING_DETECTOR = False  # this is main detector
+    COMPONENT = "detector1"  # this is main detector
 
     # About Masks
     # CG3 Main beam center file/Empty beam.  It is allowed to be left blank
@@ -89,7 +89,7 @@ def test_main_detector(reference_dir, generatecleanfile, clean_workspace):
     MAX_THRESHOLD = 2.0
 
     # Output
-    FILE_SURFIX = "wing" if WING_DETECTOR else "main"
+    FILE_SURFIX = "wing" if COMPONENT == "wing_detector" else "main"
     SENSITIVITY_FILE = os.path.join(output_dir, f"{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN}sac_tdc7m.nxs")
 
     # Convert SPICE file to NeXus file
@@ -108,7 +108,7 @@ def test_main_detector(reference_dir, generatecleanfile, clean_workspace):
     )
 
     prepare_spice_sensitivities_correction(
-        WING_DETECTOR,
+        COMPONENT,
         flood_run,
         direct_beam_run,
         dark_current_run,
@@ -160,7 +160,7 @@ def test_wing_detector(reference_dir, generatecleanfile, clean_workspace):
 
     # CG3: Main
     FLOOD_RUN = (20, 1)  # BIO-SANS detector
-    WING_DETECTOR = True  # this is main detector
+    COMPONENT = "wing_detector"  # this is main detector
 
     # About Masks
     # CG3 Main beam center file/Empty beam.  It is allowed to be left blank
@@ -195,7 +195,7 @@ def test_wing_detector(reference_dir, generatecleanfile, clean_workspace):
     MAX_THRESHOLD = 2.0
 
     # Output
-    FILE_SURFIX = "wing" if WING_DETECTOR else "main"
+    FILE_SURFIX = "wing" if COMPONENT == "wing_detector" else "main"
     SENSITIVITY_FILE = os.path.join(output_dir, f"{CG3}_sens_{FILE_SURFIX}{FLOOD_RUN}sac_tdc7m.nxs")
 
     # Convert SPICE file to NeXus file
@@ -214,7 +214,7 @@ def test_wing_detector(reference_dir, generatecleanfile, clean_workspace):
     )
 
     prepare_spice_sensitivities_correction(
-        WING_DETECTOR,
+        COMPONENT,
         flood_run,
         direct_beam_run,
         dark_current_run,

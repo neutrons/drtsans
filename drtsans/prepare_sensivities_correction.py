@@ -1,6 +1,7 @@
 # local imports
 from drtsans.load import load_events
 from drtsans.geometry import panel_names
+from drtsans.instruments import extract_run_number
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 import drtsans.mono.gpsans
 import drtsans.mono.biosans
@@ -440,6 +441,12 @@ class PrepareSensitivityCorrection(object):
             instrument_specific_param_dict["enforce_use_nexus_idf"] = self._enforce_use_nexus_idf
             flux_method = "monitor"
 
+        # elucidate the name for the output workspace
+        if os.path.exists(beam_center_run):
+            output_workspace = f"BC_{self._instrument}_{extract_run_number(beam_center_run)}"
+        else:
+            output_workspace = f"BC_{beam_center_run}"
+
         beam_center_workspace = prepare_data(
             data=beam_center_run,
             pixel_calibration=self._apply_calibration,
@@ -449,7 +456,7 @@ class PrepareSensitivityCorrection(object):
             btp=self._extra_mask_dict,
             flux_method=flux_method,
             solid_angle=False,
-            output_workspace="BC_{}_{}".format(self._instrument, beam_center_run),
+            output_workspace=output_workspace,
             **instrument_specific_param_dict,
         )
 
@@ -475,10 +482,13 @@ class PrepareSensitivityCorrection(object):
         """
         # Process the input run chosen to calculate the beam center
         beam_center_run = self._get_beam_center_run(index)
-        if isinstance(beam_center_run, str):
-            assert os.path.exists(beam_center_run), f"Bean center run {beam_center_run} cannot be found"
-        elif isinstance(beam_center_run, int):
+        if isinstance(beam_center_run, str) and beam_center_run.isdigit():
+            beam_center_run = int(beam_center_run)  # convert to int if possible
+
+        if isinstance(beam_center_run, int):
             beam_center_run = "{}_{}".format(self._instrument, beam_center_run)
+        elif isinstance(beam_center_run, str):
+            assert os.path.exists(beam_center_run), f"Bean center run {beam_center_run} cannot be found"
         else:
             raise RuntimeError(f"Beam center run {beam_center_run} is not recognized")
 

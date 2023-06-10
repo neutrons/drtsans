@@ -258,6 +258,8 @@ class PrepareSensitivityCorrection(object):
         self._extra_mask_dict = dict()
         self._beam_center_radius = None  # mm
 
+        self._enforce_use_nexus_idf = False
+
         # Transmission correction (BIOSANS)
         self._transmission_reference_runs = None
         self._transmission_flood_runs = None
@@ -399,7 +401,61 @@ class PrepareSensitivityCorrection(object):
         """
         self._beam_center_radius = radius
 
-    def _calculate_beam_center(self, index, enforce_use_nexus_idf):
+    def _get_beam_center_run(self, index):
+        r"""
+        Input beam center associated to a particular flood run.
+
+        Parameters
+        ----------
+        index : int
+            beam center run index mapped to flood run index
+
+        Returns
+        -------
+        int, str
+            beam center run number (as an int) or absolute file path (as a string)
+        """
+        if self._direct_beam_center_runs is None:
+            raise RuntimeError("Beam center runs must be given for {}".format(self._instrument))
+        return self._direct_beam_center_runs[index]
+
+    def _get_beam_center_workspace(self, beam_center_run):
+        r"""
+        Load and prepare the beam center run with customary corrections
+
+        Parameters
+        ----------
+        beam_center_run
+
+        Returns
+        -------
+        ~mantid.api.Workspace2D
+        """
+        prepare_data = PREPARE_DATA[self._instrument]
+
+        instrument_specific_param_dict = dict()
+        flux_method = None
+        if self._instrument in [CG2, CG3]:
+            instrument_specific_param_dict["overwrite_instrument"] = False
+            instrument_specific_param_dict["enforce_use_nexus_idf"] = self._enforce_use_nexus_idf
+            flux_method = "monitor"
+
+        beam_center_workspace = prepare_data(
+            data=beam_center_run,
+            pixel_calibration=self._apply_calibration,
+            center_x=0.0,
+            center_y=0.0,
+            mask=self._default_mask,
+            btp=self._extra_mask_dict,
+            flux_method=flux_method,
+            solid_angle=False,
+            output_workspace="BC_{}_{}".format(self._instrument, beam_center_run),
+            **instrument_specific_param_dict,
+        )
+
+        return beam_center_workspace
+
+    def _calculate_beam_center(self, index):
         """Find beam centers for all flood runs
 
         Beam center run shall be
@@ -410,80 +466,25 @@ class PrepareSensitivityCorrection(object):
         ----------
         index : int
             beam center run index mapped to flood run
-        enforce_use_nexus_idf: bool
-            flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
+
         Returns
         -------
         ~tuple
             beam center as xc, yc and possible wc for BIOSANS
 
         """
-        if self._direct_beam_center_runs is None and self._instrument == CG3 and self._wing_det_mask_angle is not None:
-            # CG3, flood run as direct beam center and mask angle is defined
-            # In this case, run shall be loaded to another workspace for masking
-            beam_center_run = self._flood_runs[index]
-        elif self._direct_beam_center_runs is None:
-            raise RuntimeError("Beam center runs must be given for {}".format(self._instrument))
-        else:
-            # Direct beam run is specified
-            beam_center_run = self._direct_beam_center_runs[index]
+        # Process the input run chosen to calculate the beam center
+        beam_center_run = self._get_beam_center_run(index)
         if isinstance(beam_center_run, str):
-            # beam center run shall be a file path
             assert os.path.exists(beam_center_run), f"Bean center run {beam_center_run} cannot be found"
-        else:
-            # run number (integer)
+        elif isinstance(beam_center_run, int):
             beam_center_run = "{}_{}".format(self._instrument, beam_center_run)
-
-        # Prepare data
-        # Only applied for BIOSANS with mask_angle case!!! and GPSANS moving detector
-        # It is not necessary for EQSANS because data won't be modified at all!
-        prepare_data = PREPARE_DATA[self._instrument]
-
-        # Add instrument_specific_parameters
-        instrument_specific_param_dict = dict()
-        if self._instrument in [CG2, CG3]:
-            # HFIR spedific
-            instrument_specific_param_dict["overwrite_instrument"] = False
-
-        # Determine normalization method
-        if self._instrument == EQSANS:
-            # EQSANS requirs additional file with flux_method.  So set flux_method to None
-            flux_method = None
         else:
-            # BIOSANS and GPSANS does not require extra flux file for normalization by monitor
-            flux_method = "monitor"
+            raise RuntimeError(f"Beam center run {beam_center_run} is not recognized")
 
-        # FIXME - data shall be more flexible here for beam center run path
-        if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
-        beam_center_workspace = prepare_data(
-            data=beam_center_run,
-            pixel_calibration=self._apply_calibration,
-            center_x=0.0,  # force to not to center
-            center_y=0.0,
-            mask=self._default_mask,
-            btp=self._extra_mask_dict,
-            flux_method=flux_method,
-            solid_angle=False,
-            output_workspace="BC_{}_{}".format(self._instrument, beam_center_run),
-            **instrument_specific_param_dict,
-        )
-        # Mask angle for CG3: apply mask on angle
-        if self._instrument == CG3 and self._wing_det_mask_angle is not None:
-            # mask wing detector
-            apply_mask(beam_center_workspace, Components="wing_detector")
-            # mask 2-theta angle on main detector
-            MaskAngle(
-                Workspace=beam_center_workspace,
-                MinAngle=self._wing_det_mask_angle,
-                Angle="TwoTheta",
-            )
-
-        # Find detector center
-        find_beam_center = FIND_BEAM_CENTER[self._instrument]
-        beam_center = find_beam_center(beam_center_workspace)
-
-        return beam_center[:-1]
+        beam_center_workspace = self._get_beam_center_workspace(beam_center_run)
+        beam_center = FIND_BEAM_CENTER[self._instrument](beam_center_workspace)
+        return beam_center[:-1]  # last item is the fit results, useless here
 
     def _prepare_flood_data(self, flood_run, beam_center, dark_current_run, enforce_use_nexus_idf):
         """Prepare flood data including
@@ -832,10 +833,12 @@ class PrepareSensitivityCorrection(object):
         # Number of pair of workspaces to process
         num_workspaces_set = len(self._flood_runs)
 
+        self._enforce_use_nexus_idf = enforce_use_nexus_idf
+
         # Load beam center runs and calculate beam centers
         beam_centers = list()
         for i in range(num_workspaces_set):
-            beam_center_i = self._calculate_beam_center(i, enforce_use_nexus_idf)
+            beam_center_i = self._calculate_beam_center(i)
             beam_centers.append(beam_center_i)
             logger.notice("Calculated beam center ({}-th) = {}".format(i, beam_center_i))
 

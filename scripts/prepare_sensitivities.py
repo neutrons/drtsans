@@ -10,15 +10,21 @@
 """
 import sys
 import warnings
-from drtsans.mono.biosans.prepare_sensitivities_correction import PrepareSensitivityCorrection
+from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
-INSTRUMENT = "CG3"
+# INSTRUMENT = 'CG2'  # 'CG2'  # From 'EQSANS', 'CG3'
+INSTRUMENT = "CG3"  # Main
+
+# Input Flood Runs
+# CG2: FLOOD_RUNS = 7116, 7118, 7120  # Single value integer or a list or tuple
+
+# CG3: Main
 FLOOD_RUNS = 4829
 # BIO-SANS detector
-COMPONENT = "detector1"  # this is main detector
+WING_DETECTOR = False  # this is main detector
 
 # About Masks
 # CG3 Main:
@@ -37,6 +43,7 @@ TRANSMISSION_FLOOD_RUNS = 4829
 
 # Default mask to detector
 UNIVERSAL_MASK = None  # 'Mask.XML'
+# CG2: MASKED_PIXELS = '1-8,249-256'
 # CG3:
 MASKED_PIXELS = "1-18,239-256"  # CG3
 # Mask angle: must 2 values as min and max or None
@@ -76,7 +83,7 @@ if INSTRUMENT not in ["CG2", "CG3", "EQSANS"]:
     print("Instrument {} is not supported.  Supported are {}" "".format(INSTRUMENT, "CG2, EQSANS, CG3"))
     sys.exit(-1)
 
-preparer = PrepareSensitivityCorrection(INSTRUMENT, component=COMPONENT)
+preparer = PrepareSensitivityCorrection(INSTRUMENT, WING_DETECTOR)
 # Load flood runs
 preparer.set_flood_runs(FLOOD_RUNS)
 

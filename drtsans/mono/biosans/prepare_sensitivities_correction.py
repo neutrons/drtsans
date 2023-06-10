@@ -1,6 +1,13 @@
-from typing import Union
+# local imports
+from drtsans.mask_utils import apply_mask
 from drtsans.mono.spice_data import SpiceRun
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
+
+# third party imports
+from mantid.simpleapi import MaskAngle
+
+# standard imports
+from typing import Union
 
 
 # Constants
@@ -39,6 +46,56 @@ class PrepareSensitivityCorrection(PrepareBase):
             self._wing_det_mask_angle = wing_det_mask_angle
         if main_det_mask_angle is not None:
             self._main_det_mask_angle = main_det_mask_angle
+
+    def _get_beam_center_run(self, index):
+        r"""
+        Input beam center associated to a particular flood run.
+
+        if direct beam center runs are not defined, then the flood run itself is used as direct beam center run
+
+        Parameters
+        ----------
+        index : int
+            beam center run index mapped to flood run index
+
+        Returns
+        -------
+        int, str
+            beam center run number (as an int) or absolute file path (as a string)
+        """
+        if self._direct_beam_center_runs is None and self._wing_det_mask_angle is not None:
+            return self._flood_runs[index]
+        else:
+            return super()._get_beam_center_run(index)
+
+    def _get_beam_center_workspace(self, beam_center_run):
+        r"""
+        Load and prepare the beam center run with customary corrections.
+
+        Also mask the curved detectors
+
+        Parameters
+        ----------
+        beam_center_run
+
+        Returns
+        -------
+        ~mantid.api.Workspace2D
+        """
+        beam_center_workspace = super()._get_beam_center_workspace(beam_center_run)
+
+        if self._wing_det_mask_angle is not None:
+            # mask wing detector
+            btp = dict(Components="wing_detector")
+            apply_mask(beam_center_workspace, **btp)
+            # mask 2-theta angle on main detector
+            MaskAngle(
+                Workspace=beam_center_workspace,
+                MinAngle=self._wing_det_mask_angle,
+                Angle="TwoTheta",
+            )
+
+        return beam_center_workspace
 
     def set_transmission_correction(self, transmission_flood_runs, transmission_reference_runs, beam_trap_factor=2):
         """Set transmission beam run and transmission flood runs

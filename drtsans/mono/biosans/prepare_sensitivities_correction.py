@@ -70,13 +70,12 @@ class PrepareSensitivityCorrection(PrepareBase):
 
     def _get_beam_center_workspace(self, beam_center_run):
         r"""
-        Load and prepare the beam center run with customary corrections.
-
-        Also mask the curved detectors
+        Load and prepare the beam center run with customary corrections. Also masks the curved detectors.
 
         Parameters
         ----------
-        beam_center_run
+        beam_center_run: str
+            instrument name plus run number or absolute file path
 
         Returns
         -------

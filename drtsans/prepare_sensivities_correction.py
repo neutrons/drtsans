@@ -259,6 +259,7 @@ class PrepareSensitivityCorrection(object):
         self._extra_mask_dict = dict()
         self._beam_center_radius = None  # mm
 
+        # flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
         self._enforce_use_nexus_idf = False
 
         # Transmission correction (BIOSANS)
@@ -426,19 +427,21 @@ class PrepareSensitivityCorrection(object):
 
         Parameters
         ----------
-        beam_center_run
+        beam_center_run : str
+            instrument name plus run number or absolute file path
 
         Returns
         -------
         ~mantid.api.Workspace2D
         """
-        prepare_data = PREPARE_DATA[self._instrument]
-
         instrument_specific_param_dict = dict()
-        flux_method = None
         if self._instrument in [CG2, CG3]:
             instrument_specific_param_dict["overwrite_instrument"] = False
             instrument_specific_param_dict["enforce_use_nexus_idf"] = self._enforce_use_nexus_idf
+
+        # correct for flux
+        flux_method = None
+        if self._instrument in [CG2, CG3]:
             flux_method = "monitor"
 
         # elucidate the name for the output workspace
@@ -447,7 +450,7 @@ class PrepareSensitivityCorrection(object):
         else:
             output_workspace = f"BC_{beam_center_run}"
 
-        beam_center_workspace = prepare_data(
+        beam_center_workspace = PREPARE_DATA[self._instrument](
             data=beam_center_run,
             pixel_calibration=self._apply_calibration,
             center_x=0.0,
@@ -496,7 +499,7 @@ class PrepareSensitivityCorrection(object):
         beam_center = FIND_BEAM_CENTER[self._instrument](beam_center_workspace)
         return beam_center[:-1]  # last item is the fit results, useless here
 
-    def _prepare_flood_data(self, flood_run, beam_center, dark_current_run, enforce_use_nexus_idf):
+    def _prepare_flood_data(self, flood_run, beam_center, dark_current_run):
         """Prepare flood data including
         (1) load
         (2) mask: default, pixels
@@ -509,38 +512,35 @@ class PrepareSensitivityCorrection(object):
         ----------
         flood_run: int, str
             flood run number of flood file path
+
         beam_center
+
         dark_current_run
+
         enforce_use_nexus_idf: bool
             flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
+
         Returns
         -------
 
         """
-
-        # Prepare data
-        # get right prepare_data method specified to instrument type
-        prepare_data = PREPARE_DATA[self._instrument]
-
         instrument_specific_param_dict = dict()
-        if self._instrument == CG3:
-            instrument_specific_param_dict["center_y_wing"] = beam_center[2]
         if self._instrument in [CG2, CG3]:
             instrument_specific_param_dict["overwrite_instrument"] = False
+            instrument_specific_param_dict["enforce_use_nexus_idf"] = self._enforce_use_nexus_idf
 
-        # Determine normalization method
-        if self._instrument == EQSANS:
-            # EQSANS requirs additional file with flux_method.  So set flux_method to None
-            flux_method = None
-        else:
-            # BIOSANS and GPSANS does not require extra flux file for normalization by monitor
+        if self._instrument == CG3:
+            instrument_specific_param_dict["center_y_wing"] = beam_center[2]
+            instrument_specific_param_dict["center_y_midrange"] = beam_center[3]
+
+        # correct for flux
+        flux_method = None
+        if self._instrument in [CG2, CG3]:
             flux_method = "monitor"
 
-        # Determine dark current: None or INSTRUMENT_RUN
         if dark_current_run is not None:
             if isinstance(dark_current_run, str) and os.path.exists(dark_current_run):
-                # dark current run (given) is a data file: do nothing
-                pass
+                pass  # dark current run (given) is a data file: do nothing
             else:
                 # dark current is a run number either as an integer or a string cast from integer
                 dark_current_run = "{}_{}".format(self._instrument, dark_current_run)
@@ -553,11 +553,8 @@ class PrepareSensitivityCorrection(object):
             # check file existence
             assert os.path.exists(flood_run)
 
-        # prepare data
-        if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
-        flood_ws = prepare_data(
-            data=flood_run,  # self._flood_runs[index]),
+        flood_ws = PREPARE_DATA[self._instrument](
+            data=flood_run,
             pixel_calibration=self._apply_calibration,
             mask=self._default_mask,
             btp=self._extra_mask_dict,
@@ -569,11 +566,8 @@ class PrepareSensitivityCorrection(object):
             **instrument_specific_param_dict,
         )
 
-        # Integration all the wavelength for EQSANS
+        # Integrate all the wavelength bins if necessary
         if flood_ws.blocksize() != 1:
-            # More than 1 bins in spectra: do integration to single bin
-            # This is for EQSANS specially
-            # output workspace name shall be unique and thus won't overwrite any existing one
             flood_ws = Integration(InputWorkspace=flood_ws, OutputWorkspace=str(flood_ws))
 
         return flood_ws
@@ -623,14 +617,7 @@ class PrepareSensitivityCorrection(object):
 
         return masked_flood_ws
 
-    def _apply_transmission_correction(
-        self,
-        flood_ws,
-        transmission_beam_run,
-        transmission_flood_run,
-        beam_center,
-        enforce_use_nexus_idf,
-    ):
+    def _apply_transmission_correction(self, flood_ws, transmission_beam_run, transmission_flood_run, beam_center):
         """Calculate and apply transmission correction
 
         Parameters
@@ -643,26 +630,21 @@ class PrepareSensitivityCorrection(object):
             run number for transmission flood run
         beam_center : ~tuple
             detector center
-        enforce_use_nexus_idf: bool
-            flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
+
         Returns
         -------
         MatrixWorkspace
             Flood workspace with transmission corrected
 
         """
-        prepare_data = PREPARE_DATA[self._instrument]
-
         instrument_specific_param_dict = dict()
+        if self._instrument in [CG2, CG3]:
+            instrument_specific_param_dict["overwrite_instrument"] = False
+            instrument_specific_param_dict["enforce_use_nexus_idf"] = self._enforce_use_nexus_idf
+
         if self._instrument == CG3:
             instrument_specific_param_dict["center_y_wing"] = beam_center[2]
-        if self._instrument in [CG2, CG3]:
-            # HFIR specific
-            instrument_specific_param_dict["overwrite_instrument"] = False
-
-        # Load, mask default and pixels, and normalize
-        if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
+            instrument_specific_param_dict["center_y_midrange"] = beam_center[3]
 
         if isinstance(transmission_beam_run, str) and os.path.exists(transmission_beam_run):
             sans_data = transmission_beam_run
@@ -678,7 +660,7 @@ class PrepareSensitivityCorrection(object):
                 f"is not supported to load a NeXus run from it"
             )
 
-        transmission_workspace = prepare_data(
+        transmission_workspace = PREPARE_DATA[self._instrument](
             data=sans_data,
             pixel_calibration=self._apply_calibration,
             mask=self._default_mask,
@@ -699,17 +681,13 @@ class PrepareSensitivityCorrection(object):
                 Angle="TwoTheta",
             )
 
-        # Load, mask default and pixels, normalize transmission flood run
-        if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict["enforce_use_nexus_idf"] = enforce_use_nexus_idf
-
         if not os.path.exists(transmission_flood_run):
             # given run number: form to CG3_XXX
             mtd_trans_run = "{}_{}".format(self._instrument, transmission_flood_run)
         else:
             # already a file path
             mtd_trans_run = transmission_flood_run
-        transmission_flood_ws = prepare_data(
+        transmission_flood_ws = PREPARE_DATA[self._instrument](
             data=mtd_trans_run,
             pixel_calibration=self._apply_calibration,
             mask=self._default_mask,
@@ -859,12 +837,7 @@ class PrepareSensitivityCorrection(object):
         # Load and process flood data with (1) mask (2) center detector and (3) solid angle correction
         flood_workspaces = list()
         for i in range(num_workspaces_set):
-            flood_ws_i = self._prepare_flood_data(
-                self._flood_runs[i],
-                beam_centers[i],
-                self._dark_current_runs[i],
-                enforce_use_nexus_idf,
-            )
+            flood_ws_i = self._prepare_flood_data(self._flood_runs[i], beam_centers[i], self._dark_current_runs[i])
             logger.notice(f"Load {i}-th flood run {self._flood_runs[i]} to " f"{flood_ws_i}")
             flood_workspaces.append(flood_ws_i)
 
@@ -889,7 +862,6 @@ class PrepareSensitivityCorrection(object):
                     self._transmission_reference_runs[i],
                     self._transmission_flood_runs[i],
                     beam_centers[i],
-                    enforce_use_nexus_idf,
                 )
 
         # Set the masked pixels' counts to nan and -infinity

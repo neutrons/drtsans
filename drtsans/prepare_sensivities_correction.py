@@ -421,6 +421,26 @@ class PrepareSensitivityCorrection(object):
             raise RuntimeError("Beam center runs must be given for {}".format(self._instrument))
         return self._direct_beam_center_runs[index]
 
+    def _prepare_data_opts(self, beam_center):
+        r"""
+        Set additional options for function prepare_data
+
+        Parameters
+        ----------
+        beam_center : list
+            beam center for each of the double panels
+
+        Returns
+        -------
+        dict
+        """
+        opts = dict(center_x=beam_center[0], center_y=beam_center[1], flux_method=None)
+        if self._instrument in [CG2, CG3]:
+            opts["flux_method"] = "monitor"
+            opts["overwrite_instrument"] = False
+            opts["enforce_use_nexus_idf"] = self._enforce_use_nexus_idf
+        return opts
+
     def _get_beam_center_workspace(self, beam_center_run):
         r"""
         Load and prepare the beam center run with customary corrections
@@ -434,16 +454,6 @@ class PrepareSensitivityCorrection(object):
         -------
         ~mantid.api.Workspace2D
         """
-        instrument_specific_param_dict = dict()
-        if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict["overwrite_instrument"] = False
-            instrument_specific_param_dict["enforce_use_nexus_idf"] = self._enforce_use_nexus_idf
-
-        # correct for flux
-        flux_method = None
-        if self._instrument in [CG2, CG3]:
-            flux_method = "monitor"
-
         # elucidate the name for the output workspace
         if os.path.exists(beam_center_run):
             output_workspace = f"BC_{self._instrument}_{extract_run_number(beam_center_run)}"
@@ -453,14 +463,11 @@ class PrepareSensitivityCorrection(object):
         beam_center_workspace = PREPARE_DATA[self._instrument](
             data=beam_center_run,
             pixel_calibration=self._apply_calibration,
-            center_x=0.0,
-            center_y=0.0,
             mask=self._default_mask,
             btp=self._extra_mask_dict,
-            flux_method=flux_method,
             solid_angle=False,
             output_workspace=output_workspace,
-            **instrument_specific_param_dict,
+            **self._prepare_data_opts(beam_center=[0.0, 0.0]),
         )
 
         return beam_center_workspace
@@ -524,20 +531,6 @@ class PrepareSensitivityCorrection(object):
         -------
 
         """
-        instrument_specific_param_dict = dict()
-        if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict["overwrite_instrument"] = False
-            instrument_specific_param_dict["enforce_use_nexus_idf"] = self._enforce_use_nexus_idf
-
-        if self._instrument == CG3:
-            instrument_specific_param_dict["center_y_wing"] = beam_center[2]
-            instrument_specific_param_dict["center_y_midrange"] = beam_center[3]
-
-        # correct for flux
-        flux_method = None
-        if self._instrument in [CG2, CG3]:
-            flux_method = "monitor"
-
         if dark_current_run is not None:
             if isinstance(dark_current_run, str) and os.path.exists(dark_current_run):
                 pass  # dark current run (given) is a data file: do nothing
@@ -558,12 +551,9 @@ class PrepareSensitivityCorrection(object):
             pixel_calibration=self._apply_calibration,
             mask=self._default_mask,
             btp=self._extra_mask_dict,
-            center_x=beam_center[0],
-            center_y=beam_center[1],
             dark_current=dark_current_run,
-            flux_method=flux_method,
             solid_angle=self._solid_angle_correction,
-            **instrument_specific_param_dict,
+            **self._prepare_data_opts(beam_center),
         )
 
         # Integrate all the wavelength bins if necessary
@@ -637,15 +627,6 @@ class PrepareSensitivityCorrection(object):
             Flood workspace with transmission corrected
 
         """
-        instrument_specific_param_dict = dict()
-        if self._instrument in [CG2, CG3]:
-            instrument_specific_param_dict["overwrite_instrument"] = False
-            instrument_specific_param_dict["enforce_use_nexus_idf"] = self._enforce_use_nexus_idf
-
-        if self._instrument == CG3:
-            instrument_specific_param_dict["center_y_wing"] = beam_center[2]
-            instrument_specific_param_dict["center_y_midrange"] = beam_center[3]
-
         if isinstance(transmission_beam_run, str) and os.path.exists(transmission_beam_run):
             sans_data = transmission_beam_run
         elif (
@@ -665,12 +646,9 @@ class PrepareSensitivityCorrection(object):
             pixel_calibration=self._apply_calibration,
             mask=self._default_mask,
             btp=self._extra_mask_dict,
-            flux_method="monitor",
             solid_angle=False,
-            center_x=beam_center[0],
-            center_y=beam_center[1],
             output_workspace="TRANS_{}_{}".format(self._instrument, transmission_beam_run),
-            **instrument_specific_param_dict,
+            **self._prepare_data_opts(beam_center),
         )
         # Apply mask
         if self._instrument == CG3:
@@ -692,12 +670,9 @@ class PrepareSensitivityCorrection(object):
             pixel_calibration=self._apply_calibration,
             mask=self._default_mask,
             btp=self._extra_mask_dict,
-            flux_method="monitor",
             solid_angle=False,
-            center_x=beam_center[0],
-            center_y=beam_center[1],
             output_workspace="TRANS_{}_{}".format(self._instrument, transmission_flood_run),
-            **instrument_specific_param_dict,
+            **self._prepare_data_opts(beam_center),
         )
         # Apply mask
         if self._instrument == CG3:

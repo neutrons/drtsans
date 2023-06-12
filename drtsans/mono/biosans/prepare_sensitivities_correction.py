@@ -68,6 +68,24 @@ class PrepareSensitivityCorrection(PrepareBase):
         else:
             return super()._get_beam_center_run(index)
 
+    def _prepare_data_opts(self, beam_center):
+        r"""Set additional options for function prepare_data
+
+        Parameters
+        ----------
+        beam_center : List[float]
+            beam center for the main detector (X,Y), the wing detector (Y) and optionally the midrange detector (Y)
+
+        Returns
+        -------
+        dict
+        """
+        opts = super()._prepare_data_opts(beam_center)
+        opts["center_y_wing"] = beam_center[2]
+        if len(beam_center) > 3:
+            opts["center_y_midrange"] = beam_center[3]
+        return opts
+
     def _get_beam_center_workspace(self, beam_center_run):
         r"""
         Load and prepare the beam center run with customary corrections. Also masks the curved detectors.

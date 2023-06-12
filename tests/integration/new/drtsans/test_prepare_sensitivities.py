@@ -127,7 +127,7 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
     # EQSANS_111030_sensitivity_new:	22.355925 MB
     # gold_sens_ws:	22.355492 MB
     # test_sens_ws:	22.355925 MB
-    DeleteWorkspace("BC_EQSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/sns/eqsans/EQSANS_111042.nxs.h5")
+    DeleteWorkspace("BC_EQSANS_111042")
     DeleteWorkspace("EQSANS_111030")
     DeleteWorkspace("EQSANS_111030_sensitivity")
     DeleteWorkspace("EQSANS_111030_sensitivity_new")

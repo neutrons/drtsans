@@ -584,22 +584,12 @@ class PrepareSensitivityCorrection(object):
         if isinstance(beam_center, str):
             # beam center mask XML file: apply mask
             apply_mask(flood_ws, mask=beam_center)  # data_ws reference shall not be invalidated here!
-        elif self._main_det_mask_angle is not None and self._instrument == CG3:
-            # CG3 special: Mask 2-theta angle
-            # Mask wing detector right top/bottom corners
-            if self._component == "wing_detector":
-                component_to_mask = "detector1"
-            else:
-                component_to_mask = "wing_detector"
-            apply_mask(flood_ws, Components=component_to_mask)
-            # mask 2theta
-            MaskAngle(Workspace=flood_ws, MaxAngle=self._main_det_mask_angle, Angle="TwoTheta")
-        else:
-            # calculate beam center mask from beam center workspace
-            # Mask the new beam center by 65 mm (Lisa's magic number)
-            masking = list(circular_mask_from_beam_center(flood_ws, self._beam_center_radius))
-            # Mask
-            apply_mask(flood_ws, mask=masking)  # data_ws reference shall not be invalidated here!
+
+        # calculate beam center mask from beam center workspace
+        # Mask the new beam center by 65 mm (Lisa's magic number)
+        masking = list(circular_mask_from_beam_center(flood_ws, self._beam_center_radius))
+        # Mask
+        apply_mask(flood_ws, mask=masking)  # data_ws reference shall not be invalidated here!
 
         # Set uncertainties
         # output: masked are zero intensity and zero error

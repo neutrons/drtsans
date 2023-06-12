@@ -1,7 +1,8 @@
 # local imports
-from drtsans.mask_utils import apply_mask
+from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 from drtsans.mono.spice_data import SpiceRun
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
+from drtsans.process_uncertainties import set_init_uncertainties
 
 # third party imports
 from mantid.simpleapi import MaskAngle
@@ -114,6 +115,53 @@ class PrepareSensitivityCorrection(PrepareBase):
             )
 
         return beam_center_workspace
+
+    def _mask_beam_center(self, flood_ws, beam_center):
+        """Mask beam center
+
+        Mask beam center with 3 algorithms
+        1. if beam center mask is present, mask by file
+        2. Otherwise if beam center workspace is specified, find beam center from this workspace and mask
+        3. Otherwise find beam center for flood workspace and mask itself
+
+        Parameters
+        ----------
+        flood_ws : ~mantid.api.MatrixWorkspace
+            Mantid workspace for flood data
+        beam_center : tuple or str
+            if tuple, beam centers (xc, yc, wc) / (xc, yc); str: beam center masks file
+        Returns
+        -------
+
+        """
+        # Calculate masking (masked file or detectors)
+        if isinstance(beam_center, str):
+            # beam center mask XML file: apply mask
+            apply_mask(flood_ws, mask=beam_center)  # data_ws reference shall not be invalidated here!
+
+        # TODO (jose borreguero): suspicious "if" block.
+        if self._main_det_mask_angle is not None:
+            # Mask 2-theta angle
+            # Mask wing detector right top/bottom corners
+            if self._component == "wing_detector":
+                component_to_mask = "detector1"
+            else:
+                component_to_mask = "wing_detector"
+            apply_mask(flood_ws, Components=component_to_mask)
+            # mask 2theta
+            MaskAngle(Workspace=flood_ws, MaxAngle=self._main_det_mask_angle, Angle="TwoTheta")
+        else:
+            # calculate beam center mask from beam center workspace
+            # Mask the new beam center by 65 mm (Lisa's magic number)
+            masking = list(circular_mask_from_beam_center(flood_ws, self._beam_center_radius))
+            # Mask
+            apply_mask(flood_ws, mask=masking)  # data_ws reference shall not be invalidated here!
+
+        # Set uncertainties
+        # output: masked are zero intensity and zero error
+        masked_flood_ws = set_init_uncertainties(flood_ws)
+
+        return masked_flood_ws
 
     def set_transmission_correction(self, transmission_flood_runs, transmission_reference_runs, beam_trap_factor=2):
         """Set transmission beam run and transmission flood runs

@@ -1,13 +1,18 @@
 # local imports
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
+from drtsans.mono.biosans.api import prepare_data
+from drtsans.mono.biosans import apply_transmission_correction, calculate_transmission
 from drtsans.mono.spice_data import SpiceRun
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
 from drtsans.process_uncertainties import set_init_uncertainties
 
 # third party imports
+from mantid.kernel import logger
 from mantid.simpleapi import MaskAngle
+import numpy as np
 
 # standard imports
+import os
 from typing import Union
 
 
@@ -235,6 +240,103 @@ class PrepareSensitivityCorrection(PrepareBase):
 
         """
         self._theta_dep_correction = flag
+
+    def _apply_transmission_correction(self, flood_ws, transmission_beam_run, transmission_flood_run, beam_center):
+        """Calculate and apply transmission correction
+
+        Parameters
+        ----------
+        flood_ws : MarixWorkspace
+            Flood run workspace to transmission correct workspace
+        transmission_beam_run : int or str
+            run number for transmission beam run
+        transmission_flood_run : int or str
+            run number for transmission flood run
+        beam_center : ~tuple
+            detector center
+
+        Returns
+        -------
+        MatrixWorkspace
+            Flood workspace with transmission corrected
+
+        """
+        if isinstance(transmission_beam_run, str) and os.path.exists(transmission_beam_run):
+            sans_data = transmission_beam_run
+        elif (
+            isinstance(transmission_beam_run, str)
+            and transmission_beam_run.isdigit()
+            or isinstance(transmission_beam_run, int)
+        ):
+            sans_data = "{}_{}".format(self._instrument, transmission_beam_run)
+        else:
+            raise TypeError(
+                f"Transmission run {transmission_beam_run} of type {type(transmission_beam_run)} "
+                f"is not supported to load a NeXus run from it"
+            )
+
+        transmission_workspace = prepare_data(
+            data=sans_data,
+            pixel_calibration=self._apply_calibration,
+            mask=self._default_mask,
+            btp=self._extra_mask_dict,
+            solid_angle=False,
+            output_workspace="TRANS_{}_{}".format(self._instrument, transmission_beam_run),
+            **self._prepare_data_opts(beam_center),
+        )
+
+        # Apply mask
+        apply_mask(transmission_workspace, Components="wing_detector")
+        MaskAngle(
+            Workspace=transmission_workspace,
+            MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
+            Angle="TwoTheta",
+        )
+
+        if not os.path.exists(transmission_flood_run):
+            # given run number: form to CG3_XXX
+            mtd_trans_run = "{}_{}".format(self._instrument, transmission_flood_run)
+        else:
+            # already a file path
+            mtd_trans_run = transmission_flood_run
+
+        transmission_flood_ws = prepare_data(
+            data=mtd_trans_run,
+            pixel_calibration=self._apply_calibration,
+            mask=self._default_mask,
+            btp=self._extra_mask_dict,
+            solid_angle=False,
+            output_workspace="TRANS_{}_{}".format(self._instrument, transmission_flood_run),
+            **self._prepare_data_opts(beam_center),
+        )
+
+        # Apply mask
+        apply_mask(transmission_flood_ws, Components="wing_detector")
+        MaskAngle(
+            Workspace=transmission_flood_ws,
+            MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
+            Angle="TwoTheta",
+        )
+
+        # Zero-Angle Transmission Co-efficients
+        transmission_corr_ws = calculate_transmission(transmission_flood_ws, transmission_workspace)
+        average_zero_angle = np.mean(transmission_corr_ws.readY(0))
+        average_zero_angle_error = np.linalg.norm(transmission_corr_ws.readE(0))
+        logger.notice(
+            f"Transmission Coefficient is {average_zero_angle:.3f} +/- "
+            f"{average_zero_angle_error:.3f}."
+            f"Transmission flood {str(transmission_flood_ws)} and "
+            f"transmission {str(transmission_workspace)}"
+        )
+
+        # Apply calculated transmission
+        flood_ws = apply_transmission_correction(
+            flood_ws,
+            trans_workspace=transmission_corr_ws,
+            theta_dependent=self._theta_dep_correction,
+        )
+
+        return flood_ws
 
 
 def prepare_spice_sensitivities_correction(

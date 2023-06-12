@@ -20,7 +20,6 @@ from mantid.api import mtd
 from mantid.kernel import logger
 from mantid.simpleapi import (
     SaveNexusProcessed,
-    MaskAngle,
     Integration,
     MaskDetectors,
     CreateWorkspace,
@@ -72,24 +71,6 @@ CENTER_DETECTOR = {
     CG2: drtsans.mono.gpsans.center_detector,
     CG3: drtsans.mono.biosans.center_detector,
     EQSANS: drtsans.tof.eqsans.center_detector,
-}
-
-# Calculate transmission
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftof%2Feqsans%2Ftransmission.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftransmission.py
-CALCULATE_TRANSMISSION = {
-    CG2: drtsans.mono.gpsans.calculate_transmission,
-    CG3: drtsans.mono.biosans.calculate_transmission,
-    EQSANS: drtsans.tof.eqsans.calculate_transmission,
-}
-
-# Apply transmission correction
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftof%2Feqsans%2Ftransmission.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftransmission.py
-APPLY_TRANSMISSION = {
-    CG2: drtsans.mono.gpsans.apply_transmission_correction,
-    CG3: drtsans.mono.biosans.apply_transmission_correction,
-    EQSANS: drtsans.tof.eqsans.apply_transmission_correction,
 }
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsolid_angle.py
@@ -597,106 +578,6 @@ class PrepareSensitivityCorrection(object):
 
         return masked_flood_ws
 
-    def _apply_transmission_correction(self, flood_ws, transmission_beam_run, transmission_flood_run, beam_center):
-        """Calculate and apply transmission correction
-
-        Parameters
-        ----------
-        flood_ws : MarixWorkspace
-            Flood run workspace to transmission correct workspace
-        transmission_beam_run : int or str
-            run number for transmission beam run
-        transmission_flood_run : int or str
-            run number for transmission flood run
-        beam_center : ~tuple
-            detector center
-
-        Returns
-        -------
-        MatrixWorkspace
-            Flood workspace with transmission corrected
-
-        """
-        if isinstance(transmission_beam_run, str) and os.path.exists(transmission_beam_run):
-            sans_data = transmission_beam_run
-        elif (
-            isinstance(transmission_beam_run, str)
-            and transmission_beam_run.isdigit()
-            or isinstance(transmission_beam_run, int)
-        ):
-            sans_data = "{}_{}".format(self._instrument, transmission_beam_run)
-        else:
-            raise TypeError(
-                f"Transmission run {transmission_beam_run} of type {type(transmission_beam_run)} "
-                f"is not supported to load a NeXus run from it"
-            )
-
-        transmission_workspace = PREPARE_DATA[self._instrument](
-            data=sans_data,
-            pixel_calibration=self._apply_calibration,
-            mask=self._default_mask,
-            btp=self._extra_mask_dict,
-            solid_angle=False,
-            output_workspace="TRANS_{}_{}".format(self._instrument, transmission_beam_run),
-            **self._prepare_data_opts(beam_center),
-        )
-        # Apply mask
-        if self._instrument == CG3:
-            apply_mask(transmission_workspace, Components="wing_detector")
-            MaskAngle(
-                Workspace=transmission_workspace,
-                MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
-                Angle="TwoTheta",
-            )
-
-        if not os.path.exists(transmission_flood_run):
-            # given run number: form to CG3_XXX
-            mtd_trans_run = "{}_{}".format(self._instrument, transmission_flood_run)
-        else:
-            # already a file path
-            mtd_trans_run = transmission_flood_run
-        transmission_flood_ws = PREPARE_DATA[self._instrument](
-            data=mtd_trans_run,
-            pixel_calibration=self._apply_calibration,
-            mask=self._default_mask,
-            btp=self._extra_mask_dict,
-            solid_angle=False,
-            output_workspace="TRANS_{}_{}".format(self._instrument, transmission_flood_run),
-            **self._prepare_data_opts(beam_center),
-        )
-        # Apply mask
-        if self._instrument == CG3:
-            apply_mask(transmission_flood_ws, Components="wing_detector")
-            MaskAngle(
-                Workspace=transmission_flood_ws,
-                MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
-                Angle="TwoTheta",
-            )
-        elif self._instrument == EQSANS:
-            raise RuntimeError("Never tested EQSANS with Transmission correction")
-
-        # Zero-Angle Transmission Co-efficients
-        calculate_transmission = CALCULATE_TRANSMISSION[self._instrument]
-        transmission_corr_ws = calculate_transmission(transmission_flood_ws, transmission_workspace)
-        average_zero_angle = np.mean(transmission_corr_ws.readY(0))
-        average_zero_angle_error = np.linalg.norm(transmission_corr_ws.readE(0))
-        logger.notice(
-            f"Transmission Coefficient is {average_zero_angle:.3f} +/- "
-            f"{average_zero_angle_error:.3f}."
-            f"Transmission flood {str(transmission_flood_ws)} and "
-            f"transmission {str(transmission_workspace)}"
-        )
-
-        # Apply calculated transmission
-        apply_transmission_correction = APPLY_TRANSMISSION[self._instrument]
-        flood_ws = apply_transmission_correction(
-            flood_ws,
-            trans_workspace=transmission_corr_ws,
-            theta_dependent=self._theta_dep_correction,
-        )
-
-        return flood_ws
-
     def _export_sensitivity(self, sensitivity_ws, output_nexus_name, parent_flood_run):
         """Process and export sensitivities to a processed NeXus file
 
@@ -752,6 +633,19 @@ class PrepareSensitivityCorrection(object):
         # Save
         SaveNexusProcessed(InputWorkspace=new_sensitivity_ws, Filename=output_nexus_name)
 
+    def _apply_transmission_correction(self, *args):
+        r"""Calculate and apply transmission correction
+
+        Warnings
+        --------
+        This method is implemented only for CG3
+
+        Raises
+        ------
+        NotImplementedError
+        """
+        raise NotImplementedError("Transmission correction is not implemented")
+
     def execute(
         self,
         use_moving_detector_method,
@@ -803,10 +697,10 @@ class PrepareSensitivityCorrection(object):
         flood_workspaces = list()
         for i in range(num_workspaces_set):
             flood_ws_i = self._prepare_flood_data(self._flood_runs[i], beam_centers[i], self._dark_current_runs[i])
-            logger.notice(f"Load {i}-th flood run {self._flood_runs[i]} to " f"{flood_ws_i}")
             flood_workspaces.append(flood_ws_i)
+            logger.notice(f"Load {i}-th flood run {self._flood_runs[i]} to " f"{flood_ws_i}")
 
-        # Retrieve masked detectors
+        # Retrieve masked detectors before masking the beam center. These are termed "bad pixels"
         if not use_moving_detector_method:
             bad_pixels_list = list()
             for i in range(num_workspaces_set):
@@ -819,8 +713,7 @@ class PrepareSensitivityCorrection(object):
             flood_workspaces[i] = self._mask_beam_center(flood_workspaces[i], beam_centers[i])
 
         # Transmission correction as an option
-        if self._instrument == CG3 and self._transmission_reference_runs is not None:
-            # Must have transmission run specified and cannot be wing detector (of CG3)
+        if self._transmission_reference_runs is not None:
             for i in range(num_workspaces_set):
                 flood_workspaces[i] = self._apply_transmission_correction(
                     flood_workspaces[i],

@@ -81,7 +81,8 @@ class PrepareSensitivityCorrection(PrepareBase):
         dict
         """
         opts = super()._prepare_data_opts(beam_center)
-        opts["center_y_wing"] = beam_center[2]
+        if len(beam_center) > 2:
+            opts["center_y_wing"] = beam_center[2]
         if len(beam_center) > 3:
             opts["center_y_midrange"] = beam_center[3]
         return opts

@@ -317,7 +317,7 @@ def test_cg3_wing_prepare_sensitivities(tmp_path):
     # test_sens_ws:	5.686553 MB
     # TRANS_CG3_4831:	2.762857 MB
     # TRANS_CG3_4835:	5.687177 MB
-    DeleteWorkspace("BC_CG3_CG3_4830")
+    DeleteWorkspace("BC_CG3_4830")
     DeleteWorkspace("BIOSANS_4835")
     DeleteWorkspace("BIOSANS_4835_sensitivity")
     DeleteWorkspace("BIOSANS_4835_sensitivity_new")
@@ -405,9 +405,9 @@ def test_cg2_sensitivities(tmp_path):
     # sensitivities:	1.179928 MB
     # sensitivities_new:	12.333449 MB
     # test_sens_ws:	12.333449 MB
-    DeleteWorkspace("BC_CG2_CG2_7117")
-    DeleteWorkspace("BC_CG2_CG2_7119")
-    DeleteWorkspace("BC_CG2_CG2_7121")
+    DeleteWorkspace("BC_CG2_7117")
+    DeleteWorkspace("BC_CG2_7119")
+    DeleteWorkspace("BC_CG2_7121")
     DeleteWorkspace("gold_sens_ws")
     DeleteWorkspace("GPSANS_7116")
     DeleteWorkspace("GPSANS_7116_processed_histo")

@@ -578,12 +578,14 @@ class TubeCollection(ElementComponentInfo):
 
         Parameters
         ----------
-        input_workspace: ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+        input_workspace: ~mantid.api.Workspace
         component_name: str
             One of the named components in the instrument geometry file.
         """
         input_workspace = mtd[str(input_workspace)]
         component_info = input_workspace.componentInfo()
+        if component_info is None:
+            raise RuntimeError(f'Could not find component info for Workspace "{str(input_workspace)}"')
         for component_index in range(component_info.root(), -1, -1):
             if component_info.name(component_index) == component_name:
                 super().__init__(component_info, component_index)

@@ -1,10 +1,17 @@
 #!/bin/bash
 
-set -x
-
 # Set default values
 MARKERS=""
 TEST_SCOPE="unit"
+
+# Function to display the help message
+display_help() {
+    echo "Usage: test_job.sh [OPTIONS]"
+    echo "Optional arguments:"
+    echo "  -m/--markers VALUE  An valid expression for a pytest marker"
+    echo "  -s/--scope   VALUE  One of 'unit' or 'integration'. Default: $TEST_SCOPE"
+    echo "  --help              Show this help message"
+}
 
 # Process command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -21,6 +28,10 @@ while [[ $# -gt 0 ]]; do
         shift # past argument
         shift # past value
         ;;
+        --help)
+            display_help
+            exit 0
+            ;;
         *)    # unknown option
         echo "Unknown option: $1"
         shift # past argument

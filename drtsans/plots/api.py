@@ -430,7 +430,10 @@ def plot_detector(
     )
     fig = plt.figure(**figure_kwargs)
     for i_detector, detector_name in enumerate(detector_names):
-        collection = TubeCollection(workspace, detector_name)
+        try:
+            collection = TubeCollection(workspace, detector_name)
+        except RuntimeError:  # no detector panel with this name (e.g. missing midrange_detector in BIOSANS workspace)
+            continue
         collection = collection.sorted(view="fbfb")
         data = np.sum(np.array([tube.readY for tube in collection]), axis=-1)  # sum intensities for each pixel
         if isinstance(imshow_kwargs.get("norm", None), LogNorm) is True:

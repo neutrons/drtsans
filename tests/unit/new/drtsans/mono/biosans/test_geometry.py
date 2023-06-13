@@ -15,6 +15,7 @@ from drtsans.mono.biosans.geometry import (
     adjust_midrange_detector,
     midrange_to_wing_tubepixel,
 )
+from drtsans.mono.biosans.simulated_events import update_idf
 from drtsans.samplelogs import SampleLogs
 
 # third party imports
@@ -123,6 +124,27 @@ def test_get_twothetas(fetch_idf):
     for component, expected in expected_for_component.items():
         twothetas = get_twothetas(workspace, component, units="degrees")
         assert_almost_equal((twothetas[0], twothetas[-1]), expected, decimal=2)
+
+
+def test_apply_samplelogs_midrange_rotation(fetch_idf):
+    workspace = LoadEmptyInstrument(Filename=fetch_idf("BIOSANS_Definition_2019_2023.xml"))
+    SampleLogs(workspace).insert_time_series("md_rot_Readback", [0.0], [42.0], unit="deg")
+    workspace = update_idf(workspace)
+    assert_almost_equal(get_angle_midrange_detector(workspace), 42.0, decimal=2)
+
+
+def test_apply_samplelogs_wing_rotation(fetch_idf):
+    workspace = LoadEmptyInstrument(Filename=fetch_idf("BIOSANS_Definition_2019_2023.xml"))
+    SampleLogs(workspace).insert_time_series("ww_rot_Readback", [0.0], [42.0], unit="deg")
+    workspace = update_idf(workspace)
+    assert_almost_equal(get_angle_wing_detector(workspace), 42.0, decimal=2)
+
+
+def test_apply_samplelogs_sample_detector_distance(fetch_idf):
+    workspace = LoadEmptyInstrument(Filename=fetch_idf("BIOSANS_Definition_2019_2023.xml"))
+    SampleLogs(workspace).insert_time_series("sample_detector_distance", [0.0], [12.0], unit="m")
+    workspace = update_idf(workspace)
+    assert_almost_equal(get_position_south_detector(workspace), 12.0, decimal=2)
 
 
 def test_api_geometry(biosans_f):

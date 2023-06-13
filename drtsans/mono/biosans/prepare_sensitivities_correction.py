@@ -21,8 +21,16 @@ PIXEL = "Pixel"
 
 
 class PrepareSensitivityCorrection(PrepareBase):
-    def __int__(self):
+    def __init__(self):
         super().__init__()
+
+        self._theta_dep_correction = False
+        self._biosans_beam_trap_factor = 2
+        # mask the area around the direct beam to remove it and the associated parasitic scattering
+        # Mask angles of wing detector pixels to be masked from beam center run.
+        self._wing_det_mask_angle = None
+        # Mask angles on main detector pixels to mask on beam center.
+        self._main_det_mask_angle = None
 
     def set_masks(self, default_mask, pixels, wing_det_mask_angle=None, main_det_mask_angle=None):
         """Set masks
@@ -31,7 +39,7 @@ class PrepareSensitivityCorrection(PrepareBase):
         ----------
         default_mask : str or ~mantid.api.MaskWorkspace or :py:obj:`list` or None
             Mask to be applied. If :py:obj:`list`, it is a list of
-            detector ID's. If `None`, it is expected that `maskbtp` is not empty.
+            detector ID's.
             mask file name
         pixels : str or None
             pixels to mask.  Example: '1-8,249-256'
@@ -145,7 +153,7 @@ class PrepareSensitivityCorrection(PrepareBase):
             apply_mask(flood_ws, mask=beam_center)  # data_ws reference shall not be invalidated here!
 
         # TODO (jose borreguero): suspicious "if" block.
-        if self._main_det_mask_angle is not None:
+        elif self._main_det_mask_angle is not None:
             # Mask 2-theta angle
             # Mask wing detector right top/bottom corners
             if self._component == "wing_detector":
@@ -212,17 +220,6 @@ class PrepareSensitivityCorrection(PrepareBase):
 
         # transmission flood
         self._transmission_flood_runs = format_run_or_runs(transmission_flood_runs)
-
-        # if isinstance(transmission_reference_run, int):
-        #     # a run number
-        #     self._transmission_reference_runs = [transmission_reference_run]
-        # else:
-        #     self._transmission_reference_runs = list(transmission_reference_run)
-        #
-        # if isinstance(transmission_flood_runs, int):
-        #     self._transmission_flood_runs = [transmission_flood_runs]
-        # else:
-        #     self._transmission_flood_runs = list(transmission_flood_runs)
 
         # Set the beam trap factor for transmission reference and flood run to mask angle
         self._biosans_beam_trap_factor = beam_trap_factor

@@ -243,11 +243,9 @@ class PrepareSensitivityCorrection(object):
         # flag to enforce to use IDF XML in NeXus file; otherwise, it may use IDF from Mantid library
         self._enforce_use_nexus_idf = False
 
-        # Transmission correction (BIOSANS)
+        # Transmission correction
         self._transmission_reference_runs = None
         self._transmission_flood_runs = None
-        self._theta_dep_correction = False
-        self._biosans_beam_trap_factor = 2
 
         # Dark current
         self._dark_current_runs = None
@@ -257,13 +255,6 @@ class PrepareSensitivityCorrection(object):
 
         # Apply solid angle correction or not?
         self._solid_angle_correction = False
-
-        # BIO-SANS special application to
-        # mask the area around the direct beam to remove it and the associated parasitic scattering
-        # Mask angles of wing detector pixels to be masked from beam center run.
-        self._wing_det_mask_angle = None
-        # Mask angles on main detector pixels to mask on beam center.
-        self._main_det_mask_angle = None
 
     def set_pixel_calibration_flag(self, apply_calibration):
         """Set the flag to apply pixel calibrations.
@@ -353,7 +344,7 @@ class PrepareSensitivityCorrection(object):
         ----------
         default_mask : str or ~mantid.api.MaskWorkspace or :py:obj:`list` or None
             Mask to be applied. If :py:obj:`list`, it is a list of
-            detector ID's. If `None`, it is expected that `maskbtp` is not empty.
+            detector ID's.
             mask file name
         pixels : str or None
             pixels to mask.  Example: '1-8,249-256'
@@ -468,7 +459,7 @@ class PrepareSensitivityCorrection(object):
         Returns
         -------
         ~tuple
-            beam center as xc, yc and possible wc for BIOSANS
+            Beam center as xc, yc and possible wc for BIOSANS
 
         """
         # Process the input run chosen to calculate the beam center
@@ -565,12 +556,12 @@ class PrepareSensitivityCorrection(object):
         if isinstance(beam_center, str):
             # beam center mask XML file: apply mask
             apply_mask(flood_ws, mask=beam_center)  # data_ws reference shall not be invalidated here!
-
-        # calculate beam center mask from beam center workspace
-        # Mask the new beam center by 65 mm (Lisa's magic number)
-        masking = list(circular_mask_from_beam_center(flood_ws, self._beam_center_radius))
-        # Mask
-        apply_mask(flood_ws, mask=masking)  # data_ws reference shall not be invalidated here!
+        else:
+            # calculate beam center mask from beam center workspace
+            # Mask the new beam center by 65 mm (Lisa's magic number)
+            masking = list(circular_mask_from_beam_center(flood_ws, self._beam_center_radius))
+            # Mask
+            apply_mask(flood_ws, mask=masking)  # data_ws reference shall not be invalidated here!
 
         # Set uncertainties
         # output: masked are zero intensity and zero error

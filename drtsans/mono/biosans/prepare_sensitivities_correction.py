@@ -21,8 +21,8 @@ PIXEL = "Pixel"
 
 
 class PrepareSensitivityCorrection(PrepareBase):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, instrument, component="detector1"):
+        super().__init__(instrument, component=component)
 
         self._theta_dep_correction = False
         self._biosans_beam_trap_factor = 2

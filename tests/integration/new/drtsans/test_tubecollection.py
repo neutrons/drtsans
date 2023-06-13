@@ -12,6 +12,7 @@ r"""
 Hyperlinks to drtsans functions
 ElementComponentInfo, PixelInfo, TubeInfo, TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
 """  # noqa: E501
+from drtsans.instruments import fetch_idf
 from drtsans.settings import namedtuplefy
 from drtsans.tubecollection import TubeCollection
 from mantid.simpleapi import DeleteWorkspace
@@ -21,10 +22,11 @@ from unittest import TestCase
 @namedtuplefy
 def collection():
     r"""BIOSANS instrument with a run containing few events"""
-    workspace = LoadEmptyInstrument(InstrumentName="BIOSANS")
+    workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
     return {
         "main": TubeCollection(workspace, "detector1"),
         "wing": TubeCollection(workspace, "wing_detector"),
+        "midrange": TubeCollection(workspace, "midrange_detector"),
     }
 
 
@@ -41,6 +43,7 @@ class TestTubeCollection(TestCase):
         collection = self.collection
         assert len(collection.main) == 192
         assert len(collection.wing) == 160
+        assert len(collection.midrange) == 64
 
     def test_getitem(self):
         collection = self.collection
@@ -58,7 +61,7 @@ class TestTubeCollection(TestCase):
         spectrum_info_indexes = [tube.spectrum_info_index[0] for tube in sorted_tubes]
         assert np.all(spectrum_info_indexes[1:] > spectrum_info_indexes[:-1])
 
-    def test_detector_ids(self):
+    def test_detector_ids_main(self):
         collection = self.collection
         #
         tubes = collection.main.tubes
@@ -66,6 +69,24 @@ class TestTubeCollection(TestCase):
         detector_ids = [tube.detector_ids for tube in tubes]
         assert time.time() - start_time < 0.2  # below one tenth of a second
         assert (detector_ids[0][0], detector_ids[-1][-1]) == (0, 49151)
+
+    def test_detector_ids_wing(self):
+        collection = self.collection
+        #
+        tubes = collection.wing.tubes
+        start_time = time.time()
+        detector_ids = [tube.detector_ids for tube in tubes]
+        assert time.time() - start_time < 0.2  # below one tenth of a second
+        assert (detector_ids[0][0], detector_ids[-1][-1]) == (49152, 90111)
+
+    def test_detector_ids_midrange(self):
+        collection = self.collection
+        #
+        tubes = collection.midrange.tubes
+        start_time = time.time()
+        detector_ids = [tube.detector_ids for tube in tubes]
+        assert time.time() - start_time < 0.2  # below one tenth of a second
+        assert (detector_ids[0][0], detector_ids[-1][-1]) == (90112, 106495)
 
     def test_pixel_heights(self):
         collection = self.collection

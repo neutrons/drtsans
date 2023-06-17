@@ -1,19 +1,21 @@
 # local imports
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
-from drtsans.mono.biosans.api import prepare_data
 from drtsans.mono.biosans import apply_transmission_correction, calculate_transmission
+from drtsans.mono.biosans.api import prepare_data
+from drtsans.mono.biosans.geometry import has_midrange_detector
 from drtsans.mono.spice_data import SpiceRun
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
 from drtsans.process_uncertainties import set_init_uncertainties
 
 # third party imports
+from mantid.api import Workspace as MantidWorkspace
 from mantid.kernel import logger
-from mantid.simpleapi import MaskAngle
+from mantid.simpleapi import DeleteWorkspace, LoadEventNexus, MaskAngle
 import numpy as np
 
 # standard imports
 import os
-from typing import Union
+from typing import List, Union
 
 
 # Constants
@@ -24,15 +26,37 @@ class PrepareSensitivityCorrection(PrepareBase):
     def __init__(self, instrument, component="detector1"):
         super().__init__(instrument, component=component)
 
+        self._curved_detectors = None  # either ["wing_detector"] or ["wing_detector", "midrange_detector"]
         self._theta_dep_correction = False
         self._biosans_beam_trap_factor = 2
         # mask the area around the direct beam to remove it and the associated parasitic scattering
-        # Mask angles of wing detector pixels to be masked from beam center run.
-        self._wing_det_mask_angle = None
         # Mask angles on main detector pixels to mask on beam center.
         self._main_det_mask_angle = None
 
-    def set_masks(self, default_mask, pixels, wing_det_mask_angle=None, main_det_mask_angle=None):
+    @property
+    def curved_detectors(self) -> List[str]:
+        r"""
+        List of curved detectors. Either ``["wing_detector"]`` or ``["wing_detector", "midrange_detector"]``
+        depending on whether the data files contain the midrange detector.
+        """
+        if self._curved_detectors is None:  # initialize the cache
+            self._curved_detectors = ["wing_detector"]
+            # load the first flood run to check if midrange detector is present
+            first_flood_run = self._flood_runs[0]
+            if isinstance(first_flood_run, int):
+                first_flood_run = f"BIOSANS{first_flood_run}"
+            LoadEventNexus(
+                Filename=first_flood_run,
+                MetaDataOnly=True,  # no need to load the events
+                LoadNexusInstrumentXML=self._enforce_use_nexus_idf,
+                OutputWorkspace="_first_flood_run",
+            )
+            if has_midrange_detector("_first_flood_run"):
+                self._curved_detectors.append("midrange_detector")
+            DeleteWorkspace("_first_flood_run")
+        return self._curved_detectors
+
+    def set_masks(self, default_mask, pixels, main_det_mask_angle=None, **kwargs) -> None:
         """Set masks
 
         Parameters
@@ -43,21 +67,12 @@ class PrepareSensitivityCorrection(PrepareBase):
             mask file name
         pixels : str or None
             pixels to mask.  Example: '1-8,249-256'
-        wing_det_mask_angle : float or None
-            angle to mask (MaskAngle) to (BIOSANS) wing detector
         main_det_mask_angle : float or None
             angle to mask (MaskAngle) to main detector
-
-        Returns
-        -------
-        None
-
+        kwargs : dict
+            additional keyword arguments to accept deprecated argument "wing_det_mask_angle". Unused.
         """
-
         super().set_masks(default_mask, pixels)
-
-        if wing_det_mask_angle is not None:
-            self._wing_det_mask_angle = wing_det_mask_angle
         if main_det_mask_angle is not None:
             self._main_det_mask_angle = main_det_mask_angle
 
@@ -77,7 +92,7 @@ class PrepareSensitivityCorrection(PrepareBase):
         int, str
             beam center run number (as an int) or absolute file path (as a string)
         """
-        if self._direct_beam_center_runs is None and self._wing_det_mask_angle is not None:
+        if self._direct_beam_center_runs is None:
             return self._flood_runs[index]
         else:
             return super()._get_beam_center_run(index)
@@ -115,59 +130,38 @@ class PrepareSensitivityCorrection(PrepareBase):
         ~mantid.api.Workspace2D
         """
         beam_center_workspace = super()._get_beam_center_workspace(beam_center_run)
-
-        if self._wing_det_mask_angle is not None:
-            # mask wing detector
-            btp = dict(Components="wing_detector")
-            apply_mask(beam_center_workspace, **btp)
-            # mask 2-theta angle on main detector
-            MaskAngle(
-                Workspace=beam_center_workspace,
-                MinAngle=self._wing_det_mask_angle,
-                Angle="TwoTheta",
-            )
-
+        # Mask curved detectors, unnecessary but reduces the execution time of algorithm FindCenterOfMassPosition
+        apply_mask(beam_center_workspace, Components=self.curved_detectors)
         return beam_center_workspace
 
-    def _mask_beam_center(self, flood_ws, beam_center):
-        """Mask beam center
+    def _mask_beam_center(self, flood_ws: MantidWorkspace, beam_center: str) -> MantidWorkspace:
+        """Mask the beam center pixels and all detector panels but the one of interest.
 
-        Mask beam center with 3 algorithms
-        1. if beam center mask is present, mask by file
-        2. Otherwise if beam center workspace is specified, find beam center from this workspace and mask
-        3. Otherwise find beam center for flood workspace and mask itself
+        Mask beam center with three algorithms, tried in sequence:
+        1. if beam center mask file is present, use it. It's assumed it will mask the beam center pixels and
+           all detector panels but the one of interest.
+        2. Mask all detector panels but the one of interest. If the panel of interest is the main panel,
+           mask all pixels in the main detector subtending TwoTheta < main_det_mask_angle.
+        3. Mask all detector pixels within a distance of property "beam_center_radius" from the beam axis.
 
         Parameters
         ----------
-        flood_ws : ~mantid.api.MatrixWorkspace
+        flood_ws
             Mantid workspace for flood data
-        beam_center : tuple or str
-            if tuple, beam centers (xc, yc, wc) / (xc, yc); str: beam center masks file
-        Returns
-        -------
-
+        beam_center
+            mask file to mask the bean center pixels
         """
-        # Calculate masking (masked file or detectors)
         if isinstance(beam_center, str):
-            # beam center mask XML file: apply mask
-            apply_mask(flood_ws, mask=beam_center)  # data_ws reference shall not be invalidated here!
-
-        # TODO (jose borreguero): suspicious "if" block.
+            apply_mask(flood_ws, mask=beam_center)
         elif self._main_det_mask_angle is not None:
-            # Mask 2-theta angle
-            # Mask wing detector right top/bottom corners
-            if self._component == "wing_detector":
-                component_to_mask = "detector1"
-            else:
-                component_to_mask = "wing_detector"
-            apply_mask(flood_ws, Components=component_to_mask)
-            # mask 2theta
+            components_to_mask = ["detector1"] + self.curved_detectors
+            components_to_mask.remove(self._component)  # mask everything but the component of interest
+            apply_mask(flood_ws, Components=components_to_mask)
+            # mask all pixels subtending TwoTheta < main_det_mask_angle. It's unlikely this will affect any pixel in
+            # the wing or midrange detectors, but it's possible if they're located close enough to the beam axis
             MaskAngle(Workspace=flood_ws, MaxAngle=self._main_det_mask_angle, Angle="TwoTheta")
         else:
-            # calculate beam center mask from beam center workspace
-            # Mask the new beam center by 65 mm (Lisa's magic number)
             masking = list(circular_mask_from_beam_center(flood_ws, self._beam_center_radius))
-            # Mask
             apply_mask(flood_ws, mask=masking)  # data_ws reference shall not be invalidated here!
 
         # Set uncertainties
@@ -283,7 +277,7 @@ class PrepareSensitivityCorrection(PrepareBase):
         )
 
         # Apply mask
-        apply_mask(transmission_workspace, Components="wing_detector")
+        apply_mask(transmission_workspace, Components=self.curved_detectors)
         MaskAngle(
             Workspace=transmission_workspace,
             MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
@@ -308,7 +302,7 @@ class PrepareSensitivityCorrection(PrepareBase):
         )
 
         # Apply mask
-        apply_mask(transmission_flood_ws, Components="wing_detector")
+        apply_mask(transmission_flood_ws, Components=self.curved_detectors)
         MaskAngle(
             Workspace=transmission_flood_ws,
             MinAngle=self._biosans_beam_trap_factor * self._main_det_mask_angle,
@@ -387,7 +381,7 @@ def prepare_spice_sensitivities_correction(
     main_detector_mask_angle: float
         angle for main detector mask
     wing_detector_mask_angle: float
-        angle for wing detector mask
+        deprecated
     min_count_threshold: float
         minimum normalized count threshold as a good pixel
     max_count_threshold: float
@@ -401,8 +395,11 @@ def prepare_spice_sensitivities_correction(
 
     CG3 = "CG3"
 
+    if wing_detector_mask_angle is not None:
+        logger.notice("Option wing_detector_mask_angle is deprecated.")
+
     # Set up sensitivities preparation configurations
-    if component not in ["detector1", "wing_detector"]:
+    if component not in ["detector1", "wing_detector"]:  # old spice data lacks the midrange detector
         raise ValueError(f"Unknown component {component}. Must be one of 'detector1' or 'wing_detector'")
 
     preparer = PrepareSensitivityCorrection(CG3, component=component)
@@ -417,7 +414,6 @@ def prepare_spice_sensitivities_correction(
     preparer.set_masks(
         universal_mask_file,
         pixels_to_mask,
-        wing_det_mask_angle=wing_detector_mask_angle,
         main_det_mask_angle=main_detector_mask_angle,
     )
 

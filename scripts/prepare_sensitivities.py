@@ -95,7 +95,6 @@ if DIRECT_BEAM_RUNS is not None:
 preparer.set_masks(
     UNIVERSAL_MASK,
     MASKED_PIXELS,
-    wing_det_mask_angle=WING_DET_MASK_ANGLE,
     main_det_mask_angle=MAIN_DET_MASK_ANGLE,
 )
 

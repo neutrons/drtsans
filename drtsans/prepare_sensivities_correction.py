@@ -256,6 +256,10 @@ class PrepareSensitivityCorrection(object):
         # Apply solid angle correction or not?
         self._solid_angle_correction = False
 
+    @property
+    def beam_center_radius(self) -> float:
+        return self._beam_center_radius
+
     def set_pixel_calibration_flag(self, apply_calibration):
         """Set the flag to apply pixel calibrations.
 
@@ -512,11 +516,14 @@ class PrepareSensitivityCorrection(object):
 
         # Load data with masking: returning to a list of workspace references
         # processing includes: load, mask, normalize by monitor
+        if isinstance(flood_run, str) and flood_run.isdigit():  # run number passed on as a string
+            flood_run = int(flood_run)  # unequivocally convert run numbers to integers
         if isinstance(flood_run, int):
             flood_run = "{}_{}".format(self._instrument, flood_run)
-        else:
-            # check file existence
+        elif isinstance(flood_run, str):  # if still a string, it must be an absolute file path
             assert os.path.exists(flood_run)
+        else:
+            raise ValueError(f"Flood run {flood_run} is not recognized")
 
         flood_ws = PREPARE_DATA[self._instrument](
             data=flood_run,
@@ -537,10 +544,10 @@ class PrepareSensitivityCorrection(object):
     def _mask_beam_center(self, flood_ws, beam_center):
         """Mask beam center
 
-        Mask beam center with 3 algorithms
-        1. if beam center mask is present, mask by file
-        2. Otherwise if beam center workspace is specified, find beam center from this workspace and mask
-        3. Otherwise find beam center for flood workspace and mask itself
+        Mask beam center with two algorithms, tried in sequence:
+        1. if beam center mask file is present, use it. It's assumed it will mask the beam center pixels and
+           all detector panels but the one of interest.
+        1. Mask all detector pixels within a distance of property "beam_center_radius" from the beam axis.
 
         Parameters
         ----------
@@ -552,15 +559,10 @@ class PrepareSensitivityCorrection(object):
         -------
 
         """
-        # Calculate masking (masked file or detectors)
         if isinstance(beam_center, str):
-            # beam center mask XML file: apply mask
-            apply_mask(flood_ws, mask=beam_center)  # data_ws reference shall not be invalidated here!
+            apply_mask(flood_ws, mask=beam_center)
         else:
-            # calculate beam center mask from beam center workspace
-            # Mask the new beam center by 65 mm (Lisa's magic number)
             masking = list(circular_mask_from_beam_center(flood_ws, self._beam_center_radius))
-            # Mask
             apply_mask(flood_ws, mask=masking)  # data_ws reference shall not be invalidated here!
 
         # Set uncertainties

@@ -166,7 +166,6 @@ def test_cg3_main_prepare_sensitivities(tmp_path):
     MASKED_PIXELS = "1-18,239-256"  # CG3
     # Mask angle: must 2 values as min and max or None
     MAIN_DET_MASK_ANGLE = 1.5
-    WING_DET_MASK_ANGLE = 57.0
     BEAM_TRAP_SIZE_FACTOR = 2
 
     # Corrections
@@ -190,7 +189,6 @@ def test_cg3_main_prepare_sensitivities(tmp_path):
     preparer.set_masks(
         None,
         MASKED_PIXELS,
-        wing_det_mask_angle=WING_DET_MASK_ANGLE,
         main_det_mask_angle=MAIN_DET_MASK_ANGLE,
     )
 
@@ -251,7 +249,6 @@ def test_cg3_wing_prepare_sensitivities(tmp_path):
     MASKED_PIXELS = "1-18,239-256"  # CG3
     # Mask angle: must 2 values as min and max or None
     MAIN_DET_MASK_ANGLE = 0.75
-    WING_DET_MASK_ANGLE = 57.0
     BEAM_TRAP_SIZE_FACTOR = 2
 
     # Corrections
@@ -278,7 +275,6 @@ def test_cg3_wing_prepare_sensitivities(tmp_path):
     preparer.set_masks(
         None,
         MASKED_PIXELS,
-        wing_det_mask_angle=WING_DET_MASK_ANGLE,
         main_det_mask_angle=MAIN_DET_MASK_ANGLE,
     )
 

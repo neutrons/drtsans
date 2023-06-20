@@ -914,7 +914,7 @@ def reduce_single_configuration(
         iq2d_main_in_fr = split_by_frame(processed_data_main, iq2d_main_in, verbose=True)
 
         # Save nexus processed
-        # For EQSANS the suffix has to add _processed to tell the output file apart 
+        # For EQSANS the suffix has to add _processed to tell the output file apart
         # from the original data file
         filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}_processed.nxs")
         SaveNexus(processed_data_main, Filename=filename)

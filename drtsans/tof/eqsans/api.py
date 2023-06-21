@@ -678,8 +678,7 @@ def reduce_single_configuration(
     bkg_trans_value = reduction_input["background"]["transmission"]["value"]
     theta_dependent_transmission = reduction_config["useThetaDepTransCorrection"]
     mask_panel = "back" if reduction_config["useMaskBackTubes"] is True else None
-    #output_suffix = "_processed"
-    output_suffix = ""
+    output_suffix = "_processed"
 
     thickness = reduction_input["sample"]["thickness"]
     absolute_scale_method = reduction_config["absoluteScaleMethod"]
@@ -916,7 +915,7 @@ def reduce_single_configuration(
         # Save nexus processed
         # For EQSANS the suffix has to add _processed to tell the output file apart
         # from the original data file
-        filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}_processed.nxs")
+        filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}.nxs")
         SaveNexus(processed_data_main, Filename=filename)
         print(f"SaveNexus to {filename}")
 

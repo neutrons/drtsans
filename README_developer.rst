@@ -140,7 +140,7 @@ or
 Installing the pre-commit hook
 --------------------------
 
-To automatically run the pre-commit steps (e.g. linting) when adding a commit, install the git pre-commit hook.
+To automatically run the `pre-commit <https://pre-commit.com>`_ steps (e.g. linting) when adding a commit, install the git pre-commit hook.
 
 .. code-block:: shell
 

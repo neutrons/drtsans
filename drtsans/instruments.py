@@ -227,7 +227,7 @@ def empty_instrument_workspace(
     r"""
     Create an emtpy workspace for one of the standard instruments. By default, monitors do not have associated spectra.
 
-    Invokes ~mantid.api.LoadEmptyInstrument to create an empty instrument workspace.
+    Invokes ~mantid.simpleapi.LoadEmptyInstrument to create an empty instrument workspace.
 
     Parameters
     ----------

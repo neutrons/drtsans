@@ -1,6 +1,6 @@
 import pytest
 
-from mantid.simpleapi import CreateWorkspace
+from mantid.simpleapi import CreateWorkspace, DeleteWorkspace
 
 from drtsans.settings import unique_workspace_dundername
 from drtsans.instruments import (
@@ -8,6 +8,7 @@ from drtsans.instruments import (
     extract_run_number,
     instrument_enum_name,
     is_time_of_flight,
+    empty_instrument_workspace,
 )
 
 
@@ -49,6 +50,20 @@ def test_extract_run_number():
         961,
     ):
         assert extract_run_number(query) == 961
+
+
+def test_empty_instrument_workspace():
+    workspace = empty_instrument_workspace(
+        output_workspace=unique_workspace_dundername(),
+        instrument_name="BIOSANS",
+        event_workspace=True,
+        monitors_have_spectra=False,
+    )
+    detector_ids = workspace.detectorInfo().detectorIDs()
+    detector_ids = detector_ids[detector_ids >= 0]
+    assert workspace.getNumberHistograms() == len(detector_ids)
+    assert list(workspace.getSpectrum(0).getDetectorIDs()) == [0]
+    DeleteWorkspace(workspace)
 
 
 if __name__ == "__main__":

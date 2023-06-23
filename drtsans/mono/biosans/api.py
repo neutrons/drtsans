@@ -1013,11 +1013,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         }
         # auto-aniso returns all of the wedges
         symmetric_wedges = False
-
+    
     fbc_options = biosans.fbc_options_json(reduction_input)
     xc, yc, yw, ym, fit_results = biosans.find_beam_center(loaded_ws.center, **fbc_options)
     logger.notice(f"Find beam center  = {xc}, {yc}, {yw}, {ym}")
-
+    
     # empty beam transmission workspace
     if loaded_ws.empty is not None:
         empty_trans_ws_name = f"{prefix}_empty"

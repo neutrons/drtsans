@@ -137,6 +137,8 @@ def fbc_options_json(reduction_input):
         elif method == "center_of_mass":
             if "com_centering_options" in reduction_input["beamCenter"].keys():
                 fbc_options["centering_options"] = reduction_input["beamCenter"]["com_centering_options"]
+            #TODO add the integrationradius in fbc_options_jsons
+            
     return fbc_options
 
 

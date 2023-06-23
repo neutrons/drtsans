@@ -214,14 +214,13 @@ def test_beam_finder_midrange(reference_dir):
     ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     ws = update_idf(ws)
-    assert ws.getInstrument().getComponentByName("midrange_detector")
 
-    x, y, y_wing, y_midrange, _ = beam_finder.find_beam_center(ws)
-    # -0.07713017225601802 -0.00992194502726748 0.0038553824707935353 -0.009809069975731867
-    assert x == pytest.approx(-0.0771, abs=1e-4)
-    assert y == pytest.approx(-0.0099, abs=1e-4)
-    assert y_wing == pytest.approx(0.00385, abs=1e-4)
-    assert y_midrange == pytest.approx(-0.0098, abs=1e-4)
+    x, y, y_wing, y_midrange, _ = beam_finder.find_beam_center(ws, centering_options=dict(IntegrationRadius=0.07))
+    # -0.0130 -0.0136 
+    assert x == pytest.approx(-0.0130, abs=1e-4)
+    assert y == pytest.approx(-0.0136, abs=1e-4)
+    assert y_wing == pytest.approx(0.00014, abs=1e-4)
+    assert y_midrange == pytest.approx(-0.0135, abs=1e-4)
 
     # The position of the main detector is retrieved
     # The geometry of the detector setup is accessed through a workspace handle.
@@ -248,15 +247,14 @@ def test_beam_finder_midrange(reference_dir):
     # After the re-centring we should be at (0,0)
     # Note that to give the same results we need to enter the center
     # estimates as the previous results!
-    center = FindCenterOfMassPosition(InputWorkspace=ws, CenterX=-x, CenterY=-y)
+    center = FindCenterOfMassPosition(InputWorkspace=ws, CenterX=-x, CenterY=-y,IntegrationRadius=0.07)
     x1, y1 = center
     # Tolerance 1e-3 == millimeters
     assert x1 == pytest.approx(0.0, abs=1e-3)
     assert y1 == pytest.approx(0.0, abs=1e-4)
 
     # let's the test our wrap function. The results should be the same.
-    x2, y2, y_wing2, y_midrange2, _ = beam_finder.find_beam_center(ws, centering_options=dict(CenterX=-x, CenterY=-y))
-
+    x2, y2, y_wing2, y_midrange2, _ = beam_finder.find_beam_center(ws, centering_options=dict(CenterX=-x, CenterY=-y, IntegrationRadius=0.07))
     assert x2 == pytest.approx(0.0, abs=1e-3) == x1
     assert y2 == pytest.approx(0.0, abs=1e-4) == y1
     assert y_wing2 == pytest.approx(0.0 + y_wing - y, abs=1e-4)

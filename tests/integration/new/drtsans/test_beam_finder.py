@@ -600,7 +600,7 @@ def test_find_beam_center_midrange(reference_dir):
     method = "center_of_mass"
     mask = None
     mask_options = {}
-    centering_options = {}
+    centering_options = {"IntegrationRadius":0.07}
     solid_angle_method = "VerticalTube"
 
     # collect values before adding the midrange_detector

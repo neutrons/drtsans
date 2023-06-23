@@ -323,7 +323,7 @@ def test_incoherence_correction_elastic_normalization(reference_dir, generatecle
 
     # Check output result
     iq1d_base_name = "EQSANS_125707__Iq.dat"
-    test_iq1d_file = os.path.join(test_dir, iq1d_base_name.replace("_Iq.dat", "_processed_Iq.dat"))
+    test_iq1d_file = os.path.join(test_dir, iq1d_base_name)
     # FIXME: The gold data are not stored inside the repository so when
     # gold data are changed a version prefix is added with date and developer
     # information. The old data will be kept as it is.
@@ -386,7 +386,7 @@ def test_incoherence_correction_elastic_normalization_weighted(reference_dir, ge
             )
         assert reduction_output
 
-        test_iq1d_file = os.path.join(test_dir, config["outputFileName"] + "_processed_Iq.dat")
+        test_iq1d_file = os.path.join(test_dir, config["outputFileName"] + "_Iq.dat")
         gold_iq1d_file = os.path.join(
             reference_dir.new.eqsans, "test_incoherence_correction", expected_result_filename
         )

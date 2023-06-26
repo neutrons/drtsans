@@ -2,12 +2,15 @@
 
 # third party imports
 from mantid.kernel import ConfigService
-from mantid.api import mtd
+from mantid.api import mtd, MatrixWorkspace
+from mantid.dataobjects import EventWorkspace
+from mantid.simpleapi import LoadEmptyInstrument, RemoveSpectra
 
 # standard imports
 import enum
 import os
 import subprocess
+from typing import Optional, Union
 
 
 __all__ = [
@@ -212,3 +215,57 @@ def fetch_idf(idf_xml, output_directory=os.getcwd()):
     if result.returncode != 0:
         print(f"Dowloading {idf_xml} failed with error: {result.stderr}")
     return idf
+
+
+def empty_instrument_workspace(
+    output_workspace: str,
+    filename: Optional[str] = None,
+    instrument_name: Optional[str] = None,
+    event_workspace: Optional[bool] = False,
+    monitors_have_spectra: Optional[bool] = False,
+) -> Union[MatrixWorkspace, EventWorkspace]:
+    r"""
+    Create an emtpy workspace for one of the standard instruments. By default, monitors do not have associated spectra.
+
+    Invokes ~mantid.simpleapi.LoadEmptyInstrument to create an empty instrument workspace.
+
+    Parameters
+    ----------
+    output_workspace
+        Name of the output workspace
+    filename
+        Path to the instrument filename. If not absolute path, mantid will search in the instrument directory.
+    instrument_name
+        Alternative of option ``filename``. Mantid will search for the latest instrument file in the instrument
+         directory.
+    event_workspace
+        If True, create an event workspace, otherwise a histogram workspace.
+    monitors_have_spectra
+        If True, create a workspace with spectra for the monitors.
+
+    Returns
+    -------
+    A handle to the empty workspace
+    """
+    workspace = LoadEmptyInstrument(
+        OutputWorkspace=output_workspace,
+        Filename=filename,
+        InstrumentName=instrument_name,
+        MakeEventWorkspace=event_workspace,
+    )
+    if monitors_have_spectra is False:
+        # get the list of non-negative detector IDs (i.e. excluding monitors)
+        detector_ids = workspace.detectorInfo().detectorIDs()
+        monitor_count = detector_ids[detector_ids < 0].size  # monitors have negative IDs always
+        detector_ids = detector_ids[detector_ids >= 0]  # these are the detector IDs for detector pixels
+        # iterate over the spectra, assigning one detector ID to each spectrum
+        for wi, detid in zip(range(workspace.getNumberHistograms()), detector_ids):
+            spectrum = workspace.getSpectrum(wi)
+            spectrum.setDetectorID(int(detid))
+        # the number of spectra should be equal to the number of monitors plus the number detector pixels. Thus,
+        # we have an excess of spectra in the amount of `monitor_count`. They need to be removed now
+        to_remove = list(range(workspace.getNumberHistograms() - monitor_count, workspace.getNumberHistograms()))
+        workspace = RemoveSpectra(
+            Inputworkspace=output_workspace, OutputWorkspace=output_workspace, WorkspaceIndices=to_remove
+        )
+    return workspace

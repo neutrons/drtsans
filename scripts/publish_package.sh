@@ -5,6 +5,13 @@ echo "GITHUB REF ${CI_COMMIT_REF_SLUG}"
 # activate conda environment
 source activate drtsans-dev
 
+# don't let mantid use network on startup
+echo "Turning off mantid network capabilities"
+mkdir -p "${HOME}/.mantid/"
+echo "CheckMantidVersion.OnStartup=0" > "${HOME}/.mantid/Mantid.user.properties"
+echo "UpdateInstrumentDefinitions.OnStartup=0" >> "${HOME}/.mantid/Mantid.user.properties"
+echo "usagereports.enabled=0" >> "${HOME}/.mantid/Mantid.user.properties"
+
 # go to the code directory in /tmp
 cp -R /opt/sans-backend /tmp/
 cd /tmp/sans-backend/conda.recipe
@@ -41,3 +48,6 @@ if [ -n "${CI_COMMIT_TAG}" ]; then
 else
     echo "Not publishing package to anaconda.org"
 fi
+
+# remove properties file
+rm -f "${HOME}/.mantid/Mantid.user.properties"

@@ -62,29 +62,32 @@ SAMPLE_SI_META_NAME = "CG3:CS:SampleToSi"
 
 @namedtuplefy
 def load_all_files(
-    reduction_input,
-    prefix="",
-    load_params=None,
-    path=None,
-    use_nexus_idf=False,
-    debug_output=False,
+    reduction_input: dict,
+    prefix: str="",
+    load_params: dict=None,
+    path: str=None,
+    use_nexus_idf: bool=False,
+    debug_output: bool=False,
 ):
-    """load all required files at the beginning, and transform them to histograms
+    """Load all required files at the beginning, and transform them into histograms.
 
     Parameters
     ----------
-    reduction_input
-    prefix
-    load_params
-    path: str or None
+    reduction_input: dict
+        Dictionary containing the reduction input
+    prefix: str
+        Prefix to be used for the workspaces
+    load_params: dict
+        Dictionary containing the parameters to be passed to the Load event algorithm
+    path: str
         Path to search the NeXus file
     use_nexus_idf: bool
         Flag to enforce to use IDF from NeXus file.  It must be true for SPICE-converted NeXus
     debug_output: bool
         Flag to save internal data for debugging
-
     """
-    reduction_config = reduction_input["configuration"]  # a handy shortcut to the configuration parameters dictionary
+    # a handy shortcut to the configuration parameters dictionary
+    reduction_config = reduction_input["configuration"]
 
     instrument_name = reduction_input["instrumentName"]
     ipts = reduction_input["iptsNumber"]
@@ -343,6 +346,9 @@ def load_all_files(
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
 
+    # TODO: add midrange detector for dark current
+    # will load a sensitivity file for the mid-range detector.
+    # The function should return workspace sensitivity_midrange_ws.
     dark_current_file_main = reduction_config["darkMainFileName"]
     dark_current_file_wing = reduction_config["darkWingFileName"]
     if dark_current_file_main and dark_current_file_wing:
@@ -382,6 +388,10 @@ def load_all_files(
         dark_current_main = dark_current_wing = None
 
     # load required processed_files
+    # TODO:
+    # will load a sensitivity file for the mid-range detector.
+    # The function should return workspace sensitivity_midrange_ws.
+    # will load a beam profile file flood_file_midrange.
     sensitivity_main_ws_name = None
     sensitivity_wing_ws_name = None
     flood_file_main = reduction_config["sensitivityMainFileName"]

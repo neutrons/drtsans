@@ -60,7 +60,7 @@ def _beam_center_gravitational_drop(
         :ref:`sample to detector center distance <devdocs-standardnames>` of the wing or midrange detector
         in meters
     vertical_offset: float
-        :vertical offset between main detector and wing detector in m
+        :vertical offset between main detector and curved detector in m
 
     Returns
     -------
@@ -97,7 +97,7 @@ def find_beam_center(
     sample_det_cent_wing_detector=None,
     sample_det_cent_midrange_detector=None,
     solid_angle_method="VerticalTube",
-    IntegrationRadius=None
+    #IntegrationRadius=None
 ) -> Tuple[float, float, float, Optional[float], dict]:
     """Finds the beam center in a 2D SANS data set.
     This is based on (and uses) :func:`drtsans.find_beam_center`
@@ -184,7 +184,7 @@ def find_beam_center(
             vertical_offset=vertical_offset,
         )
     logger.information(
-        "Beam Center: x={:.3} y={:.3} y_gravity={:.3} y_midrange={}.".format(
+        "Beam Center: x={:.3} y={:.3} y_wing={:.3} y_midrange={}.".format(
             center_x, center_y, center_y_wing, center_y_midrange
         )
     )

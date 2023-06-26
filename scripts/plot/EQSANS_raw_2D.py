@@ -1,10 +1,10 @@
+#!/usr/bin/env python
 import numpy as np
 import h5py
 import json
 import sys
-import matplotlib
 
-matplotlib.use("Agg")
+# matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa E402
 from matplotlib.colors import LogNorm  # noqa E402
 import mpld3  # noqa E402
@@ -15,11 +15,11 @@ from mpld3 import plugins  # noqa E402
 def load_data(filename):
     bc = np.zeros((256 * 192))
     with h5py.File(filename, "r") as f:
-        run_number = f["/entry/run_number"].value[0]
-        title = f["/entry/title"].value[0]
+        run_number = f["/entry/run_number"][0]
+        title = f["/entry/title"][0]
         for b in range(48):
             bc += np.bincount(
-                f["/entry/bank" + str(b + 1) + "_events/event_id"].value,
+                f["/entry/bank" + str(b + 1) + "_events/event_id"][:],
                 minlength=256 * 192,
             )
     data = bc.reshape(-1, 8, 256).T
@@ -35,7 +35,10 @@ plot = ax.imshow(data, norm=LogNorm(), extent=(0.5, 192.5, 0.5, 256.5), origin="
 ax.set_title("EQSANS_{} - {}".format(run_number, title))
 ax.set_xlabel("Tube")
 ax.set_ylabel("Pixel")
+plt.savefig("raw_plot.png")
+plt.show()
 
 plugins.connect(fig, plugins.MousePosition(fontsize=14, fmt=".0f"))
+
 
 print(json.dumps(mpld3.fig_to_dict(fig)))

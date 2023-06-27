@@ -119,10 +119,10 @@ def calculate_sensitivity_correction(
                 dI[i] = np.nan
                 counts += 1
 
-    # Get the (main or wing) detector (component) to calculate sensitivity correction for
+    # Get the detector (component) to calculate sensitivity correction for
     # 'detector1' for EQSANS, GPSANS and BIOSANS's main detector
-    # 'wing' for BIOSANS's wing detector
-    comp = Component(input_workspace, component_name)  # 'detector` except wing detector
+    # 'wing_detector' or 'midrange_detector' for BIOSANS's wing detector
+    comp = Component(input_workspace, component_name)
 
     # The next step is to fit the data in each tube with a second order polynomial as shown in
     # Equations A3.9 and A3.10. Use result to fill in NaN values.

@@ -5,7 +5,13 @@ from datetime import datetime
 import numpy as np
 import os
 
-from mantid.simpleapi import mtd, MaskDetectors
+from mantid.simpleapi import (
+    mtd,
+    MaskDetectors,
+    LoadEventNexus,
+    LoadNexusProcessed,
+    DeleteWorkspace,
+)
 from mantid.kernel import Logger
 
 import matplotlib.pyplot as plt
@@ -17,7 +23,7 @@ from drtsans.path import abspath, abspaths, registered_workspace
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
 from drtsans.instruments import extract_run_number
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import namedtuplefy
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
 from drtsans import subtract_background
 from drtsans.reductionlog import savereductionlog
@@ -72,7 +78,7 @@ logger = Logger("BioSANS")
 def load_all_files(
     reduction_input: dict,
     prefix: str = "",
-    load_params: dict = None,
+    load_params: dict = {},
     path: str = None,
     use_nexus_idf: bool = False,
     debug_output: bool = False,
@@ -105,6 +111,15 @@ def load_all_files(
     instrument_name = reduction_input["instrumentName"]
     ipts = reduction_input["iptsNumber"]
     sample = reduction_input["sample"]["runNumber"]
+
+    # on the fly check to see if mid-range detector is present in data
+    reduction_input["has_midrange_detector"] = has_midrange_detector(
+        sample=sample,
+        ipts=ipts,
+        instrument_name=instrument_name,
+        directory=path,
+    )
+
     sample_trans = reduction_input["sample"]["transmission"]["runNumber"]
     bkgd = reduction_input["background"]["runNumber"]
     bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
@@ -140,9 +155,6 @@ def load_all_files(
         if registered_workspace(ws_name):
             mtd.remove(ws_name)
 
-    # sample offsets, etc
-    if load_params is None:
-        load_params = {}
     # load nexus idf
     if use_nexus_idf:
         load_params["LoadNexusInstrumentXML"] = use_nexus_idf
@@ -167,12 +179,13 @@ def load_all_files(
     logslice = reduction_config["useLogSlice"]
     if timeslice or logslice:
         if len(sample.split(",")) > 1:
+            logger.error("Can't do slicing on summed data sets")
             raise ValueError("Can't do slicing on summed data sets")
 
     # thickness is written to sample log if it is defined...
     thickness = reduction_input["sample"]["thickness"]
-    sample_aperture_diameter = reduction_config["sampleApertureSize"]  # in milimiters
-    source_aperture_diameter = reduction_config["sourceApertureDiameter"]  # in milimiters
+    sample_aperture_diameter = reduction_config["sampleApertureSize"]  # in mm
+    source_aperture_diameter = reduction_config["sourceApertureDiameter"]  # in mm
 
     # Parse smearing pixel size x and y for all runs
     smearing_pixel_size_x_dict = parse_json_meta_data(
@@ -359,13 +372,20 @@ def load_all_files(
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
 
-    # TODO: add midrange detector for dark current
-    # will load a sensitivity file for the mid-range detector.
-    # The function should return workspace sensitivity_midrange_ws.
-    dark_current_file_main = reduction_config["darkMainFileName"]
-    dark_current_file_wing = reduction_config["darkWingFileName"]
-    if dark_current_file_main and dark_current_file_wing:
-        # dark current for main detector
+    # load dark current
+    # step 0: check if mid-range detector is used
+    if reduction_input["has_midrange_detector"]:
+        dark_current_file_midrange = reduction_config.get("darkMidrangeFileName", None)
+    else:
+        dark_current_file_midrange = "no_midrange_detector"
+    # step 1: gather main and wing detector dark current
+    dark_current_file_main = reduction_config.get("darkMainFileName", None)
+    dark_current_file_wing = reduction_config.get("darkWingFileName", None)
+    # step 2: logic
+    # if and only if when none of the dark current files are None, then we will load dark current
+    # otherwise set all dark current to None
+    if dark_current_file_main and dark_current_file_wing and dark_current_file_midrange:
+        # load main
         dark_current_main = dark_current_correction(
             dark_current_file_main,
             default_mask,
@@ -381,7 +401,7 @@ def load_all_files(
             smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
             smearing_pixel_size_y_dict[meta_data.DARK_CURRENT],
         )
-        # dark current for wing detector
+        # load wing
         dark_current_wing = dark_current_correction(
             dark_current_file_wing,
             default_mask,
@@ -397,8 +417,29 @@ def load_all_files(
             smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
             smearing_pixel_size_y_dict[meta_data.DARK_CURRENT],
         )
+        # load midrange
+        if dark_current_file_midrange != "no_midrange_detector":
+            dark_current_midrange = dark_current_correction(
+                dark_current_file_midrange,
+                default_mask,
+                instrument_name,
+                ipts,
+                load_params,
+                path,
+                prefix,
+                wave_length_dict[meta_data.DARK_CURRENT],
+                wave_length_spread_dict[meta_data.DARK_CURRENT],
+                swd_value_dict[meta_data.DARK_CURRENT],
+                sdd_value_dict[meta_data.DARK_CURRENT],
+                smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
+                smearing_pixel_size_y_dict[meta_data.DARK_CURRENT],
+            )
+        else:
+            dark_current_midrange = None
     else:
-        dark_current_main = dark_current_wing = None
+        dark_current_main = None
+        dark_current_wing = None
+        dark_current_midrange = None
 
     # load required processed_files
     # TODO:
@@ -459,6 +500,7 @@ def load_all_files(
             raw_blocked_ws,
             dark_current_main,
             dark_current_wing,
+            dark_current_midrange,
         ]:
             if ws is not None:
                 plot_detector(
@@ -478,6 +520,7 @@ def load_all_files(
         blocked_beam=raw_blocked_ws,
         dark_current_main=dark_current_main,
         dark_current_wing=dark_current_wing,
+        dark_current_midrange=dark_current_midrange,
         sensitivity_main=sensitivity_main_ws,
         sensitivity_wing=sensitivity_wing_ws,
         mask=mask_ws,
@@ -1670,3 +1713,45 @@ def form_output_name(workspace):
     workspace_name = str(workspace)
     file_name = workspace_name.split("/")[-1].split(".")[0]
     return f"{file_name}.png"
+
+
+def has_midrange_detector(sample: str, instrument_name: str, ipts: str, directory: str) -> bool:
+    """
+    Check if the sample has midrange detector
+
+    Parameters
+    ----------
+    sample
+        Sample name
+    instrument_name
+        Instrument name
+    ipts
+        IPTS number
+    directory
+        Directory of the data
+
+    Returns
+    -------
+    bool
+        True if the sample has midrange detector
+    """
+    filename = abspath(
+        sample.strip(),
+        instrument=instrument_name,
+        ipts=ipts,
+        directory=directory,
+    )
+
+    out_ws_name = unique_workspace_dundername()
+
+    try:
+        workspace = LoadEventNexus(Filename=filename, MetadataOnly=True, OutputWorkspace=out_ws_name)
+    except RuntimeError:
+        workspace = LoadNexusProcessed(Filename=filename, OutputWorkspace=out_ws_name)
+
+    has_midrange = workspace.getInstrument().getComponentByName("midrange_detector") is not None
+
+    # cleanup
+    DeleteWorkspace(workspace)
+
+    return has_midrange

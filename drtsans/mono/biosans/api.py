@@ -5,7 +5,9 @@ from datetime import datetime
 import numpy as np
 import os
 
-from mantid.simpleapi import mtd, MaskDetectors, logger
+from mantid.simpleapi import mtd, MaskDetectors
+from mantid.kernel import Logger
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
@@ -59,16 +61,22 @@ __all__ = [
 SI_WINDOW_NOMINAL_DISTANCE_METER = 0.071
 SAMPLE_SI_META_NAME = "CG3:CS:SampleToSi"
 
+# setup logger
+# NOTE: If logging information is not showing up, please check the mantid log level.
+#       If problem persists, please visit:
+#       https://docs.mantidproject.org/nightly/concepts/PropertiesFile.html#logging-properties
+logger = Logger("BioSANS")
+
 
 @namedtuplefy
 def load_all_files(
     reduction_input: dict,
-    prefix: str="",
-    load_params: dict=None,
-    path: str=None,
-    use_nexus_idf: bool=False,
-    debug_output: bool=False,
-):
+    prefix: str = "",
+    load_params: dict = None,
+    path: str = None,
+    use_nexus_idf: bool = False,
+    debug_output: bool = False,
+) -> dict:
     """Load all required files at the beginning, and transform them into histograms.
 
     Parameters
@@ -85,6 +93,11 @@ def load_all_files(
         Flag to enforce to use IDF from NeXus file.  It must be true for SPICE-converted NeXus
     debug_output: bool
         Flag to save internal data for debugging
+
+    Returns
+    -------
+    dict
+        Dictionary containing the configuration used to load the workspaces
     """
     # a handy shortcut to the configuration parameters dictionary
     reduction_config = reduction_input["configuration"]
@@ -222,7 +235,7 @@ def load_all_files(
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
         if not registered_workspace(ws_name):
             filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
-            print(f"Loading filename {filename}")
+            logger.notice(f"Loading filename {filename}")
             if timeslice:
                 timesliceinterval = float(reduction_config["timeSliceInterval"])
                 logslicename = logsliceinterval = None
@@ -319,7 +332,7 @@ def load_all_files(
             ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
             if not registered_workspace(ws_name):
                 filename = abspaths(run_number, instrument=instrument_name, ipts=ipts, directory=path)
-                print(f"Loading filename {filename}")
+                logger.notice(f"Loading filename {filename}")
                 biosans.load_events_and_histogram(
                     filename,
                     output_workspace=ws_name,
@@ -400,10 +413,10 @@ def load_all_files(
         sensitivity_main_ws_name = f"{prefix}_main_sensitivity"
         sensitivity_wing_ws_name = f"{prefix}_wing_sensitivity"
         if not registered_workspace(sensitivity_main_ws_name):
-            print(f"Loading filename {flood_file_main}")
+            logger.notice(f"Loading filename {flood_file_main}")
             load_sensitivity_workspace(flood_file_main, output_workspace=sensitivity_main_ws_name)
         if not registered_workspace(sensitivity_wing_ws_name):
-            print(f"Loading filename {flood_file_wing}")
+            logger.notice(f"Loading filename {flood_file_wing}")
             load_sensitivity_workspace(flood_file_wing, output_workspace=sensitivity_wing_ws_name)
 
     mask_ws = None
@@ -411,7 +424,7 @@ def load_all_files(
     if custom_mask_file is not None:
         mask_ws_name = f"{prefix}_mask"
         if not registered_workspace(mask_ws_name):
-            print(f"Loading filename {custom_mask_file}")
+            logger.notice(f"Loading filename {custom_mask_file}")
             mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
         else:
             mask_ws = mtd[mask_ws_name]
@@ -517,7 +530,7 @@ def dark_current_correction(
     run_number = extract_run_number(dark_current_file)
     ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
     if not registered_workspace(ws_name):
-        print(f"Loading filename {dark_current_file}")
+        logger.notice(f"Loading filename {dark_current_file}")
         # identify to use exact given path to NeXus or use OnCat instead
         temp_name = abspath(dark_current_file, instrument=instrument_name, ipts=ipts, directory=path)
         if os.path.exists(temp_name):
@@ -1217,7 +1230,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         _loginfo = f"Transmission (main detector)@{str(raw_sample_ws)}:  {trans_main}\n"
         _loginfo += f"Transmission (wing detector)@{str(raw_sample_ws)}: {trans_wing}"
         logger.notice(_loginfo)
-        print(_loginfo)
 
         # binning
         subpixel_kwargs = dict()
@@ -1232,12 +1244,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             logger.notice(f"Auto wedge options: {autoWedgeOpts}")
             autoWedgeOpts["debug_dir"] = output_dir
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
-            print("found wedge angles:")
+            logger.notice("found wedge angles:")
             peak_wedge, back_wedge = wedges
-            print("    peak:      ", peak_wedge)
-            print("    background:", back_wedge)
+            logger.notice("    peak:      ", peak_wedge)
+            logger.notice("    background:", back_wedge)
             del peak_wedge, back_wedge
-            print(f"wedges: {wedges}")
+            logger.notice(f"wedges: {wedges}")
 
         # set the found wedge values to the reduction input, this will allow correct plotting
         reduction_config["wedges"] = wedges

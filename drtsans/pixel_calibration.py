@@ -152,6 +152,7 @@ class BarPositionFormula:
     _default_formulae = {
         ("BIOSANS", "detector1"): "565 - {y} + 0.0083115 * (191 - {tube})",
         ("BIOSANS", "wing_detector"): _default_formula,
+        ("BIOSANS", "midrange_detector"): _default_formula,
         ("EQSANS", "detector1"): _default_formula,
         ("GPSANS", "detector1"): "565 - {y} - 0.0914267 * (191 - {tube})",
     }
@@ -165,7 +166,7 @@ class BarPositionFormula:
         ----------
         instrument_component: tuple
             A two-item tuple. The first item is the standard name of the instrument, e.g. 'BIOSANS'; the
-            second item is the name of the detector array (e.g. 'detector1' or 'wing_detector').
+            second item is the name of the detector array (e.g. 'detector1', 'wing_detector' or 'midrange_detector').
 
         Returns
         -------
@@ -221,7 +222,7 @@ class BarPositionFormula:
         ----------
         instrument_component: tuple
             A two-item tuple. The first item is the standard name of the instrument, e.g. 'BIOSANS'; the
-            second item is the name of the detector array (e.g. 'detector1' or 'wing_detector').
+            second item is the name of the detector array (e.g. 'detector1', 'wing_detector' or 'midrange_detector').
         formula: str
             Formula
 
@@ -784,7 +785,8 @@ def load_calibration(
     caltype: str
         Either 'BARSCAN' or 'TUBEWIDTH'. A saved calibration can only contain one of these, but not both.
     component: str
-        Name of one of the double detector array panels. For BIOSANS we have 'detector1' or 'wing-detector'.
+        Name of one of the double detector array panels. For BIOSANS we have 'detector1', 'wing-detector' or
+        'midrange_detector'
     database: str
         Path to database file containing the metadata for the calibrations. If :py:obj:`None`, the default database
         is used. Currently, these are the default files:
@@ -855,7 +857,7 @@ def apply_calibrations(
             calibrations,
         ]  # convert `calibrations` into a list
     components = {
-        InstrumentEnumName.BIOSANS: ["detector1", "wing_detector"],
+        InstrumentEnumName.BIOSANS: ["detector1", "wing_detector", "midrange_detector"],
         InstrumentEnumName.EQSANS: ["detector1"],
         InstrumentEnumName.GPSANS: ["detector1"],
     }
@@ -1705,8 +1707,8 @@ def as_intensities(input_workspace, component="detector1", views=["positions", "
     input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventsWorkspace
         Workspace from which pixel properties are retrieved.
     component: str, list
-        Name or list of names for the double detector array panels. For BIOSANS we have 'detector1' or
-        'wing-detector'.
+        Name or list of names for the double detector array panels. For BIOSANS we have 'detector1',
+        'wing_detector' or 'midrange_detector'.
     views: list
         Generate views for the pixel properties provided.
 

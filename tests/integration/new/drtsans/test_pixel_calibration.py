@@ -4,6 +4,7 @@ import pytest
 import random
 import tempfile
 
+from drtsans.mono.biosans.simulated_intensities import clone_component_intensities
 
 r""" Hyperlinks to mantid algorithms
 AddSampleLog <https://docs.mantidproject.org/nightly/algorithms/AddSampleLog-v1.html>
@@ -16,9 +17,11 @@ SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
 from mantid.simpleapi import (
     AddSampleLog,
     DeleteWorkspace,
+    DeleteWorkspaces,
     LoadEmptyInstrument,
     LoadEventNexus,
     LoadNexus,
+    LoadNexusProcessed,
     SaveNexus,
 )
 
@@ -42,6 +45,19 @@ from drtsans.pixel_calibration import (
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.tubecollection import TubeCollection
+
+
+def _linear_density(workspace, component="detector1"):
+    r"""Tube total intensity per unit length of tube width"""
+    collection = TubeCollection(workspace, component).sorted(view="fbfb")
+    intensities = np.array([np.sum(tube.readY) for tube in collection])
+    widths = np.array([tube[0].width for tube in collection])
+    return list(intensities / widths)
+
+
+def _amplitude(density):
+    r"""ratio of fluctuations to the mean, a sort of amplitude if ``density`` is wave-like"""
+    return np.std(density) / np.mean(density)
 
 
 def test_find_edges():
@@ -998,7 +1014,7 @@ def test_biosans_main_detector_barscan(reference_dir):
 
 
 @pytest.mark.long_execution_time
-def test_debug_biosans_wing_detector_barscan(reference_dir, tmp_path):
+def test_biosans_wing_detector_barscan(reference_dir, tmp_path):
     r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
     data_dir = path_join(reference_dir.new.biosans, "pixel_calibration", "runs_838_953")
     first_run, last_run = 838, 953
@@ -1017,6 +1033,44 @@ def test_debug_biosans_wing_detector_barscan(reference_dir, tmp_path):
     print(views)
 
 
+def test_biosans_midrange_detector_barscan(reference_dir, tmp_path):
+    data_dir = path_join(reference_dir.new.biosans, "pixel_calibration", "runs_838_953")
+    first_run, last_run = 838, 953
+    detector_array = "midrange_detector"
+    formula = "{y} - 640"  # translate from scan log value to Y-coordinate in the sample's reference frame.
+    # Create simulated barscan workspaces
+    barscan_files = [path_join(data_dir, f"CG3_{run}.nxs") for run in range(first_run, 1 + last_run, 20)]
+    barscan_workspaces = []
+    wing_barscan_workspace = unique_workspace_dundername()
+    for scan_index, scan_data in enumerate(barscan_files):
+        LoadNexusProcessed(scan_data, OutputWorkspace=wing_barscan_workspace)
+        barscan_workspace = clone_component_intensities(
+            wing_barscan_workspace,
+            output_workspace=unique_workspace_dundername(),
+            input_component="wing_detector",
+            output_component="midrange_detector",
+            copy_logs=True,
+        )
+        barscan_workspaces.append(str(barscan_workspace))
+    # mask the last tube in the midrange detector
+    masked_detectors = list(range(106420, 106496))
+    # Do calibration
+    calibration, _ = calculate_barscan_calibration(
+        barscan_workspaces, component=detector_array, formula=formula, mask=masked_detectors, inspect_data=True
+    )
+    # Assert some data
+    assert calibration.instrument == "BIOSANS"
+    assert calibration.positions[0:3] == pytest.approx([-0.543, -0.539, -0.534], abs=0.001)
+    # Save, load, and apply calibration
+    calibration.save(
+        database=path_join(tmp_path, "saved_calibration.json"), tablefile=path_join(tmp_path, "saved_calibration.nxs")
+    )
+    LoadNexus(barscan_files[0], OutputWorkspace="reference_workspace")
+    calibration.as_intensities("reference_workspace")
+    DeleteWorkspace(wing_barscan_workspace)
+    DeleteWorkspaces(barscan_workspaces)
+
+
 def test_gpsans_tube_calibration(reference_dir):
     r"""Calculate tube widths from a flood file"""
     flood_file = path_join(reference_dir.new.gpsans, "pixel_calibration", "CG2_8143.nxs")
@@ -1026,25 +1080,11 @@ def test_gpsans_tube_calibration(reference_dir):
     calibrated_workspace = unique_workspace_dundername()
     calibration.apply(uncalibrated_workspace, output_workspace=calibrated_workspace)
 
-    def linear_density(workspace):
-        r"""Tube total intensity per unit length of tube width"""
-        collection = TubeCollection(workspace, "detector1").sorted(view="decreasing X")
-        intensities = np.array([np.sum(tube.readY) for tube in collection])
-        widths = np.array([tube[0].width for tube in collection])
-        return list(intensities / widths)
-
-    def amplitude(density):
-        r"""ratio of fluctuations to the mean, a sort of amplitude if ``density`` is wave-like"""
-        return np.std(density) / np.mean(density)
-
-    uncalibrated_densities = linear_density(uncalibrated_workspace)
-    calibrated_densities = linear_density(calibrated_workspace)
-    assert amplitude(calibrated_densities) / amplitude(uncalibrated_densities) == pytest.approx(0.13, abs=0.01)
+    uncalibrated_densities = _linear_density(uncalibrated_workspace)
+    calibrated_densities = _linear_density(calibrated_workspace)
+    assert _amplitude(calibrated_densities) / _amplitude(uncalibrated_densities) == pytest.approx(0.13, abs=0.01)
     DeleteWorkspace(uncalibrated_workspace)
-    # NOTE:
-    # leftover workspace in memory:
-    # tubewidth_GPSANS_detector1_20200130:	0.393216 MB
-    DeleteWorkspace("tubewidth_GPSANS_detector1_20200130")
+    DeleteWorkspace(calibration.table)
 
 
 def test_biosans_tube_calibration(reference_dir):
@@ -1060,28 +1100,46 @@ def test_biosans_tube_calibration(reference_dir):
     calibrated_workspace = unique_workspace_dundername()
     calibration_wing.apply(uncalibrated_workspace, output_workspace=calibrated_workspace)
 
-    def linear_density(workspace, component="detector1"):
-        r"""Tube total intensity per unit length of tube width"""
-        collection = TubeCollection(workspace, component).sorted(view="fbfb")
-        intensities = np.array([np.sum(tube.readY) for tube in collection])
-        widths = np.array([tube[0].width for tube in collection])
-        return list(intensities / widths)
-
-    def amplitude(density):
-        r"""ratio of fluctuations to the mean, a sort of amplitude if ``density`` is wave-like"""
-        return np.std(density) / np.mean(density)
-
-    uncalibrated_densities = linear_density(uncalibrated_workspace, component="wing_detector")
-    calibrated_densities = linear_density(calibrated_workspace, component="wing_detector")
-    assert amplitude(calibrated_densities) / amplitude(uncalibrated_densities) == pytest.approx(0.38, abs=0.01)
+    uncalibrated_densities = _linear_density(uncalibrated_workspace, component="wing_detector")
+    calibrated_densities = _linear_density(calibrated_workspace, component="wing_detector")
+    assert _amplitude(calibrated_densities) / _amplitude(uncalibrated_densities) == pytest.approx(0.38, abs=0.01)
 
     # cleanup
     DeleteWorkspace(uncalibrated_workspace)
     DeleteWorkspace(calibrated_workspace)
-    # NOTE:
-    # mysterious leftover workspace in memory
-    # tubewidth_BIOSANS_wing_detector_20200118:	0.32768 MB
-    DeleteWorkspace("tubewidth_BIOSANS_wing_detector_20200118")
+    DeleteWorkspace(calibration_wing.table)
+
+
+def test_biosans_midrange_tube_calibration(reference_dir):
+    flood_file = path_join(reference_dir.new.biosans, "pixel_calibration", "flood_files", "CG3_4829.nxs")
+    wing_tube_calibration_workspace = LoadNexus(flood_file)
+
+    # simulate midrange detector calibration by cloning wing detector intensities
+    uncalibrated_workspace = unique_workspace_dundername()
+    clone_component_intensities(
+        wing_tube_calibration_workspace,
+        output_workspace=uncalibrated_workspace,
+        input_component="wing_detector",
+        output_component="midrange_detector",
+        copy_logs=True,
+    )
+
+    calibration_midrange = calculate_apparent_tube_width(
+        uncalibrated_workspace,
+        component="midrange_detector",
+        load_barscan_calibration=False,
+    )
+    calibrated_workspace = unique_workspace_dundername()
+    calibration_midrange.apply(uncalibrated_workspace, output_workspace=calibrated_workspace)
+
+    uncalibrated_densities = _linear_density(uncalibrated_workspace, component="midrange_detector")
+    calibrated_densities = _linear_density(calibrated_workspace, component="midrange_detector")
+    assert _amplitude(calibrated_densities) / _amplitude(uncalibrated_densities) == pytest.approx(0.55, abs=0.01)
+
+    # cleanup
+    DeleteWorkspace(uncalibrated_workspace)
+    DeleteWorkspace(calibrated_workspace)
+    DeleteWorkspace(calibration_midrange.table)
 
 
 def test_as_intensities(reference_dir):

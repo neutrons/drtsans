@@ -382,10 +382,10 @@ def load_all_files(
     dark_current_file_main = reduction_config.get("darkMainFileName", None)
     dark_current_file_wing = reduction_config.get("darkWingFileName", None)
     # step 2: logic
-    # if and only if when none of the dark current files are None, then we will load dark current
+    # if and only if when none of the dark current files are None, we will load dark current
     # otherwise set all dark current to None
     if dark_current_file_main and dark_current_file_wing and dark_current_file_midrange:
-        # load main
+        # main
         dark_current_main = dark_current_correction(
             dark_current_file_main,
             default_mask,
@@ -401,7 +401,7 @@ def load_all_files(
             smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
             smearing_pixel_size_y_dict[meta_data.DARK_CURRENT],
         )
-        # load wing
+        # wing
         dark_current_wing = dark_current_correction(
             dark_current_file_wing,
             default_mask,
@@ -417,7 +417,7 @@ def load_all_files(
             smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
             smearing_pixel_size_y_dict[meta_data.DARK_CURRENT],
         )
-        # load midrange
+        # midrange
         if dark_current_file_midrange != "no_midrange_detector":
             dark_current_midrange = dark_current_correction(
                 dark_current_file_midrange,
@@ -442,23 +442,40 @@ def load_all_files(
         dark_current_midrange = None
 
     # load required processed_files
-    # TODO:
-    # will load a sensitivity file for the mid-range detector.
-    # The function should return workspace sensitivity_midrange_ws.
-    # will load a beam profile file flood_file_midrange.
-    sensitivity_main_ws_name = None
-    sensitivity_wing_ws_name = None
-    flood_file_main = reduction_config["sensitivityMainFileName"]
-    flood_file_wing = reduction_config["sensitivityWingFileName"]
-    if flood_file_main and flood_file_wing:
+    # step 0: check if mid-range detector is used
+    if reduction_input["has_midrange_detector"]:
+        flood_file_midrange = reduction_config.get("sensitivityMidrangeFileName", None)
+    else:
+        flood_file_midrange = "no_midrange_detector"
+    # step 1: gather main and wing detector processed_files
+    flood_file_main = reduction_config.get("sensitivityMainFileName", None)
+    flood_file_wing = reduction_config.get("sensitivityWingFileName", None)
+    # step 2: logic
+    # if and only if when none of the flood file are None, we will load teh sensitivity
+    # workspace, otherwise set all sensitivity workspace to None
+    if flood_file_main and flood_file_wing and flood_file_midrange:
+        # main
         sensitivity_main_ws_name = f"{prefix}_main_sensitivity"
-        sensitivity_wing_ws_name = f"{prefix}_wing_sensitivity"
         if not registered_workspace(sensitivity_main_ws_name):
             logger.notice(f"Loading filename {flood_file_main}")
             load_sensitivity_workspace(flood_file_main, output_workspace=sensitivity_main_ws_name)
+        # wing
+        sensitivity_wing_ws_name = f"{prefix}_wing_sensitivity"
         if not registered_workspace(sensitivity_wing_ws_name):
             logger.notice(f"Loading filename {flood_file_wing}")
             load_sensitivity_workspace(flood_file_wing, output_workspace=sensitivity_wing_ws_name)
+        # midrange
+        if flood_file_midrange != "no_midrange_detector":
+            sensitivity_midrange_ws_name = f"{prefix}_midrange_sensitivity"
+            if not registered_workspace(sensitivity_midrange_ws_name):
+                logger.notice(f"Loading filename {flood_file_midrange}")
+                load_sensitivity_workspace(flood_file_midrange, output_workspace=sensitivity_midrange_ws_name)
+        else:
+            sensitivity_midrange_ws_name = None
+    else:
+        sensitivity_main_ws_name = None
+        sensitivity_wing_ws_name = None
+        sensitivity_midrange_ws_name = None
 
     mask_ws = None
     custom_mask_file = reduction_input["configuration"]["maskFileName"]
@@ -483,6 +500,7 @@ def load_all_files(
     raw_bkg_trans_ws = mtd[f"{prefix}_{instrument_name}_{bkgd_trans}_raw_histo"] if bkgd_trans else None
     sensitivity_main_ws = mtd[sensitivity_main_ws_name] if sensitivity_main_ws_name else None
     sensitivity_wing_ws = mtd[sensitivity_wing_ws_name] if sensitivity_wing_ws_name else None
+    sensitivity_midrange_ws = mtd[sensitivity_midrange_ws_name] if sensitivity_midrange_ws_name else None
 
     if debug_output:
         for raw_sample in raw_sample_ws_list:
@@ -523,6 +541,7 @@ def load_all_files(
         dark_current_midrange=dark_current_midrange,
         sensitivity_main=sensitivity_main_ws,
         sensitivity_wing=sensitivity_wing_ws,
+        sensitivity_midrange=sensitivity_midrange_ws,
         mask=mask_ws,
     )
 
@@ -568,7 +587,6 @@ def dark_current_correction(
     -------
     ~mantid.api.MatrixWorkspace
        dark current correction workspace
-
     """
     run_number = extract_run_number(dark_current_file)
     ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"

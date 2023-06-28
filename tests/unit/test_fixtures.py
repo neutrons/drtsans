@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 from pytest import approx
 from mantid.kernel import V3D
+from mantid.simpleapi import CreateSampleWorkspace
 
 
 @pytest.mark.skip(reason="only for debugging")
@@ -575,6 +576,10 @@ def test_arbitrary_assembly_IDF(arbitrary_assembly_IDF):
     </idlist>
 </instrument>"""
     assert arbitrary_assembly_IDF == expected
+
+
+def test_temp_workspace_name(temp_workspace_name):
+    CreateSampleWorkspace(OutputWorkspace=temp_workspace_name())
 
 
 if __name__ == "__main__":

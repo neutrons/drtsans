@@ -250,13 +250,13 @@ def generate_configuration_with_correction(output_dir: str = "/tmp/") -> Dict:
 @pytest.mark.skipif(
     reason="The test is either incorrect or using wrong ref values",
 )
-def test_incoherence_correction_step4only(reference_dir, generatecleanfile):
+def test_incoherence_correction_step4only(reference_dir, temp_directory):
     """Test incoherence correction without elastic correction"""
     # Set up the configuration dict
     configuration = generate_configuration_with_correction()
 
     # Create temp output directory
-    test_dir = generatecleanfile()
+    test_dir = temp_directory()
     base_name = "EQSANS_113915_Incoh_1d"
 
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
@@ -290,7 +290,7 @@ def test_incoherence_correction_step4only(reference_dir, generatecleanfile):
     verify_binned_iq(gold_file_dict, reduction_output)
 
 
-def test_incoherence_correction_elastic_normalization(reference_dir, generatecleanfile):
+def test_incoherence_correction_elastic_normalization(reference_dir, temp_directory):
     """Test incoherence correction with elastic correction"""
     # Set up the configuration dict
     config_json_file = os.path.join(reference_dir.new.eqsans, "test_incoherence_correction/agbe_125707_test1.json")
@@ -300,7 +300,7 @@ def test_incoherence_correction_elastic_normalization(reference_dir, generatecle
     assert isinstance(configuration, dict)
 
     # Create temp output directory
-    test_dir = generatecleanfile()
+    test_dir = temp_directory()
     base_name = "EQSANS_125707_"
 
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
@@ -360,7 +360,7 @@ def test_incoherence_correction_elastic_normalization(reference_dir, generatecle
             DeleteWorkspace(ws)
 
 
-def test_incoherence_correction_elastic_normalization_weighted(reference_dir, generatecleanfile):
+def test_incoherence_correction_elastic_normalization_weighted(reference_dir, temp_directory):
     """Test incoherence correction with elastic correction"""
     import filecmp
 
@@ -372,7 +372,7 @@ def test_incoherence_correction_elastic_normalization_weighted(reference_dir, ge
     assert isinstance(configuration, dict)
 
     # Create temp output directory
-    test_dir = generatecleanfile()
+    test_dir = temp_directory()
 
     def run_reduction_and_compare(config, expected_result_filename):
         with amend_config(data_dir=reference_dir.new.eqsans):

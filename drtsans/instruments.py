@@ -295,7 +295,7 @@ def copy_to_newest_instrument(
         target_workspace = unique_workspace_dundername()  # temporary name
     else:
         target_workspace = output_workspace
-    instrument_file = f"{origin.getInstrument().getName()}_Definition.xml"
+    instrument_file = fetch_idf(f"{origin.getInstrument().getName()}_Definition.xml")
     target = empty_instrument_workspace(
         output_workspace=target_workspace,
         filename=instrument_file,

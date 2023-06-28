@@ -7,7 +7,7 @@ from mantid.simpleapi import LoadEventNexus
 from mantid.simpleapi import LoadHFIRSANS
 
 
-def test_convert_spice(reference_dir, generatecleanfile):
+def test_convert_spice(reference_dir, temp_directory):
     """
     Test converting GPSANS SPICE file to event Nexus
     """
@@ -17,7 +17,7 @@ def test_convert_spice(reference_dir, generatecleanfile):
     scan_pt_list = [(12, 1)]
 
     # Create output directory
-    output_dir = generatecleanfile(prefix="cg2spiceconverter")
+    output_dir = temp_directory(prefix="cg2spiceconverter")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     temp_event_nexus = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/CG2_9177.nxs.h5"

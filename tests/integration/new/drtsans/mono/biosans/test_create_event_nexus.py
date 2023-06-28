@@ -18,7 +18,7 @@ from drtsans.mono.biosans.cg3_spice_to_nexus import generate_event_nexus
 from matplotlib import pyplot as plt
 
 
-def test_duplicate_event_nexus(reference_dir, generatecleanfile, clean_workspace):
+def test_duplicate_event_nexus(reference_dir, temp_directory, clean_workspace):
     """Test duplicating an HDF5/NeXus in 2 different approaches in order to verify EventNexusWriter
 
     Verification is to load both of the generated Event NeXus to do a comparison
@@ -35,7 +35,7 @@ def test_duplicate_event_nexus(reference_dir, generatecleanfile, clean_workspace
     assert os.path.exists(source_nexus_file), f"Test data {source_nexus_file} does not exist"
 
     # Duplicate the source file to the temporary directory
-    output_dir = generatecleanfile(prefix="dupcg3nexus")
+    output_dir = temp_directory(prefix="dupcg3nexus")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     product_dup_nexus = os.path.join(output_dir, "CG3_5709_product.nxs.h5")

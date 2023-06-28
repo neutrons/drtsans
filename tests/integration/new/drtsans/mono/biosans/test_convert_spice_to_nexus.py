@@ -8,7 +8,7 @@ from mantid.simpleapi import LoadEventNexus, LoadHFIRSANS, DeleteWorkspace
 
 
 @pytest.mark.skipif(not os.path.exists("/HFIR/HB2B/shared/autoreduce/"), reason="On build server")
-def test_convert_spice(reference_dir, generatecleanfile, clean_workspace):
+def test_convert_spice(reference_dir, temp_directory, clean_workspace):
     """
     Test converting BIOSANS SPICE file to event Nexus
     """
@@ -18,7 +18,7 @@ def test_convert_spice(reference_dir, generatecleanfile, clean_workspace):
     scan_pt_list = [(6, 1)]
 
     # Create output directory
-    output_dir = generatecleanfile(prefix="cg3spiceconverter")
+    output_dir = temp_directory(prefix="cg3spiceconverter")
 
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)

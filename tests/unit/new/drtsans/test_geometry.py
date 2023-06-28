@@ -1,16 +1,24 @@
-import numpy as np
-from os.path import join as path_join
-import pytest
+# local imports
+from drtsans.instruments import empty_instrument_workspace
+from drtsans.mask_utils import apply_mask
+from drtsans.settings import unique_workspace_dundername
+from drtsans.samplelogs import SampleLogs
+from drtsans import geometry as geo
+from drtsans.mono.biosans import geometry as biogeo
 
+# third party imports
 from mantid.simpleapi import (
     AddSampleLogMultiple,
     LoadEmptyInstrument,
     LoadEventNexus,
     MoveInstrumentComponent,
 )
-from drtsans.settings import unique_workspace_dundername
-from drtsans.samplelogs import SampleLogs
-from drtsans import geometry as geo
+import numpy as np
+from numpy.testing import assert_almost_equal
+import pytest
+
+# standard imports
+from os.path import join as path_join
 
 
 @pytest.fixture(scope="module")
@@ -76,16 +84,17 @@ def test_detector_translation():
 
 
 @pytest.mark.parametrize(
-    "instrument, component, detmin, detmax",
+    "filename, component, detmin, detmax",
     [
-        ("EQ-SANS", "", 0, 49151),
-        ("BIOSANS", "", 0, 44 * 8 * 256 - 1),
-        ("BIOSANS", "detector1", 0, 24 * 8 * 256 - 1),
-        ("BIOSANS", "wing_detector", 24 * 8 * 256, 44 * 8 * 256 - 1),
+        ("EQ-SANS_Definition.xml", "", 0, 49151),
+        ("BIOSANS_Definition.xml", "", 0, 52 * 8 * 256 - 1),
+        ("BIOSANS_Definition.xml", "detector1", 0, 24 * 8 * 256 - 1),
+        ("BIOSANS_Definition.xml", "wing_detector", 24 * 8 * 256, 44 * 8 * 256 - 1),
+        ("BIOSANS_Definition.xml", "midrange_detector", 44 * 8 * 256, 52 * 8 * 256 - 1),
     ],
 )
-def test_bank_detector_ids(instrument, component, detmin, detmax):
-    wksp = LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername())
+def test_bank_detector_ids(filename, component, detmin, detmax, fetch_idf):
+    wksp = LoadEmptyInstrument(Filename=fetch_idf(filename), OutputWorkspace=unique_workspace_dundername())
     num_detectors = detmax - detmin + 1
 
     # None test
@@ -104,16 +113,17 @@ def test_bank_detector_ids(instrument, component, detmin, detmax):
 
 
 @pytest.mark.parametrize(
-    "instrument, component, wksp_index_min, wksp_index_max",
+    "filename, component, wksp_index_min, wksp_index_max",
     [
-        ("EQ-SANS", "", 1, 49151 + 2),
-        ("BIOSANS", "", 2, 44 * 8 * 256 + 2),
-        ("BIOSANS", "detector1", 2, 24 * 8 * 256 + 2),
-        ("BIOSANS", "wing_detector", 24 * 8 * 256 + 2, 44 * 8 * 256 + 2),
+        ("EQ-SANS_Definition.xml", "", 1, 49151 + 2),
+        ("BIOSANS_Definition.xml", "", 2, 52 * 8 * 256 + 2),
+        ("BIOSANS_Definition.xml", "detector1", 2, 24 * 8 * 256 + 2),
+        ("BIOSANS_Definition.xml", "wing_detector", 24 * 8 * 256 + 2, 44 * 8 * 256 + 2),
+        ("BIOSANS_Definition.xml", "midrange_detector", 44 * 8 * 256 + 2, 52 * 8 * 256 + 2),
     ],
 )
-def test_bank_workspace_indices(instrument, component, wksp_index_min, wksp_index_max):
-    wksp = LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername())
+def test_bank_workspace_indices(filename, component, wksp_index_min, wksp_index_max, fetch_idf):
+    wksp = LoadEmptyInstrument(Filename=fetch_idf(filename), OutputWorkspace=unique_workspace_dundername())
 
     wksp_indices = geo.bank_workspace_index_range(wksp, component)
     assert wksp_indices[0] >= 0
@@ -234,6 +244,79 @@ def test_nominal_pixel_size(instrument, pixel_size):
     workspace = LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername())
     assert geo.nominal_pixel_size(workspace) == pytest.approx(pixel_size, abs=1.0e-04)
     workspace.delete()
+
+
+def test_get_position_south_detector(fetch_idf, temp_workspace_name):
+    workspace = LoadEmptyInstrument(
+        InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"), OutputWorkspace=temp_workspace_name()
+    )
+    MoveInstrumentComponent(Workspace=workspace, ComponentName="detector1", Z=7.00, RelativePosition=False)
+    assert_almost_equal(geo.get_position_south_detector(workspace), 7.000, decimal=3)
+
+
+def test_get_curvature_radius(temp_workspace_name):
+    workspace = LoadEmptyInstrument(
+        InstrumentName="BIOSANS", Filename="BIOSANS_Definition.xml", OutputWorkspace=temp_workspace_name()
+    )
+    assert_almost_equal(geo.get_curvature_radius(workspace, "wing_detector"), 1.1633, decimal=4)
+    assert_almost_equal(geo.get_curvature_radius(workspace, "midrange_detector"), 4.0000, decimal=4)
+
+
+def test_pixel_masks(temp_workspace_name):
+    workspace = empty_instrument_workspace(temp_workspace_name(), filename="BIOSANS_Definition.xml")
+    apply_mask(workspace, Components="wing_detector")
+    assert np.alltrue(geo.get_pixel_masks(workspace, "wing_detector"))
+    apply_mask(workspace, mask=list(range(10)))
+    mask_in_detector1 = geo.get_pixel_masks(workspace, "wing_detector")[:10]
+    assert np.alltrue(mask_in_detector1)
+
+
+def test_get_pixel_distances(temp_workspace_name, fetch_idf):
+    workspace = empty_instrument_workspace(temp_workspace_name(), filename=fetch_idf("BIOSANS_Definition.xml"))
+    MoveInstrumentComponent(Workspace=workspace, ComponentName="detector1", Z=7.00, RelativePosition=False)
+    expected_for_component = {
+        "detector1": (7.0358, 7.0439),
+        "wing_detector": (1.2402, 1.2477),
+        "midrange_detector": (3.9962, 4.0043),
+    }
+    for component, expected in expected_for_component.items():
+        distances = geo.get_pixel_distances(workspace, component)
+        assert_almost_equal((distances[0], distances[-1]), expected, decimal=3)
+
+
+def test_get_twothetas(temp_workspace_name, fetch_idf):
+    workspace = empty_instrument_workspace(temp_workspace_name(), filename=fetch_idf("BIOSANS_Definition.xml"))
+    MoveInstrumentComponent(Workspace=workspace, ComponentName="detector1", Z=7.00, RelativePosition=False)
+    expected_for_component = {
+        "detector1": (6.105, 6.098),
+        "wing_detector": (24.836, 49.498),
+        "midrange_detector": (8.980, 7.475),
+    }
+    for component, expected in expected_for_component.items():
+        twothetas = geo.get_twothetas(workspace, component, units="degrees")
+        assert_almost_equal((twothetas[0], twothetas[-1]), expected, decimal=2)
+
+
+def test_get_solid_angles(temp_workspace_name, fetch_idf):
+    workspace = empty_instrument_workspace(temp_workspace_name(), filename=fetch_idf("BIOSANS_Definition.xml"))
+    MoveInstrumentComponent(Workspace=workspace, ComponentName="detector1", Z=7.00, RelativePosition=False)
+    expected_for_component = {
+        "detector1": (0.02009, 0.0100),
+        "wing_detector": (0.6097, 0.2994),
+        "midrange_detector": (0.0626, 0.0311),
+    }
+    for component, expected in expected_for_component.items():
+        solid_angles = geo.get_solid_angles(workspace, component)
+        assert_almost_equal((solid_angles[0], solid_angles[-1]), expected, decimal=3)
+    #
+    # move all components. Only solid angles for detector1 should change
+    MoveInstrumentComponent(Workspace=workspace, ComponentName="detector1", Z=5.00, RelativePosition=False)
+    biogeo.set_angle_wing_detector(workspace, angle=30.0)  # degrees
+    biogeo.set_angle_midrange_detector(workspace, angle=5.0)  # degrees
+    expected_for_component["detector1"] = (0.03878, 0.0192)
+    for component, expected in expected_for_component.items():
+        solid_angles = geo.get_solid_angles(workspace, component, back_panel_attenuation=0.5)
+        assert_almost_equal((solid_angles[0], solid_angles[-1]), expected, decimal=3)
 
 
 if __name__ == "__main__":

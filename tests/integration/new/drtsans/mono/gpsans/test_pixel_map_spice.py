@@ -7,7 +7,7 @@ from mantid.simpleapi import LoadNexusProcessed
 from mantid.simpleapi import DeleteWorkspace
 
 
-def test_pixel_calibration(reference_dir, generatecleanfile):
+def test_pixel_calibration(reference_dir, temp_directory):
     """
 
     Parameters
@@ -19,7 +19,7 @@ def test_pixel_calibration(reference_dir, generatecleanfile):
 
     """
     # Set and clean output
-    test_output_dir = generatecleanfile("test_bar_scan")
+    test_output_dir = temp_directory("test_bar_scan")
 
     # First and last pt for the barscan: Set by user
     # -------------------------------------------------------------------------------------------------------

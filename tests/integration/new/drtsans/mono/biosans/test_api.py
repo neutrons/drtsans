@@ -55,7 +55,7 @@ workspaces = [
     not os.path.exists("/HFIR/HB2B/shared/autoreduce/"),
     reason="Skip test on build server",
 )
-def test_reduce_single_configuration_slice_transmission_false(generatecleanfile):
+def test_reduce_single_configuration_slice_transmission_false(temp_directory):
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "BIOSANS",
@@ -159,7 +159,7 @@ def test_reduce_single_configuration_slice_transmission_false(generatecleanfile)
         },
         "logslice_data": {},
     }
-    reduction_input["configuration"]["outputDir"] = generatecleanfile(prefix="trans_slice_false")
+    reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_false")
 
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
     loaded = load_all_files(reduction_input, prefix)
@@ -189,7 +189,7 @@ def remove_ws(workspace):
         DeleteWorkspace(workspace)
 
 
-def test_reduce_single_configuration_slice_transmission_true(generatecleanfile):
+def test_reduce_single_configuration_slice_transmission_true(temp_directory):
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "BIOSANS",
@@ -293,7 +293,7 @@ def test_reduce_single_configuration_slice_transmission_true(generatecleanfile):
         },
         "logslice_data": {},
     }
-    reduction_input["configuration"]["outputDir"] = generatecleanfile(prefix="trans_slice_true")
+    reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_true")
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
     loaded = load_all_files(reduction_input, prefix)
     _ = reduce_single_configuration(loaded, reduction_input)

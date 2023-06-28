@@ -1,10 +1,10 @@
 name: drtsans-dev
 channels:
-  - mantid
+  - mantid/label/nightly
   - conda-forge
   - defaults
 dependencies:
-  - mantid==6.4
+  - mantid >=6.7,<6.8
   - anaconda-client
   - black
   - boa

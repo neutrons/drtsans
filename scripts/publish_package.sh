@@ -19,7 +19,7 @@ cd /tmp/sans-backend/conda.recipe
 # setup and build the conda package
 #conda render .
 echo "Building conda package"
-VERSION=$(python -m versioningit ../) conda mambabuild --output-folder . . -c mantid -c conda-forge || exit 1
+VERSION=$(python -m versioningit ../) conda mambabuild --output-folder . . -c mantid/label/nightly -c conda-forge || exit 1
 
 # show what tarballs were created
 ls */*.tar.bz2

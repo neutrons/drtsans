@@ -1,4 +1,3 @@
-from typing import Optional
 from scipy import constants
 import numpy as np
 import drtsans.beam_finder as bf
@@ -97,8 +96,7 @@ def find_beam_center(
     sample_det_cent_wing_detector=None,
     sample_det_cent_midrange_detector=None,
     solid_angle_method="VerticalTube",
-    #IntegrationRadius=None
-) -> Tuple[float, float, float, Optional[float], dict]:
+) -> Tuple[float, float, float, float, dict]:
     """Finds the beam center in a 2D SANS data set.
     This is based on (and uses) :func:`drtsans.find_beam_center`
 
@@ -135,10 +133,6 @@ def find_beam_center(
     """
     ws = mtd[str(input_workspace)]
 
-    #add IntegrationRadius in the centering_options dict
-    #if IntegrationRadius is not None:
-    #    centering_options["IntegrationRadius"] = IntegrationRadius
-
     # find the center on the main detector
     center_x, center_y, fit_results = bf.find_beam_center(
         ws,
@@ -166,10 +160,12 @@ def find_beam_center(
     )
 
     # get the distance to center of the main and the midrange detectors
-    center_y_midrange = None
+    center_y_midrange = np.nan
     if sample_det_cent_midrange_detector is None or sample_det_cent_midrange_detector == 0.0:
         if ws.getInstrument().getComponentByName("midrange_detector") is not None:
-            sample_det_cent_midrange_detector = ws.getInstrument().getComponentByName("midrange_detector").getPos().norm()
+            sample_det_cent_midrange_detector = (
+                ws.getInstrument().getComponentByName("midrange_detector").getPos().norm()
+            )
             if sample_det_cent_midrange_detector == 0.0:
                 sample_det_cent_midrange_detector = ws.getInstrument().getComponentByName("bank89").getPos().norm()
 

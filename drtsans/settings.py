@@ -1,5 +1,4 @@
 from copy import deepcopy
-from os.path import isdir
 import random
 import string
 from collections import OrderedDict
@@ -9,7 +8,7 @@ from collections.abc import Mapping
 from contextlib import contextmanager
 
 import mantid
-from mantid.api import AnalysisDataService
+from mantid.api import mtd
 from mantid.kernel import ConfigService
 
 # import mantid's workspace types exposed to python
@@ -96,8 +95,8 @@ def amend_config(new_config=None, data_dir=None):
         )
         key = "datasearch.directories"
         backup[key] = deepcopy(config[key])
-        [config.appendDataSearchDir(dd) for dd in data_dirs if isdir(dd)]
-        modified_keys.append(key)
+        # prepend our custom data directories to the list of data search directories
+        config.setDataSearchDirs(data_dirs + list(config.getDataSearchDirs()))
     try:
         yield
     finally:
@@ -126,12 +125,18 @@ def unique_workspace_name(n=5, prefix="", suffix=""):
     string
     """
 
-    ws_name = "".join(random.choice(string.ascii_lowercase) for _ in range(n))
-    ws_name = "{}{}{}".format(str(prefix), ws_name, str(suffix))
-    while ws_name in AnalysisDataService.getObjectNames():
-        characters = [random.choice(string.ascii_lowercase) for _ in range(n)]
-        ws_name = "".join(characters)
-        ws_name = "{}{}{}".format(str(prefix), ws_name, str(suffix))
+    def random_name_generator():
+        name = "".join(random.choice(string.ascii_lowercase) for _ in range(n))
+        name = "{}{}{}".format(str(prefix), name, str(suffix))
+        return name
+
+    name_exists = True
+    while name_exists:
+        ws_name = random_name_generator()
+        try:
+            mtd[ws_name]  # better than AnalysisDataService.getObjectNames() for dunder-names
+        except KeyError:
+            name_exists = False  # the name is not registered as a workspace name
     return ws_name
 
 

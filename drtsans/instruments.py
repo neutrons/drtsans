@@ -1,10 +1,11 @@
 # local imports
+from drtsans.settings import unique_workspace_dundername
 
 # third party imports
 from mantid.kernel import ConfigService
 from mantid.api import mtd, MatrixWorkspace
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import LoadEmptyInstrument, RemoveSpectra
+from mantid.simpleapi import LoadInstrument, LoadEmptyInstrument, MergeRuns, RemoveSpectra, RenameWorkspace
 
 # standard imports
 import enum
@@ -269,3 +270,49 @@ def empty_instrument_workspace(
             Inputworkspace=output_workspace, OutputWorkspace=output_workspace, WorkspaceIndices=to_remove
         )
     return workspace
+
+
+def copy_to_newest_instrument(
+    input_workspace: Union[str, MatrixWorkspace, EventWorkspace],
+    output_workspace: Optional[str] = None,
+) -> Union[MatrixWorkspace, EventWorkspace]:
+    r"""
+    Copy the workspace intensities and/or events to the latest instrument file.
+
+    Will also copy the logs and preserve the original locations of the main and
+    wing detectors.
+
+    Parameters
+    ----------
+    input_workspace
+        Workspace containing an old instrument definition file (IDF).
+    output_workspace
+        Workspace containing the intensities and/or events of input_workspace but with the
+         latest IDF. If ``None``, the input workspace is overwritten
+    """
+    origin = mtd[str(input_workspace)]
+    if output_workspace is None:
+        target_workspace = unique_workspace_dundername()  # temporary name
+    else:
+        target_workspace = output_workspace
+    instrument_file = fetch_idf(f"{origin.getInstrument().getName()}_Definition.xml")
+    target = empty_instrument_workspace(
+        output_workspace=target_workspace,
+        filename=instrument_file,
+        event_workspace=isinstance(origin, EventWorkspace),
+        monitors_have_spectra=(origin.getSpectrum(0).getDetectorIDs()[0] < 0),
+    )
+    # for algorithm MergeRuns to work, units of origin and target workspace must match
+    origin_unit = origin.getAxis(0).getUnit().unitID()
+    target.getAxis(0).setUnit(origin_unit)
+    target.setYUnit(origin.YUnit())
+    MergeRuns(
+        InputWorkspaces=[target_workspace, input_workspace], OutputWorkspace=target_workspace  # order is necessary
+    )
+    # Move components to the positions they have in input_workspace by reading their positions
+    # in the logs. This is implicitly done when invoking algorithm LoadInstrument.
+    LoadInstrument(Workspace=target_workspace, Filename=instrument_file, RewriteSpectraMap=False)
+
+    if output_workspace is None:
+        target = RenameWorkspace(InputWorkspace=target_workspace, OutputWorkspace=str(input_workspace))
+    return target

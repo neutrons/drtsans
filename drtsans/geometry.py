@@ -6,13 +6,15 @@ from collections import defaultdict
 
 # third-party imports
 from mantid.api import MatrixWorkspace
+from mantid.api import Workspace as MantidWorkspace
+from mantid.dataobjects import EventWorkspace
 from mantid.geometry import Instrument
 from mantid.kernel import logger
 from mantid.simpleapi import mtd, MoveInstrumentComponent
 import numpy as np
 
 # standard imports
-from typing import Union
+from typing import Tuple, Union
 
 
 __all__ = [
@@ -54,8 +56,7 @@ def panel_names(input_query):
     if instrument_name == "BIOSANS" and str(input_query) in mtd:
         if mtd[str(input_query)].getInstrument().getComponentByName("midrange_detector") is None:
             return ["detector1", "wing_detector"]
-    else:
-        return panels
+    return panels
 
 
 def main_detector_name(ipt):
@@ -845,3 +846,248 @@ def translate_detector_by_z(input_workspace, z=None, relative=True):
             sample_detector_distance(input_workspace, search_logs=False),
             unit="mm",
         )
+
+
+#################################################################################
+#   Functionality to help simulate events or intensities for a component panel
+#################################################################################
+
+PIXELS_IN_TUBE: int = 256
+
+
+def get_position_south_detector(input_workspace: Union[str, MantidWorkspace, EventWorkspace]) -> float:
+    r"""
+    Get the downstream position of the south detector.
+
+    Parameters
+    ----------
+    Name or handle to a Mantid Workspace.
+
+    Returns
+    -------
+    Position of the south detector from the origin, in meters
+    """
+    workspace = mtd[str(input_workspace)]
+    mantid_instrument = workspace.getInstrument()
+    south_detector = mantid_instrument.getComponentByName("detector1")
+    return south_detector.getPos().Z()
+
+
+def get_curvature_radius(input_workspace: Union[str, MantidWorkspace], component: str) -> float:
+    r"""
+    Get the curvature radius of the given component.
+
+    Currently, only the BIOSANS instrument is supported since it's the only one with curved detectors.
+
+    Parameters
+    ----------
+    input_workspace
+        Mantid workspace or name of the workspace
+    component
+        One of the curved double-panels in the instrument (e.g. "wing_detector", "midrange_detector")
+
+    Returns
+    -------
+    Nominal radius of curvature of the given component, in meters
+    """
+    instrument = instrument_standard_name(input_workspace)
+    radii = {
+        "BIOSANS": {
+            "wing_detector": 1.1633,
+            "midrange_detector": 4.0000,
+        }
+    }
+    return radii[instrument][component]
+
+
+def spectrum_info_ranges(
+    input_workspace: Union[str, MantidWorkspace, EventWorkspace], component: str
+) -> Tuple[int, int]:
+    r"""
+    Get the spectra range (as workspace indexes) for the given component. This assumes monitors have no
+    spectra associated to them.
+
+    Parameters
+    ----------
+    input_workspace
+        Mantid workspace or name of the workspace
+    component
+        One of the double-panels in the instrument (e.g. "detector1", "wing_detector")
+
+    Returns
+    -------
+    First and next-to-last workspace indexes for the given component
+    """
+    ranges = {
+        "BIOSANS": {
+            "detector1": (0, 49152),  # 49154 is the first pixel in the next component
+            "wing_detector": (49152, 90112),  # 90114 is the first pixel in the next component
+            "midrange_detector": (90112, 106496),
+        },
+    }
+    instrument = instrument_standard_name(input_workspace)
+    return ranges[instrument][component]
+
+
+def get_pixel_masks(input_workspace: Union[str, MantidWorkspace], component: str) -> np.ndarray:
+    r"""
+    Get the pixel masks for the given component.
+
+    Parameters
+    ----------
+    input_workspace
+            Mantid workspace or name of the workspace
+    component
+        One of the double-panels in the instrument (e.g. "detector1", "wing_detector")
+
+    Returns
+    -------
+    Array of True/False values, where True indicates that the pixel is masked.
+    """
+    spectrum_info = mtd[str(input_workspace)].spectrumInfo()
+    first, next_to_last = spectrum_info_ranges(input_workspace, component)
+    return np.array([spectrum_info.isMasked(idx) for idx in range(first, next_to_last)])
+
+
+def get_pixel_distances(input_workspace: Union[str, MantidWorkspace], component: str) -> np.ndarray:
+    r"""
+    Get the distances from the sample to each of the pixel detectors in the given component.
+
+    Parameters
+    ----------
+    input_workspace
+        The workspace to calculate the solid angles for.
+
+    component
+        The component to calculate the solid angles for. (e.g "midrange_detector", "detector1").
+
+    Returns
+    -------
+    np.ndarray
+    """
+    spectrum_info = mtd[str(input_workspace)].spectrumInfo()
+    first, next_to_last = spectrum_info_ranges(input_workspace, component)
+    return np.array([spectrum_info.l2(idx) for idx in range(first, next_to_last)])
+
+
+def get_xy(input_workspace: Union[str, MantidWorkspace], component: str) -> Tuple[np.ndarray, np.ndarray]:
+    r"""
+    Get the X and Y coordinates of the pixels in the given component.
+
+    Parameters
+    ----------
+    input_workspace
+        Mantid workspace or name of the workspace
+    component
+        One of the double-panels in the instrument (e.g. "detector1", "wing_detector")
+    Returns
+    -------
+    Tuple of all X and Y coordinates of the pixels in the given component
+    """
+    spectrum_info = mtd[str(input_workspace)].spectrumInfo()
+    first, next_to_last = spectrum_info_ranges(input_workspace, component)
+    x = np.array([spectrum_info.position(idx).X() for idx in range(first, next_to_last)])
+    y = np.array([spectrum_info.position(idx).Y() for idx in range(first, next_to_last)])
+    return x, y
+
+
+_instrument_solid_angles_cache = {"BIOSANS": {"midrange_detector": None, "wing_detector": None, "detector1": None}}
+
+
+def get_twothetas(input_workspace: Union[str, MantidWorkspace], component: str, units="degrees") -> np.ndarray:
+    r"""
+    Get the two-theta angles for each of the pixel detectors in the given component.
+
+    Parameters
+    ----------
+    input_workspace
+        Mantid workspace or name of the workspace
+    component
+        One of the double-panels in the instrument (e.g. "detector1", "wing_detector")
+    units
+        The units to return the two-theta angles in. Must be one of "degrees" or "radians".
+
+    Returns
+    -------
+    Array of two-theta angles for each of the pixel detectors in the given component.
+    """
+    if units.lower() not in ["degrees", "radians"]:
+        raise ValueError("units must be 'degrees' or 'radians'")
+    spectrum_info = mtd[str(input_workspace)].spectrumInfo()
+    first, next_to_last = spectrum_info_ranges(input_workspace, component)
+    two_thetas = np.array([spectrum_info.twoTheta(idx) for idx in range(first, next_to_last)])
+    if units.lower() == "degrees":
+        return np.degrees(two_thetas)
+    else:
+        return two_thetas
+
+
+def get_solid_angles(
+    input_workspace: Union[str, MantidWorkspace], component: str, back_panel_attenuation: float = 0.5
+) -> np.ndarray:
+    r"""
+    Calculate (and cache) the solid angles subtended by the detector pixels of the given component.
+
+    Pixel detectors in the Wing and Midrange componets are invariant under rotation of the whole component. Therefore,
+    the solid angles are computed once. The solid angles for the South Detector component depend on the position of the
+    component, hence solid angles are cached at each position, with a generous resolution of 0.5 m in position.
+
+    Parameters
+    ----------
+    input_workspace
+        The workspace to calculate the solid angles for.
+    component
+        The component to calculate the solid angles for. Must be one of "midrange_detector", "wing_detector", or
+        "detector1".
+    back_panel_attenuation
+        An approximate constant attenuation factor for pixels in the back panel of the component, since they're
+        partially occluded by the pixels in the front panel.
+
+    Returns
+    -------
+        The solid angles subtended by the detector pixels of the given component.
+    """
+
+    def _get_solid_angles():
+        r"""The solid angle of a pixel with coordinates (x, y, z) is given by cos(chi) / r^2 = (x^2 + Z^2) / r^3.
+        Angle chi is the angle between the position vector of the pixel detector and the horizontal (XZ) plane.
+
+        """
+        if component == "detector1":
+            # approximation for the South panel: assume it's a curved detector.
+            radius = get_position_south_detector(input_workspace)
+        else:
+            radius = get_curvature_radius(input_workspace, component)
+
+        distances = get_pixel_distances(input_workspace, component)
+
+        # pixels in the front and back panel of the component alternate every four Helium tubes
+        # we first calculate the attenuation in and eightpack (8 Helium tubes)
+        pixels_in_a_fourpack = 4 * PIXELS_IN_TUBE
+        attenuation = np.concatenate(
+            (np.repeat(1.0, pixels_in_a_fourpack), np.repeat(back_panel_attenuation, pixels_in_a_fourpack))
+        )
+        # repeat the eightpack attenuation for all eightpacks in the component
+        pixel_count = len(distances)
+        eightpack_count = int(pixel_count / (2 * pixels_in_a_fourpack))
+        attenuation = np.tile(attenuation, eightpack_count)
+        return attenuation * radius / np.power(distances, 3)
+
+    solid_angles_cache = _instrument_solid_angles_cache[instrument_standard_name(input_workspace)]
+    DISTANCE_BIN_WIDTH = 0.5  # meters
+    if solid_angles_cache[component] is None:
+        if component == "detector1":
+            position_bin = int(get_position_south_detector(input_workspace) / DISTANCE_BIN_WIDTH)
+            solid_angles_cache[component] = {position_bin: _get_solid_angles()}
+            return solid_angles_cache[component][position_bin]
+        else:  # wing or midrange
+            solid_angles_cache[component] = _get_solid_angles()
+            return solid_angles_cache[component]
+    else:
+        if component == "detector1":
+            position_bin = int(get_position_south_detector(input_workspace) / DISTANCE_BIN_WIDTH)
+            if position_bin not in solid_angles_cache[component]:
+                solid_angles_cache[component][position_bin] = _get_solid_angles()
+            return solid_angles_cache[component][position_bin]
+        else:  # wing or midrange
+            return solid_angles_cache[component]

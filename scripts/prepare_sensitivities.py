@@ -11,6 +11,9 @@
 import sys
 import warnings
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
+from drtsans.mono.biosans.prepare_sensitivities_correction import (
+    PrepareSensitivityCorrection as PrepareSensitivityCorrectionBiosans,
+)
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -23,8 +26,6 @@ INSTRUMENT = "CG3"  # Main
 
 # CG3: Main
 FLOOD_RUNS = 4829
-# BIO-SANS detector
-WING_DETECTOR = False  # this is main detector
 
 # About Masks
 # CG3 Main:
@@ -83,7 +84,11 @@ if INSTRUMENT not in ["CG2", "CG3", "EQSANS"]:
     print("Instrument {} is not supported.  Supported are {}" "".format(INSTRUMENT, "CG2, EQSANS, CG3"))
     sys.exit(-1)
 
-preparer = PrepareSensitivityCorrection(INSTRUMENT, WING_DETECTOR)
+if INSTRUMENT == "CG3":
+    preparer = PrepareSensitivityCorrectionBiosans(component="detector1")
+else:
+    preparer = PrepareSensitivityCorrection(instrument=INSTRUMENT, component="detector1")
+
 # Load flood runs
 preparer.set_flood_runs(FLOOD_RUNS)
 

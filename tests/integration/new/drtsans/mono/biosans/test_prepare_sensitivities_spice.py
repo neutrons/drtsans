@@ -26,7 +26,7 @@ workspaces = [
 
 
 @pytest.mark.requires_large_memory
-def test_main_detector(reference_dir, generatecleanfile, clean_workspace):
+def test_main_detector(reference_dir, temp_directory, clean_workspace):
     """Test case for CG3 main detector
 
     This test is skipped
@@ -41,7 +41,7 @@ def test_main_detector(reference_dir, generatecleanfile, clean_workspace):
     /HFIR/CG3/IPTS-17241/exp549/Datafiles/BioSANS_exp549_scan0022_0001.xml
     """
     # output testing directory
-    output_dir = generatecleanfile()
+    output_dir = temp_directory()
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
@@ -134,7 +134,7 @@ def test_main_detector(reference_dir, generatecleanfile, clean_workspace):
     verify_results(SENSITIVITY_FILE, gold_sens_file, clean_workspace)
 
 
-def test_wing_detector(reference_dir, generatecleanfile, clean_workspace):
+def test_wing_detector(reference_dir, temp_directory, clean_workspace):
     """Test case for CG3 wing detector
 
     Flood for wing detector at 1.4° -
@@ -147,7 +147,7 @@ def test_wing_detector(reference_dir, generatecleanfile, clean_workspace):
     /HFIR/CG3/IPTS-17241/exp549/Datafiles/BioSANS_exp549_scan0022_0001.xml
     """
     # output testing directory
-    output_dir = generatecleanfile()
+    output_dir = temp_directory()
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 

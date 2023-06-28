@@ -147,8 +147,6 @@ def test_cg3_main_prepare_sensitivities(tmp_path):
     if not os.path.exists("/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"):
         pytest.skip("Test files of CG3 cannot be accessed.")
 
-    INSTRUMENT = "CG3"  # Main
-
     # CG3: Main
     FLOOD_RUNS = 4829
 
@@ -177,7 +175,7 @@ def test_cg3_main_prepare_sensitivities(tmp_path):
     MIN_THRESHOLD = 0.5
     MAX_THRESHOLD = 2.0
 
-    preparer = PrepareSensitivityCorrectionBiosans(INSTRUMENT, component="detector1")
+    preparer = PrepareSensitivityCorrectionBiosans(component="detector1")
     # Load flood runs
     preparer.set_flood_runs(FLOOD_RUNS)
 
@@ -230,8 +228,6 @@ def test_cg3_wing_prepare_sensitivities(tmp_path):
     if not os.path.exists("/HFIR/CG3/IPTS-23782/nexus/CG3_4835.nxs.h5"):
         pytest.skip("Test files of CG3 cannot be accessed.")
 
-    INSTRUMENT = "CG3"  # Main
-
     # CG3: Wing
     FLOOD_RUNS = 4835
     # BIO-SANS detector
@@ -264,7 +260,7 @@ def test_cg3_wing_prepare_sensitivities(tmp_path):
     MAX_THRESHOLD = 2.0
 
     # Prepare data
-    preparer = PrepareSensitivityCorrectionBiosans(INSTRUMENT, component="wing_detector")
+    preparer = PrepareSensitivityCorrectionBiosans(component="wing_detector")
     # Load flood runs
     preparer.set_flood_runs(FLOOD_RUNS)
 

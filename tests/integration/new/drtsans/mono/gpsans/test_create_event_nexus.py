@@ -36,7 +36,7 @@ from mantid.simpleapi import LoadEventNexus
 from mantid.simpleapi import LoadHFIRSANS
 
 
-def test_duplicate_event_nexus(reference_dir, generatecleanfile):
+def test_duplicate_event_nexus(reference_dir, temp_directory):
     """Test duplicating an HDF5/NeXus in 2 different approaches in order to verify EventNexusWriter
 
     Verification is to load both of the generated Event NeXus to do a comparison
@@ -53,7 +53,7 @@ def test_duplicate_event_nexus(reference_dir, generatecleanfile):
     assert os.path.exists(source_nexus_file), f"Test data {source_nexus_file} does not exist"
 
     # Duplicate the source file to the temporary directory
-    output_dir = generatecleanfile(prefix="dupnexus")
+    output_dir = temp_directory(prefix="dupnexus")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     prototype_dup_nexus = os.path.join(output_dir, "CG2_9177_prototype.nxs.h5")
@@ -98,7 +98,7 @@ def test_duplicate_event_nexus(reference_dir, generatecleanfile):
     DeleteWorkspace(prototype_ws)
 
 
-def test_reduction(reference_dir, generatecleanfile):
+def test_reduction(reference_dir, temp_directory):
     """Test generate (partially copy) an event Nexus file by
     verifying reduction result between raw and generated event nexus file
 
@@ -109,7 +109,7 @@ def test_reduction(reference_dir, generatecleanfile):
 
     """
     # Generate a new event NeXus file
-    output_dir = generatecleanfile(prefix="reducecg2nexus")
+    output_dir = temp_directory(prefix="reducecg2nexus")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
@@ -606,7 +606,7 @@ def verify_histogram(source_nexus, test_nexus):
     DeleteWorkspace(test_ws)
 
 
-def test_convert_spice_to_nexus(reference_dir, generatecleanfile):
+def test_convert_spice_to_nexus(reference_dir, temp_directory):
     """Test to convert SPICE to NeXus
 
     Parameters
@@ -624,7 +624,7 @@ def test_convert_spice_to_nexus(reference_dir, generatecleanfile):
     assert os.path.exists(spice_data_file)
     assert os.path.exists(template_nexus_file)
 
-    output_dir = generatecleanfile(prefix="spice2nexus")
+    output_dir = temp_directory(prefix="spice2nexus")
 
     # Convert from SPICE to event Nexus
     out_nexus_file = os.path.join(output_dir, "CG2_31500050060.nxs.h5")

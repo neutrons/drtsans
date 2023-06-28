@@ -4,13 +4,15 @@ from drtsans.mono.biosans import apply_transmission_correction, calculate_transm
 from drtsans.mono.biosans.api import prepare_data
 from drtsans.mono.biosans.geometry import has_midrange_detector
 from drtsans.mono.spice_data import SpiceRun
+from drtsans.path import abspath
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
 from drtsans.process_uncertainties import set_init_uncertainties
+from drtsans.settings import unique_workspace_dundername as uwd
 
 # third party imports
 from mantid.api import Workspace as MantidWorkspace
 from mantid.kernel import logger
-from mantid.simpleapi import DeleteWorkspace, LoadEventNexus, MaskAngle
+from mantid.simpleapi import DeleteWorkspace, LoadEventNexus, LoadNexusProcessed, MaskAngle
 import numpy as np
 
 # standard imports
@@ -23,8 +25,8 @@ PIXEL = "Pixel"
 
 
 class PrepareSensitivityCorrection(PrepareBase):
-    def __init__(self, instrument, component="detector1"):
-        super().__init__(instrument, component=component)
+    def __init__(self, component="detector1"):
+        super().__init__("CG3", component=component)
 
         self._curved_detectors = None  # either ["wing_detector"] or ["wing_detector", "midrange_detector"]
         self._theta_dep_correction = False
@@ -36,24 +38,33 @@ class PrepareSensitivityCorrection(PrepareBase):
     @property
     def curved_detectors(self) -> List[str]:
         r"""
-        List of curved detectors. Either ``["wing_detector"]`` or ``["wing_detector", "midrange_detector"]``
+        List of curved detectors by inspecting the first of the flood files.
+
+        Returns
+        -------
+        Either ``["wing_detector"]`` or ``["wing_detector", "midrange_detector"]``
         depending on whether the data files contain the midrange detector.
         """
         if self._curved_detectors is None:  # initialize the cache
             self._curved_detectors = ["wing_detector"]
             # load the first flood run to check if midrange detector is present
             first_flood_run = self._flood_runs[0]
+            if isinstance(first_flood_run, str) and first_flood_run.isdigit():
+                first_flood_run = int(first_flood_run)  # convert string to integer
             if isinstance(first_flood_run, int):
-                first_flood_run = f"BIOSANS{first_flood_run}"
-            LoadEventNexus(
-                Filename=first_flood_run,
-                MetaDataOnly=True,  # no need to load the events
-                LoadNexusInstrumentXML=self._enforce_use_nexus_idf,
-                OutputWorkspace="_first_flood_run",
-            )
-            if has_midrange_detector("_first_flood_run"):
+                first_flood_run = abspath(first_flood_run, instrument="CG3")
+            try:
+                _first_flood_run = LoadEventNexus(
+                    Filename=first_flood_run,
+                    MetaDataOnly=True,  # no need to load the events
+                    LoadNexusInstrumentXML=self._enforce_use_nexus_idf,
+                    OutputWorkspace=uwd(),
+                )
+            except RuntimeError:  # loading an events file saved as a nexus file by Mantid
+                _first_flood_run = LoadNexusProcessed(Filename=first_flood_run)
+            if has_midrange_detector(_first_flood_run):
                 self._curved_detectors.append("midrange_detector")
-            DeleteWorkspace("_first_flood_run")
+            DeleteWorkspace(_first_flood_run)
         return self._curved_detectors
 
     def set_masks(self, default_mask, pixels, main_det_mask_angle=None, **kwargs) -> None:
@@ -393,8 +404,6 @@ def prepare_spice_sensitivities_correction(
 
     """
 
-    CG3 = "CG3"
-
     if wing_detector_mask_angle is not None:
         logger.notice("Option wing_detector_mask_angle is deprecated.")
 
@@ -402,7 +411,7 @@ def prepare_spice_sensitivities_correction(
     if component not in ["detector1", "wing_detector"]:  # old spice data lacks the midrange detector
         raise ValueError(f"Unknown component {component}. Must be one of 'detector1' or 'wing_detector'")
 
-    preparer = PrepareSensitivityCorrection(CG3, component=component)
+    preparer = PrepareSensitivityCorrection(component=component)
     # Load flood runs
     preparer.set_flood_runs([flood_run.unique_nexus_name(nexus_dir, True)])
 

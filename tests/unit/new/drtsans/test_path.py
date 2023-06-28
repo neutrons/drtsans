@@ -40,8 +40,8 @@ def test_abspath_with_archivesearch(hint, fullpath, reference_dir):
 
 @pytest.mark.parametrize(
     "hint",
-    ["randomname", "EQSANS_106026", "EQSANS_106026"],
-    ids=("randomname", "EQSANS_106026", "EQSANS_106026"),
+    ["randomname", "EQSANS_906026", "EQSANS_906026"],
+    ids=("randomname", "EQSANS_906026", "EQSANS_906026"),
 )
 def test_abspath_without_archivesearch(hint):
     with pytest.raises(RuntimeError):

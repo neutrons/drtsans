@@ -10,7 +10,7 @@ from drtsans.mono.gpsans.prepare_sensitivities_correction import (
 )
 
 
-def test_sensitivities_with_bar(reference_dir, generatecleanfile):
+def test_sensitivities_with_bar(reference_dir, temp_directory):
     """Test preparing sensitivities from converted SPICE files with bar scan calibration
 
     Returns
@@ -53,7 +53,7 @@ def test_sensitivities_with_bar(reference_dir, generatecleanfile):
     max_threshold = 1.5
 
     # Output directory
-    output_dir = generatecleanfile("gpsans_sensitivity_test")
+    output_dir = temp_directory("gpsans_sensitivity_test")
 
     # Mask
     mask_xml_file = None  # 'Mask.XML'

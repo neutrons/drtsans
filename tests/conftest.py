@@ -1,31 +1,38 @@
 # local imports
 from drtsans.dataobjects import DataType, getDataType
 from drtsans.instruments import fetch_idf as instruments_fetch_idf
+from drtsans.instruments import empty_instrument_workspace
+from drtsans.mono.biosans.geometry import set_position_south_detector
+from drtsans.samplelogs import SampleLogs
 from drtsans.settings import amend_config, unique_workspace_dundername
+from drtsans.simulated_events import insert_beam_spot, insert_background, insert_events_isotropic
 
 # third party imports
-from mantid.api import AnalysisDataService
+from mantid.api import mtd
 import mantid.simpleapi as mtds
 from mantid.simpleapi import (
+    AddSampleLog,
     CompareWorkspaces,
     CreateWorkspace,
-    LoadInstrument,
     DeleteWorkspace,
+    LoadInstrument,
+    SaveNexus,
 )
 import numpy as np
 import pytest
 
 # standard imports
 from collections import namedtuple
+from pathlib import Path
 import os
 from os.path import join as pjoin
-from pathlib import Path
 import random
 import re
 from shutil import rmtree
 import string
 import sys
 import tempfile
+from typing import List
 
 # Resolve the path to the "external data"
 this_module_path = sys.modules[__name__].__file__
@@ -115,10 +122,11 @@ def cleanfile():
 
 
 @pytest.fixture(scope="module")
-def generatecleanfile():
-    """Fixture that generates temp files and deletes them when the .py file is finished. It
-    will cleanup on exception and will safely skip over files that do not
-    exist. Do not use this if you want the files to remain for a failing test.
+def temp_directory():
+    """Fixture that generates temporary directories and deletes them when all tests in the
+    module are finished, or upon hitting an exception.
+
+    Do not use this if you want the files to remain for a failing test.
 
     Usage:
 
@@ -152,7 +160,7 @@ def clean_workspace():
 
 
     """
-    workspaces = []
+    workspaces: List[str] = []
 
     def _clean_workspace(workspace):
         workspaces.append(str(workspace))
@@ -162,8 +170,34 @@ def clean_workspace():
 
     # Executed after test exits
     for workspace in workspaces:
-        if AnalysisDataService.doesExist(workspace):
+        try:
+            mtd[workspace]  # better than AnalysisDataService.doesExist(workspace)
             DeleteWorkspace(workspace)
+        except KeyError:
+            pass
+
+
+@pytest.fixture(scope="function")
+def temp_workspace_name(clean_workspace):
+    r"""
+    Fixture that returns a string guaranteed not to represent an already existing workpsace so that it can be
+    associated to a new workspace. The workspace will be deleted when the function exists or upon exception.
+
+    Usage:
+
+    def test_something(temp_workspace):
+        ws = LoadEmptyInstrument(Instrument="CG3", OutputWorkspace=temp_workspace())
+        # do stuff
+    when test_something( ) exits, ws will be deleted
+
+    """
+
+    def _temp_workspace():
+        name = unique_workspace_dundername()
+        clean_workspace(name)
+        return name
+
+    return _temp_workspace
 
 
 @pytest.fixture(scope="session")
@@ -1391,6 +1425,112 @@ def serve_events_workspace(reference_dir):
     wrapper._names = list()  # stores names for all ws produced
     yield wrapper
     [mtds.DeleteWorkspace(name) for name in wrapper._names]
+
+
+@pytest.fixture(scope="session")
+def biosans_synthetic_dataset(tmp_path_factory) -> dict:
+    r"""
+    Create a synthetic dataset for testing the BIOSANS reduction. The dataset contains
+    Nexus-processed event files with names CG3_XXXX.nxs, where XXXX is a run number.
+
+    -Flood run 12344. Create a synthetic flood run as an isotropic scattering plus a gaussian background noise.
+     We tune the component efficiencies so that a pixel in any of the three components has more or less 200 events.
+
+    -Beam center run 12345. Create a synthetic beam center run with a beam spot with center at
+     (x, y) = (-0.016, -0.018) and diameter=0.02 (meter), with no more than about 400 events
+     in any of the pixels of the spot. Add also a gaussian background noise.
+
+    Usage
+    -----
+
+    @mock_patch("drtsans.load.__monitor_counts")
+    @mock_patch("drtsans.load.LoadEventNexus")
+    def test_function(mock_LoadEventNexus,
+                      mock_monitor_counts,
+                      biosans_synthetic_dataset):
+    with amend_config(data_dir=str(biosans_synthetic_dataset["data_dir"])):
+        run_number = biosans_synthetic_dataset["beam_center"]
+        mock_LoadEventNexus.return_value = LoadNexusProcessed(f"BIOSANS{run_number}", OutputWorkspace="my_workspace")
+        mock_monitor_counts.return_value = 42
+        from drtsans.load import load_events
+        my_workspace = load_events(run_number)  # requires mocking LoadEventNexus and __monitor_counts
+
+    Yields
+    -------
+    dict with the following keys:
+    - data_dir: path to the directory holding the runs
+    - flood: number of the flood run
+    - beam_center: number of the beam center run
+    """
+
+    def apply_common_run_settings(input_workspace):
+        r"""Endow the workspace with settings common to all runs, like the position of
+        the detector panels and the values of certain logs required by the BIOSANS' API
+        """
+
+        set_position_south_detector(input_workspace, distance=5.0)
+        SampleLogs(input_workspace).insert("start_time", "2023-08-01 00:00:00")
+        AddSampleLog(
+            Workspace=input_workspace,
+            LogName="CG3:CS:SampleToSi",
+            LogText="0.0",
+            LogType="Number Series",
+            LogUnit="mm",
+            NumberType="Double",
+        )
+        AddSampleLog(
+            Workspace=input_workspace,
+            LogName="wavelength",
+            LogText="18.0",
+            LogType="Number Series",
+            LogUnit="A",
+            NumberType="Double",
+        )
+        AddSampleLog(
+            Workspace=input_workspace,
+            LogName="wavelength_spread",
+            LogText="0.1",
+            LogType="Number Series",
+            LogUnit="",
+            NumberType="Double",
+        )
+
+    # directory holding the runs
+    runs_directory = tmp_path_factory.mktemp("BIOSANS_synthetic_dataset")
+    idf_file = instruments_fetch_idf("BIOSANS_Definition.xml", output_directory=str(runs_directory))
+    #
+    # FLOOD
+    flood_run = "12344"
+    ws_flood = unique_workspace_dundername()
+    empty_instrument_workspace(ws_flood, filename=idf_file, event_workspace=True)
+    apply_common_run_settings(ws_flood)
+    insert_events_isotropic(
+        ws_flood,
+        max_counts_in_pixel=5000,
+        components=["detector1", "wing_detector", "midrange_detector"],
+        component_efficiencies=[1.0, 0.05, 0.63],
+        back_panel_attenuation=0.5,
+        solid_angle_correction=True,
+    )
+    insert_background(ws_flood, components="detector1", flavor="gaussian noise", mean=5, stddev=5)
+    SaveNexus(InputWorkspace=ws_flood, Filename=str(runs_directory / f"CG3_{flood_run}.nxs.h5"))
+    DeleteWorkspace(ws_flood)
+    #
+    # BEAM CENTER
+    beam_center_run = "12345"
+    ws_beam_center = unique_workspace_dundername()
+    empty_instrument_workspace(ws_beam_center, filename=idf_file, event_workspace=True)
+    apply_common_run_settings(ws_beam_center)
+    # max_counts_in_pixel=10000 will insert no more than 400 neutrons counts on any of the pixels of the beam spot
+    insert_beam_spot(ws_beam_center, center_x=-0.016, center_y=-0.018, diameter=0.02, max_counts_in_pixel=10000)
+    insert_background(ws_beam_center, components="detector1", flavor="gaussian noise", mean=10, stddev=2)
+    SaveNexus(InputWorkspace=ws_beam_center, Filename=str(runs_directory / f"CG3_{beam_center_run}.nxs.h5"))
+    DeleteWorkspace(ws_beam_center)
+
+    yield {"data_dir": runs_directory, "flood": flood_run, "beam_center": beam_center_run}
+
+    # tear down (clean up) workspaces and runs directory
+    rmtree(runs_directory, ignore_errors=True)
 
 
 def _assert_both_set_or_none(left, right, assert_func, err_msg):

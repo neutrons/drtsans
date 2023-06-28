@@ -1,11 +1,8 @@
 # local imports
 from drtsans.mono.biosans.beam_finder import center_detector
+from drtsans.geometry import get_position_south_detector
 from drtsans.mono.biosans.geometry import (
     PHI_SPAN_MIDRANGE,
-    get_pixel_distances,
-    get_position_south_detector,
-    get_solid_angles,
-    get_twothetas,
     set_position_south_detector,
     get_angle_wing_detector,
     set_angle_wing_detector,
@@ -28,9 +25,9 @@ import pytest
 #
 
 
-def test_position_south_detector(fetch_idf):
+def test_set_position_south_detector(fetch_idf):
     workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
-    # set the sample 0.042 meters away from the origing
+    # set the sample 0.042 meters away from the origin
     MoveInstrumentComponent(Workspace=workspace, ComponentName="sample-position", Z=-0.042, RelativePosition=False)
     set_position_south_detector(workspace, distance=7.0)  # meters
     assert_almost_equal(get_position_south_detector(workspace), 7.000, decimal=3)
@@ -76,54 +73,6 @@ def test_midrange_to_wing_tubepixel(fetch_idf):
     SampleLogs(workspace).insert("wavelength", 12.0, unit="A")  # Angstroms
     md2ww = midrange_to_wing_tubepixel(workspace)
     assert [min(md2ww), max(md2ww)] == [90, 164]
-
-
-def test_get_pixel_distances(fetch_idf):
-    workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
-    set_position_south_detector(workspace, distance=7.0)  # meters
-    expected_for_component = {
-        "detector1": (7.0358, 7.0439),
-        "wing_detector": (1.2402, 1.2477),
-        "midrange_detector": (3.9962, 4.0043),
-    }
-    for component, expected in expected_for_component.items():
-        distances = get_pixel_distances(workspace, component)
-        assert_almost_equal((distances[0], distances[-1]), expected, decimal=3)
-
-
-def test_get_solid_angles(fetch_idf):
-    workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
-    set_position_south_detector(workspace, distance=7.0)  # meters
-    expected_for_component = {
-        "detector1": (0.02009, 0.0100),
-        "wing_detector": (0.6097, 0.2994),
-        "midrange_detector": (0.0626, 0.0311),
-    }
-    for component, expected in expected_for_component.items():
-        solid_angles = get_solid_angles(workspace, component)
-        assert_almost_equal((solid_angles[0], solid_angles[-1]), expected, decimal=3)
-    #
-    # move all components. Only solid angles for detector1 should change
-    set_position_south_detector(workspace, distance=5.0)  # meters
-    set_angle_wing_detector(workspace, angle=30.0)  # degrees
-    set_angle_midrange_detector(workspace, angle=5.0)  # degrees
-    expected_for_component["detector1"] = (0.03878, 0.0192)
-    for component, expected in expected_for_component.items():
-        solid_angles = get_solid_angles(workspace, component)
-        assert_almost_equal((solid_angles[0], solid_angles[-1]), expected, decimal=3)
-
-
-def test_get_twothetas(fetch_idf):
-    workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
-    set_position_south_detector(workspace, distance=7.0)  # meters
-    expected_for_component = {
-        "detector1": (6.105, 6.098),
-        "wing_detector": (24.836, 49.498),
-        "midrange_detector": (8.980, 7.475),
-    }
-    for component, expected in expected_for_component.items():
-        twothetas = get_twothetas(workspace, component, units="degrees")
-        assert_almost_equal((twothetas[0], twothetas[-1]), expected, decimal=2)
 
 
 def test_apply_samplelogs_midrange_rotation(fetch_idf):

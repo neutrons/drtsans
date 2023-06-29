@@ -249,6 +249,10 @@ def test_process_single_configuration_thickness_absolute_scale(generic_workspace
     assert_equal(output.extractY(), [[15], [30], [45], [60]])
 
 
+@pytest.mark.skipif(
+    not os.path.exists("/HFIR/HB2B/shared/autoreduce/"),
+    reason="Skip test if HFIR mount is down.",
+)
 def test_has_midrange_detector():
     """Unit test for helper function has_midrange_detector."""
     reduction_input = {

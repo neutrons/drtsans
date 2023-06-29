@@ -206,6 +206,7 @@ def test_reduce_single_configuration_slice_transmission_true(temp_directory):
         },
         "emptyTransmission": {"runNumber": "8364", "value": None},
         "beamCenter": {"runNumber": "8373"},
+        "IntegrationRadius": None,
         "outputFileName": "r8361_PorB3_15m",
         "configuration": {
             "wavelength": None,

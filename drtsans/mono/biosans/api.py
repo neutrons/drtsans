@@ -144,12 +144,16 @@ def load_all_files(
     ws_to_remove.append(f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group")
     ws_to_remove.append(f"{prefix}_main_sensitivity")
     ws_to_remove.append(f"{prefix}_wing_sensitivity")
+    ws_to_remove.append(f"{prefix}_midrange_sensitivity")
     ws_to_remove.append(f"{prefix}_mask")
     if reduction_config["darkMainFileName"]:
         run_number = extract_run_number(reduction_config["darkMainFileName"])
         ws_to_remove.append(f"{prefix}_{instrument_name}_{run_number}_raw_histo")
     if reduction_config["darkWingFileName"]:
         run_number = extract_run_number(reduction_config["darkWingFileName"])
+        ws_to_remove.append(f"{prefix}_{instrument_name}_{run_number}_raw_histo")
+    if reduction_config.get("darkMidrangeFileName", None):
+        run_number = extract_run_number(reduction_config["darkMidrangeFileName"])
         ws_to_remove.append(f"{prefix}_{instrument_name}_{run_number}_raw_histo")
     for ws_name in ws_to_remove:
         if registered_workspace(ws_name):

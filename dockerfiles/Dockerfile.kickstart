@@ -8,8 +8,8 @@ COPY environment.yml /tmp/drtsans-dev.yml
 # update packages
 RUN apt-get update \
     && apt-get upgrade -y \
-    # libgl1 is needed by mantidworkbench
-    && apt-get install -y libglu1 make \
+    # libgl1 and libtiff are needed by mantid
+    && apt-get install -y libglu1 libtiff5 make \
     # for mounting SNS data file (equivalent to previous yum install nfs-utils)
     && apt-get install -y nfs-common nfs-kernel-server \
     && apt-get autoremove -y \

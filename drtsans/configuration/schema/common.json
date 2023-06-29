@@ -253,6 +253,11 @@
           "BeamRadius": {
             "$ref": "common.json#/definitions/safeStringPositiveFloat",
             "description": "Radius of the beam area, in meters, used the exclude the beam when calculating the center of mass of the scattering pattern."
+          },
+          "IntegrationRadius": {
+            "$ref": "common.json#/definitions/safeStringPositiveFloat",
+            "default": "null",
+            "description": "Radius in meters, used for including the pixels that are within the area defined by the IntegrationRadius, when calculating the center of mass for asymmetric detector arrays."
           }
         }
       }

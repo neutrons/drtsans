@@ -666,6 +666,56 @@ class TestReductionParametersBIOSANS:
             validate_reduction_parameters(parameters)
         assert "0.07 is not smaller than #configuration/QmaxMidrange" in str(error_info.value)
 
+    @pytest.mark.parametrize(
+        "qmin_name, qmax_name",
+        [
+            ("overlapStitchQmin", "overlapStitchQmax"),
+            ("wedge1overlapStitchQmin", "wedge1overlapStitchQmax"),
+            ("wedge2overlapStitchQmin", "wedge2overlapStitchQmax"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "qmin_value, qmax_value",
+        [
+            (None, [0.015]),  # different length
+            ([0.015], None),  # different length
+            ([0.01, 0.02], [0.015]),  # different length
+            ([0.02], [0.01]),  # min > max
+            ([0.01, 0.02, 0.03], [0.015, 0.025, 0.035]),  # lists too long
+        ],
+    )
+    def test_invalid_overlap_stitch(self, reference_dir, qmin_name, qmax_name, qmin_value, qmax_value):
+        parameters = deepcopy(self.parameters_all)
+        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
+        parameters["configuration"][qmin_name] = qmin_value
+        parameters["configuration"][qmax_name] = qmax_value
+        with pytest.raises(jsonschema.ValidationError) as error_info:
+            validate_reduction_parameters(parameters)
+        assert qmax_name in str(error_info.value)
+
+    @pytest.mark.parametrize(
+        "qmin_name, qmax_name",
+        [
+            ("overlapStitchQmin", "overlapStitchQmax"),
+            ("wedge1overlapStitchQmin", "wedge1overlapStitchQmax"),
+            ("wedge2overlapStitchQmin", "wedge2overlapStitchQmax"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "qmin_value, qmax_value",
+        [
+            (None, None),
+            (0.01, 0.015),
+            ([0.01, 0.02], [0.015, 0.025]),
+        ],
+    )
+    def test_valid_overlap_stitch(self, reference_dir, qmin_name, qmax_name, qmin_value, qmax_value):
+        parameters = deepcopy(self.parameters_all)
+        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
+        parameters["configuration"][qmin_name] = qmin_value
+        parameters["configuration"][qmax_name] = qmax_value
+        validate_reduction_parameters(parameters)
+
 
 def test_generate_json_files(tmpdir, cleanfile):
     directory = tmpdir.mkdir("generate_json_files")

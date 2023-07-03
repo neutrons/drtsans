@@ -62,10 +62,10 @@
                 {"type": "array", "items": {"type": "number", "minimum": -90, "exclusiveMaximum": 270}}],
       "preferredType": "[float]"
     },
-    "safeStitchQbounsSpecs": {
+    "safeStitchQboundsSpecs": {
       "anyOf": [{"type": "number", "ExclusiveMinimum": 0},
                 {"type": "null"},
-                {"type": "array", "items": {"type": "number", "ExclusiveMinimum": 0}}],
+                {"type": "array", "items": {"type": "number", "ExclusiveMinimum": 0}, "maxItems":  2}],
       "preferredType": "[float]"
     },
       "lmfitParameter" : {

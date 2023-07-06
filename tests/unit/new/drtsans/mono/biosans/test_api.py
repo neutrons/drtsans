@@ -9,6 +9,8 @@ from drtsans.mono.biosans.api import (
     process_single_configuration,
 )
 from drtsans.mono.biosans import reduction_parameters
+from drtsans.mono.biosans.simulated_events import update_idf
+from drtsans.load import load_events
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import unique_workspace_dundername as uwd
 
@@ -105,6 +107,72 @@ def test_prepare_data_workspaces_center(biosans_f):
     assert alg3.getPropertyValue("X") == "0"
     assert alg3.getPropertyValue("Y") == "-0.222"
 
+def test_prepare_data_workspaces_center_midrange_success(reference_dir):
+    # similar test to test_prepare_data_workspaces_center
+    # load the file and add the midrange detector
+    # generate the output workspace from prepare_data_workspaces with center parameters for main, wing and midrange detectors
+    # check the algorithm history to ensure instrument components were moved with the requested coordinates
+
+    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    assert ws.getInstrument().getComponentByName("midrange_detector") is None
+    # add the midrange detector
+    ws = update_idf(ws)
+    assert ws.getInstrument().getComponentByName("midrange_detector")
+    
+    output = prepare_data_workspaces(ws, center_x=0.111, center_y=0.123, center_y_wing=0.222,center_y_midrange=0.112, solid_angle=False)
+
+    # this should make a clone of the workspace
+    assert ws is not output
+    # and the output workspace name is changed automatically from above
+    assert output.name() == ws.name() + "_processed_histo"
+
+    history = output.getHistory()
+    assert history.size() == ws.getHistory().size() + 3 + 1
+    # There are: 1 call to CloneWorkspace and 3 calls to MoveInstrumentComponent
+    
+    alg2 = history.getAlgorithm(4)
+    assert alg2.name() == "MoveInstrumentComponent"
+    assert alg2.getPropertyValue("ComponentName") == "detector1"
+    assert alg2.getPropertyValue("RelativePosition") == "1"
+    assert alg2.getPropertyValue("X") == "-0.111"
+    assert alg2.getPropertyValue("Y") == "-0.123"
+
+    alg3 = history.getAlgorithm(5)
+    assert alg3.name() == "MoveInstrumentComponent"
+    assert alg3.getPropertyValue("ComponentName") == "wing_detector"
+    assert alg3.getPropertyValue("RelativePosition") == "1"
+    assert alg3.getPropertyValue("X") == "0"
+    assert alg3.getPropertyValue("Y") == "-0.222"
+
+    alg4 = history.getAlgorithm(6)
+    assert alg4.name() == "MoveInstrumentComponent"
+    assert alg4.getPropertyValue("ComponentName") == "midrange_detector"
+    assert alg4.getPropertyValue("RelativePosition") == "1"
+    assert alg4.getPropertyValue("X") == "0"
+    assert alg4.getPropertyValue("Y") == "-0.112"
+
+def test_prepare_data_workspaces_center_midrange_failure(reference_dir):
+    # similar test to test_prepare_data_workspaces_center_midrange_success
+    # midrange center is required, but not passed
+    # results to failure to move the instrument components
+
+    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    assert ws.getInstrument().getComponentByName("midrange_detector") is None
+    # add the midrange detector
+    ws = update_idf(ws)
+    assert ws.getInstrument().getComponentByName("midrange_detector")
+    
+    output = prepare_data_workspaces(ws, center_x=0.111, center_y=0.123, center_y_wing=0.222,center_y_midrange=None, solid_angle=False)
+
+    # this should make a clone of the workspace
+    assert ws is not output
+    # and the output workspace name is changed automatically from above
+    assert output.name() == ws.name() + "_processed_histo"
+
+    history = output.getHistory()
+    assert history.size() == ws.getHistory().size() + 1
+    # There is only 1 call to CloneWorkspace
+    assert history.getAlgorithm(history.size()-1).name() == "CloneWorkspace"
 
 def test_prepare_data_workspaces_dark_current():
     # Create dark current workspace, insert the duration of the dark

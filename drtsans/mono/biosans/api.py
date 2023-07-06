@@ -43,6 +43,7 @@ from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
 from drtsans.load import move_instrument
 from drtsans.mono.meta_data import parse_json_meta_data
 from drtsans.mono import meta_data
+from drtsans.mono.biosans.geometry import has_midrange_detector
 
 
 # Functions exposed to the general user (public) API
@@ -548,11 +549,12 @@ def prepare_data_workspaces(
     center_x=None,
     center_y=None,
     center_y_wing=None,
+    center_y_midrange=None,
     dark_current=None,
     flux_method=None,  # normalization (time/monitor)
     monitor_fail_switch=False,
     mask_ws=None,  # apply a custom mask from workspace
-    mask_detector=None,  # main or wing
+    mask_detector=None,  # main and/or wing and/or midrange
     mask_panel=None,  # mask back or front panel
     mask_btp=None,  # mask bank/tube/pixel
     solid_angle=True,
@@ -596,6 +598,8 @@ def prepare_data_workspaces(
         Resort to normalization by 'time' if 'monitor' was selected but no monitor counts are available
     mask_ws: ~mantid.dataobjects.Workspace2D
         Mask workspace
+    mask_detector: str, list
+        Name of one or more instrument components to mask: (e.g `detector1,wing_detector`)        
     mask_panel: str
         Either 'front' or 'back' to mask whole front or back panel.
     mask_btp: dict
@@ -620,12 +624,17 @@ def prepare_data_workspaces(
     mtd[str(data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
 
     if center_x is not None and center_y is not None and center_y_wing is not None:
-        biosans.center_detector(
-            output_workspace,
-            center_x=center_x,
-            center_y=center_y,
-            center_y_wing=center_y_wing,
-        )
+        #check whether:
+        #(1) there is no midrange detector information provided or 
+        #(2) it is provided and the center_y_midrange should be there
+        if (not has_midrange_detector(output_workspace)) or (has_midrange_detector(output_workspace) and center_y_midrange is not None):
+            biosans.center_detector(
+                output_workspace,
+                center_x=center_x,
+                center_y=center_y,
+                center_y_wing=center_y_wing,
+                center_y_midrange=center_y_midrange
+            )
 
     # Dark current
     if dark_current is not None:
@@ -1460,8 +1469,8 @@ def prepare_data(
         Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
     pixel_calibration: bool
         Adjust pixel heights and widths according to barscan and tube-width calibrations.
-    mask_detector: str
-        Name of an instrument component to mask
+    mask_detector: str, list
+        Name of one or more instrument components to mask: (e.g `detector1,wing_detector`)
     detector_offset: float
         Additional translation of the detector along Z-axis, in mili-meters.
     sample_offset: float

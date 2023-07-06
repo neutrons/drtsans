@@ -59,7 +59,6 @@
         "defaultMask": {"$ref":  "common.json#/configuration/defaultMask",
                         "default": [{"Pixel": "1-18,239-256"}, {"Bank": "18-24,42-48"}]},
         "useMaskBackTubes": {"$ref":  "common.json#/configuration/useMaskBackTubes", "default": false},
-        "hasMidrangeDetector": {"type":  "boolean", "default": true},
         "darkMainFileName":    {"$ref":  "common.json#/configuration/darkFileName"},
         "darkWingFileName":    {"$ref":  "common.json#/configuration/darkFileName"},
         "darkMidrangeFileName":    {"$ref":  "common.json#/configuration/darkFileName"},

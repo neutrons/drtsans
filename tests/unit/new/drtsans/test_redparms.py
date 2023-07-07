@@ -647,19 +647,21 @@ class TestReductionParametersBIOSANS:
     }
     parameters_all = reduction_parameters(parameters_common, validate=False)
 
-    def test_validators_midrange_parameters_required(self, reference_dir):
+    def test_validators_midrange_parameters_required(self, temp_directory):
         parameters = deepcopy(self.parameters_all)
-        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
+        parameters["dataDirectories"] = temp_directory(prefix="biosans_validators")
         # remove all parameters related to the midrange detector
         config_no_midrange = {k: v for k, v in parameters["configuration"].items() if "Midrange" not in k}
         parameters["configuration"] = config_no_midrange
+        # need to add this back since it is validated against in overlap stitch parameters
+        parameters["configuration"]["overlapStitchIncludeMidrange"] = False
         with pytest.raises(jsonschema.ValidationError) as error_info:
             validate_reduction_parameters(parameters)
         assert "'darkMidrangeFileName' is a required property" in str(error_info.value)
 
-    def test_validators_midrange_qmin_qmax(self, reference_dir):
+    def test_validators_midrange_qmin_qmax(self, temp_directory):
         parameters = deepcopy(self.parameters_all)
-        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
+        parameters["dataDirectories"] = temp_directory(prefix="biosans_validators")
         parameters["configuration"]["QminMidrange"] = 0.07
         parameters["configuration"]["QmaxMidrange"] = 0.05
         with pytest.raises(jsonschema.ValidationError) as error_info:

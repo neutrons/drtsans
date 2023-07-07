@@ -687,15 +687,17 @@ class TestReductionParametersBIOSANS:
             # valid inputs:
             (False, False, None, None),
             (False, True, None, None),
+            (False, False, [], []),
+            (False, True, [], []),
             (False, False, 0.01, 0.015),
             (False, True, [0.01, 0.02], [0.015, 0.025]),
         ],
     )
     def test_overlap_stitch(
-        self, reference_dir, qmin_name, qmax_name, throws_error, include_midrange, qmin_value, qmax_value
+        self, temp_directory, qmin_name, qmax_name, throws_error, include_midrange, qmin_value, qmax_value
     ):
         parameters = deepcopy(self.parameters_all)
-        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
+        parameters["dataDirectories"] = temp_directory(prefix="biosans_overlap_stitch")
         parameters["configuration"]["overlapStitchIncludeMidrange"] = include_midrange
         parameters["configuration"][qmin_name] = qmin_value
         parameters["configuration"][qmax_name] = qmax_value

@@ -878,13 +878,11 @@ class ReductionParameters:
             other_instance = self.get_parameter_value(entry_path)
             if [instance, other_instance].count(None) == 1:
                 yield jsonschema.ValidationError(f"{entry_path} or its companion parameter is empty")
+            if isinstance(other_instance, (int, float)):
+                other_instance = [other_instance]
+            if instance and other_instance and len(instance) != len(other_instance):
+                yield jsonschema.ValidationError(f"{entry_path} and its companion parameter have different lengths")
             if instance and other_instance:
-                if isinstance(other_instance, (int, float)):
-                    other_instance = [other_instance]
-                if isinstance(other_instance, list) is False:
-                    yield jsonschema.ValidationError(
-                        f"{entry_path} is not (or could not be cast to) a list of numbers"
-                    )
                 if not greater(other_instance, instance).all():
                     yield jsonschema.ValidationError(f"Pairwise less than failed for {instance} < {other_instance}")
 

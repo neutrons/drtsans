@@ -161,14 +161,14 @@
         },
         "overlapStitchQmin": {
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
-          "description": "The minimum |Q| value in the region where intensities for detectors overlap",
-          "evaluateCondition": "({this} is None) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)",
+          "description": "The minimum |Q| value in the region(s) where intensities for detectors overlap. Allowed overlaps are main with wing, main with midrange, and midrange with wing detector.",
+          "evaluateCondition": "(not {this}) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)",
           "pairwiseLessThan": "#configuration/overlapStitchQmax"
         },
         "overlapStitchQmax": {
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
-          "evaluateCondition": "({this} is None) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)",
-          "description": "The maximum |Q| value in the region where intensities for detectors overlap"
+          "evaluateCondition": "(not {this}) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)",
+          "description": "The maximum |Q| value in the region(s) where intensities for detectors overlap. Allowed overlaps are main with wing, main with midrange, and midrange with wing detector."
         },
 
         "wedge1QminMain": {
@@ -206,12 +206,12 @@
 
         "wedge1overlapStitchQmin": {
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
-          "evaluateCondition": "({this} is None) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)",
+          "evaluateCondition": "(not {this}) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)",
           "pairwiseLessThan": "#configuration/wedge1overlapStitchQmax"
         },
         "wedge1overlapStitchQmax": {
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
-          "evaluateCondition": "({this} is None) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)"
+          "evaluateCondition": "(not {this}) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)"
         },
 
         "wedge2QminMain": {
@@ -249,12 +249,12 @@
 
         "wedge2overlapStitchQmin": {
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
-          "evaluateCondition": "({this} is None) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)",
+          "evaluateCondition": "(not {this}) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)",
           "pairwiseLessThan": "#configuration/wedge2overlapStitchQmax"
         },
         "wedge2overlapStitchQmax": {
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
-          "evaluateCondition": "({this} is None) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)"
+          "evaluateCondition": "(not {this}) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)"
         }
       },
 

@@ -125,12 +125,13 @@ def test_prepare_data_workspaces_center_midrange_success(reference_dir):
     ws = update_idf(ws)
     assert ws.getInstrument().getComponentByName("midrange_detector")
 
+    # this should make a clone of the workspace
     output = prepare_data_workspaces(
         ws, center_x=0.111, center_y=0.123, center_y_wing=0.222, center_y_midrange=0.112, solid_angle=False
     )
 
-    # this should make a clone of the workspace
     assert ws is not output
+
     # and the output workspace name is changed automatically from above
     assert output.name() == ws.name() + "_processed_histo"
 
@@ -171,11 +172,11 @@ def test_prepare_data_workspaces_center_midrange_failure(reference_dir):
     ws = update_idf(ws)
     assert ws.getInstrument().getComponentByName("midrange_detector")
 
+    # this should make a clone of the workspace
     output = prepare_data_workspaces(
         ws, center_x=0.111, center_y=0.123, center_y_wing=0.222, center_y_midrange=None, solid_angle=False
     )
 
-    # this should make a clone of the workspace
     assert ws is not output
     # and the output workspace name is changed automatically from above
     assert output.name() == ws.name() + "_processed_histo"
@@ -193,9 +194,9 @@ def test_prepare_data_center(reference_dir):
     # check the algorithm history to ensure instrument components were moved with the requested coordinates
     ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
 
+    # this should make a clone of the workspace
     output = prepare_data(str(ws), center_x=0.111, center_y=0.123, center_y_wing=0.222, solid_angle=False)
 
-    # this should make a clone of the workspace
     assert ws is not output
 
     history = output.getHistory()

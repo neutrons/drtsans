@@ -187,6 +187,48 @@ def test_prepare_data_workspaces_center_midrange_failure(reference_dir):
     assert history.getAlgorithm(history.size() - 1).name() == "CloneWorkspace"
 
 
+def test_prepare_data_workspaces_apply_mask_detectors_str(reference_dir):
+    # similar test to test_prepare_data_workspaces_center_midrange_success
+    # midrange center is required, but not passed
+    # results to failure to move the instrument components
+
+    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    assert ws.getInstrument().getComponentByName("midrange_detector") is None
+    # add the midrange detector
+    ws = update_idf(ws)
+    assert ws.getInstrument().getComponentByName("midrange_detector")
+
+    # mask_ws
+    mask_detectors = "detector1,wing_detector,midrange_detector"
+    output = prepare_data_workspaces(ws, mask_detector=mask_detectors, solid_angle=False)
+    history = output.getHistory()
+    assert history.size() == 5
+    alg = history.lastAlgorithm()
+    assert alg.name() == "MaskDetectors"
+    assert alg.getPropertyValue("ComponentList") == mask_detectors
+
+
+def test_prepare_data_workspaces_apply_mask_detectors_lst(reference_dir):
+    # similar test to test_prepare_data_workspaces_center_midrange_success
+    # midrange center is required, but not passed
+    # results to failure to move the instrument components
+
+    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    assert ws.getInstrument().getComponentByName("midrange_detector") is None
+    # add the midrange detector
+    ws = update_idf(ws)
+    assert ws.getInstrument().getComponentByName("midrange_detector")
+
+    # mask_ws
+    mask_detectors = ["detector1", "midrange_detector"]
+    output = prepare_data_workspaces(ws, mask_detector=mask_detectors, solid_angle=False)
+    history = output.getHistory()
+    assert history.size() == 5
+    alg = history.lastAlgorithm()
+    assert alg.name() == "MaskDetectors"
+    assert alg.getPropertyValue("ComponentList") == ",".join(mask_detectors)
+
+
 def test_prepare_data_center(reference_dir):
     # similar test to test_prepare_data_workspaces_center
     # load the file
@@ -296,6 +338,68 @@ def test_prepare_data_center_midrange_failure(mock_LoadEventNexus, mock_monitor_
 
     history = output.getHistory()
     assert history.size() == previous_history + 5
+
+
+@mock_patch("drtsans.load.__monitor_counts")
+@mock_patch("drtsans.load.LoadEventNexus")
+def test_prepare_data_apply_mask_detectors_lst(mock_LoadEventNexus, mock_monitor_counts, reference_dir):
+    # similar test to test_prepare_data_center_midrange_success
+    # midrange center is required, but not passed
+    # results to failure to move the instrument components
+
+    output_workspace = "CG3_92300"
+    synthetics_datasets = os.path.join(reference_dir.new.biosans, "synthetic_dataset")
+    synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
+
+    mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
+    mock_monitor_counts.return_value = 42
+
+    # mask_ws
+    mask_detectors = ["wing_detector", "midrange_detector"]
+    output = prepare_data(
+        synthetics_data_path,
+        data_dir=synthetics_datasets,
+        output_workspace=output_workspace,
+        mask_detector=mask_detectors,
+        solid_angle=False,
+    )
+
+    history = output.getHistory()
+
+    alg = history.getAlgorithm(history.size() - 2)
+    assert alg.name() == "MaskDetectors"
+    assert alg.getPropertyValue("ComponentList") == ",".join(mask_detectors)
+
+
+@mock_patch("drtsans.load.__monitor_counts")
+@mock_patch("drtsans.load.LoadEventNexus")
+def test_prepare_data_apply_mask_detectors_str(mock_LoadEventNexus, mock_monitor_counts, reference_dir):
+    # similar test to test_prepare_data_center_midrange_success
+    # midrange center is required, but not passed
+    # results to failure to move the instrument components
+
+    output_workspace = "CG3_92300"
+    synthetics_datasets = os.path.join(reference_dir.new.biosans, "synthetic_dataset")
+    synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
+
+    mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
+    mock_monitor_counts.return_value = 42
+
+    # mask_ws
+    mask_detectors = "midrange_detector"
+    output = prepare_data(
+        synthetics_data_path,
+        data_dir=synthetics_datasets,
+        output_workspace=output_workspace,
+        mask_detector=mask_detectors,
+        solid_angle=False,
+    )
+
+    history = output.getHistory()
+
+    alg = history.getAlgorithm(history.size() - 2)
+    assert alg.name() == "MaskDetectors"
+    assert alg.getPropertyValue("ComponentList") == mask_detectors
 
 
 def test_prepare_data_workspaces_dark_current():

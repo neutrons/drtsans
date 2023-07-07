@@ -220,5 +220,5 @@ def center_detector(input_workspace, center_x, center_y, center_y_wing, center_y
     bf.center_detector(input_workspace, 0, center_y_wing, component="wing_detector")
 
     # move the midrange detector for the gravity drop
-    if center_y_midrange is not None:
+    if center_y_midrange is not None and not np.isnan(center_y_midrange):
         bf.center_detector(input_workspace, 0, center_y_midrange, component="midrange_detector")

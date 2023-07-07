@@ -591,7 +591,7 @@ def prepare_data_workspaces(
         detector will be moved such that the Y-coordinate of the intersection
         point between the neutron beam and the detector array will have ``y=0``.
     center_y_midrange: float
-        Move the center r of the detector to this Y-coordinate. If :py:obj:`None`, the
+        Move the center of the detector vertically to this Y-coordinate. If :py:obj:`None`, the
         detector will be moved such that the Y-coordinate of the intersection
         point between the neutron beam and the detector array will have ``y=0``.
     dark_current: ~mantid.dataobjects.Workspace2D
@@ -1500,7 +1500,7 @@ def prepare_data(
         detector will be moved such that the Y-coordinate of the intersection
         point between the neutron beam and the detector array will have ``y=0``.
     center_y_midrange: float
-        Move the center r of the detector to this Y-coordinate. If :py:obj:`None`, the
+        Move the center of the detector vertically to this Y-coordinate. If :py:obj:`None`, the
         detector will be moved such that the Y-coordinate of the intersection
         point between the neutron beam and the detector array will have ``y=0``.
     dark_current: int, str, ~mantid.api.IEventWorkspace

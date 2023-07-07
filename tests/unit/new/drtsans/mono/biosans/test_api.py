@@ -188,9 +188,9 @@ def test_prepare_data_workspaces_center_midrange_failure(reference_dir):
 
 
 def test_prepare_data_workspaces_apply_mask_detectors_str(reference_dir):
-    # similar test to test_prepare_data_workspaces_center_midrange_success
-    # midrange center is required, but not passed
-    # results to failure to move the instrument components
+    # load the file and add the midrange detector
+    # generate the output workspace from prepare_data_workspaces
+    # mask detector with a comma separated detector name-string
 
     ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
@@ -209,9 +209,9 @@ def test_prepare_data_workspaces_apply_mask_detectors_str(reference_dir):
 
 
 def test_prepare_data_workspaces_apply_mask_detectors_lst(reference_dir):
-    # similar test to test_prepare_data_workspaces_center_midrange_success
-    # midrange center is required, but not passed
-    # results to failure to move the instrument components
+    # load the file and add the midrange detector
+    # generate the output workspace from prepare_data_workspaces
+    # mask detector with a list of detector names
 
     ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
@@ -343,9 +343,9 @@ def test_prepare_data_center_midrange_failure(mock_LoadEventNexus, mock_monitor_
 @mock_patch("drtsans.load.__monitor_counts")
 @mock_patch("drtsans.load.LoadEventNexus")
 def test_prepare_data_apply_mask_detectors_lst(mock_LoadEventNexus, mock_monitor_counts, reference_dir):
-    # similar test to test_prepare_data_center_midrange_success
-    # midrange center is required, but not passed
-    # results to failure to move the instrument components
+    # load the file with mock patch
+    # generate the output workspace from prepare_data
+    # mask detector with a list of detector names
 
     output_workspace = "CG3_92300"
     synthetics_datasets = os.path.join(reference_dir.new.biosans, "synthetic_dataset")
@@ -374,9 +374,9 @@ def test_prepare_data_apply_mask_detectors_lst(mock_LoadEventNexus, mock_monitor
 @mock_patch("drtsans.load.__monitor_counts")
 @mock_patch("drtsans.load.LoadEventNexus")
 def test_prepare_data_apply_mask_detectors_str(mock_LoadEventNexus, mock_monitor_counts, reference_dir):
-    # similar test to test_prepare_data_center_midrange_success
-    # midrange center is required, but not passed
-    # results to failure to move the instrument components
+    # load the file with mock patch
+    # generate the output workspace from prepare_data
+    # mask detector with a detector name
 
     output_workspace = "CG3_92300"
     synthetics_datasets = os.path.join(reference_dir.new.biosans, "synthetic_dataset")

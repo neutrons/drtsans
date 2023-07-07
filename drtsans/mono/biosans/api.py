@@ -590,6 +590,10 @@ def prepare_data_workspaces(
         Move the center r of the detector to this Y-coordinate. If :py:obj:`None`, the
         detector will be moved such that the Y-coordinate of the intersection
         point between the neutron beam and the detector array will have ``y=0``.
+    center_y_midrange: float
+        Move the center r of the detector to this Y-coordinate. If :py:obj:`None`, the
+        detector will be moved such that the Y-coordinate of the intersection
+        point between the neutron beam and the detector array will have ``y=0``.
     dark_current: ~mantid.dataobjects.Workspace2D
         histogram workspace containing the dark current measurement
     flux_method: str
@@ -599,7 +603,7 @@ def prepare_data_workspaces(
     mask_ws: ~mantid.dataobjects.Workspace2D
         Mask workspace
     mask_detector: str, list
-        Name of one or more instrument components to mask: (e.g `detector1,wing_detector`)        
+        Name of one or more instrument components to mask: (e.g `detector1,wing_detector`)
     mask_panel: str
         Either 'front' or 'back' to mask whole front or back panel.
     mask_btp: dict
@@ -624,16 +628,18 @@ def prepare_data_workspaces(
     mtd[str(data)].clone(OutputWorkspace=output_workspace)  # name gets into workspace
 
     if center_x is not None and center_y is not None and center_y_wing is not None:
-        #check whether:
-        #(1) there is no midrange detector information provided or 
-        #(2) it is provided and the center_y_midrange should be there
-        if (not has_midrange_detector(output_workspace)) or (has_midrange_detector(output_workspace) and center_y_midrange is not None):
+        # check whether:
+        # (1) there is no midrange detector information provided or
+        # (2) it is provided and the center_y_midrange should be there
+        if (not has_midrange_detector(output_workspace)) or (
+            has_midrange_detector(output_workspace) and center_y_midrange is not None
+        ):
             biosans.center_detector(
                 output_workspace,
                 center_x=center_x,
                 center_y=center_y,
                 center_y_wing=center_y_wing,
-                center_y_midrange=center_y_midrange
+                center_y_midrange=center_y_midrange,
             )
 
     # Dark current
@@ -745,6 +751,8 @@ def process_single_configuration(
         resort to normalization by 'time' if 'monitor' was selected but no monitor counts are available
     mask_ws: ~mantid.dataobjects.Workspace2D
         user defined mask
+    mask_detector: str, list
+        Name of one or more instrument components to mask: (e.g `detector1,wing_detector`)
     mask_panel: str
         mask fron or back panel
     mask_btp: dict
@@ -1432,6 +1440,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
 
 def prepare_data(
     data,
+    data_dir=None,
     pixel_calibration=False,
     mask_detector=None,
     detector_offset=0,
@@ -1439,6 +1448,7 @@ def prepare_data(
     center_x=None,
     center_y=None,
     center_y_wing=None,
+    center_y_midrange=None,
     dark_current=None,
     flux_method=None,
     monitor_fail_switch=False,
@@ -1467,6 +1477,8 @@ def prepare_data(
     ----------
     data: int, str, ~mantid.api.IEventWorkspace
         Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
+    data_dir: str, list
+        Additional data search directories
     pixel_calibration: bool
         Adjust pixel heights and widths according to barscan and tube-width calibrations.
     mask_detector: str, list
@@ -1485,6 +1497,10 @@ def prepare_data(
         point between the neutron beam and the detector array will have ``y=0``.
     center_y_wing: float
         Move the center of the wing detector to this Y-coordinate. If :py:obj:`None`, the
+        detector will be moved such that the Y-coordinate of the intersection
+        point between the neutron beam and the detector array will have ``y=0``.
+    center_y_midrange: float
+        Move the center r of the detector to this Y-coordinate. If :py:obj:`None`, the
         detector will be moved such that the Y-coordinate of the intersection
         point between the neutron beam and the detector array will have ``y=0``.
     dark_current: int, str, ~mantid.api.IEventWorkspace
@@ -1547,6 +1563,7 @@ def prepare_data(
     # Load event without moving detector and sample after loading NeXus and instrument
     ws = load_events(
         data,
+        data_dir=data_dir,
         overwrite_instrument=True,
         output_workspace=output_workspace,
         output_suffix=output_suffix,
@@ -1568,7 +1585,17 @@ def prepare_data(
     set_init_uncertainties(ws_name)
 
     if center_x is not None and center_y is not None and center_y_wing is not None:
-        biosans.center_detector(ws_name, center_x=center_x, center_y=center_y, center_y_wing=center_y_wing)
+        # check whether:
+        # (1) there is no midrange detector information provided or
+        # (2) it is provided and the center_y_midrange should be there
+        if (not has_midrange_detector(ws_name)) or (has_midrange_detector(ws_name) and center_y_midrange is not None):
+            biosans.center_detector(
+                ws_name,
+                center_x=center_x,
+                center_y=center_y,
+                center_y_wing=center_y_wing,
+                center_y_midrange=center_y_midrange,
+            )
 
     # Mask either detector
     if mask_detector is not None:

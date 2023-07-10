@@ -4,6 +4,7 @@ import itertools
 import json
 import jsonschema
 from jsonschema.exceptions import relevance
+from numpy import greater
 import os
 import re
 import warnings
@@ -546,6 +547,7 @@ class ReductionParameters:
         "sameLen": "_validate_equal_len",
         "useEntry": "_validate_use_entry",
         "wedgeSources": "_validate_wedge_sources",
+        "pairwiseLessThan": "_validate_pairwise_less_than",
     }
 
     # 2. public class methods and static functions
@@ -846,6 +848,43 @@ class ReductionParameters:
                     yield jsonschema.ValidationError(f"{entry_path} is not a number")
                 if instance >= other_instance:
                     yield jsonschema.ValidationError(f"{instance} is not smaller than {entry_path}")
+
+    def _validate_pairwise_less_than(self, validator, value, instance, schema):
+        r"""Check that values in a list are smaller than the value in the same position in another list
+
+        Example: Qmin[0] should be smaller than Qmax[0], Qmin[1] should be smaller than Qmax[1], etc
+
+        Parameters
+        ----------
+        validator: ~jsonschema.IValidator
+        value: str, list
+            entry path(s) of the other parameters to compare to (e.g. '#configuration/Qmax')
+        instance: object
+            value for the entry being validated
+        schema: dict
+            schema related to `instance`
+
+        Raises
+        ------
+        ~jsonschema.ValidationError
+            when the validator fails or when `value` is not one of the allowed values
+        """
+        if isinstance(instance, (int, float)):
+            instance = [instance]
+        entry_paths = value
+        if isinstance(value, str):
+            entry_paths = [value]
+        for entry_path in entry_paths:
+            other_instance = self.get_parameter_value(entry_path)
+            if [instance, other_instance].count(None) == 1:
+                yield jsonschema.ValidationError(f"{entry_path} or its companion parameter is empty")
+            if isinstance(other_instance, (int, float)):
+                other_instance = [other_instance]
+            if instance and other_instance and len(instance) != len(other_instance):
+                yield jsonschema.ValidationError(f"{entry_path} and its companion parameter have different lengths")
+            if instance and other_instance:
+                if not greater(other_instance, instance).all():
+                    yield jsonschema.ValidationError(f"Pairwise less than failed for {instance} < {other_instance}")
 
     def _validate_exclusive_or(self, validator, value, instance, schema):
         r"""

@@ -647,24 +647,68 @@ class TestReductionParametersBIOSANS:
     }
     parameters_all = reduction_parameters(parameters_common, validate=False)
 
-    def test_validators_midrange_parameters_required(self, reference_dir):
+    def test_validators_midrange_parameters_required(self, temp_directory):
         parameters = deepcopy(self.parameters_all)
-        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
+        parameters["dataDirectories"] = temp_directory(prefix="biosans_validators")
         # remove all parameters related to the midrange detector
         config_no_midrange = {k: v for k, v in parameters["configuration"].items() if "Midrange" not in k}
         parameters["configuration"] = config_no_midrange
+        # need to add this back since it is validated against in overlap stitch parameters
+        parameters["configuration"]["overlapStitchIncludeMidrange"] = False
         with pytest.raises(jsonschema.ValidationError) as error_info:
             validate_reduction_parameters(parameters)
         assert "'darkMidrangeFileName' is a required property" in str(error_info.value)
 
-    def test_validators_midrange_qmin_qmax(self, reference_dir):
+    def test_validators_midrange_qmin_qmax(self, temp_directory):
         parameters = deepcopy(self.parameters_all)
-        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
+        parameters["dataDirectories"] = temp_directory(prefix="biosans_validators")
         parameters["configuration"]["QminMidrange"] = 0.07
         parameters["configuration"]["QmaxMidrange"] = 0.05
         with pytest.raises(jsonschema.ValidationError) as error_info:
             validate_reduction_parameters(parameters)
         assert "0.07 is not smaller than #configuration/QmaxMidrange" in str(error_info.value)
+
+    @pytest.mark.parametrize(
+        "qmin_name, qmax_name",
+        [
+            ("overlapStitchQmin", "overlapStitchQmax"),
+            ("wedge1overlapStitchQmin", "wedge1overlapStitchQmax"),
+            ("wedge2overlapStitchQmin", "wedge2overlapStitchQmax"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "throws_error, include_midrange, qmin_value, qmax_value",
+        [
+            (True, True, 0.01, 0.015),  # too few Qmin/Qmax for overlapStitchIncludeMidrange = True
+            (True, False, [0.01, 0.02], [0.015, 0.025]),  # too many Qmin/Qmax for overlapStitchIncludeMidrange = False
+            (True, False, None, [0.015]),  # different length
+            (True, False, [0.015], None),  # different length
+            (True, False, [0.01, 0.02], [0.015]),  # different length
+            (True, False, [0.02], [0.01]),  # min > max
+            (True, False, [0.01, 0.02, 0.03], [0.015, 0.025, 0.035]),  # lists too long
+            # valid inputs:
+            (False, False, None, None),
+            (False, True, None, None),
+            (False, False, [], []),
+            (False, True, [], []),
+            (False, False, 0.01, 0.015),
+            (False, True, [0.01, 0.02], [0.015, 0.025]),
+        ],
+    )
+    def test_overlap_stitch(
+        self, temp_directory, qmin_name, qmax_name, throws_error, include_midrange, qmin_value, qmax_value
+    ):
+        parameters = deepcopy(self.parameters_all)
+        parameters["dataDirectories"] = temp_directory(prefix="biosans_overlap_stitch")
+        parameters["configuration"]["overlapStitchIncludeMidrange"] = include_midrange
+        parameters["configuration"][qmin_name] = qmin_value
+        parameters["configuration"][qmax_name] = qmax_value
+        if throws_error:
+            with pytest.raises(jsonschema.ValidationError) as error_info:
+                validate_reduction_parameters(parameters)
+            assert qmax_name in str(error_info.value)
+        else:
+            validate_reduction_parameters(parameters)
 
 
 def test_generate_json_files(tmpdir, cleanfile):

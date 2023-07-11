@@ -114,7 +114,7 @@ def load_all_files(
     sample = reduction_input["sample"]["runNumber"]
 
     # on the fly check to see if mid-range detector is present in data
-    reduction_input["has_midrange_detector"] = has_midrange_detector(
+    reduction_input["has_midrange_detector"] = file_has_midrange_detector(
         sample=sample,
         ipts=ipts,
         instrument_name=instrument_name,
@@ -1757,7 +1757,7 @@ def form_output_name(workspace):
     return f"{file_name}.png"
 
 
-def has_midrange_detector(sample: str, instrument_name: str, ipts: str, directory: str) -> bool:
+def file_has_midrange_detector(sample: str, instrument_name: str, ipts: str, directory: str) -> bool:
     """
     Check if the sample has midrange detector
 

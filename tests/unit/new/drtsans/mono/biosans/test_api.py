@@ -8,7 +8,7 @@ from drtsans.mono.biosans.api import (
     prepare_data_workspaces,
     prepare_data,
     process_single_configuration,
-    has_midrange_detector,
+    file_has_midrange_detector,
 )
 from drtsans.mono.biosans import reduction_parameters
 from drtsans.mono.biosans.simulated_events import update_idf
@@ -560,7 +560,7 @@ def test_has_midrange_detector():
         "beamCenter": {"runNumber": "960"},
         "configuration": {"useDefaultMask": False},
     }
-    rst = has_midrange_detector(
+    rst = file_has_midrange_detector(
         sample=reduction_input["sample"]["runNumber"],
         instrument_name=reduction_input["instrumentName"],
         ipts=reduction_input["iptsNumber"],

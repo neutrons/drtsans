@@ -647,9 +647,9 @@ class TestReductionParametersBIOSANS:
     }
     parameters_all = reduction_parameters(parameters_common, validate=False)
 
-    def test_validators_midrange_parameters_required(self, temp_directory):
+    def test_validators_midrange_parameters_required(self, reference_dir):
         parameters = deepcopy(self.parameters_all)
-        parameters["dataDirectories"] = temp_directory(prefix="biosans_validators")
+        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
         # remove all parameters related to the midrange detector
         config_no_midrange = {k: v for k, v in parameters["configuration"].items() if "Midrange" not in k}
         parameters["configuration"] = config_no_midrange
@@ -659,9 +659,9 @@ class TestReductionParametersBIOSANS:
             validate_reduction_parameters(parameters)
         assert "'darkMidrangeFileName' is a required property" in str(error_info.value)
 
-    def test_validators_midrange_qmin_qmax(self, temp_directory):
+    def test_validators_midrange_qmin_qmax(self, reference_dir):
         parameters = deepcopy(self.parameters_all)
-        parameters["dataDirectories"] = temp_directory(prefix="biosans_validators")
+        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
         parameters["configuration"]["QminMidrange"] = 0.07
         parameters["configuration"]["QmaxMidrange"] = 0.05
         with pytest.raises(jsonschema.ValidationError) as error_info:
@@ -696,10 +696,10 @@ class TestReductionParametersBIOSANS:
         ],
     )
     def test_overlap_stitch(
-        self, temp_directory, qmin_name, qmax_name, throws_error, include_midrange, qmin_value, qmax_value
+        self, reference_dir, qmin_name, qmax_name, throws_error, include_midrange, qmin_value, qmax_value
     ):
         parameters = deepcopy(self.parameters_all)
-        parameters["dataDirectories"] = temp_directory(prefix="biosans_overlap_stitch")
+        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
         parameters["configuration"]["overlapStitchIncludeMidrange"] = include_midrange
         parameters["configuration"][qmin_name] = qmin_value
         parameters["configuration"][qmax_name] = qmax_value

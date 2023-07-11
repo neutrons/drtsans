@@ -9,7 +9,7 @@ stitch_profiles <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next
 """
 from drtsans.settings import namedtuplefy
 from drtsans.dataobjects import IQmod, testing
-from drtsans.stitch import stitch_profiles
+from drtsans.stitch import olt_q_boundary, stitch_profiles
 
 
 @pytest.fixture(scope="module")
@@ -434,6 +434,50 @@ def test_stitch(data_test_16b):
     # - uncertainties in Q values
     # We tolerate differences up to 1% of the stitched profile given in the test data
     testing.assert_allclose(result, data.stitched, rtol=data.tolerance, atol=0)
+
+
+@pytest.mark.parametrize(
+    "reduction_config, iq1d_wing_in, iq1d_main_out, qmin_expected, qmax_expected",
+    [
+        (
+            {
+                "overlapStitchQmin": [0.01],
+                "overlapStitchQmax": [0.014],
+            },
+            IQmod(intensity=[], error=[], mod_q=[]),
+            [IQmod(intensity=[], error=[], mod_q=[])],
+            [0.01],
+            [0.014],
+        ),
+        (
+            {
+                "wedge1overlapStitchQmin": [0.01],
+                "wedge1overlapStitchQmax": [0.014],
+                "wedge2overlapStitchQmin": [0.015],
+                "wedge2overlapStitchQmax": [0.021],
+            },
+            IQmod(intensity=[], error=[], mod_q=[]),
+            [IQmod(intensity=[], error=[], mod_q=[]), IQmod(intensity=[], error=[], mod_q=[])],
+            [0.01, 0.015],
+            [0.014, 0.021],
+        ),
+        (
+            {
+                "overlapStitchQmin": None,
+                "overlapStitchQmax": None,
+            },
+            IQmod(intensity=[1.0, 2.0, 3.0], error=[0.1, 0.1, 0.1], mod_q=[0.1, 0.2, 0.3]),
+            [IQmod(intensity=[1.0, 2.0, 3.0], error=[0.1, 0.1, 0.1], mod_q=[0.1, 0.2, 0.3])],
+            [0.1],
+            [0.3],
+        ),
+    ],
+)
+def test_olt_q_boundary(reduction_config, iq1d_wing_in, iq1d_main_out, qmin_expected, qmax_expected):
+    qmin = olt_q_boundary(reduction_config, iq1d_wing_in, "min", len(iq1d_main_out) > 1)
+    qmax = olt_q_boundary(reduction_config, iq1d_wing_in, "max", len(iq1d_main_out) > 1)
+    assert qmin == qmin_expected
+    assert qmax == qmax_expected
 
 
 if __name__ == "__main__":

@@ -99,10 +99,13 @@ def test_reduce_single_configuration_slice_transmission_false(temp_directory):
             "useMaskBackTubes": False,
             "darkMainFileName": "CG3_8331.nxs.h5",
             "darkWingFileName": "CG3_8331.nxs.h5",
+            "darkMidrangeFileName": "CG3_8331.nxs.h5",
             "normalization": "Monitor",
             "normalizationResortToTime": False,
             "sensitivityMainFileName": "/HFIR/CG3/shared/Cycle490/Sens_f8367m7p0_bsSVP.nxs",
             "sensitivityWingFileName": "/HFIR/CG3/shared/Cycle490/Sens_f8369w1p4_bsSVP.nxs",
+            # sensitivity file for mid-range detector should be added after
+            # the installation of the new mid-range detector.
             "useSolidAngleCorrection": True,
             "blockedBeamRunNumber": None,
             "useThetaDepTransCorrection": True,
@@ -234,10 +237,13 @@ def test_reduce_single_configuration_slice_transmission_true(temp_directory):
             "useMaskBackTubes": False,
             "darkMainFileName": "CG3_8331.nxs.h5",
             "darkWingFileName": "CG3_8331.nxs.h5",
+            "darkMidrangeFileName": "CG3_8331.nxs.h5",
             "normalization": "Monitor",
             "normalizationResortToTime": False,
             "sensitivityMainFileName": "/HFIR/CG3/shared/Cycle490/Sens_f8367m7p0_bsSVP.nxs",
             "sensitivityWingFileName": "/HFIR/CG3/shared/Cycle490/Sens_f8369w1p4_bsSVP.nxs",
+            # sensitivity file for mid-range detector should be added after
+            # the installation of the new mid-range detector.
             "useSolidAngleCorrection": True,
             "blockedBeamRunNumber": None,
             "useThetaDepTransCorrection": True,

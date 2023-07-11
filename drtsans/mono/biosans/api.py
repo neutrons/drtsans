@@ -5,7 +5,15 @@ from datetime import datetime
 import numpy as np
 import os
 
-from mantid.simpleapi import mtd, MaskDetectors, logger
+from mantid.simpleapi import (
+    mtd,
+    MaskDetectors,
+    LoadEventNexus,
+    LoadNexusProcessed,
+    DeleteWorkspace,
+)
+from mantid.kernel import Logger
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
@@ -15,7 +23,7 @@ from drtsans.path import abspath, abspaths, registered_workspace
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
 from drtsans.instruments import extract_run_number
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import namedtuplefy
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
 from drtsans import subtract_background
 from drtsans.reductionlog import savereductionlog
@@ -60,36 +68,59 @@ __all__ = [
 SI_WINDOW_NOMINAL_DISTANCE_METER = 0.071
 SAMPLE_SI_META_NAME = "CG3:CS:SampleToSi"
 
+# setup logger
+# NOTE: If logging information is not showing up, please check the mantid log level.
+#       If problem persists, please visit:
+#       https://docs.mantidproject.org/nightly/concepts/PropertiesFile.html#logging-properties
+logger = Logger("BioSANS")
+
 
 @namedtuplefy
 def load_all_files(
-    reduction_input,
-    prefix="",
-    load_params=None,
-    path=None,
-    use_nexus_idf=False,
-    debug_output=False,
-):
-    """load all required files at the beginning, and transform them to histograms
+    reduction_input: dict,
+    prefix: str = "",
+    load_params: dict = {},
+    path: str = None,
+    use_nexus_idf: bool = False,
+    debug_output: bool = False,
+) -> dict:
+    """Load all required files at the beginning, and transform them into histograms.
 
     Parameters
     ----------
-    reduction_input
-    prefix
-    load_params
-    path: str or None
+    reduction_input: dict
+        Dictionary containing the reduction input
+    prefix: str
+        Prefix to be used for the workspaces
+    load_params: dict
+        Dictionary containing the parameters to be passed to the Load event algorithm
+    path: str
         Path to search the NeXus file
     use_nexus_idf: bool
         Flag to enforce to use IDF from NeXus file.  It must be true for SPICE-converted NeXus
     debug_output: bool
         Flag to save internal data for debugging
 
+    Returns
+    -------
+    dict
+        Dictionary containing the configuration used to load the workspaces
     """
-    reduction_config = reduction_input["configuration"]  # a handy shortcut to the configuration parameters dictionary
+    # a handy shortcut to the configuration parameters dictionary
+    reduction_config = reduction_input["configuration"]
 
     instrument_name = reduction_input["instrumentName"]
     ipts = reduction_input["iptsNumber"]
     sample = reduction_input["sample"]["runNumber"]
+
+    # on the fly check to see if mid-range detector is present in data
+    reduction_input["has_midrange_detector"] = has_midrange_detector(
+        sample=sample,
+        ipts=ipts,
+        instrument_name=instrument_name,
+        directory=path,
+    )
+
     sample_trans = reduction_input["sample"]["transmission"]["runNumber"]
     bkgd = reduction_input["background"]["runNumber"]
     bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
@@ -114,6 +145,7 @@ def load_all_files(
     ws_to_remove.append(f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group")
     ws_to_remove.append(f"{prefix}_main_sensitivity")
     ws_to_remove.append(f"{prefix}_wing_sensitivity")
+    ws_to_remove.append(f"{prefix}_midrange_sensitivity")
     ws_to_remove.append(f"{prefix}_mask")
     if reduction_config["darkMainFileName"]:
         run_number = extract_run_number(reduction_config["darkMainFileName"])
@@ -121,13 +153,13 @@ def load_all_files(
     if reduction_config["darkWingFileName"]:
         run_number = extract_run_number(reduction_config["darkWingFileName"])
         ws_to_remove.append(f"{prefix}_{instrument_name}_{run_number}_raw_histo")
+    if reduction_config.get("darkMidrangeFileName", None):
+        run_number = extract_run_number(reduction_config["darkMidrangeFileName"])
+        ws_to_remove.append(f"{prefix}_{instrument_name}_{run_number}_raw_histo")
     for ws_name in ws_to_remove:
         if registered_workspace(ws_name):
             mtd.remove(ws_name)
 
-    # sample offsets, etc
-    if load_params is None:
-        load_params = {}
     # load nexus idf
     if use_nexus_idf:
         load_params["LoadNexusInstrumentXML"] = use_nexus_idf
@@ -152,12 +184,13 @@ def load_all_files(
     logslice = reduction_config["useLogSlice"]
     if timeslice or logslice:
         if len(sample.split(",")) > 1:
+            logger.error("Can't do slicing on summed data sets")
             raise ValueError("Can't do slicing on summed data sets")
 
     # thickness is written to sample log if it is defined...
     thickness = reduction_input["sample"]["thickness"]
-    sample_aperture_diameter = reduction_config["sampleApertureSize"]  # in milimiters
-    source_aperture_diameter = reduction_config["sourceApertureDiameter"]  # in milimiters
+    sample_aperture_diameter = reduction_config["sampleApertureSize"]  # in mm
+    source_aperture_diameter = reduction_config["sourceApertureDiameter"]  # in mm
 
     # Parse smearing pixel size x and y for all runs
     smearing_pixel_size_x_dict = parse_json_meta_data(
@@ -220,7 +253,7 @@ def load_all_files(
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
         if not registered_workspace(ws_name):
             filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
-            print(f"Loading filename {filename}")
+            logger.notice(f"Loading filename {filename}")
             if timeslice:
                 timesliceinterval = float(reduction_config["timeSliceInterval"])
                 logslicename = logsliceinterval = None
@@ -317,7 +350,7 @@ def load_all_files(
             ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
             if not registered_workspace(ws_name):
                 filename = abspaths(run_number, instrument=instrument_name, ipts=ipts, directory=path)
-                print(f"Loading filename {filename}")
+                logger.notice(f"Loading filename {filename}")
                 biosans.load_events_and_histogram(
                     filename,
                     output_workspace=ws_name,
@@ -344,10 +377,20 @@ def load_all_files(
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
 
-    dark_current_file_main = reduction_config["darkMainFileName"]
-    dark_current_file_wing = reduction_config["darkWingFileName"]
-    if dark_current_file_main and dark_current_file_wing:
-        # dark current for main detector
+    # load dark current
+    # step 0: check if mid-range detector is used
+    if reduction_input["has_midrange_detector"]:
+        dark_current_file_midrange = reduction_config.get("darkMidrangeFileName", None)
+    else:
+        dark_current_file_midrange = "no_midrange_detector"
+    # step 1: gather main and wing detector dark current
+    dark_current_file_main = reduction_config.get("darkMainFileName", None)
+    dark_current_file_wing = reduction_config.get("darkWingFileName", None)
+    # step 2: logic
+    # if and only if when none of the dark current files are None, we will load dark current
+    # otherwise set all dark current to None
+    if dark_current_file_main and dark_current_file_wing and dark_current_file_midrange:
+        # main
         dark_current_main = dark_current_correction(
             dark_current_file_main,
             default_mask,
@@ -363,7 +406,7 @@ def load_all_files(
             smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
             smearing_pixel_size_y_dict[meta_data.DARK_CURRENT],
         )
-        # dark current for wing detector
+        # wing
         dark_current_wing = dark_current_correction(
             dark_current_file_wing,
             default_mask,
@@ -379,30 +422,72 @@ def load_all_files(
             smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
             smearing_pixel_size_y_dict[meta_data.DARK_CURRENT],
         )
+        # midrange
+        if dark_current_file_midrange != "no_midrange_detector":
+            dark_current_midrange = dark_current_correction(
+                dark_current_file_midrange,
+                default_mask,
+                instrument_name,
+                ipts,
+                load_params,
+                path,
+                prefix,
+                wave_length_dict[meta_data.DARK_CURRENT],
+                wave_length_spread_dict[meta_data.DARK_CURRENT],
+                swd_value_dict[meta_data.DARK_CURRENT],
+                sdd_value_dict[meta_data.DARK_CURRENT],
+                smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
+                smearing_pixel_size_y_dict[meta_data.DARK_CURRENT],
+            )
+        else:
+            dark_current_midrange = None
     else:
-        dark_current_main = dark_current_wing = None
+        dark_current_main = None
+        dark_current_wing = None
+        dark_current_midrange = None
 
     # load required processed_files
-    sensitivity_main_ws_name = None
-    sensitivity_wing_ws_name = None
-    flood_file_main = reduction_config["sensitivityMainFileName"]
-    flood_file_wing = reduction_config["sensitivityWingFileName"]
-    if flood_file_main and flood_file_wing:
+    # step 0: check if mid-range detector is used
+    if reduction_input["has_midrange_detector"]:
+        flood_file_midrange = reduction_config.get("sensitivityMidrangeFileName", None)
+    else:
+        flood_file_midrange = "no_midrange_detector"
+    # step 1: gather main and wing detector processed_files
+    flood_file_main = reduction_config.get("sensitivityMainFileName", None)
+    flood_file_wing = reduction_config.get("sensitivityWingFileName", None)
+    # step 2: logic
+    # if and only if when none of the flood file are None, we will load teh sensitivity
+    # workspace, otherwise set all sensitivity workspace to None
+    if flood_file_main and flood_file_wing and flood_file_midrange:
+        # main
         sensitivity_main_ws_name = f"{prefix}_main_sensitivity"
-        sensitivity_wing_ws_name = f"{prefix}_wing_sensitivity"
         if not registered_workspace(sensitivity_main_ws_name):
-            print(f"Loading filename {flood_file_main}")
+            logger.notice(f"Loading filename {flood_file_main}")
             load_sensitivity_workspace(flood_file_main, output_workspace=sensitivity_main_ws_name)
+        # wing
+        sensitivity_wing_ws_name = f"{prefix}_wing_sensitivity"
         if not registered_workspace(sensitivity_wing_ws_name):
-            print(f"Loading filename {flood_file_wing}")
+            logger.notice(f"Loading filename {flood_file_wing}")
             load_sensitivity_workspace(flood_file_wing, output_workspace=sensitivity_wing_ws_name)
+        # midrange
+        if flood_file_midrange != "no_midrange_detector":
+            sensitivity_midrange_ws_name = f"{prefix}_midrange_sensitivity"
+            if not registered_workspace(sensitivity_midrange_ws_name):
+                logger.notice(f"Loading filename {flood_file_midrange}")
+                load_sensitivity_workspace(flood_file_midrange, output_workspace=sensitivity_midrange_ws_name)
+        else:
+            sensitivity_midrange_ws_name = None
+    else:
+        sensitivity_main_ws_name = None
+        sensitivity_wing_ws_name = None
+        sensitivity_midrange_ws_name = None
 
     mask_ws = None
     custom_mask_file = reduction_input["configuration"]["maskFileName"]
     if custom_mask_file is not None:
         mask_ws_name = f"{prefix}_mask"
         if not registered_workspace(mask_ws_name):
-            print(f"Loading filename {custom_mask_file}")
+            logger.notice(f"Loading filename {custom_mask_file}")
             mask_ws = load_mask(custom_mask_file, output_workspace=mask_ws_name)
         else:
             mask_ws = mtd[mask_ws_name]
@@ -420,6 +505,7 @@ def load_all_files(
     raw_bkg_trans_ws = mtd[f"{prefix}_{instrument_name}_{bkgd_trans}_raw_histo"] if bkgd_trans else None
     sensitivity_main_ws = mtd[sensitivity_main_ws_name] if sensitivity_main_ws_name else None
     sensitivity_wing_ws = mtd[sensitivity_wing_ws_name] if sensitivity_wing_ws_name else None
+    sensitivity_midrange_ws = mtd[sensitivity_midrange_ws_name] if sensitivity_midrange_ws_name else None
 
     if debug_output:
         for raw_sample in raw_sample_ws_list:
@@ -437,6 +523,7 @@ def load_all_files(
             raw_blocked_ws,
             dark_current_main,
             dark_current_wing,
+            dark_current_midrange,
         ]:
             if ws is not None:
                 plot_detector(
@@ -456,8 +543,10 @@ def load_all_files(
         blocked_beam=raw_blocked_ws,
         dark_current_main=dark_current_main,
         dark_current_wing=dark_current_wing,
+        dark_current_midrange=dark_current_midrange,
         sensitivity_main=sensitivity_main_ws,
         sensitivity_wing=sensitivity_wing_ws,
+        sensitivity_midrange=sensitivity_midrange_ws,
         mask=mask_ws,
     )
 
@@ -503,12 +592,11 @@ def dark_current_correction(
     -------
     ~mantid.api.MatrixWorkspace
        dark current correction workspace
-
     """
     run_number = extract_run_number(dark_current_file)
     ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
     if not registered_workspace(ws_name):
-        print(f"Loading filename {dark_current_file}")
+        logger.notice(f"Loading filename {dark_current_file}")
         # identify to use exact given path to NeXus or use OnCat instead
         temp_name = abspath(dark_current_file, instrument=instrument_name, ipts=ipts, directory=path)
         if os.path.exists(temp_name):
@@ -1224,7 +1312,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         _loginfo = f"Transmission (main detector)@{str(raw_sample_ws)}:  {trans_main}\n"
         _loginfo += f"Transmission (wing detector)@{str(raw_sample_ws)}: {trans_wing}"
         logger.notice(_loginfo)
-        print(_loginfo)
 
         # binning
         subpixel_kwargs = dict()
@@ -1239,12 +1326,12 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             logger.notice(f"Auto wedge options: {autoWedgeOpts}")
             autoWedgeOpts["debug_dir"] = output_dir
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
-            print("found wedge angles:")
+            logger.notice("found wedge angles:")
             peak_wedge, back_wedge = wedges
-            print("    peak:      ", peak_wedge)
-            print("    background:", back_wedge)
+            logger.notice("    peak:      ", peak_wedge)
+            logger.notice("    background:", back_wedge)
             del peak_wedge, back_wedge
-            print(f"wedges: {wedges}")
+            logger.notice(f"wedges: {wedges}")
 
         # set the found wedge values to the reduction input, this will allow correct plotting
         reduction_config["wedges"] = wedges
@@ -1684,3 +1771,45 @@ def form_output_name(workspace):
     workspace_name = str(workspace)
     file_name = workspace_name.split("/")[-1].split(".")[0]
     return f"{file_name}.png"
+
+
+def has_midrange_detector(sample: str, instrument_name: str, ipts: str, directory: str) -> bool:
+    """
+    Check if the sample has midrange detector
+
+    Parameters
+    ----------
+    sample
+        Sample name
+    instrument_name
+        Instrument name
+    ipts
+        IPTS number
+    directory
+        Directory of the data
+
+    Returns
+    -------
+    bool
+        True if the sample has midrange detector
+    """
+    filename = abspath(
+        sample.strip(),
+        instrument=instrument_name,
+        ipts=ipts,
+        directory=directory,
+    )
+
+    out_ws_name = unique_workspace_dundername()
+
+    try:
+        workspace = LoadEventNexus(Filename=filename, MetadataOnly=True, OutputWorkspace=out_ws_name)
+    except RuntimeError:
+        workspace = LoadNexusProcessed(Filename=filename, OutputWorkspace=out_ws_name)
+
+    has_midrange = workspace.getInstrument().getComponentByName("midrange_detector") is not None
+
+    # cleanup
+    DeleteWorkspace(workspace)
+
+    return has_midrange

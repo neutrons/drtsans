@@ -3,7 +3,8 @@ import random
 import string
 from collections import OrderedDict
 import functools
-from collections import namedtuple, Mapping
+from collections import namedtuple
+from collections.abc import Mapping
 from contextlib import contextmanager
 
 import mantid

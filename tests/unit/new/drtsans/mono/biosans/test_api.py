@@ -8,6 +8,7 @@ from drtsans.mono.biosans.api import (
     prepare_data_workspaces,
     prepare_data,
     process_single_configuration,
+    has_midrange_detector,
 )
 from drtsans.mono.biosans import reduction_parameters
 from drtsans.mono.biosans.simulated_events import update_idf
@@ -542,6 +543,30 @@ def test_process_single_configuration_thickness_absolute_scale(generic_workspace
 
     output, _ = process_single_configuration(ws, solid_angle=False, absolute_scale=1.5, thickness=0.1)
     assert_equal(output.extractY(), [[15], [30], [45], [60]])
+
+
+@pytest.mark.skipif(
+    not os.path.exists("/HFIR/HB2B/shared/autoreduce/"),
+    reason="Skip test if HFIR mount is down.",
+)
+def test_has_midrange_detector():
+    """Unit test for helper function has_midrange_detector."""
+    reduction_input = {
+        "instrumentName": "CG3",
+        "iptsNumber": "23782",
+        "sample": {"runNumber": "960", "transmission": {"runNumber": ""}},
+        "background": {"runNumber": "", "transmission": {"runNumber": ""}},
+        "emptyTransmission": {"runNumber": ""},
+        "beamCenter": {"runNumber": "960"},
+        "configuration": {"useDefaultMask": False},
+    }
+    rst = has_midrange_detector(
+        sample=reduction_input["sample"]["runNumber"],
+        instrument_name=reduction_input["instrumentName"],
+        ipts=reduction_input["iptsNumber"],
+        directory=None,
+    )
+    assert not rst
 
 
 if __name__ == "__main__":

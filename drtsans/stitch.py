@@ -1,3 +1,4 @@
+from mantid.simpleapi import logger
 import numpy as np
 
 __all__ = [
@@ -107,3 +108,80 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
         current_index = current_index + 1
 
     return target_profile
+
+
+def olt_q_boundary(reduction_config, iq1d_high_q, boundary, anisotropic=False):
+    r"""Initialize the stitching boundaries when a list of boundaries has not been specified
+
+    Parameters
+    ----------
+    reduction_config: dict
+        The dictionary of reduction parameters
+    iq1d_high_q: :py:obj:`~drtsans.dataobjects.IQmod`
+         The unbinned higher-Q profile of the intensity profiles to stitch
+    boundary: str
+        Either 'min' or 'max'
+    anisotropic: bool
+        If True, returns the two boundaries for anisotropic/wedge binning, i.e. for "min" returns
+        "wedge1overlapStitchQmin" and "wedge2overlapStitchQmin".
+        If False, returns the boundary for isotropic binning, i.e. for "min" returns "overlapStitchQmin".
+
+    Returns
+    -------
+    list
+        A list of boundary values
+    """
+    if boundary not in ("min", "max"):
+        raise ValueError('Only "min" or "max" are valid arguments')
+
+    def get_isotropic_stitch_q_boundary():
+        """Get stitch overlap boundary (min/max) for isotropic reduction
+
+        Returns
+        -------
+        list
+            List of one boundary value (min/max)
+        """
+        olt_q = reduction_config[f"overlapStitchQ{boundary}"]  # guaranteed `None` or `list`
+        boundary_value = get_stitch_q_boundary(olt_q)
+        return [boundary_value]
+
+    def get_anisotropic_stitch_q_boundary():
+        """Get stitch overlap boundary (min/max) for anisotropic reduction (wedges)
+
+        Returns
+        -------
+        list
+            List of one boundary value each (min/max) for the two wedges
+        """
+        boundary_values = []
+        for wedge in ["wedge1", "wedge2"]:
+            olt_q = reduction_config[f"{wedge}overlapStitchQ{boundary}"]  # guaranteed `None` or `list`
+            boundary_value = get_stitch_q_boundary(olt_q)
+            boundary_values.append(boundary_value)
+        return boundary_values
+
+    def get_stitch_q_boundary(overlap_q):
+        """Get stitch overlap boundary (min/max) from configuration or boundary value of the higher-Q intensity profile
+
+        Parameters
+        ----------
+        overlap_q: list or None
+            The value of the configuration parameter for the overlap boundary
+
+        Returns
+        -------
+        float
+        """
+        if overlap_q is None:
+            logger.notice(f"Stitch Q{boundary} is None. Getting stitch Q{boundary} from {boundary}(I(Q))")
+            extremum_function = getattr(iq1d_high_q.mod_q, boundary)  # either min() or max() method
+            return extremum_function()
+        else:
+            # TODO: temporarily, until the midrange detector is added, the list only has one entry
+            return overlap_q[0]
+
+    if not anisotropic:  # scalar or annular
+        return get_isotropic_stitch_q_boundary()
+    else:  # wedges
+        return get_anisotropic_stitch_q_boundary()

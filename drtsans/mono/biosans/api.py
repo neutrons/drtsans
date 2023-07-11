@@ -2,7 +2,6 @@
 from collections import namedtuple
 import copy
 from datetime import datetime
-import numpy as np
 import os
 
 from mantid.simpleapi import (
@@ -52,6 +51,7 @@ from drtsans.load import move_instrument
 from drtsans.mono.meta_data import parse_json_meta_data
 from drtsans.mono import meta_data
 from drtsans.mono.biosans.geometry import has_midrange_detector
+from drtsans.stitch import olt_q_boundary
 
 
 # Functions exposed to the general user (public) API
@@ -1383,24 +1383,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_wing.dat")
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_wing_out)
 
-        def olt_q_boundary(boundary):
-            r"""Initialize the stitching boundaries when a list of boundaries has not been specified
-            boundary: str; Either 'min' or 'max'
-            Returns: list
-            """
-            if boundary not in ("min", "max"):
-                raise ValueError('Only "min" or "max" are valid arguments')
-            olt_q = reduction_config[f"overlapStitchQ{boundary}"]  # guaranteed `None` or `list`
-            if olt_q is None:
-                extremum_function = getattr(iq1d_wing_in.mod_q, boundary)  # either min() or max() method
-                return np.repeat(extremum_function(), len(iq1d_main_out))
-            elif len(olt_q) == 1:
-                return np.repeat(olt_q[0], len(iq1d_main_out))
-            else:
-                return np.array(olt_q)
-
-        OLT_Qmin = olt_q_boundary("min")
-        OLT_Qmax = olt_q_boundary("max")
+        OLT_Qmin = olt_q_boundary(reduction_config, iq1d_wing_in, "min", len(iq1d_main_out) > 1)
+        OLT_Qmax = olt_q_boundary(reduction_config, iq1d_wing_in, "max", len(iq1d_main_out) > 1)
 
         iq1d_combined_out = []
         for j in range(len(iq1d_main_out)):

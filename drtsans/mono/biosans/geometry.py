@@ -1,6 +1,6 @@
 # local imports
 from drtsans.geometry import get_position_south_detector
-from drtsans.mono.biosans.beam_finder import _calculate_neutron_drop
+from drtsans.beam_finder import _calculate_neutron_drop
 from drtsans.samplelogs import SampleLogs
 
 # third party imports
@@ -76,7 +76,7 @@ def set_position_south_detector(input_workspace, distance):
             raise ValueError(f"Invalid distance: {distance}. Must be greater than {WING_RADIUS} meters.")
     MoveInstrumentComponent(Workspace=workspace, ComponentName="detector1", Z=distance, RelativePosition=False)
     sample = mantid_instrument.getSample()
-    SampleLogs(workspace).insert("sample_detector_distance", distance - sample.getPos().Z())
+    SampleLogs(workspace).insert("sample_detector_distance", distance - sample.getPos().Z(), unit="m")
 
 
 def _get_angle_curved_detector(input_workspace, detector_name, offset_rotation, counter_clockwise=True):
@@ -288,11 +288,3 @@ def midrange_to_wing_tubepixel(input_workspace):
         wing_pixel = int((wing_y_coord + TUBE_LENGTH / 2 + wing_gravity_drop) / PIXEL_HEIGHT)
         md2ww_pixel.append(wing_pixel)
     return md2ww_pixel
-
-
-# quick id's for different components
-info_ids = {
-    "detector1": {"spectrum_info_range": (2, 49154)},  # 49154 is the first pixel in the next component
-    "wing_detector": {"spectrum_info_range": (49154, 90114)},  # 90114 is the first pixel in the next component
-    "midrange_detector": {"spectrum_info_range": (90114, 106498)},
-}

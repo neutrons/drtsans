@@ -21,9 +21,10 @@ class TestPrepareSensitivityCorrection:
         assert preparer_midrange._component == "midrange_detector"
 
     def test_curved_detectors(self, biosans_synthetic_dataset):
+        data = biosans_synthetic_dataset
         preparer_midrange = PrepareSensitivityCorrection(component="midrange_detector")
-        preparer_midrange._flood_runs = [biosans_synthetic_dataset["flood"]]
-        with amend_config(data_dir=str(biosans_synthetic_dataset["data_dir"])):
+        preparer_midrange._flood_runs = [data["runs"]["flood"]]
+        with amend_config(data_dir=str(data["data_dir"])):
             assert preparer_midrange.curved_detectors == ["wing_detector", "midrange_detector"]
 
     def test_prepare_data_opts(self):
@@ -52,9 +53,10 @@ class TestPrepareSensitivityCorrection:
         biosans_synthetic_dataset,
         clean_workspace,
     ):
-        with amend_config(data_dir=str(biosans_synthetic_dataset["data_dir"])):
+        data = biosans_synthetic_dataset
+        with amend_config(data_dir=str(data["data_dir"])):
             # mock loading the beam center run and the monitor count
-            beam_center_run = biosans_synthetic_dataset["beam_center"]
+            beam_center_run = data["runs"]["beam_center"]
             workspace_beam_center = LoadNexusProcessed(
                 Filename=abspath(beam_center_run, instrument="CG3"), OutputWorkspace=f"BC_CG3_{beam_center_run}"
             )
@@ -64,7 +66,7 @@ class TestPrepareSensitivityCorrection:
             # test the method
             preparer_main = PrepareSensitivityCorrection(component="detector1")
             preparer_main._extra_mask_dict = dict(Components=["wing_detector", "midrange_detector"])
-            preparer_main._flood_runs = [biosans_synthetic_dataset["flood"]]
+            preparer_main._flood_runs = [data["runs"]["flood"]]
             prepared_beam_center = preparer_main._get_beam_center_workspace(f"CG3_{beam_center_run}")
             clean_workspace(prepared_beam_center)  # mark for deletion upon exit or exception
 

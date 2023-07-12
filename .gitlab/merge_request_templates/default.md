@@ -1,4 +1,4 @@
-Description of work.
+**Description of work:**
 
 - [ ] Source added/refactored?
 - [ ] Added unit tests?

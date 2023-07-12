@@ -1249,15 +1249,15 @@ def update_reduction_parameters(parameters_original, parameter_changes, validate
     return validate_reduction_parameters(parameters_updated)
 
 
-def _update_reduction_parameters(parameters_original, parameter_changes):
+def _update_reduction_parameters(parameters_original: dict, parameter_changes: dict) -> None:
     r"""
     Update the values of a reduction parameters dictionary with values from another dictionary. Handles nested
     dictionaries. Update is performed in-place.
 
     Parameters
     ----------
-    parameters_original: dict
-    parameter_changes: dict
+    parameters_original
+    parameter_changes
 
     Returns
     -------
@@ -1265,6 +1265,8 @@ def _update_reduction_parameters(parameters_original, parameter_changes):
     """
     for name, value in parameter_changes.items():
         if isinstance(value, dict):
+            if name not in parameters_original:
+                parameters_original[name] = {}
             _update_reduction_parameters(parameters_original[name], value)
         else:
             parameters_original[name] = value

@@ -1,17 +1,30 @@
 # local imports
 from drtsans.dataobjects import DataType, getDataType
+from drtsans.geometry import spectrum_info_ranges
 from drtsans.instruments import fetch_idf as instruments_fetch_idf
 from drtsans.instruments import empty_instrument_workspace
-from drtsans.mono.biosans.geometry import set_position_south_detector
+from drtsans.mono.biosans.geometry import (
+    PIXELS_IN_TUBE,
+    set_angle_midrange_detector,
+    set_angle_wing_detector,
+    set_position_south_detector,
+)
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import amend_config, unique_workspace_dundername
-from drtsans.simulated_events import insert_beam_spot, insert_background, insert_events_isotropic
+from drtsans.simulated_events import (
+    insert_beam_spot,
+    insert_background,
+    insert_events_isotropic,
+    insert_events_sin_squared,
+    insert_events_ring,
+)
 
 # third party imports
 from mantid.api import mtd
 import mantid.simpleapi as mtds
 from mantid.simpleapi import (
     AddSampleLog,
+    CloneWorkspace,
     CompareWorkspaces,
     CreateWorkspace,
     DeleteWorkspace,
@@ -1428,82 +1441,231 @@ def serve_events_workspace(reference_dir):
 
 
 @pytest.fixture(scope="session")
-def biosans_synthetic_dataset(tmp_path_factory) -> dict:
+def biosans_synthetic_dataset(reference_dir, tmp_path_factory) -> dict:
     r"""
     Create a synthetic dataset for testing the BIOSANS reduction. The dataset contains
     Nexus-processed event files with names CG3_XXXX.nxs, where XXXX is a run number.
 
-    -Flood run 12344. Create a synthetic flood run as an isotropic scattering plus a gaussian background noise.
+    -Flood run 92344. Create a synthetic flood run as an isotropic scattering plus a gaussian background noise.
      We tune the component efficiencies so that a pixel in any of the three components has more or less 200 events.
 
-    -Beam center run 12345. Create a synthetic beam center run with a beam spot with center at
+    -Beam center run 92345. Create a synthetic beam center run with a beam spot with center at
      (x, y) = (-0.016, -0.018) and diameter=0.02 (meter), with no more than about 400 events
      in any of the pixels of the spot. Add also a gaussian background noise.
 
     Usage
     -----
 
+
+    from mantid.simpleapi import LoadNexusProcessed
+    from unittest.mock import patch as mock_patch
+
+    def _mock_LoadEventNexus(*args, **kwargs):
+        # Substitute LoadEventNexus with LoadNexusProcessed because our synthetic files were created with SaveNexus
+        return LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
+
+    @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
     @mock_patch("drtsans.load.__monitor_counts")
-    @mock_patch("drtsans.load.LoadEventNexus")
-    def test_function(mock_LoadEventNexus,
-                      mock_monitor_counts,
-                      biosans_synthetic_dataset):
-    with amend_config(data_dir=str(biosans_synthetic_dataset["data_dir"])):
-        run_number = biosans_synthetic_dataset["beam_center"]
-        mock_LoadEventNexus.return_value = LoadNexusProcessed(f"BIOSANS{run_number}", OutputWorkspace="my_workspace")
-        mock_monitor_counts.return_value = 42
-        from drtsans.load import load_events
-        my_workspace = load_events(run_number)  # requires mocking LoadEventNexus and __monitor_counts
+    def test_function(mock_monitor_counts, biosans_synthetic_dataset):
+        mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
+        with amend_config(data_dir=str(biosans_synthetic_dataset["data_dir"])):
+            run_number = biosans_synthetic_dataset["beam_center"]
+            # in this test, we just use load_events() to load one of the synthetic runs
+            from drtsans.load import load_events
+            my_workspace = load_events(run_number)  # requires mocking LoadEventNexus and __monitor_counts
 
     Yields
     -------
-    dict with the following keys:
-    - data_dir: path to the directory holding the runs
-    - flood: number of the flood run
-    - beam_center: number of the beam center run
+    dict with the following content:
+        {
+        "data_dir": runs_directory,  # string representing the directory holding the runs
+        "monitor_counts": 4200,
+        "transmission": 0.57,  # transmission of the sample and of the background runs
+        "runs": {
+            "beam_center": 92300,  # e.g. CG3_92300.nxs.h5
+            "empty_transmission": 92300,
+            "sample": 92310,
+            "background": 92320,
+            "sample_transmission": 92330,
+            "background_transmission": 92330,
+            "dark_current": 92340,
+            "flood": 92350,
+            }
+        "sensitivity": {
+            "detector1": "sensitivity_detector1.nxs",
+            "wing_detector": "sensitivity_wing_detector.nxs",
+            "midrange_detector": "sensitivity_midrange_detector.nxs",
+            }
+        }
     """
 
-    def apply_common_run_settings(input_workspace):
+    def _filename(run: int) -> str:
+        r"""Sets the convention for the file name associated to a run number"""
+        return f"CG3_{run}.nxs.h5"
+
+    # determine if the dataset is already stored in the testing file dataset
+    runs_directory = pjoin(reference_dir.new.biosans, "synthetic_dataset")
+    populate_cache = False
+    if os.path.exists(runs_directory) and os.path.isdir(runs_directory):
+        for run in [92300, 92310, 92320, 92330, 92340, 92350]:
+            if not os.path.exists(pjoin(runs_directory, _filename(run))):
+                populate_cache = True  # if any run is missing, we need to create the dataset
+                break
+        for component in ["detector1", "wing_detector", "midrange_detector"]:
+            if not os.path.exists(pjoin(runs_directory, f"sensitivity_{component}.nxs")):
+                populate_cache = True
+                break
+    else:
+        populate_cache = True  # if the directory does not exist, we need to create the dataset
+
+    # determine if we have permissions to create the dataset
+    if populate_cache is True:
+        try:
+            os.mkdir(runs_directory)
+        except PermissionError:
+            # create a temporary directory only for testing purposes
+            runs_directory = str(tmp_path_factory.mktemp("BIOSANS_synthetic_dataset"))
+        except FileExistsError:  # directory already exists
+            # check the directory is writeable
+            if os.access(runs_directory, os.W_OK) is False:  # not writeable
+                # create a temporary directory only for testing purposes
+                runs_directory = str(tmp_path_factory.mktemp("BIOSANS_synthetic_dataset"))
+
+    kit = {
+        "data_dir": runs_directory,
+        "center_x": -0.008,  # beam spot center, in meters
+        "center_y": -0.016,
+        "monitor_counts": 4200,
+        "transmission": 0.57,
+        "runs": {
+            "beam_center": 92300,
+            "empty_transmission": 92300,
+            "sample": 92310,
+            "background": 92320,
+            "sample_transmission": 92330,
+            "background_transmission": 92330,
+            "dark_current": 92340,
+            "flood": 92350,
+        },
+        "sensitivity": {
+            "detector1": "sensitivity_detector1.nxs",
+            "wing_detector": "sensitivity_wing_detector.nxs",
+            "midrange_detector": "sensitivity_midrange_detector.nxs",
+        },
+    }
+
+    # no need to do anything else if the dataset already exists
+    if populate_cache is False:
+        return kit
+
+    idf_file = instruments_fetch_idf("BIOSANS_Definition.xml", output_directory=str(runs_directory))
+    center_x, center_y = kit["center_x"], kit["center_y"]  # beam spot center, in meters
+
+    def apply_common_run_settings(input_workspace: str) -> None:
         r"""Endow the workspace with settings common to all runs, like the position of
         the detector panels and the values of certain logs required by the BIOSANS' API
         """
-
-        set_position_south_detector(input_workspace, distance=5.0)
+        set_position_south_detector(input_workspace, distance=8.0)
+        set_angle_wing_detector(input_workspace, angle=7.0)
+        set_angle_midrange_detector(input_workspace, angle=3.0)
         SampleLogs(input_workspace).insert("start_time", "2023-08-01 00:00:00")
-        AddSampleLog(
-            Workspace=input_workspace,
-            LogName="CG3:CS:SampleToSi",
-            LogText="0.0",
-            LogType="Number Series",
-            LogUnit="mm",
-            NumberType="Double",
-        )
-        AddSampleLog(
-            Workspace=input_workspace,
-            LogName="wavelength",
-            LogText="18.0",
-            LogType="Number Series",
-            LogUnit="A",
-            NumberType="Double",
-        )
-        AddSampleLog(
-            Workspace=input_workspace,
-            LogName="wavelength_spread",
-            LogText="0.1",
-            LogType="Number Series",
-            LogUnit="",
-            NumberType="Double",
-        )
+        SampleLogs(input_workspace).insert("end_time", "2023-08-01 00:01:00")
+        SampleLogs(input_workspace).insert("duration", 60.0, unit="seconds")
+        logs_number_series = [
+            dict(LogName="CG3:CS:SampleToSi", LogText="65.0", LogUnit="mm"),
+            dict(LogName="wavelength", LogText="18.0", LogUnit="A"),
+            dict(LogName="wavelength_spread", LogText="0.1", LogUnit=""),
+            dict(LogName="sample_aperture_diameter", LogText="-1.0", LogUnit="mm"),
+            dict(LogName="source_aperture_diameter", LogText="10.0", LogUnit="mm"),
+        ]
+        for log in logs_number_series:
+            AddSampleLog(Workspace=input_workspace, LogType="Number Series", NumberType="Double", **log)
 
-    # directory holding the runs
-    runs_directory = tmp_path_factory.mktemp("BIOSANS_synthetic_dataset")
-    idf_file = instruments_fetch_idf("BIOSANS_Definition.xml", output_directory=str(runs_directory))
-    #
-    # FLOOD
-    flood_run = "12344"
-    ws_flood = unique_workspace_dundername()
-    empty_instrument_workspace(ws_flood, filename=idf_file, event_workspace=True)
-    apply_common_run_settings(ws_flood)
+    def common_empty_workspace(events=True) -> string:
+        r"""Create an empty workspace with the correct instrument definition file"""
+        workspace_name = unique_workspace_dundername()
+        empty_instrument_workspace(workspace_name, filename=idf_file, event_workspace=events)
+        apply_common_run_settings(workspace_name)
+        return workspace_name
+
+    # EMPTY TRANSMISSION and BEAM CENTER RUN
+    ws_beam_center = common_empty_workspace()
+    max_ct = 10000  # max counts in any pixel of the beam spot
+    # max_counts_in_pixel=10000 will insert no more than 400 neutrons counts on any of the pixels of the beam spot
+    insert_beam_spot(ws_beam_center, center_x=center_x, center_y=center_y, diameter=0.015, max_counts_in_pixel=max_ct)
+    insert_background(ws_beam_center, flavor="flat noise", min_counts=0, max_counts=2)
+    SaveNexus(InputWorkspace=ws_beam_center, Filename=pjoin(runs_directory, _filename(kit["runs"]["beam_center"])))
+    SaveNexus(
+        InputWorkspace=ws_beam_center, Filename=pjoin(runs_directory, _filename(kit["runs"]["empty_transmission"]))
+    )
+    DeleteWorkspace(ws_beam_center)
+
+    # SAMPLE RUN
+    ws_sample = common_empty_workspace()
+    insert_events_sin_squared(
+        ws_sample,
+        center_x=center_x,
+        center_y=center_y,
+        period=6.0,
+        max_counts_in_pixel=2000,
+        components=["detector1", "wing_detector", "midrange_detector"],
+        component_efficiencies=[1.0, 0.02, 0.2],
+    )
+    insert_events_ring(
+        ws_sample,
+        center_x=center_x,
+        center_y=center_y,
+        twotheta_center=5.5,
+        twotheta_dev=3.0,
+        max_counts_in_pixel=200,
+        components=["detector1", "wing_detector", "midrange_detector"],
+        component_efficiencies=[1.0, 0.05, 0.5],
+    )
+    insert_background(ws_sample, flavor="flat noise", min_counts=0, max_counts=2)
+    SaveNexus(InputWorkspace=ws_sample, Filename=pjoin(runs_directory, _filename(kit["runs"]["sample"])))
+    DeleteWorkspace(ws_sample)
+
+    # BACKGROUND RUN
+    ws_background = common_empty_workspace()
+    insert_events_ring(
+        ws_background,
+        center_x=center_x,
+        center_y=center_y,
+        twotheta_center=5.5,
+        twotheta_dev=3.0,
+        max_counts_in_pixel=200,
+        components=["detector1", "wing_detector", "midrange_detector"],
+        component_efficiencies=[1.0, 0.05, 0.5],
+    )
+    insert_background(ws_background, flavor="flat noise", min_counts=0, max_counts=2)
+    SaveNexus(InputWorkspace=ws_background, Filename=pjoin(runs_directory, _filename(kit["runs"]["background"])))
+    DeleteWorkspace(ws_background)
+
+    # SAMPLE TRANSMISSION AND BACKGROUND TRANSMISSION RUN
+    transmission = 0.75
+    ws_sample_transmission = common_empty_workspace()
+    insert_beam_spot(
+        ws_sample_transmission,
+        center_x=center_x,
+        center_y=center_y,
+        diameter=0.015,
+        max_counts_in_pixel=int(transmission * max_ct),
+    )
+    insert_background(ws_sample_transmission, flavor="flat noise", min_counts=0, max_counts=2)
+    SaveNexus(
+        InputWorkspace=ws_sample_transmission,
+        Filename=pjoin(runs_directory, _filename(kit["runs"]["sample_transmission"])),
+    )
+    DeleteWorkspace(ws_sample_transmission)
+
+    # DARK CURRENT
+    ws_dark_current = common_empty_workspace()
+    insert_background(ws_dark_current, flavor="flat noise", min_counts=0, max_counts=2)
+    SaveNexus(InputWorkspace=ws_dark_current, Filename=pjoin(runs_directory, _filename(kit["runs"]["dark_current"])))
+    DeleteWorkspace(ws_dark_current)
+
+    # FLOOD RUN
+    ws_flood = common_empty_workspace()
     insert_events_isotropic(
         ws_flood,
         max_counts_in_pixel=5000,
@@ -1513,24 +1675,32 @@ def biosans_synthetic_dataset(tmp_path_factory) -> dict:
         solid_angle_correction=True,
     )
     insert_background(ws_flood, components="detector1", flavor="gaussian noise", mean=5, stddev=5)
-    SaveNexus(InputWorkspace=ws_flood, Filename=str(runs_directory / f"CG3_{flood_run}.nxs.h5"))
+    SaveNexus(InputWorkspace=ws_flood, Filename=pjoin(runs_directory, _filename(kit["runs"]["flood"])))
     DeleteWorkspace(ws_flood)
-    #
-    # BEAM CENTER
-    beam_center_run = "12345"
-    ws_beam_center = unique_workspace_dundername()
-    empty_instrument_workspace(ws_beam_center, filename=idf_file, event_workspace=True)
-    apply_common_run_settings(ws_beam_center)
-    # max_counts_in_pixel=10000 will insert no more than 400 neutrons counts on any of the pixels of the beam spot
-    insert_beam_spot(ws_beam_center, center_x=-0.016, center_y=-0.018, diameter=0.02, max_counts_in_pixel=10000)
-    insert_background(ws_beam_center, components="detector1", flavor="gaussian noise", mean=10, stddev=2)
-    SaveNexus(InputWorkspace=ws_beam_center, Filename=str(runs_directory / f"CG3_{beam_center_run}.nxs.h5"))
-    DeleteWorkspace(ws_beam_center)
 
-    yield {"data_dir": runs_directory, "flood": flood_run, "beam_center": beam_center_run}
+    # DETECTOR-PANEL SENSITIVITY FILES
+    ws_sensitivity = common_empty_workspace(events=False)  # template workspace with all pixel vales set to NaN
+    workspace = mtd[ws_sensitivity]
+    pixel_count = workspace.getNumberHistograms()
+    for workspace_index in range(pixel_count):
+        workspace.dataY(workspace_index)[:] = [float("nan")]
+    for component in ["detector1", "wing_detector", "midrange_detector"]:
+        workspace = CloneWorkspace(InputWorkspace=ws_sensitivity, OutputWorkspace=unique_workspace_dundername())
+        # set the sensitivity values for each tube to 1.0, except the first and last 16 pixels
+        gap = 16
+        start, end = gap, PIXELS_IN_TUBE - gap
+        first_index, next_to_last_index = spectrum_info_ranges(workspace, component)
+        current_index = first_index
+        while current_index < next_to_last_index:
+            for workspace_index in range(current_index + start, current_index + end):
+                workspace.dataY(workspace_index)[:] = [1.0]
+            current_index += PIXELS_IN_TUBE
+        SaveNexus(InputWorkspace=workspace, Filename=pjoin(runs_directory, kit["sensitivity"][component]))
+        DeleteWorkspace(workspace)
+    DeleteWorkspace(ws_sensitivity)
 
-    # tear down (clean up) workspaces and runs directory
-    rmtree(runs_directory, ignore_errors=True)
+    # fixture tmp_path_factory will clear runs_directory if it is a temporary directory
+    return kit
 
 
 def _assert_both_set_or_none(left, right, assert_func, err_msg):

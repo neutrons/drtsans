@@ -95,7 +95,7 @@ def load_all_files(
     load_params: dict
         Dictionary containing the parameters to be passed to the Load event algorithm
     path: str
-        Path to search the NeXus file
+        Additional path to search the for NeXus files
     use_nexus_idf: bool
         Flag to enforce to use IDF from NeXus file.  It must be true for SPICE-converted NeXus
     debug_output: bool

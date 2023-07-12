@@ -1,37 +1,18 @@
-from scipy import constants
-import numpy as np
+# local imports
 import drtsans.beam_finder as bf
 from drtsans.beam_finder import fbc_options_json
-from typing import Tuple
-from mantid import mtd
-from mantid.kernel import logger
 from drtsans.samplelogs import SampleLogs
 
+# third party imports
+from mantid import mtd
+from mantid.kernel import logger
+import numpy as np
+
+# standard imports
+from typing import Tuple
+
+
 __all__ = ["center_detector", "find_beam_center", "fbc_options_json"]
-
-
-def _calculate_neutron_drop(path_length, wavelength):
-    """Calculate the gravitational drop of the neutrons from the wing detector
-    (which is closer) to the main detector.
-
-    Parameters
-    ----------
-    path_length : float
-        path_length in meters
-    wavelength : float
-        wavelength in Angstrom
-
-    Returns
-    -------
-    float
-        Return the Y drop in meters
-    """
-    wavelength *= 1e-10
-    neutron_mass = constants.neutron_mass
-    gravity = constants.g
-    h_planck = constants.Planck
-    y_drop = (gravity * neutron_mass**2 / (2.0 * h_planck**2)) * path_length**2
-    return wavelength**2 * y_drop
 
 
 def _beam_center_gravitational_drop(
@@ -72,8 +53,8 @@ def _beam_center_gravitational_drop(
     wavelength = np.mean(sl.wavelength.value)
 
     # this comes back as a positive number
-    drop_main = _calculate_neutron_drop(sample_det_cent_main_detector, wavelength)
-    drop_curved = _calculate_neutron_drop(sample_det_cent_curved_detector, wavelength)
+    drop_main = bf._calculate_neutron_drop(sample_det_cent_main_detector, wavelength)
+    drop_curved = bf._calculate_neutron_drop(sample_det_cent_curved_detector, wavelength)
 
     new_beam_center_y = beam_center_y + drop_main - drop_curved + (vertical_offset)
     logger.information(

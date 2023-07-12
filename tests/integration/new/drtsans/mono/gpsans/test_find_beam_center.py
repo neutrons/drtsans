@@ -1,6 +1,3 @@
-"""
-    Test EASANS sensitivities preparation algorithm
-"""
 import pytest
 import os
 import numpy as np

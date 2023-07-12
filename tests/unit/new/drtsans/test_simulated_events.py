@@ -10,7 +10,6 @@ from drtsans.mono.biosans.geometry import (
 from drtsans.samplelogs import SampleLogs
 from drtsans.simulated_events import (
     insert_events,
-    insert_xy_events,
     insert_beam_spot,
     insert_background,
     insert_events_isotropic,
@@ -21,49 +20,33 @@ from drtsans.simulated_events import (
 
 # third party imports
 from mantid.api import mtd
-from mantid.simpleapi import CreateSampleWorkspace, Integration
+from mantid.simpleapi import AddSampleLog, Integration
 import numpy as np
 from numpy.testing import assert_almost_equal
 import pytest
 
 # standard imports
-from unittest.mock import patch as mock_patch
 
 
-@mock_patch("drtsans.simulated_events.spectrum_info_ranges")
-def test_insert_events(mock_spectrum_info_ranges, temp_workspace_name):
-    workspace = CreateSampleWorkspace(
-        WorkspaceType="Event",
-        Function="Flat background",
-        OutputWorkspace=temp_workspace_name(),
-        NumEvents=0,
-        NumBanks=1,
-        BankPixelWidth=3,  # a Bank containing 3x3=9 pixels
-    )
-    pixel_count = workspace.getNumberHistograms()
-    for index in range(pixel_count):
-        assert workspace.getSpectrum(index).getNumberEvents() == 0
-    neutron_counts = range(pixel_count)  # arbitrary event count list
-    mock_spectrum_info_ranges.return_value = [
-        0,
-        pixel_count,
-    ]  # spectrum_info_ranges() is called within insert_events()
-    insert_events(workspace, component="component name is irrelevant", neutron_counts=neutron_counts)
-    for index in range(pixel_count):
-        assert workspace.getSpectrum(index).getNumberEvents() == index
-
-
-def test_insert_xy_events(temp_workspace_name):
+def test_insert_events(temp_workspace_name):
     workspace = empty_instrument_workspace(
         temp_workspace_name(), filename="BIOSANS_Definition.xml", event_workspace=True
     )
     set_position_south_detector(workspace, distance=5.0)  # meters
     SampleLogs(workspace).insert("start_time", "2023-08-01 00:00:00")
+    AddSampleLog(
+        Workspace=workspace,
+        LogName="wavelength",
+        LogText="18.0",
+        LogType="Number Series",
+        LogUnit="A",
+        NumberType="Double",
+    )
 
-    def xy_intensities(x, y):
+    def xy_intensities(x, y, _):
         return 1000
 
-    insert_xy_events(workspace, xy_intensities, components="detector1")
+    insert_events(workspace, xy_intensities, components="detector1")
     first, next_to_last = spectrum_info_ranges(workspace, component="detector1")
     for index in range(first, next_to_last):
         assert workspace.getSpectrum(index).getNumberEvents() in [
@@ -80,6 +63,14 @@ def test_insert_beam_spot(temp_workspace_name):
     )
     set_position_south_detector(workspace, distance=5.0)  # meters
     SampleLogs(workspace).insert("start_time", "2023-08-01 00:00:00")
+    AddSampleLog(
+        Workspace=workspace,
+        LogName="wavelength",
+        LogText="18.0",
+        LogType="Number Series",
+        LogUnit="A",
+        NumberType="Double",
+    )
     insert_beam_spot(workspace, center_x=-0.015, center_y=-0.03, diameter=0.01)
     assert_almost_equal(np.array(workspace.spectrumInfo().position(24952)), [-0.0141, -0.0306, 4.9958], decimal=3)
     assert workspace.getSpectrum(24952).getNumberEvents() == 39
@@ -117,6 +108,14 @@ def biosans_workspace(temp_workspace_name, fetch_idf):
         temp_workspace_name(), filename=fetch_idf("BIOSANS_Definition.xml"), event_workspace=True
     )
     SampleLogs(workspace_events).insert("start_time", "2023-08-01 00:00:00")
+    AddSampleLog(
+        Workspace=workspace_events,
+        LogName="wavelength",
+        LogText="18.0",
+        LogType="Number Series",
+        LogUnit="A",
+        NumberType="Double",
+    )
     set_position_south_detector(workspace_events, distance=5.0)  # meters
     return workspace_events
 
@@ -149,7 +148,7 @@ def test_insert_events_ring(biosans_workspace):
         components=["detector1", "wing_detector", "midrange_detector"],
         component_efficiencies=[1.0, 0.1, 1.0],
     )
-    assert _event_count_in_biosans_central_tube(biosans_workspace) == 106
+    assert _event_count_in_biosans_central_tube(biosans_workspace) == 105
 
 
 def test_insert_events_sin_squared(biosans_workspace):
@@ -162,7 +161,7 @@ def test_insert_events_sin_squared(biosans_workspace):
         components=["detector1", "wing_detector", "midrange_detector"],
         component_efficiencies=[1.0, 0.1, 1.0],
     )
-    assert _event_count_in_biosans_central_tube(biosans_workspace) == 484
+    assert _event_count_in_biosans_central_tube(biosans_workspace) == 483
 
 
 if __name__ == "__main__":

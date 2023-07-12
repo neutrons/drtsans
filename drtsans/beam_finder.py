@@ -1,9 +1,11 @@
-r""" Links to mantid algorithms
-FindCenterOfMassPosition <https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v1.html>
-Integration              <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
-MoveInstrumentComponent  <https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html>
-DeleteWorkspace          <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
-"""
+# local imports
+from drtsans.mask_utils import apply_mask, mask_spectra_with_special_values
+from drtsans.settings import unique_workspace_dundername as uwd
+from drtsans.solid_angle import solid_angle_correction
+
+# third party imports
+import lmfit
+from mantid.kernel import logger
 from mantid.simpleapi import (
     FindCenterOfMassPosition,
     Integration,
@@ -11,15 +13,11 @@ from mantid.simpleapi import (
     DeleteWorkspace,
     mtd,
 )
-from mantid.kernel import logger
-
-# drtsans imports
-from drtsans.settings import unique_workspace_dundername as uwd
-from drtsans.mask_utils import apply_mask, mask_spectra_with_special_values
-from drtsans.solid_angle import solid_angle_correction
 import numpy as np
-import lmfit
+from scipy import constants
 
+# standard imports
+from typing import Union
 
 __all__ = [
     "center_detector",
@@ -50,6 +48,28 @@ def _Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, CenterX, CenterY):
         -(a * (x1 - CenterX) ** 2 + 2.0 * b * (x1 - CenterX) * (y1 - CenterY) + c * (y1 - CenterY) ** 2)
     )
     return val
+
+
+def _calculate_neutron_drop(path_length: Union[float, np.ndarray], wavelength) -> Union[float, np.ndarray]:
+    r"""Calculate the gravitational drop of the neutrons in its path from the sample to the
+     detector or pixel.
+
+    Parameters
+    ----------
+    path_length
+        path_length(s) in meters
+    wavelength
+        Neutron wavelength in Angstrom
+
+    Returns
+    -------
+    Return the Y drop in meters
+    """
+    wavelength *= 1e-10
+    neutron_mass = constants.neutron_mass
+    gravity = constants.g
+    h_planck = constants.Planck
+    return wavelength**2 * (gravity * neutron_mass**2 / (2.0 * h_planck**2)) * path_length**2
 
 
 def _find_beam_center_gaussian(ws, parameters={}):

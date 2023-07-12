@@ -295,6 +295,9 @@ def test_get_twothetas(temp_workspace_name, fetch_idf):
     for component, expected in expected_for_component.items():
         twothetas = geo.get_twothetas(workspace, component, units="degrees")
         assert_almost_equal((twothetas[0], twothetas[-1]), expected, decimal=2)
+        x, y, z = geo.get_xyz(workspace, component)
+        twothetas_other = np.degrees(np.arctan(np.sqrt(x**2 + y**2) / z))
+        assert_almost_equal(twothetas, twothetas_other, decimal=1)
 
 
 def test_get_solid_angles(temp_workspace_name, fetch_idf):

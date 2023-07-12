@@ -582,5 +582,10 @@ def test_temp_workspace_name(temp_workspace_name):
     CreateSampleWorkspace(OutputWorkspace=temp_workspace_name())
 
 
+def test_biosans_synthetic_dataset(biosans_synthetic_dataset):
+    print(biosans_synthetic_dataset["data_dir"])
+    assert biosans_synthetic_dataset
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

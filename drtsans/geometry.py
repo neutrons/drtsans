@@ -970,6 +970,29 @@ def get_pixel_distances(input_workspace: Union[str, MantidWorkspace], component:
     return np.array([spectrum_info.l2(idx) for idx in range(first, next_to_last)])
 
 
+def get_xyz(input_workspace: Union[str, MantidWorkspace], component: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    r"""
+    Get the X, Y, and Z coordinates of the pixels in the given component.
+
+    Parameters
+    ----------
+    input_workspace
+        Mantid workspace or name of the workspace
+    component
+        One of the double-panels in the instrument (e.g. "detector1", "wing_detector")
+    Returns
+    -------
+    Tuple of all X, Y, and Z coordinates of the pixels in the given component
+    """
+    spectrum_info = mtd[str(input_workspace)].spectrumInfo()
+    first, next_to_last = spectrum_info_ranges(input_workspace, component)
+    x = np.array([spectrum_info.position(idx).X() for idx in range(first, next_to_last)])
+    y = np.array([spectrum_info.position(idx).Y() for idx in range(first, next_to_last)])
+    z = np.array([spectrum_info.position(idx).Z() for idx in range(first, next_to_last)])
+
+    return x, y, z
+
+
 def get_xy(input_workspace: Union[str, MantidWorkspace], component: str) -> Tuple[np.ndarray, np.ndarray]:
     r"""
     Get the X and Y coordinates of the pixels in the given component.
@@ -984,10 +1007,7 @@ def get_xy(input_workspace: Union[str, MantidWorkspace], component: str) -> Tupl
     -------
     Tuple of all X and Y coordinates of the pixels in the given component
     """
-    spectrum_info = mtd[str(input_workspace)].spectrumInfo()
-    first, next_to_last = spectrum_info_ranges(input_workspace, component)
-    x = np.array([spectrum_info.position(idx).X() for idx in range(first, next_to_last)])
-    y = np.array([spectrum_info.position(idx).Y() for idx in range(first, next_to_last)])
+    x, y, z = get_xyz(input_workspace, component)
     return x, y
 
 

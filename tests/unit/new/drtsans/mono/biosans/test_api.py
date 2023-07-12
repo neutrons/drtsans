@@ -8,7 +8,7 @@ from drtsans.mono.biosans.api import (
     prepare_data_workspaces,
     prepare_data,
     process_single_configuration,
-    has_midrange_detector,
+    file_has_midrange_detector,
 )
 from drtsans.mono.biosans import reduction_parameters
 from drtsans.mono.biosans.simulated_events import update_idf
@@ -290,21 +290,21 @@ def test_prepare_data_center_midrange_success(mock_LoadEventNexus, mock_monitor_
     assert history.size() == previous_history + 5 + 3
 
     # There are 3 calls to MoveInstrumentComponent
-    alg2 = history.getAlgorithm(16)
+    alg2 = history.getAlgorithm(history.size() - 4)
     assert alg2.name() == "MoveInstrumentComponent"
     assert alg2.getPropertyValue("ComponentName") == "detector1"
     assert alg2.getPropertyValue("RelativePosition") == "1"
     assert alg2.getPropertyValue("X") == "-0.111"
     assert alg2.getPropertyValue("Y") == "-0.123"
 
-    alg3 = history.getAlgorithm(17)
+    alg3 = history.getAlgorithm(history.size() - 3)
     assert alg3.name() == "MoveInstrumentComponent"
     assert alg3.getPropertyValue("ComponentName") == "wing_detector"
     assert alg3.getPropertyValue("RelativePosition") == "1"
     assert alg3.getPropertyValue("X") == "0"
     assert alg3.getPropertyValue("Y") == "-0.222"
 
-    alg4 = history.getAlgorithm(18)
+    alg4 = history.getAlgorithm(history.size() - 2)
     assert alg4.name() == "MoveInstrumentComponent"
     assert alg4.getPropertyValue("ComponentName") == "midrange_detector"
     assert alg4.getPropertyValue("RelativePosition") == "1"
@@ -560,7 +560,7 @@ def test_has_midrange_detector():
         "beamCenter": {"runNumber": "960"},
         "configuration": {"useDefaultMask": False},
     }
-    rst = has_midrange_detector(
+    rst = file_has_midrange_detector(
         sample=reduction_input["sample"]["runNumber"],
         instrument_name=reduction_input["instrumentName"],
         ipts=reduction_input["iptsNumber"],

@@ -1,8 +1,17 @@
 import pytest
+from collections import namedtuple
 import os
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 from mantid.simpleapi import CreateWorkspace, LoadHFIRSANS, LoadNexusProcessed
+from drtsans.mono.biosans import reduction_parameters
+from drtsans.mono.biosans.simulated_events import update_idf
+from drtsans.load import load_events
+import drtsans.plots.api
+
+# from drtsans.plots.api import plot_IQmod, plot_IQazimuthal
+from drtsans.samplelogs import SampleLogs
+from drtsans.settings import unique_workspace_dundername as uwd
 from os.path import join as path_join
 
 from drtsans.dataobjects import IQmod
@@ -13,12 +22,8 @@ from drtsans.mono.biosans.api import (
     process_single_configuration,
     file_has_midrange_detector,
     save_iqmod_all,
+    plot_reduction_output,
 )
-from drtsans.mono.biosans import reduction_parameters
-from drtsans.mono.biosans.simulated_events import update_idf
-from drtsans.load import load_events
-from drtsans.samplelogs import SampleLogs
-from drtsans.settings import unique_workspace_dundername as uwd
 
 # standard imports
 from unittest.mock import patch as mock_patch
@@ -36,7 +41,10 @@ def test_load_all_files_simple():
         "background": {"runNumber": "", "transmission": {"runNumber": ""}},
         "emptyTransmission": {"runNumber": ""},
         "beamCenter": {"runNumber": "960"},
-        "configuration": {"useDefaultMask": False},
+        "configuration": {
+            "useDefaultMask": False,
+            "blockedBeamRunNumber": "",
+        },
     }
 
     reduction_input = reduction_parameters(reduction_input, "BIOSANS", validate=False)
@@ -608,6 +616,92 @@ def test_save_iqmod_all(tmp_path, iqmod_dummy, output_files):
     for filename in output_files:
         filepath = path_join(output_dir, filename)
         assert os.path.exists(filepath)
+
+
+def test_plot_reduction_output(monkeypatch):
+    """Unit test for helper function plot_reduction_output."""
+    # Mock the plot_IQmod function
+    plot_IQmod_counter = 0
+
+    def mock_plot_IQmod(*args, **kwargs):
+        nonlocal plot_IQmod_counter
+        plot_IQmod_counter += 1
+        return "mock_plot_IQmod"
+
+    monkeypatch.setattr("drtsans.plots.api.plot_IQmod", mock_plot_IQmod)
+
+    # Mock the plot_IQ function
+    plot_IQazimuthal_counter = 0
+
+    def mock_plot_IQazimuthal(*args, **kwargs):
+        nonlocal plot_IQazimuthal_counter
+        plot_IQazimuthal_counter += 1
+        return "mock_plot_IQazimuthal"
+
+    monkeypatch.setattr(drtsans.plots.api, "plot_IQazimuthal", mock_plot_IQazimuthal)
+    monkeypatch.setattr(drtsans.plots.api, "plot_IQazimuthal", mock_plot_IQazimuthal)
+
+    # Mock allow_overwrite
+    allow_overwrite_counter = 0
+
+    def mock_allow_overwrite(*args, **kwargs):
+        nonlocal allow_overwrite_counter
+        allow_overwrite_counter += 1
+        return True
+
+    monkeypatch.setattr(drtsans.path, "allow_overwrite", mock_allow_overwrite)
+
+    # Case 1: with midrange detector
+    reduction_input = {
+        "instrumentName": "CG3",
+        "iptsNumber": "23782",
+        "sample": {"runNumber": "960", "transmission": {"runNumber": ""}},
+        "background": {"runNumber": "", "transmission": {"runNumber": ""}},
+        "emptyTransmission": {"runNumber": ""},
+        "beamCenter": {"runNumber": "960"},
+        "outputFileName": "tmp",
+        "configuration": {
+            "useDefaultMask": False,
+            "blockedBeamRunNumber": "",
+            "darkMainFileName": None,
+            "darkWingFileName": None,
+            "outputDir": "/tmp",
+            "1DQbinType": "wedge",
+            "wedges": "mock_wedges",
+            "QminMain": 0.1,
+            "QmaxMain": 0.2,
+            "QminWing": 0.3,
+            "QmaxWing": 0.4,
+            "QminMidrange": 0.5,
+            "QmaxMidrange": 0.6,
+        },
+        "has_midrange_detector": True,
+    }
+    # create a namedtuple to mock the reduction output
+    output_1 = namedtuple(
+        "ReductionOutput",
+        [
+            # plot_IQazimuthal
+            "I2D_main",
+            "I2D_wing",
+            "I2D_midrange",
+            # plot_IQmod
+            "I1D_main",
+            "I1D_wing",
+            "I1D_midrange",
+            "I1D_combined",
+        ],
+    )
+    output_1.I1D_main = np.array([1, 2, 3])
+    output_1.I1D_wing = np.array([4, 5, 6])
+    output_1.I1D_midrange = np.array([7, 8, 9])
+    output_1.I1D_combined = np.array([10, 11, 12])
+    reduction_output = [output_1]
+    plot_reduction_output(reduction_output, reduction_input)
+
+    assert plot_IQazimuthal_counter == 3
+    assert plot_IQmod_counter == 3
+    assert allow_overwrite_counter == 2
 
 
 if __name__ == "__main__":

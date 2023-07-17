@@ -23,7 +23,7 @@ from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_w
 from drtsans.instruments import extract_run_number
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
-from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
+from drtsans.plots import plot_detector
 from drtsans import subtract_background
 from drtsans.reductionlog import savereductionlog
 from drtsans.mono import biosans
@@ -985,7 +985,26 @@ def process_single_configuration(
     }
 
 
-def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow_kwargs=None):
+def plot_reduction_output(
+    reduction_output: list,
+    reduction_input: dict,
+    loglog: bool = True,
+    imshow_kwargs: dict = {},
+):
+    """
+    Generate reduction plot per slice per detector.
+
+    Parameters
+    ----------
+    reduction_output:
+        List of 1D and 2D I(Q) profile objects, for each detector panel
+    reduction_input:.
+        Dictionary of of all possible options to properly configure the data reduction workflow.
+    loglog:
+        Whether to plot in loglog scale, by default True.
+    imshow_kwargs:
+        Keyword arguments to pass to imshow, by default {}.
+    """
     reduction_config = reduction_input["configuration"]
     output_dir = reduction_config["outputDir"]
     outputFilename = reduction_input["outputFileName"]
@@ -993,8 +1012,10 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
 
     bin1d_type = reduction_config["1DQbinType"]
 
-    if imshow_kwargs is None:
-        imshow_kwargs = {}
+    imshow_kwargs = {} if imshow_kwargs is None else imshow_kwargs
+
+    has_midrange_detector = reduction_input.get("has_midrange_detector", False)
+
     for i, out in enumerate(reduction_output):
         if len(reduction_output) > 1:
             output_suffix = f"_{i}"
@@ -1007,6 +1028,19 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
         qmin_wing = reduction_config["QminWing"]
         qmax_wing = reduction_config["QmaxWing"]
 
+        # special case for mid-range detector
+        if has_midrange_detector:
+            qmin_midrange = reduction_config["QminMidrange"]
+            qmax_midrange = reduction_config["QmaxMidrange"]
+
+        # NOTE: due to the api design in drtsans, pytest monkey patching does
+        #       not work with the standard import, therefore we need to use
+        #       full path import here to make unit test work.
+        plot_IQazimuthal = drtsans.plots.api.plot_IQazimuthal
+        plot_IQmod = drtsans.plots.api.plot_IQmod
+        allow_overwrite = drtsans.path.allow_overwrite
+
+        # main detector
         filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_main.png")
         plot_IQazimuthal(
             out.I2D_main,
@@ -1020,6 +1054,8 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
             qmax=qmax_main,
         )
         plt.clf()
+
+        # wing detector
         filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_wing.png")
         plot_IQazimuthal(
             out.I2D_wing,
@@ -1033,20 +1069,48 @@ def plot_reduction_output(reduction_output, reduction_input, loglog=True, imshow
             qmax=qmax_wing,
         )
         plt.clf()
+
+        # special case for mid-range detector
+        if has_midrange_detector:
+            filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_midrange.png")
+            plot_IQazimuthal(
+                out.I2D_midrange,
+                filename,
+                backend="mpl",
+                imshow_kwargs=imshow_kwargs,
+                title="Midrange",
+                wedges=wedges,
+                symmetric_wedges=symmetric_wedges,
+                qmin=qmin_midrange,
+                qmax=qmax_midrange,
+            )
+            plt.clf()
+
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
                 add_suffix = f"_wedge_{j}"
             filename = os.path.join(output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}.png")
-            plot_IQmod(
-                [out.I1D_main[j], out.I1D_wing[j], out.I1D_combined[j]],
-                filename,
-                loglog=loglog,
-                backend="mpl",
-                errorbar_kwargs={"label": "main,wing,both"},
-            )
+            if has_midrange_detector:
+                plot_IQmod(
+                    [out.I1D_main[j], out.I1D_wing[j], out.I1D_midrange[j], out.I1D_combined[j]],
+                    filename,
+                    loglog=loglog,
+                    backend="mpl",
+                    errorbar_kwargs={"label": "main,wing,midrange,both"},
+                )
+            else:
+                plot_IQmod(
+                    [out.I1D_main[j], out.I1D_wing[j], out.I1D_combined[j]],
+                    filename,
+                    loglog=loglog,
+                    backend="mpl",
+                    errorbar_kwargs={"label": "main,wing,both"},
+                )
             plt.clf()
+
     plt.close()
+
     # allow overwrite
     allow_overwrite(os.path.join(output_dir, "1D"))
     allow_overwrite(os.path.join(output_dir, "2D"))

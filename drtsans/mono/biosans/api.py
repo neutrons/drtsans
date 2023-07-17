@@ -45,13 +45,12 @@ from drtsans.iq import bin_all
 from drtsans.save_ascii import save_ascii_binned_2D
 from drtsans.dataobjects import save_iqmod
 from drtsans.path import allow_overwrite
-from drtsans.dataobjects import IQmod
 from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
 from drtsans.load import move_instrument
 from drtsans.mono.meta_data import parse_json_meta_data
 from drtsans.mono import meta_data
 from drtsans.mono.biosans.geometry import has_midrange_detector
-from drtsans.stitch import olt_q_boundary
+from drtsans.stitch import stitch_binned_profiles
 
 
 # Functions exposed to the general user (public) API
@@ -1383,45 +1382,15 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_wing.dat")
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_wing_out)
 
-        OLT_Qmin = olt_q_boundary(reduction_config, iq1d_wing_in, "min", len(iq1d_main_out) > 1)
-        OLT_Qmax = olt_q_boundary(reduction_config, iq1d_wing_in, "max", len(iq1d_main_out) > 1)
+        # intensity profiles in the order of stitching (lower to higher Q)
+        iq1d_profiles_in = [iq1d_main_in, iq1d_wing_in]
+        iq1d_profiles_out = [iq1d_main_out, iq1d_wing_out]
+        iq1d_combined_out = stitch_binned_profiles(iq1d_profiles_in, iq1d_profiles_out, reduction_config)
 
-        iq1d_combined_out = []
-        for j in range(len(iq1d_main_out)):
-            add_suffix = ""
-            if len(iq1d_main_out) > 1:
-                add_suffix = f"_wedge_{j}"
-            ascii_1D_filename = os.path.join(
-                output_dir,
-                "1D",
-                f"{outputFilename}{output_suffix}_1D_main{add_suffix}.txt",
-            )
-            save_iqmod(iq1d_main_out[j], ascii_1D_filename, skip_nan=skip_nan)
+        save_iqmod_all(
+            iq1d_main_out, iq1d_wing_out, iq1d_combined_out, outputFilename, output_dir, output_suffix, skip_nan
+        )
 
-            ascii_1D_filename = os.path.join(
-                output_dir,
-                "1D",
-                f"{outputFilename}{output_suffix}_1D_wing{add_suffix}.txt",
-            )
-            save_iqmod(iq1d_wing_out[j], ascii_1D_filename, skip_nan=skip_nan)
-
-            try:
-                iq_output_both = biosans.stitch_profiles(
-                    profiles=[iq1d_main_out[j], iq1d_wing_out[j]],
-                    overlaps=[OLT_Qmin[j], OLT_Qmax[j]],
-                    target_profile_index=0,
-                )
-
-                ascii_1D_filename = os.path.join(
-                    output_dir,
-                    "1D",
-                    f"{outputFilename}{output_suffix}_1D_both{add_suffix}.txt",
-                )
-                save_iqmod(iq_output_both, ascii_1D_filename, skip_nan=skip_nan)
-            except ZeroDivisionError:
-                iq_output_both = IQmod(intensity=[], error=[], mod_q=[])
-
-            iq1d_combined_out.append(iq_output_both)
         IofQ_output = namedtuple(
             "IofQ_output",
             ["I2D_main", "I2D_wing", "I1D_main", "I1D_wing", "I1D_combined"],
@@ -1436,8 +1405,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         output.append(current_output)
 
         _inside_detectordata = {}
-        if iq_output_both.intensity.size > 0:
-            _inside_detectordata = {"combined": {"iq": [iq_output_both]}}
+        # TODO: fix this bug - only one combined profile is saved in the reduction log, but for wedges there are two
+        if iq1d_combined_out[-1].intensity.size > 0:
+            _inside_detectordata = {"combined": {"iq": [iq1d_combined_out[-1]]}}
         else:
             _inside_detectordata = {}
         index = 0
@@ -1507,6 +1477,52 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     allow_overwrite(os.path.join(reduction_config["outputDir"], "2D"))
 
     return output
+
+
+def save_iqmod_all(iq1d_main, iq1d_wing, iq1d_combined, output_filename, output_dir, output_suffix, skip_nan):
+    """Save to file the intensity profiles for the individual detectors, as well as the combined (stitched) profile
+
+    Parameters
+    ----------
+    iq1d_main: ~drtsans.dataobjects.IQmod
+        Intensity profile for the main detector
+    iq1d_wing: ~drtsans.dataobjects.IQmod
+        Intensity profile for the wing detector
+    iq1d_combined: ~drtsans.dataobjects.IQmod
+        Combined (stitched) intensity profile from different detectors
+    output_filename: str
+        The basename of the output files
+    output_dir: str
+        The directory to write files to
+    output_suffix:str
+        Suffix for output file names
+    skip_nan: bool
+        If true, any data point where intensity is NAN will not be written to file
+    """
+    for j in range(len(iq1d_main)):
+        add_suffix = ""
+        if len(iq1d_main) > 1:
+            add_suffix = f"_wedge_{j}"
+        main_1D_filename = os.path.join(
+            output_dir,
+            "1D",
+            f"{output_filename}{output_suffix}_1D_main{add_suffix}.txt",
+        )
+        save_iqmod(iq1d_main[j], main_1D_filename, skip_nan=skip_nan)
+
+        wing_1D_filename = os.path.join(
+            output_dir,
+            "1D",
+            f"{output_filename}{output_suffix}_1D_wing{add_suffix}.txt",
+        )
+        save_iqmod(iq1d_wing[j], wing_1D_filename, skip_nan=skip_nan)
+
+        combined_1D_filename = os.path.join(
+            output_dir,
+            "1D",
+            f"{output_filename}{output_suffix}_1D_both{add_suffix}.txt",
+        )
+        save_iqmod(iq1d_combined[j], combined_1D_filename, skip_nan=skip_nan)
 
 
 def prepare_data(

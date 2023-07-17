@@ -9,7 +9,7 @@ stitch_profiles <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next
 """
 from drtsans.settings import namedtuplefy
 from drtsans.dataobjects import IQmod, testing
-from drtsans.stitch import olt_q_boundary, stitch_profiles
+from drtsans.stitch import stitch_profiles, get_stitch_boundaries, stitch_binned_profiles
 
 
 @pytest.fixture(scope="module")
@@ -238,10 +238,8 @@ def data_test_16b():
         ],
         target_index=0,  # profile of the previous list of IQmod objets defining the overall scale.
         overlaps=[
-            0.01,
-            0.014,
-            0.025,
-            0.029,
+            [0.01, 0.014],
+            [0.025, 0.029],
         ],  # [(start, end), (start, end)] overlap regions
         stitched=IQmod(
             [
@@ -436,48 +434,78 @@ def test_stitch(data_test_16b):
     testing.assert_allclose(result, data.stitched, rtol=data.tolerance, atol=0)
 
 
+def test_stitch_binned_profiles_isotropic(data_test_16b):
+    data = data_test_16b  # handy shortcut
+    qmin = [x[0] for x in data.overlaps]
+    qmax = [x[1] for x in data.overlaps]
+    reduction_config = {
+        "overlapStitchQmin": qmin,
+        "overlapStitchQmax": qmax,
+    }
+    iq1d_unbinned = data.profiles
+    # simulate isotropic binning: list of 1 profile per detector
+    iq1d_binned = [[profile] for profile in data.profiles]
+    result = stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config)
+    testing.assert_allclose(result[0], data.stitched, rtol=data.tolerance, atol=0)
+
+
+def test_stitch_binned_profiles_wedges(data_test_16b):
+    data = data_test_16b  # handy shortcut
+    qmin = [x[0] for x in data.overlaps]
+    qmax = [x[1] for x in data.overlaps]
+    reduction_config = {
+        "wedge1overlapStitchQmin": qmin,
+        "wedge1overlapStitchQmax": qmax,
+        "wedge2overlapStitchQmin": qmin,
+        "wedge2overlapStitchQmax": qmax,
+    }
+    iq1d_unbinned = data.profiles
+    # simulate anisotropic binning: list of 2 profiles per detector (2 wedges)
+    iq1d_binned = [[profile, profile] for profile in data.profiles]
+    result = stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config)
+    testing.assert_allclose(result[0], data.stitched, rtol=data.tolerance, atol=0)
+    testing.assert_allclose(result[1], data.stitched, rtol=data.tolerance, atol=0)
+
+
 @pytest.mark.parametrize(
-    "reduction_config, iq1d_wing_in, iq1d_main_out, qmin_expected, qmax_expected",
+    "anisotropic, reduction_config, expected",
     [
         (
+            False,
+            {"overlapStitchQmin": [0.01, 0.02], "overlapStitchQmax": [0.014, 0.024]},
+            [[(0.01, 0.014), (0.02, 0.024)]],
+        ),
+        (False, {"overlapStitchQmin": None, "overlapStitchQmax": None}, [[(0.3, 0.5), (0.5, 0.7)]]),
+        (
+            True,
             {
-                "overlapStitchQmin": [0.01],
-                "overlapStitchQmax": [0.014],
+                "wedge1overlapStitchQmin": [0.01, 0.02],
+                "wedge1overlapStitchQmax": [0.014, 0.024],
+                "wedge2overlapStitchQmin": [0.01, 0.02],
+                "wedge2overlapStitchQmax": [0.014, 0.024],
             },
-            IQmod(intensity=[], error=[], mod_q=[]),
-            [IQmod(intensity=[], error=[], mod_q=[])],
-            [0.01],
-            [0.014],
+            [[(0.01, 0.014), (0.02, 0.024)], [(0.01, 0.014), (0.02, 0.024)]],
         ),
         (
+            True,
             {
-                "wedge1overlapStitchQmin": [0.01],
-                "wedge1overlapStitchQmax": [0.014],
-                "wedge2overlapStitchQmin": [0.015],
-                "wedge2overlapStitchQmax": [0.021],
+                "wedge1overlapStitchQmin": None,
+                "wedge1overlapStitchQmax": None,
+                "wedge2overlapStitchQmin": None,
+                "wedge2overlapStitchQmax": None,
             },
-            IQmod(intensity=[], error=[], mod_q=[]),
-            [IQmod(intensity=[], error=[], mod_q=[]), IQmod(intensity=[], error=[], mod_q=[])],
-            [0.01, 0.015],
-            [0.014, 0.021],
-        ),
-        (
-            {
-                "overlapStitchQmin": None,
-                "overlapStitchQmax": None,
-            },
-            IQmod(intensity=[1.0, 2.0, 3.0], error=[0.1, 0.1, 0.1], mod_q=[0.1, 0.2, 0.3]),
-            [IQmod(intensity=[1.0, 2.0, 3.0], error=[0.1, 0.1, 0.1], mod_q=[0.1, 0.2, 0.3])],
-            [0.1],
-            [0.3],
+            [[(0.3, 0.5), (0.5, 0.7)], [(0.3, 0.5), (0.5, 0.7)]],
         ),
     ],
 )
-def test_olt_q_boundary(reduction_config, iq1d_wing_in, iq1d_main_out, qmin_expected, qmax_expected):
-    qmin = olt_q_boundary(reduction_config, iq1d_wing_in, "min", len(iq1d_main_out) > 1)
-    qmax = olt_q_boundary(reduction_config, iq1d_wing_in, "max", len(iq1d_main_out) > 1)
-    assert qmin == qmin_expected
-    assert qmax == qmax_expected
+def test_get_stitch_boundaries(anisotropic, reduction_config, expected):
+    iq1d_unbinned = [
+        IQmod(intensity=[1.0, 1.0, 1.0], error=[0.1, 0.1, 0.1], mod_q=[0.1, 0.2, 0.3]),
+        IQmod(intensity=[2.0, 2.0, 2.0], error=[0.1, 0.1, 0.1], mod_q=[0.3, 0.4, 0.5]),
+        IQmod(intensity=[3.0, 3.0, 3.0], error=[0.1, 0.1, 0.1], mod_q=[0.5, 0.6, 0.7]),
+    ]
+    bounds = get_stitch_boundaries(reduction_config, iq1d_unbinned, anisotropic)
+    assert bounds == expected
 
 
 if __name__ == "__main__":

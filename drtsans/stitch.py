@@ -1,5 +1,12 @@
+# local imports
+from drtsans.dataobjects import IQmod
+
+# third party imports
 from mantid.simpleapi import logger
 import numpy as np
+
+# standard imports
+
 
 __all__ = [
     "stitch_profiles",
@@ -19,13 +26,19 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
     profiles: list
         A list of  ~drtsans.dataobjects.IQmod objects, ordered with increasing Q-values
     overlaps: list
-        A list of overlap regions in the shape (start_1, end_1, start_2, end_2, start_3, end_3,...).
+        A list of overlap regions in the shape ((start_1, end_1), (start_2, end_2), (start_3, end_3),...).
     target_profile_index: int
         Index of the ``profiles`` list indicating the target profile, that is, the profile defining the final scaling.
 
     Returns
     -------
     ~drtsans.dataobjects.IQmod
+
+    Raises
+    -------
+    ValueError
+        If either the arguments are incorrect ((i) profiles not in order or increasing Q or (ii) the number of overlaps
+        not congruent with the number of profiles) or a stitching scaling factor <= 0 is calculated.
     """
     # Guard clause to verify the profiles are ordered with increasing Q-values
     first_q_values = np.array([profile.mod_q[0] for profile in profiles])  # collect first Q-value for each profile
@@ -33,11 +46,8 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
         raise ValueError("The profiles are not ordered with increasing Q-values")
 
     # Guard clause to validate that the number of overlap boundaries is congruent with the number of intensity profiles
-    if len(overlaps) != 2 * (len(profiles) - 1):
+    if len(overlaps) != len(profiles) - 1:
         raise ValueError("The number of overlaps is not appropriate to the number of intensity profiles")
-
-    # Pair the overlaps into (start_q, end_q) pairs
-    overlaps = [overlaps[i : i + 2] for i in range(0, len(overlaps), 2)]
 
     def scaling(target, to_target, starting_q, ending_q):
         r"""Utility function to find the scaling factor bringing the to_target profile to the target profile scaling"""
@@ -110,78 +120,121 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
     return target_profile
 
 
-def olt_q_boundary(reduction_config, iq1d_high_q, boundary, anisotropic=False):
+def get_stitch_boundaries(reduction_config, iq1d_unbinned, anisotropic=False):
     r"""Initialize the stitching boundaries when a list of boundaries has not been specified
 
     Parameters
     ----------
     reduction_config: dict
         The dictionary of reduction parameters
-    iq1d_high_q: :py:obj:`~drtsans.dataobjects.IQmod`
-         The unbinned higher-Q profile of the intensity profiles to stitch
-    boundary: str
-        Either 'min' or 'max'
+    iq1d_unbinned: list of :py:obj:`~drtsans.dataobjects.IQmod`
+         The unbinned IQmod profiles, one for each detector.
     anisotropic: bool
-        If True, returns the two boundaries for anisotropic/wedge binning, i.e. for "min" returns
-        "wedge1overlapStitchQmin" and "wedge2overlapStitchQmin".
-        If False, returns the boundary for isotropic binning, i.e. for "min" returns "overlapStitchQmin".
+        If True, two binnings exist and the applicable boundaries are "wedge1overlapStitchMin",
+        "wedge1overlapStitchMax", "wedge2overlapStitchMin", and "wedge2overlapStitchMax".
+        If False, one binning exists and the applicable boundaries are "overlapStitchMin" and "overlapStitchMax".
 
     Returns
     -------
     list
-        A list of boundary values
+        A list of lists of boundary values, for example for anisotropic=True:
+        [
+            [(start_overlap1, end_overlap1), (start_overlap2, end_overlap2)],  # wedge 1
+            [(start_overlap1, end_overlap1), (start_overlap2, end_overlap2)]   # wedge 2
+        ]
+        For anisotropic=False:
+        [
+            [(start_overlap1, end_overlap1), (start_overlap2, end_overlap2)]
+        ]
     """
-    if boundary not in ("min", "max"):
-        raise ValueError('Only "min" or "max" are valid arguments')
+    bounds = []
 
-    def get_isotropic_stitch_q_boundary():
-        """Get stitch overlap boundary (min/max) for isotropic reduction
-
-        Returns
-        -------
-        list
-            List of one boundary value (min/max)
-        """
-        olt_q = reduction_config[f"overlapStitchQ{boundary}"]  # guaranteed `None` or `list`
-        boundary_value = get_stitch_q_boundary(olt_q)
-        return [boundary_value]
-
-    def get_anisotropic_stitch_q_boundary():
-        """Get stitch overlap boundary (min/max) for anisotropic reduction (wedges)
-
-        Returns
-        -------
-        list
-            List of one boundary value each (min/max) for the two wedges
-        """
-        boundary_values = []
-        for wedge in ["wedge1", "wedge2"]:
-            olt_q = reduction_config[f"{wedge}overlapStitchQ{boundary}"]  # guaranteed `None` or `list`
-            boundary_value = get_stitch_q_boundary(olt_q)
-            boundary_values.append(boundary_value)
-        return boundary_values
-
-    def get_stitch_q_boundary(overlap_q):
-        """Get stitch overlap boundary (min/max) from configuration or boundary value of the higher-Q intensity profile
+    def profile_boundaries(qmin_values, qmax_values):
+        r"""
 
         Parameters
         ----------
-        overlap_q: list or None
-            The value of the configuration parameter for the overlap boundary
+        qmin_values: None or list
+            A list of Qmin values to use, one per stitching overlap region. For py:obj:`None`, uses the min value of
+            the higher-Q profile of each pair of profiles to stitch.
+        qmax_values: None or list
+            A list of Qmax values to use, one per stitching overlap region. For py:obj:`None`, uses the max value of
+            the higher-Q profile of each pair of profiles to stitch.
 
         Returns
         -------
-        float
+        list
+            A list of boundary values [(start, end), (start,end), ...]
         """
-        if overlap_q is None:
-            logger.notice(f"Stitch Q{boundary} is None. Getting stitch Q{boundary} from {boundary}(I(Q))")
-            extremum_function = getattr(iq1d_high_q.mod_q, boundary)  # either min() or max() method
-            return extremum_function()
-        else:
-            # TODO: temporarily, until the midrange detector is added, the list only has one entry
-            return overlap_q[0]
+        if not qmin_values or not qmax_values:  # catches None or empty list
+            # use min/max from the Q range for the higher Q profile, e.g. for [p1, p2, p3]
+            # stitching boundaries for [p1, p2] will come from min(p2), max(p2)
+            # stitching boundaries for [p2, p3] will come from min(p3), max(p3)
+            qmin_values = [x.mod_q.min() for x in iq1d_unbinned[1:]]
+            qmax_values = [x.mod_q.max() for x in iq1d_unbinned[1:]]
+            logger.notice("Stitch Qmin/max is None. Getting stitch boundaries from min(I(Q)) and max(I(Q))")
+        profile_bounds = []
+        for qmin, qmax in zip(qmin_values, qmax_values):
+            profile_bounds.append((qmin, qmax))
+        return profile_bounds
 
-    if not anisotropic:  # scalar or annular
-        return get_isotropic_stitch_q_boundary()
-    else:  # wedges
-        return get_anisotropic_stitch_q_boundary()
+    if not anisotropic:
+        qmin_values = reduction_config["overlapStitchQmin"]
+        qmax_values = reduction_config["overlapStitchQmax"]
+        bounds.append(profile_boundaries(qmin_values, qmax_values))
+    else:
+        for wedge in ["wedge1", "wedge2"]:
+            qmin_values = reduction_config[f"{wedge}overlapStitchQmin"]
+            qmax_values = reduction_config[f"{wedge}overlapStitchQmax"]
+            bounds.append(profile_boundaries(qmin_values, qmax_values))
+
+    return bounds
+
+
+def stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config):
+    """Stitch together sequences of intensity profiles from different detector panels (main, wing and midrange),
+    that cover a different range of Q-values, returning a single encompassing profile per sequence.
+
+    When "1DQbinType" is "scalar" or "annular", there is one sequence of intensity profiles, i.e. one intensity profile
+    binning per detector panel, and one combined intensity profile is returned.
+    When "1DQbinType" is "wedge", there are two sequences of intensity profiles, i.e. two intensity profile binnings
+    per detector panel, and two combined intensity profiles are returned.
+
+    Parameters
+    ----------
+    iq1d_unbinned: list
+        A list of ~drtsans.dataobjects.IQmod objects for different detectors. The intensity profiles to stitch together
+        ordered by increasing Q-values.
+    iq1d_binned: list of lists of ~drtsans.dataobjects.IQmod
+        A list of lists of ~drtsans.dataobjects.IQmod objects. The outer list is the list of detectors ordered by
+        increasing Q-values. The inner lists are for different binnings of the original data from the detector.
+        Example: [[IQ_main_wedge1, IQ_main_wedge2], [IQ_wing_wedge1, IQ_wing_wedge2]]
+    reduction_config: dict
+        The dictionary of reduction parameters.
+
+    Returns
+    -------
+    list of ~drtsans.dataobjects.IQmod objects
+        The list of combined (stitched) profiles. When "1DQbinType" is "scalar" or "annular", the list contains one
+        combined intensity profile. When "1DQbinType" is "wedge", the list contains two combined intensity profiles,
+        one per wedge.
+    """
+    iq1d_combined_out = []
+
+    boundaries = get_stitch_boundaries(reduction_config, iq1d_unbinned, anisotropic=len(iq1d_binned[0]) > 1)
+
+    iq1d_binned_main = iq1d_binned[0]
+    for ibinning in range(len(iq1d_binned_main)):
+        profiles = [detector_profiles[ibinning] for detector_profiles in iq1d_binned]
+        overlaps = boundaries[ibinning]
+        # do stitching
+        try:
+            iq1d_combined = stitch_profiles(
+                profiles=profiles,
+                overlaps=overlaps,
+                target_profile_index=0,
+            )
+        except ValueError:
+            iq1d_combined = IQmod(intensity=[], error=[], mod_q=[])
+        iq1d_combined_out.append(iq1d_combined)
+    return iq1d_combined_out

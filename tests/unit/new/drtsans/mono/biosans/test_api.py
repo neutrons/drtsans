@@ -3,12 +3,16 @@ import os
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 from mantid.simpleapi import CreateWorkspace, LoadHFIRSANS, LoadNexusProcessed
+from os.path import join as path_join
+
+from drtsans.dataobjects import IQmod
 from drtsans.mono.biosans.api import (
     load_all_files,
     prepare_data_workspaces,
     prepare_data,
     process_single_configuration,
     file_has_midrange_detector,
+    save_iqmod_all,
 )
 from drtsans.mono.biosans import reduction_parameters
 from drtsans.mono.biosans.simulated_events import update_idf
@@ -567,6 +571,43 @@ def test_has_midrange_detector():
         directory=None,
     )
     assert not rst
+
+
+@pytest.mark.parametrize(
+    "iqmod_dummy, output_files",
+    [
+        # case when "1DQbinType" is "scalar" or "annular": 1 intensity profile per detector
+        (
+            [IQmod(intensity=[], error=[], mod_q=[], delta_mod_q=[])],
+            ["output_1D_main.txt", "output_1D_wing.txt", "output_1D_both.txt"],
+        ),
+        # case when "1DQbinType" is "wedge": 2 intensity profiles per detector
+        (
+            [
+                IQmod(intensity=[], error=[], mod_q=[], delta_mod_q=[]),
+                IQmod(intensity=[], error=[], mod_q=[], delta_mod_q=[]),
+            ],
+            [
+                "output_1D_main_wedge_0.txt",
+                "output_1D_wing_wedge_0.txt",
+                "output_1D_both_wedge_0.txt",
+                "output_1D_main_wedge_1.txt",
+                "output_1D_wing_wedge_1.txt",
+                "output_1D_both_wedge_1.txt",
+            ],
+        ),
+    ],
+)
+def test_save_iqmod_all(tmp_path, iqmod_dummy, output_files):
+    output_dir = path_join(tmp_path, "1D")
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
+    save_iqmod_all(iqmod_dummy, iqmod_dummy, iqmod_dummy, "output", tmp_path, "", True)
+
+    for filename in output_files:
+        filepath = path_join(output_dir, filename)
+        assert os.path.exists(filepath)
 
 
 if __name__ == "__main__":

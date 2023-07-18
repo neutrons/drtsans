@@ -319,6 +319,15 @@ def test_cg3_wing_prepare_sensitivities(tmp_path):
     DeleteWorkspace("TRANS_CG3_4835")
 
 
+@pytest.mark.skipif(
+    not os.path.exists("/HFIR/CG3/IPTS-23782/nexus/CG3_4835.nxs.h5"),
+    reason="Required data is not available",
+)
+def test_cg3_midrange_prepare_sensitivities(tmp_path):
+    """Integration test on algorithms to prepare sensitivities for BIOSANS's midrange detector"""
+    pass
+
+
 def test_cg2_sensitivities(tmp_path):
     """Integration test on algorithms to prepare sensitivities for GPSANS's
     with moving detector method

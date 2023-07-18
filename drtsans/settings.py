@@ -141,7 +141,7 @@ def unique_workspace_name(n=5, prefix="", suffix=""):
 
 
 def unique_workspace_dundername():
-    return unique_workspace_name(n=5, prefix="__")
+    return unique_workspace_name(n=9, prefix="__")
 
 
 def unpack_v3d(functor, index):

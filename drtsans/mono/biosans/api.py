@@ -1,57 +1,44 @@
 """ BIOSANS API """
+# local imports
+import drtsans
+from drtsans import getWedgeSelection, subtract_background
+from drtsans.dataobjects import save_iqmod
+from drtsans.instruments import extract_run_number
+from drtsans.iq import bin_all
+from drtsans.load import move_instrument
+from drtsans.mask_utils import apply_mask, load_mask
+from drtsans.mono import biosans
+from drtsans.mono import meta_data
+from drtsans.mono.biosans import solid_angle_correction
+from drtsans.mono.biosans.geometry import has_midrange_detector
+from drtsans.mono.dark_current import subtract_dark_current
+from drtsans.mono.load import load_events, transform_to_wavelength, set_init_uncertainties
+from drtsans.mono.meta_data import get_sample_detector_offset, parse_json_meta_data, set_meta_data
+from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
+from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
+from drtsans.path import abspath, abspaths, allow_overwrite, registered_workspace
+from drtsans.plots import plot_detector
+from drtsans.samplelogs import SampleLogs
+from drtsans.save_ascii import save_ascii_binned_2D
+from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.stitch import stitch_binned_profiles
+from drtsans.reductionlog import savereductionlog
+from drtsans.thickness_normalization import normalize_by_thickness
+
+# third party imports
+from mantid.dataobjects import Workspace2D
+from mantid.kernel import Logger
+from mantid.simpleapi import mtd, MaskDetectors, LoadEventNexus, LoadNexusProcessed, DeleteWorkspace
+from matplotlib.colors import LogNorm
+import matplotlib.pyplot as plt
+
+# standard imports
 from collections import namedtuple
 import copy
 from datetime import datetime
 import os
-
-from mantid.simpleapi import (
-    mtd,
-    MaskDetectors,
-    LoadEventNexus,
-    LoadNexusProcessed,
-    DeleteWorkspace,
-)
-from mantid.kernel import Logger
-
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
-
-import drtsans
-from drtsans import getWedgeSelection
-from drtsans.path import abspath, abspaths, registered_workspace
-from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
-from drtsans.instruments import extract_run_number
-from drtsans.samplelogs import SampleLogs
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
-from drtsans.plots import plot_detector
-from drtsans import subtract_background
-from drtsans.reductionlog import savereductionlog
-from drtsans.mono import biosans
-from drtsans.mono.biosans import solid_angle_correction
-from drtsans.mask_utils import apply_mask, load_mask
-from drtsans.mono.load import (
-    load_events,
-    transform_to_wavelength,
-    set_init_uncertainties,
-)
-from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
-from drtsans.mono.dark_current import subtract_dark_current
-from drtsans.mono.transmission import (
-    apply_transmission_correction,
-    calculate_transmission,
-)
-from drtsans.thickness_normalization import normalize_by_thickness
-from drtsans.iq import bin_all
-from drtsans.save_ascii import save_ascii_binned_2D
-from drtsans.dataobjects import save_iqmod
-from drtsans.path import allow_overwrite
-from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
-from drtsans.load import move_instrument
-from drtsans.mono.meta_data import parse_json_meta_data
-from drtsans.mono import meta_data
-from drtsans.mono.biosans.geometry import has_midrange_detector
-from drtsans.stitch import stitch_binned_profiles
-
+from typing import Union, List
 
 # Functions exposed to the general user (public) API
 __all__ = [
@@ -773,97 +760,109 @@ def prepare_data_workspaces(
 
 
 def process_single_configuration(
-    sample_ws_raw,
-    sample_trans_ws=None,
-    sample_trans_value=None,
-    bkg_ws_raw=None,
-    bkg_trans_ws=None,
-    bkg_trans_value=None,
-    blocked_ws_raw=None,
-    theta_deppendent_transmission=True,
-    center_x=None,
-    center_y=None,
-    center_y_wing=None,
-    dark_current=None,
-    flux_method=None,  # normalization (time/monitor)
-    monitor_fail_switch=False,
-    mask_ws=None,  # apply a custom mask from workspace
-    mask_detector=None,
-    mask_panel=None,  # mask back or front panel
-    mask_btp=None,  # mask bank/tube/pixel
-    solid_angle=True,
-    sensitivity_workspace=None,
-    output_workspace=None,
-    output_suffix="",
-    thickness=1.0,
-    absolute_scale_method="standard",
-    empty_beam_ws=None,
-    beam_radius=None,
-    absolute_scale=1.0,
-    keep_processed_workspaces=True,
+    sample_ws_raw: Union[str, Workspace2D],
+    sample_trans_ws: Workspace2D = None,
+    sample_trans_value: float = None,
+    bkg_ws_raw: Workspace2D = None,
+    bkg_trans_ws: Workspace2D = None,
+    bkg_trans_value: float = None,
+    blocked_ws_raw: Workspace2D = None,
+    theta_dependent_transmission: bool = True,
+    center_x: float = None,
+    center_y: float = None,
+    center_y_wing: float = None,
+    center_y_midrange: float = None,
+    dark_current: Workspace2D = None,
+    flux_method: str = None,
+    monitor_fail_switch: bool = False,
+    mask_ws: Workspace2D = None,
+    mask_detector: Union[str, List] = None,
+    mask_panel: str = None,
+    mask_btp: dict = None,
+    solid_angle: bool = True,
+    sensitivity_workspace: Workspace2D = None,
+    thickness: float = 1.0,
+    absolute_scale_method: str = "standard",
+    absolute_scale: float = 1.0,
+    keep_processed_workspaces: bool = True,
+    output_workspace: str = None,
+    output_prefix: str = "",
 ):
     r"""
     This function provides full data processing for a single experimental configuration,
     starting from workspaces (no data loading is happening inside this function)
 
+    Steps applied to the sample and background workspaces:
+    1. centering the detector
+    2. dark current subtraction
+    3. normalization by time or monitor
+    4. masking
+    5. solid angle correction
+    6. sensitivity correction
+    7. transmission correction
+
+    Additional steps applied to the sample workspace:
+    1. background subtraction
+    2. thickness correction
+    3. absolute scaling
+
     Parameters
     ----------
-    sample_ws_raw: ~mantid.dataobjects.Workspace2D
-        raw data histogram workspace
-    sample_trans_ws: ~mantid.dataobjects.Workspace2D
+    sample_ws_raw
+        raw data histogram workspace, or a string with the workspace name
+    sample_trans_ws
         optional histogram workspace for sample transmission
-    sample_trans_value: float
+    sample_trans_value
         optional value for sample transmission
-    bkg_ws_raw: ~mantid.dataobjects.Workspace2D
+    bkg_ws_raw
         optional raw histogram workspace for background
-    bkg_trans_ws: ~mantid.dataobjects.Workspace2D
+    bkg_trans_ws
         optional histogram workspace for background transmission
-    bkg_trans_value: float
+    bkg_trans_value
         optional value for background transmission
-    blocked_ws_raw: ~mantid.dataobjects.Workspace2D
+    blocked_ws_raw:
         optional histogram workspace for blocked beam
-    theta_deppendent_transmission: bool
+    theta_dependent_transmission: bool
         flag to apply angle dependent transmission
-    center_x: float
+    center_x
         x center for the beam
-    center_y: float
+    center_y
         y center for the beam
-    center_y_wing: float
-        y center for the wing
-    dark_current: ~mantid.dataobjects.Workspace2D
+    center_y_wing
+        y center for the wing detector
+    center_y_midrange
+        y center for the midrange detector
+    dark_current
         dark current workspace
-    flux_method: str
+    flux_method
         normalization by 'time' or 'monitor'
-    monitor_fail_switch: bool
+    monitor_fail_switch
         resort to normalization by 'time' if 'monitor' was selected but no monitor counts are available
-    mask_ws: ~mantid.dataobjects.Workspace2D
-        user defined mask
-    mask_detector: str, list
-        Name of one or more instrument components to mask: (e.g `detector1,wing_detector`)
-    mask_panel: str
-        mask fron or back panel
-    mask_btp: dict
-        optional bank, tube, pixel to mask
-    solid_angle: bool
+    mask_ws
+        user-defined mask
+    mask_detector
+        Name of one or more instrument components to mask: (e.g `wing_detector,midrange_detector`)
+    mask_panel
+        mask front or back panel of tubes
+    mask_btp
+        optional bank, tube, pixel to mask. These are options passed as optional arguments to Mantid algorithm MaskBTP
+    solid_angle
         flag to apply solid angle
-    sensitivity_workspace: ~mantid.dataobjects.Workspace2D
+    sensitivity_workspace
         workspace containing sensitivity
-    output_workspace: str
-        output workspace name
-    output_suffix:str
-        suffix for output workspace
-    thickness: float
+    thickness
         sample thickness (cm)
-    absolute_scale_method: str
-        method to do absolute scaling (standard or direct_beam)
-    empty_beam_ws: ~mantid.dataobjects.Workspace2D
-        empty beam workspace for absolute scaling
-    beam_radius: float
-        beam radius for absolute scaling
-    absolute_scale: float
+    absolute_scale_method
+        method to do absolute scaling. One of ["standard", "direct_beam"]
+    absolute_scale
         absolute scaling value for standard method
-    keep_processed_workspaces: bool
+    keep_processed_workspaces
         flag to keep the processed blocked beam and background workspaces
+    output_workspace
+        output workspace name for the sample. If ``None``, the name will be ``output_suffix + "_sample"``
+    output_prefix
+        prefix for output workspaces (``output_suffix + "_sample"``, ``output_suffix + "_blocked"``, and
+        ``output_suffix + "_background"``)
 
     Returns
     -------
@@ -871,13 +870,14 @@ def process_single_configuration(
         Reference to the processed workspace
     """
     if not output_workspace:
-        output_workspace = output_suffix + "_sample"
+        output_workspace = output_prefix + "_sample"
 
     # create a common configuration for prepare data
     prepare_data_conf = {
         "center_x": center_x,
         "center_y": center_y,
         "center_y_wing": center_y_wing,
+        "center_y_midrange": center_y_midrange,
         "dark_current": dark_current,
         "flux_method": flux_method,
         "monitor_fail_switch": monitor_fail_switch,
@@ -889,9 +889,9 @@ def process_single_configuration(
         "sensitivity_workspace": sensitivity_workspace,
     }
 
-    # process blocked
+    # process the optional histogram workspace for blocked beam
     if blocked_ws_raw:
-        blocked_ws_name = output_suffix + "_blocked"
+        blocked_ws_name = output_prefix + "_blocked"
         if not registered_workspace(blocked_ws_name):
             blocked_ws = prepare_data_workspaces(blocked_ws_raw, output_workspace=blocked_ws_name, **prepare_data_conf)
         else:
@@ -915,14 +915,14 @@ def process_single_configuration(
             sample_ws,
             trans_workspace=sample_trans_ws,
             trans_value=sample_trans_value,
-            theta_dependent=theta_deppendent_transmission,
+            theta_dependent=theta_dependent_transmission,
             output_workspace=output_workspace,
         )
 
     # process background, if not already processed
     background_transmission_dict = {}
     if bkg_ws_raw:
-        bkgd_ws_name = output_suffix + "_background"
+        bkgd_ws_name = output_prefix + "_background"
         if not registered_workspace(bkgd_ws_name):
             bkgd_ws = prepare_data_workspaces(bkg_ws_raw, output_workspace=bkgd_ws_name, **prepare_data_conf)
             if blocked_ws_raw:
@@ -943,7 +943,7 @@ def process_single_configuration(
                     bkgd_ws,
                     trans_workspace=bkg_trans_ws,
                     trans_value=bkg_trans_value,
-                    theta_dependent=theta_deppendent_transmission,
+                    theta_dependent=theta_dependent_transmission,
                     output_workspace=bkgd_ws_name,
                 )
         else:
@@ -962,19 +962,6 @@ def process_single_configuration(
 
     # standard method assumes absolute scale from outside
     if absolute_scale_method == "direct_beam":
-        # try:
-        #     empty = mtd[str(empty_beam_ws)]
-        # except KeyError:
-        #     raise ValueError(f"Could not find empty beam {str(empty_beam_ws)}")
-        #
-        # ac, ace = attenuation_factor(empty)
-        # sample_ws = empty_beam_scaling(sample_ws,
-        #                                empty,
-        #                                beam_radius=beam_radius,
-        #                                unit='mm',
-        #                                attenuator_coefficient=ac,
-        #                                attenuator_error=ace,
-        #                                output_workspace=output_workspace)
         raise NotImplementedError("This method is not yet implemented for BIOSANS")
     else:
         sample_ws *= absolute_scale
@@ -999,7 +986,7 @@ def plot_reduction_output(
     reduction_output:
         List of 1D and 2D I(Q) profile objects, for each detector panel
     reduction_input:.
-        Dictionary of of all possible options to properly configure the data reduction workflow.
+        Dictionary of all possible options to properly configure the data reduction workflow.
     loglog:
         Whether to plot in loglog scale, by default True.
     imshow_kwargs:
@@ -1131,8 +1118,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         mask_panel = "back"
     output_suffix = ""
     thickness = reduction_input["sample"]["thickness"]  # default thickness set in BIOSANS.json schema
-    absolute_scale_method = reduction_config["absoluteScaleMethod"]  # FIXME default value in the schemay may be wrong
-    beam_radius = reduction_config["DBScalingBeamRadius"]  # FIXME missing keyword in the schema
+    absolute_scale_method = reduction_config["absoluteScaleMethod"]
     absolute_scale = reduction_config["StandardAbsoluteScale"]
     time_slice_transmission = reduction_config["useTimeSlice"] and reduction_config["useTimeSliceTransmission"]
     output_dir = reduction_config["outputDir"]
@@ -1144,8 +1130,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
 
     bin1d_type = reduction_config["1DQbinType"]
     log_binning = reduction_config["QbinType"] == "log"
-    # FIXME - NO MORE USE OF Even_Decades
-    # even_decades = reduction_config["useLogQBinsEvenDecade"]  # default set in the schema
     decade_on_center = reduction_config["useLogQBinsDecadeCenter"]  # default set in the schema
 
     nbins_main = reduction_config["numMainQBins"]
@@ -1302,7 +1286,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             bkg_trans_ws=bkgd_trans_ws,
             bkg_trans_value=bkg_trans_value,
             blocked_ws_raw=loaded_ws.blocked_beam,
-            theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
+            theta_dependent_transmission=theta_deppendent_transmission,  # noqa E502
             center_x=xc,
             center_y=yc,
             center_y_wing=yw,
@@ -1315,11 +1299,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             solid_angle=solid_angle,
             sensitivity_workspace=loaded_ws.sensitivity_main,  # noqa E502
             output_workspace=f"processed_data_main_{i}",
-            output_suffix=output_suffix,
+            output_prefix=output_suffix,
             thickness=thickness,
             absolute_scale_method=absolute_scale_method,
-            empty_beam_ws=empty_trans_ws,
-            beam_radius=beam_radius,
             absolute_scale=absolute_scale,
             keep_processed_workspaces=False,
         )
@@ -1331,7 +1313,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             bkg_trans_ws=bkgd_trans_ws,
             bkg_trans_value=bkg_trans_value,
             blocked_ws_raw=loaded_ws.blocked_beam,
-            theta_deppendent_transmission=theta_deppendent_transmission,  # noqa E502
+            theta_dependent_transmission=theta_deppendent_transmission,  # noqa E502
             center_x=xc,
             center_y=yc,
             center_y_wing=yw,
@@ -1344,11 +1326,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             solid_angle=solid_angle,
             sensitivity_workspace=loaded_ws.sensitivity_wing,  # noqa E502
             output_workspace=f"processed_data_wing_{i}",
-            output_suffix=output_suffix,
+            output_prefix=output_suffix,
             thickness=thickness,
             absolute_scale_method=absolute_scale_method,
-            empty_beam_ws=empty_trans_ws,
-            beam_radius=beam_radius,
             absolute_scale=absolute_scale,
             keep_processed_workspaces=False,
         )

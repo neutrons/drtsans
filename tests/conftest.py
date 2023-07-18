@@ -9,6 +9,7 @@ from drtsans.mono.biosans.geometry import (
     set_angle_wing_detector,
     set_position_south_detector,
 )
+from drtsans.path import registered_workspace
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import amend_config, unique_workspace_dundername
 from drtsans.simulated_events import (
@@ -167,27 +168,28 @@ def temp_directory():
 @pytest.fixture(scope="function")
 def clean_workspace():
     r"""
-    Fixture that will delete registered workspaces that are also registered in the Analysis Data Service
-    when the test function exits. It will cleanup on exception and will safely skip over workspaces not
-    registered in the Analysis Data Service.
+    Fixture that will delete workspaces if registered in the Analysis Data Service when the test function exits.
 
+    Parameters
+    ----------
+    workspace: str, ~mantid.kernel.Workspace
+        Workspace handle or the name of the workspace to be deleted
 
+    Returns
+    -------
+    str
+        the name of the workspace marked for deletion
     """
     workspaces: List[str] = []
 
     def _clean_workspace(workspace):
         workspaces.append(str(workspace))
-        return workspace
+        return str(workspace)
 
     yield _clean_workspace
 
     # Executed after test exits
-    for workspace in workspaces:
-        try:
-            mtd[workspace]  # better than AnalysisDataService.doesExist(workspace)
-            DeleteWorkspace(workspace)
-        except KeyError:
-            pass
+    [DeleteWorkspace(workspace) for workspace in workspaces if registered_workspace(workspace)]
 
 
 @pytest.fixture(scope="function")
@@ -1496,7 +1498,6 @@ def biosans_synthetic_dataset(reference_dir, tmp_path_factory) -> dict:
             "wing_detector": "sensitivity_wing_detector.nxs",
             "midrange_detector": "sensitivity_midrange_detector.nxs",
             }
-        }
     """
 
     def _filename(run: int) -> str:

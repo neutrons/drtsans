@@ -76,13 +76,16 @@ def test_abspath_with_ipts(hint, instr, ipts, fullpath):
 
 def test_abspath_with_directory(reference_dir):
     filename = os.path.join(reference_dir.new.biosans, "CG3_5709.nxs.h5")
-    abspath("CG3_5709", directory=reference_dir.new.biosans, search_archive=False) == filename
-    abspath(
-        "5709",
-        instrument="CG3",
-        directory=reference_dir.new.biosans,
-        search_archive=False,
-    ) == filename
+    assert abspath("CG3_5709", directory=reference_dir.new.biosans, search_archive=False) == filename
+    assert (
+        abspath(
+            "5709",
+            instrument="CG3",
+            directory=reference_dir.new.biosans,
+            search_archive=False,
+        )
+        == filename
+    )
 
 
 @pytest.mark.skipif(

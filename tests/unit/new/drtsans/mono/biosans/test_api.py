@@ -587,7 +587,7 @@ def test_has_midrange_detector():
         # case when "1DQbinType" is "scalar" or "annular": 1 intensity profile per detector
         (
             [IQmod(intensity=[], error=[], mod_q=[], delta_mod_q=[])],
-            ["output_1D_main.txt", "output_1D_wing.txt", "output_1D_both.txt"],
+            ["output_1D_main.txt", "output_1D_midrange.txt", "output_1D_wing.txt", "output_1D_combined.txt"],
         ),
         # case when "1DQbinType" is "wedge": 2 intensity profiles per detector
         (
@@ -597,11 +597,13 @@ def test_has_midrange_detector():
             ],
             [
                 "output_1D_main_wedge_0.txt",
+                "output_1D_midrange_wedge_0.txt",
                 "output_1D_wing_wedge_0.txt",
-                "output_1D_both_wedge_0.txt",
+                "output_1D_combined_wedge_0.txt",
                 "output_1D_main_wedge_1.txt",
+                "output_1D_midrange_wedge_1.txt",
                 "output_1D_wing_wedge_1.txt",
-                "output_1D_both_wedge_1.txt",
+                "output_1D_combined_wedge_1.txt",
             ],
         ),
     ],
@@ -611,7 +613,7 @@ def test_save_iqmod_all(tmp_path, iqmod_dummy, output_files):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
-    save_iqmod_all(iqmod_dummy, iqmod_dummy, iqmod_dummy, "output", tmp_path, "", True)
+    save_iqmod_all(iqmod_dummy, iqmod_dummy, iqmod_dummy, iqmod_dummy, "output", tmp_path, "", True)
 
     for filename in output_files:
         filepath = path_join(output_dir, filename)

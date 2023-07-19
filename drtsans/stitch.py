@@ -235,6 +235,6 @@ def stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config):
                 target_profile_index=0,
             )
         except ValueError:
-            iq1d_combined = IQmod(intensity=[], error=[], mod_q=[])
+            iq1d_combined = IQmod(intensity=[], error=[], mod_q=[], delta_mod_q=[])
         iq1d_combined_out.append(iq1d_combined)
     return iq1d_combined_out

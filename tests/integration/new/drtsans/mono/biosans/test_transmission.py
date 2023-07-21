@@ -18,7 +18,6 @@ def _mock_LoadEventNexus(*args, **kwargs):
     return LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
 
 
-@pytest.mark.skip(reason="Skip until the mantid nightly conda package is updated, with timestamp > 2030-07-12")
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 @mock_patch("drtsans.load.__monitor_counts")
 def test_transmission(mock_monitor_counts, biosans_synthetic_dataset):

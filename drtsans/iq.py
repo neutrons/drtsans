@@ -183,6 +183,10 @@ def bin_all(
     decade_on_center=False,
     qmin=None,
     qmax=None,
+    wedge1_qmin=None,
+    wedge1_qmax=None,
+    wedge2_qmin=None,
+    wedge2_qmax=None,
     qxrange=None,
     qyrange=None,
     annular_angle_bin=1.0,
@@ -216,9 +220,17 @@ def bin_all(
     decade_on_center: bool
         Flag to have the min X and max X on bin center; Otherwise, they will be on bin boundary
     qmin: float
-        minimum 1D q
+        Minimum value of the momentum transfer modulus Q
     qmax: float
-        maximum 1D q
+        Maximum value of the momentum transfer modulus Q
+    wedge1_qmin: float
+        Minimum value of the momentum transfer modulus Q for the first wedge when ``bin1d_type = 'wedge'``
+    wedge1_qmax: float
+        Maximum value of the momentum transfer modulus Q for the first wedge when ``bin1d_type = 'wedge'``
+    wedge2_qmin: float
+        Minimum value of the momentum transfer modulus Q for the second wedge when ``bin1d_type = 'wedge'``
+    wedge2_qmax: float
+        Maximum value of the momentum transfer modulus Q for the second wedge when ``bin1d_type = 'wedge'``
     qxrange: ~tuple
         qx min and qx max
     qyrange: ~tuple
@@ -297,32 +309,35 @@ def bin_all(
         # regular binning including 'scalar' and 'wedge'
         if bin1d_type == "scalar":
             unbinned_1d = [i_modq]
+            qmin_list = [qmin] if qmin is not None else [i_modq.mod_q.min()]
+            qmax_list = [qmax] if qmax is not None else [i_modq.mod_q.max()]
         elif bin1d_type == "wedge":
             # select Q's by wedge angles
             unbinned_1d = bin_into_wedges(i_qxqy, wedges, symmetric_wedges)
+            unbinned_1d_flattened = concatenate(unbinned_1d)
+            # there are two wedges with individual (qmin, qmax) limits
+            qmin_list = [None, None]
+            qmin_list[0] = wedge1_qmin if wedge1_qmin is not None else unbinned_1d_flattened.mod_q.min()
+            qmin_list[1] = wedge2_qmin if wedge2_qmin is not None else unbinned_1d_flattened.mod_q.min()
+            qmax_list = [None, None]
+            qmax_list[0] = wedge1_qmax if wedge1_qmax is not None else unbinned_1d_flattened.mod_q.max()
+            qmax_list[1] = wedge2_qmax if wedge2_qmax is not None else unbinned_1d_flattened.mod_q.max()
         else:
             raise ValueError(f"bin1d_type of type {bin1d_type} is not available")
 
-        if qmin is None:
-            unbinned_1d_flattened = concatenate(unbinned_1d)
-            qmin = unbinned_1d_flattened.mod_q.min()
-        if qmax is None:
-            unbinned_1d_flattened = concatenate(unbinned_1d)
-            qmax = unbinned_1d_flattened.mod_q.max()
-
         if log_scale:
-            # log bins
-            bins_1d = determine_1d_log_bins(
-                qmin,
-                qmax,
-                n_bins_per_decade=n1dbins_per_decade,
-                n_bins=n1dbins,
-                decade_on_center=decade_on_center,
-            )
-            for ub1d in unbinned_1d:
+            for iub, ub1d in enumerate(unbinned_1d):
+                # log bins
+                bins_1d = determine_1d_log_bins(
+                    qmin_list[iub],
+                    qmax_list[iub],
+                    n_bins_per_decade=n1dbins_per_decade,
+                    n_bins=n1dbins,
+                    decade_on_center=decade_on_center,
+                )
                 # The filter is needed for logarithmic binning so that
                 # the qmin and qmax are correctly taken into account
-                q_filter = np.where(np.logical_and(ub1d.mod_q >= qmin, ub1d.mod_q <= qmax))
+                q_filter = np.where(np.logical_and(ub1d.mod_q >= qmin_list[iub], ub1d.mod_q <= qmax_list[iub]))
                 ub1d_filtered = IQmod(
                     ub1d.intensity[q_filter],
                     ub1d.error[q_filter],
@@ -338,10 +353,10 @@ def bin_all(
                 )
                 binned_q1d_list.append(binned_q1d)
         else:
-            # linear bins
-            bins_1d = determine_1d_linear_bins(qmin, qmax, n1dbins)
-            for ub_index, ub1d in enumerate(unbinned_1d):
-                print(f"Linear binning for {ub_index}!")
+            for iub, ub1d in enumerate(unbinned_1d):
+                # linear bins
+                bins_1d = determine_1d_linear_bins(qmin_list[iub], qmax_list[iub], n1dbins)
+                print(f"Linear binning for {iub}!")
                 print(
                     f"Number of NaNs = {np.where(np.isnan(ub1d.intensity))[0].shape}; "
                     f"Number of data points = {ub1d.intensity.shape}"

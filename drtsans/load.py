@@ -10,7 +10,7 @@ from mantid.simpleapi import (
     FilterEvents,
 )
 from mantid.simpleapi import AddSampleLogMultiple
-from mantid.kernel import logger
+from mantid.kernel import Logger
 from drtsans.geometry import (
     translate_detector_by_z,
     translate_sample_by_z,
@@ -29,6 +29,8 @@ from drtsans.settings import amend_config
 
 
 __all__ = ["load_events", "sum_data", "load_and_split", "move_instrument"]
+
+logger = Logger("drtsans.load")
 
 
 def __monitor_counts(filename, monitor_name="monitor1"):

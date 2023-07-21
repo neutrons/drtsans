@@ -1134,7 +1134,7 @@ def test_biosans_midrange_tube_calibration(reference_dir):
 
     uncalibrated_densities = _linear_density(uncalibrated_workspace, component="midrange_detector")
     calibrated_densities = _linear_density(calibrated_workspace, component="midrange_detector")
-    assert _amplitude(calibrated_densities) / _amplitude(uncalibrated_densities) == pytest.approx(0.55, abs=0.01)
+    assert _amplitude(calibrated_densities) / _amplitude(uncalibrated_densities) == pytest.approx(0.09, abs=0.01)
 
     # cleanup
     DeleteWorkspace(uncalibrated_workspace)

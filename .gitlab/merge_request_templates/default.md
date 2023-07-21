@@ -4,12 +4,11 @@
 - [ ] Added unit tests?
 - [ ] Added integration tests?
 
-**For To Test:**
+### To Test by Reviewer:
+
 <!-- Instructions for testing. -->
 
-**For Approver To Test:**
-
-The approver should check for the discussed software practices
+The reviewer should check for the discussed software practices
 
 - [ ] all internal functions should have an underbar, as is python standard
 - [ ] need more comments in meat of code explaining intent

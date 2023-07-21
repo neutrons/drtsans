@@ -297,12 +297,16 @@ def test_reduce_single_configuration_slice_transmission_false(temp_directory):
             "wedge1QmaxMain": 0.0425,
             "wedge1QminWing": 0.02,
             "wedge1QmaxWing": 0.45,
+            "wedge1QminMidrange": 0.02,
+            "wedge1QmaxMidrange": 0.45,
             "wedge1overlapStitchQmin": 0.025,
             "wedge1overlapStitchQmax": 0.04,
             "wedge2QminMain": 0.003,
             "wedge2QmaxMain": 0.0425,
             "wedge2QminWing": 0.03,
             "wedge2QmaxWing": 0.45,
+            "wedge2QminMidrange": 0.03,
+            "wedge2QmaxMidrange": 0.45,
             "wedge2overlapStitchQmin": 0.03,
             "wedge2overlapStitchQmax": 0.04,
             "wedges": None,
@@ -440,12 +444,16 @@ def test_reduce_single_configuration_slice_transmission_true(temp_directory):
             "wedge1QmaxMain": 0.0425,
             "wedge1QminWing": 0.02,
             "wedge1QmaxWing": 0.45,
+            "wedge1QminMidrange": 0.02,
+            "wedge1QmaxMidrange": 0.45,
             "wedge1overlapStitchQmin": 0.025,
             "wedge1overlapStitchQmax": 0.04,
             "wedge2QminMain": 0.003,
             "wedge2QmaxMain": 0.0425,
             "wedge2QminWing": 0.03,
             "wedge2QmaxWing": 0.45,
+            "wedge2QminMidrange": 0.03,
+            "wedge2QmaxMidrange": 0.45,
             "wedge2overlapStitchQmin": 0.03,
             "wedge2overlapStitchQmax": 0.04,
             "wedges": None,
@@ -470,7 +478,6 @@ def test_reduce_single_configuration_slice_transmission_true(temp_directory):
     del _
 
 
-@pytest.mark.skip(reason="Skip until the mantid nightly conda package is updated, with timestamp > 2030-07-12")
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 @mock_patch("drtsans.load.__monitor_counts")
 def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, biosans_synthetic_dataset, temp_directory):
@@ -523,36 +530,98 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
             "LogQBinsPerDecadeMain": 25,
             "LogQBinsPerDecadeWing": 25,
             "LogQBinsPerDecadeMidrange": 25,
-            "WedgeMinAngles": None,
-            "WedgeMaxAngles": None,
-            "autoWedgeQmin": 0.003,
-            "autoWedgeQmax": 0.04,
-            "autoWedgeQdelta": 0.01,
-            "autoWedgeAzimuthalDelta": 1.0,
-            "autoWedgePeakWidth": 0.5,
-            "autoWedgeBackgroundWidth": 1.0,
-            "autoWedgeSignalToNoiseMin": 2.0,
-            "AnnularAngleBin": 1.0,
             "QminMain": 0.0009,
-            "QmaxMain": 0.016,
-            "QminWing": 0.009,
-            "QmaxWing": 0.3,
-            "QminMidrange": 0.009,
+            "QmaxMain": 0.3,
+            "QminMidrange": 0.01,
             "QmaxMidrange": 0.3,
-            "overlapStitchQmin": [0.0105],
-            "overlapStitchQmax": [0.0145],
-            "wedge1QminMain": 0.003,
-            "wedge1QmaxMain": 0.0425,
+            "QminWing": 0.02,
+            "QmaxWing": 0.3,
+            "overlapStitchQmin": [0.015, 0.03],
+            "overlapStitchQmax": [0.06, 0.1],
+        },
+        "logslice_data": {},
+    }
+    reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
+    prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
+    loaded = load_all_files(reduction_input, prefix, path=data["data_dir"])
+    output = reduce_single_configuration(loaded, reduction_input)
+    iq1d_combined = output[0].I1D_combined[0].intensity
+    assert len(iq1d_combined) == 91
+    assert iq1d_combined[-3:] == pytest.approx([12069.9, 9693.1, 14548.5], abs=0.1)
+
+
+@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+@mock_patch("drtsans.load.__monitor_counts")
+def test_reduce_single_configuration_with_wedges_synthetic_dataset(
+    mock_monitor_counts, biosans_synthetic_dataset, temp_directory
+):
+    data = biosans_synthetic_dataset
+    mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
+    reduction_input = {
+        "schemaStamp": "2020-04-15T21:09:52.745905",
+        "instrumentName": "CG3",
+        "iptsNumber": "00000",
+        "dataDirectories": f"{data['data_dir']}",
+        "sample": {
+            "runNumber": "92310",
+            "thickness": 0.2,
+            "transmission": {"runNumber": "92330", "value": None},
+        },
+        "background": {
+            "runNumber": "92320",
+            "transmission": {"runNumber": "92330", "value": None},
+        },
+        "emptyTransmission": {"runNumber": "92300", "value": None},
+        "beamCenter": {
+            "runNumber": "92300",
+            "method": "center_of_mass",
+            "com_centering_options": {"IntegrationRadius": 0.07},
+        },
+        "outputFileName": "synthethic",
+        "configuration": {
+            "outputDir": temp_directory(prefix="synthetic_experiment"),
+            "timeSliceInterval": 60.0,
+            "sampleApertureSize": 12.0,
+            "usePixelCalibration": True,
+            "useDefaultMask": True,
+            "defaultMask": [
+                {"Pixel": "1-18,239-256"},
+            ],
+            "darkMainFileName": "CG3_92340.nxs.h5",
+            "darkWingFileName": "CG3_92340.nxs.h5",
+            "darkMidrangeFileName": "CG3_92340.nxs.h5",
+            "sensitivityMainFileName": os.path.join(data["data_dir"], "sensitivity_detector1.nxs"),
+            "sensitivityWingFileName": os.path.join(data["data_dir"], "sensitivity_wing_detector.nxs"),
+            "sensitivityMidrangeFileName": os.path.join(data["data_dir"], "sensitivity_midrange_detector.nxs"),
+            "useThetaDepTransCorrection": True,
+            "DBScalingBeamRadius": 40.0,
+            "StandardAbsoluteScale": 2.286e-09,
+            "numMainQxQyBins": 100,
+            "numWingQxQyBins": 100,
+            "numMidrangeQxQyBins": 100,
+            "1DQbinType": "wedge",
+            "QbinType": "log",
+            "LogQBinsPerDecadeMain": 25,
+            "LogQBinsPerDecadeWing": 25,
+            "LogQBinsPerDecadeMidrange": 25,
+            "WedgeMinAngles": [-45, 165],
+            "WedgeMaxAngles": [45, 190],
+            "wedge1QminMain": 0.0009,
+            "wedge1QmaxMain": 0.3,
+            "wedge1QminMidrange": 0.01,
+            "wedge1QmaxMidrange": 0.3,
             "wedge1QminWing": 0.02,
-            "wedge1QmaxWing": 0.45,
-            "wedge1overlapStitchQmin": 0.025,
-            "wedge1overlapStitchQmax": 0.04,
-            "wedge2QminMain": 0.003,
-            "wedge2QmaxMain": 0.0425,
-            "wedge2QminWing": 0.03,
-            "wedge2QmaxWing": 0.45,
-            "wedge2overlapStitchQmin": 0.03,
-            "wedge2overlapStitchQmax": 0.04,
+            "wedge1QmaxWing": 0.3,
+            "wedge1overlapStitchQmin": [0.015, 0.03],
+            "wedge1overlapStitchQmax": [0.06, 0.1],
+            "wedge2QminMain": 0.0009,
+            "wedge2QmaxMain": 0.3,
+            "wedge2QminMidrange": 0.01,
+            "wedge2QmaxMidrange": 0.3,
+            "wedge2QminWing": 0.02,
+            "wedge2QmaxWing": 0.3,
+            "wedge2overlapStitchQmin": [0.015, 0.03],
+            "wedge2overlapStitchQmax": [0.06, 0.1],
             "wedges": None,
             "symmetric_wedges": True,
         },
@@ -561,7 +630,13 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
     loaded = load_all_files(reduction_input, prefix, path=data["data_dir"])
-    reduce_single_configuration(loaded, reduction_input)
+    output = reduce_single_configuration(loaded, reduction_input)
+    iq1d_combined_wedge1 = output[0].I1D_combined[0].intensity
+    iq1d_combined_wedge2 = output[0].I1D_combined[1].intensity
+    assert len(iq1d_combined_wedge1) == 91
+    assert len(iq1d_combined_wedge2) == 91
+    assert iq1d_combined_wedge1[-3:] == pytest.approx([12148.2, 9756.1, 14643.0], abs=0.1)
+    assert iq1d_combined_wedge2[-3:] == pytest.approx([9150.5, 7456.8, 11398.2], abs=0.1)
 
 
 if __name__ == "__main__":

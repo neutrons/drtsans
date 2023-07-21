@@ -1140,7 +1140,7 @@ def reduce_single_configuration(
     solid_angle = reduction_config["useSolidAngleCorrection"]
     sample_trans_value = reduction_input["sample"]["transmission"]["value"]
     bkg_trans_value = reduction_input["background"]["transmission"]["value"]
-    theta_deppendent_transmission = reduction_config["useThetaDepTransCorrection"]
+    theta_dependent_transmission = reduction_config["useThetaDepTransCorrection"]
     mask_panel = None
     if reduction_config["useMaskBackTubes"] is True:
         mask_panel = "back"
@@ -1177,6 +1177,18 @@ def reduce_single_configuration(
     qmax_wing = reduction_config["QmaxWing"]
     qmin_midrange = reduction_config["QminMidrange"]
     qmax_midrange = reduction_config["QmaxMidrange"]
+    wedge1_qmin_main = reduction_config["wedge1QminMain"]
+    wedge1_qmax_main = reduction_config["wedge1QmaxMain"]
+    wedge1_qmin_wing = reduction_config["wedge1QminWing"]
+    wedge1_qmax_wing = reduction_config["wedge1QmaxWing"]
+    wedge1_qmin_midrange = reduction_config["wedge1QminMidrange"]
+    wedge1_qmax_midrange = reduction_config["wedge1QmaxMidrange"]
+    wedge2_qmin_main = reduction_config["wedge2QminMain"]
+    wedge2_qmax_main = reduction_config["wedge2QmaxMain"]
+    wedge2_qmin_wing = reduction_config["wedge2QminWing"]
+    wedge2_qmax_wing = reduction_config["wedge2QmaxWing"]
+    wedge2_qmin_midrange = reduction_config["wedge2QminMidrange"]
+    wedge2_qmax_midrange = reduction_config["wedge2QmaxMidrange"]
     annular_bin = reduction_config["AnnularAngleBin"]
 
     wedges_min = reduction_config["WedgeMinAngles"]
@@ -1331,7 +1343,7 @@ def reduce_single_configuration(
             bkg_trans_ws=bkgd_trans_ws,
             bkg_trans_value=bkg_trans_value,
             blocked_ws_raw=loaded_ws.blocked_beam,
-            theta_dependent_transmission=theta_deppendent_transmission,  # noqa E502
+            theta_dependent_transmission=theta_dependent_transmission,
             center_x=xc,
             center_y=yc,
             center_y_wing=yw,
@@ -1343,7 +1355,7 @@ def reduce_single_configuration(
             mask_ws=loaded_ws.mask,
             mask_panel=mask_panel,
             solid_angle=solid_angle,
-            sensitivity_workspace=loaded_ws.sensitivity_main,  # noqa E502
+            sensitivity_workspace=loaded_ws.sensitivity_main,
             output_workspace=f"processed_data_main_{i}",
             output_prefix=output_suffix,
             thickness=thickness,
@@ -1359,7 +1371,7 @@ def reduce_single_configuration(
             bkg_trans_ws=bkgd_trans_ws,
             bkg_trans_value=bkg_trans_value,
             blocked_ws_raw=loaded_ws.blocked_beam,
-            theta_dependent_transmission=theta_deppendent_transmission,  # noqa E502
+            theta_dependent_transmission=theta_dependent_transmission,
             center_x=xc,
             center_y=yc,
             center_y_wing=yw,
@@ -1371,7 +1383,7 @@ def reduce_single_configuration(
             mask_ws=loaded_ws.mask,
             mask_panel=mask_panel,
             solid_angle=solid_angle,
-            sensitivity_workspace=loaded_ws.sensitivity_wing,  # noqa E502
+            sensitivity_workspace=loaded_ws.sensitivity_wing,
             output_workspace=f"processed_data_wing_{i}",
             output_prefix=output_suffix,
             thickness=thickness,
@@ -1388,7 +1400,7 @@ def reduce_single_configuration(
                 bkg_trans_ws=bkgd_trans_ws,
                 bkg_trans_value=bkg_trans_value,
                 blocked_ws_raw=loaded_ws.blocked_beam,
-                theta_deppendent_transmission=theta_deppendent_transmission,
+                theta_dependent_transmission=theta_dependent_transmission,
                 center_x=xc,
                 center_y=yc,
                 center_y_wing=yw,
@@ -1402,7 +1414,7 @@ def reduce_single_configuration(
                 solid_angle=solid_angle,
                 sensitivity_workspace=loaded_ws.sensitivity_midrange,
                 output_workspace=f"processed_data_midrange_{i}",
-                output_suffix=output_suffix,
+                output_prefix=output_suffix,
                 thickness=thickness,
                 absolute_scale_method=absolute_scale_method,
                 absolute_scale=absolute_scale,
@@ -1485,6 +1497,10 @@ def reduce_single_configuration(
             log_scale=log_binning,
             qmin=qmin_main,
             qmax=qmax_main,
+            wedge1_qmin=wedge1_qmin_main,
+            wedge1_qmax=wedge1_qmax_main,
+            wedge2_qmin=wedge2_qmin_main,
+            wedge2_qmax=wedge2_qmax_main,
             annular_angle_bin=annular_bin,
             wedges=wedges,
             symmetric_wedges=symmetric_wedges,
@@ -1504,6 +1520,10 @@ def reduce_single_configuration(
             log_scale=log_binning,
             qmin=qmin_wing,
             qmax=qmax_wing,
+            wedge1_qmin=wedge1_qmin_wing,
+            wedge1_qmax=wedge1_qmax_wing,
+            wedge2_qmin=wedge2_qmin_wing,
+            wedge2_qmax=wedge2_qmax_wing,
             annular_angle_bin=annular_bin,
             wedges=wedges,
             symmetric_wedges=symmetric_wedges,
@@ -1524,6 +1544,10 @@ def reduce_single_configuration(
                 log_scale=log_binning,
                 qmin=qmin_midrange,
                 qmax=qmax_midrange,
+                wedge1_qmin=wedge1_qmin_midrange,
+                wedge1_qmax=wedge1_qmax_midrange,
+                wedge2_qmin=wedge2_qmin_midrange,
+                wedge2_qmax=wedge2_qmax_midrange,
                 annular_angle_bin=annular_bin,
                 wedges=wedges,
                 symmetric_wedges=symmetric_wedges,

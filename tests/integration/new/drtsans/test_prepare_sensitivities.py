@@ -392,12 +392,14 @@ def test_cg3_midrange_prepare_sensitivities(mock_monitor_counts, biosans_synthet
     output_sens_file = path_join(tmp_path, "IntegrateTest_CG3_Mid_Sens.nxs")
     with amend_config(data_dir=biosans_synthetic_dataset["data_dir"]):
         preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, output_sens_file)
-    # preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, output_sens_file)
 
     # Verify file existence
     assert os.path.exists(output_sens_file)
 
     # Verify value
+    # NOTE: since we are using synthetic data, there is no gold/reference file we can use to verify
+    #       that the content is correct. Once we have the correct data file (instead of mock one),
+    #       we should generate the gold file and enable the checking.
     # gold_cg2_wing_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl" "/sans/sensitivities/CG3_Sens_Wing.nxs"
 
     # verify_sensitivities_file(output_sens_file, gold_cg2_wing_file, atol=1e-7)

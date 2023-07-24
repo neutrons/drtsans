@@ -2,6 +2,7 @@
     Test EASANS sensitivities preparation algorithm
 """
 import pytest
+from unittest.mock import patch as mock_patch
 import numpy as np
 import os
 from os.path import join as path_join
@@ -9,9 +10,15 @@ from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
 from drtsans.mono.biosans.prepare_sensitivities_correction import (
     PrepareSensitivityCorrection as PrepareSensitivityCorrectionBiosans,
 )
+from drtsans.settings import amend_config
 from mantid.simpleapi import LoadNexusProcessed
 from mantid.simpleapi import DeleteWorkspace
 from tempfile import mktemp
+
+
+def _mock_LoadEventNexus(*args, **kwargs):
+    # Substitute LoadEventNexus with LoadNexusProcessed because our synthetic files were created with SaveNexus
+    return LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
 
 
 def verify_sensitivities_file(test_sens_file, gold_sens_file, atol=None):
@@ -317,6 +324,82 @@ def test_cg3_wing_prepare_sensitivities(tmp_path):
     DeleteWorkspace("test_sens_ws")
     DeleteWorkspace("TRANS_CG3_4831")
     DeleteWorkspace("TRANS_CG3_4835")
+
+
+@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+def test_cg3_midrange_prepare_sensitivities(biosans_synthetic_sensitivity_dataset, tmp_path):
+    """Integration test on algorithms to prepare sensitivities for BIOSANS's midrange detector"""
+    # CG3: Mid
+    FLOOD_RUNS = 4835
+    # BIO-SANS detector
+
+    # About Masks
+    # CG3 Main:
+    DIRECT_BEAM_RUNS = 4830
+
+    # Transmission run
+    TRANSMISSION_RUNS = 4831
+    # Transmission flood run
+    TRANSMISSION_FLOOD_RUNS = 4835
+
+    # CG3:
+    MASKED_PIXELS = "1-18,239-256"  # CG3
+    # Mask angle: must 2 values as min and max or None
+    MAIN_DET_MASK_ANGLE = 0.75
+    BEAM_TRAP_SIZE_FACTOR = 2
+
+    # Corrections
+    SOLID_ANGLE_CORRECTION = True
+    # Flag to do dependent correction with transmission correction
+    THETA_DEPENDENT_CORRECTION = True
+
+    # If it is GPSANS or BIOSANS there could be 2 options to calculate detector efficiencies
+    MOVING_DETECTORS = False
+
+    # THRESHOLD
+    MIN_THRESHOLD = 0.5
+    MAX_THRESHOLD = 2.0
+
+    # Prepare data
+    preparer = PrepareSensitivityCorrectionBiosans(component="midrange_detector")
+    # Load flood runs
+    preparer.set_flood_runs(FLOOD_RUNS)
+
+    # Process beam center runs
+    preparer.set_direct_beam_runs(DIRECT_BEAM_RUNS)
+
+    # Set extra masks
+    preparer.set_masks(
+        None,
+        MASKED_PIXELS,
+        main_det_mask_angle=MAIN_DET_MASK_ANGLE,
+    )
+
+    # Transmission
+    preparer.set_transmission_correction(
+        transmission_flood_runs=TRANSMISSION_FLOOD_RUNS,
+        transmission_reference_runs=TRANSMISSION_RUNS,
+        beam_trap_factor=BEAM_TRAP_SIZE_FACTOR,
+    )
+    preparer.set_theta_dependent_correction_flag(THETA_DEPENDENT_CORRECTION)
+
+    preparer.set_solid_angle_correction_flag(SOLID_ANGLE_CORRECTION)
+
+    # Run
+    output_sens_file = path_join(tmp_path, "IntegrateTest_CG3_Mid_Sens.nxs")
+    with amend_config(data_dir=biosans_synthetic_sensitivity_dataset["data_dir"]):
+        preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, output_sens_file)
+
+    # Verify file existence
+    assert os.path.exists(output_sens_file)
+
+    # Verify value
+    # NOTE: since we are using synthetic data, there is no gold/reference file we can use to verify
+    #       that the content is correct. Once we have the correct data file (instead of mock one),
+    #       we should generate the gold file and enable the checking.
+    # gold_cg2_wing_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl" "/sans/sensitivities/CG3_Sens_Wing.nxs"
+
+    # verify_sensitivities_file(output_sens_file, gold_cg2_wing_file, atol=1e-7)
 
 
 def test_cg2_sensitivities(tmp_path):

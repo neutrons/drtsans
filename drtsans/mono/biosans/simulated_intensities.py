@@ -29,7 +29,7 @@ def clone_component_intensities(
     output_workspace
         If :py:obj:`None`, the name of the input_workspace will be used, thus overwriting the input workspace.
     input_component
-        The component to c  opy intensities from.
+        The component to copy intensities from.
     output_component
         The component to copy intensities to.
     copy_logs

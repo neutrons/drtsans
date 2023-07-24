@@ -1704,6 +1704,48 @@ def biosans_synthetic_dataset(reference_dir, tmp_path_factory) -> dict:
     return kit
 
 
+@pytest.fixture(scope="session")
+def biosans_synthetic_sensitivity_dataset(reference_dir):
+    r"""
+    A dataset for testing the source that creates a sensitivity file for the BIOSANS midrange detector.
+    The dataset contains Nexus-processed files with integrated counts (counts per pixel). The files
+    have names like ``CG3_XXXX.nxs``, where ``XXXX`` is a run number.
+
+    Files were created with script drtsans/scripts/test_help/biosans_synthetic_sensitivity_dataset.py
+
+    Usage
+    -----
+    from mantid.simpleapi import LoadNexusProcessed
+    from unittest.mock import patch as mock_patch
+
+    def _mock_LoadEventNexus(*args, **kwargs):
+        # Substitute LoadEventNexus with LoadNexusProcessed because our synthetic files were created with SaveNexus
+        return LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
+
+    @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+    def test_function(mock_monitor_counts, biosans_synthetic_dataset):
+        mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
+        with amend_config(new_config={"instrumentName": "CG3"},
+                          data_dir=str(biosans_synthetic_sensitivity_dataset["data_dir"])):
+            #
+            # in this test, we just use load_events() to load one of the synthetic runs
+            #
+            from drtsans.load import load_events
+            run_number = biosans_synthetic_sensitivity_dataset["runs"]["flood"]
+            my_workspace = load_events(f"CG3_{run_number}")  # requires mocking LoadEventNexus
+
+    """
+    return {
+        "data_dir": pjoin(reference_dir.new.biosans, "synthetic_sensitivity"),
+        "runs": {
+            "flood": 4835,
+            "direct_beam": 4830,
+            "transmission": 4831,
+            "transmission_flood": 4835,
+        },
+    }
+
+
 def _assert_both_set_or_none(left, right, assert_func, err_msg):
     """Either both argumentes are :py:obj:`None` or they are equal to each other"""
     if left is None and right is None:

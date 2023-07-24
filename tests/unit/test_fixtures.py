@@ -1,9 +1,16 @@
+# local imports
+from drtsans.load import load_events
+from drtsans.settings import amend_config
+
 # third-party imports
+from mantid.kernel import V3D
+from mantid.simpleapi import CreateSampleWorkspace, LoadNexusProcessed
 import numpy as np
 import pytest
 from pytest import approx
-from mantid.kernel import V3D
-from mantid.simpleapi import CreateSampleWorkspace
+
+# standard library imports
+from unittest.mock import patch as mock_patch
 
 
 @pytest.mark.skip(reason="only for debugging")
@@ -585,6 +592,23 @@ def test_temp_workspace_name(temp_workspace_name):
 def test_biosans_synthetic_dataset(biosans_synthetic_dataset):
     print(biosans_synthetic_dataset["data_dir"])
     assert biosans_synthetic_dataset
+
+
+def test_biosans_synthetic_sensitivity_dataset(biosans_synthetic_sensitivity_dataset):
+    def _mock_LoadEventNexus(*args, **kwargs):
+        # Substitute LoadEventNexus with LoadNexusProcessed because our synthetic files were created with SaveNexus
+        return LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
+
+    @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+    def _executor():
+        with amend_config(
+            new_config={"instrumentName": "CG3"}, data_dir=biosans_synthetic_sensitivity_dataset["data_dir"]
+        ):
+            run_number = biosans_synthetic_sensitivity_dataset["runs"]["flood"]
+            return load_events(f"CG3_{run_number}")
+
+    workspace = _executor()
+    assert workspace.getInstrument().getComponentByName("midrange_detector")
 
 
 if __name__ == "__main__":

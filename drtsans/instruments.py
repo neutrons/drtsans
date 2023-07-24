@@ -313,6 +313,6 @@ def copy_to_newest_instrument(
     # in the logs. This is implicitly done when invoking algorithm LoadInstrument.
     LoadInstrument(Workspace=target_workspace, Filename=instrument_file, RewriteSpectraMap=False)
 
-    if output_workspace is None:
+    if output_workspace is None:  # overwrite the input workspace
         target = RenameWorkspace(InputWorkspace=target_workspace, OutputWorkspace=str(input_workspace))
     return target

@@ -5,6 +5,13 @@ import pytest
 
 
 def generate_IQ():
+    """Generate test data for 1D and 2D binning of intensity profiles I(Q)
+
+    Returns
+    -------
+    tuple[~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal]
+        Objects containing test data for 1D and 2D binning, respectively
+    """
     alpha = np.arange(0.001, 360, 22.5)
     intensity = np.arange(32) + 1.0
     error = np.sqrt(intensity)
@@ -221,6 +228,31 @@ def test_wedges():
     # at high q add 16
     expected_intensity_wedge0 = np.array([7.66666, np.nan, np.nan, 23.66666])
     expected_intensity_wedge1 = np.array([9, np.nan, np.nan, 25])
+    assert len(binned1d) == 2
+    assert binned1d[0].intensity == pytest.approx(expected_intensity_wedge0, nan_ok=True, abs=1e-5)
+    assert binned1d[1].intensity == pytest.approx(expected_intensity_wedge1, nan_ok=True, abs=1e-5)
+
+
+def test_wedge_qmin_qmax():
+    iq1d, iq2d = generate_IQ()
+    # configure different Q-range for wedge1 and wedge2
+    binned2d, binned1d = bin_all(
+        iq2d,
+        iq1d,
+        nxbins=4,
+        nybins=4,
+        n1dbins=4,
+        bin1d_type="wedge",
+        log_scale=False,
+        wedge1_qmin=0.5,
+        wedge1_qmax=1.5,
+        wedge2_qmin=3.5,
+        wedge2_qmax=4.5,
+        wedges=[(-30, 30), (60, 120)],
+        error_weighted=False,
+    )
+    expected_intensity_wedge0 = np.array([np.nan, np.nan, 7.66666, np.nan])
+    expected_intensity_wedge1 = np.array([np.nan, np.nan, 25, np.nan])
     assert len(binned1d) == 2
     assert binned1d[0].intensity == pytest.approx(expected_intensity_wedge0, nan_ok=True, abs=1e-5)
     assert binned1d[1].intensity == pytest.approx(expected_intensity_wedge1, nan_ok=True, abs=1e-5)

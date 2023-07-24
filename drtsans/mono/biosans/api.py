@@ -2,7 +2,7 @@
 # local imports
 import drtsans
 from drtsans import getWedgeSelection, subtract_background
-from drtsans.dataobjects import save_iqmod
+from drtsans.dataobjects import save_iqmod, IQazimuthal
 from drtsans.instruments import extract_run_number
 from drtsans.iq import bin_all
 from drtsans.load import move_instrument
@@ -1103,16 +1103,44 @@ def plot_reduction_output(
     allow_overwrite(os.path.join(output_dir, "2D"))
 
 
-def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=True, debug_output=False):
-    reduction_config = reduction_input["configuration"]
+def reduce_single_configuration(
+    loaded_ws: dict,
+    reduction_input: dict,
+    prefix: str = "",
+    skip_nan: bool = True,
+    debug_output: bool = False,
+) -> list:
+    """Do data reduction for the loaded workspaces according to the given reduction configuration
 
+    Saves to file the resulting I(Q) profiles in ASCII format as well as a reduction log.
+
+    Parameters
+    ----------
+    loaded_ws
+        Dictionary with loaded workspaces (e.g. background, sensitivity, etc.) to use in the reduction
+    reduction_input
+        Reduction configuration parameters
+    prefix
+        String to prepend to output file names
+    skip_nan
+        If True, data points with value NaN will be ignored when writing I(Q) profiles to file.
+    debug_output
+        If True, saves 2D plots representative of the workspace at different stages of the reduction
+
+    Returns
+    -------
+    list
+        List of tuple of I(Q):s, one tuple per sample in the workspace. Each tuple holds I(Q):s with 1D and 2D binning
+        for the individual detector panels, as well as a stitched 1D I(Q) profile.
+    """
+    reduction_config = reduction_input["configuration"]
     flux_method = reduction_config["normalization"]
     monitor_fail_switch = reduction_config["normalizationResortToTime"]
     transmission_radius = reduction_config["mmRadiusForTransmission"]
     solid_angle = reduction_config["useSolidAngleCorrection"]
     sample_trans_value = reduction_input["sample"]["transmission"]["value"]
     bkg_trans_value = reduction_input["background"]["transmission"]["value"]
-    theta_deppendent_transmission = reduction_config["useThetaDepTransCorrection"]
+    theta_dependent_transmission = reduction_config["useThetaDepTransCorrection"]
     mask_panel = None
     if reduction_config["useMaskBackTubes"] is True:
         mask_panel = "back"
@@ -1127,6 +1155,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     nybins_main = nxbins_main
     nxbins_wing = reduction_config["numWingQxQyBins"]
     nybins_wing = nxbins_wing
+    nxbins_midrange = reduction_config["numMidrangeQxQyBins"]
+    nybins_midrange = nxbins_midrange
 
     bin1d_type = reduction_config["1DQbinType"]
     log_binning = reduction_config["QbinType"] == "log"
@@ -1136,6 +1166,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     nbins_main_per_decade = reduction_config["LogQBinsPerDecadeMain"]
     nbins_wing = reduction_config["numWingQBins"]
     nbins_wing_per_decade = reduction_config["LogQBinsPerDecadeWing"]
+    nbins_midrange = reduction_config["numMidrangeQBins"]
+    nbins_midrange_per_decade = reduction_config["LogQBinsPerDecadeMidrange"]
 
     outputFilename = reduction_input["outputFileName"]
     weighted_errors = reduction_config["useErrorWeighting"]
@@ -1143,6 +1175,20 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     qmax_main = reduction_config["QmaxMain"]
     qmin_wing = reduction_config["QminWing"]
     qmax_wing = reduction_config["QmaxWing"]
+    qmin_midrange = reduction_config["QminMidrange"]
+    qmax_midrange = reduction_config["QmaxMidrange"]
+    wedge1_qmin_main = reduction_config["wedge1QminMain"]
+    wedge1_qmax_main = reduction_config["wedge1QmaxMain"]
+    wedge1_qmin_wing = reduction_config["wedge1QminWing"]
+    wedge1_qmax_wing = reduction_config["wedge1QmaxWing"]
+    wedge1_qmin_midrange = reduction_config["wedge1QminMidrange"]
+    wedge1_qmax_midrange = reduction_config["wedge1QmaxMidrange"]
+    wedge2_qmin_main = reduction_config["wedge2QminMain"]
+    wedge2_qmax_main = reduction_config["wedge2QmaxMain"]
+    wedge2_qmin_wing = reduction_config["wedge2QminWing"]
+    wedge2_qmax_wing = reduction_config["wedge2QmaxWing"]
+    wedge2_qmin_midrange = reduction_config["wedge2QminMidrange"]
+    wedge2_qmax_midrange = reduction_config["wedge2QmaxMidrange"]
     annular_bin = reduction_config["AnnularAngleBin"]
 
     wedges_min = reduction_config["WedgeMinAngles"]
@@ -1170,6 +1216,14 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     xc, yc, yw, ym, fit_results = biosans.find_beam_center(loaded_ws.center, **fbc_options)
     logger.notice(f"Find beam center  = {xc}, {yc}, {yw}, {ym}")
 
+    # does the run include the midrange detector? check the geometry of the first sample
+    reduction_config["has_midrange_detector"] = has_midrange_detector(loaded_ws.sample[0])
+    all_detectors_except_main = ["wing_detector"]
+    all_detectors_except_wing = ["detector1"]
+    if reduction_config["has_midrange_detector"]:
+        all_detectors_except_main.append("midrange_detector")
+        all_detectors_except_wing.append("midrange_detector")
+
     # empty beam transmission workspace
     if loaded_ws.empty is not None:
         empty_trans_ws_name = f"{prefix}_empty"
@@ -1177,10 +1231,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             loaded_ws.empty,
             flux_method=flux_method,
             monitor_fail_switch=monitor_fail_switch,
-            mask_detector="wing_detector",
+            mask_detector=all_detectors_except_main,
             center_x=xc,
             center_y=yc,
             center_y_wing=yw,
+            center_y_midrange=ym,
             solid_angle=False,
             sensitivity_workspace=loaded_ws.sensitivity_main,
             output_workspace=empty_trans_ws_name,
@@ -1202,10 +1257,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             loaded_ws.background_transmission,
             flux_method=flux_method,
             monitor_fail_switch=monitor_fail_switch,
-            mask_detector="wing_detector",
+            mask_detector=all_detectors_except_main,
             center_x=xc,
             center_y=yc,
             center_y_wing=yw,
+            center_y_midrange=ym,
             solid_angle=False,
             sensitivity_workspace=loaded_ws.sensitivity_main,
             output_workspace=bkgd_trans_ws_name,
@@ -1239,10 +1295,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             _sample_transmission,
             flux_method=flux_method,
             monitor_fail_switch=monitor_fail_switch,
-            mask_detector="wing_detector",
+            mask_detector=all_detectors_except_main,
             center_x=xc,
             center_y=yc,
             center_y_wing=yw,
+            center_y_midrange=ym,
             solid_angle=False,
             sensitivity_workspace=loaded_ws.sensitivity_main,
             output_workspace=f"{prefix}_sample_trans",
@@ -1271,7 +1328,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     output = []
     detectordata = {}
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
-        name = "_slice_{}".format(i + 1)
+        sample_name = "_slice_{}".format(i + 1)
         if len(loaded_ws.sample) > 1:
             output_suffix = f"_{i}"
 
@@ -1286,18 +1343,19 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             bkg_trans_ws=bkgd_trans_ws,
             bkg_trans_value=bkg_trans_value,
             blocked_ws_raw=loaded_ws.blocked_beam,
-            theta_dependent_transmission=theta_deppendent_transmission,  # noqa E502
+            theta_dependent_transmission=theta_dependent_transmission,
             center_x=xc,
             center_y=yc,
             center_y_wing=yw,
+            center_y_midrange=ym,
             dark_current=loaded_ws.dark_current_main,
             flux_method=flux_method,
             monitor_fail_switch=monitor_fail_switch,
-            mask_detector="wing_detector",
+            mask_detector=all_detectors_except_main,
             mask_ws=loaded_ws.mask,
             mask_panel=mask_panel,
             solid_angle=solid_angle,
-            sensitivity_workspace=loaded_ws.sensitivity_main,  # noqa E502
+            sensitivity_workspace=loaded_ws.sensitivity_main,
             output_workspace=f"processed_data_main_{i}",
             output_prefix=output_suffix,
             thickness=thickness,
@@ -1313,18 +1371,19 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             bkg_trans_ws=bkgd_trans_ws,
             bkg_trans_value=bkg_trans_value,
             blocked_ws_raw=loaded_ws.blocked_beam,
-            theta_dependent_transmission=theta_deppendent_transmission,  # noqa E502
+            theta_dependent_transmission=theta_dependent_transmission,
             center_x=xc,
             center_y=yc,
             center_y_wing=yw,
+            center_y_midrange=ym,
             dark_current=loaded_ws.dark_current_wing,
             flux_method=flux_method,
             monitor_fail_switch=monitor_fail_switch,
-            mask_detector="detector1",
+            mask_detector=all_detectors_except_wing,
             mask_ws=loaded_ws.mask,
             mask_panel=mask_panel,
             solid_angle=solid_angle,
-            sensitivity_workspace=loaded_ws.sensitivity_wing,  # noqa E502
+            sensitivity_workspace=loaded_ws.sensitivity_wing,
             output_workspace=f"processed_data_wing_{i}",
             output_prefix=output_suffix,
             thickness=thickness,
@@ -1332,6 +1391,43 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             absolute_scale=absolute_scale,
             keep_processed_workspaces=False,
         )
+        if reduction_config["has_midrange_detector"]:
+            processed_data_midrange, trans_midrange = process_single_configuration(
+                raw_sample_ws,
+                sample_trans_ws=sample_trans_ws,
+                sample_trans_value=sample_trans_value,
+                bkg_ws_raw=loaded_ws.background,
+                bkg_trans_ws=bkgd_trans_ws,
+                bkg_trans_value=bkg_trans_value,
+                blocked_ws_raw=loaded_ws.blocked_beam,
+                theta_dependent_transmission=theta_dependent_transmission,
+                center_x=xc,
+                center_y=yc,
+                center_y_wing=yw,
+                center_y_midrange=ym,
+                dark_current=loaded_ws.dark_current_midrange,
+                flux_method=flux_method,
+                monitor_fail_switch=monitor_fail_switch,
+                mask_detector=["detector1", "wing_detector"],
+                mask_ws=loaded_ws.mask,
+                mask_panel=mask_panel,
+                solid_angle=solid_angle,
+                sensitivity_workspace=loaded_ws.sensitivity_midrange,
+                output_workspace=f"processed_data_midrange_{i}",
+                output_prefix=output_suffix,
+                thickness=thickness,
+                absolute_scale_method=absolute_scale_method,
+                absolute_scale=absolute_scale,
+                keep_processed_workspaces=False,
+            )
+        else:
+            processed_data_midrange, trans_midrange = (
+                None,
+                {
+                    "sample": None,
+                    "background": None,
+                },
+            )
 
         if debug_output:
             from mantid.simpleapi import SaveNexusProcessed
@@ -1351,8 +1447,17 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
                 form_output_name(processed_data_wing),
                 backend="mpl",
             )  # , imshow_kwargs={'norm': LogNorm(vmin=1)})
+            if reduction_config["has_midrange_detector"]:
+                midrange_name = f'{form_output_name(processed_data_midrange).split(".")[0]}.nxs'
+                SaveNexusProcessed(InputWorkspace=processed_data_midrange, Filename=midrange_name)
+                plot_detector(
+                    processed_data_midrange,
+                    form_output_name(processed_data_midrange),
+                    backend="mpl",
+                )
 
         _loginfo = f"Transmission (main detector)@{str(raw_sample_ws)}:  {trans_main}\n"
+        _loginfo += f"Transmission (midrange detector)@{str(raw_sample_ws)}: {trans_midrange}\n"
         _loginfo += f"Transmission (wing detector)@{str(raw_sample_ws)}: {trans_wing}"
         logger.notice(_loginfo)
 
@@ -1392,6 +1497,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             log_scale=log_binning,
             qmin=qmin_main,
             qmax=qmax_main,
+            wedge1_qmin=wedge1_qmin_main,
+            wedge1_qmax=wedge1_qmax_main,
+            wedge2_qmin=wedge2_qmin_main,
+            wedge2_qmax=wedge2_qmax_main,
             annular_angle_bin=annular_bin,
             wedges=wedges,
             symmetric_wedges=symmetric_wedges,
@@ -1411,11 +1520,41 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             log_scale=log_binning,
             qmin=qmin_wing,
             qmax=qmax_wing,
+            wedge1_qmin=wedge1_qmin_wing,
+            wedge1_qmax=wedge1_qmax_wing,
+            wedge2_qmin=wedge2_qmin_wing,
+            wedge2_qmax=wedge2_qmax_wing,
             annular_angle_bin=annular_bin,
             wedges=wedges,
             symmetric_wedges=symmetric_wedges,
             error_weighted=weighted_errors,
         )
+        if reduction_config["has_midrange_detector"]:
+            iq1d_midrange_in = biosans.convert_to_q(processed_data_midrange, mode="scalar")
+            iq2d_midrange_in = biosans.convert_to_q(processed_data_midrange, mode="azimuthal")
+            iq2d_midrange_out, iq1d_midrange_out = bin_all(
+                iq2d_midrange_in,
+                iq1d_midrange_in,
+                nxbins_midrange,
+                nybins_midrange,
+                n1dbins=nbins_midrange,
+                n1dbins_per_decade=nbins_midrange_per_decade,
+                decade_on_center=decade_on_center,
+                bin1d_type=bin1d_type,
+                log_scale=log_binning,
+                qmin=qmin_midrange,
+                qmax=qmax_midrange,
+                wedge1_qmin=wedge1_qmin_midrange,
+                wedge1_qmax=wedge1_qmax_midrange,
+                wedge2_qmin=wedge2_qmin_midrange,
+                wedge2_qmax=wedge2_qmax_midrange,
+                annular_angle_bin=annular_bin,
+                wedges=wedges,
+                symmetric_wedges=symmetric_wedges,
+                error_weighted=weighted_errors,
+            )
+        else:
+            iq2d_midrange_out, iq1d_midrange_out = (IQazimuthal(intensity=[], error=[], qx=[], qy=[]), [])
 
         # create output directories
         create_output_dir(output_dir)
@@ -1425,24 +1564,39 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
         filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_wing.dat")
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_wing_out)
+        filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_midrange.dat")
+        save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_midrange_out)
 
         # intensity profiles in the order of stitching (lower to higher Q)
-        iq1d_profiles_in = [iq1d_main_in, iq1d_wing_in]
-        iq1d_profiles_out = [iq1d_main_out, iq1d_wing_out]
+        if reduction_config["has_midrange_detector"]:
+            iq1d_profiles_in = [iq1d_main_in, iq1d_midrange_in, iq1d_wing_in]
+            iq1d_profiles_out = [iq1d_main_out, iq1d_midrange_out, iq1d_wing_out]
+        else:
+            iq1d_profiles_in = [iq1d_main_in, iq1d_wing_in]
+            iq1d_profiles_out = [iq1d_main_out, iq1d_wing_out]
         iq1d_combined_out = stitch_binned_profiles(iq1d_profiles_in, iq1d_profiles_out, reduction_config)
 
         save_iqmod_all(
-            iq1d_main_out, iq1d_wing_out, iq1d_combined_out, outputFilename, output_dir, output_suffix, skip_nan
+            iq1d_main_out,
+            iq1d_midrange_out,
+            iq1d_wing_out,
+            iq1d_combined_out,
+            outputFilename,
+            output_dir,
+            output_suffix,
+            skip_nan,
         )
 
         IofQ_output = namedtuple(
             "IofQ_output",
-            ["I2D_main", "I2D_wing", "I1D_main", "I1D_wing", "I1D_combined"],
+            ["I2D_main", "I2D_midrange", "I2D_wing", "I1D_main", "I1D_midrange", "I1D_wing", "I1D_combined"],
         )
         current_output = IofQ_output(
             I2D_main=iq2d_main_out,
+            I2D_midrange=iq2d_midrange_out,
             I2D_wing=iq2d_wing_out,
             I1D_main=iq1d_main_out,
+            I1D_midrange=iq1d_midrange_out,
             I1D_wing=iq1d_wing_out,
             I1D_combined=iq1d_combined_out,
         )
@@ -1455,19 +1609,23 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         else:
             _inside_detectordata = {}
         index = 0
-        for _iq1d_main, _iq1d_wing, _iq2d_main, _iq2d_wing in zip(
-            iq1d_main_out, iq1d_wing_out, [iq2d_main_out], [iq2d_wing_out]
+        for _iq1d_main, _iq1d_midrange, _iq1d_wing, _iq2d_main, _iq2d_midrange, _iq2d_wing in zip(
+            iq1d_main_out, iq1d_midrange_out, iq1d_wing_out, [iq2d_main_out], [iq2d_midrange_out], [iq2d_wing_out]
         ):
             _inside_detectordata["main_{}".format(index)] = {
                 "iq": [_iq1d_main],
                 "iqxqy": _iq2d_main,
+            }
+            _inside_detectordata["midrange_{}".format(index)] = {
+                "iq": [_iq1d_midrange],
+                "iqxqy": _iq2d_midrange,
             }
             _inside_detectordata["wing_{}".format(index)] = {
                 "iq": [_iq1d_wing],
                 "iqxqy": _iq2d_wing,
             }
 
-        detectordata[name] = _inside_detectordata
+        detectordata[sample_name] = _inside_detectordata
 
     # save reduction log
 
@@ -1475,25 +1633,20 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         reduction_config["outputDir"],
         outputFilename + f"_reduction_log{output_suffix}.hdf",
     )
-    #
-    # raise RuntimeError(f'Output file name = {filename}, Path = {reduction_config["outputDir"]},'
-    #                    f'Basename = {outputFilename}, Output suffix = {output_suffix}')
 
     starttime = datetime.now().isoformat()
-    # try:
-    #     pythonfile = __file__
-    # except NameError:
-    #     pythonfile = "Launched from notebook"
     reductionparams = {"data": copy.deepcopy(reduction_input)}
     specialparameters = {
-        "beam_center": {"x": xc, "y": yc, "y_wing": yw},
+        "beam_center": {"x": xc, "y": yc, "y_midrange": ym, "y_wing": yw},
         "fit results": fit_results,
         "sample_transmission": {
             "main": trans_main["sample"],
+            "midrange": trans_midrange["sample"],
             "wing": trans_wing["sample"],
         },
         "background_transmission": {
             "main": trans_main["background"],
+            "midrange": trans_midrange["background"],
             "wing": trans_wing["background"],
         },
     }
@@ -1502,6 +1655,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         "main": SampleLogs(processed_data_main),
         "wing": SampleLogs(processed_data_wing),
     }
+    if reduction_config["has_midrange_detector"]:
+        samplelogs["midrange"] = SampleLogs(processed_data_midrange)
     logslice_data_dict = reduction_input["logslice_data"]
 
     savereductionlog(
@@ -1523,13 +1678,17 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     return output
 
 
-def save_iqmod_all(iq1d_main, iq1d_wing, iq1d_combined, output_filename, output_dir, output_suffix, skip_nan):
+def save_iqmod_all(
+    iq1d_main, iq1d_midrange, iq1d_wing, iq1d_combined, output_filename, output_dir, output_suffix, skip_nan
+):
     """Save to file the intensity profiles for the individual detectors, as well as the combined (stitched) profile
 
     Parameters
     ----------
     iq1d_main: ~drtsans.dataobjects.IQmod
         Intensity profile for the main detector
+    iq1d_midrange: ~drtsans.dataobjects.IQmod
+        Intensity profile for the midrange detector
     iq1d_wing: ~drtsans.dataobjects.IQmod
         Intensity profile for the wing detector
     iq1d_combined: ~drtsans.dataobjects.IQmod
@@ -1561,10 +1720,18 @@ def save_iqmod_all(iq1d_main, iq1d_wing, iq1d_combined, output_filename, output_
         )
         save_iqmod(iq1d_wing[j], wing_1D_filename, skip_nan=skip_nan)
 
+        if iq1d_midrange:
+            midrange_1D_filename = os.path.join(
+                output_dir,
+                "1D",
+                f"{output_filename}{output_suffix}_1D_midrange{add_suffix}.txt",
+            )
+            save_iqmod(iq1d_midrange[j], midrange_1D_filename, skip_nan=skip_nan)
+
         combined_1D_filename = os.path.join(
             output_dir,
             "1D",
-            f"{output_filename}{output_suffix}_1D_both{add_suffix}.txt",
+            f"{output_filename}{output_suffix}_1D_combined{add_suffix}.txt",
         )
         save_iqmod(iq1d_combined[j], combined_1D_filename, skip_nan=skip_nan)
 

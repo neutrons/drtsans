@@ -159,11 +159,12 @@ def load_events(
             # use archive search
             filename = str(abspath(filename))
 
-        # create new log with the monitor counts if monitor counts exists
-        try:
-            SampleLogs(output_workspace).insert("monitor", __monitor_counts(filename))
-        except RuntimeError as e:
-            logger.warning(str(e))  # log a warning that monitor info not found in filename
+        # create new log with the monitor counts if monitor counts exists and the log is not already present
+        if "monitor" not in SampleLogs(output_workspace):
+            try:
+                SampleLogs(output_workspace).insert("monitor", __monitor_counts(filename))
+            except RuntimeError as e:
+                logger.warning(str(e))  # log a warning that monitor info not found in filename
 
     # move instrument components - sample position must happen first
 

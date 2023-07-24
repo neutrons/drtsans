@@ -327,23 +327,20 @@ def test_cg3_wing_prepare_sensitivities(tmp_path):
 
 
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
-@mock_patch("drtsans.load.__monitor_counts")
-def test_cg3_midrange_prepare_sensitivities(mock_monitor_counts, biosans_synthetic_dataset, tmp_path):
+def test_cg3_midrange_prepare_sensitivities(biosans_synthetic_sensitivity_dataset, tmp_path):
     """Integration test on algorithms to prepare sensitivities for BIOSANS's midrange detector"""
-    mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
-
     # CG3: Mid
-    FLOOD_RUNS = 92350
+    FLOOD_RUNS = 4835
     # BIO-SANS detector
 
     # About Masks
     # CG3 Main:
-    DIRECT_BEAM_RUNS = 92300
+    DIRECT_BEAM_RUNS = 4830
 
     # Transmission run
-    TRANSMISSION_RUNS = 92300  # GG3 mid
+    TRANSMISSION_RUNS = 4831
     # Transmission flood run
-    TRANSMISSION_FLOOD_RUNS = 92330
+    TRANSMISSION_FLOOD_RUNS = 4835
 
     # CG3:
     MASKED_PIXELS = "1-18,239-256"  # CG3
@@ -390,7 +387,7 @@ def test_cg3_midrange_prepare_sensitivities(mock_monitor_counts, biosans_synthet
 
     # Run
     output_sens_file = path_join(tmp_path, "IntegrateTest_CG3_Mid_Sens.nxs")
-    with amend_config(data_dir=biosans_synthetic_dataset["data_dir"]):
+    with amend_config(data_dir=biosans_synthetic_sensitivity_dataset["data_dir"]):
         preparer.execute(MOVING_DETECTORS, MIN_THRESHOLD, MAX_THRESHOLD, output_sens_file)
 
     # Verify file existence

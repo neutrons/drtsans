@@ -1052,15 +1052,22 @@ def test_biosans_midrange_detector_barscan(reference_dir, tmp_path):
             copy_logs=True,
         )
         barscan_workspaces.append(str(barscan_workspace))
-    # mask the last tube in the midrange detector
-    masked_detectors = list(range(106420, 106496))
+
+    tube_pixels = 256
+    # from visual inspection of instrument
+    # mask the last tube in the midrange detector (back-midrange panel/bank104/tube4)
+    closest_masked_detector_ids = list(range(106240, 106240 + tube_pixels + 1))
+
+    # and bank 89/tube 1, the furthest from the beam
+    furthest_masked_detector_ids = list(range(90112, 90112 + tube_pixels + 1))
+    masked_detectors = closest_masked_detector_ids + furthest_masked_detector_ids
     # Do calibration
     calibration, _ = calculate_barscan_calibration(
         barscan_workspaces, component=detector_array, formula=formula, mask=masked_detectors, inspect_data=True
     )
     # Assert some data
     assert calibration.instrument == "BIOSANS"
-    assert calibration.positions[0:3] == pytest.approx([-0.543, -0.539, -0.534], abs=0.001)
+    assert calibration.positions[0:3] == pytest.approx([-0.532, -0.528, -0.524], abs=0.001)
     # Save, load, and apply calibration
     calibration.save(
         database=path_join(tmp_path, "saved_calibration.json"), tablefile=path_join(tmp_path, "saved_calibration.nxs")

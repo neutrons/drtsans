@@ -71,7 +71,8 @@ def test_abspath_with_ipts(hint, instr, ipts, fullpath):
         pytest.skip("{} does not exist".format(fullpath))
 
     # do not turn on archive search
-    assert abspath(hint, instrument=instr, ipts=ipts) == fullpath
+    with amend_config(data_dir=[], data_dir_insert_mode="replace"):
+        assert abspath(hint, instrument=instr, ipts=ipts) == fullpath
 
 
 def test_abspath_with_directory(reference_dir):

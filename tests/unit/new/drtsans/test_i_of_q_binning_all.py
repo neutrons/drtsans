@@ -239,9 +239,9 @@ def test_wedge_qmin_qmax():
     binned2d, binned1d = bin_all(
         iq2d,
         iq1d,
-        nxbins=4,
-        nybins=4,
-        n1dbins=4,
+        nxbins=5,
+        nybins=5,
+        n1dbins=5,
         bin1d_type="wedge",
         log_scale=False,
         wedge1_qmin=0.5,
@@ -251,8 +251,8 @@ def test_wedge_qmin_qmax():
         wedges=[(-30, 30), (60, 120)],
         error_weighted=False,
     )
-    expected_intensity_wedge0 = np.array([np.nan, np.nan, 7.66666, np.nan])
-    expected_intensity_wedge1 = np.array([np.nan, np.nan, 25, np.nan])
+    expected_intensity_wedge0 = np.array([np.nan, np.nan, 7.66666, np.nan, np.nan])
+    expected_intensity_wedge1 = np.array([np.nan, np.nan, 25, np.nan, np.nan])
     assert len(binned1d) == 2
     assert binned1d[0].intensity == pytest.approx(expected_intensity_wedge0, nan_ok=True, abs=1e-5)
     assert binned1d[1].intensity == pytest.approx(expected_intensity_wedge1, nan_ok=True, abs=1e-5)

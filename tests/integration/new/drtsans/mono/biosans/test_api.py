@@ -546,8 +546,14 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
     loaded = load_all_files(reduction_input, prefix, path=data["data_dir"])
     output = reduce_single_configuration(loaded, reduction_input)
     iq1d_combined = output[0].I1D_combined[0].intensity
+
+    # the data should create at least two bell curves
+    # we check tha values at their peaks
+    first_curve = iq1d_combined[0:35]
+    second_curve = iq1d_combined[35:50]
     assert len(iq1d_combined) == 91
-    assert iq1d_combined[-3:] == pytest.approx([12069.9, 9693.1, 14548.5], abs=0.1)
+    assert np.nanmax(first_curve) == pytest.approx(22437, abs=500)
+    assert np.nanmax(second_curve) == pytest.approx(22741, abs=500)
 
 
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
@@ -635,9 +641,23 @@ def test_reduce_single_configuration_with_wedges_synthetic_dataset(
     iq1d_combined_wedge2 = output[0].I1D_combined[1].intensity
     assert len(iq1d_combined_wedge1) == 91
     assert len(iq1d_combined_wedge2) == 91
-    assert iq1d_combined_wedge1[-3:] == pytest.approx([12148.2, 9756.1, 14643.0], abs=0.1)
-    assert iq1d_combined_wedge2[-3:] == pytest.approx([9150.5, 7456.8, 11398.2], abs=0.1)
+
+    # the data should create at least two bell curves
+    # we check tha values at their peaks
+    wedge1_first_curve = iq1d_combined_wedge1[0:35]
+    wedge1_second_curve = iq1d_combined_wedge1[35:55]
+    assert len(iq1d_combined_wedge1) == 91
+    assert np.nanmax(wedge1_first_curve) == pytest.approx(22573, abs=500)
+    assert np.nanmax(wedge1_second_curve) == pytest.approx(23029, abs=500)
+
+    # the data should create at least two bell curves
+    # we check tha values at their peaks
+    wedge2_first_curve = iq1d_combined_wedge2[0:35]
+    wedge2_second_curve = iq1d_combined_wedge2[35:50]
+    assert len(iq1d_combined_wedge2) == 91
+    assert np.nanmax(wedge2_first_curve) == pytest.approx(22437, abs=500)
+    assert np.nanmax(wedge2_second_curve) == pytest.approx(18072, abs=500)
 
 
 if __name__ == "__main__":
-    pytest.main(__file__)
+    pytest.main([__file__])

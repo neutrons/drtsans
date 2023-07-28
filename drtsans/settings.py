@@ -1,15 +1,18 @@
-from copy import deepcopy
-import random
-import string
-from collections import OrderedDict
-import functools
-from collections import namedtuple
-from collections.abc import Mapping
-from contextlib import contextmanager
-
+# third party imports
 import mantid
 from mantid.api import mtd
 from mantid.kernel import ConfigService
+
+
+# standard library imports
+from collections import namedtuple, OrderedDict
+from collections.abc import Mapping
+from contextlib import contextmanager
+from copy import deepcopy
+import functools
+import random
+import string
+from typing import Union
 
 # import mantid's workspace types exposed to python
 workspace_types = [
@@ -58,18 +61,22 @@ def namedtuplefy(func):
 
 
 @contextmanager
-def amend_config(new_config=None, data_dir=None):
+def amend_config(
+    new_config: dict = None, data_dir: Union[str, list] = None, data_dir_insert_mode: str = "prepend"
+) -> None:
     r"""
     Context manager to safely modify Mantid Configuration Service while
     the function is executed.
 
     Parameters
     ----------
-    new_config: dict
+    new_config
         (key, value) pairs to substitute in the configuration service
-    data_dir: str, list
-        Append one (when passing a string) or more (when passing a list)
-        directories to the list of data search directories.
+    data_dir
+        prepend one (when passing a string) or more (when passing a list)
+        directories to the list of data search directories. Alternatively, replace instead of prepend.
+    data_dir_insert_mode
+        How to insert the data directories. Options are: "prepend" (default) and "replace".
     """
     modified_keys = list()
     backup = dict()
@@ -95,8 +102,13 @@ def amend_config(new_config=None, data_dir=None):
         )
         key = "datasearch.directories"
         backup[key] = deepcopy(config[key])
-        # prepend our custom data directories to the list of data search directories
-        config.setDataSearchDirs(data_dirs + list(config.getDataSearchDirs()))
+        # prepend or replace our custom data directories to the list of data search directories
+        if data_dir_insert_mode == "prepend":
+            config.setDataSearchDirs(data_dirs + list(config.getDataSearchDirs()))
+        elif data_dir_insert_mode == "replace":
+            config.setDataSearchDirs(data_dirs)
+        else:
+            raise ValueError(f"Invalid data_dir_insert_mode: {data_dir_insert_mode}")
     try:
         yield
     finally:

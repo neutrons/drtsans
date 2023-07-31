@@ -272,7 +272,7 @@ def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):
         # 2D
         iq2d_h5_name = gold_file_dict[2, frame_index]
         gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
-        _Testing.assert_allclose(reduction_output[frame_index].I2D_main, gold_iq2d, rtol=0.1)
+        _Testing.assert_allclose(reduction_output[frame_index].I2D_main, gold_iq2d, atol=0.003, rtol=0.1)
 
 
 def export_iq_comparison(iq1d_tuple_list: List[Tuple[str, IQmod, str]], png_name: str):

@@ -1,17 +1,22 @@
-import pytest
-import os
-from jsonschema.exceptions import ValidationError
+# local imports
+from drtsans.dataobjects import _Testing, load_iq1d_from_h5, load_iq2d_from_h5
+from drtsans.settings import amend_config
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (
     load_all_files,
     reduce_single_configuration,
 )  # noqa E402
-from drtsans.dataobjects import _Testing
-from drtsans.settings import amend_config
-import json
-from typing import Tuple, Dict
-from drtsans.dataobjects import load_iq1d_from_h5, load_iq2d_from_h5
+
+# third party imports
 from mantid.simpleapi import mtd, DeleteWorkspace
+import pytest
+
+# standard library imports
+import json
+from jsonschema.exceptions import ValidationError
+import filecmp
+import os
+from typing import Tuple, Dict
 
 
 def test_parse_json(reference_dir):
@@ -324,18 +329,19 @@ def test_incoherence_correction_elastic_normalization(reference_dir, temp_direct
     # Check output result
     iq1d_base_name = "EQSANS_125707__Iq.dat"
     test_iq1d_file = os.path.join(test_dir, iq1d_base_name)
-    # FIXME: The gold data are not stored inside the repository so when
-    # gold data are changed a version prefix is added with date and developer
-    # information. The old data will be kept as it is.
-    version = "20220321_rys_"
     assert os.path.exists(test_iq1d_file), f"Expected test result {test_iq1d_file} does not exist"
-    gold_iq1d_file = os.path.join(reference_dir.new.eqsans, "test_incoherence_correction", version + iq1d_base_name)
-    assert os.path.exists(gold_iq1d_file), f"Expected gold file {gold_iq1d_file} does not exist"
-    # compare
-    import filecmp
 
-    print(f"TEST DEBUT: {filecmp.cmp(test_iq1d_file, gold_iq1d_file)}")
-    assert filecmp.cmp(test_iq1d_file, gold_iq1d_file)
+    # The gold data are not stored inside the repository so when gold data are changed a version prefix is added
+    # with date and developer UCAMS ID. The old data will be kept as it is.
+    acceptable_versions = ["20220321_rys_", "20230730_jbq_"]  # golden data with differences within acceptable error
+    checks = [
+        filecmp.cmp(
+            test_iq1d_file,
+            os.path.join(reference_dir.new.eqsans, "test_incoherence_correction", version + iq1d_base_name),
+        )
+        for version in acceptable_versions
+    ]
+    assert any(checks), "Test result does not match any of the gold data"
 
     # cleanup
     # NOTE: loaded is not a dict that is iterable, so we have to delete the

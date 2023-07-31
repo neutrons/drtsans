@@ -9,7 +9,7 @@ from drtsans.iq import (
 )
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
-from tests.unit.new.drtsans.i_of_q_binning_tests_data import generate_test_data
+from tests.unit.drtsans.i_of_q_binning_tests_data import generate_test_data
 import pytest
 
 # This module supports testing data for issue #239.

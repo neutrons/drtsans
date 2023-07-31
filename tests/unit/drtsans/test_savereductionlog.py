@@ -6,7 +6,7 @@ import json
 
 from drtsans import savereductionlog
 from drtsans.iq import determine_1d_log_bins
-from tests.unit.new.drtsans.i_of_q_binning_tests_data import (
+from tests.unit.drtsans.i_of_q_binning_tests_data import (
     generate_test_data,
     get_gold_1d_log_bins,
 )
@@ -19,7 +19,7 @@ from mantid import __version__ as mantid_version
 
 def _getConfigJsonFile():
     _file_path = os.path.dirname(__file__)
-    config_json = os.path.abspath(os.path.join(_file_path, "../../../../scripts/reduction.json"))
+    config_json = os.path.abspath(os.path.join(_file_path, "../../../scripts/reduction.json"))
     return config_json
 
 

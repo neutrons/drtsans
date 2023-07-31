@@ -11,7 +11,7 @@ from drtsans.iq import (
 )
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
-from tests.unit.new.drtsans.i_of_q_binning_tests_data import (
+from tests.unit.drtsans.i_of_q_binning_tests_data import (
     generate_test_data,
     generate_test_data_wavelength,
     get_gold_1d_linear_bins,

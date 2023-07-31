@@ -4,7 +4,7 @@ from drtsans.dataobjects import IQazimuthal
 from drtsans.iq import determine_1d_linear_bins, BinningMethod, bin_intensity_into_q2d
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
-from tests.unit.new.drtsans.i_of_q_binning_tests_data import (
+from tests.unit.drtsans.i_of_q_binning_tests_data import (
     generate_test_data,
     generate_test_data_wavelength,
 )

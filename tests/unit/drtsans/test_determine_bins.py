@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from drtsans.iq import determine_1d_linear_bins
 from drtsans.determine_bins import determine_1d_log_bins
-from tests.unit.new.drtsans.i_of_q_binning_tests_data import (
+from tests.unit.drtsans.i_of_q_binning_tests_data import (
     get_gold_2d_linear_bins,
     get_gold_1d_log_bins,
 )

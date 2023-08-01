@@ -272,7 +272,7 @@ def eqsans_p():
 
 @pytest.fixture(scope="session")
 def biosans_f():
-    dd = pjoin(data_dir, "new", "ornl", "sans", "hfir", "biosans")
+    dd = pjoin(data_dir, "ornl", "sans", "hfir", "biosans")
     return dict(
         beamcenter=pjoin(dd, "BioSANS_exp402_scan0006_0001.xml"),
         anisotropic=pjoin(dd, "BioSANS_exp440_scan0022_0006.xml"),
@@ -281,7 +281,7 @@ def biosans_f():
 
 @pytest.fixture(scope="session")
 def gpsans_f():
-    dd = pjoin(data_dir, "new", "ornl", "sans", "hfir", "gpsans")
+    dd = pjoin(data_dir, "ornl", "sans", "hfir", "gpsans")
     return dict(
         beamcenter=pjoin(dd, "CG2_exp325_scan0020_0001.xml"),
         beamcenter_off_setted=pjoin(dd, "CG2_exp245_scan0007_0001.xml"),
@@ -295,7 +295,7 @@ def gpsans_f():
 
 @pytest.fixture(scope="session")
 def gpsans_full_dataset():
-    dd = pjoin(data_dir, "new", "ornl", "sans", "hfir", "gpsans")
+    dd = pjoin(data_dir, "ornl", "sans", "hfir", "gpsans")
     return dict(
         sample_scattering_list=[
             pjoin(dd, "CG2_exp245_scan0010_0001.xml"),
@@ -320,7 +320,7 @@ def gpsans_full_dataset():
 
 @pytest.fixture(scope="session")
 def biosans_sensitivity_dataset():
-    dd = pjoin(data_dir, "new", "ornl", "sans", "hfir", "biosans")
+    dd = pjoin(data_dir, "ornl", "sans", "hfir", "biosans")
     return dict(
         dark_current=pjoin(dd, "BioSANS_exp327_scan0014_0001.xml"),
         flood=pjoin(dd, "BioSANS_exp327_scan0066_0001.xml"),

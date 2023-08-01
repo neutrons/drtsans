@@ -6,8 +6,8 @@ import numpy as np
 
 
 def test_save_nist_dat(reference_dir):
-    filename = join(reference_dir.new.eqsans, "test_save_output/EQSANS_68200_Iqxy.nxs")
-    reference_filename = join(reference_dir.new.eqsans, "test_save_output/EQSANS_68200_Iqxy.dat")
+    filename = join(reference_dir.eqsans, "test_save_output/EQSANS_68200_Iqxy.nxs")
+    reference_filename = join(reference_dir.eqsans, "test_save_output/EQSANS_68200_Iqxy.dat")
     ws = LoadNexus(filename)
     with tempfile.NamedTemporaryFile("r+") as tmp:
         save_nist_dat(ws, tmp.name)
@@ -28,7 +28,7 @@ def test_save_nist_dat(reference_dir):
 
 
 def test_save_nexus(reference_dir):
-    filename = join(reference_dir.new.eqsans, "test_save_output/EQSANS_68200_Iqxy.nxs")
+    filename = join(reference_dir.eqsans, "test_save_output/EQSANS_68200_Iqxy.nxs")
     ws = LoadNexus(filename)
     with tempfile.NamedTemporaryFile("r+") as tmp:
         save_nexus(ws, "EQSANS 68200", tmp.name)

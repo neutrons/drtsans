@@ -9,7 +9,7 @@ from mantid.simpleapi import DeleteWorkspace
 class TestLoadEvents:
     def test_pixel_calibration(self, reference_dir):
         r"""Check the pixel calibration is applied to a workspace upon loading"""
-        file_name = str(Path(reference_dir.new.sans) / "pixel_calibration" / "CG2_8508.nxs.h5")
+        file_name = str(Path(reference_dir.sans) / "pixel_calibration" / "CG2_8508.nxs.h5")
         workspace = load_events(
             file_name,
             pixel_calibration=True,

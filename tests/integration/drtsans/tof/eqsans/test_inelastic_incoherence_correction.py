@@ -66,7 +66,7 @@ def test_parse_json(reference_dir):
     }
 
     # Validate
-    with amend_config(data_dir=reference_dir.new.eqsans):
+    with amend_config(data_dir=reference_dir.eqsans):
         input_config = reduction_parameters(reduction_input)
 
     # Check that inelastic incoherence config items were parsed
@@ -277,7 +277,7 @@ def test_incoherence_correction_step4only(reference_dir, temp_directory):
     reduction_output = reduce_single_configuration(loaded, input_config, not_apply_incoherence_correction=False)
 
     # Gold data directory
-    gold_dir = os.path.join(reference_dir.new.eqsans, "gold_data/Incoherence_Corrected_113915/")
+    gold_dir = os.path.join(reference_dir.eqsans, "gold_data/Incoherence_Corrected_113915/")
     assert os.path.exists(gold_dir), f"Gold/expected data directory {gold_dir} does not exist"
 
     # Verify with gold data
@@ -298,7 +298,7 @@ def test_incoherence_correction_step4only(reference_dir, temp_directory):
 def test_incoherence_correction_elastic_normalization(reference_dir, temp_directory):
     """Test incoherence correction with elastic correction"""
     # Set up the configuration dict
-    config_json_file = os.path.join(reference_dir.new.eqsans, "test_incoherence_correction/agbe_125707_test1.json")
+    config_json_file = os.path.join(reference_dir.eqsans, "test_incoherence_correction/agbe_125707_test1.json")
     assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
     with open(config_json_file, "r") as config_json:
         configuration = json.load(config_json)
@@ -337,7 +337,7 @@ def test_incoherence_correction_elastic_normalization(reference_dir, temp_direct
     checks = [
         filecmp.cmp(
             test_iq1d_file,
-            os.path.join(reference_dir.new.eqsans, "test_incoherence_correction", version + iq1d_base_name),
+            os.path.join(reference_dir.eqsans, "test_incoherence_correction", version + iq1d_base_name),
         )
         for version in acceptable_versions
     ]
@@ -371,7 +371,7 @@ def test_incoherence_correction_elastic_normalization_weighted(reference_dir, te
     import filecmp
 
     # Set up the configuration dict
-    config_json_file = os.path.join(reference_dir.new.eqsans, "test_incoherence_correction/porsil_29024_abs_inel.json")
+    config_json_file = os.path.join(reference_dir.eqsans, "test_incoherence_correction/porsil_29024_abs_inel.json")
     assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
     with open(config_json_file, "r") as config_json:
         configuration = json.load(config_json)
@@ -381,7 +381,7 @@ def test_incoherence_correction_elastic_normalization_weighted(reference_dir, te
     test_dir = temp_directory()
 
     def run_reduction_and_compare(config, expected_result_filename):
-        with amend_config(data_dir=reference_dir.new.eqsans):
+        with amend_config(data_dir=reference_dir.eqsans):
             # validate and clean configuration
             input_config = reduction_parameters(config)
             loaded = load_all_files(input_config)
@@ -394,7 +394,7 @@ def test_incoherence_correction_elastic_normalization_weighted(reference_dir, te
 
         test_iq1d_file = os.path.join(test_dir, config["outputFileName"] + "_Iq.dat")
         gold_iq1d_file = os.path.join(
-            reference_dir.new.eqsans, "test_incoherence_correction", expected_result_filename
+            reference_dir.eqsans, "test_incoherence_correction", expected_result_filename
         )
         # compare
         assert filecmp.cmp(test_iq1d_file, gold_iq1d_file)
@@ -412,7 +412,7 @@ def test_incoherence_correction_elastic_normalization_weighted(reference_dir, te
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
     configuration["configuration"]["outputDir"] = test_dir
     configuration["outputFileName"] = base_name
-    configuration["dataDirectories"] = reference_dir.new.eqsans
+    configuration["dataDirectories"] = reference_dir.eqsans
     run_reduction_and_compare(configuration, "EQSANS_132078_Iq.dat")
 
     # Run with weighted

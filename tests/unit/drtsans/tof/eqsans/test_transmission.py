@@ -18,7 +18,7 @@ from drtsans.tof.eqsans.geometry import beam_radius  # noqa: E402
 @pytest.fixture(scope="module")
 @namedtuplefy
 def trasmission_data(reference_dir):
-    data_dir = pjn(reference_dir.new.eqsans, "test_transmission")
+    data_dir = pjn(reference_dir.eqsans, "test_transmission")
     a = LoadNexus(pjn(data_dir, "raw_transmission.nxs"))
     b = LoadNexus(pjn(data_dir, "sample.nxs"))
     c = LoadNexus(pjn(data_dir, "raw_transmission_skip.nxs"))

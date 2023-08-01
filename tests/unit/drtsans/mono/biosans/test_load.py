@@ -16,7 +16,7 @@ from drtsans.samplelogs import SampleLogs
 
 
 def test_load_events(reference_dir):
-    events_workspace = load_events("CG3_961.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    events_workspace = load_events("CG3_961.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert events_workspace.name() == "BIOSANS_961"
 
     sample_logs = SampleLogs(events_workspace)
@@ -28,7 +28,7 @@ def test_load_events(reference_dir):
 
 
 def test_transform_to_wavelength(reference_dir):
-    workspace = load_events("CG3_961.nxs.h5", data_dir=reference_dir.new.biosans)
+    workspace = load_events("CG3_961.nxs.h5", data_dir=reference_dir.biosans)
     workspace = transform_to_wavelength(workspace)
     assert workspace.getAxis(0).getUnit().caption() == "Wavelength"
 
@@ -75,7 +75,7 @@ def test_sum_data(reference_dir):
     # Merge the same file twice
     workspace1 = load_events(
         "CG3_961.nxs.h5",
-        data_dir=reference_dir.new.biosans,
+        data_dir=reference_dir.biosans,
         output_workspace="workspace1",
     )
 
@@ -87,7 +87,7 @@ def test_sum_data(reference_dir):
     workspace1 = set_init_uncertainties(workspace1)
     workspace2 = load_events(
         "CG3_960.nxs.h5",
-        data_dir=reference_dir.new.biosans,
+        data_dir=reference_dir.biosans,
         output_workspace="workspace2",
     )
     workspace2 = transform_to_wavelength(workspace2)
@@ -144,7 +144,7 @@ def test_load_events_and_histogram(reference_dir):
         "CG3_961.nxs.h5",
         sample_to_si_name="CG3:CS:SampleToSi",
         si_nominal_distance=0.071,
-        data_dir=reference_dir.new.biosans,
+        data_dir=reference_dir.biosans,
     )
     assert workspace.getAxis(0).getUnit().caption() == "Wavelength"
     assert workspace.name() == "BIOSANS_961"
@@ -157,7 +157,7 @@ def test_load_events_and_histogram(reference_dir):
 
     workspace2 = load_events_and_histogram(
         "CG3_961.nxs.h5, CG3_960.nxs.h5",
-        data_dir=reference_dir.new.biosans,
+        data_dir=reference_dir.biosans,
         sample_to_si_name="CG3:CS:SampleToSi",
         si_nominal_distance=0.071,
     )
@@ -177,7 +177,7 @@ def test_load_and_split(reference_dir):
     with pytest.raises(ValueError) as excinfo:
         load_and_split(
             "CG3_961.nxs.h5",
-            data_dir=reference_dir.new.biosans,
+            data_dir=reference_dir.biosans,
             sample_to_si_name="CG3:CS:SampleToSi",
             si_nominal_distance=0.071,
         )
@@ -185,7 +185,7 @@ def test_load_and_split(reference_dir):
 
     filtered_ws = load_and_split(
         "CG3_961.nxs.h5",
-        data_dir=reference_dir.new.biosans,
+        data_dir=reference_dir.biosans,
         time_interval=1000,
         sample_to_si_name="CG3:CS:SampleToSi",
         si_nominal_distance=0.071,
@@ -243,7 +243,7 @@ def test_load_and_split_overwrite_geometry(reference_dir):
     with pytest.raises(ValueError) as excinfo:
         load_and_split(
             "CG3_961.nxs.h5",
-            data_dir=reference_dir.new.biosans,
+            data_dir=reference_dir.biosans,
             sample_to_si_name="CG3:CS:SampleToSi",
             si_nominal_distance=0.071,
         )
@@ -251,7 +251,7 @@ def test_load_and_split_overwrite_geometry(reference_dir):
 
     filtered_ws = load_and_split(
         "CG3_961",
-        data_dir=reference_dir.new.biosans,
+        data_dir=reference_dir.biosans,
         time_interval=1000,
         sample_to_si_name="CG3:CS:SampleToSi",
         si_nominal_distance=0.071,

@@ -220,53 +220,45 @@ def reference_dir():
     """A namedtuple with the directory **absolute** paths for test data
 
     Examples:
-        reference_dir.data, topmost data directory data/
-        reference_dir.legacy, data/legacy/ornl/sans/
-        reference_dir.new, data/new/ornl/sans/
-        reference_dir.legacy.biosans, reference_dir.legacy.gpsans, reference_dir.legacy.eqsans, are
-            data/legacy/ornl/sans/hfir/biosans and so on.
-        reference_dir.new.biosans, reference_dir.new.gpsans, reference_dir.new.eqsans, are
-            data/new/ornl/sans/hfir/biosans and so on.
+        reference_dir.data -> /SNS/EQSANS/shared/sans-backend/data
+        reference_dir.sans -> /SNS/EQSANS/shared/sans-backend/data/ornl/sans
+        reference_dir.biosans
+            -> /SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/biosans
+        reference_dir.gpsans
+            -> /SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans
+        reference_dir.eqsans
+            -> /SNS/EQSANS/shared/sans-backend/data/ornl/sans/sns/eqsans
 
     Returns
     -------
     namedtuple
     """
-    d_leg = pjoin(data_dir, "legacy", "ornl", "sans")
-    d_new = pjoin(data_dir, "new", "ornl", "sans")
-    rett = namedtuple("rett", "data legacy new")
-    legt = namedtuple("legt", "sans biosans gpsans eqsans")
-    newt = namedtuple("newt", "sans biosans gpsans eqsans")
-    return rett(
+    ref_dir = namedtuple(
+        "ref_dir",
+        "data sans biosans gpsans eqsans",
+    )
+    return ref_dir(
         data_dir,
-        legt(
-            d_leg,
-            pjoin(d_leg, "hfir", "biosans"),
-            pjoin(d_leg, "hfir", "gpsans"),
-            pjoin(d_leg, "sns", "eqsans"),
-        ),
-        newt(
-            d_new,
-            pjoin(d_new, "hfir", "biosans"),
-            pjoin(d_new, "hfir", "gpsans"),
-            pjoin(d_new, "sns", "eqsans"),
-        ),
+        pjoin(data_dir, "ornl", "sans"),
+        pjoin(data_dir, "ornl", "sans", "hfir", "biosans"),
+        pjoin(data_dir, "ornl", "sans", "hfir", "gpsans"),
+        pjoin(data_dir, "ornl", "sans", "sns", "eqsans"),
     )
 
 
 @pytest.fixture(scope="session")
 def eqsans_f(reference_dir):
     return dict(
-        data=pjoin(reference_dir.new.eqsans, "EQSANS_68168_event.nxs"),
-        beamcenter=pjoin(reference_dir.new.eqsans, "EQSANS_68183_event.nxs"),
-        darkcurrent=pjoin(reference_dir.new.eqsans, "EQSANS_68200_event.nxs"),
+        data=pjoin(reference_dir.eqsans, "EQSANS_68168_event.nxs"),
+        beamcenter=pjoin(reference_dir.eqsans, "EQSANS_68183_event.nxs"),
+        darkcurrent=pjoin(reference_dir.eqsans, "EQSANS_68200_event.nxs"),
     )
 
 
 @pytest.fixture(scope="session")
 def eqsans_w(reference_dir, eqsans_f):
     r"""Load EQSANS files into workspaces"""
-    with amend_config(data_dir=reference_dir.new.eqsans):
+    with amend_config(data_dir=reference_dir.eqsans):
         return {k: mtds.LoadEventNexus(v, OutputWorkspace=k) for (k, v) in eqsans_f.items()}
 
 
@@ -340,7 +332,7 @@ def biosans_sensitivity_dataset():
 
 @pytest.fixture(scope="session")
 def gpsans_sensitivity_dataset(reference_dir):
-    dd = reference_dir.new.gpsans
+    dd = reference_dir.gpsans
     return dict(
         dark_current=pjoin(dd, "CG2_exp206_scan0038_0001.xml"),
         flood_trans_0=pjoin(dd, "CG2_exp206_scan0017_0001.xml"),
@@ -373,8 +365,8 @@ def frame_skipperF(reference_dir):
 
     # Absolute path to benchmark files
     f = dict(
-        s=pjoin(reference_dir.new.eqsans, "EQSANS_92353.nxs.h5"),  # sample
-        mo=pjoin(reference_dir.new.eqsans, "EQSANS_92353.nxs.h5"),  # monitors
+        s=pjoin(reference_dir.eqsans, "EQSANS_92353.nxs.h5"),  # sample
+        mo=pjoin(reference_dir.eqsans, "EQSANS_92353.nxs.h5"),  # monitors
     )
 
     # Loader algorithms for the benchmark files
@@ -435,22 +427,22 @@ def porasil_slice1m(reference_dir):
 
     # Absolute path to benchmark files
     f = dict(
-        s=pjoin(reference_dir.new.eqsans, "EQSANS_92164.nxs.h5"),  # sample
-        m=pjoin(reference_dir.new.eqsans, "2017B_mp/beamstop60_mask_4m.nxs"),  # noqa: E501 mask
-        dc=pjoin(reference_dir.new.eqsans, "EQSANS_89157.nxs.h5"),  # dark current
+        s=pjoin(reference_dir.eqsans, "EQSANS_92164.nxs.h5"),  # sample
+        m=pjoin(reference_dir.eqsans, "2017B_mp/beamstop60_mask_4m.nxs"),  # noqa: E501 mask
+        dc=pjoin(reference_dir.eqsans, "EQSANS_89157.nxs.h5"),  # dark current
         se=pjoin(
-            reference_dir.new.eqsans,
+            reference_dir.eqsans,
             "Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs",
         ),  # noqa: E501
-        dbc=pjoin(reference_dir.new.eqsans, "EQSANS_92160.nxs.h5"),  # noqa: E501 direct_beam_center
-        dbts=pjoin(reference_dir.new.eqsans, "EQSANS_92161.nxs.h5"),  # noqa: E501 direct beam transmission sample
-        dbte=pjoin(reference_dir.new.eqsans, "EQSANS_92160.nxs.h5"),  # noqa: E501 direct beam transmission empty
-        b=pjoin(reference_dir.new.eqsans, "EQSANS_92163.nxs.h5"),  # background
+        dbc=pjoin(reference_dir.eqsans, "EQSANS_92160.nxs.h5"),  # noqa: E501 direct_beam_center
+        dbts=pjoin(reference_dir.eqsans, "EQSANS_92161.nxs.h5"),  # noqa: E501 direct beam transmission sample
+        dbte=pjoin(reference_dir.eqsans, "EQSANS_92160.nxs.h5"),  # noqa: E501 direct beam transmission empty
+        b=pjoin(reference_dir.eqsans, "EQSANS_92163.nxs.h5"),  # background
         bdbts=pjoin(
-            reference_dir.new.eqsans, "EQSANS_92161.nxs.h5"
+            reference_dir.eqsans, "EQSANS_92161.nxs.h5"
         ),  # noqa: E501 background direct beam transmission sample
         bdbte=pjoin(
-            reference_dir.new.eqsans, "EQSANS_92160.nxs.h5"
+            reference_dir.eqsans, "EQSANS_92160.nxs.h5"
         ),  # noqa: E501 background_direct_beam_transmission_empty
     )
 
@@ -1418,7 +1410,7 @@ def serve_events_workspace(reference_dir):
     EventsWorkspace
     """
 
-    def wrapper(run, dd=reference_dir.new.eqsans):
+    def wrapper(run, dd=reference_dir.eqsans):
         cache = wrapper._cache
         names = wrapper._names
 
@@ -1448,12 +1440,12 @@ def biosans_synthetic_dataset(reference_dir, tmp_path_factory) -> dict:
     Create a synthetic dataset for testing the BIOSANS reduction. The dataset contains
     Nexus-processed event files with names CG3_XXXX.nxs, where XXXX is a run number.
 
-    -Flood run 92344. Create a synthetic flood run as an isotropic scattering plus a gaussian background noise.
-     We tune the component efficiencies so that a pixel in any of the three components has more or less 200 events.
+    - Flood run 92344. Create a synthetic flood run as an isotropic scattering plus a gaussian background noise.
+    We tune the component efficiencies so that a pixel in any of the three components has more or less 200 events.
 
-    -Beam center run 92345. Create a synthetic beam center run with a beam spot with center at
-     (x, y) = (-0.016, -0.018) and diameter=0.02 (meter), with no more than about 400 events
-     in any of the pixels of the spot. Add also a gaussian background noise.
+    - Beam center run 92345. Create a synthetic beam center run with a beam spot with center at
+    (x, y) = (-0.016, -0.018) and diameter=0.02 (meter), with no more than about 400 events
+    in any of the pixels of the spot. Add also a gaussian background noise.
 
     Usage
     -----
@@ -1505,7 +1497,7 @@ def biosans_synthetic_dataset(reference_dir, tmp_path_factory) -> dict:
         return f"CG3_{run}.nxs.h5"
 
     # determine if the dataset is already stored in the testing file dataset
-    runs_directory = pjoin(reference_dir.new.biosans, "synthetic_dataset")
+    runs_directory = pjoin(reference_dir.biosans, "synthetic_dataset")
     populate_cache = False
     if os.path.exists(runs_directory) and os.path.isdir(runs_directory):
         for run in [92300, 92310, 92320, 92330, 92340, 92350]:
@@ -1725,8 +1717,10 @@ def biosans_synthetic_sensitivity_dataset(reference_dir):
     @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
     def test_function(mock_monitor_counts, biosans_synthetic_dataset):
         mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
-        with amend_config(new_config={"instrumentName": "CG3"},
-                          data_dir=str(biosans_synthetic_sensitivity_dataset["data_dir"])):
+        with amend_config(
+            new_config={"instrumentName": "CG3"},
+            data_dir=str(biosans_synthetic_sensitivity_dataset["data_dir"]),
+            ):
             #
             # in this test, we just use load_events() to load one of the synthetic runs
             #
@@ -1736,7 +1730,7 @@ def biosans_synthetic_sensitivity_dataset(reference_dir):
 
     """
     return {
-        "data_dir": pjoin(reference_dir.new.biosans, "synthetic_sensitivity"),
+        "data_dir": pjoin(reference_dir.biosans, "synthetic_sensitivity"),
         "runs": {
             "flood": 4835,
             "direct_beam": 4830,

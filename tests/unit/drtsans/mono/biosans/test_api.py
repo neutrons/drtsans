@@ -132,7 +132,7 @@ def test_prepare_data_workspaces_center_midrange_success(reference_dir):
     # with center parameters for main, wing and midrange detectors
     # check the algorithm history to ensure instrument components were moved with the requested coordinates
 
-    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     # add the midrange detector
     ws = update_idf(ws)
@@ -179,7 +179,7 @@ def test_prepare_data_workspaces_center_midrange_failure(reference_dir):
     # midrange center is required, but not passed
     # results to failure to move the instrument components
 
-    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     # add the midrange detector
     ws = update_idf(ws)
@@ -205,7 +205,7 @@ def test_prepare_data_workspaces_apply_mask_detectors_str(reference_dir):
     # generate the output workspace from prepare_data_workspaces
     # mask detector with a comma separated detector name-string
 
-    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     # add the midrange detector
     ws = update_idf(ws)
@@ -226,7 +226,7 @@ def test_prepare_data_workspaces_apply_mask_detectors_lst(reference_dir):
     # generate the output workspace from prepare_data_workspaces
     # mask detector with a list of detector names
 
-    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     # add the midrange detector
     ws = update_idf(ws)
@@ -247,7 +247,7 @@ def test_prepare_data_center(reference_dir):
     # load the file
     # generate the output workspace from prepare_data with center parameters for main and wing detectors
     # check the algorithm history to ensure instrument components were moved with the requested coordinates
-    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
 
     # this should make a clone of the workspace
     output = prepare_data(str(ws), center_x=0.111, center_y=0.123, center_y_wing=0.222, solid_angle=False)
@@ -280,7 +280,7 @@ def test_prepare_data_center_midrange_success(mock_LoadEventNexus, mock_monitor_
     # check the algorithm history to ensure instrument components were moved with the requested coordinates
 
     output_workspace = "CG3_92300"
-    synthetics_datasets = os.path.join(reference_dir.new.biosans, "synthetic_dataset")
+    synthetics_datasets = os.path.join(reference_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
     mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
@@ -332,7 +332,7 @@ def test_prepare_data_center_midrange_failure(mock_LoadEventNexus, mock_monitor_
     # results to failure to move the instrument components
 
     output_workspace = "CG3_92300"
-    synthetics_datasets = os.path.join(reference_dir.new.biosans, "synthetic_dataset")
+    synthetics_datasets = os.path.join(reference_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
     mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
@@ -361,7 +361,7 @@ def test_prepare_data_apply_mask_detectors_lst(mock_LoadEventNexus, mock_monitor
     # mask detector with a list of detector names
 
     output_workspace = "CG3_92300"
-    synthetics_datasets = os.path.join(reference_dir.new.biosans, "synthetic_dataset")
+    synthetics_datasets = os.path.join(reference_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
     mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
@@ -392,7 +392,7 @@ def test_prepare_data_apply_mask_detectors_str(mock_LoadEventNexus, mock_monitor
     # mask detector with a detector name
 
     output_workspace = "CG3_92300"
-    synthetics_datasets = os.path.join(reference_dir.new.biosans, "synthetic_dataset")
+    synthetics_datasets = os.path.join(reference_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
     mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)

@@ -22,13 +22,13 @@ def test_load_all_files(reference_dir):
 
     """
     # Create JSON
-    json_str = generate_test_json(os.path.join(reference_dir.new.biosans, "overwrite_gold"))
+    json_str = generate_test_json(os.path.join(reference_dir.biosans, "overwrite_gold"))
     # Load JSON for configuration
     reduction_input = json.loads(json_str)
 
     # Set output and inputs
     output_dir = "/tmp/test_bio_load/"
-    nexus_dir = reference_dir.new.biosans
+    nexus_dir = reference_dir.biosans
 
     # Set up (testing) runs
     sample_names = ["csmb_ecoli1h_n2"]

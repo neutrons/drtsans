@@ -76,13 +76,13 @@ def test_abspath_with_ipts(hint, instr, ipts, fullpath):
 
 
 def test_abspath_with_directory(reference_dir):
-    filename = os.path.join(reference_dir.new.biosans, "CG3_5709.nxs.h5")
-    assert abspath("CG3_5709", directory=reference_dir.new.biosans, search_archive=False) == filename
+    filename = os.path.join(reference_dir.biosans, "CG3_5709.nxs.h5")
+    assert abspath("CG3_5709", directory=reference_dir.biosans, search_archive=False) == filename
     assert (
         abspath(
             "5709",
             instrument="CG3",
-            directory=reference_dir.new.biosans,
+            directory=reference_dir.biosans,
             search_archive=False,
         )
         == filename
@@ -98,7 +98,7 @@ def test_abspath_with_directory(reference_dir):
     [("EQSANS_106026", True), ("EQSANS106027", True), ("EQSANS_88974.nxs.h5", True)],
 )
 def test_exists_with_archivesearch(hint, found, reference_dir):
-    with amend_config(SEARCH_ON, data_dir=reference_dir.new.eqsans):
+    with amend_config(SEARCH_ON, data_dir=reference_dir.eqsans):
         assert exists(hint) == found  # allows verifying against True and False
 
 
@@ -107,7 +107,7 @@ def test_exists_with_archivesearch(hint, found, reference_dir):
     [("EQSANS_106026", True), ("EQSANS106028", False), ("EQSANS_88974.nxs.h5", True)],
 )
 def test_exists_without_archivesearch(hint, found, reference_dir):
-    with amend_config(SEARCH_OFF, data_dir=reference_dir.new.eqsans):
+    with amend_config(SEARCH_OFF, data_dir=reference_dir.eqsans):
         assert exists(hint) == found  # allows verifying against True and False
 
 

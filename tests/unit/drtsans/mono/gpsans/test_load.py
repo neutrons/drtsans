@@ -7,19 +7,20 @@ from drtsans.geometry import sample_detector_distance
 
 def test_load_and_split(reference_dir):
     # Check that is fails with missing required parameters
-    filename = str(Path(reference_dir.new.gpsans) / "CG2_9177.nxs.h5")
+    filename = str(Path(reference_dir.gpsans) / "CG2_9177.nxs.h5")
     with pytest.raises(ValueError) as excinfo:
         load_and_split(
             filename,
-            data_dir=reference_dir.new.gpsans,
+            data_dir=reference_dir.gpsans,
             sample_to_si_name="CG2:CS:SampleToSi",
             si_nominal_distance=0.0,
         )
     assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
 
+    # QUESTIONS: Why are we loading a biosans file for gpsans testing here?
     filtered_ws = load_and_split(
         filename,
-        data_dir=reference_dir.new.biosans,
+        data_dir=reference_dir.biosans,
         time_interval=50,
         sample_to_si_name="CG2:CS:SampleToSi",
         si_nominal_distance=0.0,
@@ -47,19 +48,20 @@ def test_load_and_split_overwrite_ssd(reference_dir):
 
     """
     # Check that is fails with missing required parameters
-    filename = str(Path(reference_dir.new.gpsans) / "CG2_9177.nxs.h5")
+    filename = str(Path(reference_dir.gpsans) / "CG2_9177.nxs.h5")
     with pytest.raises(ValueError) as excinfo:
         load_and_split(
             filename,
-            data_dir=reference_dir.new.gpsans,
+            data_dir=reference_dir.gpsans,
             sample_to_si_name="CG2:CS:SampleToSi",
             si_nominal_distance=0.0,
         )
     assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
 
+    # QUESTIONS: Why are we loading a biosans file for gpsans testing here?
     filtered_ws = load_and_split(
         filename,
-        data_dir=reference_dir.new.biosans,
+        data_dir=reference_dir.biosans,
         time_interval=50,
         sample_to_si_name="CG2:CS:SampleToSi",
         si_nominal_distance=0.0,

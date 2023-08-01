@@ -49,7 +49,7 @@ run_sets = [{k: v for k, v in zip(keys, value)} for value in values]
 
 @pytest.fixture(scope="module")
 def flux_file(reference_dir):
-    return pj(reference_dir.new.eqsans, "test_normalization", "beam_profile_flux.txt")
+    return pj(reference_dir.eqsans, "test_normalization", "beam_profile_flux.txt")
 
 
 @pytest.fixture(scope="module", params=run_sets, ids=[item["run"] for item in run_sets])
@@ -58,7 +58,7 @@ def run_infoset(reference_dir, request):
     run_set = request.param
     run = run_set["run"]
     tof_workspace = unique_workspace_dundername()
-    with amend_config(data_dir=reference_dir.new.eqsans):
+    with amend_config(data_dir=reference_dir.eqsans):
         eqsans.load_events(run, output_workspace=tof_workspace)
     wavelength_workspace, bands = eqsans.transform_to_wavelength(
         tof_workspace,
@@ -95,7 +95,7 @@ class TestLoadEvents(object):
         assert bool(SampleLogs(ws).is_frame_skipping.value) == run_infoset.skip_frame
 
     def test_offsets(self, reference_dir):
-        with amend_config(data_dir=reference_dir.new.eqsans):
+        with amend_config(data_dir=reference_dir.eqsans):
             workspace = eqsans.load_events(
                 "EQSANS_86217",
                 output_workspace=unique_workspace_dundername(),
@@ -141,7 +141,7 @@ def test_normalize_by_flux(run_infoset, flux_file):
 
 
 def test_subtract_background(reference_dir):
-    data_dir = pj(reference_dir.new.eqsans, "test_subtract_background")
+    data_dir = pj(reference_dir.eqsans, "test_subtract_background")
     ws = LoadNexus(pj(data_dir, "sample.nxs"), OutputWorkspace=unique_workspace_dundername())
     ws_name = ws.name()
     wb = LoadNexus(pj(data_dir, "background.nxs"), OutputWorkspace=unique_workspace_dundername())
@@ -152,8 +152,8 @@ def test_subtract_background(reference_dir):
 
 def test_prepare_monitors(reference_dir):
     data_dirs = [
-        reference_dir.new.eqsans,
-        pj(reference_dir.new.eqsans, "test_integration_api"),
+        reference_dir.eqsans,
+        pj(reference_dir.eqsans, "test_integration_api"),
     ]
     with amend_config(data_dir=data_dirs):
         # Raises for a run in skip frame mode

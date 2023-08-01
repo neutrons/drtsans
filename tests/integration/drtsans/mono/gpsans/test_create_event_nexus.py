@@ -49,7 +49,7 @@ def test_duplicate_event_nexus(reference_dir, temp_directory):
     """
     # Get the source file
     source_nexus_file = "CG2_9177.nxs.h5"
-    source_nexus_file = os.path.join(reference_dir.new.gpsans, source_nexus_file)
+    source_nexus_file = os.path.join(reference_dir.gpsans, source_nexus_file)
     assert os.path.exists(source_nexus_file), f"Test data {source_nexus_file} does not exist"
 
     # Duplicate the source file to the temporary directory
@@ -118,7 +118,7 @@ def test_reduction(reference_dir, temp_directory):
     for run_number in [9166, 9177, 9165, 9178]:
         # set source NeXus and target (testing) NeXus name
         test_nexus_name = f"CG2_{run_number}.nxs.h5"
-        source_nexus = os.path.join(reference_dir.new.gpsans, test_nexus_name)
+        source_nexus = os.path.join(reference_dir.gpsans, test_nexus_name)
         assert os.path.exists(source_nexus), f"Test data {source_nexus} does not exist"
         target_nexus = os.path.join(output_dir, f"CG2_{run_number}.nxs.h5")
         # generate and verify
@@ -128,7 +128,7 @@ def test_reduction(reference_dir, temp_directory):
         nexus_file_dict[run_number] = target_nexus
 
     # Set up reduction JSON
-    sensitivity_file = os.path.join(reference_dir.new.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs")
+    sensitivity_file = os.path.join(reference_dir.gpsans, "overwrite_gold_04282020/sens_c486_noBar.nxs")
     specs = {
         "iptsNumber": 21981,
         "beamCenter": {"runNumber": nexus_file_dict[9177]},
@@ -155,7 +155,7 @@ def test_reduction(reference_dir, temp_directory):
     }
     reduction_input = reduction_parameters(specs, "GPSANS", validate=False)  # add defaults and defer validation
     reduce_gpsans_data(
-        reference_dir.new.gpsans,
+        reference_dir.gpsans,
         reduction_input,
         output_dir,
         prefix="CG2MetaRaw",
@@ -167,7 +167,7 @@ def test_reduction(reference_dir, temp_directory):
 
     # Get result files
     sample_names = ["Al4"]
-    gold_path = os.path.join(reference_dir.new.gpsans, "overwrite_gold_04282020/test1/")
+    gold_path = os.path.join(reference_dir.gpsans, "overwrite_gold_04282020/test1/")
 
     # Verify results
     verify_cg2_reduction_results(
@@ -619,8 +619,8 @@ def test_convert_spice_to_nexus(reference_dir, temp_directory):
 
     """
     # Specify the test data
-    spice_data_file = os.path.join(reference_dir.new.gpsans, "CG2_exp315_scan0005_0060.xml")
-    template_nexus_file = os.path.join(reference_dir.new.gpsans, "CG2_9177.nxs.h5")
+    spice_data_file = os.path.join(reference_dir.gpsans, "CG2_exp315_scan0005_0060.xml")
+    template_nexus_file = os.path.join(reference_dir.gpsans, "CG2_9177.nxs.h5")
     assert os.path.exists(spice_data_file)
     assert os.path.exists(template_nexus_file)
 

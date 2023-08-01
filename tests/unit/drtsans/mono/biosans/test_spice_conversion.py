@@ -11,7 +11,7 @@ def test_benchmark_spice(reference_dir):
     between old BIOSANS IDF and new BIOSANS IDF
     """
     # Access the test spice file
-    spice_name = os.path.join(reference_dir.new.biosans, "BioSANS_exp549_scan0020_0001_benchmark.xml")
+    spice_name = os.path.join(reference_dir.biosans, "BioSANS_exp549_scan0020_0001_benchmark.xml")
     assert os.path.exists(spice_name)
 
     # Load data
@@ -87,7 +87,7 @@ def test_benchmark_spice(reference_dir):
 def test_spice_conversion(reference_dir, cleanfile):
     """Test conversion from SPICE to NeXus with pixel ID mapping to new IDF"""
     # Access the test spice file
-    spice_name = os.path.join(reference_dir.new.biosans, "BioSANS_exp549_scan0020_0001_benchmark.xml")
+    spice_name = os.path.join(reference_dir.biosans, "BioSANS_exp549_scan0020_0001_benchmark.xml")
     assert os.path.exists(spice_name)
 
     #

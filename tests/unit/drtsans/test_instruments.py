@@ -99,7 +99,7 @@ def test_copy_to_newest_instrument(fetch_idf, reference_dir, clean_workspace):
     assert workspace2.getNumberHistograms() > old_histogram_count
     #
     # assert intensities and detector positions
-    with amend_config(new_config={"default.instrument": "CG3"}, data_dir=reference_dir.new.biosans):
+    with amend_config(new_config={"default.instrument": "CG3"}, data_dir=reference_dir.biosans):
         workspace3 = LoadEventNexus(Filename="1322", OutputWorkspace=unique_workspace_dundername())
     clean_workspace(workspace3)
     pixel_counts = workspace3.getSpectrum(24956).getNumberEvents()

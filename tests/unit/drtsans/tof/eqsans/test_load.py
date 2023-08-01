@@ -21,12 +21,12 @@ from drtsans.samplelogs import SampleLogs
 
 def test_load_events(reference_dir):
     # default workspace name is file hint
-    with amend_config(data_dir=reference_dir.new.eqsans):
+    with amend_config(data_dir=reference_dir.eqsans):
         ws_test_load_events = load_events("EQSANS_92353.nxs.h5")
     assert ws_test_load_events.name() == "EQSANS_92353"
 
     ws_name = uwn()
-    with amend_config(data_dir=reference_dir.new.eqsans):
+    with amend_config(data_dir=reference_dir.eqsans):
         ws = load_events("EQSANS_92353.nxs.h5", output_workspace=ws_name)
     assert ws.name() == ws_name
 
@@ -41,22 +41,22 @@ def test_load_events(reference_dir):
 def test_load_events_monitor(reference_dir):
     # Raises for a run in skip frame mode
     with pytest.raises(RuntimeError, match="cannot correct monitor"):
-        load_events_monitor("EQSANS_92353.nxs.h5", data_dir=reference_dir.new.eqsans)
+        load_events_monitor("EQSANS_92353.nxs.h5", data_dir=reference_dir.eqsans)
 
-    w = load_events_monitor("EQSANS_88901.nxs.h5", data_dir=reference_dir.new.eqsans)
+    w = load_events_monitor("EQSANS_88901.nxs.h5", data_dir=reference_dir.eqsans)
     assert w.name() == "EQSANS_88901_monitors"
     assert w.getSpectrum(0).getTofMin() == approx(30680, abs=1)
     assert w.getSpectrum(0).getTofMax() == approx(47347, abs=1)
 
 
 def test_merge_Data(reference_dir):
-    ws0 = load_events("EQSANS_101595.nxs.h5", data_dir=reference_dir.new.eqsans)
+    ws0 = load_events("EQSANS_101595.nxs.h5", data_dir=reference_dir.eqsans)
     ws0, bands0 = transform_to_wavelength(ws0)
     ws0 = set_init_uncertainties(ws0)
-    ws1 = load_events("EQSANS_104088.nxs.h5", data_dir=reference_dir.new.eqsans)
+    ws1 = load_events("EQSANS_104088.nxs.h5", data_dir=reference_dir.eqsans)
     ws1, bands1 = transform_to_wavelength(ws1)
     ws1 = set_init_uncertainties(ws1)
-    ws2 = load_events("EQSANS_105428.nxs.h5", data_dir=reference_dir.new.eqsans)
+    ws2 = load_events("EQSANS_105428.nxs.h5", data_dir=reference_dir.eqsans)
     ws2, bands2 = transform_to_wavelength(ws2)
     ws2 = set_init_uncertainties(ws2)
 
@@ -101,7 +101,7 @@ def test_merge_Data(reference_dir):
 
 
 def test_load_events_and_histogram(reference_dir):
-    ws0 = load_events_and_histogram("EQSANS_101595.nxs.h5", data_dir=reference_dir.new.eqsans)
+    ws0 = load_events_and_histogram("EQSANS_101595.nxs.h5", data_dir=reference_dir.eqsans)
 
     assert ws0.data.getAxis(0).getUnit().caption() == "Wavelength"
     assert ws0.data.name() == "EQSANS_101595"
@@ -115,7 +115,7 @@ def test_load_events_and_histogram(reference_dir):
 
     ws1 = load_events_and_histogram(
         "EQSANS_101595.nxs.h5,EQSANS_104088.nxs.h5,EQSANS_105428.nxs.h5",
-        data_dir=reference_dir.new.eqsans,
+        data_dir=reference_dir.eqsans,
         keep_events=False,
     )
 
@@ -138,7 +138,7 @@ def test_generic_load_and_split(reference_dir):
     # split by the SampleTemp log
     filtered_ws, filtered_ws_monitors = generic_load_and_split(
         "EQSANS_104088.nxs.h5",
-        data_dir=reference_dir.new.eqsans,
+        data_dir=reference_dir.eqsans,
         log_name="SampleTemp",
         log_value_interval=0.1,
         monitors=True,
@@ -196,7 +196,7 @@ def test_load_and_split(reference_dir):
     # split by the SampleTemp log
     filtered_ws, bands = load_and_split(
         "EQSANS_104088.nxs.h5",
-        data_dir=reference_dir.new.eqsans,
+        data_dir=reference_dir.eqsans,
         log_name="SampleTemp",
         log_value_interval=0.1,
     )

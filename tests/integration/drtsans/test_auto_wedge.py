@@ -526,8 +526,8 @@ def test_integration():
 
 
 def test_real_data_biosans(reference_dir):
-    MSamp_fn = os.path.join(reference_dir.new.biosans, "CG3_127_5532_mBSub.h5")
-    MBuff_fn = os.path.join(reference_dir.new.biosans, "CG3_127_5562_mBSub.h5")
+    MSamp_fn = os.path.join(reference_dir.biosans, "CG3_127_5532_mBSub.h5")
+    MBuff_fn = os.path.join(reference_dir.biosans, "CG3_127_5562_mBSub.h5")
 
     ws_ms = LoadNexusProcessed(Filename=MSamp_fn, OutputWorkspace="sample", LoadHistory=False)
     ws_mb = LoadNexusProcessed(Filename=MBuff_fn, OutputWorkspace="Main_buffer", LoadHistory=False)
@@ -598,8 +598,8 @@ def test_real_data_biosans(reference_dir):
 
 def test_real_data_biosans_manual(reference_dir):
     """Test asymmetric manual wedge binning on BIOSANS data"""
-    MSamp_fn = os.path.join(reference_dir.new.biosans, "CG3_127_5532_mBSub.h5")
-    MBuff_fn = os.path.join(reference_dir.new.biosans, "CG3_127_5562_mBSub.h5")
+    MSamp_fn = os.path.join(reference_dir.biosans, "CG3_127_5532_mBSub.h5")
+    MBuff_fn = os.path.join(reference_dir.biosans, "CG3_127_5562_mBSub.h5")
 
     ws_ms = LoadNexusProcessed(Filename=MSamp_fn, OutputWorkspace="sample", LoadHistory=False)
     ws_mb = LoadNexusProcessed(Filename=MBuff_fn, OutputWorkspace="Main_buffer", LoadHistory=False)

@@ -33,12 +33,12 @@ def test_convert_spice(reference_dir, temp_directory, clean_workspace):
             temp_event_nexus,
             masked_detector_pixels=[70911],
             output_dir=output_dir,
-            spice_dir=reference_dir.new.biosans,
+            spice_dir=reference_dir.biosans,
         )
         nexus_files.append(fake_nexus)
 
     # Verify result
-    raw_spice = os.path.join(reference_dir.new.biosans, "BioSANS_exp402_scan0006_0001.xml")
+    raw_spice = os.path.join(reference_dir.biosans, "BioSANS_exp402_scan0006_0001.xml")
     verify_result(nexus_files[0], raw_spice, [70911], clean_workspace)
 
 

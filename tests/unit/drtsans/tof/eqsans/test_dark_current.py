@@ -84,8 +84,8 @@ def test_flatten_TOF():
 
 @pytest.fixture(scope="module")
 def wss(reference_dir):
-    with amend_config(data_dir=reference_dir.new.eqsans):
-        name = pjn(reference_dir.new.eqsans, "test_dark_current", "data.nxs")
+    with amend_config(data_dir=reference_dir.eqsans):
+        name = pjn(reference_dir.eqsans, "test_dark_current", "data.nxs")
         # data is a Workspace2D in wavelength
         data = Load(name, OutputWorkspace=unique_workspace_dundername())
         # dark is an EventsWorkspace in time-of-flight
@@ -99,7 +99,7 @@ def test_normalize_to_workspace(wss, reference_dir):
     """
     _w0 = dark_current.normalize_dark_current(wss["dark"], wss["data"], output_workspace=unique_workspace_dundername())
     _w1 = SumSpectra(_w0, OutputWorkspace=unique_workspace_dundername())
-    name = pjn(reference_dir.new.eqsans, "test_dark_current", "dark_norm_sum.nxs")
+    name = pjn(reference_dir.eqsans, "test_dark_current", "dark_norm_sum.nxs")
     _w2 = LoadNexus(name, OutputWorkspace=unique_workspace_dundername())
     assert CompareWorkspaces(_w1, _w2)
     [_w.delete() for _w in (_w0, _w1, _w2)]
@@ -109,7 +109,7 @@ def test_subtract_normalized_dark(wss, reference_dir):
     r"""
     (This test was introduced prior to the testset with the instrument team)
     """
-    file_path = pjn(reference_dir.new.eqsans, "test_dark_current", "dark_norm_sum.nxs")
+    file_path = pjn(reference_dir.eqsans, "test_dark_current", "dark_norm_sum.nxs")
     dark_normalized = LoadNexus(file_path, OutputWorkspace=unique_workspace_dundername())
     data_normalized = dark_current.subtract_normalized_dark_current(
         wss["data"], dark_normalized, output_workspace=unique_workspace_dundername()
@@ -118,7 +118,7 @@ def test_subtract_normalized_dark(wss, reference_dir):
     summed_normalized = SumSpectra(data_normalized, OutputWorkspace=unique_workspace_dundername())
 
     # Compare to stored data
-    file_path = pjn(reference_dir.new.eqsans, "test_dark_current", "data_minus_dark.nxs")
+    file_path = pjn(reference_dir.eqsans, "test_dark_current", "data_minus_dark.nxs")
     stored_summed_normalized = LoadNexus(file_path, OutputWorkspace=unique_workspace_dundername())
     assert CompareWorkspaces(summed_normalized, stored_summed_normalized).Result
 

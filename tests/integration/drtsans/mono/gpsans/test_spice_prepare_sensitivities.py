@@ -40,7 +40,7 @@ def test_sensitivities_with_bar(reference_dir, temp_directory):
 
     # Pixel calibration
     # PIXEL_CALIBRATION = None
-    pixel_calib_file = os.path.join(reference_dir.new.gpsans, "calibrations/pixel_calibration_gold_sens.json")
+    pixel_calib_file = os.path.join(reference_dir.gpsans, "calibrations/pixel_calibration_gold_sens.json")
 
     # Corrections
     do_solid_angle_correction = True
@@ -59,7 +59,7 @@ def test_sensitivities_with_bar(reference_dir, temp_directory):
     mask_xml_file = None  # 'Mask.XML'
 
     # Set the directory for already converted SPICE files
-    nexus_dir = os.path.join(reference_dir.new.gpsans, f"Exp{experiment_number}")
+    nexus_dir = os.path.join(reference_dir.gpsans, f"Exp{experiment_number}")
     # Check
     if not os.path.exists(nexus_dir):
         raise RuntimeError(f"[ERROR] Converted NeXus-SPICE directory {nexus_dir} does not exist")
@@ -136,7 +136,7 @@ def verify_results(test_sensitivities_file, reference_dir):
 
     """
     # Get gold file
-    gold_sens_file = os.path.join(reference_dir.new.gpsans, "calibrations/sens_CG2_spice_bar.nxs")
+    gold_sens_file = os.path.join(reference_dir.gpsans, "calibrations/sens_CG2_spice_bar.nxs")
     if not os.path.exists(gold_sens_file):
         raise RuntimeError(f"Expected (gold) sensitivities cannot be found at {gold_sens_file}")
 

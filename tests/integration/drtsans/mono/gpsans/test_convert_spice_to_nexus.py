@@ -30,12 +30,12 @@ def test_convert_spice(reference_dir, temp_directory):
             pt_num,
             temp_event_nexus,
             output_dir=output_dir,
-            spice_dir=reference_dir.new.gpsans,
+            spice_dir=reference_dir.gpsans,
         )
         nexus_files.append(fake_nexus)
 
     # Verify result
-    raw_spice = os.path.join(reference_dir.new.gpsans, "CG2_exp280_scan0012_0001.xml")
+    raw_spice = os.path.join(reference_dir.gpsans, "CG2_exp280_scan0012_0001.xml")
     verify_result(nexus_files[0], raw_spice)
 
     # NOTE:

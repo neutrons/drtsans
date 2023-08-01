@@ -31,7 +31,7 @@ def test_duplicate_event_nexus(reference_dir, temp_directory, clean_workspace):
     """
     # Get the source file
     source_nexus_file = "CG3_5709.nxs.h5"
-    source_nexus_file = os.path.join(reference_dir.new.biosans, source_nexus_file)
+    source_nexus_file = os.path.join(reference_dir.biosans, source_nexus_file)
     assert os.path.exists(source_nexus_file), f"Test data {source_nexus_file} does not exist"
 
     # Duplicate the source file to the temporary directory
@@ -186,7 +186,7 @@ def crashed_worker_test_reduction(reference_dir, generatecleanfile):
 
     """
     # Set up test
-    json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), None, None)
+    json_str = generate_testing_json(os.path.join(reference_dir.biosans, "overwrite_gold_04282020"), None, None)
 
     # Create output directory
     output_dir = generatecleanfile(prefix="nexuscg3reduction")
@@ -194,11 +194,11 @@ def crashed_worker_test_reduction(reference_dir, generatecleanfile):
         os.mkdir(output_dir)
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_str, output_dir, prefix="BioMetaRaw")
+    reduce_biosans_data(reference_dir.biosans, json_str, output_dir, prefix="BioMetaRaw")
 
     # Get result files
     sample_names = ["csmb_ecoli1h_n2"]
-    gold_path = os.path.join(reference_dir.new.biosans, "overwrite_gold_20200815/test1/")
+    gold_path = os.path.join(reference_dir.biosans, "overwrite_gold_20200815/test1/")
 
     # Verify
     try:

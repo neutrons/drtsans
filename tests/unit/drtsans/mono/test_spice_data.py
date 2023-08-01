@@ -33,7 +33,7 @@ def test_locate_file(reference_dir):
 
     # Test for specified data file directory
     cg2_test_run = SpiceRun("CG2", 0, 245, 10, 8)
-    spice_path = cg2_test_run.locate_spice_file(data_dir=reference_dir.new.gpsans, raise_if_not_exist=True)
+    spice_path = cg2_test_run.locate_spice_file(data_dir=reference_dir.gpsans, raise_if_not_exist=True)
     assert os.path.basename(spice_path) == "CG2_exp245_scan0010_0008.xml"
 
 

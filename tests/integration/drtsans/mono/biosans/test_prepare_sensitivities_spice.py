@@ -125,11 +125,11 @@ def test_main_detector(reference_dir, temp_directory, clean_workspace):
         MIN_THRESHOLD,
         MAX_THRESHOLD,
         SENSITIVITY_FILE,
-        nexus_dir=reference_dir.new.biosans,
+        nexus_dir=reference_dir.biosans,
     )
 
     # Verify
-    gold_sens_file = os.path.join(reference_dir.new.biosans, "CG3_sens_main_exp549_scan9.nxs")
+    gold_sens_file = os.path.join(reference_dir.biosans, "CG3_sens_main_exp549_scan9.nxs")
     assert os.path.exists(gold_sens_file)
     verify_results(SENSITIVITY_FILE, gold_sens_file, clean_workspace)
 
@@ -231,10 +231,10 @@ def test_wing_detector(reference_dir, temp_directory, clean_workspace):
         MIN_THRESHOLD,
         MAX_THRESHOLD,
         SENSITIVITY_FILE,
-        nexus_dir=reference_dir.new.biosans,
+        nexus_dir=reference_dir.biosans,
     )
     # Verify
-    gold_sens_file = os.path.join(reference_dir.new.biosans, "CG3_sens_wing_exp549_scan20.nxs")
+    gold_sens_file = os.path.join(reference_dir.biosans, "CG3_sens_wing_exp549_scan20.nxs")
     assert os.path.exists(gold_sens_file)
     verify_results(SENSITIVITY_FILE, gold_sens_file, clean_workspace)
 
@@ -242,7 +242,6 @@ def test_wing_detector(reference_dir, temp_directory, clean_workspace):
 def verify_results(test_sensitivities_file: str, gold_sens_file: str, clean_workspace):
     """Verify sensitivities of tested result from gold file"""
     # Get gold file
-    # gold_sens_file = os.path.join(reference_dir.new.gpsans, 'calibrations/sens_CG2_spice_bar.nxs')
     if not os.path.exists(gold_sens_file):
         raise RuntimeError(f"Expected (gold) sensitivities cannot be found at {gold_sens_file}")
 

@@ -33,7 +33,7 @@ def test_translate_detector_by_z(serve_events_workspace, reference_dir):
     # application of translate_detector_by_z will have no effect
     workspace = serve_events_workspace("EQSANS_92353.nxs.h5")
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(0.0, abs=1e-3)  # detector1 at z=0
-    idf = os.path.join(reference_dir.new.eqsans, "instrument", "EQ-SANS_Definition.xml")
+    idf = os.path.join(reference_dir.eqsans, "instrument", "EQ-SANS_Definition.xml")
     LoadInstrument(workspace, FileName=idf, RewriteSpectraMap=True)
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(4.0, abs=1e-3)  # now at z=4.0
     translate_detector_by_z(workspace)

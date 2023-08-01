@@ -32,15 +32,15 @@ def crash_worker_test_no_overwrite(reference_dir, generatecleanfile):
 
     """
     # Set up test: specify sensitivity file
-    json_str = generate_testing_json(os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), None, None)
+    json_str = generate_testing_json(os.path.join(reference_dir.biosans, "overwrite_gold_04282020"), None, None)
     output_dir = generatecleanfile(prefix="meta_overwrite_bio_test1")
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_str, output_dir, prefix="BioMetaRaw")
+    reduce_biosans_data(reference_dir.biosans, json_str, output_dir, prefix="BioMetaRaw")
 
     # Get result files
     sample_names = ["csmb_ecoli1h_n2", "insect1hTime_n2"]
-    gold_path = os.path.join(reference_dir.new.biosans, "overwrite_gold_20200815/test1/")
+    gold_path = os.path.join(reference_dir.biosans, "overwrite_gold_20200815/test1/")
 
     # Verify
     verify_reduction_results(
@@ -70,15 +70,15 @@ def crash_worker_test_overwrite_both_minor(reference_dir, generatecleanfile):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), 61, 6.9)
+    json_file = generate_testing_json(os.path.join(reference_dir.biosans, "overwrite_gold_04282020"), 61, 6.9)
     output_dir = generatecleanfile(prefix="meta_overwrite_bio_test1a")
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix="BioMetaMinor")
+    reduce_biosans_data(reference_dir.biosans, json_file, output_dir, prefix="BioMetaMinor")
 
     # Get result files
     sample_names = ["csmb_ecoli1h_n2", "insect1hTime_n2"]
-    gold_path = os.path.join(reference_dir.new.biosans, "overwrite_gold_20200815/test1a/")
+    gold_path = os.path.join(reference_dir.biosans, "overwrite_gold_20200815/test1a/")
     # Verify
     verify_reduction_results(
         sample_names,
@@ -107,15 +107,15 @@ def Failed_test_overwrite_both_major(reference_dir, generatecleanfile):
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), 200, 14)
+    json_file = generate_testing_json(os.path.join(reference_dir.biosans, "overwrite_gold_04282020"), 200, 14)
     output_dir = generatecleanfile(prefix="meta_overwrite_bio_test4")
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix="CG3MetaMajor2")
+    reduce_biosans_data(reference_dir.biosans, json_file, output_dir, prefix="CG3MetaMajor2")
 
     # Get result files
     sample_names = ["csmb_ecoli1h_n2", "insect1hTime_n2"]
-    gold_path = os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020/test4/")
+    gold_path = os.path.join(reference_dir.biosans, "overwrite_gold_04282020/test4/")
     # Verify
     verify_reduction_results(
         sample_names,
@@ -148,15 +148,15 @@ def skip_test_overwrite_sample_to_si(reference_dir, generatecleanfile):
     """
     pytest.skip("")
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), 500, None)
+    json_file = generate_testing_json(os.path.join(reference_dir.biosans, "overwrite_gold_04282020"), 500, None)
     output_dir = generatecleanfile(prefix="meta_overwrite_bio_test2")
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix="BioMetaSWD")
+    reduce_biosans_data(reference_dir.biosans, json_file, output_dir, prefix="BioMetaSWD")
 
     # Get result files
     sample_names = ["csmb_ecoli1h_n2", "insect1hTime_n2"]
-    gold_path = os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020/test2/")
+    gold_path = os.path.join(reference_dir.biosans, "overwrite_gold_04282020/test2/")
     # Verify
     verify_reduction_results(
         sample_names,
@@ -186,15 +186,15 @@ def crash_gw0_test_overwrite_sample_to_detector(reference_dir, generatecleanfile
 
     """
     # Set up test
-    json_file = generate_testing_json(os.path.join(reference_dir.new.biosans, "overwrite_gold_04282020"), None, 14)
+    json_file = generate_testing_json(os.path.join(reference_dir.biosans, "overwrite_gold_04282020"), None, 14)
     output_dir = generatecleanfile(prefix="meta_overwrite_bio_test3")
 
     # Run
-    reduce_biosans_data(reference_dir.new.biosans, json_file, output_dir, prefix="CG3MetaSDD")
+    reduce_biosans_data(reference_dir.biosans, json_file, output_dir, prefix="CG3MetaSDD")
 
     # Get result files
     sample_names = ["csmb_ecoli1h_n2", "insect1hTime_n2"]
-    gold_path = os.path.join(reference_dir.new.biosans, "overwrite_gold_20200815/test3/")
+    gold_path = os.path.join(reference_dir.biosans, "overwrite_gold_20200815/test3/")
     # Verify
     verify_reduction_results(
         sample_names,

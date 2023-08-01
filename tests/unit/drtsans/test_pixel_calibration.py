@@ -12,7 +12,7 @@ from drtsans.settings import namedtuplefy
 @pytest.fixture(scope="session")
 @namedtuplefy
 def helper(reference_dir):
-    database_file = os.path.join(reference_dir.new.sans, "pixel_calibration", "calibrations.json")
+    database_file = os.path.join(reference_dir.sans, "pixel_calibration", "calibrations.json")
     return {"database": database_file}
 
 
@@ -39,7 +39,7 @@ def clone_database(helper):
 )
 def test_loader_algorithm(input_file, loader_name, reference_dir):
     input_file = os.path.join(
-        reference_dir.new.biosans,
+        reference_dir.biosans,
         "pixel_calibration",
         "test_loader_algorithm",
         input_file,

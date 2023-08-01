@@ -286,7 +286,7 @@ def test_fit_transmission_and_calc(test_data_9a_part_2):
 @pytest.fixture(scope="module")
 @namedtuplefy
 def transmission_fixture(reference_dir):
-    data_dir = pjn(reference_dir.new.eqsans, "test_transmission")
+    data_dir = pjn(reference_dir.eqsans, "test_transmission")
     cmp_dir = pjn(data_dir, "compare")
 
     def quick_compare(tentative, asset):
@@ -320,7 +320,7 @@ def test_masked_beam_center(reference_dir, transmission_fixture):
     Test for an exception raised when the beam centers are masked
     """
     mask = pjn(transmission_fixture.data_dir, "beam_center_masked.xml")
-    with amend_config(data_dir=reference_dir.new.eqsans):
+    with amend_config(data_dir=reference_dir.eqsans):
         sample_workspace = prepare_data("EQSANS_88975", mask=mask, output_workspace=unique_workspace_dundername())
         reference_workspace = prepare_data("EQSANS_88973", mask=mask, output_workspace=unique_workspace_dundername())
     with pytest.raises(RuntimeError, match=r"Transmission at zero-angle is NaN"):

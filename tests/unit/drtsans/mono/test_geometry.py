@@ -8,7 +8,7 @@ from drtsans.mono.geometry import beam_radius
 def failed_test_beam_radius(reference_dir):
     """Test beam radius calculation for mono SANS instruments (BIO and GP-SANS)"""
     workspace = LoadEventNexus(
-        Filename=path_join(reference_dir.new.gpsans, "CG2_9188.nxs.h5"),
+        Filename=path_join(reference_dir.gpsans, "CG2_9188.nxs.h5"),
         OutputWorkspace=unique_workspace_dundername(),
         MetaDataOnly=True,
         LoadLogs=True,

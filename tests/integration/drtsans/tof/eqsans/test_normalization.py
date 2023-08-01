@@ -27,7 +27,7 @@ def test_normalize_by_time(reference_dir):
     output_workspace = unique_workspace_dundername()
     load_events(
         "EQSANS_68168",
-        data_dir=reference_dir.new.eqsans,
+        data_dir=reference_dir.eqsans,
         output_workspace=output_workspace,
     )
     workspace, bands = transform_to_wavelength(output_workspace)

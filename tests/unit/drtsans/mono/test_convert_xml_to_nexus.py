@@ -10,7 +10,7 @@ from drtsans.mono.biosans.cg3_spice_to_nexus import CG3EventNexusConvert
 def test_cg2_pid_range(reference_dir):
     """Test PID range"""
     # Load test event NeXus file
-    test_nexus = os.path.join(reference_dir.new.gpsans, "CG2_9177.nxs.h5")
+    test_nexus = os.path.join(reference_dir.gpsans, "CG2_9177.nxs.h5")
     nexus_h5 = h5py.File(test_nexus, "r")
 
     # Check each bank
@@ -35,7 +35,7 @@ def test_cg2_pid_range(reference_dir):
 def test_cg3_pid_range(reference_dir):
     """Test PID range"""
     # Load test event NeXus file
-    test_nexus = os.path.join(reference_dir.new.biosans, "CG3_5705.nxs.h5")
+    test_nexus = os.path.join(reference_dir.biosans, "CG3_5705.nxs.h5")
     nexus_h5 = h5py.File(test_nexus, "r")
 
     # Check each bank
@@ -65,7 +65,7 @@ def test_cg3_pid_range(reference_dir):
 def test_mask_detector(reference_dir):
     """Test mask detector"""
     # Load data
-    test_spice = os.path.join(reference_dir.new.biosans, "BioSANS_exp549_scan0010_0001.xml")
+    test_spice = os.path.join(reference_dir.biosans, "BioSANS_exp549_scan0010_0001.xml")
     assert os.path.exists(test_spice)
 
     # Init CG3 convert

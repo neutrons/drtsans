@@ -18,8 +18,8 @@ from drtsans.dark_current import duration, counts_in_detector
 
 @pytest.fixture(scope="module")
 def workspaces(reference_dir):
-    with amend_config(data_dir=reference_dir.new.eqsans):
-        name = pjn(reference_dir.new.eqsans, "test_dark_current", "data.nxs")
+    with amend_config(data_dir=reference_dir.eqsans):
+        name = pjn(reference_dir.eqsans, "test_dark_current", "data.nxs")
         # data is a Workspace2D in wavelength
         data = Load(name, OutputWorkspace=unique_workspace_dundername())
         # dark is an EventsWorkspace in time-of-flight

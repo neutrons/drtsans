@@ -624,7 +624,7 @@ class TestReductionParametersGPSANS:
         ],
     )
     def test_validators(self, validator_name, parameter_changes, reference_dir):
-        parameter_changes["dataDirectories"] = str(Path(reference_dir.new.gpsans))
+        parameter_changes["dataDirectories"] = str(Path(reference_dir.gpsans))
         with pytest.raises(jsonschema.ValidationError) as error_info:
             update_reduction_parameters(self.parameters_all, parameter_changes)
         assert validator_name in str(error_info.value)
@@ -649,7 +649,7 @@ class TestReductionParametersBIOSANS:
 
     def test_validators_midrange_parameters_required(self, reference_dir):
         parameters = deepcopy(self.parameters_all)
-        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
+        parameters["dataDirectories"] = str(Path(reference_dir.biosans))
         # remove all parameters related to the midrange detector
         config_no_midrange = {k: v for k, v in parameters["configuration"].items() if "Midrange" not in k}
         parameters["configuration"] = config_no_midrange
@@ -661,7 +661,7 @@ class TestReductionParametersBIOSANS:
 
     def test_validators_midrange_qmin_qmax(self, reference_dir):
         parameters = deepcopy(self.parameters_all)
-        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
+        parameters["dataDirectories"] = str(Path(reference_dir.biosans))
         parameters["configuration"]["QminMidrange"] = 0.07
         parameters["configuration"]["QmaxMidrange"] = 0.05
         with pytest.raises(jsonschema.ValidationError) as error_info:
@@ -699,7 +699,7 @@ class TestReductionParametersBIOSANS:
         self, reference_dir, qmin_name, qmax_name, throws_error, include_midrange, qmin_value, qmax_value
     ):
         parameters = deepcopy(self.parameters_all)
-        parameters["dataDirectories"] = str(Path(reference_dir.new.biosans))
+        parameters["dataDirectories"] = str(Path(reference_dir.biosans))
         parameters["configuration"]["overlapStitchIncludeMidrange"] = include_midrange
         parameters["configuration"][qmin_name] = qmin_value
         parameters["configuration"][qmax_name] = qmax_value

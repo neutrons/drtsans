@@ -97,11 +97,11 @@ def test_regular_setup(run_config, basename, temp_directory, reference_dir):
     # Check reduced workspace
     assert os.path.exists(reduced_data_nexus), f"Expected {reduced_data_nexus} does not exist"
     # verify with gold data and clean
-    gold_file = os.path.join(reference_dir.new.eqsans, "test_integration_api/EQSANS_88980_reduced_m6.nxs")
+    gold_file = os.path.join(reference_dir.eqsans, "test_integration_api/EQSANS_88980_reduced_m6.nxs")
     verify_processed_workspace(test_file=reduced_data_nexus, gold_file=gold_file, ws_prefix="no_wl")
 
     # Load data and compare
-    gold_dir = reference_dir.new.eqsans
+    gold_dir = reference_dir.eqsans
     gold_file_dict = dict()
     for frame_index in range(2):
         iq1d_h5_name = os.path.join(gold_dir, f"test_integration_api/88980_iq1d_{frame_index}_0_m6.h5")
@@ -196,7 +196,7 @@ def test_weighted_binning_setup(run_config, basename, temp_directory, reference_
     reduction_output = reduce_single_configuration(loaded, input_config)
 
     # Verify reduced workspace
-    gold_ws_nexus = os.path.join(reference_dir.new.eqsans, "test_integration_api/EQSANS_88980_reduced_m6.nxs")
+    gold_ws_nexus = os.path.join(reference_dir.eqsans, "test_integration_api/EQSANS_88980_reduced_m6.nxs")
     print(f"[TEST] Verify correction workflow reduction: {reduced_data_nexus} vs. {gold_ws_nexus}")
     verify_processed_workspace(
         test_file=reduced_data_nexus,
@@ -207,7 +207,7 @@ def test_weighted_binning_setup(run_config, basename, temp_directory, reference_
 
     # Verify binned I(Q)
     gold_file_dict = dict()
-    gold_dir = os.path.join(reference_dir.new.eqsans, "gold_data")
+    gold_dir = os.path.join(reference_dir.eqsans, "gold_data")
 
     # FIXME: The gold data are not stored inside the repository so when
     # gold data are changed a version prefix is added with date and developer
@@ -367,7 +367,7 @@ def test_wavelength_step(reference_dir):
     }
 
     # Specify gold dir
-    gold_dir = reference_dir.new.eqsans
+    gold_dir = reference_dir.eqsans
 
     # Test 1 with regular setup
     with tempfile.TemporaryDirectory() as test_dir:

@@ -199,7 +199,7 @@ def test_sample_aperture_diameter(serve_events_workspace, reference_dir):
     assert SampleLogs(input_workspace).single_value("sample_aperture_diameter") == pytest.approx(10.0, abs=0.1)
     # test a run containing "sample_aperture_radius" instead of "sample_aperture_diameter"
     workspace = LoadEventNexus(
-        Filename=path_join(reference_dir.new.gpsans, "geometry", "CG2_1338.nxs.h5"),
+        Filename=path_join(reference_dir.gpsans, "geometry", "CG2_1338.nxs.h5"),
         OutputWorkspace=unique_workspace_dundername(),
         MetaDataOnly=True,
         LoadLogs=True,
@@ -211,7 +211,7 @@ def test_sample_aperture_diameter(serve_events_workspace, reference_dir):
 def test_source_aperture_diameter(reference_dir):
     # test a run containing "sample_aperture_radius" instead of "sample_aperture_diameter"
     workspace = LoadEventNexus(
-        Filename=path_join(reference_dir.new.gpsans, "geometry", "CG2_1338.nxs.h5"),
+        Filename=path_join(reference_dir.gpsans, "geometry", "CG2_1338.nxs.h5"),
         OutputWorkspace=unique_workspace_dundername(),
         MetaDataOnly=True,
         LoadLogs=True,
@@ -221,7 +221,7 @@ def test_source_aperture_diameter(reference_dir):
 
 
 def test_translate_source_by_z(reference_dir):
-    filename = path_join(reference_dir.new.gpsans, "geometry", "CG2_1338.nxs.h5")
+    filename = path_join(reference_dir.gpsans, "geometry", "CG2_1338.nxs.h5")
     workspace = LoadEventNexus(
         Filename=filename,
         OutputWorkspace=unique_workspace_dundername(),

@@ -37,13 +37,13 @@ from drtsans.tof.eqsans.normalization import (
 @pytest.fixture(scope="module")
 def beam_flux(reference_dir):
     r"""Filepath to the flux file"""
-    return pj(reference_dir.new.eqsans, "test_normalization", "beam_profile_flux.txt")
+    return pj(reference_dir.eqsans, "test_normalization", "beam_profile_flux.txt")
 
 
 @pytest.fixture(scope="module")
 def flux_to_monitor(reference_dir):
     r"""Filepath to the flux-to-monitor-ratio file"""
-    return pj(reference_dir.new.eqsans, "test_normalization", "flux_to_monitor_ratio.nxs")
+    return pj(reference_dir.eqsans, "test_normalization", "flux_to_monitor_ratio.nxs")
 
 
 @pytest.fixture(scope="module")
@@ -51,7 +51,7 @@ def data_ws(reference_dir):
     r"""Two Mantid workspaces containing intensities versus wavelength for each of the EQSANS pixel-detectors.
     The two workspaces correspond to runs 92353 and 88565."""
     ws = dict()
-    with amend_config(data_dir=reference_dir.new.eqsans):
+    with amend_config(data_dir=reference_dir.eqsans):
         for run in ("92353", "88565"):
             w = load_events(
                 "EQSANS_{}.nxs.h5".format(run),
@@ -66,7 +66,7 @@ def data_ws(reference_dir):
 def monitor_ws(reference_dir):
     r"""Single-spectrum Workspace containing wavelength-dependent monitor counts for run 88565."""
     ws = dict()
-    with amend_config(data_dir=reference_dir.new.eqsans):
+    with amend_config(data_dir=reference_dir.eqsans):
         for run in ("88565",):
             ws[run] = prepare_monitors(run)
     return ws

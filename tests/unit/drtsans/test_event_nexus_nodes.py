@@ -21,7 +21,7 @@ def test_create_monitor_node(reference_dir):
 
     """
     # Parse NeXus file manually for the values nodes
-    source_nexus = os.path.join(reference_dir.new.gpsans, "CG2_9166.nxs.h5")
+    source_nexus = os.path.join(reference_dir.gpsans, "CG2_9166.nxs.h5")
 
     # Parse the source HDF5
     nexus_h5 = h5py.File(source_nexus, "r")
@@ -61,7 +61,7 @@ def test_create_events_node(reference_dir):
 
     """
     # Parse NeXus file manually for the values nodes
-    source_nexus = os.path.join(reference_dir.new.gpsans, "CG2_9166.nxs.h5")
+    source_nexus = os.path.join(reference_dir.gpsans, "CG2_9166.nxs.h5")
 
     # Parse the source HDF5
     nexus_h5 = h5py.File(source_nexus, "r")
@@ -104,7 +104,7 @@ def test_create_das_log_node(reference_dir):
 
     """
     # Parse NeXus file manually for the values nodes
-    source_nexus = os.path.join(reference_dir.new.gpsans, "CG2_9166.nxs.h5")
+    source_nexus = os.path.join(reference_dir.gpsans, "CG2_9166.nxs.h5")
 
     # Parse the source HDF5
     nexus_h5 = h5py.File(source_nexus, "r")
@@ -149,7 +149,7 @@ def test_create_instrument_node(reference_dir):
 
     """
     # Parse NeXus file manually
-    source_nexus = os.path.join(reference_dir.new.gpsans, "CG2_9166.nxs.h5")
+    source_nexus = os.path.join(reference_dir.gpsans, "CG2_9166.nxs.h5")
 
     # Parse the source HDF5
     nexus_h5 = h5py.File(source_nexus, "r")

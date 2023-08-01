@@ -30,7 +30,7 @@ def test_convert_to_histogram(reference_dir):
 
     """
     # Parse NeXus file manually for the values nodes
-    nexus_name = os.path.join(reference_dir.new.gpsans, "CG2_9166.nxs.h5")
+    nexus_name = os.path.join(reference_dir.gpsans, "CG2_9166.nxs.h5")
     nexus_h5 = h5py.File(nexus_name, "r")
 
     # test with bank 9
@@ -60,7 +60,7 @@ def test_convert_histogram_to_events(reference_dir):
 
     """
     # Create a TofHistogram from bank9
-    nexus_name = os.path.join(reference_dir.new.gpsans, "CG2_9166.nxs.h5")
+    nexus_name = os.path.join(reference_dir.gpsans, "CG2_9166.nxs.h5")
     nexus_h5 = h5py.File(nexus_name, "r")
     # test with bank 9
     bank9_entry = nexus_h5["/entry/bank9_events"]

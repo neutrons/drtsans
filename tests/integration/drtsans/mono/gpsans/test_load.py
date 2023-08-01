@@ -56,7 +56,7 @@ def test_load_all_files(reference_dir):
         reduction_input,
         prefix="GP_TEST_LOAD",
         load_params=None,
-        path=reference_dir.new.gpsans,
+        path=reference_dir.gpsans,
     )
 
     sample_run = mtd["GP_TEST_LOAD_GPSANS_9166_raw_histo"]
@@ -118,7 +118,7 @@ def test_load_all_files(reference_dir):
         reduction_input,
         prefix="GP_TEST_LOAD",
         load_params=None,
-        path=reference_dir.new.gpsans,
+        path=reference_dir.gpsans,
     )
     sample_run = mtd["GP_TEST_LOAD_GPSANS_9166_raw_histo"]
 

@@ -159,12 +159,12 @@ def crashed_worker_test_spice_reduction(reference_dir, generatecleanfile):
         q_range_wing_wedge1,
         OL_range_wedge1,
         refreshCycle,
-        nexus_dir=os.path.join(reference_dir.new.biosans, "Exp318"),
+        nexus_dir=os.path.join(reference_dir.biosans, "Exp318"),
     )
 
     # Verify result
     gold_file = os.path.join(
-        reference_dir.new.biosans,
+        reference_dir.biosans,
         "spice_reduction_gold/rCG3_031802200001_Spice_318_217_reduction_log.hdf",
     )
 

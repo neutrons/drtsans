@@ -604,7 +604,7 @@ def test_find_beam_center_midrange(reference_dir):
     solid_angle_method = "VerticalTube"
 
     # collect values before adding the midrange_detector
-    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.new.biosans, overwrite_instrument=True)
+    ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     x_initial, y_initial, fit_results_initial = find_beam_center(
         ws,

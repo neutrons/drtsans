@@ -16,7 +16,7 @@ BandsTuple = namedtuple("BandsTuple", "lead skip")
 
 
 def test_transmitted_bands(reference_dir):
-    with amend_config(data_dir=reference_dir.new.eqsans):
+    with amend_config(data_dir=reference_dir.eqsans):
         ws = Load(Filename="EQSANS_86217.nxs.h5")
         bands = correct_frame.transmitted_bands(ws)
         assert_almost_equal((bands.lead.min, bands.lead.max), (2.48, 6.78), decimal=2)
@@ -24,7 +24,7 @@ def test_transmitted_bands(reference_dir):
 
 
 def test_transmitted_bands_clipped(reference_dir):
-    with amend_config(data_dir=reference_dir.new.eqsans):
+    with amend_config(data_dir=reference_dir.eqsans):
         ws = Load(Filename="EQSANS_86217.nxs.h5")
         sdd = source_detector_distance(ws, unit="m")
         bands_0 = correct_frame.transmitted_bands_clipped(ws, sdd, 0.0, 0.0)
@@ -51,7 +51,7 @@ def test_transmitted_bands_clipped(reference_dir):
 
 @pytest.mark.offline
 def test_log_tof_structure(reference_dir):
-    file_name = pjoin(reference_dir.new.eqsans, "test_correct_frame", "EQSANS_92353_no_events.nxs")
+    file_name = pjoin(reference_dir.eqsans, "test_correct_frame", "EQSANS_92353_no_events.nxs")
     for ny, refv in ((False, 30833), (True, 28333)):
         ws = Load(file_name, OutputWorkspace=unique_workspace_name())
         correct_frame.log_tof_structure(ws, 500, 2000, interior_clip=ny)

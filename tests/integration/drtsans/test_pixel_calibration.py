@@ -959,7 +959,7 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
 @pytest.mark.long_execution_time
 def test_calculate_gpsans_barscan(reference_dir, tmp_path):
     r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
-    barscan_file = path_join(reference_dir.new.gpsans, "pixel_calibration", "CG2_7465.nxs.h5")
+    barscan_file = path_join(reference_dir.gpsans, "pixel_calibration", "CG2_7465.nxs.h5")
     calibration = calculate_barscan_calibration(barscan_file)  # calibration object
     # Load save calibration for CG2_7465.nxs.h5 and compare
     database_file = path_join(tmp_path, "saved_calibrations.json")
@@ -981,11 +981,11 @@ def test_calculate_gpsans_barscan(reference_dir, tmp_path):
 @pytest.mark.long_execution_time
 def test_gpsans_calibration(reference_dir, clean_workspace):
     # Load an events file to search a calibration for
-    gpsans_file = path_join(reference_dir.new.gpsans, "pixel_calibration", "CG2_7465.nxs.h5")
+    gpsans_file = path_join(reference_dir.gpsans, "pixel_calibration", "CG2_7465.nxs.h5")
     input_workspace = clean_workspace(unique_workspace_dundername())
     LoadEventNexus(Filename=gpsans_file, OutputWorkspace=input_workspace)
     # Load a calibration
-    database_file = path_join(reference_dir.new.gpsans, "pixel_calibration", "saved_calibrations.json")
+    database_file = path_join(reference_dir.gpsans, "pixel_calibration", "saved_calibrations.json")
     calibration = load_calibration(input_workspace, "BARSCAN", database=database_file)
     # Assert some data
     assert calibration.instrument == "GPSANS"
@@ -1006,7 +1006,7 @@ def test_gpsans_calibration(reference_dir, clean_workspace):
 
 @pytest.mark.long_execution_time
 def test_biosans_main_detector_barscan(reference_dir):
-    data_dir = path_join(reference_dir.new.biosans, "pixel_calibration", "runs_838_953")
+    data_dir = path_join(reference_dir.biosans, "pixel_calibration", "runs_838_953")
     first_run, last_run = 838, 953
     barscan_files = [path_join(data_dir, f"CG3_{run}.nxs") for run in range(first_run, 1 + last_run)]
     calibration = calculate_barscan_calibration(barscan_files, formula="{y} - 565")
@@ -1016,7 +1016,7 @@ def test_biosans_main_detector_barscan(reference_dir):
 @pytest.mark.long_execution_time
 def test_biosans_wing_detector_barscan(reference_dir, tmp_path):
     r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
-    data_dir = path_join(reference_dir.new.biosans, "pixel_calibration", "runs_838_953")
+    data_dir = path_join(reference_dir.biosans, "pixel_calibration", "runs_838_953")
     first_run, last_run = 838, 953
     detector_array = "wing_detector"  # calibration for the wing detector
     formula = "{y} - 640"  # translate from scan log value to Y-coordinate in the sample's reference frame.
@@ -1034,7 +1034,7 @@ def test_biosans_wing_detector_barscan(reference_dir, tmp_path):
 
 
 def test_biosans_midrange_detector_barscan(reference_dir, tmp_path):
-    data_dir = path_join(reference_dir.new.biosans, "pixel_calibration", "runs_838_953")
+    data_dir = path_join(reference_dir.biosans, "pixel_calibration", "runs_838_953")
     first_run, last_run = 838, 953
     detector_array = "midrange_detector"
     formula = "{y} - 640"  # translate from scan log value to Y-coordinate in the sample's reference frame.
@@ -1080,7 +1080,7 @@ def test_biosans_midrange_detector_barscan(reference_dir, tmp_path):
 
 def test_gpsans_tube_calibration(reference_dir):
     r"""Calculate tube widths from a flood file"""
-    flood_file = path_join(reference_dir.new.gpsans, "pixel_calibration", "CG2_8143.nxs")
+    flood_file = path_join(reference_dir.gpsans, "pixel_calibration", "CG2_8143.nxs")
     uncalibrated_workspace = unique_workspace_dundername()
     LoadNexus(flood_file, OutputWorkspace=uncalibrated_workspace)
     calibration = calculate_apparent_tube_width(uncalibrated_workspace, load_barscan_calibration=False)
@@ -1095,7 +1095,7 @@ def test_gpsans_tube_calibration(reference_dir):
 
 
 def test_biosans_tube_calibration(reference_dir):
-    flood_file = path_join(reference_dir.new.biosans, "pixel_calibration", "flood_files", "CG3_4829.nxs")
+    flood_file = path_join(reference_dir.biosans, "pixel_calibration", "flood_files", "CG3_4829.nxs")
     uncalibrated_workspace = unique_workspace_dundername()
     LoadNexus(flood_file, OutputWorkspace=uncalibrated_workspace)
 
@@ -1118,7 +1118,7 @@ def test_biosans_tube_calibration(reference_dir):
 
 
 def test_biosans_midrange_tube_calibration(reference_dir):
-    flood_file = path_join(reference_dir.new.biosans, "pixel_calibration", "flood_files", "CG3_4829.nxs")
+    flood_file = path_join(reference_dir.biosans, "pixel_calibration", "flood_files", "CG3_4829.nxs")
     wing_tube_calibration_workspace = LoadNexus(flood_file)
 
     # simulate midrange detector calibration by cloning wing detector intensities

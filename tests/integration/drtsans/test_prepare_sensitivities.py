@@ -59,16 +59,16 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
         pytest.skip("Test files cannot be accessed.")
 
     # Input Flood Runs
-    FLOOD_RUNS = os.path.join(reference_dir.new.eqsans, "EQSANS_111030.nxs.h5")
+    FLOOD_RUNS = os.path.join(reference_dir.eqsans, "EQSANS_111030.nxs.h5")
 
     # Beam center
-    DIRECT_BEAM_RUNS = os.path.join(reference_dir.new.eqsans, "EQSANS_111042.nxs.h5")  # 111042
+    DIRECT_BEAM_RUNS = os.path.join(reference_dir.eqsans, "EQSANS_111042.nxs.h5")  # 111042
 
     # Beam center size
     MASK_BEAM_CENTER_RADIUS = 65  # mm
 
     # Dark current: No mask, no solid angle
-    DARK_CURRENT_RUNS = os.path.join(reference_dir.new.eqsans, "EQSANS_108764.nxs.h5")  # 108764
+    DARK_CURRENT_RUNS = os.path.join(reference_dir.eqsans, "EQSANS_108764.nxs.h5")  # 108764
 
     MASKED_PIXELS = "1-18,239-256"
 
@@ -119,7 +119,7 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
     assert os.path.exists(output_sens_file), "Output sensitivity file {} cannot be found".format(output_sens_file)
 
     # Verify value
-    gold_eq_file = os.path.join(reference_dir.new.sans, "sensitivities", "EQSANS_sens_patched_20200602.nxs")
+    gold_eq_file = os.path.join(reference_dir.sans, "sensitivities", "EQSANS_sens_patched_20200602.nxs")
 
     verify_sensitivities_file(output_sens_file, gold_eq_file)
 

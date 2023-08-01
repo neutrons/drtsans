@@ -393,9 +393,7 @@ def test_incoherence_correction_elastic_normalization_weighted(reference_dir, te
         assert reduction_output
 
         test_iq1d_file = os.path.join(test_dir, config["outputFileName"] + "_Iq.dat")
-        gold_iq1d_file = os.path.join(
-            reference_dir.eqsans, "test_incoherence_correction", expected_result_filename
-        )
+        gold_iq1d_file = os.path.join(reference_dir.eqsans, "test_incoherence_correction", expected_result_filename)
         # compare
         assert filecmp.cmp(test_iq1d_file, gold_iq1d_file)
 

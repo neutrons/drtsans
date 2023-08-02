@@ -9,7 +9,7 @@ scan_pt_list = zip([12, 31, 27], [1] * 3)
 # TRY NOT TO TOUCH THIS PART
 # ----------------------------------------------------------------------------------
 # Template event nexus file for instrument geometry and etc
-TEMPLATE_EVENT_NEXUS = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/CG2_9177.nxs.h5"
+TEMPLATE_EVENT_NEXUS = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/CG2_9177.nxs.h5"
 
 # ----------------------------------------------------------------------------------
 # DON'T TOUCH ANYTHING BELOW THIS LINE

@@ -321,11 +321,11 @@ def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_
     reduction_input = reduction_parameters(specs, "BIOSANS", validate=False)  # add defaults and defer validation
     reduction_config = reduction_input["configuration"]  # a handy shortcut
 
-    #  '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4829m7p0_TDC_SAC.h5'
+    #  '/SNS/EQSANS/shared/sans-backend/data/ornl/sans/meta_overwrite/biosans/sens_f4829m7p0_TDC_SAC.h5'
     main_sens = os.path.join(sens_nxs_dir, "sens_f4829m7p0_TDC_SAC.h5")
     reduction_config["sensitivityMainFileName"] = main_sens
 
-    # '/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/biosans/sens_f4835w3p2_TDC_SAC.h5'
+    # '/SNS/EQSANS/shared/sans-backend/data/ornl/sans/meta_overwrite/biosans/sens_f4835w3p2_TDC_SAC.h5'
     wing_sens = os.path.join(sens_nxs_dir, "sens_f4835w3p2_TDC_SAC.h5")
     reduction_config["sensitivityWingFileName"] = wing_sens
 

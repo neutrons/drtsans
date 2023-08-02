@@ -12,6 +12,7 @@ from drtsans.settings import namedtuplefy
 @pytest.fixture(scope="session")
 @namedtuplefy
 def helper(reference_dir):
+    r"""Helper object to access the database"""
     database_file = os.path.join(reference_dir.sans, "pixel_calibration", "calibrations.json")
     return {"database": database_file}
 

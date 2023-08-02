@@ -15,7 +15,7 @@ from tests.unit.drtsans.i_of_q_binning_tests_data import (
 # SME - William Heller <hellerwt@ornl.gov>
 
 
-# Some tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
+# Some tests data are generated in tests.unit.drtsans.i_of_q_binning_tests_data
 def no_more_supported_test_log_bins_backward_compatible():
     """Test log bins determination with 'old' API
 

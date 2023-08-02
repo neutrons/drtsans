@@ -22,10 +22,10 @@ block beam           9          1000.0      399.999962
 
 other files
 -----------
-- sensitivities: reference_dir/new/gpsans/calibrations/sens_CG2_spice_bar.nxs
+- sensitivities: reference_dir/gpsans/calibrations/sens_CG2_spice_bar.nxs
     from GPSANS SPICE data from sensitivities test
 
-- mask: reference_dir/new/gpsans/calibrations/mask_pixel_map.nxs
+- mask: reference_dir/gpsans/calibrations/mask_pixel_map.nxs
         JUST FOR DEMO PURPOSE
 """
 
@@ -143,19 +143,19 @@ def test_reduction_spice(reference_dir, temp_directory):
     # mysterious leftover workspaces
     # _bkgd_trans:	1.182593 MB
     # _empty:	1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000090001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000090001.nxs.h5_raw_histo:
     #   1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000200001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000200001.nxs.h5_raw_histo:
     #   1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000260001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000260001.nxs.h5_raw_histo:
     #   1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000270001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000270001.nxs.h5_raw_histo:
     #   1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000280001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000280001.nxs.h5_raw_histo:
     #   1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000340001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000340001.nxs.h5_raw_histo:
     #   1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000350001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000350001.nxs.h5_raw_histo:
     #   1.182969 MB
     # _mask:	1.203736 MB
     # _processed_center:	1.182593 MB
@@ -289,19 +289,19 @@ def test_reduction_spice_subpixel(reference_dir, temp_directory):
     # mysterious leftover workspaces
     # _bkgd_trans:	1.182593 MB
     # _empty:	1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000090001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000090001.nxs.h5_raw_histo:
     #   1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000200001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000200001.nxs.h5_raw_histo:
     #   1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000260001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000260001.nxs.h5_raw_histo:
     #   1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000270001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000270001.nxs.h5_raw_histo:
     #   1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000280001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000280001.nxs.h5_raw_histo:
     #   1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000340001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000340001.nxs.h5_raw_histo:
     #   1.182593 MB
-    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000350001.nxs.h5_raw_histo:
+    # _GPSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000350001.nxs.h5_raw_histo:
     #   1.182969 MB
     # _mask:	1.203736 MB
     # _processed_center:	1.182593 MB

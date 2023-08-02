@@ -3,7 +3,7 @@ from drtsans.dataobjects import IQazimuthal, q_azimuthal_to_q_modulo
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import select_i_of_q_by_wedge
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/test_q_azimuthal_to_q_modulo.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/drtsans/test_q_azimuthal_to_q_modulo.py
 from tests.unit.drtsans.i_of_q_binning_tests_data import generate_test_data
 import pytest
 

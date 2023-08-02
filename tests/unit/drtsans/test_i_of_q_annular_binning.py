@@ -3,7 +3,7 @@ from drtsans.dataobjects import IQazimuthal
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
 from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/new/drtsans/i_of_q_binning_tests_data.py
+# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/drtsans/i_of_q_binning_tests_data.py
 from tests.unit.drtsans.i_of_q_binning_tests_data import generate_test_data
 import numpy as np
 import pytest

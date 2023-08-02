@@ -91,7 +91,7 @@ def test_spice_conversion(reference_dir, cleanfile):
     assert os.path.exists(spice_name)
 
     #
-    template_event_nexus = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/CG3_5705.nxs.h5"
+    template_event_nexus = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/biosans/CG3_5705.nxs.h5"
 
     # output
     test_temp_dir = "/tmp/test_cg3_spice_geom"

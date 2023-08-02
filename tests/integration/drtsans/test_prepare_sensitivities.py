@@ -128,7 +128,7 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
 
     # NOTE:
     # mysterious leftover workspace from this test
-    # BC_EQSANS_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/sns/eqsans/EQSANS_111042.nxs.h5:	37.114117 MB
+    # BC_EQSANS_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/sns/eqsans/EQSANS_111042.nxs.h5:	37.114117 MB
     # EQSANS_111030:	43.589589 MB
     # EQSANS_111030_sensitivity:	1.179928 MB
     # EQSANS_111030_sensitivity_new:	22.355925 MB
@@ -216,7 +216,7 @@ def test_cg3_main_prepare_sensitivities(tmp_path):
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_eq_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl" "/sans/sensitivities/CG3_Sens_Main.nxs"
+    gold_eq_file = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/sensitivities/CG3_Sens_Main.nxs"
 
     verify_sensitivities_file(output_sens_file, gold_eq_file)
 
@@ -397,7 +397,7 @@ def test_cg3_midrange_prepare_sensitivities(biosans_synthetic_sensitivity_datase
     # NOTE: since we are using synthetic data, there is no gold/reference file we can use to verify
     #       that the content is correct. Once we have the correct data file (instead of mock one),
     #       we should generate the gold file and enable the checking.
-    # gold_cg2_wing_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl" "/sans/sensitivities/CG3_Sens_Wing.nxs"
+    # gold_cg2_wing_file = "/SNS/EQSANS/shared/sans-backend/data/ornl" "/sans/sensitivities/CG3_Sens_Wing.nxs"
 
     # verify_sensitivities_file(output_sens_file, gold_cg2_wing_file, atol=1e-7)
 
@@ -458,7 +458,7 @@ def test_cg2_sensitivities(tmp_path):
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_gp_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl" "/sans/sensitivities/CG2_Sens_Moving_Dets.nxs"
+    gold_gp_file = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/sensitivities/CG2_Sens_Moving_Dets.nxs"
 
     verify_sensitivities_file(output_sens_file, gold_gp_file, atol=1e-7)
 

@@ -41,7 +41,7 @@ def test_load_all_files(reference_dir):
 
     # set output directory
     reduction_input["configuration"]["outputDir"] = output_dir
-    reduction_input["dataDirectories"] = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/data"
+    reduction_input["dataDirectories"] = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/data"
     reduction_input["sample"]["runNumber"] = samples[0]
     reduction_input["sample"]["transmission"]["runNumber"] = samples_trans[0]
     reduction_input["background"]["runNumber"] = bkgd[0]
@@ -222,7 +222,7 @@ def generate_test_json():
     """
 
     # replace for the correct sensitivity file
-    sens_nxs_dir = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/meta_overwrite/gpsans/"
+    sens_nxs_dir = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/meta_overwrite/gpsans/"
     sens_path = os.path.join(sens_nxs_dir, "sens_c486_noBar.nxs")
     json_str = json_str.replace("SensFileToReplace", sens_path)
 

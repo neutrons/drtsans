@@ -76,7 +76,7 @@ def test_load_beam_flux_file(beam_flux, data_ws):
     r"""
     (This test was introduced prior to the testset with the instrument team)
     Loads flux file
-    /SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/sns/eqsans/test_normalization/beam_profile_flux.txt
+    /SNS/EQSANS/shared/sans-backend/data/ornl/sans/sns/eqsans/test_normalization/beam_profile_flux.txt
     into a Mantid workspace.
     """
     flux_workspace = load_beam_flux_file(beam_flux, data_workspace=data_ws["92353"])
@@ -92,7 +92,7 @@ def test_normalize_by_proton_charge_and_flux(beam_flux, data_ws):
     """
     data_workspace = data_ws["92353"]  # intensities versus wavelength for run 92353
     # Load flux file
-    # /SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/sns/eqsans/test_normalization/beam_profile_flux.txt
+    # /SNS/EQSANS/shared/sans-backend/data/ornl/sans/sns/eqsans/test_normalization/beam_profile_flux.txt
     # into a workspace
     flux_workspace = load_beam_flux_file(beam_flux, data_workspace=data_workspace)
 
@@ -120,7 +120,7 @@ def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws):
     r"""
     (This test was introduced prior to the testset with the instrument team)
     Loads flux-to-monitor-ratio file
-    /SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/sns/eqsans/test_normalization/flux_to_monitor_ratio.nxs
+    /SNS/EQSANS/shared/sans-backend/data/ornl/sans/sns/eqsans/test_normalization/flux_to_monitor_ratio.nxs
     onto a mantid workspace
     """
     # Passing just the file to function load_flux_to_monitor_ratio_file will result in a workspace with the

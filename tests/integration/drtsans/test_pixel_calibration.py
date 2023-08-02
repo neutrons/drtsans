@@ -1151,7 +1151,7 @@ def test_biosans_midrange_tube_calibration(reference_dir):
 
 def test_as_intensities(reference_dir):
     LoadNexus(
-        "/HFIR/CG2/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/pixel_calibration/runs_7465/CG2_7465_55.nxs",
+        "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/pixel_calibration/runs_7465/CG2_7465_55.nxs",
         OutputWorkspace="scan_55",
     )
     calibration = load_calibration("scan_55", "BARSCAN")

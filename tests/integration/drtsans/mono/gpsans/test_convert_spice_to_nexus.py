@@ -20,7 +20,7 @@ def test_convert_spice(reference_dir, temp_directory):
     output_dir = temp_directory(prefix="cg2spiceconverter")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    temp_event_nexus = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/CG2_9177.nxs.h5"
+    temp_event_nexus = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/CG2_9177.nxs.h5"
     nexus_files = list()
     for scan_num, pt_num in scan_pt_list:
         fake_nexus = convert_spice_to_nexus(

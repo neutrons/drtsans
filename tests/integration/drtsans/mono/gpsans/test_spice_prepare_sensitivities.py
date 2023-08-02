@@ -97,11 +97,11 @@ def test_sensitivities_with_bar(reference_dir, temp_directory):
     # NOTE:
     # leftover workspaces in memory
     # barscan_GPSANS_detector1_20180220:	0.393216 MB
-    # BC_CG2_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000370001.nxs.h5:
+    # BC_CG2_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000370001.nxs.h5:
     #   1.182257 MB
-    # BC_CG2_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000390001.nxs.h5:
+    # BC_CG2_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000390001.nxs.h5:
     #   1.182257 MB
-    # BC_CG2_/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/Exp280/CG2_028000410001.nxs.h5:
+    # BC_CG2_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/Exp280/CG2_028000410001.nxs.h5:
     #   1.182257 MB
     # GPSANS_28000380001:	22.415297 MB
     # GPSANS_28000380001_processed_histo:	1.182257 MB

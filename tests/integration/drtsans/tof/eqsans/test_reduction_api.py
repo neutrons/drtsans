@@ -36,7 +36,7 @@ specs_eqsans = {
             "sampleOffset": 0,
         },
         "dataDirectories": [
-            "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/sns/eqsans/",
+            "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/sns/eqsans/",
         ],
     }
 }
@@ -352,7 +352,7 @@ def test_wavelength_step(reference_dir):
             "cutTOFmax": "1500",
             "wavelengthStepType": "constant Delta lambda/lambda",
             "sampleApertureSize": "10",
-            "fluxMonitorRatioFile": ("/SNS/EQSANS/" "IPTS-24769/shared/EQSANS_110943.out"),
+            "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
             "sensitivityFileName": (
                 "/SNS/EQSANS/shared/NeXusFiles/"
                 "EQSANS/2020A_mp/"

@@ -212,10 +212,16 @@ def fetch_idf(idf_xml: str, output_directory: str = os.getcwd()):
     str
         absolute path to the downloaded IDF file.
     """
-    idf = os.path.join(output_directory, idf_xml)
+
+    def _empty_download(filepath):
+        r"""The curl command may return and exit code of 0, signaling success, yet the file may contain only the
+        string '404: Not Found'. This function checks for this scenario."""
+        return "404: Not Found" in open(filepath).read()
+
+    idf = os.path.join(str(output_directory), idf_xml)
     url = f"https://raw.githubusercontent.com/mantidproject/mantid/main/instrument/{idf_xml}"
     result = subprocess.run(f"curl -o {idf} {url}", shell=True, capture_output=True, text=True)
-    if result.returncode == 0:
+    if result.returncode == 0 and not _empty_download(idf):
         return idf
     else:
         print(f"Dowloading {idf_xml} failed with error: {result.stderr}.")
@@ -226,7 +232,7 @@ def fetch_idf(idf_xml: str, output_directory: str = os.getcwd()):
             if os.path.isfile(idf_local):
                 shutil.copy(idf_local, idf)
                 return idf
-        raise RuntimeError(f"IDF {idf_xml} not found in the local instrument directories {local_dirs}.")
+        raise FileNotFoundError(f"IDF {idf_xml} not found in the local instrument directories {local_dirs}.")
 
 
 def empty_instrument_workspace(

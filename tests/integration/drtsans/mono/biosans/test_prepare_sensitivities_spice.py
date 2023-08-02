@@ -13,8 +13,7 @@ from mantid.simpleapi import LoadNexusProcessed
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 workspaces = [
-    "BC_CG3_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/biosans/CG3_054900200001.nxs.h5"
-    "BIOSANS_54900200001",
+    "BC_CG3_/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/biosans/CG3_054900200001.nxs.h5" "BIOSANS_54900200001",
     "BIOSANS_54900200001_sensitivity",
     "BIOSANS_54900200001_sensitivity_new",
     "BIOSANS_54900220001",

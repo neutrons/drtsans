@@ -638,7 +638,7 @@ class Table:
         if os.path.exists(database):
             os.remove(database)  # delete the old database
         with open(database, mode="w") as json_file:
-            json.dump(entries, json_file)  # save the new database
+            json.dump(entries, json_file, indent=2)  # save the new database
             os.chmod(database, 0o666)  # everybody can read and write
 
     def duplicate_metadata(self, metadata):

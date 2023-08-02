@@ -299,7 +299,7 @@ def test_cg3_wing_prepare_sensitivities(tmp_path):
     assert os.path.exists(output_sens_file)
 
     # Verify value
-    gold_cg2_wing_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl" "/sans/sensitivities/CG3_Sens_Wing.nxs"
+    gold_cg2_wing_file = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/sensitivities/CG3_Sens_Wing.nxs"
 
     verify_sensitivities_file(output_sens_file, gold_cg2_wing_file, atol=1e-7)
 

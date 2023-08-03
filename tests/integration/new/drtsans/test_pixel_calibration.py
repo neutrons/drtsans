@@ -1,38 +1,5 @@
-import numpy as np
-from os.path import join as path_join
-import pytest
-import random
-import tempfile
-
+# local imports
 from drtsans.mono.biosans.simulated_intensities import clone_component_intensities
-
-r""" Hyperlinks to mantid algorithms
-AddSampleLog <https://docs.mantidproject.org/nightly/algorithms/AddSampleLog-v1.html>
-DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
-LoadEmptyInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadEmptyInstrument-v1.html>
-LoadEventNexus <https://docs.mantidproject.org/nightly/algorithms/LoadEventNexus-v1.html>
-LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
-SaveNexus <https://docs.mantidproject.org/nightly/algorithms/SaveNexus-v1.html>
-"""
-from mantid.simpleapi import (
-    AddSampleLog,
-    DeleteWorkspace,
-    DeleteWorkspaces,
-    LoadEmptyInstrument,
-    LoadEventNexus,
-    LoadNexus,
-    LoadNexusProcessed,
-    SaveNexus,
-)
-
-r"""
-Hyperlinks to drtsans functions
-calculate_apparent_tube_width, find_edges, fit_positions, calculate_barscan_calibration, apply_barscan_calibration
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/barscan.py>
-namedtuplefy, unique_workspace_dundername
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
-TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
-"""  # noqa: E501
 from drtsans.pixel_calibration import (
     BarPositionFormula,
     as_intensities,
@@ -45,6 +12,25 @@ from drtsans.pixel_calibration import (
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.tubecollection import TubeCollection
+
+# third-party imports
+from mantid.simpleapi import (
+    AddSampleLog,
+    DeleteWorkspace,
+    DeleteWorkspaces,
+    LoadEmptyInstrument,
+    LoadEventNexus,
+    LoadNexus,
+    LoadNexusProcessed,
+    SaveNexus,
+)
+import numpy as np
+
+# standard imports
+from os.path import join as path_join
+import pytest
+import random
+import tempfile
 
 
 def _linear_density(workspace, component="detector1"):
@@ -1150,10 +1136,9 @@ def test_biosans_midrange_tube_calibration(reference_dir):
 
 
 def test_as_intensities(reference_dir):
-    LoadNexus(
-        "/HFIR/CG2/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/pixel_calibration/runs_7465/CG2_7465_55.nxs",
-        OutputWorkspace="scan_55",
-    )
+    input_file = path_join(reference_dir.new.gpsans, "pixel_calibration", "runs_7465", "CG2_7465_55.nxs")
+    LoadNexus(Filename=input_file, OutputWorkspace="scan_55")
+    # "/HFIR/CG2/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/pixel_calibration/runs_7465/CG2_7465_55.nxs",
     calibration = load_calibration("scan_55", "BARSCAN")
     views = calibration.as_intensities("scan_55")
     print(views)

@@ -7,6 +7,7 @@ from drtsans.instruments import (
     instrument_enum_name,
     is_time_of_flight,
 )
+from drtsans.instruments import fetch_idf as instruments_fetch_idf
 from drtsans.mono.biosans.geometry import get_angle_wing_detector, get_position_south_detector
 from drtsans.settings import amend_config, unique_workspace_dundername
 
@@ -109,6 +110,14 @@ def test_copy_to_newest_instrument(fetch_idf, reference_dir, clean_workspace):
     assert workspace3.getSpectrum(24956).getNumberEvents() == pixel_counts
     assert_almost_equal(get_position_south_detector(workspace3), position_detector1, decimal=4)
     assert_almost_equal(get_angle_wing_detector(workspace3), angle_wing, decimal=3)
+
+
+def test_fetch_idf(tmpdir):
+    instruments_fetch_idf("BIOSANS_Definition_2019_2023.xml", output_directory=tmpdir)
+    instruments_fetch_idf("BIOSANS_Definition.xml", output_directory=tmpdir)
+    with pytest.raises(FileNotFoundError) as excinfo:
+        instruments_fetch_idf("nonexisting.xml", output_directory=tmpdir)
+    assert "nonexisting.xml" in str(excinfo.value)
 
 
 if __name__ == "__main__":

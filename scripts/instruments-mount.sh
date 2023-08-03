@@ -29,12 +29,5 @@ add_sns_mount () {
   add_instrument_mount "snsdata.ornl.gov:/stornext/snfs1/instruments" "/SNS" ${INSTRUMENT}
 }
 
-add_hfir_mount () {
-  INSTRUMENT=$1
-  add_instrument_mount "snsdata.ornl.gov:/stornext/snfs1/instruments-hfir" "/HFIR" ${INSTRUMENT}
-}
-
 # add mounts
 add_sns_mount 'EQSANS'
-add_hfir_mount 'CG2'
-add_hfir_mount 'CG3'

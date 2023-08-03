@@ -21,7 +21,7 @@ q_range = [None, None]
 
 # STAFF INPUT
 use_mask_file = True
-mask_file_name = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/calibrations/mask_pixel_map.nxs"
+mask_file_name = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/calibrations/mask_pixel_map.nxs"
 use_dark_file = False
 dark_file_name = ""
 block_beam = (9, 1)
@@ -31,7 +31,7 @@ wavelength_spread = None
 wedge_min_angles = None
 wedge_max_angles = None
 
-sensitivity_file = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/gpsans/calibrations/sens_CG2_spice_bar.nxs"
+sensitivity_file = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/calibrations/sens_CG2_spice_bar.nxs"
 use_log_2d_binning = False
 use_log_1d = True
 common_configuration = {

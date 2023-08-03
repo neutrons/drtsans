@@ -22,7 +22,7 @@ scan_pt_list = zip([44, 220, 217], [1] * 3)
 # TRY NOT TO TOUCH THIS PART
 # ----------------------------------------------------------------------------------
 # Template event nexus file for instrument geometry and etc
-TEMPLATE_EVENT_NEXUS = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/CG3_5705.nxs.h5"
+TEMPLATE_EVENT_NEXUS = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/biosans/CG3_5705.nxs.h5"
 
 # ----------------------------------------------------------------------------------
 # DON'T TOUCH ANYTHING BELOW THIS LINE
@@ -34,10 +34,7 @@ bad_pixels = [70911]
 nexus_names = set()
 
 # Output directory between standard and drtsans integration test
-if True:
-    nexus_dir = f"/HFIR/CG3/IPTS-{ipts}/shared/Exp{exp}"  # standard converted nexus
-else:
-    nexus_dir = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/"  # reference dir
+nexus_dir = f"/HFIR/CG3/IPTS-{ipts}/shared/Exp{exp}"  # standard converted nexus
 for scan_num, pt_num in scan_pt_list:
     nexus = convert_spice_to_nexus(
         ipts,

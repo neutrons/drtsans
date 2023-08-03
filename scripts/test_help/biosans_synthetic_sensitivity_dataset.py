@@ -41,7 +41,7 @@ if __name__ == "__main__":
     assert os.path.exists(input_data_dir), "Unable to generate the dataset."
 
     runs = dict(FLOOD_RUNS=4835, DIRECT_BEAM_RUNS=4830, TRANSMISSION_RUNS=4831, TRANSMISSION_FLOOD_RUNS=4835)
-    # output_data_dir = "/SNS/EQSANS/shared/sans-backend/data/new/ornl/sans/hfir/biosans/synthetic_sensitivity"
+    # output_data_dir = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/biosans/synthetic_sensitivity"
     output_data_dir = "/tmp"
     for run in runs.values():
         clone_intensities_to_midrange(f"{input_data_dir}/CG3_{run}.nxs.h5", f"{output_data_dir}/CG3_{run}.nxs")

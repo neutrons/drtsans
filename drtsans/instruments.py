@@ -5,11 +5,12 @@ from drtsans.settings import unique_workspace_dundername
 from mantid.kernel import ConfigService
 from mantid.api import mtd, MatrixWorkspace
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import LoadInstrument, LoadEmptyInstrument, MergeRuns, RemoveSpectra, RenameWorkspace
+from mantid.simpleapi import config, LoadInstrument, LoadEmptyInstrument, MergeRuns, RemoveSpectra, RenameWorkspace
 
 # standard imports
 import enum
 import os
+import shutil
 import subprocess
 from typing import Optional, Union
 
@@ -195,27 +196,43 @@ def is_time_of_flight(input_query):
     return instrument_enum_name(input_query) is InstrumentEnumName.EQSANS  # we only have one, for the moment
 
 
-def fetch_idf(idf_xml, output_directory=os.getcwd()):
+def fetch_idf(idf_xml: str, output_directory: str = os.getcwd()):
     r"""
-    Download an IDF from the Mantid GitHub repository to a temporary directory.
+    Download an IDF from the Mantid GitHub repository to a temporary directory. If the download fails, attempt to
+    find the IDF in the local instrument directories and copy to the temporary directory.
 
     Parameters
     ----------
-    idf_xml : str
+    idf_xml
         The name of the IDF file to download.
-    output_directory: str
-
+    output_directory:
+        Final location of the IDF file.
     Returns
     -------
     str
         absolute path to the downloaded IDF file.
     """
-    idf = os.path.join(output_directory, idf_xml)
+
+    def _empty_download(filepath):
+        r"""The curl command may return and exit code of 0, signaling success, yet the file may contain only the
+        string '404: Not Found'. This function checks for this scenario."""
+        return "404: Not Found" in open(filepath).read()
+
+    idf = os.path.join(str(output_directory), idf_xml)
     url = f"https://raw.githubusercontent.com/mantidproject/mantid/main/instrument/{idf_xml}"
     result = subprocess.run(f"curl -o {idf} {url}", shell=True, capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"Dowloading {idf_xml} failed with error: {result.stderr}")
-    return idf
+    if result.returncode == 0 and not _empty_download(idf):
+        return idf
+    else:
+        print(f"Dowloading {idf_xml} failed with error: {result.stderr}.")
+        print("Attempting to find the IDF in the local instrument directories.")
+        local_dirs = config.getInstrumentDirectories()
+        for instrument_directory in local_dirs:
+            idf_local = os.path.join(instrument_directory, idf_xml)
+            if os.path.isfile(idf_local):
+                shutil.copy(idf_local, idf)
+                return idf
+        raise FileNotFoundError(f"IDF {idf_xml} not found in the local instrument directories {local_dirs}.")
 
 
 def empty_instrument_workspace(

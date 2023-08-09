@@ -715,17 +715,24 @@ class Table:
 
         # Find workspace indexes having a calibrated detector, otherwise flag them to be masked
         detector_ids = self.detector_ids
+        detector_ids_dict = {detector_ids[i]: i for i in range(0, len(detector_ids))}
         wi_to_ri = []  # from workspace index to table's row index
         workspace_indexes_to_mask = []
         get_detector = mtd[reference].getDetector
+
+        # find the min and max boundaries of detector_ids
+        # to skip checks in the upcoming loop
+        min_detector_id = min(detector_ids)
+        max_detector_id = max(detector_ids)
         for workspace_index in range(mtd[reference].getNumberHistograms()):
             detector = get_detector(workspace_index)  # associated detector pixel
-            try:
-                # Find the entry in the calibration table for the detector with a particular detector ID
-                wi_to_ri.append((workspace_index, detector_ids.index(detector.getID())))
-            except ValueError:  # This detector was not calibrated, thus is not in detector_ids
+            # Find the entry in the calibration table for the detector with a particular detector ID
+            detector_id = detector.getID()
+            if detector_id >= min_detector_id and detector_id <= max_detector_id and detector_id in detector_ids_dict:
+                wi_to_ri.append((workspace_index, detector_ids_dict[detector_id]))
+            else:
+                # This detector was not calibrated, thus is not in detector_ids
                 workspace_indexes_to_mask.append(workspace_index)
-                continue
 
         # Mask those uncalibrated detectors
         MaskDetectors(Workspace=reference, WorkspaceIndexList=workspace_indexes_to_mask)

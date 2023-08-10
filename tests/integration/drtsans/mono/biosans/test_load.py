@@ -227,7 +227,6 @@ def generate_test_json(sens_nxs_dir):
          "useMaskBackTubes": false,
          "wavelength": "1.23",
          "wavelengthSpread": "0.46",
-         "overlapStitchIncludeMidrange": false,
          "overlapStitchQmin": "0.075",
          "overlapStitchQmax": "0.095",
          "useTimeSlice": false,

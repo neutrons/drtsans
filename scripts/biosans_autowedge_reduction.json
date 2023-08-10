@@ -122,7 +122,6 @@
     "wedge2QminMidrange": 0.06,
     "wedge2QmaxMidrange": 1,
     "wedge2overlapStitchQmin": 0.03,
-    "wedge2overlapStitchQmax": 0.04,
-    "overlapStitchIncludeMidrange": false
+    "wedge2overlapStitchQmax": 0.04
   }
 }

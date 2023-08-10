@@ -107,6 +107,9 @@ def load_all_files(
         directory=path,
     )
 
+    # check that the configuration is consistent with the presence/absence of the midrange detector in the run
+    check_overlap_stitch_configuration(reduction_input)
+
     sample_trans = reduction_input["sample"]["transmission"]["runNumber"]
     bkgd = reduction_input["background"]["runNumber"]
     bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
@@ -535,6 +538,40 @@ def load_all_files(
         sensitivity_midrange=sensitivity_midrange_ws,
         mask=mask_ws,
     )
+
+
+def check_overlap_stitch_configuration(reduction_input: dict) -> None:
+    """Validate the overlap stitch configuration depending on whether the midrange detector is present
+
+    If the midrange detector is absent, there are two detectors and one overlap region, i.e. one Qmin/Qmax.
+    If the midrange detector is present, there are three detectors and two overlap regions, i.e. two Qmin/Qmax.
+
+    Parameters
+    ----------
+    reduction_input
+        Reduction configuration parameters
+
+    Raises
+    -------
+    ValueError
+        If one of the overlap stitch boundary parameters has the wrong number of values.
+    """
+    reduction_config = reduction_input["configuration"]
+    num_params_overlap_stitch = 1
+    if reduction_input["has_midrange_detector"] and not reduction_config["overlapStitchIgnoreMidrange"]:
+        num_params_overlap_stitch = 2
+    params_overlap_stitch = ["overlapStitchQmin", "overlapStitchQmax"]
+    if reduction_config["1DQbinType"] == "wedge":
+        wedge_names = ["wedge1", "wedge2"]
+        params_overlap_stitch = [wedge + boundary for wedge in wedge_names for boundary in params_overlap_stitch]
+    for param in params_overlap_stitch:
+        # these parameters are optional, only check values if not None
+        if reduction_config[param] and len(reduction_config[param]) != num_params_overlap_stitch:
+            has_midrange_str = "present" if reduction_input["has_midrange_detector"] else "not present"
+            raise ValueError(
+                f'Configuration "{param}" must have length {num_params_overlap_stitch} since midrange '
+                f"detector {has_midrange_str}"
+            )
 
 
 def dark_current_correction(
@@ -1568,12 +1605,12 @@ def reduce_single_configuration(
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_midrange_out)
 
         # intensity profiles in the order of stitching (lower to higher Q)
-        if reduction_config["has_midrange_detector"]:
-            iq1d_profiles_in = [iq1d_main_in, iq1d_midrange_in, iq1d_wing_in]
-            iq1d_profiles_out = [iq1d_main_out, iq1d_midrange_out, iq1d_wing_out]
-        else:
+        if not reduction_config["has_midrange_detector"] or reduction_config["overlapStitchIgnoreMidrange"]:
             iq1d_profiles_in = [iq1d_main_in, iq1d_wing_in]
             iq1d_profiles_out = [iq1d_main_out, iq1d_wing_out]
+        else:
+            iq1d_profiles_in = [iq1d_main_in, iq1d_midrange_in, iq1d_wing_in]
+            iq1d_profiles_out = [iq1d_main_out, iq1d_midrange_out, iq1d_wing_out]
         iq1d_combined_out = stitch_binned_profiles(iq1d_profiles_in, iq1d_profiles_out, reduction_config)
 
         save_iqmod_all(

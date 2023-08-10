@@ -89,8 +89,7 @@
           "evaluateCondition": "('{#configuration/QbinType}' == 'linear' and {this} is not None) or ('{#configuration/QbinType}' == 'log' and (({this} is None) ^ ({#configuration/LogQBinsPerDecadeWing} is None)))"
         },
         "numMidrangeQBins": {
-          "$ref":  "common.json#/configuration/numQBins",
-          "evaluateCondition": "('{#configuration/QbinType}' == 'linear' and {this} is not None) or ('{#configuration/QbinType}' == 'log' and (({this} is None) ^ ({#configuration/LogQBinsPerDecadeMidrange} is None)))"
+          "$ref":  "common.json#/configuration/numQBins"
         },
         "LogQBinsPerDecadeMain": {"$ref":  "common.json#/configuration/LogQBinsPerDecade"},
         "LogQBinsPerDecadeWing": {"$ref":  "common.json#/configuration/LogQBinsPerDecade"},
@@ -154,20 +153,18 @@
           "pairedTo": "#configuration/QminMidrange",
           "description": "The maximum |Q| value for scalar, wedge, or annular binning in the midrange detector"
         },
-        "overlapStitchIncludeMidrange": {
+        "overlapStitchIgnoreMidrange": {
           "type":  "boolean",
-          "description": "If True, the combined I(q) will stitch the main detector to the midrange detector and the midrange detector to the wing detector. If False, the combined I(q) will not include the midrange detector.",
-          "default": true
+          "description": "If True, the combined I(q) will ignore any data from the midrange detector and stitch the main detector to the wing detector.",
+          "default": false
         },
         "overlapStitchQmin": {
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
           "description": "The minimum |Q| value in the region(s) where intensities for detectors overlap. Allowed overlaps are main with wing, main with midrange, and midrange with wing detector.",
-          "evaluateCondition": "(not {this}) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)",
           "pairwiseLessThan": "#configuration/overlapStitchQmax"
         },
         "overlapStitchQmax": {
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
-          "evaluateCondition": "(not {this}) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)",
           "description": "The maximum |Q| value in the region(s) where intensities for detectors overlap. Allowed overlaps are main with wing, main with midrange, and midrange with wing detector."
         },
 
@@ -206,12 +203,10 @@
 
         "wedge1overlapStitchQmin": {
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
-          "evaluateCondition": "(not {this}) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)",
           "pairwiseLessThan": "#configuration/wedge1overlapStitchQmax"
         },
         "wedge1overlapStitchQmax": {
-          "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
-          "evaluateCondition": "(not {this}) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)"
+          "$ref":  "common.json#/definitions/safeStitchQboundsSpecs"
         },
 
         "wedge2QminMain": {
@@ -249,12 +244,10 @@
 
         "wedge2overlapStitchQmin": {
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
-          "evaluateCondition": "(not {this}) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)",
           "pairwiseLessThan": "#configuration/wedge2overlapStitchQmax"
         },
         "wedge2overlapStitchQmax": {
-          "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
-          "evaluateCondition": "(not {this}) or ({#configuration/overlapStitchIncludeMidrange} == False and len({this}) == 1) or ({#configuration/overlapStitchIncludeMidrange} == True and len({this}) == 2)"
+          "$ref":  "common.json#/definitions/safeStitchQboundsSpecs"
         }
       },
 
@@ -273,7 +266,7 @@
         "autoWedgePeakWidth", "autoWedgeBackgroundWidth", "autoWedgeSignalToNoiseMin", "AnnularAngleBin",
         "useErrorWeighting", "smearingPixelSizeX", "smearingPixelSizeY", "useSubpixels", "subpixelsX", "subpixelsY",
         "sampleToSi", "QminMain", "QmaxMain", "QminWing", "QmaxWing", "QminMidrange", "QmaxMidrange",
-        "overlapStitchQmin", "overlapStitchQmax", "overlapStitchIncludeMidrange", "wedge1QminMain", "wedge1QmaxMain",
+        "overlapStitchQmin", "overlapStitchQmax", "overlapStitchIgnoreMidrange", "wedge1QminMain", "wedge1QmaxMain",
         "wedge1QminWing", "wedge1QmaxWing", "wedge1QminMidrange", "wedge1QmaxMidrange", "wedge1overlapStitchQmin",
         "wedge1overlapStitchQmax", "wedge2QminMain", "wedge2QmaxMain", "wedge2QminWing", "wedge2QmaxWing",
         "wedge2QminMidrange", "wedge2QmaxMidrange", "wedge2overlapStitchQmin", "wedge2overlapStitchQmax"]

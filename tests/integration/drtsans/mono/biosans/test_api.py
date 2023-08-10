@@ -503,7 +503,7 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
             "method": "center_of_mass",
             "com_centering_options": {"IntegrationRadius": 0.07},
         },
-        "outputFileName": "synthethic",
+        "outputFileName": "synthetic",
         "configuration": {
             "outputDir": temp_directory(prefix="synthetic_experiment"),
             "timeSliceInterval": 60.0,
@@ -552,8 +552,8 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
     first_curve = iq1d_combined[0:35]
     second_curve = iq1d_combined[35:50]
     assert len(iq1d_combined) == 91
-    assert np.nanmax(first_curve) == pytest.approx(22437, abs=500)
-    assert np.nanmax(second_curve) == pytest.approx(22741, abs=500)
+    assert np.nanmax(first_curve) == pytest.approx(22437, rel=1e-3)
+    assert np.nanmax(second_curve) == pytest.approx(23099, rel=1e-3)
 
 
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
@@ -583,7 +583,7 @@ def test_reduce_single_configuration_with_wedges_synthetic_dataset(
             "method": "center_of_mass",
             "com_centering_options": {"IntegrationRadius": 0.07},
         },
-        "outputFileName": "synthethic",
+        "outputFileName": "synthetic",
         "configuration": {
             "outputDir": temp_directory(prefix="synthetic_experiment"),
             "timeSliceInterval": 60.0,
@@ -647,16 +647,96 @@ def test_reduce_single_configuration_with_wedges_synthetic_dataset(
     wedge1_first_curve = iq1d_combined_wedge1[0:35]
     wedge1_second_curve = iq1d_combined_wedge1[35:55]
     assert len(iq1d_combined_wedge1) == 91
-    assert np.nanmax(wedge1_first_curve) == pytest.approx(22573, abs=500)
-    assert np.nanmax(wedge1_second_curve) == pytest.approx(23029, abs=500)
+    assert np.nanmax(wedge1_first_curve) == pytest.approx(22513, rel=1e-3)
+    assert np.nanmax(wedge1_second_curve) == pytest.approx(23352, rel=1e-3)
 
     # the data should create at least two bell curves
     # we check tha values at their peaks
     wedge2_first_curve = iq1d_combined_wedge2[0:35]
     wedge2_second_curve = iq1d_combined_wedge2[35:50]
     assert len(iq1d_combined_wedge2) == 91
-    assert np.nanmax(wedge2_first_curve) == pytest.approx(22437, abs=500)
-    assert np.nanmax(wedge2_second_curve) == pytest.approx(18072, abs=500)
+    assert np.nanmax(wedge2_first_curve) == pytest.approx(22505, rel=1e-3)
+    assert np.nanmax(wedge2_second_curve) == pytest.approx(18478, rel=1e-3)
+
+
+@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+@mock_patch("drtsans.load.__monitor_counts")
+def test_reduce_single_configuration_ignore_midrange(mock_monitor_counts, biosans_synthetic_dataset, temp_directory):
+    """Test that data from the midrange detector is ignored when parameter "overlapStitchIgnoreMidrange" is True"""
+    data = biosans_synthetic_dataset
+    mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
+    reduction_input = {
+        "schemaStamp": "2020-04-15T21:09:52.745905",
+        "instrumentName": "CG3",
+        "iptsNumber": "00000",
+        "dataDirectories": f"{data['data_dir']}",
+        "sample": {
+            "runNumber": "92310",
+            "thickness": 0.2,
+            "transmission": {"runNumber": "92330", "value": None},
+        },
+        "background": {
+            "runNumber": "92320",
+            "transmission": {"runNumber": "92330", "value": None},
+        },
+        "emptyTransmission": {"runNumber": "92300", "value": None},
+        "beamCenter": {
+            "runNumber": "92300",
+            "method": "center_of_mass",
+            "com_centering_options": {"IntegrationRadius": 0.07},
+        },
+        "outputFileName": "synthetic",
+        "configuration": {
+            "overlapStitchIgnoreMidrange": True,  # this is the parameter being tested
+            "outputDir": temp_directory(prefix="synthetic_experiment"),
+            "timeSliceInterval": 60.0,
+            "sampleApertureSize": 12.0,
+            "usePixelCalibration": True,
+            "useDefaultMask": True,
+            "defaultMask": [
+                {"Pixel": "1-18,239-256"},
+            ],
+            "darkMainFileName": "CG3_92340.nxs.h5",
+            "darkWingFileName": "CG3_92340.nxs.h5",
+            "darkMidrangeFileName": "CG3_92340.nxs.h5",
+            "sensitivityMainFileName": os.path.join(data["data_dir"], "sensitivity_detector1.nxs"),
+            "sensitivityWingFileName": os.path.join(data["data_dir"], "sensitivity_wing_detector.nxs"),
+            "sensitivityMidrangeFileName": os.path.join(data["data_dir"], "sensitivity_midrange_detector.nxs"),
+            "useThetaDepTransCorrection": True,
+            "DBScalingBeamRadius": 40.0,
+            "StandardAbsoluteScale": 2.286e-09,
+            "numMainQxQyBins": 100,
+            "numWingQxQyBins": 100,
+            "numMidrangeQxQyBins": 100,
+            "1DQbinType": "scalar",
+            "QbinType": "log",
+            "LogQBinsPerDecadeMain": 25,
+            "LogQBinsPerDecadeWing": 25,
+            "LogQBinsPerDecadeMidrange": 25,
+            "QminMain": 0.0009,
+            "QmaxMain": 0.3,
+            "QminMidrange": 0.01,
+            "QmaxMidrange": 0.3,
+            "QminWing": 0.02,
+            "QmaxWing": 0.3,
+            "overlapStitchQmin": [0.015],
+            "overlapStitchQmax": [0.1],
+        },
+        "logslice_data": {},
+    }
+    reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
+    prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
+    loaded = load_all_files(reduction_input, prefix, path=data["data_dir"])
+    output = reduce_single_configuration(loaded, reduction_input)
+    iq1d_combined = output[0].I1D_combined[0].intensity
+
+    # the combined curve has original data from the main detector and scaled data
+    # from the wing detector, we check values in the two different regions
+    main_region = iq1d_combined[0:46]
+    wing_region = iq1d_combined[46:82]
+    assert len(iq1d_combined) == 82
+    assert np.nanmax(main_region) == pytest.approx(22437, rel=1e-3)
+    assert np.nanmax(wing_region) == pytest.approx(17749, rel=1e-3)
 
 
 if __name__ == "__main__":

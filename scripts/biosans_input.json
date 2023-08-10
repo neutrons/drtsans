@@ -93,7 +93,6 @@
         "wavelengthSpread": "",
         "overlapStitchQmin": 0.03,
         "overlapStitchQmax": 0.0375,
-        "overlapStitchIncludeMidrange": false,
         "smearingPixelSizeX": null,
         "smearingPixelSizeY": null,
         "useSubpixels": false,

@@ -43,7 +43,7 @@ pre-commit:
   after_script:
     - *teardown_cleanup
     - sudo chown -R gitlab-runner .
-    - sudo chown -R gitlab-runner .ruff_cache
+    - test -d .ruff_cache && sudo chown -R gitlab-runner .ruff_cache
   tags:
     - neutrons-multi-builder
 

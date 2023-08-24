@@ -90,6 +90,24 @@ To make it easier to use, configure `direnv <https://direnv.net>`_ to activate t
 
  for conda environment.
 
+---------------------------
+Git submodule for test data
+---------------------------
+
+To get the current version of the ``git-lfs`` associated with the currently checked out branch
+
+.. code-block:: shell
+
+   $ git submodule update --init
+
+where ``update`` checks out the associated refspec and ``--init`` tells git to initialize the submodule if it isn't already.
+To update the submodule to the latest commit on the branch being tracked
+
+.. code-block:: shell
+
+   $ git submodule update --remote --merge
+
+See the `git-submodules documentation <https://git-scm.com/book/en/v2/Git-Tools-Submodules>`_ for more detailed information.
 
 -----------------
 Running the tests

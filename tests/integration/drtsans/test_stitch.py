@@ -411,7 +411,20 @@ def data_test_16b():
     )
 
 
-def test_stitch(data_test_16b):
+@pytest.mark.parametrize(
+    "overlaps, throws_error",
+    [
+        ([[0.01, 0.014], [0.025, 0.029]], False),  # valid format
+        ([0.01, 0.014, 0.025, 0.029], False),  # valid format (for backward compatibility)
+        (None, True),
+        ([], True),
+        ([0.01, 0.014, [0.025, 0.029]], True),
+        ([0.01, 0.014, 0.025], True),
+        ([[0.01, 0.014]], True),
+        ([[0.01], [0.025]], True),
+    ],
+)
+def test_stitch(data_test_16b, overlaps, throws_error):
     r"""
     Test the stitching algorithm ~drtsans.stitch.stitch_profiles.
 
@@ -424,14 +437,19 @@ def test_stitch(data_test_16b):
     """
     data = data_test_16b  # handy shortcut
     # call the drtsans function
-    result = stitch_profiles(data.profiles, data.overlaps, target_profile_index=data.target_index)
-    # Check for differences between "result" and "data.stitched" profiles. We check for differences in:
-    # - intensities
-    # - uncertainties in intensities
-    # - Q values
-    # - uncertainties in Q values
-    # We tolerate differences up to 1% of the stitched profile given in the test data
-    testing.assert_allclose(result, data.stitched, rtol=data.tolerance, atol=0)
+    if throws_error:
+        with pytest.raises(ValueError) as error_info:
+            result = stitch_profiles(data.profiles, overlaps, target_profile_index=data.target_index)
+        assert "overlaps" in str(error_info.value)
+    else:
+        result = stitch_profiles(data.profiles, overlaps, target_profile_index=data.target_index)
+        # Check for differences between "result" and "data.stitched" profiles. We check for differences in:
+        # - intensities
+        # - uncertainties in intensities
+        # - Q values
+        # - uncertainties in Q values
+        # We tolerate differences up to 1% of the stitched profile given in the test data
+        testing.assert_allclose(result, data.stitched, rtol=data.tolerance, atol=0)
 
 
 def test_stitch_binned_profiles_isotropic(data_test_16b):

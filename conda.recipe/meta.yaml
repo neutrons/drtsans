@@ -24,11 +24,11 @@ build:
 
 requirements:
   host:
-    - python=3.8
+    - python
     - versioningit
 
   build:
-    - python=3.8
+    - python
     - setuptools>=42
     - mantid
     - versioningit

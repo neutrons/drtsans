@@ -25,8 +25,9 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
     ----------
     profiles: list
         A list of  ~drtsans.dataobjects.IQmod objects, ordered with increasing Q-values
-    overlaps: list
-        A list of overlap regions in the shape ((start_1, end_1), (start_2, end_2), (start_3, end_3),...).
+    overlaps: list of lists or list
+        The overlap regions either as: [(start_1, end_1), (start_2, end_2), (start_3, end_3), ...] or (for backwards
+        compatibility): [start_1, end_1, start_2, end_2, start_3, end_3, ...]
     target_profile_index: int
         Index of the ``profiles`` list indicating the target profile, that is, the profile defining the final scaling.
 
@@ -38,12 +39,22 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
     -------
     ValueError
         If either the arguments are incorrect ((i) profiles not in order or increasing Q or (ii) the number of overlaps
-        not congruent with the number of profiles) or a stitching scaling factor <= 0 is calculated.
+        not congruent with the number of profiles or (iii) overlaps is not a list of numbers or list of
+        lists/tuples) or a stitching scaling factor <= 0 is calculated.
     """
     # Guard clause to verify the profiles are ordered with increasing Q-values
     first_q_values = np.array([profile.mod_q[0] for profile in profiles])  # collect first Q-value for each profile
     if np.all(np.diff(first_q_values) > 0) is False:
         raise ValueError("The profiles are not ordered with increasing Q-values")
+
+    # Check overlaps parameter and if needed convert from list of numbers to list of pairs of numbers
+    if not overlaps:
+        raise ValueError("Must provide list of overlaps")
+    if all(isinstance(x, (int, float)) for x in overlaps) and len(overlaps) == 2 * (len(profiles) - 1):
+        # Convert to new format by pairing the overlaps into (start_q, end_q) pairs
+        overlaps = [overlaps[i : i + 2] for i in range(0, len(overlaps), 2)]
+    if not all(isinstance(x, (list, tuple)) and len(x) == 2 for x in overlaps):
+        raise ValueError("Parameter overlaps must be either list of numbers or list of lists of numbers")
 
     # Guard clause to validate that the number of overlap boundaries is congruent with the number of intensity profiles
     if len(overlaps) != len(profiles) - 1:

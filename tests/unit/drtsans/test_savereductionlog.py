@@ -127,40 +127,6 @@ def _checkNXcollection(nxentry, name, param_names):
             assert _strAttr(times, "offset")  # that there is one is enough
 
 
-def _checkProcessingEntry(handle, **kwargs):
-    """Utility function for verifying that the processing NXentry has the
-    appropriate information"""
-    entry = _getGroup(handle, "reduction_information", "NXentry")
-
-    if "starttime" in kwargs:
-        assert "start_time" in entry
-        assert _strValue(entry, "start_time") == kwargs["starttime"]
-    assert "hostname" in entry
-
-    nxuser = _getGroup(entry, "user", "NXuser")
-    assert "facility_user_id" in nxuser
-    assert _strValue(nxuser, "name") == kwargs["username"]
-
-    _checkNXNote(
-        entry,
-        "reduction_script",
-        "text/x-python",
-        kwargs.get("pythonfile", ""),
-        kwargs.get("pythonscript", ""),
-    )
-    _checkNXNote(
-        entry,
-        "reduction_parameters",
-        "application/json",
-        "",
-        kwargs.get("reductionparams", ""),
-    )
-    param_names = ["beam_center_x", "beam_center_y"]
-    _checkNXcollection(entry, "derived_parameters", param_names)
-    _checkNXprocess(entry, "mantid")
-    _checkNXprocess(entry, "drtsans")
-
-
 def _test_data(tested_data=[], ref_data=[], abs=None):
     for _tested, _ref in zip(tested_data, ref_data):
         if abs is None:

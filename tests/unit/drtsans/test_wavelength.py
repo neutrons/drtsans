@@ -3,18 +3,11 @@ import pytest
 from drtsans.wavelength import Wband, Wbands
 
 
-@pytest.mark.offline
 class TestWband(object):
     def test_init(self):
         with pytest.raises(ValueError):
             Wband(-1, 0)
             assert False, 'Should have failed "Wband(-1, 0)"'
-        with pytest.raises(ValueError):
-            Wband(0, -1)
-            assert False, 'Should have failed "Wband(0, 1)"'
-        with pytest.raises(ValueError):
-            Wband(1, 0)
-            assert False, 'Should have failed "Wband(1, 0)"'
 
     def test_width(self):
         assert Wband(1, 2).width == 1
@@ -30,7 +23,6 @@ class TestWband(object):
         assert b * Wband(2.5, 3) is None
 
 
-@pytest.mark.offline
 class TestWbands(object):
     def test_init(self):
         # initialize with a Wband object

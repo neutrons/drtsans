@@ -53,7 +53,7 @@ def get_final_sensitivities():
     """Get the final sensitivities and sigma
 
     Data is from sensitivity_math.xlsx as gold data to test methods to calculate non-normalized sensitivities
-    From PDF: "Apply another weighted average and propate the error"
+    From PDF: "Apply another weighted average and propagate the error"
 
     Returns
     -------

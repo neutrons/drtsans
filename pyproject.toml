@@ -77,7 +77,6 @@ testpaths = ["tests"]
 python_files = ["test*.py"]
 norecursedirs = [".git", "tmp*", "_tmp*", "__pycache__", "*dataset*", "*data_set*"]
 markers = [
-    "offline: run test even if /SNS not remotely mounted",
     "long_execution_time: mark test as having a long execution time",
     "requires_large_memory: mark test as requiring a large amount of RAM memory",
     "datarepo: mark a test as using drtsans-data repository",

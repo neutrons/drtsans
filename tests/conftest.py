@@ -54,6 +54,8 @@ parent_dir = pjoin(os.path.dirname(this_module_path), os.pardir)
 
 data_dir = "/SNS/EQSANS/shared/sans-backend/data"
 
+HAVE_SNS_MOUNT = os.path.exists(data_dir)
+
 
 def fr(ipts_number, run_number):
     """Nexus file path from run number"""

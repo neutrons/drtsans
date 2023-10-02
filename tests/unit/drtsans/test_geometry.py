@@ -39,21 +39,18 @@ def wss():
     return dict(biosans=None, eqsans=dict(ws=_eq_ws, ssd=13842, sdd=1280), gpsans=None)
 
 
-@pytest.mark.offline
 def test_source_sample_distance(wss):
     for v in wss.values():
         if v is not None:
             assert geo.source_sample_distance(v["ws"]) == pytest.approx(v["ssd"], rel=0.01)
 
 
-@pytest.mark.offline
 def test_sample_detector_distance(wss):
     for v in wss.values():
         if v is not None:
             assert geo.sample_detector_distance(v["ws"]) == pytest.approx(v["sdd"], rel=0.01)
 
 
-@pytest.mark.offline
 def test_source_detector_distance(wss):
     for v in wss.values():
         if v is not None:
@@ -192,6 +189,9 @@ def test_logged_smearing_pixel_size(workspace_with_instrument):
 
 
 def test_sample_aperture_diameter(serve_events_workspace, reference_dir):
+    # NOTE:
+    # serve_events_workspace is a pytest fixture that is hardcoded to work for
+    # eqsans tests.
     input_workspace = serve_events_workspace("EQSANS_92353.nxs.h5")
     # diameter is retrieved from log 'beamslit4', and we convert the 10mm into 0.01 meters
     assert geo.sample_aperture_diameter(input_workspace, unit="m") == pytest.approx(0.01, abs=0.1)

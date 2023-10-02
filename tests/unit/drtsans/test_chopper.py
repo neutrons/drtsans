@@ -4,7 +4,6 @@ from numpy.testing import assert_almost_equal
 from drtsans.chopper import DiskChopper
 
 
-@pytest.mark.offline
 class TestDiskChopper(object):
     ch = DiskChopper(1.0, 45, 60, 2000, 850)
 

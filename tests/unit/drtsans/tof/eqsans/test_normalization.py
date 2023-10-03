@@ -35,26 +35,26 @@ from drtsans.tof.eqsans.normalization import (
 
 
 @pytest.fixture(scope="module")
-def beam_flux(reference_dir):
+def beam_flux(datarepo_dir):
     r"""Filepath to the flux file"""
-    return pj(reference_dir.eqsans, "test_normalization", "beam_profile_flux.txt")
+    return pj(datarepo_dir.eqsans, "test_normalization", "beam_profile_flux.txt")
 
 
 @pytest.fixture(scope="module")
-def flux_to_monitor(reference_dir):
+def flux_to_monitor(datarepo_dir):
     r"""Filepath to the flux-to-monitor-ratio file"""
-    return pj(reference_dir.eqsans, "test_normalization", "flux_to_monitor_ratio.nxs")
+    return pj(datarepo_dir.eqsans, "test_normalization", "flux_to_monitor_ratio.nxs")
 
 
 @pytest.fixture(scope="module")
-def data_ws(reference_dir):
+def data_ws(datarepo_dir):
     r"""Two Mantid workspaces containing intensities versus wavelength for each of the EQSANS pixel-detectors.
     The two workspaces correspond to runs 92353 and 88565."""
     ws = dict()
-    with amend_config(data_dir=reference_dir.eqsans):
+    with amend_config(data_dir=datarepo_dir.eqsans):
         for run in ("92353", "88565"):
             w = load_events(
-                "EQSANS_{}.nxs.h5".format(run),
+                f"EQSANS_{run}.nxs.h5",
                 output_workspace=unique_workspace_dundername(),
             )
             ws[run], bands = transform_to_wavelength(w, output_workspace=w.name())
@@ -63,15 +63,16 @@ def data_ws(reference_dir):
 
 
 @pytest.fixture(scope="module")
-def monitor_ws(reference_dir):
+def monitor_ws(datarepo_dir):
     r"""Single-spectrum Workspace containing wavelength-dependent monitor counts for run 88565."""
     ws = dict()
-    with amend_config(data_dir=reference_dir.eqsans):
+    with amend_config(data_dir=datarepo_dir.eqsans):
         for run in ("88565",):
             ws[run] = prepare_monitors(run)
     return ws
 
 
+@pytest.mark.datarepo
 def test_load_beam_flux_file(beam_flux, data_ws):
     r"""
     (This test was introduced prior to the testset with the instrument team)
@@ -85,6 +86,7 @@ def test_load_beam_flux_file(beam_flux, data_ws):
     assert flux_workspace.dataX(0) == approx(data_ws["92353"].dataX(0))
 
 
+@pytest.mark.datarepo
 def test_normalize_by_proton_charge_and_flux(beam_flux, data_ws):
     r"""
     (This test was introduced prior to the testset with the instrument team)
@@ -116,6 +118,7 @@ def test_normalize_by_proton_charge_and_flux(beam_flux, data_ws):
     assert normalized_total_intensities == approx(manual_normalized_intensities, rel=0.01)
 
 
+@pytest.mark.datarepo
 def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws):
     r"""
     (This test was introduced prior to the testset with the instrument team)
@@ -140,6 +143,7 @@ def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws):
     assert max(flux_to_monitor_workspace.dataY(0)) == approx(0.569, abs=1e-3)  # a simple check
 
 
+@pytest.mark.datarepo
 def test_normalize_by_monitor(flux_to_monitor, data_ws, monitor_ws):
     r"""
     (This test was introduced prior to the testset with the instrument team)
@@ -179,6 +183,7 @@ def test_normalize_by_monitor(flux_to_monitor, data_ws, monitor_ws):
     data_workspace_normalized.delete()  # clean-up from memory of temporary workspaces
 
 
+@pytest.mark.datarepo
 def test_normalize_by_time(data_ws):
     r"""
     (This test was introduced prior to the testset with the instrument team)
@@ -204,6 +209,7 @@ def test_normalize_by_time(data_ws):
     data_workspace_normalized.delete()  # clean-up from memory of temporary workspaces
 
 
+@pytest.mark.datarepo
 def test_normalize_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws):
     r"""
     (This test was introduced prior to the testset with the instrument team)

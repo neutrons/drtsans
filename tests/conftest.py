@@ -249,6 +249,23 @@ def reference_dir():
 
 
 @pytest.fixture(scope="session")
+def datarepo_dir():
+    """A namedtuple with the directory **absolute** paths for test data."""
+    test_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "drtsans-data")
+
+    data_dir = namedtuple(
+        "data_dir",
+        ["sans", "biosans", "gpsans", "eqsans"],
+    )
+    return data_dir(
+        sans=os.path.join(test_root, "ornl", "sans"),
+        biosans=os.path.join(test_root, "ornl", "sans", "hfir", "biosans"),
+        gpsans=os.path.join(test_root, "ornl", "sans", "hfir", "gpsans"),
+        eqsans=os.path.join(test_root, "ornl", "sans", "sns", "eqsans"),
+    )
+
+
+@pytest.fixture(scope="session")
 def eqsans_f(reference_dir):
     return dict(
         data=pjoin(reference_dir.eqsans, "EQSANS_68168_event.nxs"),

@@ -47,14 +47,16 @@ def test_tofedgediscard():
     assert c.value == (500.0, 2000.0)
 
 
-def test_closest_config(reference_dir):
-    config_dir = pj(reference_dir.eqsans, "instrument_configuration")
+@pytest.mark.datarepo
+def test_closest_config(datarepo_dir):
+    config_dir = pj(datarepo_dir.eqsans, "instrument_configuration")
     name = pj(config_dir, "eqsans_configuration.92474")
     assert cfg.closest_config(97711, config_dir=config_dir) == name
 
 
-def test_open_source(reference_dir):
-    config_dir = pj(reference_dir.eqsans, "instrument_configuration")
+@pytest.mark.datarepo
+def test_open_source(datarepo_dir):
+    config_dir = pj(datarepo_dir.eqsans, "instrument_configuration")
     name = "eqsans_configuration.92474"
     full_name = pj(config_dir, name)
     with cfg.open_source(full_name) as f:
@@ -65,8 +67,9 @@ def test_open_source(reference_dir):
         assert f.name == full_name
 
 
-def test_load(reference_dir):
-    config_dir = pj(reference_dir.eqsans, "instrument_configuration")
+@pytest.mark.datarepo
+def test_load(datarepo_dir):
+    config_dir = pj(datarepo_dir.eqsans, "instrument_configuration")
     c = cfg.Cfg(source=97711, config_dir=config_dir)
     value = cfg.CfgItemValue(data="500 2000")
     assert c["tof edge discard"] == value
@@ -75,8 +78,9 @@ def test_load(reference_dir):
     assert d["rectangular mask"] == c["rectangular mask"].detectors
 
 
-def test_load_config(reference_dir):
-    config_dir = pj(reference_dir.eqsans, "instrument_configuration")
+@pytest.mark.datarepo
+def test_load_config(datarepo_dir):
+    config_dir = pj(datarepo_dir.eqsans, "instrument_configuration")
     d = cfg.load_config(source=97711, config_dir=config_dir)
     assert len(d["rectangular mask"]) == 7203
     assert "elliptical mask" not in d

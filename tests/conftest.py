@@ -109,6 +109,12 @@ class GetWS(object):
         raise TypeError(msg)
 
 
+@pytest.fixture(scope="session")
+def has_sns_mount():
+    """Fixture that returns True if the SNS mount is available"""
+    return HAVE_SNS_MOUNT
+
+
 @pytest.fixture(scope="module")
 def cleanfile():
     """Fixture that deletes registered files when the .py file is finished. It

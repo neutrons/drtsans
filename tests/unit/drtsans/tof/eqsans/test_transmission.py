@@ -17,8 +17,8 @@ from drtsans.tof.eqsans.geometry import beam_radius  # noqa: E402
 
 @pytest.fixture(scope="module")
 @namedtuplefy
-def trasmission_data(reference_dir):
-    data_dir = pjn(reference_dir.eqsans, "test_transmission")
+def trasmission_data(datarepo_dir):
+    data_dir = pjn(datarepo_dir.eqsans, "test_transmission")
     a = LoadNexus(pjn(data_dir, "raw_transmission.nxs"))
     b = LoadNexus(pjn(data_dir, "sample.nxs"))
     c = LoadNexus(pjn(data_dir, "raw_transmission_skip.nxs"))
@@ -30,12 +30,14 @@ def trasmission_data(reference_dir):
     return dict(data_dir=data_dir, raw=a, sample=b, raw_skip=c, sample_skip=d)
 
 
+@pytest.mark.datarepo
 def test_beam_radius(trasmission_data):
     r"""Verify the beam radius is correctly calculated using the source and sample apertures"""
     assert_almost_equal(beam_radius(trasmission_data.sample), 10.575980, decimal=6)
     assert_almost_equal(beam_radius(trasmission_data.sample_skip), 22.156863, decimal=6)
 
 
+@pytest.mark.datarepo
 def test_fit_band(trasmission_data):
     r"""
     Verify the fitting of the raw transmissions over wavelength bands provides same fitting results.
@@ -58,6 +60,7 @@ def test_fit_band(trasmission_data):
     assert_almost_equal(mantid_fit_output.OutputChi2overDoF, 3.6, decimal=0)
 
 
+@pytest.mark.datarepo
 def test_fit_raw(trasmission_data):
     r"""
     Verify the fitting of raw transmission workspaces provides same fitting results.

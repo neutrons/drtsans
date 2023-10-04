@@ -21,6 +21,7 @@ def test_find_beam_center(datarepo_dir):
         w = LoadEventNexus(Filename="EQSANS_92160.nxs.h5", OutputWorkspace=uwd())
     assert find_beam_center(w)[:-1] == approx((0.02997, 0.01379), abs=1e-3)
 
+
 @pytest.mark.datarepo
 def test_center_detector(datarepo_dir):
     r"""

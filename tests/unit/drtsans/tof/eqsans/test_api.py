@@ -1,5 +1,4 @@
 import pytest
-import os
 from collections import namedtuple
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
@@ -18,11 +17,19 @@ from drtsans.settings import unique_workspace_dundername as uwd
 ws_mon_pair = namedtuple("ws_mon_pair", ["data", "monitor"])
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/SNS/EQSANS/IPTS-22747/nexus/EQSANS_105428.nxs.h5"),
-    reason="Required data is not available",
-)
-def test_load_all_files_simple():
+# TODO: need to check if it is possible to use a file that already in git-lfs
+#       or copy the file to git-lfs
+#       we should not access raw IPTS directory directly.
+# @pytest.mark.skipif(
+#     not os.path.exists("/SNS/EQSANS/IPTS-22747/nexus/EQSANS_105428.nxs.h5"),
+#     reason="Required data is not available",
+# )
+@pytest.mark.mount_eqsans
+def test_load_all_files_simple(has_sns_mount):
+    # double sanity check
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     specs = {
         "iptsNumber": 22747,
         "sample": {"runNumber": 105428, "thickness": 1.0},

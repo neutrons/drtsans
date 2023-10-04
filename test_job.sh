@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set default values
-MARKERS=""
+MARKERS="not datarepo"
 TEST_SCOPE="unit"
 
 # Function to display the help message

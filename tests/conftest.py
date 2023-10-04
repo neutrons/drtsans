@@ -109,6 +109,12 @@ class GetWS(object):
         raise TypeError(msg)
 
 
+@pytest.fixture(scope="session")
+def has_sns_mount():
+    """Fixture that returns True if the SNS mount is available"""
+    return HAVE_SNS_MOUNT
+
+
 @pytest.fixture(scope="module")
 def cleanfile():
     """Fixture that deletes registered files when the .py file is finished. It
@@ -245,6 +251,23 @@ def reference_dir():
         pjoin(data_dir, "ornl", "sans", "hfir", "biosans"),
         pjoin(data_dir, "ornl", "sans", "hfir", "gpsans"),
         pjoin(data_dir, "ornl", "sans", "sns", "eqsans"),
+    )
+
+
+@pytest.fixture(scope="session")
+def datarepo_dir():
+    """A namedtuple with the directory **absolute** paths for test data."""
+    test_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "drtsans-data")
+
+    data_dir = namedtuple(
+        "data_dir",
+        ["sans", "biosans", "gpsans", "eqsans"],
+    )
+    return data_dir(
+        sans=os.path.join(test_root, "ornl", "sans"),
+        biosans=os.path.join(test_root, "ornl", "sans", "hfir", "biosans"),
+        gpsans=os.path.join(test_root, "ornl", "sans", "hfir", "gpsans"),
+        eqsans=os.path.join(test_root, "ornl", "sans", "sns", "eqsans"),
     )
 
 
@@ -1390,6 +1413,50 @@ def workspace_with_instrument(request):
     # Teardown
     for workspace_name in workspace_inventory:
         DeleteWorkspace(workspace_name)
+
+
+@pytest.fixture(scope="session")
+def serve_events_workspace_datarepo(datarepo_dir):
+    r"""
+    Load an events workspace and cache it for future requests.
+
+    If the same run is requested, the fixture clones the cached workspace,
+    thus avoiding reloading the file.
+
+    Parameters
+    ----------
+    run: str
+        Instrument plus run number string, e.g 'EQSANS_92353'
+    dd: str
+        directory location where to find the file. Unnecessary if /SNS mounted.
+
+    Returns
+    -------
+    EventsWorkspace
+    """
+
+    def wrapper(run, dd=datarepo_dir.eqsans):
+        cache = wrapper._cache
+        names = wrapper._names
+
+        def uwd():
+            while True:
+                name = "__" + "".join(random.choice(string.ascii_lowercase) for _ in range(9))
+                if name not in names:
+                    return name
+
+        if cache.get(run, None) is None:
+            with amend_config(data_dir=dd):
+                cache[run] = mtds.LoadEventNexus(run, OutputWorkspace=uwd())
+                names.append(cache[run])
+        clone = mtds.CloneWorkspace(cache[run], OutputWorkspace=uwd())
+        names.append(clone.name())
+        return clone
+
+    wrapper._cache = dict()  # caches the loaded original ws
+    wrapper._names = list()  # stores names for all ws produced
+    yield wrapper
+    [mtds.DeleteWorkspace(name) for name in wrapper._names]
 
 
 @pytest.fixture(scope="session")

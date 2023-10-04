@@ -22,26 +22,28 @@ from drtsans.tof.eqsans.geometry import (
 from drtsans.samplelogs import SampleLogs
 
 
-def test_translate_detector_by_z(serve_events_workspace, reference_dir):
+@pytest.mark.datarepo
+def test_translate_detector_by_z(serve_events_workspace_datarepo, datarepo_dir):
     # Load instrument with main panel at Z=0, then translate according to the logs
-    workspace = serve_events_workspace("EQSANS_92353.nxs.h5")
+    workspace = serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(0.0, abs=1e-3)  # detector1 at z=0
     translate_detector_by_z(workspace)
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(4.0, abs=1e-3)  # now at z=4.0
 
     # Load instrument with main panel at Z=0, then apply latest IDF which will move the main panel. Subsequent
     # application of translate_detector_by_z will have no effect
-    workspace = serve_events_workspace("EQSANS_92353.nxs.h5")
+    workspace = serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(0.0, abs=1e-3)  # detector1 at z=0
-    idf = os.path.join(reference_dir.eqsans, "instrument", "EQ-SANS_Definition.xml")
+    idf = os.path.join(datarepo_dir.eqsans, "instrument", "EQ-SANS_Definition.xml")
     LoadInstrument(workspace, FileName=idf, RewriteSpectraMap=True)
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(4.0, abs=1e-3)  # now at z=4.0
     translate_detector_by_z(workspace)
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(4.0, abs=1e-3)  # no effect
 
 
-def test_sample_aperture_diameter(serve_events_workspace):
-    ws = serve_events_workspace("EQSANS_92353.nxs.h5")
+@pytest.mark.datarepo
+def test_sample_aperture_diameter(serve_events_workspace_datarepo):
+    ws = serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")
     sad = sample_aperture_diameter(ws)
     # ISSUE1887 TODO Enabled assert sad == approx(10)
     sad = SampleLogs(ws).single_value("sample_aperture_diameter")
@@ -87,8 +89,9 @@ def test_source_aperture(generic_workspace, data):
     assert result.distance_to_sample == pytest.approx(data.asd, abs=1.0e-05)
 
 
-def test_source_aperture_diameter(serve_events_workspace):
-    ws = serve_events_workspace("EQSANS_92353.nxs.h5")
+@pytest.mark.datarepo
+def test_source_aperture_diameter(serve_events_workspace_datarepo):
+    ws = serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")
     sad = source_aperture_diameter(ws)
     # ISSUE187 TODO Enable assert sad == approx(20)
     sad = SampleLogs(ws).single_value("source_aperture_diameter")
@@ -115,8 +118,9 @@ def test_source_aperture_sample_distance(generic_workspace, data):
     assert SampleLogs(workspace).source_aperture_sample_distance.value == pytest.approx(1000 * data.asd, abs=1.0e-05)
 
 
-def test_source_monitor_distance(serve_events_workspace):
-    ws = serve_events_workspace("EQSANS_92353.nxs.h5")
+@pytest.mark.datarepo
+def test_source_monitor_distance(serve_events_workspace_datarepo):
+    ws = serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")
     smd = source_monitor_distance(ws, unit="m")
     assert smd == pytest.approx(10.122, abs=0.001)
     smd = SampleLogs(ws).single_value("source-monitor-distance")

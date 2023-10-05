@@ -305,22 +305,22 @@ def biosans_f():
 
 
 @pytest.fixture(scope="session")
-def gpsans_f():
-    dd = pjoin(data_dir, "ornl", "sans", "hfir", "gpsans")
+def gpsans_f(datarepo_dir):
+    dd = datarepo_dir.gpsans
     return dict(
         beamcenter=pjoin(dd, "CG2_exp325_scan0020_0001.xml"),
         beamcenter_off_setted=pjoin(dd, "CG2_exp245_scan0007_0001.xml"),
         sample_transmission=pjoin(dd, "CG2_exp245_scan0009_0001.xml"),
-        sample_scattering=pjoin(dd, "CG2_exp245_scan0010_0001.xml"),
-        dark_current=pjoin(dd, "CG2_exp244_scan0001_0001.xml"),
-        anisotropic=pjoin(dd, "CG2_exp296_scan0166_0001.xml"),
-        sample_scattering_2=pjoin(dd, "CG2_exp325_scan0007_0001.xml"),
+        # sample_scattering=pjoin(dd, "CG2_exp245_scan0010_0001.xml"),
+        # dark_current=pjoin(dd, "CG2_exp244_scan0001_0001.xml"),
+        # anisotropic=pjoin(dd, "CG2_exp296_scan0166_0001.xml"),
+        # sample_scattering_2=pjoin(dd, "CG2_exp325_scan0007_0001.xml"),
     )
 
 
 @pytest.fixture(scope="session")
-def gpsans_full_dataset():
-    dd = pjoin(data_dir, "ornl", "sans", "hfir", "gpsans")
+def gpsans_full_dataset(datarepo_dir):
+    dd = datarepo_dir.gpsans
     return dict(
         sample_scattering_list=[
             pjoin(dd, "CG2_exp245_scan0010_0001.xml"),
@@ -334,12 +334,12 @@ def gpsans_full_dataset():
             pjoin(dd, "CG2_exp245_scan0010_0009.xml"),
             pjoin(dd, "CG2_exp245_scan0010_0010.xml"),
         ],
-        background_scattering=pjoin(dd, "CG2_exp245_scan0005_0001.xml"),
+        # background_scattering=pjoin(dd, "CG2_exp245_scan0005_0001.xml"),
         sample_transmission=pjoin(dd, "CG2_exp245_scan0009_0001.xml"),
-        background_transmission=pjoin(dd, "CG2_exp245_scan0004_0001.xml"),
-        empty_transmission=pjoin(dd, "CG2_exp245_scan0004_0001.xml"),
+        # background_transmission=pjoin(dd, "CG2_exp245_scan0004_0001.xml"),
+        # empty_transmission=pjoin(dd, "CG2_exp245_scan0004_0001.xml"),
         beamcenter=pjoin(dd, "CG2_exp245_scan0007_0001.xml"),
-        dark_current=pjoin(dd, "CG2_exp244_scan0001_0001.xml"),
+        # dark_current=pjoin(dd, "CG2_exp244_scan0001_0001.xml"),
     )
 
 

@@ -8,7 +8,7 @@ from drtsans.settings import unique_workspace_dundername
 from drtsans.mono.gpsans import center_detector, find_beam_center
 
 
-# the data for this test is defined in tests/conftest.py and is currently CG2_exp325_scan0020_0001.xml
+@pytest.mark.datarepo
 def test_beam_finder(gpsans_f):
     ws = unique_workspace_dundername()
     LoadHFIRSANS(Filename=gpsans_f["beamcenter"], OutputWorkspace=ws)

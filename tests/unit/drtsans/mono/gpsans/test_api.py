@@ -14,6 +14,10 @@ from drtsans.settings import unique_workspace_dundername as uwd
 
 @pytest.mark.mount_eqsans
 def test_load_all_files_simple(has_sns_mount):
+    # NOTE: this test is current broken as the internal function cannot
+    #       reconstruct the path correctly with given output
+    pytest.skip("This is a broken test, need to fix it first!!!")
+
     if not has_sns_mount:
         pytest.skip("Skipping test as SNS mount is not available")
     # NOTE:

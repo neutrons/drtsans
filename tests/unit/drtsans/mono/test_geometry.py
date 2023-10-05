@@ -5,10 +5,14 @@ from drtsans.settings import unique_workspace_dundername
 from drtsans.mono.geometry import beam_radius
 
 
-def failed_test_beam_radius(reference_dir):
+@pytest.mark.datarepo
+def test_beam_radius(datarepo_dir):
     """Test beam radius calculation for mono SANS instruments (BIO and GP-SANS)"""
+    # NOTE: this test is failing, and need to be double checked
+    pytest.skip("This test is failing, and need to be double checked")
+
     workspace = LoadEventNexus(
-        Filename=path_join(reference_dir.gpsans, "CG2_9188.nxs.h5"),
+        Filename=path_join(datarepo_dir.gpsans, "CG2_9188.nxs.h5"),
         OutputWorkspace=unique_workspace_dundername(),
         MetaDataOnly=True,
         LoadLogs=True,

@@ -311,8 +311,8 @@ def gpsans_f(datarepo_dir):
         beamcenter=pjoin(dd, "CG2_exp325_scan0020_0001.xml"),
         beamcenter_off_setted=pjoin(dd, "CG2_exp245_scan0007_0001.xml"),
         sample_transmission=pjoin(dd, "CG2_exp245_scan0009_0001.xml"),
-        # sample_scattering=pjoin(dd, "CG2_exp245_scan0010_0001.xml"),
-        # dark_current=pjoin(dd, "CG2_exp244_scan0001_0001.xml"),
+        sample_scattering=pjoin(dd, "CG2_exp245_scan0010_0001.xml"),
+        dark_current=pjoin(dd, "CG2_exp244_scan0001_0001.xml"),
         # anisotropic=pjoin(dd, "CG2_exp296_scan0166_0001.xml"),
         # sample_scattering_2=pjoin(dd, "CG2_exp325_scan0007_0001.xml"),
     )

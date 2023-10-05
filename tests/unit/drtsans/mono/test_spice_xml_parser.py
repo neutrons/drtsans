@@ -4,7 +4,8 @@ from drtsans.mono.spice_xml_parser import SpiceXMLParser
 from mantid.simpleapi import LoadHFIRSANS, mtd
 
 
-def test_get_das_logs(reference_dir):
+@pytest.mark.datarepo
+def test_get_das_logs(datarepo_dir):
     """
 
     Returns
@@ -12,8 +13,7 @@ def test_get_das_logs(reference_dir):
 
     """
     # Init the parser
-    # test_xml = '/Users/wzz/Projects/SANS/sans-backend/temp/FromXML/CG2_exp315_scan0005_0060.xml'
-    test_xml = os.path.join(reference_dir.gpsans, "CG2_exp315_scan0005_0060.xml")
+    test_xml = os.path.join(datarepo_dir.gpsans, "CG2_exp315_scan0005_0060.xml")
     assert os.path.exists(test_xml), f"Test XML {test_xml} cannot be found"
     xml_parser = SpiceXMLParser(test_xml)
 

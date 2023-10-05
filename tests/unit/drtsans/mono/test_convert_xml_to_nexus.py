@@ -7,10 +7,11 @@ from drtsans.mono.gpsans.cg2_spice_to_nexus import CG2EventNexusConvert
 from drtsans.mono.biosans.cg3_spice_to_nexus import CG3EventNexusConvert
 
 
-def test_cg2_pid_range(reference_dir):
+@pytest.mark.datarepo
+def test_cg2_pid_range(datarepo_dir):
     """Test PID range"""
     # Load test event NeXus file
-    test_nexus = os.path.join(reference_dir.gpsans, "CG2_9177.nxs.h5")
+    test_nexus = os.path.join(datarepo_dir.gpsans, "CG2_9177.nxs.h5")
     nexus_h5 = h5py.File(test_nexus, "r")
 
     # Check each bank
@@ -32,10 +33,11 @@ def test_cg2_pid_range(reference_dir):
         CG2EventNexusConvert().get_pid_range(49)
 
 
-def test_cg3_pid_range(reference_dir):
+@pytest.mark.datarepo
+def test_cg3_pid_range(datarepo_dir):
     """Test PID range"""
     # Load test event NeXus file
-    test_nexus = os.path.join(reference_dir.biosans, "CG3_5705.nxs.h5")
+    test_nexus = os.path.join(datarepo_dir.biosans, "CG3_5705.nxs.h5")
     nexus_h5 = h5py.File(test_nexus, "r")
 
     # Check each bank
@@ -62,10 +64,11 @@ def test_cg3_pid_range(reference_dir):
         CG3EventNexusConvert().get_pid_range(89)
 
 
-def test_mask_detector(reference_dir):
+@pytest.mark.datarepo
+def test_mask_detector(datarepo_dir):
     """Test mask detector"""
     # Load data
-    test_spice = os.path.join(reference_dir.biosans, "BioSANS_exp549_scan0010_0001.xml")
+    test_spice = os.path.join(datarepo_dir.biosans, "BioSANS_exp549_scan0010_0001.xml")
     assert os.path.exists(test_spice)
 
     # Init CG3 convert

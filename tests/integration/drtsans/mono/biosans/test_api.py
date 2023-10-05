@@ -195,11 +195,11 @@ def test_process_single_configuration(biosans_synthetic_dataset, clean_workspace
     DeleteWorkspaces([prefix + "_" + suffix for suffix in ("sample", "background")])
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/HFIR/HB2B/shared/autoreduce/"),
-    reason="Skip test on build server",
-)
-def test_reduce_single_configuration_slice_transmission_false(temp_directory):
+@pytest.mark.mount_eqsans
+def test_reduce_single_configuration_slice_transmission_false(has_sns_mount, temp_directory):
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "BIOSANS",
@@ -345,7 +345,11 @@ def remove_ws(workspace):
         DeleteWorkspace(workspace)
 
 
-def test_reduce_single_configuration_slice_transmission_true(temp_directory):
+@pytest.mark.mount_eqsans
+def test_reduce_single_configuration_slice_transmission_true(has_sns_mount, temp_directory):
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "BIOSANS",

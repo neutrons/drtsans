@@ -16,6 +16,7 @@ def numbers_in_line(line, numbers):
     return all([x == approx(n, rel=1.0e-03) or x < 0.02 for x, n in zip(xyz, numbers)])
 
 
+@pytest.mark.datarepo
 def test_save_ascii(biosans_sensitivity_dataset):
     ws = LoadHFIRSANS(
         Filename=biosans_sensitivity_dataset["flood"],

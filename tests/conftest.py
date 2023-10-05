@@ -296,11 +296,11 @@ def eqsans_p():
 
 
 @pytest.fixture(scope="session")
-def biosans_f():
-    dd = pjoin(data_dir, "ornl", "sans", "hfir", "biosans")
+def biosans_f(datarepo_dir):
+    dd = datarepo_dir.biosans
     return dict(
         beamcenter=pjoin(dd, "BioSANS_exp402_scan0006_0001.xml"),
-        anisotropic=pjoin(dd, "BioSANS_exp440_scan0022_0006.xml"),
+        # anisotropic=pjoin(dd, "BioSANS_exp440_scan0022_0006.xml"),
     )
 
 
@@ -344,14 +344,14 @@ def gpsans_full_dataset(datarepo_dir):
 
 
 @pytest.fixture(scope="session")
-def biosans_sensitivity_dataset():
-    dd = pjoin(data_dir, "ornl", "sans", "hfir", "biosans")
+def biosans_sensitivity_dataset(datarepo_dir):
+    dd = datarepo_dir.biosans
     return dict(
-        dark_current=pjoin(dd, "BioSANS_exp327_scan0014_0001.xml"),
+        # dark_current=pjoin(dd, "BioSANS_exp327_scan0014_0001.xml"),
         flood=pjoin(dd, "BioSANS_exp327_scan0066_0001.xml"),
-        flood_beamcenter=pjoin(dd, "BioSANS_exp327_scan0028_0001.xml"),
-        empty_transmission=pjoin(dd, "BioSANS_exp327_scan0028_0001.xml"),
-        flood_mask=pjoin(dd, "BioSANS_exp327_scan0066_0001_mask.xml"),
+        # flood_beamcenter=pjoin(dd, "BioSANS_exp327_scan0028_0001.xml"),
+        # empty_transmission=pjoin(dd, "BioSANS_exp327_scan0028_0001.xml"),
+        # flood_mask=pjoin(dd, "BioSANS_exp327_scan0066_0001_mask.xml"),
     )
 
 
@@ -1504,7 +1504,7 @@ def serve_events_workspace(reference_dir):
 
 
 @pytest.fixture(scope="session")
-def biosans_synthetic_dataset(reference_dir, tmp_path_factory) -> dict:
+def biosans_synthetic_dataset(datarepo_dir, tmp_path_factory) -> dict:
     r"""
     Create a synthetic dataset for testing the BIOSANS reduction. The dataset contains
     Nexus-processed event files with names CG3_XXXX.nxs, where XXXX is a run number.
@@ -1566,7 +1566,7 @@ def biosans_synthetic_dataset(reference_dir, tmp_path_factory) -> dict:
         return f"CG3_{run}.nxs.h5"
 
     # determine if the dataset is already stored in the testing file dataset
-    runs_directory = pjoin(reference_dir.biosans, "synthetic_dataset")
+    runs_directory = pjoin(datarepo_dir.biosans, "synthetic_dataset")
     populate_cache = False
     if os.path.exists(runs_directory) and os.path.isdir(runs_directory):
         for run in [92300, 92310, 92320, 92330, 92340, 92350]:

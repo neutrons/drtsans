@@ -96,6 +96,7 @@ def test_apply_samplelogs_sample_detector_distance(fetch_idf):
     assert_almost_equal(get_position_south_detector(workspace), 12.0, decimal=2)
 
 
+@pytest.mark.datarepo
 def test_api_geometry(biosans_f):
     ws = LoadHFIRSANS(Filename=biosans_f["beamcenter"])
 

@@ -22,8 +22,11 @@ def helper(reference_dir):
 
 
 @pytest.fixture(scope="function")
-def clone_database(helper):
+def clone_database(helper, has_sns_mount):
     r"""Serve all contents of helper.database in a temporary database"""
+    if not has_sns_mount:
+        pytest.skip("Do not have /SNS properly mounted on this system")
+
     database_directory = os.path.dirname(helper.database)
     cloned_database_directory = tempfile.mkdtemp()
     os.rmdir(cloned_database_directory)  # shutil.copytree requires non-existing directory!
@@ -53,9 +56,9 @@ def clone_database(helper):
         ("BioSANS_exp327_scan0066_0001_mask.xml", "Load"),
     ],
 )
-def test_loader_algorithm(input_file, loader_name, reference_dir):
+def test_loader_algorithm(input_file, loader_name, datarepo_dir):
     input_file = os.path.join(
-        reference_dir.biosans,
+        datarepo_dir.biosans,
         "pixel_calibration",
         "test_loader_algorithm",
         input_file,
@@ -93,14 +96,23 @@ class TestBarPositionFormula:
 
 
 class TestTable:
-    def test_load(self, helper):
+
+    @pytest.mark.mount_eqsans
+    def test_load(self, helper, has_sns_mount):
         r"""test method 'load'"""
+        if not has_sns_mount:
+            pytest.skip("Do not have /SNS properly mounted on this system")
+
         calibration = Table.load(helper.database, "BARSCAN", "GPSANS", "detector1", 20200104)
         assert calibration.daystamp == 20200103
         assert AnalysisDataService.doesExist("barscan_GPSANS_detector1_20200103")
 
-    def test_save(self, helper, clone_database):
+    @pytest.mark.mount_eqsans
+    def test_save(self, helper, clone_database, has_sns_mount):
         r"""test method 'save'"""
+        if not has_sns_mount:
+            pytest.skip("Do not have /SNS properly mounted on this system")
+
         calibration = Table.load(clone_database, "BARSCAN", "GPSANS", "detector1", 20200104)
         with pytest.raises(ValueError):
             calibration.save(database=clone_database)  # we cannot save a duplicate

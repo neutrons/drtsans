@@ -3,7 +3,7 @@ import pytest
 from drtsans.wavelength import Wband, Wbands
 
 
-class TestWband(object):
+class TestWband:
     def test_init(self):
         with pytest.raises(ValueError):
             Wband(-1, 0)
@@ -23,7 +23,7 @@ class TestWband(object):
         assert b * Wband(2.5, 3) is None
 
 
-class TestWbands(object):
+class TestWbands:
     def test_init(self):
         # initialize with a Wband object
         ws = Wbands(Wband(1, 2))

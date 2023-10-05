@@ -17,9 +17,9 @@ from drtsans.dark_current import duration, counts_in_detector
 
 
 @pytest.fixture(scope="module")
-def workspaces(reference_dir):
-    with amend_config(data_dir=reference_dir.eqsans):
-        name = pjn(reference_dir.eqsans, "test_dark_current", "data.nxs")
+def workspaces(datarepo_dir):
+    with amend_config(data_dir=datarepo_dir.eqsans):
+        name = pjn(datarepo_dir.eqsans, "test_dark_current", "data.nxs")
         # data is a Workspace2D in wavelength
         data = Load(name, OutputWorkspace=unique_workspace_dundername())
         # dark is an EventsWorkspace in time-of-flight
@@ -27,6 +27,7 @@ def workspaces(reference_dir):
         return dict(data=data, dark=dark)
 
 
+@pytest.mark.datarepo
 def test_duration(workspaces):
     for log_key in ("duration", "start_time"):
         dark_duration = duration(workspaces["dark"], log_key=log_key)
@@ -35,6 +36,7 @@ def test_duration(workspaces):
         duration(workspaces["dark"], log_key="timer")
 
 
+@pytest.mark.datarepo
 def test_counts_in_detector(workspaces):
     y, e = counts_in_detector(workspaces["dark"])
     assert max(y) == 67.0

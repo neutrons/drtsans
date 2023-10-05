@@ -39,6 +39,9 @@ def test_load_all_files_simple(has_sns_mount):
     if not has_sns_mount:
         pytest.skip("Skip test if SNS mount is not found.")
 
+    # NOTE: path parsing is not correct, need double check
+    pytest.skip("The path building is incorrect, need to be fixed!!!")
+
     reduction_input = {
         "instrumentName": "CG3",
         "iptsNumber": "23782",

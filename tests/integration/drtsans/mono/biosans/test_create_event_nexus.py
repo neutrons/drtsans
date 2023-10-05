@@ -20,7 +20,8 @@ from drtsans.mono.biosans.cg3_spice_to_nexus import generate_event_nexus
 # from matplotlib import pyplot as plt
 
 
-def test_duplicate_event_nexus(reference_dir, temp_directory, clean_workspace):
+@pytest.mark.mount_eqsans
+def test_duplicate_event_nexus(has_sns_mount, reference_dir, temp_directory, clean_workspace):
     """Test duplicating an HDF5/NeXus in 2 different approaches in order to verify EventNexusWriter
 
     Verification is to load both of the generated Event NeXus to do a comparison
@@ -31,6 +32,9 @@ def test_duplicate_event_nexus(reference_dir, temp_directory, clean_workspace):
     -------
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # Get the source file
     source_nexus_file = "CG3_5709.nxs.h5"
     source_nexus_file = os.path.join(reference_dir.biosans, source_nexus_file)

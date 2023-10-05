@@ -1,5 +1,4 @@
 import pytest
-import os
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
 from mantid.simpleapi import CreateWorkspace
@@ -13,11 +12,14 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.settings import unique_workspace_dundername as uwd
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/HFIR/CG2/IPTS-23801/nexus/CG2_1338.nxs.h5"),
-    reason="Required data is not available",
-)
-def test_load_all_files_simple():
+@pytest.mark.mount_eqsans
+def test_load_all_files_simple(has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("Skipping test as SNS mount is not available")
+    # NOTE:
+    # This test will build the IPTS path internally and try to access the raw
+    # IPTS folder. We will mark it as a offline manual test for now, but additional
+    # work is needed to make this test work without access the raw IPTS folder.
     reduction_input = {
         "instrumentName": "CG2",
         "iptsNumber": "23801",

@@ -96,7 +96,6 @@ class TestBarPositionFormula:
 
 
 class TestTable:
-
     @pytest.mark.mount_eqsans
     def test_load(self, helper, has_sns_mount):
         r"""test method 'load'"""

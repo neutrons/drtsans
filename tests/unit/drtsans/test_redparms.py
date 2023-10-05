@@ -704,7 +704,9 @@ class TestReductionParametersBIOSANS:
             (False, [0.01, 0.02], [0.015, 0.025]),
         ],
     )
-    def test_overlap_stitch(self, reference_dir, qmin_name, qmax_name, throws_error, qmin_value, qmax_value, has_sns_mount):
+    def test_overlap_stitch(
+        self, reference_dir, qmin_name, qmax_name, throws_error, qmin_value, qmax_value, has_sns_mount
+    ):
         if not has_sns_mount:
             pytest.skip("No SNS mount")
 

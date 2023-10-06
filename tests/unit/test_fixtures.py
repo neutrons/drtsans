@@ -367,7 +367,11 @@ def test_generate_workspace_tof(generic_workspace):
     assert specInfo.position(3) == V3D(0.0, 0.5, 5.0)  # row=1, col=0
 
 
-def test_serve_events_workspace(serve_events_workspace):
+@pytest.mark.mount_eqsans
+def test_serve_events_workspace(serve_events_workspace, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("No SNS mount")
+
     w1 = serve_events_workspace("EQSANS_92353.nxs.h5")
     w2 = serve_events_workspace("EQSANS_92353.nxs.h5")
     assert w1.name() != w2.name()
@@ -589,11 +593,13 @@ def test_temp_workspace_name(temp_workspace_name):
     CreateSampleWorkspace(OutputWorkspace=temp_workspace_name())
 
 
+@pytest.mark.datarepo
 def test_biosans_synthetic_dataset(biosans_synthetic_dataset):
     print(biosans_synthetic_dataset["data_dir"])
     assert biosans_synthetic_dataset
 
 
+@pytest.mark.datarepo
 def test_biosans_synthetic_sensitivity_dataset(biosans_synthetic_sensitivity_dataset):
     def _mock_LoadEventNexus(*args, **kwargs):
         # Substitute LoadEventNexus with LoadNexusProcessed because our synthetic files were created with SaveNexus

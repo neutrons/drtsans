@@ -144,6 +144,7 @@ def test_beam_finder_excel2(generic_workspace):
     assert y_midrange == pytest.approx(-0.0102 + 0.002529 + 0.0, abs=0.0001)
 
 
+@pytest.mark.datarepo
 def test_beam_finder_wing(biosans_f):
     """
     Test with the new beam finder
@@ -207,7 +208,8 @@ def test_beam_finder_wing(biosans_f):
     assert np.isnan(y_midrange2)
 
 
-def test_beam_finder_midrange(reference_dir):
+@pytest.mark.mount_eqsans
+def test_beam_finder_midrange(reference_dir, has_sns_mount):
     """
     Test with the new beam finder
 
@@ -216,6 +218,11 @@ def test_beam_finder_midrange(reference_dir):
     3. Find y_midrange
     4. Move midrange_detector y according to y_midrange
     """
+    if not has_sns_mount:
+        pytest.skip("No SNS mount found")
+
+    # Note: data file is too large for CI, this test is only run manually on
+    #       the analysis cluster
     ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     ws = update_idf(ws)

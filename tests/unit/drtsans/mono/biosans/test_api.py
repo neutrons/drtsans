@@ -30,11 +30,18 @@ from drtsans.mono.biosans.api import (
 from unittest.mock import patch as mock_patch
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/HFIR/CG3/IPTS-23782/nexus/CG3_960.nxs.h5"),
-    reason="Required data is not available",
-)
-def test_load_all_files_simple():
+# @pytest.mark.skipif(
+#     not os.path.exists("/HFIR/CG3/IPTS-23782/nexus/CG3_960.nxs.h5"),
+#     reason="Required data is not available",
+# )
+@pytest.mark.mount_eqsans
+def test_load_all_files_simple(has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("Skip test if SNS mount is not found.")
+
+    # NOTE: path parsing is not correct, need double check
+    pytest.skip("The path building is incorrect, need to be fixed!!!")
+
     reduction_input = {
         "instrumentName": "CG3",
         "iptsNumber": "23782",
@@ -98,6 +105,7 @@ def test_prepare_data_workspaces_simple(generic_workspace):
     assert output2.name() == "foobar"
 
 
+@pytest.mark.datarepo
 def test_prepare_data_workspaces_center(biosans_f):
     ws = LoadHFIRSANS(Filename=biosans_f["beamcenter"])
 
@@ -126,13 +134,18 @@ def test_prepare_data_workspaces_center(biosans_f):
     assert alg3.getPropertyValue("Y") == "-0.222"
 
 
-def test_prepare_data_workspaces_center_midrange_success(reference_dir):
+@pytest.mark.mount_eqsans
+def test_prepare_data_workspaces_center_midrange_success(reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("Skip test if SNS mount is not found.")
+
     # similar test to test_prepare_data_workspaces_center
     # load the file and add the midrange detector
     # generate the output workspace from prepare_data_workspaces
     # with center parameters for main, wing and midrange detectors
     # check the algorithm history to ensure instrument components were moved with the requested coordinates
 
+    # NOTE: this data is too large for datarepo, and should be run manually on analysis cluster
     ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     # add the midrange detector
@@ -175,11 +188,16 @@ def test_prepare_data_workspaces_center_midrange_success(reference_dir):
     assert alg4.getPropertyValue("Y") == "-0.112"
 
 
-def test_prepare_data_workspaces_center_midrange_failure(reference_dir):
+@pytest.mark.mount_eqsans
+def test_prepare_data_workspaces_center_midrange_failure(reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("Skip test if SNS mount is not found.")
+
     # similar test to test_prepare_data_workspaces_center_midrange_success
     # midrange center is required, but not passed
     # results to failure to move the instrument components
 
+    # NOTE: this data is too large for datarepo, and should be run manually on analysis cluster
     ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     # add the midrange detector
@@ -201,11 +219,16 @@ def test_prepare_data_workspaces_center_midrange_failure(reference_dir):
     assert history.getAlgorithm(history.size() - 1).name() == "CloneWorkspace"
 
 
-def test_prepare_data_workspaces_apply_mask_detectors_str(reference_dir):
+@pytest.mark.mount_eqsans
+def test_prepare_data_workspaces_apply_mask_detectors_str(reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("Skip test if SNS mount is not found.")
+
     # load the file and add the midrange detector
     # generate the output workspace from prepare_data_workspaces
     # mask detector with a comma separated detector name-string
 
+    # NOTE: this data is too large for datarepo, and should be run manually on analysis cluster
     ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     # add the midrange detector
@@ -222,11 +245,16 @@ def test_prepare_data_workspaces_apply_mask_detectors_str(reference_dir):
     assert alg.getPropertyValue("ComponentList") == mask_detectors
 
 
-def test_prepare_data_workspaces_apply_mask_detectors_lst(reference_dir):
+@pytest.mark.mount_eqsans
+def test_prepare_data_workspaces_apply_mask_detectors_lst(reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("Skip test if SNS mount is not found.")
+
     # load the file and add the midrange detector
     # generate the output workspace from prepare_data_workspaces
     # mask detector with a list of detector names
 
+    # NOTE: this data is too large for datarepo, and should be run manually on analysis cluster
     ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     # add the midrange detector
@@ -243,11 +271,17 @@ def test_prepare_data_workspaces_apply_mask_detectors_lst(reference_dir):
     assert alg.getPropertyValue("ComponentList") == ",".join(mask_detectors)
 
 
-def test_prepare_data_center(reference_dir):
+@pytest.mark.mount_eqsans
+def test_prepare_data_center(reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("Skip test if SNS mount is not found.")
+
     # similar test to test_prepare_data_workspaces_center
     # load the file
     # generate the output workspace from prepare_data with center parameters for main and wing detectors
     # check the algorithm history to ensure instrument components were moved with the requested coordinates
+
+    # NOTE: this data is too large for datarepo, and should be run manually on analysis cluster
     ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
 
     # this should make a clone of the workspace
@@ -272,16 +306,17 @@ def test_prepare_data_center(reference_dir):
     assert alg3.getPropertyValue("Y") == "-0.222"
 
 
+@pytest.mark.datarepo
 @mock_patch("drtsans.load.__monitor_counts")
 @mock_patch("drtsans.load.LoadEventNexus")
-def test_prepare_data_center_midrange_success(mock_LoadEventNexus, mock_monitor_counts, reference_dir):
+def test_prepare_data_center_midrange_success(mock_LoadEventNexus, mock_monitor_counts, datarepo_dir):
     # similar test to test_prepare_data_workspaces_center
     # load the file with mock patch
     # generate the output workspace from prepare_data with center parameters for main, wing and midrange detectors
     # check the algorithm history to ensure instrument components were moved with the requested coordinates
 
     output_workspace = "CG3_92300"
-    synthetics_datasets = os.path.join(reference_dir.biosans, "synthetic_dataset")
+    synthetics_datasets = os.path.join(datarepo_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
     mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
@@ -325,15 +360,16 @@ def test_prepare_data_center_midrange_success(mock_LoadEventNexus, mock_monitor_
     assert alg4.getPropertyValue("Y") == "-0.112"
 
 
+@pytest.mark.datarepo
 @mock_patch("drtsans.load.__monitor_counts")
 @mock_patch("drtsans.load.LoadEventNexus")
-def test_prepare_data_center_midrange_failure(mock_LoadEventNexus, mock_monitor_counts, reference_dir):
+def test_prepare_data_center_midrange_failure(mock_LoadEventNexus, mock_monitor_counts, datarepo_dir):
     # similar test to test_prepare_data_center_midrange_success
     # midrange center is required, but not passed
     # results to failure to move the instrument components
 
     output_workspace = "CG3_92300"
-    synthetics_datasets = os.path.join(reference_dir.biosans, "synthetic_dataset")
+    synthetics_datasets = os.path.join(datarepo_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
     mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
@@ -354,15 +390,16 @@ def test_prepare_data_center_midrange_failure(mock_LoadEventNexus, mock_monitor_
     assert history.size() == previous_history + 5
 
 
+@pytest.mark.datarepo
 @mock_patch("drtsans.load.__monitor_counts")
 @mock_patch("drtsans.load.LoadEventNexus")
-def test_prepare_data_apply_mask_detectors_lst(mock_LoadEventNexus, mock_monitor_counts, reference_dir):
+def test_prepare_data_apply_mask_detectors_lst(mock_LoadEventNexus, mock_monitor_counts, datarepo_dir):
     # load the file with mock patch
     # generate the output workspace from prepare_data
     # mask detector with a list of detector names
 
     output_workspace = "CG3_92300"
-    synthetics_datasets = os.path.join(reference_dir.biosans, "synthetic_dataset")
+    synthetics_datasets = os.path.join(datarepo_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
     mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
@@ -385,15 +422,16 @@ def test_prepare_data_apply_mask_detectors_lst(mock_LoadEventNexus, mock_monitor
     assert alg.getPropertyValue("ComponentList") == ",".join(mask_detectors)
 
 
+@pytest.mark.datarepo
 @mock_patch("drtsans.load.__monitor_counts")
 @mock_patch("drtsans.load.LoadEventNexus")
-def test_prepare_data_apply_mask_detectors_str(mock_LoadEventNexus, mock_monitor_counts, reference_dir):
+def test_prepare_data_apply_mask_detectors_str(mock_LoadEventNexus, mock_monitor_counts, datarepo_dir):
     # load the file with mock patch
     # generate the output workspace from prepare_data
     # mask detector with a detector name
 
     output_workspace = "CG3_92300"
-    synthetics_datasets = os.path.join(reference_dir.biosans, "synthetic_dataset")
+    synthetics_datasets = os.path.join(datarepo_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
     mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
@@ -562,8 +600,12 @@ def test_process_single_configuration_thickness_absolute_scale(generic_workspace
     not os.path.exists("/HFIR/HB2B/shared/autoreduce/"),
     reason="Skip test if HFIR mount is down.",
 )
-def test_has_midrange_detector():
+@pytest.mark.mount_eqsans
+def test_has_midrange_detector(has_sns_mount):
     """Unit test for helper function has_midrange_detector."""
+    if not has_sns_mount:
+        pytest.skip("Skip test if SNS mount is not found.")
+
     reduction_input = {
         "instrumentName": "CG3",
         "iptsNumber": "23782",

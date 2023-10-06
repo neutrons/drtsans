@@ -20,6 +20,7 @@ class TestPrepareSensitivityCorrection:
         assert preparer_midrange._instrument == "CG3"
         assert preparer_midrange._component == "midrange_detector"
 
+    @pytest.mark.datarepo
     def test_curved_detectors(self, biosans_synthetic_dataset):
         data = biosans_synthetic_dataset
         preparer_midrange = PrepareSensitivityCorrection(component="midrange_detector")
@@ -27,6 +28,7 @@ class TestPrepareSensitivityCorrection:
         with amend_config(data_dir=str(data["data_dir"])):
             assert preparer_midrange.curved_detectors == ["wing_detector", "midrange_detector"]
 
+    @pytest.mark.datarepo
     def test_prepare_data_opts(self):
         preparer_midrange = PrepareSensitivityCorrection(component="midrange_detector")
         beam_center = [0.0, 1.0, 2.0, 3.0]
@@ -44,6 +46,7 @@ class TestPrepareSensitivityCorrection:
         opts = preparer_midrange._prepare_data_opts(beam_center)
         assert opts == opts_expected
 
+    @pytest.mark.datarepo
     @mock_patch("drtsans.load.LoadEventNexus")
     @mock_patch("drtsans.load.__monitor_counts")
     def test_get_beam_center_workspace(

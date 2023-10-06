@@ -32,6 +32,7 @@ def dataset_center(gpsans_full_dataset):
     return x, y
 
 
+@pytest.mark.datarepo
 def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws, dataset_center):
     x, y = dataset_center[0], dataset_center[1]
     input_sample_ws = sample_scattering_sum_ws
@@ -43,6 +44,7 @@ def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws, d
     assert trans.readE(0)[0] == approx(0.0130, abs=1e-4)
 
 
+@pytest.mark.datarepo
 def test_apply_transmission_correction(gpsans_full_dataset, sample_scattering_sum_ws, dataset_center):
     trans_value = 0.5191
     trans_ws = CreateWorkspace(DataX=[3.8, 4.2], DataY=[trans_value], DataE=[0.0141], UnitX="Wavelength")
@@ -54,6 +56,7 @@ def test_apply_transmission_correction(gpsans_full_dataset, sample_scattering_su
     assert ws_c.readY(9100)[0] == approx(25.0 / trans_value, abs=1e-3)
 
 
+@pytest.mark.datarepo
 def test_apply_transmission_with_values(gpsans_full_dataset, dataset_center, sample_scattering_sum_ws):
     trans_value = 0.5191
     trans_error = 0.0141
@@ -71,6 +74,7 @@ def test_apply_transmission_with_values(gpsans_full_dataset, dataset_center, sam
     assert ws_c.readY(9100)[0] == approx(25.0 / trans_value, abs=1e-3)
 
 
+@pytest.mark.datarepo
 def test_apply_transmission_correction_ws(gpsans_full_dataset, dataset_center, sample_scattering_sum_ws):
     ws = sample_scattering_sum_ws
     x, y = dataset_center[0], dataset_center[1]
@@ -81,6 +85,7 @@ def test_apply_transmission_correction_ws(gpsans_full_dataset, dataset_center, s
     assert ws_c.readE(9100)[0] == approx(77.70, abs=1e-2)
 
 
+@pytest.mark.datarepo
 def test_apply_transmission_correction_value(gpsans_full_dataset, sample_scattering_sum_ws):
     ws = sample_scattering_sum_ws
     # Zero angle transmission values

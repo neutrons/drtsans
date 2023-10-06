@@ -7,18 +7,19 @@ from mantid.api import Run
 from drtsans.samplelogs import SampleLogs
 
 
-@pytest.mark.offline
-class TestSampleLogs(object):
-    def test_init(self, reference_dir):
-        test_file = pjn(reference_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
+class TestSampleLogs:
+    @pytest.mark.datarepo
+    def test_init(self, datarepo_dir):
+        test_file = pjn(datarepo_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
         w = LoadNexusProcessed(test_file, OutputWorkspace="test_init_w")
         r = w.getRun()
         for other in [w, r]:
             sl = SampleLogs(other)
             assert isinstance(sl._run, Run)
 
-    def test_getitem(self, reference_dir):
-        test_file = pjn(reference_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
+    @pytest.mark.datarepo
+    def test_getitem(self, datarepo_dir):
+        test_file = pjn(datarepo_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
         ws = LoadNexusProcessed(Filename=test_file)
         sl = SampleLogs(ws)
         assert_almost_equal(sl["Phase1"].value.mean(), 22444, decimal=0)
@@ -27,8 +28,9 @@ class TestSampleLogs(object):
             sl["nonexistantlog"].value
             assert False, "Should have failed \"sl['nonexistantlog'].value\""
 
-    def test_getattr(self, reference_dir):
-        test_file = pjn(reference_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
+    @pytest.mark.datarepo
+    def test_getattr(self, datarepo_dir):
+        test_file = pjn(datarepo_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
         ws = LoadNexusProcessed(Filename=test_file)
         sl = SampleLogs(ws)
         assert_almost_equal(sl.Phase1.value.mean(), 22444, decimal=0)
@@ -37,8 +39,9 @@ class TestSampleLogs(object):
             sl.nonexistantlog.value
             assert False, 'Should have failed "sl.nonexistantlog.value"'
 
-    def test_insert(self, reference_dir):
-        test_file = pjn(reference_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
+    @pytest.mark.datarepo
+    def test_insert(self, datarepo_dir):
+        test_file = pjn(datarepo_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
         ws = LoadNexusProcessed(test_file)
         sl = SampleLogs(ws)
         sl.insert("string_log", "log value")

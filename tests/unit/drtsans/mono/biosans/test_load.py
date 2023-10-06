@@ -15,7 +15,12 @@ from drtsans.mono.biosans import (
 from drtsans.samplelogs import SampleLogs
 
 
-def test_load_events(reference_dir):
+@pytest.mark.mount_eqsans
+def test_load_events(reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("SNS mount not available")
+
+    # NOTE: the file is too large for CI, can only run on analysis cluster manually
     events_workspace = load_events("CG3_961.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert events_workspace.name() == "BIOSANS_961"
 
@@ -27,12 +32,18 @@ def test_load_events(reference_dir):
     assert z == pytest.approx(sample_logs.single_value("sample_detector_distance"), abs=0.001)
 
 
-def test_transform_to_wavelength(reference_dir):
+@pytest.mark.mount_eqsans
+def test_transform_to_wavelength(reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("SNS mount not available")
+
+    # NOTE: the file is too large for CI, can only run on analysis cluster manually
     workspace = load_events("CG3_961.nxs.h5", data_dir=reference_dir.biosans)
     workspace = transform_to_wavelength(workspace)
     assert workspace.getAxis(0).getUnit().caption() == "Wavelength"
 
 
+@pytest.mark.datarepo
 def test_api_load(biosans_f):
     ws = load_histogram(filename=biosans_f["beamcenter"])
     assert ws.name() == "BioSANS_exp402_scan0006_0001"
@@ -71,8 +82,13 @@ def test_api_load(biosans_f):
     assert wavelength_spread_ratio_log == pytest.approx(wavelength_spread_log / wavelength_log, abs=1e-3)
 
 
-def test_sum_data(reference_dir):
+@pytest.mark.mount_eqsans
+def test_sum_data(reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("SNS mount not available")
+
     # Merge the same file twice
+    # NOTE: the file is too large for CI, can only run on analysis cluster manually
     workspace1 = load_events(
         "CG3_961.nxs.h5",
         data_dir=reference_dir.biosans,
@@ -139,7 +155,12 @@ def test_sum_data(reference_dir):
     )
 
 
-def test_load_events_and_histogram(reference_dir):
+@pytest.mark.mount_eqsans
+def test_load_events_and_histogram(reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("SNS mount not available")
+
+    # NOTE: the file is too large for CI, can only run on analysis cluster manually
     workspace = load_events_and_histogram(
         "CG3_961.nxs.h5",
         sample_to_si_name="CG3:CS:SampleToSi",
@@ -172,8 +193,13 @@ def test_load_events_and_histogram(reference_dir):
     assert mtd[str(workspace2)].extractY().sum() == 11067715 + 1
 
 
-def test_load_and_split(reference_dir):
+@pytest.mark.mount_eqsans
+def test_load_and_split(reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("SNS mount not available")
+
     # Check that is fails with missing required paramters
+    # NOTE: the file is too large for CI, can only run on analysis cluster manually
     with pytest.raises(ValueError) as excinfo:
         load_and_split(
             "CG3_961.nxs.h5",
@@ -238,8 +264,13 @@ def test_load_and_split(reference_dir):
     )
 
 
-def test_load_and_split_overwrite_geometry(reference_dir):
+@pytest.mark.mount_eqsans
+def test_load_and_split_overwrite_geometry(reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("SNS mount not available")
+
     # Check that is fails with missing required paramters
+    # NOTE: the file is too large for CI, can only run on analysis cluster manually
     with pytest.raises(ValueError) as excinfo:
         load_and_split(
             "CG3_961.nxs.h5",

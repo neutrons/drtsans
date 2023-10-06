@@ -9,7 +9,8 @@ from drtsans.files.event_nexus_nodes import DasLogNode
 from drtsans.files.event_nexus_nodes import MonitorNode
 
 
-def test_create_monitor_node(reference_dir):
+@pytest.mark.datarepo
+def test_create_monitor_node(datarepo_dir):
     """Test to create a Monitor node
 
     Parameters
@@ -21,7 +22,7 @@ def test_create_monitor_node(reference_dir):
 
     """
     # Parse NeXus file manually for the values nodes
-    source_nexus = os.path.join(reference_dir.gpsans, "CG2_9166.nxs.h5")
+    source_nexus = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
 
     # Parse the source HDF5
     nexus_h5 = h5py.File(source_nexus, "r")
@@ -49,19 +50,20 @@ def test_create_monitor_node(reference_dir):
     nexus_h5.close()
 
 
-def test_create_events_node(reference_dir):
+@pytest.mark.datarepo
+def test_create_events_node(datarepo_dir):
     """Test to create a Bank event node
 
     Parameters
     ----------
-    reference_dir
+    datarepo_dir
 
     Returns
     -------
 
     """
     # Parse NeXus file manually for the values nodes
-    source_nexus = os.path.join(reference_dir.gpsans, "CG2_9166.nxs.h5")
+    source_nexus = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
 
     # Parse the source HDF5
     nexus_h5 = h5py.File(source_nexus, "r")
@@ -90,21 +92,22 @@ def test_create_events_node(reference_dir):
     nexus_h5.close()
 
 
-def test_create_das_log_node(reference_dir):
+@pytest.mark.datarepo
+def test_create_das_log_node(datarepo_dir):
     """Test to create a DAS log node
 
     Example: /entry/DASlogs/sample_detector_distance
 
     Parameters
     ----------
-    reference_dir
+    datarepo_dir
 
     Returns
     -------
 
     """
     # Parse NeXus file manually for the values nodes
-    source_nexus = os.path.join(reference_dir.gpsans, "CG2_9166.nxs.h5")
+    source_nexus = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
 
     # Parse the source HDF5
     nexus_h5 = h5py.File(source_nexus, "r")
@@ -141,7 +144,8 @@ def test_create_das_log_node(reference_dir):
     nexus_h5.close()
 
 
-def test_create_instrument_node(reference_dir):
+@pytest.mark.datarepo
+def test_create_instrument_node(datarepo_dir):
     """Test to create an instrument node
 
     Returns
@@ -149,7 +153,7 @@ def test_create_instrument_node(reference_dir):
 
     """
     # Parse NeXus file manually
-    source_nexus = os.path.join(reference_dir.gpsans, "CG2_9166.nxs.h5")
+    source_nexus = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
 
     # Parse the source HDF5
     nexus_h5 = h5py.File(source_nexus, "r")

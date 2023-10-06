@@ -18,6 +18,7 @@ from drtsans.dark_current import duration
 from drtsans.mono.dark_current import subtract_dark_current, normalize_dark_current
 
 
+@pytest.mark.datarepo
 def test_dark_current_workspace(gpsans_f):
     r"""
     (This test was introduced prior to the testset with the instrument team)
@@ -56,6 +57,7 @@ def test_dark_current_workspace(gpsans_f):
     )
 
 
+@pytest.mark.datarepo
 def test_dark_current_filename(gpsans_f):
     r"""
     (This test was introduced prior to the testset with the instrument team)

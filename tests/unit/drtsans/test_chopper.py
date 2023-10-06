@@ -4,7 +4,7 @@ from numpy.testing import assert_almost_equal
 from drtsans.chopper import DiskChopper
 
 
-class TestDiskChopper(object):
+class TestDiskChopper:
     ch = DiskChopper(1.0, 45, 60, 2000, 850)
 
     def test_pulse_width(self):

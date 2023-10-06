@@ -19,10 +19,7 @@ IPTS_19800 = "/SNS/EQSANS/IPTS-19800/nexus/"
 IPTS_22699 = "/HFIR/CG3/IPTS-22699/nexus/"
 
 
-@pytest.mark.skipif(
-    not HAVE_EQSANS_MOUNT,
-    reason="Do not have /SNS/EQSANS properly " "mounted on this system",
-)
+@pytest.mark.mount_eqsans
 @pytest.mark.parametrize(
     "hint, fullpath",
     [
@@ -38,17 +35,22 @@ def test_abspath_with_archivesearch(hint, fullpath, reference_dir):
     assert abspath(hint, search_archive=True) == fullpath
 
 
+@pytest.mark.mount_eqsans
 @pytest.mark.parametrize(
     "hint",
     ["randomname", "EQSANS_906026", "EQSANS_906026"],
     ids=("randomname", "EQSANS_906026", "EQSANS_906026"),
 )
-def test_abspath_without_archivesearch(hint):
+def test_abspath_without_archivesearch(hint, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("Do not have /SNS properly mounted on this system")
+
     with pytest.raises(RuntimeError):
         found = abspath(hint, search_archive=False)
         assert False, 'found "{}" at "{}"'.format(hint, found)
 
 
+@pytest.mark.mount_eqsans
 @pytest.mark.parametrize(
     "hint, instr, ipts, fullpath",
     [
@@ -75,7 +77,11 @@ def test_abspath_with_ipts(hint, instr, ipts, fullpath):
         assert abspath(hint, instrument=instr, ipts=ipts) == fullpath
 
 
-def test_abspath_with_directory(reference_dir):
+@pytest.mark.mount_eqsans
+def test_abspath_with_directory(reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("Do not have /SNS properly mounted on this system")
+
     filename = os.path.join(reference_dir.biosans, "CG3_5709.nxs.h5")
     assert abspath("CG3_5709", directory=reference_dir.biosans, search_archive=False) == filename
     assert (
@@ -89,24 +95,28 @@ def test_abspath_with_directory(reference_dir):
     )
 
 
-@pytest.mark.skipif(
-    not HAVE_EQSANS_MOUNT,
-    reason="Do not have /SNS/EQSANS properly " "mounted on this system",
-)
+@pytest.mark.mount_eqsans
 @pytest.mark.parametrize(
     "hint, found",
     [("EQSANS_106026", True), ("EQSANS106027", True), ("EQSANS_88974.nxs.h5", True)],
 )
-def test_exists_with_archivesearch(hint, found, reference_dir):
+def test_exists_with_archivesearch(hint, found, reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("Do not have /SNS properly mounted on this system")
+
     with amend_config(SEARCH_ON, data_dir=reference_dir.eqsans):
         assert exists(hint) == found  # allows verifying against True and False
 
 
+@pytest.mark.mount_eqsans
 @pytest.mark.parametrize(
     "hint, found",
     [("EQSANS_106026", True), ("EQSANS106028", False), ("EQSANS_88974.nxs.h5", True)],
 )
-def test_exists_without_archivesearch(hint, found, reference_dir):
+def test_exists_without_archivesearch(hint, found, reference_dir, has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("Do not have /SNS properly mounted on this system")
+
     with amend_config(SEARCH_OFF, data_dir=reference_dir.eqsans):
         assert exists(hint) == found  # allows verifying against True and False
 

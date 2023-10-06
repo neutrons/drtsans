@@ -6,12 +6,13 @@ from mantid.simpleapi import LoadHFIRSANS, LoadEventNexus
 from drtsans.mono.biosans.cg3_spice_to_nexus import convert_spice_to_nexus  # noqa: E401
 
 
-def test_benchmark_spice(reference_dir):
+@pytest.mark.datarepo
+def test_benchmark_spice(datarepo_dir):
     """Test the benchmark SPICE file that is created to expose and verify the pixel mapping issue
     between old BIOSANS IDF and new BIOSANS IDF
     """
     # Access the test spice file
-    spice_name = os.path.join(reference_dir.biosans, "BioSANS_exp549_scan0020_0001_benchmark.xml")
+    spice_name = os.path.join(datarepo_dir.biosans, "BioSANS_exp549_scan0020_0001_benchmark.xml")
     assert os.path.exists(spice_name)
 
     # Load data
@@ -84,14 +85,15 @@ def test_benchmark_spice(reference_dir):
     assert np.allclose(np.array(count_list), np.arange(1, 160 + 1) * 1000)
 
 
-def test_spice_conversion(reference_dir, cleanfile):
+@pytest.mark.datarepo
+def test_spice_conversion(datarepo_dir, cleanfile):
     """Test conversion from SPICE to NeXus with pixel ID mapping to new IDF"""
     # Access the test spice file
-    spice_name = os.path.join(reference_dir.biosans, "BioSANS_exp549_scan0020_0001_benchmark.xml")
+    spice_name = os.path.join(datarepo_dir.biosans, "BioSANS_exp549_scan0020_0001_benchmark.xml")
     assert os.path.exists(spice_name)
 
     #
-    template_event_nexus = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/biosans/CG3_5705.nxs.h5"
+    template_event_nexus = os.path.join(datarepo_dir.biosans, "CG3_5705.nxs.h5")
 
     # output
     test_temp_dir = "/tmp/test_cg3_spice_geom"

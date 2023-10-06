@@ -18,6 +18,7 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.mono.gpsans import normalize_by_monitor, normalize_by_time
 
 
+@pytest.mark.datarepo
 def test_normalize_by_monitor(gpsans_f):
     r"""
     Load GPSANS file CG2_exp245_scan0010_0001.xml and normalize by monitor count.
@@ -41,6 +42,7 @@ def test_normalize_by_monitor(gpsans_f):
     assert normalized_values == pytest.approx(1.0e08 * unnormalized_values / monitor_counts, abs=0.1)
 
 
+@pytest.mark.datarepo
 def test_normalize_by_time(gpsans_f):
     r"""
     Load GPSANS file CG2_exp245_scan0010_0001.xml and normalize by run duration.

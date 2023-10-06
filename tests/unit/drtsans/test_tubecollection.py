@@ -276,7 +276,7 @@ class TestPixelSpectrum(object):
     indirect=True,
 )
 @pytest.mark.usefixtures("simple_tubes_panel")
-class TestTubeSpectrum(object):
+class TestTubeSpectrum:
     def test_is_valid_tube(self, simple_tubes_panel):
         workspace = simple_tubes_panel["workspace"]
         assert tubecollection.TubeSpectrum(workspace, 11, [0, 1, 2])  # 11 is the first tube

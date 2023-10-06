@@ -616,6 +616,7 @@ class TestReductionParametersGPSANS:
     }
     parameters_all = reduction_parameters(parameters_common, validate=False)
 
+    @pytest.mark.mount_eqsans
     @pytest.mark.parametrize(
         "validator_name, parameter_changes",
         [
@@ -623,7 +624,10 @@ class TestReductionParametersGPSANS:
             ("evaluateCondition", {"configuration": {"numQBins": None}}),
         ],
     )
-    def test_validators(self, validator_name, parameter_changes, reference_dir):
+    def test_validators(self, validator_name, parameter_changes, reference_dir, has_sns_mount):
+        if not has_sns_mount:
+            pytest.skip("No SNS mount")
+
         parameter_changes["dataDirectories"] = str(Path(reference_dir.gpsans))
         with pytest.raises(jsonschema.ValidationError) as error_info:
             update_reduction_parameters(self.parameters_all, parameter_changes)
@@ -647,7 +651,11 @@ class TestReductionParametersBIOSANS:
     }
     parameters_all = reduction_parameters(parameters_common, validate=False)
 
-    def test_validators_midrange_parameters_required(self, reference_dir):
+    @pytest.mark.mount_eqsans
+    def test_validators_midrange_parameters_required(self, reference_dir, has_sns_mount):
+        if not has_sns_mount:
+            pytest.skip("No SNS mount")
+
         parameters = deepcopy(self.parameters_all)
         parameters["dataDirectories"] = str(Path(reference_dir.biosans))
         # remove all parameters related to the midrange detector
@@ -657,7 +665,11 @@ class TestReductionParametersBIOSANS:
             validate_reduction_parameters(parameters)
         assert "'darkMidrangeFileName' is a required property" in str(error_info.value)
 
-    def test_validators_midrange_qmin_qmax(self, reference_dir):
+    @pytest.mark.mount_eqsans
+    def test_validators_midrange_qmin_qmax(self, reference_dir, has_sns_mount):
+        if not has_sns_mount:
+            pytest.skip("No SNS mount")
+
         parameters = deepcopy(self.parameters_all)
         parameters["dataDirectories"] = str(Path(reference_dir.biosans))
         parameters["configuration"]["QminMidrange"] = 0.07
@@ -666,6 +678,7 @@ class TestReductionParametersBIOSANS:
             validate_reduction_parameters(parameters)
         assert "0.07 is not smaller than #configuration/QmaxMidrange" in str(error_info.value)
 
+    @pytest.mark.mount_eqsans
     @pytest.mark.parametrize(
         "qmin_name, qmax_name",
         [
@@ -691,7 +704,12 @@ class TestReductionParametersBIOSANS:
             (False, [0.01, 0.02], [0.015, 0.025]),
         ],
     )
-    def test_overlap_stitch(self, reference_dir, qmin_name, qmax_name, throws_error, qmin_value, qmax_value):
+    def test_overlap_stitch(
+        self, reference_dir, qmin_name, qmax_name, throws_error, qmin_value, qmax_value, has_sns_mount
+    ):
+        if not has_sns_mount:
+            pytest.skip("No SNS mount")
+
         parameters = deepcopy(self.parameters_all)
         parameters["dataDirectories"] = str(Path(reference_dir.biosans))
         parameters["configuration"][qmin_name] = qmin_value

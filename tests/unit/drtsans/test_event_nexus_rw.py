@@ -18,19 +18,20 @@ def test_write_event_nexus():
     assert EventNeXusWriter
 
 
-def test_convert_to_histogram(reference_dir):
+@pytest.mark.datarepo
+def test_convert_to_histogram(datarepo_dir):
     """Test method to convert a single bank's TOF events to histogram
 
     Parameters
     ----------
-    reference_dir
+    datarepo_dir
 
     Returns
     -------
 
     """
     # Parse NeXus file manually for the values nodes
-    nexus_name = os.path.join(reference_dir.gpsans, "CG2_9166.nxs.h5")
+    nexus_name = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
     nexus_h5 = h5py.File(nexus_name, "r")
 
     # test with bank 9
@@ -52,7 +53,8 @@ def test_convert_to_histogram(reference_dir):
     assert bank9_histogram.tof_max == pytest.approx(16666.2, 0.1)
 
 
-def test_convert_histogram_to_events(reference_dir):
+@pytest.mark.datarepo
+def test_convert_histogram_to_events(datarepo_dir):
     """
 
     Returns
@@ -60,7 +62,7 @@ def test_convert_histogram_to_events(reference_dir):
 
     """
     # Create a TofHistogram from bank9
-    nexus_name = os.path.join(reference_dir.gpsans, "CG2_9166.nxs.h5")
+    nexus_name = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
     nexus_h5 = h5py.File(nexus_name, "r")
     # test with bank 9
     bank9_entry = nexus_h5["/entry/bank9_events"]

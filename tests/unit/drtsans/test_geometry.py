@@ -188,18 +188,16 @@ def test_logged_smearing_pixel_size(workspace_with_instrument):
     assert logged_values == pytest.approx(logged_values)
 
 
-def test_sample_aperture_diameter(serve_events_workspace, reference_dir):
-    # NOTE:
-    # serve_events_workspace is a pytest fixture that is hardcoded to work for
-    # eqsans tests.
-    input_workspace = serve_events_workspace("EQSANS_92353.nxs.h5")
+@pytest.mark.datarepo
+def test_sample_aperture_diameter(serve_events_workspace_datarepo, datarepo_dir):
+    input_workspace = serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")
     # diameter is retrieved from log 'beamslit4', and we convert the 10mm into 0.01 meters
     assert geo.sample_aperture_diameter(input_workspace, unit="m") == pytest.approx(0.01, abs=0.1)
     # verify entry 'sample_aperture_diameter' has been added to the logs
     assert SampleLogs(input_workspace).single_value("sample_aperture_diameter") == pytest.approx(10.0, abs=0.1)
     # test a run containing "sample_aperture_radius" instead of "sample_aperture_diameter"
     workspace = LoadEventNexus(
-        Filename=path_join(reference_dir.gpsans, "geometry", "CG2_1338.nxs.h5"),
+        Filename=path_join(datarepo_dir.gpsans, "geometry", "CG2_1338.nxs.h5"),
         OutputWorkspace=unique_workspace_dundername(),
         MetaDataOnly=True,
         LoadLogs=True,
@@ -208,10 +206,11 @@ def test_sample_aperture_diameter(serve_events_workspace, reference_dir):
     workspace.delete()
 
 
-def test_source_aperture_diameter(reference_dir):
+@pytest.mark.datarepo
+def test_source_aperture_diameter(datarepo_dir):
     # test a run containing "sample_aperture_radius" instead of "sample_aperture_diameter"
     workspace = LoadEventNexus(
-        Filename=path_join(reference_dir.gpsans, "geometry", "CG2_1338.nxs.h5"),
+        Filename=path_join(datarepo_dir.gpsans, "geometry", "CG2_1338.nxs.h5"),
         OutputWorkspace=unique_workspace_dundername(),
         MetaDataOnly=True,
         LoadLogs=True,
@@ -220,8 +219,9 @@ def test_source_aperture_diameter(reference_dir):
     workspace.delete()
 
 
-def test_translate_source_by_z(reference_dir):
-    filename = path_join(reference_dir.gpsans, "geometry", "CG2_1338.nxs.h5")
+@pytest.mark.datarepo
+def test_translate_source_by_z(datarepo_dir):
+    filename = path_join(datarepo_dir.gpsans, "geometry", "CG2_1338.nxs.h5")
     workspace = LoadEventNexus(
         Filename=filename,
         OutputWorkspace=unique_workspace_dundername(),

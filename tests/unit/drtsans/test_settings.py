@@ -3,7 +3,6 @@ from drtsans.settings import namedtuplefy, amend_config
 from mantid.kernel import ConfigService
 
 
-@pytest.mark.offline
 def test_namedtuplefy():
     @namedtuplefy
     def foo(x):
@@ -24,7 +23,6 @@ def test_namedtuplefy():
     assert type(y2) != type(z2)
 
 
-@pytest.mark.offline
 def test_amend_config():
     config = ConfigService.Instance()
     old_instrument = config["instrumentName"]
@@ -33,7 +31,6 @@ def test_amend_config():
     assert config["instrumentName"] == old_instrument
 
 
-@pytest.mark.offline
 def test_offline():
     print("this tests runs when offline")
 

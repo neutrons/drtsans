@@ -26,20 +26,22 @@ class TestInstrumentEnumName:
         assert InstrumentEnumName.names() == ["BIOSANS", "EQSANS", "GPSANS"]
 
 
-def test_instrument_name(serve_events_workspace):
+@pytest.mark.datarepo
+def test_instrument_name(serve_events_workspace_datarepo):
     assert instrument_enum_name("EQ-SANS") == InstrumentEnumName.EQSANS
     assert str(instrument_enum_name("EQ-SANS")) == "EQSANS"
     assert str(instrument_enum_name("CG3")) == "BIOSANS"
     assert str(instrument_enum_name("somepath/CG3_961.nxs.h5")) == "BIOSANS"
     assert instrument_enum_name("nonexistantsansinstrument") == InstrumentEnumName.UNDEFINED
-    assert instrument_enum_name(serve_events_workspace("EQSANS_92353.nxs.h5")) == InstrumentEnumName.EQSANS
+    assert instrument_enum_name(serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")) == InstrumentEnumName.EQSANS
     workspace = CreateWorkspace(DataX=range(42), DataY=range(42), OutputWorkspace=unique_workspace_dundername())
     assert instrument_enum_name(workspace) == InstrumentEnumName.UNDEFINED
     workspace.delete()
 
 
-def test_is_time_of_flight(serve_events_workspace):
-    for query in ("EQSANS", "EQ-SANS", serve_events_workspace("EQSANS_92353.nxs.h5")):
+@pytest.mark.datarepo
+def test_is_time_of_flight(serve_events_workspace_datarepo):
+    for query in ("EQSANS", "EQ-SANS", serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")):
         assert is_time_of_flight(query) is True
     for query in ("GPSANS", "CG2", "BIOSANS", "CG3"):
         assert is_time_of_flight(query) is False
@@ -75,7 +77,8 @@ def test_empty_instrument_workspace():
     DeleteWorkspace(workspace)
 
 
-def test_copy_to_newest_instrument(fetch_idf, reference_dir, clean_workspace):
+@pytest.mark.datarepo
+def test_copy_to_newest_instrument(fetch_idf, datarepo_dir, clean_workspace):
     #
     # assert that spectra originally assigned to monitors is respected
     workspace1 = LoadEmptyInstrument(
@@ -100,7 +103,7 @@ def test_copy_to_newest_instrument(fetch_idf, reference_dir, clean_workspace):
     assert workspace2.getNumberHistograms() > old_histogram_count
     #
     # assert intensities and detector positions
-    with amend_config(new_config={"default.instrument": "CG3"}, data_dir=reference_dir.biosans):
+    with amend_config(new_config={"default.instrument": "CG3"}, data_dir=datarepo_dir.biosans):
         workspace3 = LoadEventNexus(Filename="1322", OutputWorkspace=unique_workspace_dundername())
     clean_workspace(workspace3)
     pixel_counts = workspace3.getSpectrum(24956).getNumberEvents()

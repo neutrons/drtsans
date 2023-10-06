@@ -8,11 +8,12 @@ from drtsans.geometry import sample_detector_distance
 from drtsans.samplelogs import SampleLogs
 
 
-def test_load_all_files(reference_dir):
+@pytest.mark.datarepo
+def test_load_all_files(datarepo_dir):
     """Standard reduction workflow
 
     Parameters
-    ----------'
+    ----------
     data_dir
     json_file
     output_dir
@@ -41,13 +42,16 @@ def test_load_all_files(reference_dir):
 
     # set output directory
     reduction_input["configuration"]["outputDir"] = output_dir
-    reduction_input["dataDirectories"] = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/gpsans/data"
+    reduction_input["dataDirectories"] = datarepo_dir
     reduction_input["sample"]["runNumber"] = samples[0]
     reduction_input["sample"]["transmission"]["runNumber"] = samples_trans[0]
     reduction_input["background"]["runNumber"] = bkgd[0]
     reduction_input["background"]["transmission"]["runNumber"] = bkgd_trans[0]
     reduction_input["outputFileName"] = sample_names[0]
     reduction_input["sample"]["thickness"] = sample_thick[0]
+    reduction_input["configuration"]["sensitivityFileName"] = os.path.join(
+        datarepo_dir.gpsans, "overwrite_gold_04282020", "sens_c486_noBar.nxs"
+    )
 
     # check inputs
     reduction_input = reduction_parameters(reduction_input, validate=True)
@@ -56,7 +60,7 @@ def test_load_all_files(reference_dir):
         reduction_input,
         prefix="GP_TEST_LOAD",
         load_params=None,
-        path=reference_dir.gpsans,
+        path=datarepo_dir.gpsans,
     )
 
     sample_run = mtd["GP_TEST_LOAD_GPSANS_9166_raw_histo"]
@@ -118,7 +122,7 @@ def test_load_all_files(reference_dir):
         reduction_input,
         prefix="GP_TEST_LOAD",
         load_params=None,
-        path=reference_dir.gpsans,
+        path=datarepo_dir.gpsans,
     )
     sample_run = mtd["GP_TEST_LOAD_GPSANS_9166_raw_histo"]
 
@@ -220,11 +224,6 @@ def generate_test_json():
         }
     }
     """
-
-    # replace for the correct sensitivity file
-    sens_nxs_dir = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/meta_overwrite/gpsans/"
-    sens_path = os.path.join(sens_nxs_dir, "sens_c486_noBar.nxs")
-    json_str = json_str.replace("SensFileToReplace", sens_path)
 
     return json_str
 

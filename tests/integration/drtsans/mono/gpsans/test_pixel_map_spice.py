@@ -7,12 +7,13 @@ from mantid.simpleapi import LoadNexusProcessed
 from mantid.simpleapi import DeleteWorkspace
 
 
-def test_pixel_calibration(reference_dir, temp_directory):
+@pytest.mark.datarepo
+def test_pixel_calibration(datarepo_dir, temp_directory):
     """
 
     Parameters
     ----------
-    reference_dir
+    datarepo_dir
 
     Returns
     -------
@@ -24,7 +25,7 @@ def test_pixel_calibration(reference_dir, temp_directory):
     # First and last pt for the barscan: Set by user
     # -------------------------------------------------------------------------------------------------------
     # IPTS 828 Exp 280.  (/HFIR/CG2/IPTS-828/exp280/Datafiles)
-    root_dir = os.path.join(reference_dir.gpsans, "calibrations")
+    root_dir = os.path.join(datarepo_dir.gpsans, "calibrations")
     ipts = 828
     exp_number = 280
     scan_number = 5
@@ -36,7 +37,7 @@ def test_pixel_calibration(reference_dir, temp_directory):
     flood_scan = 4
     flood_pt = 1
 
-    mask_file = os.path.join(reference_dir.gpsans, "calibrations/mask_pixel_map.nxs")
+    mask_file = os.path.join(datarepo_dir.gpsans, "calibrations/mask_pixel_map.nxs")
     assert os.path.exists(mask_file), f"Mask file {mask_file} does not exist"
 
     # Calculate pixel calibration file
@@ -76,7 +77,7 @@ def test_pixel_calibration(reference_dir, temp_directory):
 
     # Get expected data file
     expected_calib_nexus = os.path.join(
-        reference_dir.gpsans,
+        datarepo_dir.gpsans,
         f"calibrations/CG2_Pixel_Calibration_Expected_{last_pt - first_pt + 1}.nxs",
     )
     assert os.path.exists(expected_calib_nexus), f"Gold result (file) {expected_calib_nexus} cannot be found."

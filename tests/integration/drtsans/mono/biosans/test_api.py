@@ -558,6 +558,7 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
     assert np.nanmax(second_curve) == pytest.approx(23099, rel=1e-3)
 
 
+@pytest.mark.datarepo
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 @mock_patch("drtsans.load.__monitor_counts")
 def test_reduce_single_configuration_with_wedges_synthetic_dataset(
@@ -661,6 +662,7 @@ def test_reduce_single_configuration_with_wedges_synthetic_dataset(
     assert np.nanmax(wedge2_second_curve) == pytest.approx(18478, rel=1e-3)
 
 
+@pytest.mark.datarepo
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 @mock_patch("drtsans.load.__monitor_counts")
 def test_reduce_single_configuration_ignore_midrange(mock_monitor_counts, biosans_synthetic_dataset, temp_directory):

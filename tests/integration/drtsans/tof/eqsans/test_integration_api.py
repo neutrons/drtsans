@@ -48,17 +48,17 @@ run_sets = [{k: v for k, v in zip(keys, value)} for value in values]
 
 
 @pytest.fixture(scope="module")
-def flux_file(reference_dir):
-    return pj(reference_dir.eqsans, "test_normalization", "beam_profile_flux.txt")
+def flux_file(datarepo_dir):
+    return pj(datarepo_dir.eqsans, "test_normalization", "beam_profile_flux.txt")
 
 
 @pytest.fixture(scope="module", params=run_sets, ids=[item["run"] for item in run_sets])
 @namedtuplefy
-def run_infoset(reference_dir, request):
+def run_infoset(datarepo_dir, request):
     run_set = request.param
     run = run_set["run"]
     tof_workspace = unique_workspace_dundername()
-    with amend_config(data_dir=reference_dir.eqsans):
+    with amend_config(data_dir=datarepo_dir.eqsans):
         eqsans.load_events(run, output_workspace=tof_workspace)
     wavelength_workspace, bands = eqsans.transform_to_wavelength(
         tof_workspace,
@@ -71,11 +71,13 @@ def run_infoset(reference_dir, request):
 
 
 class TestLoadEvents(object):
+    @pytest.mark.datarepo
     def test_loading_file(self, run_infoset):
         tof_workspace = mtd[run_infoset.ws]
         assert isinstance(tof_workspace, EventWorkspace)
         assert tof_workspace.getNumberEvents() == run_infoset.num_events
 
+    @pytest.mark.datarepo
     def test_geometry(self, run_infoset):
         ws = mtd[run_infoset.ws]
         # assert distance of detector1 same as that in detectorZ of the logs
@@ -88,14 +90,16 @@ class TestLoadEvents(object):
         assert run_infoset.ssd == approx(sl.single_value("source-sample-distance"), abs=1)
         assert run_infoset.sdd == approx(sl.single_value("sample-detector-distance"), abs=1)
 
+    @pytest.mark.datarepo
     def test_tofs(self, run_infoset):
         ws = mtd[run_infoset.ws]
         assert ws.getTofMin() == pytest.approx(run_infoset.min_tof, abs=1)
         assert ws.getTofMax() == pytest.approx(run_infoset.max_tof, abs=1)
         assert bool(SampleLogs(ws).is_frame_skipping.value) == run_infoset.skip_frame
 
-    def test_offsets(self, reference_dir):
-        with amend_config(data_dir=reference_dir.eqsans):
+    @pytest.mark.datarepo
+    def test_offsets(self, datarepo_dir):
+        with amend_config(data_dir=datarepo_dir.eqsans):
             workspace = eqsans.load_events(
                 "EQSANS_86217",
                 output_workspace=unique_workspace_dundername(),
@@ -109,6 +113,7 @@ class TestLoadEvents(object):
         assert 1366.0 == pytest.approx(source_detector_distance, abs=0.1)
 
 
+@pytest.mark.datarepo
 def test_transform_to_wavelength(run_infoset):
     ws, bands = eqsans.transform_to_wavelength(
         run_infoset.ws,
@@ -126,6 +131,7 @@ def test_transform_to_wavelength(run_infoset):
         np.testing.assert_equal(ws.readE(i)[zci], np.ones(len(zci)))
 
 
+@pytest.mark.datarepo
 def test_normalize_by_flux(run_infoset, flux_file):
     data_workspace = run_infoset.wl
     normalized_data_workspace = eqsans.normalize_by_flux(
@@ -140,8 +146,9 @@ def test_normalize_by_flux(run_infoset, flux_file):
     DeleteWorkspace(normalized_data_workspace)
 
 
-def test_subtract_background(reference_dir):
-    data_dir = pj(reference_dir.eqsans, "test_subtract_background")
+@pytest.mark.datarepo
+def test_subtract_background(datarepo_dir):
+    data_dir = pj(datarepo_dir.eqsans, "test_subtract_background")
     ws = LoadNexus(pj(data_dir, "sample.nxs"), OutputWorkspace=unique_workspace_dundername())
     ws_name = ws.name()
     wb = LoadNexus(pj(data_dir, "background.nxs"), OutputWorkspace=unique_workspace_dundername())
@@ -150,10 +157,11 @@ def test_subtract_background(reference_dir):
     assert max(ws_wb.readY(0)) < 1.0e-09
 
 
-def test_prepare_monitors(reference_dir):
+@pytest.mark.datarepo
+def test_prepare_monitors(datarepo_dir):
     data_dirs = [
-        reference_dir.eqsans,
-        pj(reference_dir.eqsans, "test_integration_api"),
+        datarepo_dir.eqsans,
+        pj(datarepo_dir.eqsans, "test_integration_api"),
     ]
     with amend_config(data_dir=data_dirs):
         # Raises for a run in skip frame mode
@@ -179,6 +187,7 @@ def test_prepare_monitors(reference_dir):
     DeleteWorkspace("EQSANS_92353_monitors")
 
 
+@pytest.mark.datarepo
 def test_solid_angle(run_infoset):
     ws2 = solid_angle_correction(
         run_infoset.ws,

@@ -1,3 +1,4 @@
+import pytest
 import tempfile
 from os.path import join
 from drtsans.save_ascii import save_ascii_1D, save_xml_1D
@@ -8,8 +9,9 @@ import numpy as np
 import xml.etree.ElementTree as ET
 
 
-def test_save_ascii_1d(reference_dir):
-    ws = Load(Filename=join(reference_dir.eqsans, "test_save_output/EQSANS_68200_iq.nxs"))
+@pytest.mark.datarepo
+def test_save_ascii_1d(datarepo_dir):
+    ws = Load(Filename=join(datarepo_dir.eqsans, "test_save_output/EQSANS_68200_iq.nxs"))
 
     with tempfile.NamedTemporaryFile("wt") as tmp:
         save_ascii_1D(ws, "test_reduction_log.hdf", tmp.name)
@@ -18,7 +20,7 @@ def test_save_ascii_1d(reference_dir):
             dtype={"names": ("Q", "I", "dI", "dQ"), "formats": ("f", "f", "f", "f")},
         )
         reference = np.loadtxt(
-            join(reference_dir.eqsans, "test_save_output/EQSANS_68200_Iq.txt"),
+            join(datarepo_dir.eqsans, "test_save_output/EQSANS_68200_Iq.txt"),
             dtype={"names": ("Q", "I", "dI", "dQ"), "formats": ("f", "f", "f", "f")},
         )
         assert np.allclose(output["Q"], reference["Q"], atol=1e-6)
@@ -41,7 +43,7 @@ def test_save_ascii_1d(reference_dir):
                 ]
             )
         reference = []
-        tree = ET.parse(join(reference_dir.eqsans, "test_save_output/EQSANS_68200_Iq.xml"))
+        tree = ET.parse(join(datarepo_dir.eqsans, "test_save_output/EQSANS_68200_Iq.xml"))
         root = tree.getroot()
         for node in root[0][2]:
             reference.append(

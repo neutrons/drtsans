@@ -47,7 +47,7 @@ def clone_database(helper, has_sns_mount):
     # Tear down the temporary database
     shutil.rmtree(cloned_database_directory)
 
-
+@pytest.mark.datarepo
 @pytest.mark.parametrize(
     "input_file, loader_name",
     [

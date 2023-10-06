@@ -20,14 +20,15 @@ from drtsans.tof.eqsans import (
 )
 
 
-def test_normalize_by_time(reference_dir):
+@pytest.mark.datarepo
+def test_normalize_by_time(datarepo_dir):
     r"""
     Test normalization by time duration.
     """
     output_workspace = unique_workspace_dundername()
     load_events(
         "EQSANS_68168",
-        data_dir=reference_dir.eqsans,
+        data_dir=datarepo_dir.eqsans,
         output_workspace=output_workspace,
     )
     workspace, bands = transform_to_wavelength(output_workspace)

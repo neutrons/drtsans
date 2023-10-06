@@ -189,7 +189,8 @@ code-integration-test:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - COMMAND="bash /opt/sans-backend/test_job.sh -m 'not long_execution_time and not requires_large_memory' -s integration"
+    # disable datarepo test as we have not add the git-lfs pull yet
+    - COMMAND="bash /opt/sans-backend/test_job.sh -m 'not long_execution_time and not requires_large_memory and not datarepo' -s integration"
     - time docker run -v /SNS:/SNS -v /HFIR:/HFIR -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "$COMMAND"
     - popd
   after_script:

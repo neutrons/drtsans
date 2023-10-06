@@ -42,13 +42,17 @@ specs_eqsans = {
 }
 
 
+@pytest.mark.mount_eqsans
 @pytest.mark.parametrize(
     "run_config, basename",
     [(specs_eqsans["EQSANS_88980"], "EQSANS_88980")],
     ids=["88980"],
 )
-def test_regular_setup(run_config, basename, temp_directory, reference_dir):
+def test_regular_setup(has_sns_mount, run_config, basename, temp_directory, reference_dir):
     """Same reduction from Shaman test with regular non-correction and no-weighted binning"""
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # set flag to use weighted binning
     weighted_binning = False
 
@@ -141,12 +145,13 @@ def test_regular_setup(run_config, basename, temp_directory, reference_dir):
             DeleteWorkspace(ws)
 
 
+@pytest.mark.mount_eqsans
 @pytest.mark.parametrize(
     "run_config, basename",
     [(specs_eqsans["EQSANS_88980"], "EQSANS_88980")],
     ids=["88980"],
 )
-def test_weighted_binning_setup(run_config, basename, temp_directory, reference_dir):
+def test_weighted_binning_setup(has_sns_mount, run_config, basename, temp_directory, reference_dir):
     """Same reduction from Shaman test but using weighted binning
 
     A previous integration test has approved that the 2-step binning
@@ -155,6 +160,9 @@ def test_weighted_binning_setup(run_config, basename, temp_directory, reference_
 
     - weighted binning must be used
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     common_config = {
         "configuration": {
             "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
@@ -335,7 +343,11 @@ def export_reduction_output(reduction_output: List[Any], output_dir: Union[None,
         print(f"Save frame {section_index} I(Q2D) to {h5_file_name}")
 
 
-def test_wavelength_step(reference_dir):
+@pytest.mark.mount_eqsans
+def test_wavelength_step(has_sns_mount, reference_dir):
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # Set up the configuration dict
     configuration = {
         "instrumentName": "EQSANS",

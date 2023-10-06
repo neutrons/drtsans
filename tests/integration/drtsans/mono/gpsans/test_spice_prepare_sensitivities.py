@@ -10,13 +10,17 @@ from drtsans.mono.gpsans.prepare_sensitivities_correction import (
 )
 
 
-def test_sensitivities_with_bar(reference_dir, temp_directory):
+@pytest.mark.mount_eqsans
+def test_sensitivities_with_bar(has_sns_mount, reference_dir, temp_directory):
     """Test preparing sensitivities from converted SPICE files with bar scan calibration
 
     Returns
     -------
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # Experiment setup
     experiment_number = 280
     # Input Flood Runs

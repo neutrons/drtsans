@@ -10,13 +10,17 @@ from drtsans.load import move_instrument
 from mantid.simpleapi import AddSampleLogMultiple, DeleteWorkspace
 
 
-def test_load_gpsans():
+@pytest.mark.mount_eqsans
+def test_load_gpsans(has_sns_mount):
     """Test load GPSANS data
 
     Returns
     -------
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     nexus_file_name = "/HFIR/CG2/IPTS-23801/nexus/CG2_7116.nxs.h5"
     if not os.path.exists(nexus_file_name):
         pytest.skip("Skip due to NeXus file {} is not accessible.".format(nexus_file_name))
@@ -71,14 +75,17 @@ def test_load_gpsans():
     DeleteWorkspace(ws)
 
 
-@pytest.mark.requires_large_memory
-def test_load_biosans():
+@pytest.mark.mount_eqsans
+def test_load_biosans(has_sns_mount):
     """Test load BIOSANS data
 
     Returns
     -------
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # Decide to skip data or not
     nexus_file_name = "/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"
     if not os.path.exists(nexus_file_name):
@@ -129,14 +136,17 @@ def test_load_biosans():
     DeleteWorkspace(ws)
 
 
-@pytest.mark.requires_large_memory
-def test_load_biosans_sample_off_nominal():
+@pytest.mark.mount_eqsans
+def test_load_biosans_sample_off_nominal(has_sns_mount):
     """Test load BIOSANS data with sample position off nominal position
 
     Returns
     -------
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # Decide to skip data or not
     nexus_file_name = "/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"
     if not os.path.exists(nexus_file_name):
@@ -205,14 +215,17 @@ def test_load_biosans_sample_off_nominal():
     DeleteWorkspace(ws)
 
 
-@pytest.mark.requires_large_memory
-def test_load_biosans_overwrite_swd():
+@pytest.mark.mount_eqsans
+def test_load_biosans_overwrite_swd(has_sns_mount):
     """Test load BIOSANS data with overwriting sample Si window distance
 
     Returns
     -------
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # Decide to skip data or not
     nexus_file_name = "/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"
     if not os.path.exists(nexus_file_name):
@@ -263,14 +276,17 @@ def test_load_biosans_overwrite_swd():
     DeleteWorkspace(ws)
 
 
-@pytest.mark.requires_large_memory
-def test_load_biosans_overwrite_sdd():
+@pytest.mark.mount_eqsans
+def test_load_biosans_overwrite_sdd(has_sns_mount):
     """Test load BIOSANS data with overwriting sample detector distance related meta data
 
     Returns
     -------
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # Decide to skip data or not
     nexus_file_name = "/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"
     if not os.path.exists(nexus_file_name):

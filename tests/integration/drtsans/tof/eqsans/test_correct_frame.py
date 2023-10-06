@@ -80,33 +80,36 @@ def compare_to_eqsans_load(ws, wo, dl, s2d, ltc, htc):
                 AnalysisDataService.remove(w.name())
 
 
-def test_correct_detector_frame(serve_events_workspace):
+@pytest.mark.datarepo
+def test_correct_detector_frame(serve_events_workspace_datarepo):
     for v in trials.values():
         run_number, wavelength_bin, sdd = v[0:3]
-        wo = serve_events_workspace(run_number)
-        ws = serve_events_workspace(run_number)
+        wo = serve_events_workspace_datarepo(run_number)
+        ws = serve_events_workspace_datarepo(run_number)
         MoveInstrumentComponent(ws, ComponentName="detector1", Z=sdd)
         correct_detector_frame(ws, path_to_pixel=False)
         compare_to_eqsans_load(ws, wo, wavelength_bin, sdd, 500, 2000)
 
 
-def test_smash_monitor_spikes(reference_dir):
+@pytest.mark.datarepo
+def test_smash_monitor_spikes(datarepo_dir):
     # Smash two spikes
-    w = load_events_monitor("EQSANS_88565.nxs.h5", data_dir=reference_dir.eqsans)
+    w = load_events_monitor("EQSANS_88565.nxs.h5", data_dir=datarepo_dir.eqsans)
     w = smash_monitor_spikes(w)
     assert max(w.dataY(0)) < 1e3
     DeleteWorkspace(w)
 
     # Monitor data is crap
-    w = load_events_monitor("EQSANS_101595.nxs.h5", data_dir=reference_dir.eqsans)
+    w = load_events_monitor("EQSANS_101595.nxs.h5", data_dir=datarepo_dir.eqsans)
     with pytest.raises(RuntimeError, match="Monitor spectrum is flat"):
         smash_monitor_spikes(w)
     DeleteWorkspace(w)
 
 
-def test_correct_monitor_frame(reference_dir):
+@pytest.mark.datarepo
+def test_correct_monitor_frame(datarepo_dir):
     for k, v in trials.items():
-        with amend_config(data_dir=reference_dir.eqsans):
+        with amend_config(data_dir=datarepo_dir.eqsans):
             w = LoadNexusMonitors(v[0], LoadOnly="Events", OutputWorkspace=uwd())
         if not bool(k.find("skip")):  # run in skip frame mode
             with pytest.raises(RuntimeError, match="cannot correct monitor"):
@@ -116,8 +119,9 @@ def test_correct_monitor_frame(reference_dir):
             assert w.getSpectrum(0).getTofMin() == approx(v[3], abs=1)
 
 
-def test_convert_to_wavelength(reference_dir):
-    with amend_config(data_dir=reference_dir.eqsans):
+@pytest.mark.datarepo
+def test_convert_to_wavelength(datarepo_dir):
+    with amend_config(data_dir=datarepo_dir.eqsans):
         for v in trials.values():
             run_number, wavelength_bin, sadd = v[0:3]
             wo = Load(Filename=run_number, OutputWorkspace=uwd())

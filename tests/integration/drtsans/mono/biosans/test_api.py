@@ -4,7 +4,7 @@ from drtsans.mono.biosans.api import load_all_files, process_single_configuratio
 from drtsans.mono.load import transform_to_wavelength
 from drtsans.mono.transmission import calculate_transmission
 from drtsans.redparms import reduction_parameters
-from drtsans.settings import unique_workspace_dundername
+from drtsans.settings import unique_workspace_dundername, amend_config
 
 # third party imports
 from mantid.api import AnalysisDataService
@@ -483,10 +483,15 @@ def test_reduce_single_configuration_slice_transmission_true(has_sns_mount, temp
     del _
 
 
-@pytest.mark.datarepo
+@pytest.mark.mount_eqsans
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 @mock_patch("drtsans.load.__monitor_counts")
-def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, biosans_synthetic_dataset, temp_directory):
+def test_reduce_single_configuration_synthetic_dataset(
+    mock_monitor_counts, has_sns_mount, biosans_synthetic_dataset, temp_directory
+):
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     data = biosans_synthetic_dataset
     mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
     reduction_input = {
@@ -514,7 +519,7 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
             "outputDir": temp_directory(prefix="synthetic_experiment"),
             "timeSliceInterval": 60.0,
             "sampleApertureSize": 12.0,
-            "usePixelCalibration": True,
+            "usePixelCalibration": os.path.join(data["data_dir"], "pixel_calibration.json"),
             "useDefaultMask": True,
             "defaultMask": [
                 {"Pixel": "1-18,239-256"},
@@ -549,7 +554,8 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
     }
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
-    loaded = load_all_files(reduction_input, prefix, path=data["data_dir"])
+    with amend_config(data_dir=data["data_dir"]):
+        loaded = load_all_files(reduction_input, prefix, path=data["data_dir"])
     output = reduce_single_configuration(loaded, reduction_input)
     iq1d_combined = output[0].I1D_combined[0].intensity
 
@@ -562,12 +568,15 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
     assert np.nanmax(second_curve) == pytest.approx(23099, rel=1e-3)
 
 
-@pytest.mark.datarepo
+@pytest.mark.mount_eqsans
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 @mock_patch("drtsans.load.__monitor_counts")
 def test_reduce_single_configuration_with_wedges_synthetic_dataset(
-    mock_monitor_counts, biosans_synthetic_dataset, temp_directory
+    mock_monitor_counts, has_sns_mount, biosans_synthetic_dataset, temp_directory
 ):
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     data = biosans_synthetic_dataset
     mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
     reduction_input = {
@@ -666,11 +675,16 @@ def test_reduce_single_configuration_with_wedges_synthetic_dataset(
     assert np.nanmax(wedge2_second_curve) == pytest.approx(18478, rel=1e-3)
 
 
-@pytest.mark.datarepo
+@pytest.mark.mount_eqsans
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 @mock_patch("drtsans.load.__monitor_counts")
-def test_reduce_single_configuration_ignore_midrange(mock_monitor_counts, biosans_synthetic_dataset, temp_directory):
+def test_reduce_single_configuration_ignore_midrange(
+    mock_monitor_counts, has_sns_mount, biosans_synthetic_dataset, temp_directory
+):
     """Test that data from the midrange detector is ignored when parameter "overlapStitchIgnoreMidrange" is True"""
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     data = biosans_synthetic_dataset
     mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
     reduction_input = {

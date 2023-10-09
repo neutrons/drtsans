@@ -6,10 +6,11 @@ from drtsans.settings import unique_workspace_dundername
 from drtsans.geometry import sample_detector_distance
 
 
-def test_translated_gpsans(reference_dir):
+@pytest.mark.datarepo
+def test_translated_gpsans(datarepo_dir):
     """Test sample detector (plane) distance for GPSANS"""
     # Get test data
-    test_nexus_file = path_join(reference_dir.gpsans, "Exp280/CG2_028000090001.nxs.h5")
+    test_nexus_file = path_join(datarepo_dir.gpsans, "Exp280/CG2_028000090001.nxs.h5")
     assert os.path.join(test_nexus_file)
 
     # Load data

@@ -7,8 +7,12 @@ from mantid.simpleapi import DeleteWorkspace
 
 
 class TestLoadEvents:
-    def test_pixel_calibration(self, reference_dir):
+    @pytest.mark.mount_eqsans
+    def test_pixel_calibration(self, has_sns_mount, reference_dir):
         r"""Check the pixel calibration is applied to a workspace upon loading"""
+        if not has_sns_mount:
+            pytest.skip("SNS mount is not available")
+
         file_name = str(Path(reference_dir.sans) / "pixel_calibration" / "CG2_8508.nxs.h5")
         workspace = load_events(
             file_name,

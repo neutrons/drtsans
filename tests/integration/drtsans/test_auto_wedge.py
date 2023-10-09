@@ -525,9 +525,10 @@ def test_integration():
     assert back_wedge[1][1] == pytest.approx(111.0, abs=0.5)
 
 
-def test_real_data_biosans(reference_dir):
-    MSamp_fn = os.path.join(reference_dir.biosans, "CG3_127_5532_mBSub.h5")
-    MBuff_fn = os.path.join(reference_dir.biosans, "CG3_127_5562_mBSub.h5")
+@pytest.mark.datarepo
+def test_real_data_biosans(datarepo_dir):
+    MSamp_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5532_mBSub.h5")
+    MBuff_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5562_mBSub.h5")
 
     ws_ms = LoadNexusProcessed(Filename=MSamp_fn, OutputWorkspace="sample", LoadHistory=False)
     ws_mb = LoadNexusProcessed(Filename=MBuff_fn, OutputWorkspace="Main_buffer", LoadHistory=False)
@@ -596,10 +597,11 @@ def test_real_data_biosans(reference_dir):
     os.remove(filename)
 
 
-def test_real_data_biosans_manual(reference_dir):
+@pytest.mark.datarepo
+def test_real_data_biosans_manual(datarepo_dir):
     """Test asymmetric manual wedge binning on BIOSANS data"""
-    MSamp_fn = os.path.join(reference_dir.biosans, "CG3_127_5532_mBSub.h5")
-    MBuff_fn = os.path.join(reference_dir.biosans, "CG3_127_5562_mBSub.h5")
+    MSamp_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5532_mBSub.h5")
+    MBuff_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5562_mBSub.h5")
 
     ws_ms = LoadNexusProcessed(Filename=MSamp_fn, OutputWorkspace="sample", LoadHistory=False)
     ws_mb = LoadNexusProcessed(Filename=MBuff_fn, OutputWorkspace="Main_buffer", LoadHistory=False)

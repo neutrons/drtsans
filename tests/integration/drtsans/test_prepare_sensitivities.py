@@ -44,13 +44,17 @@ def verify_sensitivities_file(test_sens_file, gold_sens_file, atol=None):
     np.testing.assert_allclose(gold_e, test_e, atol=atol, equal_nan=True)
 
 
-def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
+@pytest.mark.mount_eqsans
+def test_eqsans_prepare_sensitivities(has_sns_mount, reference_dir, cleanfile):
     """Integration test on algorithm to prepare EQSANS' sensitivities
 
     Returns
     -------
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # INSTRUMENT = 'CG2'  # 'CG2'  # From 'EQSANS', 'CG3'
     INSTRUMENT = "EQSANS"  # Main
 
@@ -138,14 +142,17 @@ def test_eqsans_prepare_sensitivities(reference_dir, cleanfile):
     DeleteWorkspace("test_sens_ws")
 
 
-@pytest.mark.requires_large_memory
-def test_cg3_main_prepare_sensitivities(tmp_path):
+@pytest.mark.mount_eqsans
+def test_cg3_main_prepare_sensitivities(has_sns_mount, tmp_path):
     """Integration test on algorithms to prepare sensitivities for BIOSANS's main detector
 
     Returns
     -------
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # Check whether the test shall be skipped
     if not os.path.exists("/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"):
         pytest.skip("Test files of CG3 cannot be accessed.")
@@ -220,13 +227,17 @@ def test_cg3_main_prepare_sensitivities(tmp_path):
     os.remove(output_sens_file)
 
 
-def test_cg3_wing_prepare_sensitivities(tmp_path):
+@pytest.mark.mount_eqsans
+def test_cg3_wing_prepare_sensitivities(has_sns_mount, tmp_path):
     """Integration test on algorithms to prepare sensitivities for BIOSANS's wing detector
 
     Returns
     -------
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # Check whether the test shall be skipped
     if not os.path.exists("/HFIR/CG3/IPTS-23782/nexus/CG3_4835.nxs.h5"):
         pytest.skip("Test files of CG3 cannot be accessed.")
@@ -398,7 +409,8 @@ def test_cg3_midrange_prepare_sensitivities(biosans_synthetic_sensitivity_datase
     # verify_sensitivities_file(output_sens_file, gold_cg2_wing_file, atol=1e-7)
 
 
-def test_cg2_sensitivities(tmp_path):
+@pytest.mark.mount_eqsans
+def test_cg2_sensitivities(has_sns_mount, tmp_path):
     """Integration test on algorithms to prepare sensitivities for GPSANS's
     with moving detector method
 
@@ -406,6 +418,9 @@ def test_cg2_sensitivities(tmp_path):
     -------
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     if not os.path.exists("/HFIR/CG2/IPTS-23801/nexus/CG2_7116.nxs.h5"):
         pytest.skip("Testing file for CG2 cannot be accessed")
 

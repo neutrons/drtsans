@@ -42,6 +42,9 @@ def test_main_detector(has_sns_mount, reference_dir, temp_directory, clean_works
     if not has_sns_mount:
         pytest.skip("SNS mount is not available")
 
+    # TODO: investigate if we can use a smaller file than 8 GB file CG3_054900090001.nxs.h5
+    pytest.skip("Requires large memory")
+
     # output testing directory
     output_dir = temp_directory()
     if not os.path.exists(output_dir):

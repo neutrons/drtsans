@@ -18,11 +18,14 @@ def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
     return val
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/HFIR/CG2/IPTS-26004/nexus/CG2_13078.nxs.h5"),
-    reason="Required data is not available",
-)
-def test_gaussian_fit():
+@pytest.mark.mount_eqsans
+def test_gaussian_fit(has_sns_mount):
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
+    if not os.path.exists("/HFIR/CG2/IPTS-26004/nexus/CG2_13078.nxs.h5"):
+        pytest.skip("Required data is not available")
+
     flood_file = "/HFIR/CG2/shared/drt_sensitivity/sens_c489_bar.nxs"
     # Find beam center for main detector
     # loading beam center data

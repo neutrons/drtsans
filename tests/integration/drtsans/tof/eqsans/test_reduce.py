@@ -6,8 +6,9 @@ from drtsans.tof.eqsans import reduce
 from drtsans.settings import amend_config, unique_workspace_dundername as uwd
 
 
-def test_load_w(reference_dir):
-    with amend_config(data_dir=reference_dir.eqsans):
+@pytest.mark.datarepo
+def test_load_w(datarepo_dir):
+    with amend_config(data_dir=datarepo_dir.eqsans):
         _w0 = reduce.load_w(
             "EQSANS_92353",
             output_workspace=uwd(),
@@ -16,7 +17,7 @@ def test_load_w(reference_dir):
             dw=0.1,
         )
         _w1 = SumSpectra(_w0, OutputWorkspace=_w0.name())
-        fn = pj(reference_dir.eqsans, "test_reduce", "compare", "ref_load_w.nxs")
+        fn = pj(datarepo_dir.eqsans, "test_reduce", "compare", "ref_load_w.nxs")
         _w2 = LoadNexus(fn, OutputWorkspace=uwd())
         assert CompareWorkspaces(_w1, _w2)
 

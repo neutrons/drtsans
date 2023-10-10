@@ -586,7 +586,8 @@ def test_fbc_options_json():
     assert fbc_options["centering_options"] == {"CenterX": {"val": 0.0}}
 
 
-def test_find_beam_center_midrange(reference_dir):
+@pytest.mark.mount_eqsans
+def test_find_beam_center_midrange(has_sns_mount, reference_dir):
     """
     Test with the find_beam_center
 
@@ -595,6 +596,8 @@ def test_find_beam_center_midrange(reference_dir):
     3. Find the beamcenter x,y again
     4. Make sure all values match
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
 
     # beam_center parameters
     method = "center_of_mass"

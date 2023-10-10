@@ -285,8 +285,8 @@ def test_fit_transmission_and_calc(test_data_9a_part_2):
 
 @pytest.fixture(scope="module")
 @namedtuplefy
-def transmission_fixture(reference_dir):
-    data_dir = pjn(reference_dir.eqsans, "test_transmission")
+def transmission_fixture(datarepo_dir):
+    data_dir = pjn(datarepo_dir.eqsans, "test_transmission")
     cmp_dir = pjn(data_dir, "compare")
 
     def quick_compare(tentative, asset):
@@ -314,13 +314,14 @@ def transmission_fixture(reference_dir):
     )
 
 
-def test_masked_beam_center(reference_dir, transmission_fixture):
+@pytest.mark.datarepo
+def test_masked_beam_center(datarepo_dir, transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)
     Test for an exception raised when the beam centers are masked
     """
     mask = pjn(transmission_fixture.data_dir, "beam_center_masked.xml")
-    with amend_config(data_dir=reference_dir.eqsans):
+    with amend_config(data_dir=datarepo_dir.eqsans):
         sample_workspace = prepare_data("EQSANS_88975", mask=mask, output_workspace=unique_workspace_dundername())
         reference_workspace = prepare_data("EQSANS_88973", mask=mask, output_workspace=unique_workspace_dundername())
     with pytest.raises(RuntimeError, match=r"Transmission at zero-angle is NaN"):
@@ -328,6 +329,7 @@ def test_masked_beam_center(reference_dir, transmission_fixture):
     [workspace.delete() for workspace in (sample_workspace, reference_workspace)]
 
 
+@pytest.mark.datarepo
 def test_calculate_raw_transmission(transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)
@@ -344,6 +346,7 @@ def test_calculate_raw_transmission(transmission_fixture):
     assert transmission_fixture.compare(raw, "raw_transmission_skip.nxs")
 
 
+@pytest.mark.datarepo
 def test_calculate_fitted_transmission(transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)
@@ -359,6 +362,7 @@ def test_calculate_fitted_transmission(transmission_fixture):
     assert transmission_fixture.compare(fitted_transmission_workspace, "fitted_transmission_skip_mtd6.nxs")
 
 
+@pytest.mark.datarepo
 def test_apply_transmission(transmission_fixture):
     r"""
     (this test was written previously to the testset with the instrument team)

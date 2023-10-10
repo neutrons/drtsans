@@ -1,3 +1,4 @@
+import os
 from tempfile import NamedTemporaryFile
 import pytest
 from pytest import approx
@@ -16,7 +17,8 @@ from drtsans.tof.eqsans import (
 
 
 # eqsans_f and eqsans_p are defined in tests/conftest.py. Currently  them beamcenter file is EQSANS_68183
-def test_find_beam_center(eqsans_f, eqsans_p):
+@pytest.mark.datarepo
+def test_find_beam_center(datarepo_dir, eqsans_p):
     r"""
     Integration test to find the location on the detector where
     the beam impinges
@@ -24,7 +26,7 @@ def test_find_beam_center(eqsans_f, eqsans_p):
     1. Apply mask
     2. Find the beam center
     """
-    ws = load_events(eqsans_f["beamcenter"], output_workspace=uwd())
+    ws = load_events(os.path.join(datarepo_dir.eqsans, "EQSANS_68183_event.nxs"), output_workspace=uwd())
     #
     # Find the beam center
     #

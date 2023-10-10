@@ -1766,7 +1766,7 @@ def biosans_synthetic_dataset(datarepo_dir, tmp_path_factory) -> dict:
 
 
 @pytest.fixture(scope="session")
-def biosans_synthetic_sensitivity_dataset(reference_dir):
+def biosans_synthetic_sensitivity_dataset(datarepo_dir):
     r"""
     A dataset for testing the source that creates a sensitivity file for the BIOSANS midrange detector.
     The dataset contains Nexus-processed files with integrated counts (counts per pixel). The files
@@ -1799,7 +1799,7 @@ def biosans_synthetic_sensitivity_dataset(reference_dir):
 
     """
     return {
-        "data_dir": pjoin(reference_dir.biosans, "synthetic_sensitivity"),
+        "data_dir": pjoin(datarepo_dir.biosans, "synthetic_sensitivity"),
         "runs": {
             "flood": 4835,
             "direct_beam": 4830,

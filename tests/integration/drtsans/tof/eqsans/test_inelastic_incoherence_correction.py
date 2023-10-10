@@ -19,8 +19,12 @@ import os
 from typing import Tuple, Dict
 
 
-def test_parse_json(reference_dir):
+@pytest.mark.mount_eqsans
+def test_parse_json(has_sns_mount, reference_dir):
     """Test the JSON to dictionary"""
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     elastic_reference_run = "124680"
     elastic_reference_bkgd_run = ""
     # Specify JSON input
@@ -86,8 +90,12 @@ def test_parse_json(reference_dir):
     assert correction.elastic_reference.background_run_number is None
 
 
-def test_parse_invalid_json():
+@pytest.mark.mount_eqsans
+def test_parse_invalid_json(has_sns_mount):
     """Test the JSON to dictionary"""
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     invalid_run_num = "260159121"
     valid_run_num = "115363"
     # Specify JSON input
@@ -295,8 +303,12 @@ def generate_configuration_with_correction(output_dir: str = "/tmp/") -> Dict:
 #     verify_binned_iq(gold_file_dict, reduction_output)
 
 
-def test_incoherence_correction_elastic_normalization(reference_dir, temp_directory):
+@pytest.mark.mount_eqsans
+def test_incoherence_correction_elastic_normalization(has_sns_mount, reference_dir, temp_directory):
     """Test incoherence correction with elastic correction"""
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # Set up the configuration dict
     config_json_file = os.path.join(reference_dir.eqsans, "test_incoherence_correction/agbe_125707_test1.json")
     assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
@@ -366,9 +378,13 @@ def test_incoherence_correction_elastic_normalization(reference_dir, temp_direct
             DeleteWorkspace(ws)
 
 
-def test_incoherence_correction_elastic_normalization_weighted(reference_dir, temp_directory):
+@pytest.mark.mount_eqsans
+def test_incoherence_correction_elastic_normalization_weighted(has_sns_mount, reference_dir, temp_directory):
     """Test incoherence correction with elastic correction"""
     import filecmp
+
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
 
     # Set up the configuration dict
     config_json_file = os.path.join(reference_dir.eqsans, "test_incoherence_correction/porsil_29024_abs_inel.json")

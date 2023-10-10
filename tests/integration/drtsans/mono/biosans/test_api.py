@@ -4,7 +4,7 @@ from drtsans.mono.biosans.api import load_all_files, process_single_configuratio
 from drtsans.mono.load import transform_to_wavelength
 from drtsans.mono.transmission import calculate_transmission
 from drtsans.redparms import reduction_parameters
-from drtsans.settings import unique_workspace_dundername, amend_config
+from drtsans.settings import unique_workspace_dundername
 
 # third party imports
 from mantid.api import AnalysisDataService
@@ -483,15 +483,10 @@ def test_reduce_single_configuration_slice_transmission_true(has_sns_mount, temp
     del _
 
 
-@pytest.mark.mount_eqsans
+@pytest.mark.datarepo
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 @mock_patch("drtsans.load.__monitor_counts")
-def test_reduce_single_configuration_synthetic_dataset(
-    mock_monitor_counts, has_sns_mount, biosans_synthetic_dataset, temp_directory
-):
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
-
+def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, biosans_synthetic_dataset, temp_directory):
     data = biosans_synthetic_dataset
     mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
     reduction_input = {
@@ -519,7 +514,7 @@ def test_reduce_single_configuration_synthetic_dataset(
             "outputDir": temp_directory(prefix="synthetic_experiment"),
             "timeSliceInterval": 60.0,
             "sampleApertureSize": 12.0,
-            "usePixelCalibration": os.path.join(data["data_dir"], "pixel_calibration.json"),
+            "usePixelCalibration": False,
             "useDefaultMask": True,
             "defaultMask": [
                 {"Pixel": "1-18,239-256"},
@@ -554,8 +549,7 @@ def test_reduce_single_configuration_synthetic_dataset(
     }
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
-    with amend_config(data_dir=data["data_dir"]):
-        loaded = load_all_files(reduction_input, prefix, path=data["data_dir"])
+    loaded = load_all_files(reduction_input, prefix, path=data["data_dir"])
     output = reduce_single_configuration(loaded, reduction_input)
     iq1d_combined = output[0].I1D_combined[0].intensity
 
@@ -564,19 +558,16 @@ def test_reduce_single_configuration_synthetic_dataset(
     first_curve = iq1d_combined[0:35]
     second_curve = iq1d_combined[35:50]
     assert len(iq1d_combined) == 91
-    assert np.nanmax(first_curve) == pytest.approx(22437, rel=1e-3)
-    assert np.nanmax(second_curve) == pytest.approx(23099, rel=1e-3)
+    assert np.nanmax(first_curve) == pytest.approx(24192, rel=1e-3)
+    assert np.nanmax(second_curve) == pytest.approx(26300, rel=1e-3)
 
 
-@pytest.mark.mount_eqsans
+@pytest.mark.datarepo
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 @mock_patch("drtsans.load.__monitor_counts")
 def test_reduce_single_configuration_with_wedges_synthetic_dataset(
-    mock_monitor_counts, has_sns_mount, biosans_synthetic_dataset, temp_directory
+    mock_monitor_counts, biosans_synthetic_dataset, temp_directory
 ):
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
-
     data = biosans_synthetic_dataset
     mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
     reduction_input = {
@@ -604,7 +595,7 @@ def test_reduce_single_configuration_with_wedges_synthetic_dataset(
             "outputDir": temp_directory(prefix="synthetic_experiment"),
             "timeSliceInterval": 60.0,
             "sampleApertureSize": 12.0,
-            "usePixelCalibration": True,
+            "usePixelCalibration": False,
             "useDefaultMask": True,
             "defaultMask": [
                 {"Pixel": "1-18,239-256"},
@@ -663,28 +654,23 @@ def test_reduce_single_configuration_with_wedges_synthetic_dataset(
     wedge1_first_curve = iq1d_combined_wedge1[0:35]
     wedge1_second_curve = iq1d_combined_wedge1[35:55]
     assert len(iq1d_combined_wedge1) == 91
-    assert np.nanmax(wedge1_first_curve) == pytest.approx(22513, rel=1e-3)
-    assert np.nanmax(wedge1_second_curve) == pytest.approx(23352, rel=1e-3)
+    assert np.nanmax(wedge1_first_curve) == pytest.approx(24331, rel=1e-3)
+    assert np.nanmax(wedge1_second_curve) == pytest.approx(26431, rel=1e-3)
 
     # the data should create at least two bell curves
     # we check tha values at their peaks
     wedge2_first_curve = iq1d_combined_wedge2[0:35]
     wedge2_second_curve = iq1d_combined_wedge2[35:50]
     assert len(iq1d_combined_wedge2) == 91
-    assert np.nanmax(wedge2_first_curve) == pytest.approx(22505, rel=1e-3)
-    assert np.nanmax(wedge2_second_curve) == pytest.approx(18478, rel=1e-3)
+    assert np.nanmax(wedge2_first_curve) == pytest.approx(24621, rel=1e-3)
+    assert np.nanmax(wedge2_second_curve) == pytest.approx(20615, rel=1e-3)
 
 
-@pytest.mark.mount_eqsans
+@pytest.mark.datarepo
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 @mock_patch("drtsans.load.__monitor_counts")
-def test_reduce_single_configuration_ignore_midrange(
-    mock_monitor_counts, has_sns_mount, biosans_synthetic_dataset, temp_directory
-):
+def test_reduce_single_configuration_ignore_midrange(mock_monitor_counts, biosans_synthetic_dataset, temp_directory):
     """Test that data from the midrange detector is ignored when parameter "overlapStitchIgnoreMidrange" is True"""
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
-
     data = biosans_synthetic_dataset
     mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
     reduction_input = {
@@ -713,7 +699,7 @@ def test_reduce_single_configuration_ignore_midrange(
             "outputDir": temp_directory(prefix="synthetic_experiment"),
             "timeSliceInterval": 60.0,
             "sampleApertureSize": 12.0,
-            "usePixelCalibration": True,
+            "usePixelCalibration": False,
             "useDefaultMask": True,
             "defaultMask": [
                 {"Pixel": "1-18,239-256"},
@@ -757,8 +743,8 @@ def test_reduce_single_configuration_ignore_midrange(
     main_region = iq1d_combined[0:46]
     wing_region = iq1d_combined[46:82]
     assert len(iq1d_combined) == 82
-    assert np.nanmax(main_region) == pytest.approx(22437, rel=1e-3)
-    assert np.nanmax(wing_region) == pytest.approx(17749, rel=1e-3)
+    assert np.nanmax(main_region) == pytest.approx(24192, rel=1e-3)
+    assert np.nanmax(wing_region) == pytest.approx(17888, rel=1e-3)
 
 
 if __name__ == "__main__":

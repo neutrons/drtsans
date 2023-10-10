@@ -333,6 +333,7 @@ def test_cg3_wing_prepare_sensitivities(has_sns_mount, tmp_path):
     DeleteWorkspace("TRANS_CG3_4835")
 
 
+@pytest.mark.datarepo
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 def test_cg3_midrange_prepare_sensitivities(biosans_synthetic_sensitivity_dataset, tmp_path):
     """Integration test on algorithms to prepare sensitivities for BIOSANS's midrange detector"""

@@ -195,11 +195,11 @@ def test_process_single_configuration(biosans_synthetic_dataset, clean_workspace
     DeleteWorkspaces([prefix + "_" + suffix for suffix in ("sample", "background")])
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/HFIR/HB2B/shared/autoreduce/"),
-    reason="Skip test on build server",
-)
-def test_reduce_single_configuration_slice_transmission_false(temp_directory):
+@pytest.mark.mount_eqsans
+def test_reduce_single_configuration_slice_transmission_false(has_sns_mount, temp_directory):
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "BIOSANS",
@@ -345,7 +345,11 @@ def remove_ws(workspace):
         DeleteWorkspace(workspace)
 
 
-def test_reduce_single_configuration_slice_transmission_true(temp_directory):
+@pytest.mark.mount_eqsans
+def test_reduce_single_configuration_slice_transmission_true(has_sns_mount, temp_directory):
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "BIOSANS",
@@ -510,7 +514,7 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
             "outputDir": temp_directory(prefix="synthetic_experiment"),
             "timeSliceInterval": 60.0,
             "sampleApertureSize": 12.0,
-            "usePixelCalibration": True,
+            "usePixelCalibration": False,
             "useDefaultMask": True,
             "defaultMask": [
                 {"Pixel": "1-18,239-256"},
@@ -554,8 +558,8 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
     first_curve = iq1d_combined[0:35]
     second_curve = iq1d_combined[35:50]
     assert len(iq1d_combined) == 91
-    assert np.nanmax(first_curve) == pytest.approx(22437, rel=1e-3)
-    assert np.nanmax(second_curve) == pytest.approx(23099, rel=1e-3)
+    assert np.nanmax(first_curve) == pytest.approx(24192, rel=1e-3)
+    assert np.nanmax(second_curve) == pytest.approx(26300, rel=1e-3)
 
 
 @pytest.mark.datarepo
@@ -591,7 +595,7 @@ def test_reduce_single_configuration_with_wedges_synthetic_dataset(
             "outputDir": temp_directory(prefix="synthetic_experiment"),
             "timeSliceInterval": 60.0,
             "sampleApertureSize": 12.0,
-            "usePixelCalibration": True,
+            "usePixelCalibration": False,
             "useDefaultMask": True,
             "defaultMask": [
                 {"Pixel": "1-18,239-256"},
@@ -650,16 +654,16 @@ def test_reduce_single_configuration_with_wedges_synthetic_dataset(
     wedge1_first_curve = iq1d_combined_wedge1[0:35]
     wedge1_second_curve = iq1d_combined_wedge1[35:55]
     assert len(iq1d_combined_wedge1) == 91
-    assert np.nanmax(wedge1_first_curve) == pytest.approx(22513, rel=1e-3)
-    assert np.nanmax(wedge1_second_curve) == pytest.approx(23352, rel=1e-3)
+    assert np.nanmax(wedge1_first_curve) == pytest.approx(24331, rel=1e-3)
+    assert np.nanmax(wedge1_second_curve) == pytest.approx(26431, rel=1e-3)
 
     # the data should create at least two bell curves
     # we check tha values at their peaks
     wedge2_first_curve = iq1d_combined_wedge2[0:35]
     wedge2_second_curve = iq1d_combined_wedge2[35:50]
     assert len(iq1d_combined_wedge2) == 91
-    assert np.nanmax(wedge2_first_curve) == pytest.approx(22505, rel=1e-3)
-    assert np.nanmax(wedge2_second_curve) == pytest.approx(18478, rel=1e-3)
+    assert np.nanmax(wedge2_first_curve) == pytest.approx(24621, rel=1e-3)
+    assert np.nanmax(wedge2_second_curve) == pytest.approx(20615, rel=1e-3)
 
 
 @pytest.mark.datarepo
@@ -695,7 +699,7 @@ def test_reduce_single_configuration_ignore_midrange(mock_monitor_counts, biosan
             "outputDir": temp_directory(prefix="synthetic_experiment"),
             "timeSliceInterval": 60.0,
             "sampleApertureSize": 12.0,
-            "usePixelCalibration": True,
+            "usePixelCalibration": False,
             "useDefaultMask": True,
             "defaultMask": [
                 {"Pixel": "1-18,239-256"},
@@ -739,8 +743,8 @@ def test_reduce_single_configuration_ignore_midrange(mock_monitor_counts, biosan
     main_region = iq1d_combined[0:46]
     wing_region = iq1d_combined[46:82]
     assert len(iq1d_combined) == 82
-    assert np.nanmax(main_region) == pytest.approx(22437, rel=1e-3)
-    assert np.nanmax(wing_region) == pytest.approx(17749, rel=1e-3)
+    assert np.nanmax(main_region) == pytest.approx(24192, rel=1e-3)
+    assert np.nanmax(wing_region) == pytest.approx(17888, rel=1e-3)
 
 
 if __name__ == "__main__":

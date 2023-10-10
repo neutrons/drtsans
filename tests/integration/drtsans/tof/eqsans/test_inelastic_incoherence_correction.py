@@ -252,47 +252,47 @@ def generate_configuration_with_correction(output_dir: str = "/tmp/") -> Dict:
     return reduction_configuration
 
 
-@pytest.mark.skipif(
-    reason="The test is either incorrect or using wrong ref values",
-)
-def test_incoherence_correction_step4only(reference_dir, temp_directory):
-    """Test incoherence correction without elastic correction"""
-    # Set up the configuration dict
-    configuration = generate_configuration_with_correction()
-
-    # Create temp output directory
-    test_dir = temp_directory()
-    base_name = "EQSANS_113915_Incoh_1d"
-
-    assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
-    configuration["configuration"]["outputDir"] = test_dir
-    configuration["outputFileName"] = base_name
-    configuration["dataDirectories"] = test_dir
-
-    # validate and clean configuration
-    input_config = reduction_parameters(configuration)
-    loaded = load_all_files(input_config)
-
-    # Reduce
-    reduction_output = reduce_single_configuration(loaded, input_config, not_apply_incoherence_correction=False)
-
-    # Gold data directory
-    gold_dir = os.path.join(reference_dir.eqsans, "gold_data/Incoherence_Corrected_113915/")
-    assert os.path.exists(gold_dir), f"Gold/expected data directory {gold_dir} does not exist"
-
-    # Verify with gold data
-    gold_file_dict = dict()
-    for frame_index in range(1):
-        iq1d_h5_name = os.path.join(gold_dir, f"EQSANS_11395iq1d_{frame_index}_0.h5")
-        gold_file_dict[1, frame_index, 0] = iq1d_h5_name
-        iq2d_h5_name = os.path.join(gold_dir, f"EQSANS_11395iq2d_{frame_index}.h5")
-        gold_file_dict[2, frame_index] = iq2d_h5_name
-        assert os.path.exists(iq1d_h5_name) and os.path.exists(iq2d_h5_name), (
-            f"{iq1d_h5_name} and/or {iq2d_h5_name}" f"do not exist"
-        )
-
-    # Verify
-    verify_binned_iq(gold_file_dict, reduction_output)
+# @pytest.mark.skipif(
+#     reason="The test is either incorrect or using wrong ref values",
+# )
+# def test_incoherence_correction_step4only(reference_dir, temp_directory):
+#     """Test incoherence correction without elastic correction"""
+#     # Set up the configuration dict
+#     configuration = generate_configuration_with_correction()
+#
+#     # Create temp output directory
+#     test_dir = temp_directory()
+#     base_name = "EQSANS_113915_Incoh_1d"
+#
+#     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
+#     configuration["configuration"]["outputDir"] = test_dir
+#     configuration["outputFileName"] = base_name
+#     configuration["dataDirectories"] = test_dir
+#
+#     # validate and clean configuration
+#     input_config = reduction_parameters(configuration)
+#     loaded = load_all_files(input_config)
+#
+#     # Reduce
+#     reduction_output = reduce_single_configuration(loaded, input_config, not_apply_incoherence_correction=False)
+#
+#     # Gold data directory
+#     gold_dir = os.path.join(reference_dir.eqsans, "gold_data/Incoherence_Corrected_113915/")
+#     assert os.path.exists(gold_dir), f"Gold/expected data directory {gold_dir} does not exist"
+#
+#     # Verify with gold data
+#     gold_file_dict = dict()
+#     for frame_index in range(1):
+#         iq1d_h5_name = os.path.join(gold_dir, f"EQSANS_11395iq1d_{frame_index}_0.h5")
+#         gold_file_dict[1, frame_index, 0] = iq1d_h5_name
+#         iq2d_h5_name = os.path.join(gold_dir, f"EQSANS_11395iq2d_{frame_index}.h5")
+#         gold_file_dict[2, frame_index] = iq2d_h5_name
+#         assert os.path.exists(iq1d_h5_name) and os.path.exists(iq2d_h5_name), (
+#             f"{iq1d_h5_name} and/or {iq2d_h5_name}" f"do not exist"
+#         )
+#
+#     # Verify
+#     verify_binned_iq(gold_file_dict, reduction_output)
 
 
 def test_incoherence_correction_elastic_normalization(reference_dir, temp_directory):

@@ -30,11 +30,15 @@ other files
 """
 
 
-def test_reduction_spice(reference_dir, temp_directory):
+@pytest.mark.mount_eqsans
+def test_reduction_spice(has_sns_mount, reference_dir, temp_directory):
     """
     Test reduction from SPICE-converted Nexus file
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     nexus_dir = os.path.join(reference_dir.gpsans, "Exp280")
 
     # Set output (temp) directory
@@ -176,10 +180,14 @@ def test_reduction_spice(reference_dir, temp_directory):
             DeleteWorkspace(ws)
 
 
-def test_reduction_spice_subpixel(reference_dir, temp_directory):
+@pytest.mark.mount_eqsans
+def test_reduction_spice_subpixel(has_sns_mount, reference_dir, temp_directory):
     """
     Test reduction from SPICE-converted Nexus file
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     nexus_dir = os.path.join(reference_dir.gpsans, "Exp280")
 
     # Set output (temp) directory

@@ -9,7 +9,8 @@ from drtsans.geometry import sample_detector_distance
 from drtsans.samplelogs import SampleLogs
 
 
-def test_load_all_files(reference_dir):
+@pytest.mark.mount_eqsans
+def test_load_all_files(has_sns_mount, reference_dir):
     """Standard reduction workflow
 
     Parameters
@@ -21,6 +22,9 @@ def test_load_all_files(reference_dir):
     -------
 
     """
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
     # Create JSON
     json_str = generate_test_json(os.path.join(reference_dir.biosans, "overwrite_gold"))
     # Load JSON for configuration

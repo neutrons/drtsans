@@ -7,8 +7,8 @@ from drtsans.mono.biosans.cg3_spice_to_nexus import convert_spice_to_nexus
 from mantid.simpleapi import LoadEventNexus, LoadHFIRSANS, DeleteWorkspace
 
 
-@pytest.mark.skipif(not os.path.exists("/HFIR/HB2B/shared/autoreduce/"), reason="On build server")
-def test_convert_spice(reference_dir, temp_directory, clean_workspace):
+@pytest.mark.datarepo
+def test_convert_spice(datarepo_dir, temp_directory, clean_workspace):
     """
     Test converting BIOSANS SPICE file to event Nexus
     """
@@ -22,7 +22,7 @@ def test_convert_spice(reference_dir, temp_directory, clean_workspace):
 
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    temp_event_nexus = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/hfir/biosans/CG3_5705.nxs.h5"
+    temp_event_nexus = os.path.join(datarepo_dir.biosans, "CG3_5705.nxs.h5")
     nexus_files = list()
     for scan_num, pt_num in scan_pt_list:
         fake_nexus = convert_spice_to_nexus(
@@ -33,12 +33,12 @@ def test_convert_spice(reference_dir, temp_directory, clean_workspace):
             temp_event_nexus,
             masked_detector_pixels=[70911],
             output_dir=output_dir,
-            spice_dir=reference_dir.biosans,
+            spice_dir=datarepo_dir.biosans,
         )
         nexus_files.append(fake_nexus)
 
     # Verify result
-    raw_spice = os.path.join(reference_dir.biosans, "BioSANS_exp402_scan0006_0001.xml")
+    raw_spice = os.path.join(datarepo_dir.biosans, "BioSANS_exp402_scan0006_0001.xml")
     verify_result(nexus_files[0], raw_spice, [70911], clean_workspace)
 
 

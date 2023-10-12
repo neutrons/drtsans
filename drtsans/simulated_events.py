@@ -3,9 +3,11 @@ from drtsans.beam_finder import _calculate_neutron_drop
 from drtsans.geometry import (
     panel_names,
     spectrum_info_ranges,
+    get_pixel_distances,
     get_pixel_masks,
     get_xyz,
     get_solid_angles,
+    source_sample_distance,
 )
 from drtsans.samplelogs import SampleLogs
 
@@ -22,7 +24,7 @@ from typing import Callable, Optional, List, Union
 
 def twotheta_to_xyz(twotheta_cross_section: Callable) -> Callable:
     r"""
-    Decorator to pass pixel coordinates (x, y, z) to a cross section that instead accepts
+    Decorator to pass pixel coordinates (x, y, z) as arguments to a cross section function defined to accept
     scattering angles as arguments
 
     Parameters
@@ -54,12 +56,11 @@ def insert_events(
     back_panel_attenuation: float = 0.5,
     solid_angle_correction: bool = True,
     gravity_correction: bool = True,
+    pulse_time: Union[str, DateAndTime] = None,
+    lambda_distribution: Optional[Callable] = None,
 ) -> None:
     r"""
     Insert events into one (or more) of the detector panels.
-
-    Event TOF are randomly selected between 1000 and 16665 microseconds. All events are assigned to the first pulse.
-
 
     Parameters
     ----------
@@ -88,7 +89,17 @@ def insert_events(
         If True, the Y-component coordinate of each pixel is shifted "upwards" to correct the gravity drop in the
         neutron's path after scattering from the sample. This shift is applied before ``xy_cross_section``
         is called. There's only one value of the gravity drop for each component. Log entry "wavelength" is
-        required for this correction.
+        required for this correction, thus assuming all neutrons have the same wavelength. It's an approximation.
+    pulse_time
+        If None, the time of the first pulse in the run is used.
+    lambda_distribution
+        A function that takes a number of neutron events and returns as many values of neutron wavelengths (in
+        units of Angstroms), to be later used to assign a TOF to each event. If None, the TOF of each event is
+        randomly selected between 1000 and 16665 microseconds.
+        Example:
+            def lambda_distribution_normal(n_events) -> np.ndarray:
+                 # Normal distribution with 5 Angstroms mean wavelength, 0.1 Angstroms standard deviation
+                return np.random.normal(loc=5.0, scale=0.1, size=n_events)
     """
     workspace = mtd[str(input_workspace)]
 
@@ -110,6 +121,14 @@ def insert_events(
         assert len(components) == len(component_efficiencies)
         efficiencies = component_efficiencies
 
+    # we'll use one pulse time for all events
+    first_pulse = DateAndTime(SampleLogs(workspace).start_time.value)
+    if pulse_time is None:
+        pulse_time = first_pulse
+    else:
+        pulse_time = DateAndTime(pulse_time)
+        assert pulse_time >= first_pulse
+
     for efficiency, component in zip(efficiencies, components):
         x, y, z = get_xyz(workspace, component)  # pixes coordinates, in meters
         # pixels coordinates (x, y) must be centered as (x-center_x, y-center_y) before calculating the cross-section
@@ -125,25 +144,33 @@ def insert_events(
         if solid_angle_correction:
             solid_angles = get_solid_angles(workspace, component, back_panel_attenuation=back_panel_attenuation)
             cross_sections *= solid_angles
-        neutron_counts = cross_sections.astype(int)
+        neutron_counts = cross_sections.astype(int)  # neutron count in each pixel
         mask = get_pixel_masks(workspace, component)
         neutron_counts[mask] = 0  # don't insert counts for masked pixels
-        #
-        # Insert as many events as neutron counts
-        # generate random TOF values for each event
-        TOF_MIN = 1000.0  # a thousand microseconds, naively selected
-        TOF_MAX = 16665.0  # inverse of 60 Hz, in microseconds
-        tofs = np.sort(np.random.randint(TOF_MIN, TOF_MAX + 1, max(neutron_counts))).astype(float)
-        # we'll use one pulse time for all events
-        pulse_time = DateAndTime(SampleLogs(workspace).start_time.value)
 
+        # generate random TOF values or wavelength values
+        tofs_random, wavelengths = None, None
+        if lambda_distribution is None:
+            TOF_MIN = 1000.0  # a thousand microseconds cutoff, naively selected
+            TOF_MAX = 16665.0  # inverse of 60 Hz, in microseconds
+            tofs_random = np.sort(np.random.randint(TOF_MIN, TOF_MAX + 1, max(neutron_counts))).astype(float)
+        else:
+            wavelengths = lambda_distribution(max(neutron_counts)) * 252.7805  # factor from Angstroms to microseconds
+
+        #
+        # Insert as many events in each pixel as neutron counts assigned to that pixel
+        neutron_paths = source_sample_distance(workspace, unit="m") + get_pixel_distances(workspace, component)
         first, next_to_last = spectrum_info_ranges(input_workspace, component)
-        for idx, neutron_count in zip(range(first, next_to_last), neutron_counts):
+        for idx, neutron_count, neutron_path in zip(range(first, next_to_last), neutron_counts, neutron_paths):
             if neutron_count <= 0:
                 continue
             spectrum = workspace.getSpectrum(idx)
-            for i_tof in range(neutron_count):
-                spectrum.addEventQuickly(tofs[i_tof], pulse_time)
+            if tofs_random is None:
+                tofs = wavelengths[:neutron_count] * neutron_path
+            else:
+                tofs = tofs_random[:neutron_count]
+            for tof in tofs:
+                spectrum.addEventQuickly(tof, pulse_time)
 
 
 def insert_beam_spot(
@@ -326,6 +353,8 @@ def insert_events_ring(
     back_panel_attenuation: float = 0.5,
     solid_angle_correction: bool = True,
     gravity_correction: bool = True,
+    pulse_time: Union[str, DateAndTime] = None,
+    lambda_distribution: Optional[Callable] = None,
 ) -> None:
     r"""
     Insert events into the detector pixels of the designated components according to a gaussian function dependent
@@ -346,7 +375,7 @@ def insert_events_ring(
         One (or more) of the double-panels in the instrument (e.g. "detector1", "wing_detector"). If None, all
         components are used.
     max_counts_in_pixel
-        Maximum number of counts in a single pixel, asumming the pixel is located at the center of the beam spot,
+        Maximum number of counts in a single pixel, assuming the pixel is located at the center of the beam spot,
         on the front panel, and a nominal distance of 1 meter from the sample.
     twotheta_center
         the center of the gaussian function, in degrees. Default: 6.0. Must be a positive number.
@@ -364,6 +393,16 @@ def insert_events_ring(
         neutron's path after scattering from the sample. This shift is applied before ``xy_cross_section``
         is called. There's only one value of the gravity drop for each component. Log entry "wavelength" is
         required for this correction.
+    pulse_time
+        If None, the time of the first pulse in the run is used.
+    lambda_distribution
+        A function that takes a number of neutron events and returns as many values of neutron wavelengths (in
+        units of Angstroms), to be later used to assign a TOF to each event. If None, the TOF of each event is
+        randomly selected between 1000 and 16665 microseconds.
+        Example:
+            def lambda_distribution_normal(n_events) -> np.ndarray:
+                 # Normal distribution with 5 Angstroms mean wavelength, 0.1 Angstroms standard deviation
+                return np.random.normal(loc=5.0, scale=0.1, size=n_events)
     """
 
     @twotheta_to_xyz
@@ -381,6 +420,8 @@ def insert_events_ring(
         back_panel_attenuation=back_panel_attenuation,
         solid_angle_correction=solid_angle_correction,
         gravity_correction=gravity_correction,
+        pulse_time=pulse_time,
+        lambda_distribution=lambda_distribution,
     )
 
 

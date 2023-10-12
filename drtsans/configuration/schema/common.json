@@ -298,7 +298,15 @@
     },
     "timeSliceInterval": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "description": "Interval for time slicing"
+      "description": "Interval for time slicing, in seconds"
+    },
+    "timeSliceOffset": {
+      "$ref": "common.json#/definitions/safeStringNonNegativeFloat",
+      "description": "Offset for time slicing from the beginning of the run, in seconds. Default is no offset."
+    },
+    "timeSlicePeriod": {
+        "$ref": "common.json#/definitions/safeStringPositiveFloat",
+        "description": "Period for time slicing, in seconds and a multiple of timeSliceInterval. Default is None, meaning no periodicity"
     },
     "useSliceIDxAsSuffix": {
       "type": "boolean",

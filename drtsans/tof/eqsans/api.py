@@ -20,6 +20,7 @@ from drtsans import (
     solid_angle_correction,
 )  # noqa E402
 from drtsans import subtract_background  # noqa E402
+from drtsans.load import resolve_slicing
 from drtsans.settings import namedtuplefy  # noqa E402
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa E402
 from drtsans.save_ascii import (
@@ -197,13 +198,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     # ----- END OF SETUP of load_params -----
 
     # check for time/log slicing
-    timeslice, logslice = (
-        reduction_config["useTimeSlice"],
-        reduction_config["useLogSlice"],
-    )
-    if timeslice or logslice:
-        if len(sample.split(",")) > 1:
-            raise ValueError("Can't do slicing on summed data sets")
+    timeslice, logslice = resolve_slicing(reduction_config)
 
     # Load (and optionally slice) sample runs
     # special loading case for sample to allow the slicing options
@@ -215,6 +210,8 @@ def load_all_files(reduction_input, prefix="", load_params=None):
             print(f"Loading filename {filename}")
             if timeslice:
                 timesliceinterval = reduction_config["timeSliceInterval"]
+                timesliceoffset = reduction_config["timeSliceOffset"]
+                timesliceperiod = reduction_config["timeSlicePeriod"]
                 logslicename = logsliceinterval = None
             elif logslice:
                 timesliceinterval = None
@@ -222,13 +219,13 @@ def load_all_files(reduction_input, prefix="", load_params=None):
                     reduction_config["logSliceName"],
                     reduction_config["logSliceInterval"],
                 )
-            else:
-                raise RuntimeError("There is no 3rd option besides time and log slice")
             filenames.add(filename)
             load_and_split(
                 filename,
                 output_workspace=ws_name,
                 time_interval=timesliceinterval,
+                time_offset=timesliceoffset,
+                time_period=timesliceperiod,
                 log_name=logslicename,
                 log_value_interval=logsliceinterval,
                 **load_params,

@@ -920,9 +920,12 @@ def spectrum_info_ranges(
     """
     ranges = {
         "BIOSANS": {
-            "detector1": (0, 49152),  # 49154 is the first pixel in the next component
-            "wing_detector": (49152, 90112),  # 90114 is the first pixel in the next component
+            "detector1": (0, 49152),  # 49152 is the first pixel in the next component
+            "wing_detector": (49152, 90112),  # 90112 is the first pixel in the next component
             "midrange_detector": (90112, 106496),
+        },
+        "EQSANS": {
+            "detector1": (0, 49152),  # 49152 is 1 + last_pixel_index
         },
     }
     instrument = instrument_standard_name(input_workspace)
@@ -951,7 +954,7 @@ def get_pixel_masks(input_workspace: Union[str, MantidWorkspace], component: str
 
 def get_pixel_distances(input_workspace: Union[str, MantidWorkspace], component: str) -> np.ndarray:
     r"""
-    Get the distances from the sample to each of the pixel detectors in the given component.
+    Get the distances from the sample to each of the pixel detectors in the given component, in meters.
 
     Parameters
     ----------

@@ -55,7 +55,9 @@
         "outputDir": {"$ref":  "common.json#/configuration/outputDir"},
 
         "useTimeSlice":      {"$ref":  "common.json#/configuration/useTimeSlice", "default": false},
-        "timeSliceInterval": {"$ref":  "common.json#/configuration/timeSliceInterval", "default":  300},
+        "timeSliceInterval": {"$ref":  "common.json#/configuration/timeSliceInterval", "default": 300},
+        "timeSliceOffset":  {"$ref":  "common.json#/configuration/timeSliceOffset", "default": 0.0},
+        "timeSlicePeriod":  {"$ref":  "common.json#/configuration/timeSlicePeriod", "default": null},
 
         "useLogSlice":      {"$ref":  "common.json#/configuration/useLogSlice", "default": false},
         "logSliceName":     {"$ref":  "common.json#/configuration/logSliceName"},
@@ -234,10 +236,10 @@
         "selectMinIncoh": {"type": "boolean", "default": false,
                            "description": "use smallest wavelength as reference wavelength"}
       },
-      "maxProperties": 64,
-      "required": ["outputDir", "useTimeSlice", "timeSliceInterval", "useLogSlice", "logSliceName",
-        "logSliceInterval", "sampleOffset", "useDetectorOffset", "detectorOffset",
-        "sampleApertureSize", "sourceApertureDiameter","usePixelCalibration",
+      "maxProperties": 66,
+      "required": ["outputDir", "useTimeSlice", "timeSliceInterval", "timeSliceOffset", "timeSlicePeriod",
+        "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset", "useDetectorOffset",
+        "detectorOffset", "sampleApertureSize", "sourceApertureDiameter","usePixelCalibration",
         "maskFileName", "useDefaultMask", "defaultMask", "useMaskBackTubes", "darkFileName",
         "sensitivityFileName", "useSolidAngleCorrection", "useThetaDepTransCorrection",
         "mmRadiusForTransmission", "absoluteScaleMethod", "StandardAbsoluteScale", "numQxQyBins", "1DQbinType",

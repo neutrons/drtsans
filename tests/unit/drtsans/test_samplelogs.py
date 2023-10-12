@@ -4,7 +4,23 @@ from os.path import join as pjn
 from mantid.simpleapi import LoadNexusProcessed
 from mantid.api import Run
 
-from drtsans.samplelogs import SampleLogs
+from drtsans.samplelogs import SampleLogs, periodic_index_log
+
+
+def test_periodic_index_log():
+    period = 1.0  # one second
+    interval = 1.0 / 30  # 30 Hz
+    duration = 3600.5  # one hour and half a second
+    offset = 60.0  # one minute
+    run_start = "2023-09-02T12:00:00"  # beginning of the run
+
+    log = periodic_index_log(period, interval, duration, run_start, offset)
+    assert log.name == "periodic_index"
+    assert log.size() == (3600.5 - 60) * 30
+    assert log.firstTime().toISO8601String() == "2023-09-02T12:01:00"
+    assert log.firstValue() == 0
+    assert "2023-09-02T13:00:00.466" in log.lastTime().toISO8601String()
+    assert log.lastValue() == 14
 
 
 class TestSampleLogs:
@@ -65,6 +81,20 @@ class TestSampleLogs:
         assert sl.array_log.units == units
         # this seems like the wrong value from mantid
         assert sl.array_log.value == values[0]
+
+        period = 1.0  # one second
+        interval = 1.0 / 30  # 30 Hz
+        duration = 3600.5  # one hour and half a second
+        offset = 60.0  # one minute
+        run_start = "2023-09-02T12:00:00"  # beginning of the run
+        log = periodic_index_log(period, interval, duration, run_start, offset, name="periodic")
+        sl.insert(name=log.name, value=log)
+        assert sl.periodic.name == "periodic"
+        assert sl.periodic.size() == (3600.5 - 60) * 30
+        assert sl.periodic.firstTime().toISO8601String() == "2023-09-02T12:01:00"
+        assert sl.periodic.firstValue() == 0
+        assert "2023-09-02T13:00:00.466" in sl.periodic.lastTime().toISO8601String()
+        assert sl.periodic.lastValue() == 14
 
 
 if __name__ == "__main__":

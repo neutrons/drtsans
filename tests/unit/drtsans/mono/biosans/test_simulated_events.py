@@ -1,10 +1,9 @@
-# local imports
-from drtsans.mono.biosans.simulated_events import update_idf
-
-
 # third party imports
 from mantid.simpleapi import LoadEmptyInstrument
 import pytest
+
+# local imports
+from drtsans.mono.biosans.simulated_events import update_idf
 
 
 def test_update_idf(fetch_idf, temp_workspace_name):

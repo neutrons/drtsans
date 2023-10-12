@@ -245,7 +245,7 @@ def log_tof_structure(input_workspace, low_tof_clip, high_tof_clip, interior_cli
     Returns
     -------
     ~mantid.api.MatrixWorkspace
-        The input workspace, with the logs ammended
+        The input workspace, with the logs amended
     """
     ws = mtd[str(input_workspace)]
     ch = EQSANSDiskChopperSet(ws)

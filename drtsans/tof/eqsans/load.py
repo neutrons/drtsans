@@ -1,13 +1,20 @@
+# standard imports
+import os
+from typing import List, Union
+
+# third-party imports
 from mantid.simpleapi import mtd, LoadNexusMonitors
-from drtsans.settings import amend_config, namedtuplefy
-from drtsans.samplelogs import SampleLogs
+
+# local imports
+from drtsans.beam_finder import center_detector, find_beam_center
+from drtsans.instruments import extract_run_number, instrument_enum_name
 from drtsans.load import (
     load_events as generic_load_events,
     sum_data,
     load_and_split as generic_load_and_split,
 )
-from drtsans.beam_finder import center_detector, find_beam_center
-from drtsans.tof.eqsans.geometry import source_monitor_distance
+from drtsans.settings import amend_config, namedtuplefy
+from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.correct_frame import (
     correct_detector_frame,
     correct_monitor_frame,
@@ -17,10 +24,8 @@ from drtsans.tof.eqsans.correct_frame import (
     correct_tof_offset,
     correct_emission_time,
 )
-from drtsans.instruments import extract_run_number, instrument_enum_name
-import os
+from drtsans.tof.eqsans.geometry import source_monitor_distance
 
-# from typing import Tuple
 
 __all__ = [
     "load_events",
@@ -420,7 +425,9 @@ def load_and_split(
     mask=None,
     monitors=False,
     keep_events=True,
-    time_interval=None,
+    time_interval: Union[float, List[float]] = None,
+    time_offset: float = 0.0,
+    time_period: float = None,
     log_name=None,
     log_value_interval=None,
     reuse_workspace=False,
@@ -442,6 +449,17 @@ def load_and_split(
         - 'gaussian', 2D Gaussian fit to beam center data
     centering_options: dict
         Arguments to be passed on to the centering method.
+    time_interval
+        Array for lengths of time intervals for splitters.  If the array has one value,
+        then all splitters will have same time intervals. If the size of the array is larger
+        than one, then the splitters can have various time interval values.
+    time_offset
+        Offset to be added to the start time of the first splitter, in seconds.
+    time_period
+        A multiple integer of the time interval. If specified, it indicates that the time
+        slicing is periodic so that events in time intervals separated by one (or more) period
+        should be reduced together.
+
     Returns
     -------
     ~tuple
@@ -457,6 +475,8 @@ def load_and_split(
         detector_offset=detector_offset,
         sample_offset=sample_offset,
         time_interval=time_interval,
+        time_offset=time_offset,
+        time_period=time_period,
         log_name=log_name,
         log_value_interval=log_value_interval,
         reuse_workspace=reuse_workspace,

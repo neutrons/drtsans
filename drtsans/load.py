@@ -1,7 +1,11 @@
+# standard modules
 import h5py
 import re
+from typing import List, Tuple, Union
 
+# third party modules
 import mantid
+from mantid.dataobjects import Workspace2D, EventWorkspace
 from mantid.simpleapi import mtd
 from mantid.simpleapi import (
     LoadEventNexus,
@@ -16,6 +20,8 @@ from drtsans.geometry import (
     translate_sample_by_z,
     translate_source_by_z,
 )
+
+# package modules
 from drtsans.instruments import (
     extract_run_number,
     instrument_enum_name,
@@ -24,7 +30,7 @@ from drtsans.instruments import (
 )
 from drtsans.path import abspath, registered_workspace, exists as path_exists
 from drtsans.pixel_calibration import apply_calibrations
-from drtsans.samplelogs import SampleLogs
+from drtsans.samplelogs import SampleLogs, periodic_index_log
 from drtsans.settings import amend_config
 
 
@@ -61,6 +67,41 @@ def __monitor_counts(filename, monitor_name="monitor1"):
         else:
             counts = nxmonitor["event_time_offset"].shape[0]
     return int(counts)
+
+
+def _insert_periodic_timeslice_log(
+    input_workspace: Union[str, Workspace2D, EventWorkspace],
+    name: str,
+    time_interval: float,
+    time_period: float,
+    time_offset: float = 0,
+):
+    r"""
+    Insert a log into the input workspace that emulates the periodicity of the time intervals. Within a given
+    period, the log value is incremented by one every ``time_interval`` seconds, starting from zero.
+
+    Parameters
+    ----------
+    input_workspace
+    name
+        Name of the log to insert
+    time_interval
+        Interval between consecutive log entries, in seconds.
+    time_period
+        The time in between equal log values, in seconds. Must be a multiple integer of ``time_interval``.
+    time_offset
+    """
+    sample_logs = SampleLogs(input_workspace)
+    log = periodic_index_log(
+        time_period,
+        time_interval,
+        sample_logs.duration.value,
+        sample_logs.run_start.value,
+        offset=time_offset,
+        step=1,
+        name=name,
+    )
+    sample_logs.insert(name=name, value=log)
 
 
 def load_events(
@@ -291,7 +332,9 @@ def load_and_split(
     pixel_calibration=False,
     detector_offset=0.0,
     sample_offset=0.0,
-    time_interval=None,
+    time_interval: Union[float, List[float]] = None,
+    time_offset: float = 0.0,
+    time_period: float = None,
     log_name=None,
     log_value_interval=None,
     reuse_workspace=False,
@@ -337,6 +380,12 @@ def load_and_split(
         Array for lengths of time intervals for splitters.  If the array has one value,
         then all splitters will have same time intervals. If the size of the array is larger
         than one, then the splitters can have various time interval values.
+    time_offset
+        Offset to be added to the start time of the first splitter, in seconds.
+    time_period
+        A multiple integer of the time interval, in seconds. If specified, it indicates that the time
+        slicing is periodic so that events in time intervals separated by one (or more) period
+        should be reduced together.
     log_name: string
         Name of the sample log to use to filter. For example, the pulse charge is recorded in 'ProtonCharge'.
     log_value_interval: float
@@ -389,6 +438,19 @@ def load_and_split(
     if (output_workspace is None) or (not output_workspace) or (output_workspace == "None"):
         run_number = extract_run_number(run) if isinstance(run, str) else ""
         output_workspace = "{}_{}{}".format(instrument_unique_name, run_number, output_suffix)
+
+    # in the case of periodic time slicing, we replace the time slicing with a log slicing by creating a log emulating
+    # the periodicity of the time intervals. This is so because Mantid algorithm GenerateEventsFilter
+    # does not support periodic time slicing, but it does support the slicing of a periodic log.
+    if isinstance(time_interval, float) and time_period:
+        _insert_periodic_timeslice_log(
+            ws,
+            name="periodic_time_slicing",
+            time_interval=time_interval,
+            time_period=time_period,
+            time_offset=time_offset,
+        )
+        time_interval, log_value_interval = None, 1
 
     # Create event filter workspace
     GenerateEventsFilter(
@@ -519,3 +581,33 @@ def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monito
     )
 
     return mtd[output_workspace]
+
+
+def resolve_slicing(reduction_configuration: dict) -> Tuple[bool, bool]:
+    r"""
+    Resolve if the reduction configuration parameters specify time or log slicing
+
+
+    Parameters
+    ----------
+    reduction_configuration
+        Dictionary of reduction configuration parameters
+
+    Returns
+    -------
+    boolean values for time and log slicing, respectively
+
+    Raises
+    ------
+    ValueError
+        - If the sample input data is composed of more than one run
+        - If both time and log slicing are ``True``
+    """
+    timeslice, logslice = reduction_configuration["useTimeSlice"], reduction_configuration["useLogSlice"]
+    if timeslice and logslice:
+        raise ValueError("Can't do both time and log slicing")
+    if timeslice or logslice:
+        sample = reduction_configuration["sample"]["runNumber"]
+        if len(sample.split(",")) > 1:
+            raise ValueError("Can't do slicing on summed data sets")
+    return timeslice, logslice

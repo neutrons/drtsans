@@ -2041,12 +2041,14 @@ def file_has_midrange_detector(sample: str, instrument_name: str, ipts: str, dir
     bool
         True if the sample has midrange detector
     """
-    filename = abspath(
+    filename = abspaths(
         sample.strip(),
         instrument=instrument_name,
         ipts=ipts,
         directory=directory,
-    )
+    ).split(
+        ","
+    )[0]
 
     out_ws_name = unique_workspace_dundername()
 

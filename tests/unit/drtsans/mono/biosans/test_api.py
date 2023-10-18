@@ -608,7 +608,7 @@ def test_has_midrange_detector(has_sns_mount):
 
     reduction_input = {
         "instrumentName": "CG3",
-        "iptsNumber": "23782",
+        "iptsNumber": "23782,23783",
         "sample": {"runNumber": "960", "transmission": {"runNumber": ""}},
         "background": {"runNumber": "", "transmission": {"runNumber": ""}},
         "emptyTransmission": {"runNumber": ""},

@@ -46,7 +46,7 @@ python setup.py develop # have versioningit write drtsans/_version.py
 echo "Writing tests results to $(pwd)/${TEST_SCOPE}_test_results.xml"
 
 # Run tests
-ARGS_COMMON="-vv --dist loadscope ./tests/${TEST_SCOPE} -n 4 --junitxml=./${TEST_SCOPE}_test_results.xml"
+ARGS_COMMON="-vv --dist loadscope ./tests/${TEST_SCOPE} -n 2 --junitxml=./${TEST_SCOPE}_test_results.xml"
 if [ -n "$MARKERS" ]; then
     pytest -m "$MARKERS" ${ARGS_COMMON}
 else

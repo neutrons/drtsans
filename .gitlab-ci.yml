@@ -1,6 +1,7 @@
 variables:
   CONTAINER_URL: "code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_SLUG"
   MINICONDA_CONTAINER: "code.ornl.gov:4567/rse/images/miniconda3:22.11.1-20230209.1219"
+  GIT_SUBMODULE_STRATEGY: recursive
 
 #####
 # YAML anchors Section
@@ -24,7 +25,8 @@ stages:
   - dockerbuild
   - test
   - publish
-  - analysis-update
+  # we are not deploying automatically to analysis right now
+  # - analysis-update
 
 #####
 # Jobs
@@ -68,46 +70,6 @@ dockerbuild:
     paths:
     - scripts/sans-backend-run.sh
 
-docker-update-test:
-  stage: test
-  retry: 1
-  dependencies:
-    - dockerbuild
-  before_script:
-    - *startup_cleanup
-    - sudo mkdir -p /SNS/EQSANS
-    # - sudo mkdir -p /HFIR/CG2
-    # - sudo mkdir -p /HFIR/CG3
-    - sudo bash scripts/instruments-mount.sh
-  script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - time docker pull $CONTAINER_URL
-    - time bash -x scripts/sans-backend-run.sh -u || cat SANS_output/*err
-  after_script:
-    - *teardown_cleanup
-  tags:
-    - scse-drtsans-builder    #scse-sans-demo
-
-docker-no-update-test:
-  stage: test
-  retry: 1
-  dependencies:
-    - dockerbuild
-  before_script:
-    - *startup_cleanup
-    - sudo mkdir -p /SNS/EQSANS
-    # - sudo mkdir -p /HFIR/CG2
-    # - sudo mkdir -p /HFIR/CG3
-    - sudo bash scripts/instruments-mount.sh
-  script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - time docker pull $CONTAINER_URL
-    - time bash -x scripts/sans-backend-run.sh || cat SANS_output/*err
-  after_script:
-    - *teardown_cleanup
-  tags:
-    - scse-drtsans-builder   #scse-sans-demo
-
 docs-feature:
   stage: test
   retry: 1
@@ -118,7 +80,8 @@ docs-feature:
     - set -x
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
-    - sudo cp -r . /tmp/sans-backend
+    # test directory may contain large files from data repo submodule
+    - sudo rsync -av --exclude='tests' ./ /tmp/sans-backend/
     - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -143,7 +106,6 @@ code-unit-test:
   before_script:
     - *startup_cleanup
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
-    - sudo bash scripts/instruments-mount.sh
   script:
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
@@ -152,8 +114,8 @@ code-unit-test:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - COMMAND="bash /opt/sans-backend/test_job.sh -s unit"
-    - time docker run -v /SNS:/SNS -v /HFIR:/HFIR -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "$COMMAND"
+    - COMMAND="git -C /opt/sans-backend/tests/data/drtsans-data/ lfs pull && bash /opt/sans-backend/test_job.sh -m 'not mount_eqsans' -s unit"
+    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "$COMMAND"
     - popd
   after_script:
     - cp -r /tmp/sans-backend/unit_test_results.xml unit_test_results.xml
@@ -164,7 +126,7 @@ code-unit-test:
     reports:
       junit: unit_test_results.xml
   tags:
-    - scse-drtsans-builder
+    - drtsans_lfs
 
 code-integration-test:
   stage: test
@@ -174,9 +136,6 @@ code-integration-test:
   before_script:
     - *startup_cleanup
     - sudo mkdir -p /SNS/EQSANS/shared/sans-backend/ || true
-    # - sudo mkdir -p /HFIR/CG2
-    # - sudo mkdir -p /HFIR/CG3
-    - sudo bash scripts/instruments-mount.sh
   script:
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
@@ -185,9 +144,8 @@ code-integration-test:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    # disable datarepo test as we have not add the git-lfs pull yet
-    - COMMAND="bash /opt/sans-backend/test_job.sh -m 'not long_execution_time and not requires_large_memory and not datarepo' -s integration"
-    - time docker run -v /SNS:/SNS -v /HFIR:/HFIR -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "$COMMAND"
+    - COMMAND="git -C /opt/sans-backend/tests/data/drtsans-data/ lfs pull && bash /opt/sans-backend/test_job.sh -m 'not mount_eqsans' -s integration"
+    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "$COMMAND"
     - popd
   after_script:
     - cp -r /tmp/sans-backend/integration_test_results.xml integration_test_results.xml
@@ -198,7 +156,7 @@ code-integration-test:
     reports:
       junit: integration_test_results.xml
   tags:
-    - scse-drtsans-builder
+    - drtsans_lfs
 
 create-wheel:
   stage: test
@@ -243,7 +201,8 @@ conda-package:
   tags:
     - neutrons-multi-builder
 
-deploy-dev:
+# comment out deploy-dev since we are currently not deploying automatically to the analysis cluster
+.deploy-dev:
   stage: analysis-update
   inherit:
     # do not pass global variables to the downstream pipeline
@@ -263,7 +222,8 @@ deploy-dev:
     - if: $CI_COMMIT_REF_SLUG == "next"
       when: on_success
 
-deploy-qa:
+# comment out deploy-qa since we are currently not deploying automatically to the analysis cluster
+.deploy-qa:
   stage: analysis-update
   inherit:
     # do not pass global variables to the downstream pipeline
@@ -283,7 +243,8 @@ deploy-qa:
     - if: $CI_COMMIT_REF_SLUG == "qa"
       when: on_success
 
-deploy-prod:
+# comment out deploy-prod since we are currently not deploying automatically to the analysis cluster
+.deploy-prod:
   stage: analysis-update
   inherit:
     # do not pass global variables to the downstream pipeline

@@ -44,7 +44,7 @@ def test_parse_json(has_sns_mount, reference_dir):
             "cutTOFmax": "1500",
             "wavelengthStepType": "constant Delta lambda/lambda",
             "sampleApertureSize": "10",
-            "fluxMonitorRatioFile": ("/SNS/EQSANS/" "IPTS-24769/shared/EQSANS_110943.out"),
+            "fluxMonitorRatioFile": None,
             "sensitivityFileName": (
                 "/SNS/EQSANS/"
                 "shared/NeXusFiles/EQSANS/"
@@ -115,7 +115,7 @@ def test_parse_invalid_json(has_sns_mount):
             "cutTOFmax": "1500",
             "wavelengthStepType": "constant Delta lambda/lambda",
             "sampleApertureSize": "10",
-            "fluxMonitorRatioFile": ("/SNS/EQSANS/" "IPTS-24769/shared/EQSANS_110943.out"),
+            "fluxMonitorRatioFile": None,
             "sensitivityFileName": (
                 "/SNS/EQSANS/"
                 "shared/NeXusFiles/EQSANS/"

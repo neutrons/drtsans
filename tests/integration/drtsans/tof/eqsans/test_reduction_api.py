@@ -61,7 +61,7 @@ def test_regular_setup(has_sns_mount, run_config, basename, temp_directory, refe
             "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
             "useDefaultMask": True,
             "normalization": "Total charge",
-            "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
+            "fluxMonitorRatioFile": None,
             "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
             "absoluteScaleMethod": "standard",
             "detectorOffset": 0,
@@ -168,7 +168,7 @@ def test_weighted_binning_setup(has_sns_mount, run_config, basename, temp_direct
             "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
             "useDefaultMask": True,
             "normalization": "Total charge",
-            "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
+            "fluxMonitorRatioFile": None,
             "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
             "absoluteScaleMethod": "standard",
             "detectorOffset": 0,
@@ -364,7 +364,7 @@ def test_wavelength_step(has_sns_mount, reference_dir):
             "cutTOFmax": "1500",
             "wavelengthStepType": "constant Delta lambda/lambda",
             "sampleApertureSize": "10",
-            "fluxMonitorRatioFile": "/SNS/EQSANS/IPTS-24769/shared/EQSANS_110943.out",
+            "fluxMonitorRatioFile": None,
             "sensitivityFileName": (
                 "/SNS/EQSANS/shared/NeXusFiles/"
                 "EQSANS/2020A_mp/"

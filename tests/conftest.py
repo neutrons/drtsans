@@ -197,7 +197,17 @@ def clean_workspace():
     yield _clean_workspace
 
     # Executed after test exits
-    [DeleteWorkspace(workspace) for workspace in workspaces if registered_workspace(workspace)]
+    workspaces = list(set(workspaces)) # get unique list
+    for workspace in workspaces:
+        if registered_workspace(workspace):
+            try:
+                DeleteWorkspace(workspace)
+            except ValueError as e:
+                # DeleteWorkspace will error if the workspace doesn't exist
+                # we're fine with that. This is some oddity with the ADS
+                # saying a workspace exists when it doesn't
+                if "Invalid value for property Workspace" not in str(e):
+                    raise e
 
 
 @pytest.fixture(scope="function")

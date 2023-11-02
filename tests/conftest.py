@@ -172,6 +172,7 @@ def temp_directory():
             else:
                 filename.unlink()  # remove the single file
 
+
 def __safe_delete_workspace(workspace_name: str):
     if registered_workspace(workspace_name):
         try:
@@ -182,6 +183,7 @@ def __safe_delete_workspace(workspace_name: str):
             # saying a workspace exists when it doesn't
             if "Invalid value for property Workspace" not in str(e):
                 raise e
+
 
 @pytest.fixture(scope="function")
 def clean_workspace():
@@ -207,9 +209,10 @@ def clean_workspace():
     yield _clean_workspace
 
     # Executed after test exits
-    workspaces = list(set(workspaces)) # get unique list
+    workspaces = list(set(workspaces))  # get unique list
     for workspace in workspaces:
         __safe_delete_workspace(workspace)
+
 
 @pytest.fixture(scope="function")
 def temp_workspace_name(clean_workspace):

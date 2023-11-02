@@ -172,6 +172,16 @@ def temp_directory():
             else:
                 filename.unlink()  # remove the single file
 
+def __safe_delete_workspace(workspace_name: str):
+    if registered_workspace(workspace_name):
+        try:
+            DeleteWorkspace(workspace_name)
+        except ValueError as e:
+            # DeleteWorkspace will error if the workspace doesn't exist
+            # we're fine with that. This is some oddity with the ADS
+            # saying a workspace exists when it doesn't
+            if "Invalid value for property Workspace" not in str(e):
+                raise e
 
 @pytest.fixture(scope="function")
 def clean_workspace():
@@ -199,16 +209,7 @@ def clean_workspace():
     # Executed after test exits
     workspaces = list(set(workspaces)) # get unique list
     for workspace in workspaces:
-        if registered_workspace(workspace):
-            try:
-                DeleteWorkspace(workspace)
-            except ValueError as e:
-                # DeleteWorkspace will error if the workspace doesn't exist
-                # we're fine with that. This is some oddity with the ADS
-                # saying a workspace exists when it doesn't
-                if "Invalid value for property Workspace" not in str(e):
-                    raise e
-
+        __safe_delete_workspace(workspace)
 
 @pytest.fixture(scope="function")
 def temp_workspace_name(clean_workspace):
@@ -1422,7 +1423,7 @@ def workspace_with_instrument(request):
     yield factory
     # Teardown
     for workspace_name in workspace_inventory:
-        DeleteWorkspace(workspace_name)
+        __safe_delete_workspace(workspace_name)
 
 
 @pytest.fixture(scope="session")

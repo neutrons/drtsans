@@ -265,7 +265,7 @@ def data_apparent_tube_width():
     ],
     indirect=True,
 )
-def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument):
+def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument, clean_workspace):
     r"""
     Test for determining the apparent tube width, from Appendix 2, Section 2 of the master document.
     <https://www.dropbox.com/s/2mz0gy60pp9ehqm/Master%20document_110819.pdf?dl=0>
@@ -305,7 +305,7 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
     calibration = calculate_apparent_tube_width(flood_workspace, load_barscan_calibration=False)
     # Modify the pixel widths in the instrument object embedded in the workspace. We save the modifications to a
     # new workspace
-    modified_flood_workspace = unique_workspace_dundername()  # new workspace
+    modified_flood_workspace = clean_workspace(unique_workspace_dundername())  # new workspace
     calibration.apply(flood_workspace, output_workspace=modified_flood_workspace)
 
     # Sort the tubes assuming the ordering of the SANS instruments. In these instruments, the first half of the
@@ -334,7 +334,6 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
         data.w_back, abs=data.precision
     )
 
-    DeleteWorkspace(modified_flood_workspace)  # flood_workspace is garbage collected upon test completion
     # NOTE:
     # unknown leftover workspace from workflow:
     # tubewidth_UNDEFINED_detector1_20200219:	0.0008 MB
@@ -826,7 +825,9 @@ def data_generate_barscan_calibration():
     ],
     indirect=True,
 )
-def test_generate_barscan_calibration(data_generate_barscan_calibration, workspace_with_instrument, cleanfile):
+def test_generate_barscan_calibration(
+    data_generate_barscan_calibration, workspace_with_instrument, cleanfile, clean_workspace
+):
     r"""
     Test to determine pixel position and height from from Appendix 2, Section 1 of the master document.
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/documents/Master_requirements_document.pdf>
@@ -854,7 +855,8 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
         str
             Name of the Nexus file
         """
-        workspace = unique_workspace_dundername()  # temporary workspace
+        workspace = clean_workspace(unique_workspace_dundername())  # temporary workspace
+
         # Save intensities into a workspace endowed with an instrument. The instrument consists of a flat
         # array of four tubes, each 20 pixels.
         workspace_with_instrument(
@@ -890,6 +892,7 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
     # scan over each file, which contains intensities collected with the bar held at a fixed position
     for scan_index, file_name in enumerate(file_names):
         LoadNexus(Filename=file_name, OutputWorkspace=workspace)
+        clean_workspace(workspace)  # delete workspace when test finishes
         # The main detector panel is called 'detector1', made up of four tubes which we gather into a TubeCollection.
         # A TubeCollection is a list of TubeSpectrum objects, each representing a physical tube. Here
         # we obtain the list of tubes for the selected double-detector-panel array.
@@ -944,7 +947,7 @@ def test_generate_barscan_calibration(data_generate_barscan_calibration, workspa
 
 
 @pytest.mark.datarepo
-def test_calculate_gpsans_barscan(datarepo_dir, tmp_path):
+def test_calculate_gpsans_barscan(datarepo_dir, tmp_path, clean_workspace):
     r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
     barscan_file_folder = path_join(datarepo_dir.gpsans, "pixel_calibration", "CG2_7465_selected_scans")
     barscan_files = [
@@ -957,8 +960,8 @@ def test_calculate_gpsans_barscan(datarepo_dir, tmp_path):
     # Load save calibration and compare
     database_file = path_join(tmp_path, "saved_calibrations.json")
     calibration.save(database=database_file)
-    table_worskpace = unique_workspace_dundername()
-    barscan_workspace = unique_workspace_dundername()
+    table_worskpace = clean_workspace(unique_workspace_dundername())  # delete workspace when test finishes
+    barscan_workspace = clean_workspace(unique_workspace_dundername())  # delete workspace when test finishes
     LoadNexusProcessed(barscan_files[0], OutputWorkspace=barscan_workspace)
     saved_calibration = load_calibration(
         barscan_workspace,
@@ -1016,7 +1019,7 @@ def test_biosans_main_detector_barscan(datarepo_dir):
 
 
 @pytest.mark.datarepo
-def test_biosans_wing_detector_barscan(datarepo_dir, tmp_path):
+def test_biosans_wing_detector_barscan(datarepo_dir, tmp_path, clean_workspace):
     r"""Calculate pixel positions and heights from a barscan, then compare to a saved barscan"""
     data_dir = path_join(datarepo_dir.biosans, "pixel_calibration", "runs_838_953")
     first_run, last_run = 838, 953
@@ -1031,6 +1034,7 @@ def test_biosans_wing_detector_barscan(datarepo_dir, tmp_path):
     #          build server in the long run.
     calibration.save(database=path_join(tmp_path, "junk.json"), tablefile=path_join(tmp_path, "junk.nxs"))
     LoadNexus(barscan_files[0], OutputWorkspace="reference_workspace")
+    clean_workspace("reference_workspace")
     views = calibration.as_intensities("reference_workspace")
     assert len(calibration.metadata["runnumbers"]) == len(barscan_files)
     print(views)
@@ -1074,26 +1078,25 @@ def test_biosans_midrange_detector_barscan(datarepo_dir, tmp_path):
 
 
 @pytest.mark.datarepo
-def test_gpsans_tube_calibration(datarepo_dir):
+def test_gpsans_tube_calibration(datarepo_dir, clean_workspace):
     r"""Calculate tube widths from a flood file"""
     flood_file = path_join(datarepo_dir.gpsans, "pixel_calibration", "CG2_8143.nxs")
-    uncalibrated_workspace = unique_workspace_dundername()
+    uncalibrated_workspace = clean_workspace(unique_workspace_dundername())
     LoadNexus(flood_file, OutputWorkspace=uncalibrated_workspace)
     calibration = calculate_apparent_tube_width(uncalibrated_workspace, load_barscan_calibration=False)
-    calibrated_workspace = unique_workspace_dundername()
+    calibrated_workspace = clean_workspace(unique_workspace_dundername())
     calibration.apply(uncalibrated_workspace, output_workspace=calibrated_workspace)
 
     uncalibrated_densities = _linear_density(uncalibrated_workspace)
     calibrated_densities = _linear_density(calibrated_workspace)
     assert _amplitude(calibrated_densities) / _amplitude(uncalibrated_densities) == pytest.approx(0.13, abs=0.01)
-    DeleteWorkspace(uncalibrated_workspace)
     DeleteWorkspace(calibration.table)
 
 
 @pytest.mark.datarepo
-def test_biosans_tube_calibration(datarepo_dir):
+def test_biosans_tube_calibration(datarepo_dir, clean_workspace):
     flood_file = path_join(datarepo_dir.biosans, "pixel_calibration", "flood_files", "CG3_4829.nxs")
-    uncalibrated_workspace = unique_workspace_dundername()
+    uncalibrated_workspace = clean_workspace(unique_workspace_dundername())
     LoadNexus(flood_file, OutputWorkspace=uncalibrated_workspace)
 
     calibration_wing = calculate_apparent_tube_width(
@@ -1101,7 +1104,7 @@ def test_biosans_tube_calibration(datarepo_dir):
         component="wing_detector",
         load_barscan_calibration=False,
     )
-    calibrated_workspace = unique_workspace_dundername()
+    calibrated_workspace = clean_workspace(unique_workspace_dundername())
     calibration_wing.apply(uncalibrated_workspace, output_workspace=calibrated_workspace)
 
     uncalibrated_densities = _linear_density(uncalibrated_workspace, component="wing_detector")
@@ -1109,18 +1112,16 @@ def test_biosans_tube_calibration(datarepo_dir):
     assert _amplitude(calibrated_densities) / _amplitude(uncalibrated_densities) == pytest.approx(0.38, abs=0.01)
 
     # cleanup
-    DeleteWorkspace(uncalibrated_workspace)
-    DeleteWorkspace(calibrated_workspace)
     DeleteWorkspace(calibration_wing.table)
 
 
 @pytest.mark.datarepo
-def test_biosans_midrange_tube_calibration(datarepo_dir):
+def test_biosans_midrange_tube_calibration(datarepo_dir, clean_workspace):
     flood_file = path_join(datarepo_dir.biosans, "pixel_calibration", "flood_files", "CG3_4829.nxs")
     wing_tube_calibration_workspace = LoadNexus(flood_file)
 
     # simulate midrange detector calibration by cloning wing detector intensities
-    uncalibrated_workspace = unique_workspace_dundername()
+    uncalibrated_workspace = clean_workspace(unique_workspace_dundername())
     clone_component_intensities(
         wing_tube_calibration_workspace,
         output_workspace=uncalibrated_workspace,
@@ -1134,7 +1135,7 @@ def test_biosans_midrange_tube_calibration(datarepo_dir):
         component="midrange_detector",
         load_barscan_calibration=False,
     )
-    calibrated_workspace = unique_workspace_dundername()
+    calibrated_workspace = clean_workspace(unique_workspace_dundername())
     calibration_midrange.apply(uncalibrated_workspace, output_workspace=calibrated_workspace)
 
     uncalibrated_densities = _linear_density(uncalibrated_workspace, component="midrange_detector")
@@ -1142,8 +1143,6 @@ def test_biosans_midrange_tube_calibration(datarepo_dir):
     assert _amplitude(calibrated_densities) / _amplitude(uncalibrated_densities) == pytest.approx(0.09, abs=0.01)
 
     # cleanup
-    DeleteWorkspace(uncalibrated_workspace)
-    DeleteWorkspace(calibrated_workspace)
     DeleteWorkspace(calibration_midrange.table)
 
 

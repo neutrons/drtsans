@@ -205,7 +205,7 @@ def data_subpixels_convert_to_q():
     )
 
 
-def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
+def test_subpixels_convert_to_q(data_subpixels_convert_to_q, clean_workspace):
     r"""
     Compare Q values from the coarse instrument where we divide each pixel into a 2x2 = 4 subpixels with
     Q values from the fine instrument.
@@ -225,7 +225,7 @@ def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
         DataY=np.array(data.coarse_intensities),
         DataE=np.sqrt(data.coarse_intensities),
         NSpec=4,
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=clean_workspace(unique_workspace_dundername()),  # remove when test is done
     )
     LoadInstrument(
         Workspace=coarse_workspace,
@@ -244,7 +244,7 @@ def test_subpixels_convert_to_q(data_subpixels_convert_to_q):
         DataY=np.array(data.fine_intensities),
         DataE=np.sqrt(data.fine_intensities),
         NSpec=16,
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=clean_workspace(unique_workspace_dundername()),  # remove when test is done
     )
     LoadInstrument(
         Workspace=fine_workspace,

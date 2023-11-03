@@ -5,8 +5,6 @@ r""" Links to Mantid algorithms
 CreateSingleValuedWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html>
 """
 from mantid.simpleapi import CreateSingleValuedWorkspace
-from mantid.simpleapi import DeleteWorkspace
-from mantid.api import AnalysisDataService
 
 r""" Links to drtsans imports
 standard_sample_scaling <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/absolute_units.py>
@@ -16,7 +14,7 @@ from drtsans.absolute_units import standard_sample_scaling  # noqa: E402
 from drtsans.settings import unique_workspace_name  # noqa: E402
 
 
-def test_standard_sample_measurement():
+def test_standard_sample_measurement(clean_workspace):
     r"""
     Tests normalization with a calibrated standard sample as described in the master document
     section 12.3
@@ -37,25 +35,21 @@ def test_standard_sample_measurement():
     ~drtsans.absolute_units.standard_sample_scaling,
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/absolute_units.py>
     """
-    # record temporary worksapce names so that we can clean them up at the end
-    wsn_list = []
-    #
+    # clean_workspace fixture will delete workspaces when the test finishes
+
     F_std = 450.0  # value from supplied test
     F_std_err = 10.0  # value from supplied test
-    tmp_wsn = unique_workspace_name()
-    wsn_list.append(tmp_wsn)
+    tmp_wsn = clean_workspace(unique_workspace_name())
     F_std_ws = CreateSingleValuedWorkspace(DataValue=F_std, ErrorValue=F_std_err, OutputWorkspace=tmp_wsn)
     #
     F = 10.0  # value from supplied test
     F_err = 2.0  # value from supplied test
-    tmp_wsn = unique_workspace_name()
-    wsn_list.append(tmp_wsn)
+    tmp_wsn = clean_workspace(unique_workspace_name())
     F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=F_err, OutputWorkspace=tmp_wsn)
     #
     Iq = 100.0  # value from supplied test
     Iq_err = np.sqrt(Iq)
-    tmp_wsn = unique_workspace_name()
-    wsn_list.append(tmp_wsn)
+    tmp_wsn = clean_workspace(unique_workspace_name())
     Iq_ws = CreateSingleValuedWorkspace(DataValue=Iq, ErrorValue=Iq_err, OutputWorkspace=tmp_wsn)
     # perform calculation done by function standard_sample_scaling
     Iq_abs = Iq / F * F_std
@@ -74,12 +68,8 @@ def test_standard_sample_measurement():
     # NOTE:
     # the function standard_sample_scaling has a side effect workspace, output_workspace
     # by design, adding it to list
-    wsn_list.append("output_workspace")
+    clean_workspace(tmp_wsn)
     # check results
     assert Iq_ws.dataY(0)[0] == pytest.approx(Iq)
     assert Iq_abs_ws.dataY(0)[0] == pytest.approx(Iq_abs)
     assert Iq_abs_ws.dataE(0)[0] == pytest.approx(Iq_abs_err)
-    # clean up
-    for wsn in wsn_list:
-        if wsn in AnalysisDataService.getObjectNames():
-            DeleteWorkspace(wsn)

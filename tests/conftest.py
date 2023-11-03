@@ -1669,7 +1669,7 @@ def biosans_synthetic_dataset(datarepo_dir, tmp_path_factory) -> dict:
     max_ct = 10000  # max counts in any pixel of the beam spot
     # max_counts_in_pixel=10000 will insert no more than 400 neutrons counts on any of the pixels of the beam spot
     insert_beam_spot(ws_beam_center, center_x=center_x, center_y=center_y, diameter=0.015, max_counts_in_pixel=max_ct)
-    insert_background(ws_beam_center, flavor="flat noise", min_counts=0, max_counts=2)
+    insert_background(ws_beam_center, flavor="flat noise", flavor_kwargs=dict(min_counts=0, max_counts=2))
     SaveNexus(InputWorkspace=ws_beam_center, Filename=pjoin(runs_directory, _filename(kit["runs"]["beam_center"])))
     SaveNexus(
         InputWorkspace=ws_beam_center, Filename=pjoin(runs_directory, _filename(kit["runs"]["empty_transmission"]))
@@ -1697,7 +1697,7 @@ def biosans_synthetic_dataset(datarepo_dir, tmp_path_factory) -> dict:
         components=["detector1", "wing_detector", "midrange_detector"],
         component_efficiencies=[1.0, 0.05, 0.5],
     )
-    insert_background(ws_sample, flavor="flat noise", min_counts=0, max_counts=2)
+    insert_background(ws_sample, flavor="flat noise", flavor_kwargs=dict(min_counts=0, max_counts=2))
     SaveNexus(InputWorkspace=ws_sample, Filename=pjoin(runs_directory, _filename(kit["runs"]["sample"])))
     DeleteWorkspace(ws_sample)
 
@@ -1713,7 +1713,7 @@ def biosans_synthetic_dataset(datarepo_dir, tmp_path_factory) -> dict:
         components=["detector1", "wing_detector", "midrange_detector"],
         component_efficiencies=[1.0, 0.05, 0.5],
     )
-    insert_background(ws_background, flavor="flat noise", min_counts=0, max_counts=2)
+    insert_background(ws_background, flavor="flat noise", flavor_kwargs=dict(min_counts=0, max_counts=2))
     SaveNexus(InputWorkspace=ws_background, Filename=pjoin(runs_directory, _filename(kit["runs"]["background"])))
     DeleteWorkspace(ws_background)
 
@@ -1727,7 +1727,7 @@ def biosans_synthetic_dataset(datarepo_dir, tmp_path_factory) -> dict:
         diameter=0.015,
         max_counts_in_pixel=int(transmission * max_ct),
     )
-    insert_background(ws_sample_transmission, flavor="flat noise", min_counts=0, max_counts=2)
+    insert_background(ws_sample_transmission, flavor="flat noise", flavor_kwargs=dict(min_counts=0, max_counts=2))
     SaveNexus(
         InputWorkspace=ws_sample_transmission,
         Filename=pjoin(runs_directory, _filename(kit["runs"]["sample_transmission"])),
@@ -1736,7 +1736,7 @@ def biosans_synthetic_dataset(datarepo_dir, tmp_path_factory) -> dict:
 
     # DARK CURRENT
     ws_dark_current = common_empty_workspace()
-    insert_background(ws_dark_current, flavor="flat noise", min_counts=0, max_counts=2)
+    insert_background(ws_dark_current, flavor="flat noise", flavor_kwargs=dict(min_counts=0, max_counts=2))
     SaveNexus(InputWorkspace=ws_dark_current, Filename=pjoin(runs_directory, _filename(kit["runs"]["dark_current"])))
     DeleteWorkspace(ws_dark_current)
 
@@ -1750,7 +1750,7 @@ def biosans_synthetic_dataset(datarepo_dir, tmp_path_factory) -> dict:
         back_panel_attenuation=0.5,
         solid_angle_correction=True,
     )
-    insert_background(ws_flood, components="detector1", flavor="gaussian noise", mean=5, stddev=5)
+    insert_background(ws_flood, components="detector1", flavor="gaussian noise", flavor_kwargs=dict(mean=5, stddev=5))
     SaveNexus(InputWorkspace=ws_flood, Filename=pjoin(runs_directory, _filename(kit["runs"]["flood"])))
     DeleteWorkspace(ws_flood)
 

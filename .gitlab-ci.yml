@@ -55,14 +55,10 @@ dockerbuild:
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
-    - DOCKER_DATE=$(date +%Y.%m.%d)
-    - DOCKER_TAG_BASE=$CONTAINER_URL
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     # kickstart or $CI_COMMIT_REF_SLUG
-    - docker build -f dockerfiles/Dockerfile.kickstart --build-arg PROFILE=${PROFILE} -t $DOCKER_TAG_BASE:$DOCKER_DATE .
-    - docker tag $DOCKER_TAG_BASE:$DOCKER_DATE $DOCKER_TAG_BASE
-    - docker push $DOCKER_TAG_BASE:$DOCKER_DATE
-    - docker push $DOCKER_TAG_BASE
+    - docker build -f dockerfiles/Dockerfile.kickstart --build-arg PROFILE=${PROFILE} -t $CONTAINER_URL .
+    - docker push $CONTAINER_URL
     # - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh
   after_script:
     - *teardown_cleanup

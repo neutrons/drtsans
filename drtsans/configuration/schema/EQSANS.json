@@ -53,6 +53,11 @@
       "properties": {
 
         "outputDir": {"$ref":  "common.json#/configuration/outputDir"},
+        "instrumentConfigurationDir": {
+          "type": "string",
+          "description": "additional configuration, such as mask, slits, TOF cuts. Currently, only mask is used.",
+          "default": "/SNS/EQSANS/shared/instrument_configuration"
+        },
 
         "useTimeSlice":      {"$ref":  "common.json#/configuration/useTimeSlice", "default": false},
         "timeSliceInterval": {"$ref":  "common.json#/configuration/timeSliceInterval", "default": 300},
@@ -66,13 +71,13 @@
         "cutTOFmin": {
           "$ref":  "common.json#/definitions/safeStringNonNegativeFloat",
           "default": 500.0,
-          "description": "User defined time of flight range minimum",
+          "description": "Add this to the minimum TOF in a given TOF frame",
           "pairedTo": "#configuration/cutTOFmax"
         },
         "cutTOFmax": {
           "$ref":  "common.json#/definitions/safeStringNonNegativeFloat",
           "default": 2000.0,
-          "description": "User defined time of flight range maximum",
+          "description": "Subtract this to the maximum TOF in a given frame",
           "pairedTo": "#configuration/cutTOFmin"
         },
 
@@ -236,9 +241,9 @@
         "selectMinIncoh": {"type": "boolean", "default": false,
                            "description": "use smallest wavelength as reference wavelength"}
       },
-      "maxProperties": 66,
-      "required": ["outputDir", "useTimeSlice", "timeSliceInterval", "timeSliceOffset", "timeSlicePeriod",
-        "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset", "useDetectorOffset",
+      "maxProperties": 67,
+      "required": ["outputDir", "instrumentConfigurationDir","useTimeSlice", "timeSliceInterval", "timeSliceOffset",
+        "timeSlicePeriod", "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset", "useDetectorOffset",
         "detectorOffset", "sampleApertureSize", "sourceApertureDiameter","usePixelCalibration",
         "maskFileName", "useDefaultMask", "defaultMask", "useMaskBackTubes", "darkFileName",
         "sensitivityFileName", "useSolidAngleCorrection", "useThetaDepTransCorrection",

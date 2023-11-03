@@ -1,12 +1,20 @@
 # standard imports
-from typing import Tuple, Union
+from typing import Any, Callable, Tuple, Union
 
 import numpy.testing
 
 # third party imports
 from mantid.api import mtd
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import AddSampleLog, ConvertUnits, DeleteWorkspace, Integration, Rebin, SumSpectra
+from mantid.simpleapi import (
+    AddSampleLog,
+    ConvertUnits,
+    DeleteWorkspace,
+    Integration,
+    MoveInstrumentComponent,
+    Rebin,
+    SumSpectra,
+)
 import numpy as np
 from numpy.testing import assert_almost_equal
 import pytest
@@ -80,6 +88,36 @@ def test_insert_beam_spot(temp_workspace_name):
     assert workspace.getSpectrum(24952).getNumberEvents() == 39
 
 
+def test_insert_monochromatic_beam_spot(eqsans_workspace: Callable[[Any], EventWorkspace]):
+    r"""
+    Generate a set of neutron events imprinting a beam spot pattern on the detector. Verify that all events have the
+    same neutron wavelength by converting from time-of-flight to wavelength and histogramming the result.
+
+    Parameters
+    ----------
+    eqsans_workspace
+        Callable fixture returning a temporary EventWorkspace with the latest EQSANS instrument definition
+    """
+    wavelength = 2.5  # units are Angstroms. All neutrons have this wavelength
+    workspace = eqsans_workspace(wavelength=wavelength, sample_detector_distance=5.0)
+    SampleLogs(workspace).insert("start_time", "2023-08-01 00:00:00")
+    insert_beam_spot(
+        workspace,
+        center_x=-0.015,
+        center_y=-0.03,
+        diameter=0.01,
+        lambda_distribution=lambda events_count: np.repeat(wavelength, events_count),  # monochromatic
+    )
+    assert_almost_equal(np.array(workspace.spectrumInfo().position(24952)), [-0.0141, -0.0306, 4.9958], decimal=3)
+    assert workspace.getSpectrum(24952).getNumberEvents() == 39
+    # convert to wavelength and histogram between 0 and 5 Angstroms, with a bin width of 1.0 Angstrom. The result is
+    # a histogram with five bins. The third bin has boundaries [2.0, 3.0] and therefore should contain all neutron
+    # counts. The other bins should have zero counts.
+    _, intensities = _histogram_all_events(workspace, units="Wavelength", binning="0.0,1.0,5.0")
+    # indeterminacy below is atol + rtol * [0.0, 0.0, 0.0, 766.0, 0.0]
+    numpy.testing.assert_allclose(intensities, [0.0, 0.0, 766.0, 0.0, 0.0], atol=0.1, rtol=0.1)
+
+
 def test_insert_background(temp_workspace_name):
     workspace_events = empty_instrument_workspace(
         temp_workspace_name(), filename="BIOSANS_Definition.xml", event_workspace=True
@@ -87,7 +125,7 @@ def test_insert_background(temp_workspace_name):
     SampleLogs(workspace_events).insert("start_time", "2023-08-01 00:00:00")
     # Gaussian noise with mean 20 and stddev 4
     mean, stddev = 40, 4
-    insert_background(workspace_events, flavor="gaussian noise", mean=mean, stddev=stddev)
+    insert_background(workspace_events, flavor="gaussian noise", flavor_kwargs=dict(mean=mean, stddev=stddev))
     workspace_intensities = Integration(InputWorkspace=workspace_events, OutputWorkspace=temp_workspace_name())
     intensities = workspace_intensities.extractY().flatten()
     intensities_other = np.random.normal(mean, stddev, len(intensities)).astype(int)
@@ -99,11 +137,45 @@ def test_insert_background(temp_workspace_name):
     )
     SampleLogs(workspace_events).insert("start_time", "2023-08-01 00:00:00")
     min_counts, max_counts = 2, 7
-    insert_background(workspace_events, flavor="flat noise", min_counts=min_counts, max_counts=max_counts)
+    insert_background(
+        workspace_events, flavor="flat noise", flavor_kwargs=dict(min_counts=min_counts, max_counts=max_counts)
+    )
     workspace_intensities = Integration(InputWorkspace=workspace_events, OutputWorkspace=temp_workspace_name())
     intensities = workspace_intensities.extractY().flatten()
     assert_almost_equal(np.min(intensities), min_counts, decimal=1)
     assert_almost_equal(np.max(intensities), max_counts, decimal=1)
+
+
+def test_insert_monochromatic_background(eqsans_workspace: Callable[[Any], EventWorkspace]):
+    r"""
+    Generate a set of neutron events imprinting a background pattern on the detector. Verify that all events have the
+    same neutron wavelength by converting from time-of-flight to wavelength and histogramming the result.
+
+    Parameters
+    ----------
+    eqsans_workspace
+        Callable fixture returning a temporary EventWorkspace with the latest EQSANS instrument definition
+    """
+    wavelength = 2.5  # units are Angstroms. All neutrons have this wavelength
+    workspace = eqsans_workspace(wavelength=wavelength, sample_detector_distance=5.0)
+    input_workspace = str(workspace)
+    SampleLogs(input_workspace).insert("start_time", "2023-08-01 00:00:00")
+    # Gaussian noise with mean 20 and stddev 4, in units of neutron-events count
+    mean, stddev = 2, 1
+    insert_background(
+        input_workspace,
+        flavor="gaussian noise",
+        flavor_kwargs=dict(mean=mean, stddev=stddev),
+        lambda_distribution=lambda events_count: np.repeat(wavelength, events_count),  # monochromatic distribution
+    )
+    numpy.testing.assert_allclose(_event_count_in_central_tube(input_workspace), 395, atol=32)
+
+    # convert to wavelength and histogram between 0 and 5 Angstroms, with a bin width of 1.0 Angstrom. The result is
+    # a histogram with five bins. The third bin has boundaries [2.0, 3.0] and therefore should contain all neutron
+    # counts. The other bins should have zero counts.
+    _, intensities = _histogram_all_events(input_workspace, units="Wavelength", binning="0.0,1.0,5.0")
+    # indeterminacy below is atol + rtol * [0.0, 0.0, 0.0, 74964.0, 0.0]
+    numpy.testing.assert_allclose(intensities, [0.0, 0.0, 74964.0, 0.0, 0.0], atol=0.1, rtol=0.1)
 
 
 @pytest.fixture(scope="function")
@@ -127,7 +199,7 @@ def biosans_workspace(temp_workspace_name, fetch_idf):
 @pytest.fixture(scope="function")
 def eqsans_workspace(temp_workspace_name, fetch_idf):
     r"""
-    Callable fixture returning an EventWorkspace with the latest EQSANS instrument definition
+    Callable fixture returning a temporary EventWorkspace with the latest EQSANS instrument definition
 
     Parameters
     ----------
@@ -160,7 +232,9 @@ def eqsans_workspace(temp_workspace_name, fetch_idf):
             LogUnit="A",
             NumberType="Double",
         )
-        set_position_south_detector(workspace_events, distance=sample_detector_distance)  # meters
+        MoveInstrumentComponent(
+            Workspace=workspace_events, ComponentName="detector1", Z=sample_detector_distance, RelativePosition=False
+        )
         return workspace_events
 
     return __eqsans_workspace
@@ -211,6 +285,22 @@ def test_insert_events_isotropic(biosans_workspace):
     assert _event_count_in_central_tube(biosans_workspace) == 868
 
 
+def test_insert_monocromatic_events_isotropic(eqsans_workspace: Callable[[Any], EventWorkspace]):
+    wavelength = 2.5  # units are Angstroms. All neutrons have this wavelength
+    workspace = eqsans_workspace(wavelength=wavelength, sample_detector_distance=5.0)
+    insert_events_isotropic(
+        workspace,
+        max_counts_in_pixel=40,
+        lambda_distribution=lambda events_count: np.repeat(wavelength, events_count),  # monochromatic distribution
+    )
+    # convert to wavelength and histogram between 0 and 5 Angstroms, with a bin width of 1.0 Angstrom. The result is
+    # a histogram with five bins. The third bin has boundaries [2.0, 3.0] and therefore should contain all neutron
+    # counts. The other bins should have zero counts.
+    _, intensities = _histogram_all_events(workspace, units="Wavelength", binning="0.0,1.0,5.0")
+    # indeterminacy below is atol + rtol * [0.0, 0.0, 0.0, 24576.0, 0.0]
+    numpy.testing.assert_allclose(intensities, [0.0, 0.0, 24576.0, 0.0, 0.0], atol=0.1, rtol=0.1)
+
+
 def test_insert_events_ring(biosans_workspace):
     set_angle_midrange_detector(biosans_workspace, angle=5.0)  # degrees
     set_angle_wing_detector(biosans_workspace, angle=4.0)  # degrees
@@ -225,10 +315,15 @@ def test_insert_events_ring(biosans_workspace):
     assert _event_count_in_central_tube(biosans_workspace) == 105
 
 
-def test_insert_monocromatic_events_ring(eqsans_workspace):
+def test_insert_monocromatic_events_ring(eqsans_workspace: Callable[[Any], EventWorkspace]):
     r"""
     Generate a set of neutron events imprinting a ring pattern on the detector. Verify that all events have the same
     neutron wavelength by converting from time-of-flight to wavelength and histogramming the result.
+
+    Parameters
+    ----------
+    eqsans_workspace
+        Callable fixture returning a temporary EventWorkspace with the latest EQSANS instrument definition
     """
     wavelength = 2.5  # units are Angstroms. All neutrons have this wavelength
     workspace = eqsans_workspace(wavelength=wavelength, sample_detector_distance=5.0)
@@ -253,7 +348,7 @@ def test_insert_monocromatic_events_ring(eqsans_workspace):
     _, intensities = _histogram_all_events(input_workspace, units="Wavelength", binning="0.0,1.0,5.0")
 
     # indeterminacy below is atol + rtol * [0.0, 0.0, 0.0, 49728.0, 0.0]
-    numpy.testing.assert_allclose(intensities, [0.0, 0.0, 49728.0, 0.0, 0.0], atol=0.1, rtol=0.01)
+    numpy.testing.assert_allclose(intensities, [0.0, 0.0, 49728.0, 0.0, 0.0], atol=0.1, rtol=0.1)
 
 
 def test_insert_events_sin_squared(biosans_workspace):

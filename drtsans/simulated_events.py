@@ -91,7 +91,7 @@ def insert_events(
         is called. There's only one value of the gravity drop for each component. Log entry "wavelength" is
         required for this correction, thus assuming all neutrons have the same wavelength. It's an approximation.
     pulse_time
-        If None, the time of the first pulse in the run is used.
+        If None, we'll use the starting time of the run.
     lambda_distribution
         A function that takes a number of neutron events and returns as many values of neutron wavelengths (in
         units of Angstroms), to be later used to assign a TOF to each event. If None, the TOF of each event is
@@ -182,6 +182,8 @@ def insert_beam_spot(
     back_panel_attenuation: float = 0.5,
     solid_angle_correction: bool = True,
     gravity_correction: bool = True,
+    pulse_time: Union[str, DateAndTime] = None,
+    lambda_distribution: Optional[Callable] = None,
 ) -> None:
     r"""
     Insert events into the main detector panel, simulating a beam spot.
@@ -210,6 +212,16 @@ def insert_beam_spot(
         neutron's path after scattering from the sample. This shift is applied before ``xy_cross_section``
         is called. There's only one value of the gravity drop for each component. Log entry "wavelength" is
         required for this correction.
+    pulse_time
+        If None, we'll use the starting time of the run.
+    lambda_distribution
+        A function that takes a number of neutron events and returns as many values of neutron wavelengths (in
+        units of Angstroms), to be later used to assign a TOF to each event. If None, the TOF of each event is
+        randomly selected between 1000 and 16665 microseconds.
+        Example:
+            def lambda_distribution_normal(n_events) -> np.ndarray:
+                 # Normal distribution with 5 Angstroms mean wavelength, 0.1 Angstroms standard deviation
+                return np.random.normal(loc=5.0, scale=0.1, size=n_events)
     """
 
     def _xy_gaussian(x, y, _):
@@ -224,14 +236,18 @@ def insert_beam_spot(
         back_panel_attenuation=back_panel_attenuation,
         solid_angle_correction=solid_angle_correction,
         gravity_correction=gravity_correction,
+        pulse_time=pulse_time,
+        lambda_distribution=lambda_distribution,
     )
 
 
 def insert_background(
     input_workspace: Union[str, MantidWorkspace],
     components: Optional[Union[str, List[str]]] = None,
+    pulse_time: Union[str, DateAndTime] = None,
+    lambda_distribution: Optional[Callable] = None,
     flavor: str = "gaussian noise",
-    **flavor_kwargs: dict,
+    flavor_kwargs: Optional[dict] = None,
 ) -> None:
     r"""
     Insert background events into one (or more) of the detector panels.
@@ -243,12 +259,22 @@ def insert_background(
     components
         One (or more) of the double-panels in the instrument (e.g. "detector1", "wing_detector"). If None, all
         components are used.
+    pulse_time
+        If None, we'll use the starting time of the run.
+    lambda_distribution
+        A function that takes a number of neutron events and returns as many values of neutron wavelengths (in
+        units of Angstroms), to be later used to assign a TOF to each event. If None, the TOF of each event is
+        randomly selected between 1000 and 16665 microseconds.
+        Example:
+            def lambda_distribution_normal(n_events) -> np.ndarray:
+                 # Normal distribution with 5 Angstroms mean wavelength, 0.1 Angstroms standard deviation
+                return np.random.normal(loc=5.0, scale=0.1, size=n_events)
     flavor
         The type of background to insert. Supported flavors are:
          "gaussian noise", event counts randomly selected from a Gaussian distribution
          "flat noise", event counts randomly selected from a flat distribution
     flavor_kwargs
-        Keyword arguments passed to the background generator function.
+        Optional arguments passed to the background generator function.
         For "gaussian noise", the following arguments are supported:
             mean: float
                 Mean of the Gaussian distribution
@@ -269,7 +295,7 @@ def insert_background(
 
     def _flat_noise(x, y, _):
         assert len(x) == len(y)
-        assert flavor_kwargs["min_counts"] >= 0 and flavor_kwargs["min_counts"] < flavor_kwargs["max_counts"]
+        assert 0 <= flavor_kwargs["min_counts"] < flavor_kwargs["max_counts"]
         return np.random.randint(flavor_kwargs["min_counts"], flavor_kwargs["max_counts"] + 1, len(x)).astype(float)
 
     event_generator = {"gaussian noise": _gaussian_noise, "flat noise": _flat_noise}[flavor]
@@ -282,6 +308,8 @@ def insert_background(
         back_panel_attenuation=1.0,
         solid_angle_correction=False,
         gravity_correction=False,
+        pulse_time=pulse_time,
+        lambda_distribution=lambda_distribution,
     )
 
 
@@ -294,6 +322,8 @@ def insert_events_isotropic(
     component_efficiencies: Union[int, float, List] = 1.0,
     back_panel_attenuation: float = 0.5,
     solid_angle_correction: bool = True,
+    pulse_time: Union[str, DateAndTime] = None,
+    lambda_distribution: Optional[Callable] = None,
 ) -> None:
     r"""
     Isotropic scattering, all directions scatter equally.
@@ -322,6 +352,16 @@ def insert_events_isotropic(
         The attenuation of the back panel. This is a multiplicative factor of the intensity
     solid_angle_correction
         If True, the solid angle of each pixel is taken into account. This is a multiplicative factor of the intensity
+    pulse_time
+        If None, we'll use the starting time of the run.
+    lambda_distribution
+        A function that takes a number of neutron events and returns as many values of neutron wavelengths (in
+        units of Angstroms), to be later used to assign a TOF to each event. If None, the TOF of each event is
+        randomly selected between 1000 and 16665 microseconds.
+        Example:
+            def lambda_distribution_normal(n_events) -> np.ndarray:
+                 # Normal distribution with 5 Angstroms mean wavelength, 0.1 Angstroms standard deviation
+                return np.random.normal(loc=5.0, scale=0.1, size=n_events)
     """
 
     @twotheta_to_xyz
@@ -338,6 +378,8 @@ def insert_events_isotropic(
         back_panel_attenuation=back_panel_attenuation,
         solid_angle_correction=solid_angle_correction,
         gravity_correction=False,
+        pulse_time=pulse_time,
+        lambda_distribution=lambda_distribution,
     )
 
 
@@ -394,7 +436,7 @@ def insert_events_ring(
         is called. There's only one value of the gravity drop for each component. Log entry "wavelength" is
         required for this correction.
     pulse_time
-        If None, the time of the first pulse in the run is used.
+        If None, we'll use the starting time of the run.
     lambda_distribution
         A function that takes a number of neutron events and returns as many values of neutron wavelengths (in
         units of Angstroms), to be later used to assign a TOF to each event. If None, the TOF of each event is

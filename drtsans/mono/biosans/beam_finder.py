@@ -79,6 +79,7 @@ def find_beam_center(
     solid_angle_method="VerticalTube",
 ) -> Tuple[float, float, float, float, dict]:
     """Finds the beam center in a 2D SANS data set.
+
     This is based on (and uses) :func:`drtsans.find_beam_center`
 
     Parameters
@@ -100,17 +101,11 @@ def find_beam_center(
 
     Returns
     -------
-    tuple
-        Three float numbers:
-        ``(center_x, center_y, center_y_wing)`` corrected for gravity.
-        ``center_y_wing`` is used to correct BIOSANS wing detector Y position.
-        One float number or None:
-        ``center_y_midrange`` is used to correct BIOSANS midrange detector Y position.
-            if sample_det_cent_midrange_detector is specified then a float number is returned,
-            else None.
-        Dict:
-        ``fit_results``: results produced by fitting the beam center intensities
-        to a 2D Gaussian model in the lmfit package
+    ``(center_x, center_y, center_y_wing, center_y_midrange, fit_results)`` where
+    - ``center_y_wing`` is used to correct BIOSANS wing detector Y position.
+    - ``center_y_midrange`` is used to correct BIOSANS midrange detector Y position.
+      if sample_det_cent_midrange_detector is specified then a float number is returned, else None.
+    - ``fit_results`` produced by fitting the beam center intensities to a 2D Gaussian model of the lmfit package
     """
     ws = mtd[str(input_workspace)]
 

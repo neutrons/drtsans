@@ -94,32 +94,32 @@ def periodic_index_log(
     name: str = "periodic_index",
 ) -> Int64TimeSeriesProperty:
     r"""
-    Generate a periodic log whose values are integers ranging from 0 to period/interval.
+    Generate a periodic log whose values are integers ranging from 0 to ``period / interval``.
 
     The first log entry is at ``run_start + offset`` with value 0. The next entry at
-     `run_start + offset + interval`` with value 1, and so on. The log wraps around
+    ``run_start + offset + interval`` with value 1, and so on. The log wraps around
     at ``run_start + offset + period`` so the next value is again 0.
 
     Parameters
     ----------
-    period:
+    period
         Period of the log, in seconds
-    interval:
+    interval
         Interval between consecutive log entries, in seconds
-    duration:
-        Duration of the log from ``run_start``, in seconds.
-    run_start:
-        Time of the first log entry, unless ``offset`` is also specified.
-    offset:
-        Time of the first log entry after ``run_start`, in seconds
-    step:
+    duration
+        Duration of the log from ``run_start``, in seconds
+    run_start
+        Time of the first log entry, unless ``offset`` is also specified
+    offset
+        Time of the first log entry after ``run_start``, in seconds
+    step
         Absolute value of the change in the log value between two consecutive entries
-    name: str
+    name
         Name of the log
 
     Returns
     -------
-    mantig log
+    A Mantid timeseries property object which can be attached to a Run object.
 
     Raises
     ------
@@ -207,12 +207,12 @@ class SampleLogs(object):
         ----------
         name: str
             log entry name
-        start_time: str
-            Starting time for the run
         elapsed_times: list
             List of elapsed times after ```start_time```, in seconds.
         values: list
             List of log values, same length as the list of times
+        start_time: str
+            Starting time for the run
         unit: str
             units of the log values
         """

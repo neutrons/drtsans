@@ -202,7 +202,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/1.22/", None),
     "mantid": ("https://docs.mantidproject.org/nightly/", None),
-    "matplotlib": ("https://matplotlib.org/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
 # -- Custom directives ----------------------------------------------------

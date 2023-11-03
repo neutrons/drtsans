@@ -1014,7 +1014,10 @@ def get_xy(input_workspace: Union[str, MantidWorkspace], component: str) -> Tupl
     return x, y
 
 
-_instrument_solid_angles_cache = {"BIOSANS": {"midrange_detector": None, "wing_detector": None, "detector1": None}}
+_instrument_solid_angles_cache = {
+    "BIOSANS": {"midrange_detector": None, "wing_detector": None, "detector1": None},
+    "EQSANS": {"detector1": None},
+}
 
 
 def get_twothetas(input_workspace: Union[str, MantidWorkspace], component: str, units="degrees") -> np.ndarray:

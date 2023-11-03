@@ -1,17 +1,16 @@
 """ Top-level API for EQSANS """
+# standard imports
 from collections import namedtuple
 import copy
 from datetime import datetime
 import os
-import matplotlib.pyplot as plt
-from mantid.simpleapi import (
-    mtd,
-    logger,
-    RebinToWorkspace,
-    SaveNexus,
-)  # noqa E402
+from typing import Dict, List, Optional, Set, Tuple
 
-# Import rolled up to complete a single top-level API
+# third party imports
+import matplotlib.pyplot as plt
+from mantid.simpleapi import mtd, logger, RebinToWorkspace, SaveNexus
+
+# local imports
 import drtsans  # noqa E402
 from drtsans import (
     apply_sensitivity_correction,
@@ -63,7 +62,6 @@ from drtsans.tof.eqsans.correction_api import (
     parse_correction_config,
     CorrectionConfiguration,
 )
-from typing import Dict, Tuple, List
 
 
 __all__ = [
@@ -85,9 +83,9 @@ __all__ = [
 IofQ_output = namedtuple("IofQ_output", ["I2D_main", "I1D_main"])
 
 
-def _get_configuration_file_parameters(sample_run):
+def _get_configuration_file_parameters(sample_run, directory=None):
     try:
-        configuration_file_parameters = load_config(source=sample_run)
+        configuration_file_parameters = load_config(source=sample_run, config_dir=directory)
     except RuntimeError as e:
         logger.error(e)
         logger.warning("Not using previous configuration")
@@ -156,23 +154,16 @@ def load_all_files(reduction_input, prefix="", load_params=None):
         ],
     )
 
-    filenames = set()
     default_mask = None
     if reduction_config["useDefaultMask"]:
-        configuration_file_parameters = _get_configuration_file_parameters(sample.split(",")[0].strip())
+        first_run = sample.split(",")[0].strip()
+        configuration_file_parameters = _get_configuration_file_parameters(
+            first_run, directory=reduction_config["instrumentConfigurationDir"]
+        )
         default_mask = configuration_file_parameters["combined mask"]
 
-    load_params = set_beam_center(
-        center,
-        prefix,
-        instrument_name,
-        ipts,
-        filenames,
-        reduction_config,
-        reduction_input,
-        default_mask,
-        load_params,
-    )
+    filenames: Set[str] = set()
+    load_params = set_beam_center(reduction_input, prefix, default_mask, load_params, filenames)
 
     # Adjust pixel heights and widths
     load_params["pixel_calibration"] = reduction_config.get("usePixelCalibration", False)
@@ -284,8 +275,13 @@ def load_all_files(reduction_input, prefix="", load_params=None):
             # run number is given
             ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
             if not registered_workspace(ws_name):
-                filename = abspaths(run_number.strip(), instrument=instrument_name, ipts=ipts)
-                print(f"Loading filename {filename}")
+                filename = abspaths(
+                    run_number.strip(),
+                    instrument=instrument_name,
+                    ipts=ipts,
+                    directory=reduction_input["dataDirectories"],
+                )
+                logger.notice(f"Loading filename {filename}")
                 filenames.add(filename)
                 if is_elastic_ref_run(irun):
                     # elastic reference run and background run, the bands must be same as sample's
@@ -366,6 +362,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
             load_sensitivity_workspace(flood_file, output_workspace=sensitivity_ws_name)
         sensitivity_ws = mtd[sensitivity_ws_name]
 
+    # load mask
     mask_ws = None
     custom_mask_file = reduction_config["maskFileName"]
     if custom_mask_file is not None:
@@ -417,7 +414,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
         )
     # There is no extra setup for elastic reference background following typical background run
 
-    print("FILE PATH, FILE SIZE:")
+    logger.notice("FILE PATH, FILE SIZE:")
     total_size = 0
     for comma_separated_names in filenames:
         for name in comma_separated_names.split(","):
@@ -1172,29 +1169,43 @@ def apply_solid_angle_correction(input_workspace):
 
 
 def set_beam_center(
-    center,
-    prefix,
-    instrument_name,
-    ipts,
-    filenames,
-    reduction_config,
-    reduction_input,
-    default_mask,
-    load_params,
-):
-    """Helping method to set beam center"""
-    # find the center first
+    reduction_input: dict, prefix: str, default_mask: str, load_params: Optional[Dict], filenames: Set[str]
+) -> dict:
+    r"""
+    Helping method to find the beam center coordinates.
+
+    Parameters
+    ----------
+    reduction_input
+        reduction configurations, holding all parameter values
+    prefix
+        String to prepend to the workspace name that either containing or to contain the beam center events
+    default_mask
+        The default mask to use
+    load_params:
+        The load parameters
+    filenames
+        (Output) Will add to this set the absolute path to the beam center file
+    """
+    # find the center first, if so required
+    center = reduction_input["beamCenter"]["runNumber"]
+    instrument_name = reduction_input["instrumentName"]
     if center:
-        # calculate beam center from center workspace
         center_ws_name = f"{prefix}_{instrument_name}_{center}_raw_events"
         if not registered_workspace(center_ws_name):
-            center_filename = abspath(center, instrument=instrument_name, ipts=ipts)
-            filenames.add(center_filename)
+            reduction_config = reduction_input["configuration"]
+            center_filename = abspath(
+                center,
+                instrument=instrument_name,
+                ipts=reduction_input["iptsNumber"],
+                directory=reduction_input["dataDirectories"],
+            )
             load_events(
                 center_filename,
                 pixel_calibration=reduction_config.get("usePixelCalibration", False),
                 output_workspace=center_ws_name,
             )
+            filenames.add(center_filename)
             if reduction_config["useDefaultMask"]:
                 apply_mask(center_ws_name, mask=default_mask)
         fbc_options = fbc_options_json(reduction_input)
@@ -1203,7 +1214,7 @@ def set_beam_center(
         beam_center_type = "calculated"
     else:
         # use default EQSANS center
-        # TODO - it is better to have these hard code value defined out side of this method
+        # TODO - it is better to have these hard code value defined outside of this method
         center_x = 0.025239
         center_y = 0.0170801
         logger.notice(f"use default center ({center_x}, {center_y})")

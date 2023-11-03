@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import tempfile
 import time
 
 
@@ -22,7 +23,9 @@ from unittest import TestCase
 @namedtuplefy
 def collection():
     r"""BIOSANS instrument with a run containing few events"""
-    workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
+    with tempfile.TemporaryDirectory() as temp_dir:
+        idf_filename = fetch_idf("BIOSANS_Definition.xml", output_directory=temp_dir)
+        workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=idf_filename)
     return {
         "main": TubeCollection(workspace, "detector1"),
         "wing": TubeCollection(workspace, "wing_detector"),

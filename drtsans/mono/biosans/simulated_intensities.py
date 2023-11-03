@@ -9,6 +9,7 @@ from mantid.dataobjects import Workspace2D
 from mantid.simpleapi import CopyLogs, LoadInstrument
 
 # standard imports
+import os
 from typing import Union
 
 
@@ -54,9 +55,10 @@ def clone_component_intensities(
     elif registered_workspace(output_workspace):
         pass
     else:
+        idf_filename = fetch_idf("BIOSANS_Definition.xml")
         empty_instrument_workspace(
             output_workspace=output_workspace,
-            filename=fetch_idf("BIOSANS_Definition.xml"),
+            filename=idf_filename,
             event_workspace=False,
             monitors_have_spectra=(mtd[str(input_workspace)].getSpectrum(0).getDetectorIDs()[0] < 0),
         )
@@ -68,9 +70,8 @@ def clone_component_intensities(
         if copy_logs:
             CopyLogs(input_workspace, output_workspace)
         # This load forces the panels (detector1, wing_detector, midrange_detector) to moved according to the logs
-        LoadInstrument(
-            Workspace=output_workspace, Filename=fetch_idf("BIOSANS_Definition.xml"), RewriteSpectraMap=False
-        )
+        LoadInstrument(Workspace=output_workspace, Filename=idf_filename, RewriteSpectraMap=False)
+        os.remove(idf_filename)
 
     if output_component == "midrange_detector" and not has_midrange_detector(output_workspace):
         raise ValueError("No midrange detector in output workspace")

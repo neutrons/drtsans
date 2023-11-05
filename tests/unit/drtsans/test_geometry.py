@@ -189,8 +189,10 @@ def test_logged_smearing_pixel_size(workspace_with_instrument):
 
 
 @pytest.mark.datarepo
-def test_sample_aperture_diameter(serve_events_workspace_datarepo, datarepo_dir):
-    input_workspace = serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")
+def test_sample_aperture_diameter(datarepo_dir, temp_workspace_name):
+    input_workspace = LoadEventNexus(
+        path_join(datarepo_dir.eqsans, "EQSANS_92353.nxs.h5"), OutputWorkspace=temp_workspace_name()
+    )
     # diameter is retrieved from log 'beamslit4', and we convert the 10mm into 0.01 meters
     assert geo.sample_aperture_diameter(input_workspace, unit="m") == pytest.approx(0.01, abs=0.1)
     # verify entry 'sample_aperture_diameter' has been added to the logs

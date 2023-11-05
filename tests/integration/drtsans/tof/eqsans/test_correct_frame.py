@@ -1,6 +1,8 @@
 import pytest
 from pytest import approx
 import numpy as np
+from os.path import join as path_join
+
 from mantid.simpleapi import (
     Load,
     DeleteWorkspace,
@@ -11,6 +13,7 @@ from mantid.simpleapi import (
     ConvertUnits,
     CloneWorkspace,
     LoadNexusMonitors,
+    LoadEventNexus,
 )
 from mantid.api import AnalysisDataService
 from drtsans.settings import amend_config, unique_workspace_dundername as uwd
@@ -81,11 +84,11 @@ def compare_to_eqsans_load(ws, wo, dl, s2d, ltc, htc):
 
 
 @pytest.mark.datarepo
-def test_correct_detector_frame(serve_events_workspace_datarepo):
+def test_correct_detector_frame(datarepo_dir, temp_workspace_name):
     for v in trials.values():
         run_number, wavelength_bin, sdd = v[0:3]
-        wo = serve_events_workspace_datarepo(run_number)
-        ws = serve_events_workspace_datarepo(run_number)
+        wo = LoadEventNexus(path_join(datarepo_dir.eqsans, run_number), OutputWorkspace=temp_workspace_name())
+        ws = LoadEventNexus(path_join(datarepo_dir.eqsans, run_number), OutputWorkspace=temp_workspace_name())
         MoveInstrumentComponent(ws, ComponentName="detector1", Z=sdd)
         correct_detector_frame(ws, path_to_pixel=False)
         compare_to_eqsans_load(ws, wo, wavelength_bin, sdd, 500, 2000)

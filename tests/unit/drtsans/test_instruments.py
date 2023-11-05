@@ -16,6 +16,7 @@ from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import CreateWorkspace, DeleteWorkspace, LoadEmptyInstrument, LoadEventNexus
 from numpy.testing import assert_almost_equal
 import pytest
+from os.path import join as path_join
 
 # standard imports
 #
@@ -27,21 +28,26 @@ class TestInstrumentEnumName:
 
 
 @pytest.mark.datarepo
-def test_instrument_name(serve_events_workspace_datarepo):
+def test_instrument_name(datarepo_dir, temp_workspace_name):
     assert instrument_enum_name("EQ-SANS") == InstrumentEnumName.EQSANS
     assert str(instrument_enum_name("EQ-SANS")) == "EQSANS"
     assert str(instrument_enum_name("CG3")) == "BIOSANS"
     assert str(instrument_enum_name("somepath/CG3_961.nxs.h5")) == "BIOSANS"
     assert instrument_enum_name("nonexistantsansinstrument") == InstrumentEnumName.UNDEFINED
-    assert instrument_enum_name(serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")) == InstrumentEnumName.EQSANS
-    workspace = CreateWorkspace(DataX=range(42), DataY=range(42), OutputWorkspace=unique_workspace_dundername())
+    event_workspace = LoadEventNexus(
+        path_join(datarepo_dir.eqsans, "EQSANS_92353.nxs.h5"), OutputWorkspace=temp_workspace_name()
+    )
+    assert instrument_enum_name(event_workspace) == InstrumentEnumName.EQSANS
+    workspace = CreateWorkspace(DataX=range(42), DataY=range(42), OutputWorkspace=temp_workspace_name())
     assert instrument_enum_name(workspace) == InstrumentEnumName.UNDEFINED
-    workspace.delete()
 
 
 @pytest.mark.datarepo
-def test_is_time_of_flight(serve_events_workspace_datarepo):
-    for query in ("EQSANS", "EQ-SANS", serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")):
+def test_is_time_of_flight(datarepo_dir, temp_workspace_name):
+    event_workspace = LoadEventNexus(
+        path_join(datarepo_dir.eqsans, "EQSANS_92353.nxs.h5"), OutputWorkspace=temp_workspace_name()
+    )
+    for query in ("EQSANS", "EQ-SANS", event_workspace):
         assert is_time_of_flight(query) is True
     for query in ("GPSANS", "CG2", "BIOSANS", "CG3"):
         assert is_time_of_flight(query) is False

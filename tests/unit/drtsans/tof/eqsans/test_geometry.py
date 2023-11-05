@@ -6,7 +6,7 @@ r"""
 Hyperlinks to Mantid algorithms
 LoadInstrument <https://docs.mantidproject.org/nightly/algorithms/LoadInstrument-v1.html>
 """
-from mantid.simpleapi import LoadInstrument
+from mantid.simpleapi import LoadEventNexus, LoadInstrument
 
 from drtsans.geometry import main_detector_panel
 from drtsans.tof.eqsans.geometry import (
@@ -23,16 +23,20 @@ from drtsans.samplelogs import SampleLogs
 
 
 @pytest.mark.datarepo
-def test_translate_detector_by_z(serve_events_workspace_datarepo, datarepo_dir):
+def test_translate_detector_by_z(datarepo_dir, temp_workspace_name):
     # Load instrument with main panel at Z=0, then translate according to the logs
-    workspace = serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")
+    workspace = LoadEventNexus(
+        os.path.join(datarepo_dir.eqsans, "EQSANS_92353.nxs.h5"), OutputWorkspace=temp_workspace_name()
+    )
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(0.0, abs=1e-3)  # detector1 at z=0
     translate_detector_by_z(workspace)
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(4.0, abs=1e-3)  # now at z=4.0
 
     # Load instrument with main panel at Z=0, then apply latest IDF which will move the main panel. Subsequent
     # application of translate_detector_by_z will have no effect
-    workspace = serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")
+    workspace = LoadEventNexus(
+        os.path.join(datarepo_dir.eqsans, "EQSANS_92353.nxs.h5"), OutputWorkspace=temp_workspace_name()
+    )
     assert main_detector_panel(workspace).getPos()[-1] == pytest.approx(0.0, abs=1e-3)  # detector1 at z=0
     idf = os.path.join(datarepo_dir.eqsans, "instrument", "EQ-SANS_Definition.xml")
     LoadInstrument(workspace, FileName=idf, RewriteSpectraMap=True)
@@ -42,8 +46,10 @@ def test_translate_detector_by_z(serve_events_workspace_datarepo, datarepo_dir):
 
 
 @pytest.mark.datarepo
-def test_sample_aperture_diameter(serve_events_workspace_datarepo):
-    ws = serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")
+def test_sample_aperture_diameter(datarepo_dir, temp_workspace_name):
+    ws = LoadEventNexus(
+        os.path.join(datarepo_dir.eqsans, "EQSANS_92353.nxs.h5"), OutputWorkspace=temp_workspace_name()
+    )
     sad = sample_aperture_diameter(ws)
     # ISSUE1887 TODO Enabled assert sad == approx(10)
     sad = SampleLogs(ws).single_value("sample_aperture_diameter")
@@ -68,12 +74,13 @@ data_source_aperture = [
 
 @pytest.mark.parametrize("data", data_source_aperture)
 @pytest.mark.parametrize("generic_workspace", [{"name": "EQ-SANS", "l1": -14.122}], indirect=True)
-def test_source_aperture(generic_workspace, data):
+def test_source_aperture(generic_workspace, data, clean_workspace):
     r"""
     Test function source_aperture for different aperture settings and run numbers.
     Use a mock EQ-SANS instrument with the moderator 14.122 meters away from the sample.
     """
     workspace = generic_workspace
+    clean_workspace(workspace)
     sample_logs = SampleLogs(workspace)
     sample_logs.insert("run_number", data.run_number)
     for log_key in ["vBeamSlit", "vBeamSlit2", "vBeamSlit3"]:
@@ -90,8 +97,10 @@ def test_source_aperture(generic_workspace, data):
 
 
 @pytest.mark.datarepo
-def test_source_aperture_diameter(serve_events_workspace_datarepo):
-    ws = serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")
+def test_source_aperture_diameter(datarepo_dir, temp_workspace_name):
+    ws = LoadEventNexus(
+        os.path.join(datarepo_dir.eqsans, "EQSANS_92353.nxs.h5"), OutputWorkspace=temp_workspace_name()
+    )
     sad = source_aperture_diameter(ws)
     # ISSUE187 TODO Enable assert sad == approx(20)
     sad = SampleLogs(ws).single_value("source_aperture_diameter")
@@ -101,8 +110,9 @@ def test_source_aperture_diameter(serve_events_workspace_datarepo):
 
 @pytest.mark.parametrize("data", data_source_aperture)
 @pytest.mark.parametrize("generic_workspace", [{"name": "EQ-SANS", "l1": -14.122}], indirect=True)
-def test_source_aperture_sample_distance(generic_workspace, data):
+def test_source_aperture_sample_distance(generic_workspace, data, clean_workspace):
     workspace = generic_workspace
+    clean_workspace(workspace)
     sample_logs = SampleLogs(workspace)
     sample_logs.insert("run_number", data.run_number)
     for log_key in ["vBeamSlit", "vBeamSlit2", "vBeamSlit3"]:
@@ -119,8 +129,10 @@ def test_source_aperture_sample_distance(generic_workspace, data):
 
 
 @pytest.mark.datarepo
-def test_source_monitor_distance(serve_events_workspace_datarepo):
-    ws = serve_events_workspace_datarepo("EQSANS_92353.nxs.h5")
+def test_source_monitor_distance(datarepo_dir, temp_workspace_name):
+    ws = LoadEventNexus(
+        os.path.join(datarepo_dir.eqsans, "EQSANS_92353.nxs.h5"), OutputWorkspace=temp_workspace_name()
+    )
     smd = source_monitor_distance(ws, unit="m")
     assert smd == pytest.approx(10.122, abs=0.001)
     smd = SampleLogs(ws).single_value("source-monitor-distance")

@@ -40,7 +40,6 @@ from collections import namedtuple
 from pathlib import Path
 import os
 from os.path import join as pjoin
-import random
 import re
 from shutil import rmtree
 import string
@@ -1427,94 +1426,6 @@ def workspace_with_instrument(request):
     # Teardown
     for workspace_name in workspace_inventory:
         __safe_delete_workspace(workspace_name)
-
-
-@pytest.fixture(scope="session")
-def serve_events_workspace_datarepo(datarepo_dir):
-    r"""
-    Load an events workspace and cache it for future requests.
-
-    If the same run is requested, the fixture clones the cached workspace,
-    thus avoiding reloading the file.
-
-    Parameters
-    ----------
-    run: str
-        Instrument plus run number string, e.g 'EQSANS_92353'
-    dd: str
-        directory location where to find the file. Unnecessary if /SNS mounted.
-
-    Returns
-    -------
-    EventsWorkspace
-    """
-
-    def wrapper(run, dd=datarepo_dir.eqsans):
-        cache = wrapper._cache
-        names = wrapper._names
-
-        def uwd():
-            while True:
-                name = "__" + "".join(random.choice(string.ascii_lowercase) for _ in range(9))
-                if name not in names:
-                    return name
-
-        if cache.get(run, None) is None:
-            with amend_config(data_dir=dd):
-                cache[run] = mtds.LoadEventNexus(run, OutputWorkspace=uwd())
-                names.append(cache[run])
-        clone = mtds.CloneWorkspace(cache[run], OutputWorkspace=uwd())
-        names.append(clone.name())
-        return clone
-
-    wrapper._cache = dict()  # caches the loaded original ws
-    wrapper._names = list()  # stores names for all ws produced
-    yield wrapper
-    [mtds.DeleteWorkspace(name) for name in wrapper._names]
-
-
-@pytest.fixture(scope="session")
-def serve_events_workspace(reference_dir):
-    r"""
-    Load an events workspace and cache it for future requests.
-
-    If the same run is requested, the fixture clones the cached workspace,
-    thus avoiding reloading the file.
-
-    Parameters
-    ----------
-    run: str
-        Instrument plus run number string, e.g 'EQSANS_92353'
-    dd: str
-        directory location where to find the file. Unnecessary if /SNS mounted.
-
-    Returns
-    -------
-    EventsWorkspace
-    """
-
-    def wrapper(run, dd=reference_dir.eqsans):
-        cache = wrapper._cache
-        names = wrapper._names
-
-        def uwd():
-            while True:
-                name = "__" + "".join(random.choice(string.ascii_lowercase) for _ in range(9))
-                if name not in names:
-                    return name
-
-        if cache.get(run, None) is None:
-            with amend_config(data_dir=dd):
-                cache[run] = mtds.LoadEventNexus(run, OutputWorkspace=uwd())
-                names.append(cache[run])
-        clone = mtds.CloneWorkspace(cache[run], OutputWorkspace=uwd())
-        names.append(clone.name())
-        return clone
-
-    wrapper._cache = dict()  # caches the loaded original ws
-    wrapper._names = list()  # stores names for all ws produced
-    yield wrapper
-    [mtds.DeleteWorkspace(name) for name in wrapper._names]
 
 
 @pytest.fixture(scope="session")

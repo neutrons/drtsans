@@ -11,10 +11,9 @@ standard_sample_scaling <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/b
 unique_workspace_name <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 """
 from drtsans.absolute_units import standard_sample_scaling  # noqa: E402
-from drtsans.settings import unique_workspace_name  # noqa: E402
 
 
-def test_standard_sample_measurement(clean_workspace):
+def test_standard_sample_measurement(temp_workspace_name):
     r"""
     Tests normalization with a calibrated standard sample as described in the master document
     section 12.3
@@ -39,18 +38,17 @@ def test_standard_sample_measurement(clean_workspace):
 
     F_std = 450.0  # value from supplied test
     F_std_err = 10.0  # value from supplied test
-    tmp_wsn = clean_workspace(unique_workspace_name())
-    F_std_ws = CreateSingleValuedWorkspace(DataValue=F_std, ErrorValue=F_std_err, OutputWorkspace=tmp_wsn)
+    F_std_ws = CreateSingleValuedWorkspace(
+        DataValue=F_std, ErrorValue=F_std_err, OutputWorkspace=temp_workspace_name()
+    )
     #
     F = 10.0  # value from supplied test
     F_err = 2.0  # value from supplied test
-    tmp_wsn = clean_workspace(unique_workspace_name())
-    F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=F_err, OutputWorkspace=tmp_wsn)
+    F_ws = CreateSingleValuedWorkspace(DataValue=F, ErrorValue=F_err, OutputWorkspace=temp_workspace_name())
     #
     Iq = 100.0  # value from supplied test
     Iq_err = np.sqrt(Iq)
-    tmp_wsn = clean_workspace(unique_workspace_name())
-    Iq_ws = CreateSingleValuedWorkspace(DataValue=Iq, ErrorValue=Iq_err, OutputWorkspace=tmp_wsn)
+    Iq_ws = CreateSingleValuedWorkspace(DataValue=Iq, ErrorValue=Iq_err, OutputWorkspace=temp_workspace_name())
     # perform calculation done by function standard_sample_scaling
     Iq_abs = Iq / F * F_std
     # calculate uncertainty as described in the supplied test. Symbolically this is identical to the calculation below,
@@ -68,7 +66,7 @@ def test_standard_sample_measurement(clean_workspace):
     # NOTE:
     # the function standard_sample_scaling has a side effect workspace, output_workspace
     # by design, adding it to list
-    clean_workspace(tmp_wsn)
+
     # check results
     assert Iq_ws.dataY(0)[0] == pytest.approx(Iq)
     assert Iq_abs_ws.dataY(0)[0] == pytest.approx(Iq_abs)

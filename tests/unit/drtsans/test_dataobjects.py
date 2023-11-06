@@ -106,11 +106,12 @@ class TestIQmod:
         assert iqmod.mod_q == pytest.approx([7, 8, 9])
         assert iqmod.intensity == pytest.approx([1, 3, 2])
 
-    def test_IQmod_to_mtd(self):
+    def test_IQmod_to_mtd(self, clean_workspace):
         # create the data object
         iqmod = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9])
         # convert to mantid workspace
         wksp = iqmod.to_workspace()
+        clean_workspace(wksp)
 
         # verify results
         assert_wksp_equal(wksp, iqmod)

@@ -8,7 +8,6 @@ https://docs.mantidproject.org/nightly/algorithms/LoadInstrument-v1.html
 https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html
 """
 from mantid.simpleapi import CreateWorkspace, LoadInstrument, SumSpectra
-from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.mask_utils import apply_mask
 
 
@@ -17,7 +16,7 @@ from drtsans.mask_utils import apply_mask
     [{"Nx": 3, "Ny": 3, "dx": 0.00425, "dy": 0.0055, "xc": 0.32, "yc": -0.16}],
     indirect=True,
 )
-def test_apply_mask_single_bin(generic_IDF):
+def test_apply_mask_single_bin(generic_IDF, temp_workspace_name):
     r"""
     Apply a mask to a simple 3 x 3 detector
     dev - Jose Borreguero <borreguerojm@ornl.gov>
@@ -31,7 +30,7 @@ def test_apply_mask_single_bin(generic_IDF):
         DataY=intensities,
         DataE=np.sqrt(intensities),
         Nspec=9,
-        OutputWorkspace=uwd(),
+        OutputWorkspace=temp_workspace_name(),
     )
     LoadInstrument(
         Workspace=ws,
@@ -64,7 +63,7 @@ def test_apply_mask_single_bin(generic_IDF):
     # operations on the whole workspace
     big_value = 1.0e6
     ws.setY(3, [big_value])
-    ws_sum = SumSpectra(ws, OutputWorkspace=uwd())
+    ws_sum = SumSpectra(ws, OutputWorkspace=temp_workspace_name())
     assert ws_sum.dataY(0)[0] == sum(intensities_after_mask)
     intensities_after_mask[3] = big_value
 
@@ -76,17 +75,13 @@ def test_apply_mask_single_bin(generic_IDF):
     intensities_after_mask[trap_detector_id] = 0
     assert ws.extractY().flatten() == approx(intensities_after_mask, abs=0.1)
 
-    # Clean up
-    ws.delete()
-    ws_sum.delete()
-
 
 @pytest.mark.parametrize(
     "generic_IDF",
     [{"Nx": 2, "Ny": 2, "dx": 0.00425, "dy": 0.0055, "xc": 0.32, "yc": -0.16}],
     indirect=True,
 )
-def test_apply_mask_simple_histogram(generic_IDF):
+def test_apply_mask_simple_histogram(generic_IDF, temp_workspace_name):
     r"""
     Apply a mask to a  2 x 2 detector with histograms
     dev - Andrei Savici <asviciat@ornl.gov>
@@ -100,7 +95,7 @@ def test_apply_mask_simple_histogram(generic_IDF):
         DataY=intensities,
         DataE=np.sqrt(intensities),
         Nspec=4,
-        OutputWorkspace=uwd(),
+        OutputWorkspace=temp_workspace_name(),
     )
     LoadInstrument(
         Workspace=ws,
@@ -131,7 +126,7 @@ def test_apply_mask_simple_histogram(generic_IDF):
     # operations on the whole workspace
     big_value = 1.0e6
     ws.setY(2, [big_value] * 3)
-    ws_sum = SumSpectra(ws, OutputWorkspace=uwd())
+    ws_sum = SumSpectra(ws, OutputWorkspace=temp_workspace_name())
     assert ws_sum.dataY(0) == approx(np.sum(intensities_after_mask, axis=0))
     intensities_after_mask[2] = big_value
 
@@ -143,20 +138,18 @@ def test_apply_mask_simple_histogram(generic_IDF):
     intensities_after_mask[trap_detector_id] = 0
     assert ws.extractY() == approx(intensities_after_mask, abs=0.1)
 
-    # Clean up
-    ws.delete()
-
 
 @pytest.mark.parametrize(
     "generic_workspace",
     [{"name": "EQ-SANS", "dx": 0.01, "dy": 0.01, "Nx": 192, "Ny": 256}],
     indirect=True,
 )
-def test_apply_mask_btp_and_angle(generic_workspace):
+def test_apply_mask_btp_and_angle(generic_workspace, clean_workspace):
     r"""
     Apply a circular mask
     """
     w = generic_workspace
+    clean_workspace(w)
     apply_mask(w, Pixel="1-8", MaxAngle=10)
     spectrum_info = w.spectrumInfo()
     for i in range(256):  # central tube

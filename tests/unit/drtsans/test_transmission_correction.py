@@ -39,7 +39,7 @@ transmission_err = transmission * 0.05
     [{"Nx": I_sam.shape[0], "Ny": I_sam.shape[1]}],
     indirect=True,
 )
-def test_transmission_correction(workspace_with_instrument):
+def test_transmission_correction(workspace_with_instrument, clean_workspace):
     """
     Test the calculation of the detector transmission correction and error propagation
     given in Eq. 7.7 and 7.8 in the master document
@@ -48,12 +48,14 @@ def test_transmission_correction(workspace_with_instrument):
     """
     # Create the workspaces
     I_sam_wksp = workspace_with_instrument(axis_values=[5.95, 6.075], intensities=I_sam, uncertainties=I_sam_err)
+    clean_workspace(I_sam_wksp)
 
     transmission_wksp = workspace_with_instrument(
         axis_values=[5.95, 6.075],
         intensities=transmission,
         uncertainties=transmission_err,
     )
+    clean_workspace(transmission_wksp)
 
     # Check that they were created successfully
     assert I_sam_wksp.extractY().sum() == pytest.approx(np.sum(I_sam))

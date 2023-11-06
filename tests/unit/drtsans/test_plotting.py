@@ -330,10 +330,11 @@ def test_detector(backend, filename):
 
 
 @pytest.mark.datarepo
-def test_xaxis_direction(datarepo_dir):
+def test_xaxis_direction(datarepo_dir, clean_workspace):
     r"""Test values of X-axis in plot_detector decrease when looking at the picture from left to right"""
     # wing_detector.nxs contains intensities for the wing detector that can be plotted
     workspace = LoadNexus(os.path.join(datarepo_dir.sans, "plots", "wing_detector.nxs"))
+    clean_workspace(workspace)
     filename = "test_xaxis_direction.png"
     plot_detector(
         workspace,

@@ -12,7 +12,7 @@ MIN, MAX = 0.5, 2.0
 
 
 @pytest.mark.parametrize("workspace_with_instrument", [{"Nx": 3, "Ny": 3}], indirect=True)
-def test_apply_simple_sensitivity(workspace_with_instrument):
+def test_apply_simple_sensitivity(workspace_with_instrument, clean_workspace):
     r"""
     Testing section 5 in the master document
     Apply sensitivity to a 3x3 workspace. Check if the output is masked where sensitivity is masked
@@ -35,12 +35,14 @@ def test_apply_simple_sensitivity(workspace_with_instrument):
         uncertainties=data_error,
         view="pixel",
     )
+    clean_workspace(data_ws)
     sensitivity_ws = workspace_with_instrument(
         axis_values=[6.0],  # fake wavelength
         intensities=sensitivity,
         uncertainties=sensitivity_error,
         view="pixel",
     )
+    clean_workspace(sensitivity_ws)
     # run the function
     data_ws = apply_sensitivity_correction(data_ws, sensitivity_workspace=sensitivity_ws, min_threshold=0.5)
     # check the results

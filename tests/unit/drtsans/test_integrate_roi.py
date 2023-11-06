@@ -33,7 +33,7 @@ counts_array = np.array(
     ],
     indirect=True,
 )
-def test_integrate_detector_roi(generic_IDF, cleanfile):
+def test_integrate_detector_roi(generic_IDF, cleanfile, clean_workspace):
     """
     Create a 2D generic SANS instrument, set detector counts value stated in
     https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/178
@@ -54,7 +54,7 @@ def test_integrate_detector_roi(generic_IDF, cleanfile):
     ws = LoadEmptyInstrument(
         Filename=tmp.name,
         InstrumentName="GenericSANS",
-        OutputWorkspace="test_integration_roi",
+        OutputWorkspace=clean_workspace("test_integration_roi"),
     )
     ws.getAxis(0).setUnit("Wavelength")
 

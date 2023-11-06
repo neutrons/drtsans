@@ -90,8 +90,8 @@ def test_detector_translation():
         ("BIOSANS_Definition.xml", "midrange_detector", 44 * 8 * 256, 52 * 8 * 256 - 1),
     ],
 )
-def test_bank_detector_ids(filename, component, detmin, detmax, fetch_idf):
-    wksp = LoadEmptyInstrument(Filename=fetch_idf(filename), OutputWorkspace=unique_workspace_dundername())
+def test_bank_detector_ids(filename, component, detmin, detmax, fetch_idf, temp_workspace_name):
+    wksp = LoadEmptyInstrument(Filename=fetch_idf(filename), OutputWorkspace=temp_workspace_name())
     num_detectors = detmax - detmin + 1
 
     # None test
@@ -119,8 +119,8 @@ def test_bank_detector_ids(filename, component, detmin, detmax, fetch_idf):
         ("BIOSANS_Definition.xml", "midrange_detector", 44 * 8 * 256 + 2, 52 * 8 * 256 + 2),
     ],
 )
-def test_bank_workspace_indices(filename, component, wksp_index_min, wksp_index_max, fetch_idf):
-    wksp = LoadEmptyInstrument(Filename=fetch_idf(filename), OutputWorkspace=unique_workspace_dundername())
+def test_bank_workspace_indices(filename, component, wksp_index_min, wksp_index_max, fetch_idf, temp_workspace_name):
+    wksp = LoadEmptyInstrument(Filename=fetch_idf(filename), OutputWorkspace=temp_workspace_name())
 
     wksp_indices = geo.bank_workspace_index_range(wksp, component)
     assert wksp_indices[0] >= 0
@@ -150,7 +150,7 @@ def test_bank_workspace_indices(filename, component, wksp_index_min, wksp_index_
     ],
     indirect=True,
 )
-def test_pixel_centers(workspace_with_instrument):
+def test_pixel_centers(workspace_with_instrument, temp_workspace_name):
     r"""
     Pixel centers for a detector array made up of two tubes, each with two pixels.
     There's no spacing between tubes.
@@ -158,7 +158,7 @@ def test_pixel_centers(workspace_with_instrument):
     The shape of a detector pixel is a cylinder of 20mm diameter and 20mm in height.
     """
     # The generated IDF file still puts pixel position at the bottome edge center
-    input_workspace = unique_workspace_dundername()  # temporary workspace
+    input_workspace = temp_workspace_name()  # temporary workspace
     workspace_with_instrument(
         axis_values=[2.0, 2.1],
         intensities=[[1.0, 2.0], [3.0, 2.0]],
@@ -169,8 +169,8 @@ def test_pixel_centers(workspace_with_instrument):
     assert pixel_positions == pytest.approx(expected)
 
 
-def test_logged_smearing_pixel_size(workspace_with_instrument):
-    workspace = workspace_with_instrument()
+def test_logged_smearing_pixel_size(workspace_with_instrument, clean_workspace):
+    workspace = clean_workspace(workspace_with_instrument())
 
     # Assert default value of `None` when no smearing pixels are provided
     logged_values = geo.logged_smearing_pixel_size(workspace)
@@ -200,33 +200,31 @@ def test_sample_aperture_diameter(datarepo_dir, temp_workspace_name):
     # test a run containing "sample_aperture_radius" instead of "sample_aperture_diameter"
     workspace = LoadEventNexus(
         Filename=path_join(datarepo_dir.gpsans, "geometry", "CG2_1338.nxs.h5"),
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=temp_workspace_name(),
         MetaDataOnly=True,
         LoadLogs=True,
     )
     assert geo.sample_aperture_diameter(workspace, unit="mm") == pytest.approx(14.0, abs=0.1)
-    workspace.delete()
 
 
 @pytest.mark.datarepo
-def test_source_aperture_diameter(datarepo_dir):
+def test_source_aperture_diameter(datarepo_dir, temp_workspace_name):
     # test a run containing "sample_aperture_radius" instead of "sample_aperture_diameter"
     workspace = LoadEventNexus(
         Filename=path_join(datarepo_dir.gpsans, "geometry", "CG2_1338.nxs.h5"),
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=temp_workspace_name(),
         MetaDataOnly=True,
         LoadLogs=True,
     )
     assert geo.source_aperture_diameter(workspace, unit="mm") == pytest.approx(40.0, abs=0.1)
-    workspace.delete()
 
 
 @pytest.mark.datarepo
-def test_translate_source_by_z(datarepo_dir):
+def test_translate_source_by_z(datarepo_dir, temp_workspace_name):
     filename = path_join(datarepo_dir.gpsans, "geometry", "CG2_1338.nxs.h5")
     workspace = LoadEventNexus(
         Filename=filename,
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=temp_workspace_name(),
         MetaDataOnly=False,
         LoadLogs=True,
     )
@@ -242,10 +240,9 @@ def test_translate_source_by_z(datarepo_dir):
         ("GPSANS", (0.00804, 0.00409)),
     ],
 )
-def test_nominal_pixel_size(instrument, pixel_size):
-    workspace = LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=unique_workspace_dundername())
+def test_nominal_pixel_size(instrument, pixel_size, temp_workspace_name):
+    workspace = LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=temp_workspace_name())
     assert geo.nominal_pixel_size(workspace) == pytest.approx(pixel_size, abs=1.0e-04)
-    workspace.delete()
 
 
 def test_get_position_south_detector(fetch_idf, temp_workspace_name):

@@ -15,7 +15,7 @@ namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/s
 """  # noqa: E501
 from drtsans.geometry import pixel_centers
 from drtsans.momentum_transfer import convert_to_q, _filter_and_replicate, subpixel_info
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy
 
 
 def fake_resolution1(*args, **kwargs):
@@ -64,7 +64,7 @@ def fake_resolution2(*args, **kwargs):
     ],
     indirect=True,
 )
-def test_convert_to_mod_q(generic_workspace):
+def test_convert_to_mod_q(generic_workspace, clean_workspace):
     r"""
     Calculate Q-values and associated intensities for every detector-pixel and every wavelength bin. We have only
     one wavelength bin, so we only have one Q-value per pixel detector. This Q-value is associated to the midpoint
@@ -75,6 +75,7 @@ def test_convert_to_mod_q(generic_workspace):
     relevance.
     """
     ws = generic_workspace
+    clean_workspace(ws)
     # We will ignore intensities from the third spectrum (workspace index = 2). Thus, only three values for the
     # modulus of the momentum transfer will be obtained, one for each of the three valid  spectra.
     MaskDetectors(ws, WorkspaceIndexList=[2])
@@ -127,8 +128,9 @@ def test_convert_to_mod_q(generic_workspace):
     ],
     indirect=True,
 )
-def test_convert_q_azimuthal(generic_workspace):
+def test_convert_q_azimuthal(generic_workspace, clean_workspace):
     ws = generic_workspace
+    clean_workspace(ws)
     MaskDetectors(ws, WorkspaceIndexList=[2])
     result = convert_to_q(ws, mode="azimuthal")
     assert result.intensity == pytest.approx([10, 20, 40], abs=1e-5)
@@ -161,8 +163,9 @@ def test_convert_q_azimuthal(generic_workspace):
     ],
     indirect=True,
 )
-def test_convert_q_crystal(generic_workspace):
+def test_convert_q_crystal(generic_workspace, clean_workspace):
     ws = generic_workspace
+    clean_workspace(ws)
     MaskDetectors(ws, WorkspaceIndexList=[2])
     result = convert_to_q(ws, mode="crystallographic")
     assert result.intensity == pytest.approx([10, 20, 40], abs=1e-5)
@@ -248,7 +251,7 @@ def data_subpixel_info():
     ],  # pixel dimensions
     indirect=True,
 )
-def test_subpixel_info(data_subpixel_info, workspace_with_instrument):
+def test_subpixel_info(data_subpixel_info, temp_workspace_name, workspace_with_instrument):
     r"""
     Test for correct generatio of subpixel polar coordinates in a detector array made up of two tubes,
     each with two pixels.
@@ -261,7 +264,7 @@ def test_subpixel_info(data_subpixel_info, workspace_with_instrument):
 
     """
     data = data_subpixel_info  # handy shortcut
-    input_workspace = unique_workspace_dundername()  # temporary workspace
+    input_workspace = temp_workspace_name()  # temporary workspace
     # A workspace containing data.intensities in an instrument made up of two tubes with two pixels per tube
     workspace = workspace_with_instrument(
         axis_values=data.wavelength_bin_boundaries,

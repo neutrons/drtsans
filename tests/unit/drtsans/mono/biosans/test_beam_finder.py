@@ -45,7 +45,7 @@ def _verify_pixel(wksp, index, position, counts):
     ],  # meters
     indirect=True,
 )
-def test_beam_finder_excel(generic_workspace):
+def test_beam_finder_excel(generic_workspace, clean_workspace):
     r"""
     Testing section 3.1 in the master document
     Functions to test: drtsans.mono.biosans.find_beam_center
@@ -57,6 +57,7 @@ def test_beam_finder_excel(generic_workspace):
     SME - Venky Pingali <pingalis@ornl.gov>
     """
     ws = generic_workspace  # friendly name
+    clean_workspace(ws)
     SampleLogs(ws).insert("wavelength", 6.0, "Angstrom")
 
     # verify the data is in correctly
@@ -107,7 +108,7 @@ def test_beam_finder_excel(generic_workspace):
     ],  # meters
     indirect=True,
 )
-def test_beam_finder_excel2(generic_workspace):
+def test_beam_finder_excel2(generic_workspace, clean_workspace):
     r"""
     Testing section 3.1 in the master document
     Functions to test: drtsans.mono.biosans.find_beam_center
@@ -119,6 +120,7 @@ def test_beam_finder_excel2(generic_workspace):
     SME - Venky Pingali <pingalis@ornl.gov>
     """
     ws = generic_workspace  # friendly name
+    clean_workspace(ws)
     SampleLogs(ws).insert("wavelength", 6.0, "Angstrom")
 
     # verify the data is in correctly
@@ -145,7 +147,7 @@ def test_beam_finder_excel2(generic_workspace):
 
 
 @pytest.mark.datarepo
-def test_beam_finder_wing(biosans_f):
+def test_beam_finder_wing(biosans_f, clean_workspace):
     """
     Test with the new beam finder
 
@@ -156,6 +158,7 @@ def test_beam_finder_wing(biosans_f):
     """
 
     ws = LoadHFIRSANS(Filename=biosans_f["beamcenter"])
+    clean_workspace(ws)
 
     # 0.00144037741238 -0.0243732351545 -0.0267
     x, y, y_wing, y_midrange, _ = beam_finder.find_beam_center(ws)

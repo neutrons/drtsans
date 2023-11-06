@@ -7,7 +7,7 @@ from drtsans.mono.biosans.cg3_spice_to_nexus import convert_spice_to_nexus  # no
 
 
 @pytest.mark.datarepo
-def test_benchmark_spice(datarepo_dir):
+def test_benchmark_spice(datarepo_dir, clean_workspace):
     """Test the benchmark SPICE file that is created to expose and verify the pixel mapping issue
     between old BIOSANS IDF and new BIOSANS IDF
     """
@@ -17,6 +17,7 @@ def test_benchmark_spice(datarepo_dir):
 
     # Load data
     spice_ws = LoadHFIRSANS(Filename=spice_name, OutputWorkspace="CG3_5490020001_Benchmark")
+    clean_workspace(spice_ws)
     assert spice_ws
 
     # Test geometry
@@ -86,7 +87,7 @@ def test_benchmark_spice(datarepo_dir):
 
 
 @pytest.mark.datarepo
-def test_spice_conversion(datarepo_dir, cleanfile):
+def test_spice_conversion(datarepo_dir, cleanfile, clean_workspace):
     """Test conversion from SPICE to NeXus with pixel ID mapping to new IDF"""
     # Access the test spice file
     spice_name = os.path.join(datarepo_dir.biosans, "BioSANS_exp549_scan0020_0001_benchmark.xml")
@@ -113,13 +114,14 @@ def test_spice_conversion(datarepo_dir, cleanfile):
         output_dir=test_temp_dir,
         spice_data=spice_name,
     )
+    clean_workspace("BioSANS_exp549_scan0020_0001_benchmark")
     assert os.path.exists(nexus)
 
     # Test
     # Load data: must use new IDF
     nexus_ws = LoadEventNexus(
         Filename=nexus,
-        OutputWorkspace="CG3_5490020001_NeXus",
+        OutputWorkspace=clean_workspace("CG3_5490020001_NeXus"),
         LoadNexusInstrumentXML=True,
         NumberOfBins=1,
     )

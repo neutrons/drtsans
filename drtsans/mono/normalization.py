@@ -118,4 +118,5 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
         RHSWorkspace=monitor_workspace,
         OutputWorkspace=output_workspace,
     )
+    monitor_workspace.delete()
     return mtd[output_workspace]

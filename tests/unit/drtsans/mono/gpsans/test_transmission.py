@@ -1,7 +1,6 @@
 import pytest
 from pytest import approx
 from mantid.simpleapi import LoadHFIRSANS, MoveInstrumentComponent, CreateWorkspace
-from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.mono.transmission import calculate_transmission
 from drtsans.transmission import apply_transmission_correction
 from drtsans.mono.gpsans import find_beam_center
@@ -33,31 +32,40 @@ def dataset_center(gpsans_full_dataset):
 
 
 @pytest.mark.datarepo
-def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws, dataset_center):
+def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws, dataset_center, clean_workspace):
     x, y = dataset_center[0], dataset_center[1]
     input_sample_ws = sample_scattering_sum_ws
     MoveInstrumentComponent(Workspace=input_sample_ws, ComponentName="detector1", X=-x, Y=-y)
     input_reference_ws = LoadHFIRSANS(Filename=gpsans_full_dataset["sample_transmission"])
+    clean_workspace(input_reference_ws)
     MoveInstrumentComponent(Workspace=input_reference_ws, ComponentName="detector1", X=-x, Y=-y)
     trans = calculate_transmission(input_sample_ws, input_reference_ws)
+    clean_workspace(trans)
     assert trans.readY(0)[0] == approx(0.1024, abs=1e-4)
     assert trans.readE(0)[0] == approx(0.0130, abs=1e-4)
 
 
 @pytest.mark.datarepo
-def test_apply_transmission_correction(gpsans_full_dataset, sample_scattering_sum_ws, dataset_center):
+def test_apply_transmission_correction(
+    gpsans_full_dataset, sample_scattering_sum_ws, dataset_center, clean_workspace, temp_workspace_name
+):
     trans_value = 0.5191
     trans_ws = CreateWorkspace(DataX=[3.8, 4.2], DataY=[trans_value], DataE=[0.0141], UnitX="Wavelength")
+    clean_workspace(trans_ws)
     ws = sample_scattering_sum_ws
     x, y = dataset_center[0], dataset_center[1]
     MoveInstrumentComponent(Workspace=ws, ComponentName="detector1", X=-x, Y=-y)
-    ws_c = apply_transmission_correction(ws, trans_workspace=trans_ws, theta_dependent=False, output_workspace=uwd())
+    ws_c = apply_transmission_correction(
+        ws, trans_workspace=trans_ws, theta_dependent=False, output_workspace=temp_workspace_name()
+    )
     assert ws.readY(9100)[0] == approx(25.0, abs=1e-3)
     assert ws_c.readY(9100)[0] == approx(25.0 / trans_value, abs=1e-3)
 
 
 @pytest.mark.datarepo
-def test_apply_transmission_with_values(gpsans_full_dataset, dataset_center, sample_scattering_sum_ws):
+def test_apply_transmission_with_values(
+    gpsans_full_dataset, dataset_center, sample_scattering_sum_ws, temp_workspace_name
+):
     trans_value = 0.5191
     trans_error = 0.0141
     ws = sample_scattering_sum_ws
@@ -68,25 +76,28 @@ def test_apply_transmission_with_values(gpsans_full_dataset, dataset_center, sam
         trans_value=trans_value,
         trans_error=trans_error,
         theta_dependent=False,
-        output_workspace=uwd(),
+        output_workspace=temp_workspace_name(),
     )
     assert ws.readY(9100)[0] == approx(25.0, abs=1e-3)
     assert ws_c.readY(9100)[0] == approx(25.0 / trans_value, abs=1e-3)
 
 
 @pytest.mark.datarepo
-def test_apply_transmission_correction_ws(gpsans_full_dataset, dataset_center, sample_scattering_sum_ws):
+def test_apply_transmission_correction_ws(
+    gpsans_full_dataset, dataset_center, sample_scattering_sum_ws, clean_workspace, temp_workspace_name
+):
     ws = sample_scattering_sum_ws
     x, y = dataset_center[0], dataset_center[1]
     MoveInstrumentComponent(Workspace=ws, ComponentName="detector1", X=-x, Y=-y)
     trans_ws = CreateWorkspace(DataX=[0, 1], DataY=[0.08224400871459694], DataE=[0.012671053121947698])
-    ws_c = apply_transmission_correction(ws, trans_ws, theta_dependent=False, output_workspace=uwd())
+    clean_workspace(trans_ws)
+    ws_c = apply_transmission_correction(ws, trans_ws, theta_dependent=False, output_workspace=temp_workspace_name())
     assert ws_c.readY(9100)[0] == approx(303.97, abs=1e-2)
     assert ws_c.readE(9100)[0] == approx(77.70, abs=1e-2)
 
 
 @pytest.mark.datarepo
-def test_apply_transmission_correction_value(gpsans_full_dataset, sample_scattering_sum_ws):
+def test_apply_transmission_correction_value(gpsans_full_dataset, sample_scattering_sum_ws, temp_workspace_name):
     ws = sample_scattering_sum_ws
     # Zero angle transmission values
     trans_value, trans_error = 0.08224400871459694, 0.012671053121947698
@@ -95,7 +106,7 @@ def test_apply_transmission_correction_value(gpsans_full_dataset, sample_scatter
         trans_value=trans_value,
         trans_error=trans_error,
         theta_dependent=False,
-        output_workspace=uwd(),
+        output_workspace=temp_workspace_name(),
     )
     # Note the corrected values are the same as above
     assert ws_c.readY(9100)[0] == approx(303.97, abs=1e-2)

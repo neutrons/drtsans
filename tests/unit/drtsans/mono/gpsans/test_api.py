@@ -9,7 +9,6 @@ from drtsans.mono.gpsans.api import (
 )
 from drtsans.mono.gpsans import reduction_parameters
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import unique_workspace_dundername as uwd
 
 
 @pytest.mark.mount_eqsans
@@ -64,10 +63,12 @@ def test_load_all_files_simple(has_sns_mount):
 
 
 @pytest.mark.parametrize("generic_workspace", [{"name": "ws_raw_histo"}], indirect=True)
-def test_prepare_data_workspaces_simple(generic_workspace):
+def test_prepare_data_workspaces_simple(generic_workspace, clean_workspace):
     ws = generic_workspace  # friendly name
+    clean_workspace(ws)
 
     output = prepare_data_workspaces(ws, solid_angle=False)
+    clean_workspace(output)
     # this should make a clone of the workspace
     assert ws is not output
     # and change the workspace name automatically
@@ -82,13 +83,16 @@ def test_prepare_data_workspaces_simple(generic_workspace):
 
     # the ws name should change to what is set
     output2 = prepare_data_workspaces(ws, output_workspace_name="foobar", solid_angle=False)
+    clean_workspace(output2)
     assert output2.name() == "foobar"
 
 
-def test_prepare_data_workspaces_center(generic_workspace):
+def test_prepare_data_workspaces_center(generic_workspace, clean_workspace):
     ws = generic_workspace  # friendly name
+    clean_workspace(ws)
 
     output = prepare_data_workspaces(ws, center_x=0.111, center_y=0.123, solid_angle=False)
+    clean_workspace(output)
 
     # this should make a clone of the workspace
     assert ws is not output
@@ -108,11 +112,11 @@ def test_prepare_data_workspaces_center(generic_workspace):
     assert alg3.getPropertyValue("Y") == "-0.123"
 
 
-def test_prepare_data_workspaces_dark_current():
+def test_prepare_data_workspaces_dark_current(clean_workspace, temp_workspace_name):
     # Create dark current workspace, insert the duration of the dark
     # current run as one of the log entries in the dark current
     # workspace.
-    dark_current_workspace = uwd()  # arbitrary name for the dark current workspace
+    dark_current_workspace = temp_workspace_name()  # arbitrary name for the dark current workspace
     CreateWorkspace(
         DataX=[2.5, 3.5],
         DataY=np.full(2, 100.0),
@@ -123,7 +127,7 @@ def test_prepare_data_workspaces_dark_current():
     SampleLogs(dark_current_workspace).insert("duration", 3600.0, "second")
 
     # Create a sample run workspace.
-    data_workspace = uwd()  # arbitrary name for the sample workspace
+    data_workspace = temp_workspace_name()  # arbitrary name for the sample workspace
     CreateWorkspace(
         DataX=[2.5, 3.5],
         DataY=np.array([1.0, 2.0]),
@@ -137,6 +141,7 @@ def test_prepare_data_workspaces_dark_current():
     SampleLogs(data_workspace).insert("duration", 36.0, "second")
 
     output = prepare_data_workspaces(data_workspace, dark_current=dark_current_workspace, solid_angle=False)
+    clean_workspace(output)
 
     assert output.getHistory().size() == 8
 
@@ -145,13 +150,15 @@ def test_prepare_data_workspaces_dark_current():
 
 
 @pytest.mark.parametrize("generic_workspace", [{"intensities": [[1, 2], [3, 4]]}], indirect=True)
-def test_prepare_data_workspaces_flux_method(generic_workspace):
+def test_prepare_data_workspaces_flux_method(generic_workspace, clean_workspace):
     ws = generic_workspace  # friendly name
+    clean_workspace(ws)
     SampleLogs(ws).insert("duration", 2.0)
     SampleLogs(ws).insert("monitor", 2e9)
 
     # No normalization
     output = prepare_data_workspaces(ws, flux_method=None, solid_angle=False)
+    clean_workspace(output)
     assert output.getHistory().size() == 3
     assert_almost_equal(output.extractY(), [[1], [2], [3], [4]])
 
@@ -166,11 +173,13 @@ def test_prepare_data_workspaces_flux_method(generic_workspace):
     assert_almost_equal(output.extractY(), [[0.05], [0.1], [0.15], [0.2]])
 
 
-def test_prepare_data_workspaces_apply_mask(generic_workspace):
+def test_prepare_data_workspaces_apply_mask(generic_workspace, clean_workspace):
     ws = generic_workspace
+    clean_workspace(ws)
 
     # mask_ws
     output = prepare_data_workspaces(ws, mask_ws=[0, 2], solid_angle=False)
+    clean_workspace(output)
     history = output.getHistory()
     assert history.size() == 4
     alg3 = history.getAlgorithm(3)
@@ -179,22 +188,24 @@ def test_prepare_data_workspaces_apply_mask(generic_workspace):
 
 
 @pytest.mark.parametrize("generic_workspace", [{"intensities": [[1, 1], [1, 1]]}], indirect=True)
-def test_prepare_data_workspaces_solid_angle(generic_workspace):
+def test_prepare_data_workspaces_solid_angle(generic_workspace, clean_workspace):
     ws = generic_workspace  # friendly name
+    clean_workspace(ws)
 
     # No normalization
     output = prepare_data_workspaces(ws, solid_angle=True)
+    clean_workspace(output)
     # CreateWorkspace, LoadInstrument, CloneWorkspace, CloneWorkspace,
     # ClearMaskFlag, SolidAngle, Divide, ReplaceSpecialValues
     assert output.getHistory().size() == 8
     assert_almost_equal(output.extractY(), [[25.6259267], [25.6259267], [25.6259267], [25.6259267]])
 
 
-def test_prepare_data_workspaces_sensitivity():
+def test_prepare_data_workspaces_sensitivity(clean_workspace, temp_workspace_name):
     # Create dark current workspace, insert the duration of the dark
     # current run as one of the log entries in the dark current
     # workspace.
-    sensitivity_workspace = uwd()  # arbitrary name for the dark current workspace
+    sensitivity_workspace = temp_workspace_name()  # arbitrary name for the dark current workspace
     CreateWorkspace(
         DataX=[2.5, 3.5],
         DataY=np.full(2, 2.0),
@@ -204,7 +215,7 @@ def test_prepare_data_workspaces_sensitivity():
     )
 
     # Create a sample run workspace.
-    data_workspace = uwd()  # arbitrary name for the sample workspace
+    data_workspace = temp_workspace_name()  # arbitrary name for the sample workspace
     CreateWorkspace(
         DataX=[2.5, 3.5],
         DataY=np.array([1.0, 2.0]),
@@ -214,6 +225,7 @@ def test_prepare_data_workspaces_sensitivity():
     )
 
     output = prepare_data_workspaces(data_workspace, sensitivity_workspace=sensitivity_workspace, solid_angle=False)
+    clean_workspace(output)
 
     assert output.getHistory().size() == 6
 
@@ -222,14 +234,16 @@ def test_prepare_data_workspaces_sensitivity():
 
 
 @pytest.mark.parametrize("generic_workspace", [{"intensities": [[1, 2], [3, 4]]}], indirect=True)
-def test_process_single_configuration_thickness_absolute_scale(generic_workspace):
+def test_process_single_configuration_thickness_absolute_scale(generic_workspace, clean_workspace):
     ws = generic_workspace
+    clean_workspace(ws)
 
     # This should only run prepare_data_workspaces,
     # normalize_by_thickness and scale by absolute_scale
     # The output result should be scaled by y_out = y_in * absolute_scale / thickness
 
     output = process_single_configuration(ws, solid_angle=False, debug=False)
+    clean_workspace(output)
 
     # CreateWorkspace, LoadInstrument, CloneWorkspace,
     # CreateSingleValuedWorkspace, Divide,

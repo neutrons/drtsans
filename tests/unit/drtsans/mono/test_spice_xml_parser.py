@@ -5,7 +5,7 @@ from mantid.simpleapi import LoadHFIRSANS, mtd
 
 
 @pytest.mark.datarepo
-def test_get_das_logs(datarepo_dir):
+def test_get_das_logs(datarepo_dir, clean_workspace):
     """
 
     Returns
@@ -61,7 +61,7 @@ def test_get_das_logs(datarepo_dir):
     xml_parser.close()
 
     # Verify other values
-    LoadHFIRSANS(Filename=test_xml, OutputWorkspace="SpiceXMLTest")
+    LoadHFIRSANS(Filename=test_xml, OutputWorkspace=clean_workspace("SpiceXMLTest"))
     spice_ws = mtd["SpiceXMLTest"]
 
     for das_log_name in das_log_values:

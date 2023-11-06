@@ -14,7 +14,7 @@ from drtsans.geometry import sample_detector_distance
     [{"Nx": 4, "Ny": 4, "dx": 0.006, "dy": 0.004, "zc": 1.25, "l1": -15.0}],
     indirect=True,
 )
-def test_zero_offsets(generic_IDF):
+def test_zero_offsets(generic_IDF, clean_workspace):
     """Test instrument without offset
 
     Returns
@@ -30,7 +30,7 @@ def test_zero_offsets(generic_IDF):
     ws = LoadEmptyInstrument(
         Filename=tmp.name,
         InstrumentName="GenericSANS",
-        OutputWorkspace="test_integration_roi",
+        OutputWorkspace=clean_workspace("test_integration_roi"),
     )
     # clean
     os.remove(idf_name)
@@ -55,7 +55,7 @@ def test_zero_offsets(generic_IDF):
     [{"Nx": 4, "Ny": 4, "dx": 0.006, "dy": 0.004, "zc": 1.25, "l1": -15.0}],
     indirect=True,
 )
-def test_non_zero_offsets(generic_IDF):
+def test_non_zero_offsets(generic_IDF, clean_workspace):
     """Test instrument with offset between sampleToSi and its default value
 
     Returns
@@ -71,7 +71,7 @@ def test_non_zero_offsets(generic_IDF):
     ws = LoadEmptyInstrument(
         Filename=tmp.name,
         InstrumentName="GenericSANS",
-        OutputWorkspace="test_integration_roi",
+        OutputWorkspace=clean_workspace("test_integration_roi"),
     )
     # clean
     os.remove(idf_name)
@@ -98,7 +98,7 @@ def test_non_zero_offsets(generic_IDF):
     [{"Nx": 4, "Ny": 4, "dx": 0.006, "dy": 0.004, "zc": 1.25, "l1": -5.0}],
     indirect=True,
 )
-def test_overwrite_sample_si_distance(generic_IDF):
+def test_overwrite_sample_si_distance(generic_IDF, clean_workspace):
     """Test instrument with a user-overwriting sampleToSi distance
 
     Returns
@@ -114,7 +114,7 @@ def test_overwrite_sample_si_distance(generic_IDF):
     ws = LoadEmptyInstrument(
         Filename=tmp.name,
         InstrumentName="GenericSANS",
-        OutputWorkspace="test_integration_roi",
+        OutputWorkspace=clean_workspace("test_integration_roi"),
     )
     # clean
     os.remove(idf_name)
@@ -152,7 +152,7 @@ def test_overwrite_sample_si_distance(generic_IDF):
     [{"Nx": 4, "Ny": 4, "dx": 0.006, "dy": 0.004, "zc": 1.25, "l1": -5.0}],
     indirect=True,
 )
-def test_overwrite_sample_detector_distance(generic_IDF):
+def test_overwrite_sample_detector_distance(generic_IDF, clean_workspace):
     """Test instrument with a user-overwriting sample to detector distance
 
     Returns
@@ -168,7 +168,7 @@ def test_overwrite_sample_detector_distance(generic_IDF):
     ws = LoadEmptyInstrument(
         Filename=tmp.name,
         InstrumentName="GenericSANS",
-        OutputWorkspace="test_integration_roi",
+        OutputWorkspace=clean_workspace("test_integration_roi"),
     )
     # clean
     os.remove(idf_name)
@@ -204,7 +204,7 @@ def test_overwrite_sample_detector_distance(generic_IDF):
     [{"Nx": 4, "Ny": 4, "dx": 0.006, "dy": 0.004, "zc": 1.25, "l1": -5.0}],
     indirect=True,
 )
-def test_overwrite_both_distance(generic_IDF):
+def test_overwrite_both_distance(generic_IDF, clean_workspace):
     """Test instrument with a user-overwriting both SampleToSi distance and sample to detector distance
 
     Returns
@@ -220,7 +220,7 @@ def test_overwrite_both_distance(generic_IDF):
     ws = LoadEmptyInstrument(
         Filename=tmp.name,
         InstrumentName="GenericSANS",
-        OutputWorkspace="test_integration_roi",
+        OutputWorkspace=clean_workspace("test_integration_roi"),
     )
     # clean
     os.remove(idf_name)

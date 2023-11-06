@@ -3,7 +3,7 @@ from pytest import approx
 import numpy as np
 
 from mantid.simpleapi import Rebin, SumSpectra, mtd
-from drtsans.settings import amend_config, unique_workspace_name as uwn
+from drtsans.settings import amend_config
 from drtsans.tof.eqsans.load import (
     load_events,
     load_events_monitor,
@@ -20,13 +20,14 @@ from drtsans.samplelogs import SampleLogs
 
 
 @pytest.mark.datarepo
-def test_load_events(datarepo_dir):
+def test_load_events(datarepo_dir, clean_workspace, temp_workspace_name):
     # default workspace name is file hint
     with amend_config(data_dir=datarepo_dir.eqsans):
         ws_test_load_events = load_events("EQSANS_92353.nxs.h5")
+    clean_workspace(ws_test_load_events)
     assert ws_test_load_events.name() == "EQSANS_92353"
 
-    ws_name = uwn()
+    ws_name = temp_workspace_name()
     with amend_config(data_dir=datarepo_dir.eqsans):
         ws = load_events("EQSANS_92353.nxs.h5", output_workspace=ws_name)
     assert ws.name() == ws_name
@@ -36,16 +37,19 @@ def test_load_events(datarepo_dir):
 
     ws = Rebin(ws, Params=[10000, 1000, 62000], PreserveEvents=False)
     ws = SumSpectra(ws)
+    clean_workspace(ws)
     assert len(np.nonzero(ws.dataY(0))[0]) == 35
 
 
 @pytest.mark.datarepo
-def test_load_events_monitor(datarepo_dir):
+def test_load_events_monitor(datarepo_dir, clean_workspace):
     # Raises for a run in skip frame mode
     with pytest.raises(RuntimeError, match="cannot correct monitor"):
         load_events_monitor("EQSANS_92353.nxs.h5", data_dir=datarepo_dir.eqsans)
+    clean_workspace("EQSANS_92353_monitors")
 
     w = load_events_monitor("EQSANS_88901.nxs.h5", data_dir=datarepo_dir.eqsans)
+    clean_workspace(w)
     assert w.name() == "EQSANS_88901_monitors"
     assert w.getSpectrum(0).getTofMin() == approx(30680, abs=1)
     assert w.getSpectrum(0).getTofMax() == approx(47347, abs=1)
@@ -104,8 +108,9 @@ def test_merge_Data(datarepo_dir):
 
 
 @pytest.mark.datarepo
-def test_load_events_and_histogram(datarepo_dir):
+def test_load_events_and_histogram(datarepo_dir, clean_workspace):
     ws0 = load_events_and_histogram("EQSANS_101595.nxs.h5", data_dir=datarepo_dir.eqsans)
+    clean_workspace(ws0.data)
 
     assert ws0.data.getAxis(0).getUnit().caption() == "Wavelength"
     assert ws0.data.name() == "EQSANS_101595"
@@ -122,6 +127,7 @@ def test_load_events_and_histogram(datarepo_dir):
         data_dir=datarepo_dir.eqsans,
         keep_events=False,
     )
+    clean_workspace(ws1.data)
 
     assert ws1.data.getAxis(0).getUnit().caption() == "Wavelength"
     assert ws1.data.name() == "EQSANS_101595_104088_105428"
@@ -134,12 +140,9 @@ def test_load_events_and_histogram(datarepo_dir):
     )
     assert sample_logs1.proton_charge.size() == 12933 + 17343 + 4341
 
-    mtd.remove(str(ws0))
-    mtd.remove(str(ws1))
-
 
 @pytest.mark.datarepo
-def test_generic_load_and_split(datarepo_dir):
+def test_generic_load_and_split(datarepo_dir, clean_workspace):
     # split by the SampleTemp log
     filtered_ws, filtered_ws_monitors = generic_load_and_split(
         "EQSANS_104088.nxs.h5",
@@ -148,6 +151,13 @@ def test_generic_load_and_split(datarepo_dir):
         log_value_interval=0.1,
         monitors=True,
     )
+    [clean_workspace(_ws) for _ws in list(filtered_ws)]
+    [clean_workspace(_ws) for _ws in list(filtered_ws_monitors)]
+    clean_workspace("_filter")
+    clean_workspace("_info")
+    clean_workspace("_load_tmp")
+    clean_workspace("_load_tmp_monitors")
+    clean_workspace("TOFCorrectWS")
 
     assert filtered_ws.size() == 3
     assert filtered_ws_monitors.size() == 3
@@ -193,12 +203,9 @@ def test_generic_load_and_split(datarepo_dir):
     assert SampleLogs(filtered_ws.getItem(1)).slice_end.units == "C"
     assert SampleLogs(filtered_ws.getItem(2)).slice_start.units == "C"
 
-    mtd.remove(str(filtered_ws))
-    mtd.remove(str(filtered_ws_monitors))
-
 
 @pytest.mark.datarepo
-def test_load_and_split(datarepo_dir):
+def test_load_and_split(datarepo_dir, clean_workspace):
     # split by the SampleTemp log
     filtered_ws, bands = load_and_split(
         "EQSANS_104088.nxs.h5",
@@ -206,6 +213,11 @@ def test_load_and_split(datarepo_dir):
         log_name="SampleTemp",
         log_value_interval=0.1,
     )
+    [clean_workspace(_ws) for _ws in list(filtered_ws)]
+    clean_workspace("_filter")
+    clean_workspace("_info")
+    clean_workspace("_load_tmp")
+    clean_workspace("TOFCorrectWS")
 
     assert filtered_ws.size() == 3
 
@@ -252,8 +264,6 @@ def test_load_and_split(datarepo_dir):
     assert SampleLogs(filtered_ws.getItem(0)).slice_end.units == "C"
     assert SampleLogs(filtered_ws.getItem(1)).slice_end.units == "C"
     assert SampleLogs(filtered_ws.getItem(2)).slice_start.units == "C"
-
-    mtd.remove(str(filtered_ws))
 
 
 if __name__ == "__main__":

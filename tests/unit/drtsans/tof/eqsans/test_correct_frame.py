@@ -9,25 +9,27 @@ from mantid.kernel import DateAndTime
 from drtsans import wavelength as sans_wavelength
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import correct_frame
-from drtsans.settings import amend_config, unique_workspace_name
+from drtsans.settings import amend_config
 from drtsans.geometry import source_detector_distance
 
 BandsTuple = namedtuple("BandsTuple", "lead skip")
 
 
 @pytest.mark.datarepo
-def test_transmitted_bands(datarepo_dir):
+def test_transmitted_bands(datarepo_dir, clean_workspace):
     with amend_config(data_dir=datarepo_dir.eqsans):
         ws = Load(Filename="EQSANS_86217.nxs.h5")
+        clean_workspace(ws)
         bands = correct_frame.transmitted_bands(ws)
         assert_almost_equal((bands.lead.min, bands.lead.max), (2.48, 6.78), decimal=2)
         assert_almost_equal((bands.skip.min, bands.skip.max), (10.90, 15.23), decimal=2)
 
 
 @pytest.mark.datarepo
-def test_transmitted_bands_clipped(datarepo_dir):
+def test_transmitted_bands_clipped(datarepo_dir, clean_workspace):
     with amend_config(data_dir=datarepo_dir.eqsans):
         ws = Load(Filename="EQSANS_86217.nxs.h5")
+        clean_workspace(ws)
         sdd = source_detector_distance(ws, unit="m")
         bands_0 = correct_frame.transmitted_bands_clipped(ws, sdd, 0.0, 0.0)
         lwc, hwc = (0.139, 0.560)  # expected clippings
@@ -52,20 +54,19 @@ def test_transmitted_bands_clipped(datarepo_dir):
 
 
 @pytest.mark.datarepo
-def test_log_tof_structure(datarepo_dir):
+def test_log_tof_structure(datarepo_dir, temp_workspace_name):
     # reuse the same file
     file_name = pjoin(datarepo_dir.eqsans, "test_chopper", "EQSANS_92353_no_events.nxs")
     for ny, refv in ((False, 30833), (True, 28333)):
-        ws = Load(file_name, OutputWorkspace=unique_workspace_name())
+        ws = Load(file_name, OutputWorkspace=temp_workspace_name())
         correct_frame.log_tof_structure(ws, 500, 2000, interior_clip=ny)
         sl = SampleLogs(ws)
         assert sl.tof_frame_width.value == approx(33333, abs=1.0)
         assert sl.tof_frame_width_clipped.value == approx(refv, abs=1.0)
-        ws.delete()
 
 
-def test_band_structure_logs():
-    w = CreateWorkspace([0], [0], OutputWorkspace=unique_workspace_name())
+def test_band_structure_logs(temp_workspace_name):
+    w = CreateWorkspace([0], [0], OutputWorkspace=temp_workspace_name())
     with pytest.raises(RuntimeError, match="Band structure not found in the logs"):
         correct_frame.metadata_bands(w)
     SampleLogs(w).insert("is_frame_skipping", 0)
@@ -84,7 +85,7 @@ def test_band_structure_logs():
     assert bands.skip.min, bands.skip.max == approx(6.07, 10.01)
 
 
-def test_correct_emission_time_60Hz():
+def test_correct_emission_time_60Hz(clean_workspace):
     # excepted wavelengths
     expected_wl = np.arange(1.05, 5.30, 0.1)
     starting_tof = [
@@ -142,6 +143,7 @@ def test_correct_emission_time_60Hz():
         SourceDistanceFromSample=14.1858856536088,
         BankDistanceFromSample=1.3,
     )
+    clean_workspace(w)
     s = w.getSpectrum(0)
     for tof in starting_tof:
         s.addEventQuickly(float(tof), DateAndTime(0))
@@ -156,7 +158,7 @@ def test_correct_emission_time_60Hz():
     assert_allclose(w.getSpectrum(0).getTofs() * 10000 * h / (z * m), expected_wl, rtol=1e-4)
 
 
-def test_correct_emission_time_30Hz():
+def test_correct_emission_time_30Hz(clean_workspace):
     # excepted wavelengths
     expected_wl = [
         2.55,
@@ -322,6 +324,7 @@ def test_correct_emission_time_30Hz():
         SourceDistanceFromSample=14.1395946855299,
         BankDistanceFromSample=4.0,
     )
+    clean_workspace(w)
     s = w.getSpectrum(0)
     for tof in starting_tof:
         s.addEventQuickly(float(tof), DateAndTime(0))
@@ -336,9 +339,10 @@ def test_correct_emission_time_30Hz():
     assert_allclose(w.getSpectrum(0).getTofs() * 10000 * h / (z * m), expected_wl, rtol=1e-4)
 
 
-def test_correct_tof_offset():
+def test_correct_tof_offset(clean_workspace):
     # Make a simple workspace with correct distances and add tofs to it
     w = CreateSampleWorkspace("Event", NumBanks=1, BankPixelWidth=1, NumEvents=10)
+    clean_workspace(w)
 
     starting_tofs = w.getSpectrum(0).getTofs()
 

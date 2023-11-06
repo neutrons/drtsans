@@ -38,7 +38,7 @@ def test_beam_radius(trasmission_data):
 
 
 @pytest.mark.datarepo
-def test_fit_band(trasmission_data):
+def test_fit_band(trasmission_data, clean_workspace):
     r"""
     Verify the fitting of the raw transmissions over wavelength bands provides same fitting results.
 
@@ -47,21 +47,33 @@ def test_fit_band(trasmission_data):
     """
     # Non-skip mode
     bands = transmitted_bands(trasmission_data.raw)  # obtain the wavelength band
-    _, mantid_fit_output = fit_band(trasmission_data.raw, bands.lead)
+    ws_output, mantid_fit_output = fit_band(trasmission_data.raw, bands.lead)
+    clean_workspace(ws_output)
+    clean_workspace(mantid_fit_output.OutputWorkspace)
+    clean_workspace(mantid_fit_output.OutputParameters)
+    clean_workspace(mantid_fit_output.OutputNormalisedCovarianceMatrix)
     assert_almost_equal(mantid_fit_output.OutputChi2overDoF, 1.1, decimal=1)
 
     # Frame-skipping mode
     bands = transmitted_bands(trasmission_data.raw_skip)  # obtain the lead and skipped wavelength bands
     # fit raw transmission values in the wavelength band corresponding to the lead pulse
-    _, mantid_fit_output = fit_band(trasmission_data.raw_skip, bands.lead)
+    ws_output, mantid_fit_output = fit_band(trasmission_data.raw_skip, bands.lead)
+    clean_workspace(ws_output)
+    clean_workspace(mantid_fit_output.OutputWorkspace)
+    clean_workspace(mantid_fit_output.OutputParameters)
+    clean_workspace(mantid_fit_output.OutputNormalisedCovarianceMatrix)
     assert_almost_equal(mantid_fit_output.OutputChi2overDoF, 1.1, decimal=1)
     # fit raw transmission values in the wavelength band corresponding to the skipped pulse
-    _, mantid_fit_output = fit_band(trasmission_data.raw_skip, bands.skip)
+    ws_output, mantid_fit_output = fit_band(trasmission_data.raw_skip, bands.skip)
+    clean_workspace(ws_output)
+    clean_workspace(mantid_fit_output.OutputWorkspace)
+    clean_workspace(mantid_fit_output.OutputParameters)
+    clean_workspace(mantid_fit_output.OutputNormalisedCovarianceMatrix)
     assert_almost_equal(mantid_fit_output.OutputChi2overDoF, 3.6, decimal=0)
 
 
 @pytest.mark.datarepo
-def test_fit_raw(trasmission_data):
+def test_fit_raw(trasmission_data, clean_workspace):
     r"""
     Verify the fitting of raw transmission workspaces provides same fitting results.
 
@@ -70,10 +82,24 @@ def test_fit_raw(trasmission_data):
     """
     # Non-skip mode
     fitting_results = fit_raw_transmission(trasmission_data.raw, output_workspace=unique_workspace_dundername())
+    clean_workspace(fitting_results.transmission),
+    clean_workspace(fitting_results.lead_transmission),
+    clean_workspace(fitting_results.lead_mantid_fit.OutputWorkspace)
+    clean_workspace(fitting_results.lead_mantid_fit.OutputNormalisedCovarianceMatrix)
+    clean_workspace(fitting_results.lead_mantid_fit.OutputParameters)
     assert_almost_equal(fitting_results.lead_mantid_fit.OutputChi2overDoF, 1.1, decimal=1)
 
     # Frame-skipping mode
     fitting_results = fit_raw_transmission(trasmission_data.raw_skip, output_workspace=unique_workspace_dundername())
+    clean_workspace(fitting_results.transmission),
+    clean_workspace(fitting_results.lead_transmission),
+    clean_workspace(fitting_results.lead_mantid_fit.OutputWorkspace)
+    clean_workspace(fitting_results.lead_mantid_fit.OutputNormalisedCovarianceMatrix)
+    clean_workspace(fitting_results.lead_mantid_fit.OutputParameters)
+    clean_workspace(fitting_results.skip_transmission)
+    clean_workspace(fitting_results.skip_mantid_fit.OutputWorkspace)
+    clean_workspace(fitting_results.skip_mantid_fit.OutputNormalisedCovarianceMatrix)
+    clean_workspace(fitting_results.skip_mantid_fit.OutputParameters)
     assert_almost_equal(fitting_results.lead_mantid_fit.OutputChi2overDoF, 1.1, decimal=1)
     assert_almost_equal(fitting_results.skip_mantid_fit.OutputChi2overDoF, 3.6, decimal=1)
 

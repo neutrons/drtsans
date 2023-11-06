@@ -248,8 +248,9 @@ def test_convert_to_q_eqsans(workspace_with_instrument):
     ],
     indirect=True,
 )
-def test_retrieve_instrument_setup(generic_workspace):
+def test_retrieve_instrument_setup(generic_workspace, clean_workspace):
     workspace = generic_workspace
+    clean_workspace(workspace)
 
     # Insert logs
     names = (

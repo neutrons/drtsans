@@ -7,10 +7,11 @@ from drtsans.tof.eqsans.chopper import FrameMode, EQSANSDiskChopperSet
 
 class TestEQSANSDiskChopperSet:
     @pytest.mark.datarepo
-    def test_transmitted_bands(self, datarepo_dir):
+    def test_transmitted_bands(self, datarepo_dir, clean_workspace):
         # Test transmitted bands in skipping mode
         file_name = pjn(datarepo_dir.eqsans, "test_chopper", "EQSANS_92353_no_events.nxs")
         chs = EQSANSDiskChopperSet(file_name)
+        clean_workspace("ws")
         assert chs.frame_mode == FrameMode.skip
         # prompt pulse
         wb = chs.transmission_bands(pulsed=True)

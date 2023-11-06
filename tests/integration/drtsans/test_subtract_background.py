@@ -70,7 +70,7 @@ class _Data1D(object):
 
 
 # -------------------- 1d tests
-def test_data_not_background_1d():
+def test_data_not_background_1d(clean_workspace):
     """This tests that the ``data`` is not equal to the ``background``
 
     dev - Pete Peterson <petersonpf@ornl.gov>
@@ -78,13 +78,10 @@ def test_data_not_background_1d():
     """
     factory = _Data1D(DataType.WORKSPACE2D)
 
-    data = factory.create("data")
-    background = factory.create("background")
+    data = clean_workspace(factory.create("data"))
+    background = clean_workspace(factory.create("background"))
 
     assert not CompareWorkspaces(data, background).Result
-
-    DeleteWorkspace(data)
-    DeleteWorkspace(background)
 
 
 @pytest.mark.parametrize("mode", [DataType.WORKSPACE2D, DataType.IQ_MOD])

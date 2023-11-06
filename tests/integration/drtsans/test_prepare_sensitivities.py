@@ -143,7 +143,7 @@ def test_eqsans_prepare_sensitivities(has_sns_mount, reference_dir, cleanfile):
 
 
 @pytest.mark.mount_eqsans
-def test_cg3_main_prepare_sensitivities(has_sns_mount, tmp_path):
+def test_cg3_main_prepare_sensitivities(has_sns_mount, tmp_path, cleanfile):
     """Integration test on algorithms to prepare sensitivities for BIOSANS's main detector
 
     Returns
@@ -224,7 +224,7 @@ def test_cg3_main_prepare_sensitivities(has_sns_mount, tmp_path):
     verify_sensitivities_file(output_sens_file, gold_eq_file)
 
     # Clean
-    os.remove(output_sens_file)
+    cleanfile(output_sens_file)
 
 
 @pytest.mark.mount_eqsans
@@ -335,7 +335,7 @@ def test_cg3_wing_prepare_sensitivities(has_sns_mount, tmp_path):
 
 @pytest.mark.datarepo
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
-def test_cg3_midrange_prepare_sensitivities(biosans_synthetic_sensitivity_dataset, tmp_path):
+def test_cg3_midrange_prepare_sensitivities(biosans_synthetic_sensitivity_dataset, tmp_path, cleanfile):
     """Integration test on algorithms to prepare sensitivities for BIOSANS's midrange detector"""
     # CG3: Mid
     FLOOD_RUNS = 4835
@@ -400,6 +400,7 @@ def test_cg3_midrange_prepare_sensitivities(biosans_synthetic_sensitivity_datase
 
     # Verify file existence
     assert os.path.exists(output_sens_file)
+    cleanfile(output_sens_file)
 
     # Verify value
     # NOTE: since we are using synthetic data, there is no gold/reference file we can use to verify

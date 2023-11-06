@@ -353,7 +353,7 @@ def _create_2d_histogram_data():
     return q_bins, azimuthal_rings
 
 
-def test_calc_qmod_and_azimuthal():
+def test_calc_qmod_and_azimuthal(cleanfile):
     """Test the conversion of data into 2d arrays of qmod and azimuthal angle. The results are
     checked against "Anisotropic Data -Q" and "Anisotropic Data - Phi"
     """
@@ -368,6 +368,7 @@ def test_calc_qmod_and_azimuthal():
     from drtsans.plots.api import plot_IQazimuthal
 
     plot_IQazimuthal(data2d, "input_wedge.png", backend="mpl")
+    cleanfile("input_wedge.png")
 
     # numbers taken from the spreadsheet
     q_exp = np.array(

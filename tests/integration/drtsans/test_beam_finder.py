@@ -635,6 +635,7 @@ def test_find_beam_center_midrange(has_sns_mount, reference_dir):
     # they should be the same
     assert x_initial == pytest.approx(x_final, abs=1e-4)
     assert y_initial == pytest.approx(y_final, abs=1e-4)
+    DeleteWorkspace(ws)
 
 
 if __name__ == "__main__":

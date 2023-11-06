@@ -2,12 +2,11 @@ import pytest
 import os
 from os.path import join as path_join
 from mantid.simpleapi import LoadEventNexus
-from drtsans.settings import unique_workspace_dundername
 from drtsans.geometry import sample_detector_distance
 
 
 @pytest.mark.datarepo
-def test_translated_gpsans(datarepo_dir):
+def test_translated_gpsans(datarepo_dir, temp_workspace_name):
     """Test sample detector (plane) distance for GPSANS"""
     # Get test data
     test_nexus_file = path_join(datarepo_dir.gpsans, "Exp280/CG2_028000090001.nxs.h5")
@@ -16,7 +15,7 @@ def test_translated_gpsans(datarepo_dir):
     # Load data
     workspace = LoadEventNexus(
         Filename=test_nexus_file,
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=temp_workspace_name(),
         LoadLogs=True,
     )
     assert workspace

@@ -6,7 +6,7 @@ from pytest import approx
 # https://docs.mantidproject.org/nightly/algorithms/ClearMaskFlag-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/ExtractMaskMask-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/SaveMask-v1.html
-from mantid.simpleapi import ClearMaskFlag, ExtractMask, SaveMask, DeleteWorkspace
+from mantid.simpleapi import ClearMaskFlag, ExtractMask, SaveMask
 from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.tof.eqsans import (
     apply_mask,
@@ -18,7 +18,7 @@ from drtsans.tof.eqsans import (
 
 # eqsans_f and eqsans_p are defined in tests/conftest.py. Currently  them beamcenter file is EQSANS_68183
 @pytest.mark.datarepo
-def test_find_beam_center(datarepo_dir, eqsans_p):
+def test_find_beam_center(datarepo_dir, eqsans_p, temp_workspace_name):
     r"""
     Integration test to find the location on the detector where
     the beam impinges
@@ -26,7 +26,9 @@ def test_find_beam_center(datarepo_dir, eqsans_p):
     1. Apply mask
     2. Find the beam center
     """
-    ws = load_events(os.path.join(datarepo_dir.eqsans, "EQSANS_68183_event.nxs"), output_workspace=uwd())
+    ws = load_events(
+        os.path.join(datarepo_dir.eqsans, "EQSANS_68183_event.nxs"), output_workspace=temp_workspace_name()
+    )
     #
     # Find the beam center
     #
@@ -54,8 +56,6 @@ def test_find_beam_center(datarepo_dir, eqsans_p):
     #
     center_detector(ws, center_x=x0, center_y=y0)
     assert find_beam_center(ws)[:-1] == pytest.approx((0, 0), abs=1e-04)
-    #
-    DeleteWorkspace(ws)
 
 
 if __name__ == "__main__":

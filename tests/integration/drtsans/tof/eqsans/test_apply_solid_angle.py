@@ -1,7 +1,6 @@
 import pytest
 from drtsans.tof import eqsans
 from mantid.simpleapi import SolidAngle
-from mantid.simpleapi import DeleteWorkspace
 from mantid.kernel import V3D
 import numpy as np
 from copy import deepcopy
@@ -12,7 +11,7 @@ from copy import deepcopy
     [{"Nx": 3, "Ny": 3, "dx": 0.00425, "dy": 0.0055, "xc": 0.32, "yc": -0.16}],
     indirect=True,
 )
-def test_solid_angle(generic_workspace):
+def test_solid_angle(generic_workspace, clean_workspace):
     """Tests calculating and applying the correction for
     the solid angle of a pixel as described in the master
     document section 3.5
@@ -22,7 +21,8 @@ def test_solid_angle(generic_workspace):
     # generate a generic SANS instrument with a pixel of
     # the size and position specified in
     # sans-backend/documents/Master_document_022219.pdf
-    ws = generic_workspace  # friendlier name to type
+    ws = generic_workspace  # friendlier name to type, cleanup on finish
+    clean_workspace(ws)
 
     # set intensity and error to match test document
     ws.dataY(4)[0] = 156.0
@@ -56,6 +56,7 @@ def test_solid_angle(generic_workspace):
 
     # calculate solid angle with Mantid and verify result
     ws2 = SolidAngle(InputWorkspace=str(ws), Method="VerticalTube")
+    clean_workspace(ws2)
     assert ws2.dataY(4)[0] == pytest.approx(9.2976320958e-07)
 
     # calculate and apply solid angle correction to workspace
@@ -64,10 +65,6 @@ def test_solid_angle(generic_workspace):
 
     assert ws.dataY(4)[0] == pytest.approx(167784655.70)
     assert ws.dataE(4)[0] == pytest.approx(13433523.577)
-
-    # clean up
-    DeleteWorkspace(ws)
-    DeleteWorkspace(ws2)
 
 
 if __name__ == "__main__":

@@ -13,23 +13,22 @@ unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backe
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 normalize_by_monitor, normalize_by_time <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
 """  # noqa: E501
-from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.gpsans import normalize_by_monitor, normalize_by_time
 
 
 @pytest.mark.datarepo
-def test_normalize_by_monitor(gpsans_f):
+def test_normalize_by_monitor(gpsans_f, temp_workspace_name):
     r"""
     Load GPSANS file CG2_exp245_scan0010_0001.xml and normalize by monitor count.
     (This test was introduced prior to the testset with the instrument team)
     """
-    input_sample_workspace_mame = unique_workspace_dundername()
+    input_sample_workspace_name = temp_workspace_name()
     LoadHFIRSANS(
         Filename=gpsans_f["sample_scattering"],
-        OutputWorkspace=input_sample_workspace_mame,
+        OutputWorkspace=input_sample_workspace_name,
     )
-    input_sample_workspace = mtd[input_sample_workspace_mame]
+    input_sample_workspace = mtd[input_sample_workspace_name]
 
     sample_logs = SampleLogs(input_sample_workspace)
     monitor_counts = sample_logs.monitor.value
@@ -43,17 +42,17 @@ def test_normalize_by_monitor(gpsans_f):
 
 
 @pytest.mark.datarepo
-def test_normalize_by_time(gpsans_f):
+def test_normalize_by_time(gpsans_f, temp_workspace_name):
     r"""
     Load GPSANS file CG2_exp245_scan0010_0001.xml and normalize by run duration.
     (This test was introduced prior to the testset with the instrument team)
     """
-    input_sample_workspace_mame = unique_workspace_dundername()
+    input_sample_workspace_name = temp_workspace_name()
     LoadHFIRSANS(
         Filename=gpsans_f["sample_scattering"],
-        OutputWorkspace=input_sample_workspace_mame,
+        OutputWorkspace=input_sample_workspace_name,
     )
-    input_sample_workspace = mtd[input_sample_workspace_mame]
+    input_sample_workspace = mtd[input_sample_workspace_name]
 
     sample_logs = SampleLogs(input_sample_workspace)
     run_duration = sample_logs.single_value("timer")

@@ -1,13 +1,12 @@
 import pytest
 from mantid.simpleapi import LoadEmptyInstrument, MaskBTP
 from drtsans.detector import Component
-from drtsans.settings import unique_workspace_name
 
 import numpy as np
 
 
-def test_detector_biosans():
-    ws = LoadEmptyInstrument(InstrumentName="biosans", OutputWorkspace=unique_workspace_name())
+def test_detector_biosans(temp_workspace_name):
+    ws = LoadEmptyInstrument(InstrumentName="biosans", OutputWorkspace=temp_workspace_name())
 
     d = Component(ws, "detector1")
     assert 192 == d.dim_x
@@ -22,8 +21,8 @@ def test_detector_biosans():
     assert 192 * 256 + 2 == d.first_index
 
 
-def test_detector_gpsans():
-    ws = LoadEmptyInstrument(InstrumentName="cg2", OutputWorkspace=unique_workspace_name())
+def test_detector_gpsans(temp_workspace_name):
+    ws = LoadEmptyInstrument(InstrumentName="cg2", OutputWorkspace=temp_workspace_name())
 
     d = Component(ws, "detector1")
     assert 192 == d.dim_x
@@ -32,8 +31,8 @@ def test_detector_gpsans():
     assert 2 == d.first_index
 
 
-def test_detector_eqsans():
-    ws = LoadEmptyInstrument(InstrumentName="eqsans", OutputWorkspace=unique_workspace_name())
+def test_detector_eqsans(temp_workspace_name):
+    ws = LoadEmptyInstrument(InstrumentName="eqsans", OutputWorkspace=temp_workspace_name())
 
     d = Component(ws, "detector1")
     assert 192 == d.dim_x
@@ -42,9 +41,9 @@ def test_detector_eqsans():
     assert 1 == d.first_index
 
 
-def test_detector_masked_gpsans():
+def test_detector_masked_gpsans(temp_workspace_name):
     # flake8: noqa E712
-    ws = LoadEmptyInstrument(InstrumentName="cg2", OutputWorkspace=unique_workspace_name())
+    ws = LoadEmptyInstrument(InstrumentName="cg2", OutputWorkspace=temp_workspace_name())
     d = Component(ws, "detector1")
     masked_array = d.masked_ws_indices()
     # No Masks applied yet, all should be false

@@ -142,8 +142,9 @@ def test_mono_resolution():
     ],
     indirect=True,
 )
-def test_retrieve_instrument_setup(generic_workspace):
+def test_retrieve_instrument_setup(generic_workspace, clean_workspace):
     workspace = generic_workspace
+    clean_workspace(workspace)
 
     # Insert logs
     names = (
@@ -186,7 +187,7 @@ def test_retrieve_instrument_setup(generic_workspace):
     ],
     indirect=True,
 )
-def test_momentum_and_resolution(generic_workspace):
+def test_momentum_and_resolution(generic_workspace, clean_workspace):
     """
     Test Q resolution method against Wei-ren and Ricardo's early implementation
     Parameters
@@ -210,6 +211,7 @@ def test_momentum_and_resolution(generic_workspace):
 
     # Get workspace and add sample logs as wave length, wave length spread,
     ws = generic_workspace
+    clean_workspace(ws)
     AddSampleLog(
         Workspace=ws,
         LogName="wavelength",

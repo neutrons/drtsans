@@ -145,5 +145,6 @@ def subtract_dark_current(data_workspace, dark, output_workspace=None):
         OutputWorkspace=output_workspace,
     )
 
+    DeleteWorkspace(dark_integrated)
     DeleteWorkspace(normalized_dark_current)  # some clean-up
     return mtd[output_workspace]

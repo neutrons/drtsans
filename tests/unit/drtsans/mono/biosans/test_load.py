@@ -44,8 +44,9 @@ def test_transform_to_wavelength(reference_dir, has_sns_mount):
 
 
 @pytest.mark.datarepo
-def test_api_load(biosans_f):
+def test_api_load(biosans_f, clean_workspace):
     ws = load_histogram(filename=biosans_f["beamcenter"])
+    clean_workspace(ws)
     assert ws.name() == "BioSANS_exp402_scan0006_0001"
 
     # check logs
@@ -57,12 +58,12 @@ def test_api_load(biosans_f):
     wavelength_spread_ratio_log = sl.single_value("wavelength-spread-ratio")
     assert wavelength_spread_ratio_log == pytest.approx(0.1323, abs=1e-3)
 
-    ws_name = "xpto"
+    ws_name = clean_workspace("xpto")
     ws = load_histogram(filename=biosans_f["beamcenter"], output_workspace=ws_name)
     assert ws.name() == ws_name
     assert ws_name in mtd.getObjectNames()
 
-    ws_name = "xptoxpto"
+    ws_name = clean_workspace("xptoxpto")
     ws = load_histogram(
         filename=biosans_f["beamcenter"],
         output_workspace=ws_name,

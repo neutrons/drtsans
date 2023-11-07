@@ -10,6 +10,7 @@ from drtsans.settings import unique_workspace_dundername as uwd
 from mantid.simpleapi import (
     CloneWorkspace,
     CreateSingleValuedWorkspace,
+    DeleteWorkspace,
     Minus,
     mtd,
     RebinToWorkspace,
@@ -320,5 +321,7 @@ def half_polarization(
 
     spin_up_workspace = RenameWorkspace(InputWorkspace=__spin_up, OutputWorkspace=spin_up_workspace)
     spin_down_workspace = RenameWorkspace(InputWorkspace=__spin_down, OutputWorkspace=spin_down_workspace)
+
+    DeleteWorkspace(flipping_ratio)
 
     return (spin_up_workspace, spin_down_workspace)

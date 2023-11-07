@@ -6,7 +6,7 @@ from drtsans.geometry import sample_detector_distance
 
 
 @pytest.mark.datarepo
-def test_load_and_split(datarepo_dir):
+def test_load_and_split(datarepo_dir, clean_workspace):
     # Check that is fails with missing required parameters
     filename = str(Path(datarepo_dir.gpsans) / "CG2_9177.nxs.h5")
     with pytest.raises(ValueError) as excinfo:
@@ -25,6 +25,14 @@ def test_load_and_split(datarepo_dir):
         sample_to_si_name="CG2:CS:SampleToSi",
         si_nominal_distance=0.0,
     )
+    clean_workspace("_filter")
+    clean_workspace("_info")
+    clean_workspace("_load_tmp")
+    clean_workspace("_load_tmp_monitors")
+    clean_workspace("TOFCorrectWS")
+    for i in range(filtered_ws.size()):
+        clean_workspace(f"GPSANS_9177_{i + 1}")
+        clean_workspace(f"GPSANS_9177_monitors_{i + 1}")
 
     # suppose to get 3 output workspaces
     assert filtered_ws.size() == 3
@@ -37,7 +45,7 @@ def test_load_and_split(datarepo_dir):
 
 
 @pytest.mark.datarepo
-def test_load_and_split_overwrite_ssd(datarepo_dir):
+def test_load_and_split_overwrite_ssd(datarepo_dir, clean_workspace):
     """Overwrite sample-silicon-window distance
 
     Parameters
@@ -67,6 +75,14 @@ def test_load_and_split_overwrite_ssd(datarepo_dir):
         si_nominal_distance=0.0,
         sample_to_si_value=103.0 * 1e-3,
     )
+    clean_workspace("_filter")
+    clean_workspace("_info")
+    clean_workspace("_load_tmp")
+    clean_workspace("_load_tmp_monitors")
+    clean_workspace("TOFCorrectWS")
+    for i in range(filtered_ws.size()):
+        clean_workspace(f"GPSANS_9177_{i + 1}")
+        clean_workspace(f"GPSANS_9177_monitors_{i + 1}")
 
     # suppose to get 3 output workspaces
     assert filtered_ws.size() == 3

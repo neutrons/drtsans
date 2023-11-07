@@ -25,18 +25,19 @@ def test_periodic_index_log():
 
 class TestSampleLogs:
     @pytest.mark.datarepo
-    def test_init(self, datarepo_dir):
+    def test_init(self, datarepo_dir, clean_workspace):
         test_file = pjn(datarepo_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
-        w = LoadNexusProcessed(test_file, OutputWorkspace="test_init_w")
+        w = LoadNexusProcessed(test_file, OutputWorkspace=clean_workspace("test_init_w"))
         r = w.getRun()
         for other in [w, r]:
             sl = SampleLogs(other)
             assert isinstance(sl._run, Run)
 
     @pytest.mark.datarepo
-    def test_getitem(self, datarepo_dir):
+    def test_getitem(self, datarepo_dir, clean_workspace):
         test_file = pjn(datarepo_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
         ws = LoadNexusProcessed(Filename=test_file)
+        clean_workspace(ws)
         sl = SampleLogs(ws)
         assert_almost_equal(sl["Phase1"].value.mean(), 22444, decimal=0)
 
@@ -45,9 +46,10 @@ class TestSampleLogs:
             assert False, "Should have failed \"sl['nonexistantlog'].value\""
 
     @pytest.mark.datarepo
-    def test_getattr(self, datarepo_dir):
+    def test_getattr(self, datarepo_dir, clean_workspace):
         test_file = pjn(datarepo_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
         ws = LoadNexusProcessed(Filename=test_file)
+        clean_workspace(ws)
         sl = SampleLogs(ws)
         assert_almost_equal(sl.Phase1.value.mean(), 22444, decimal=0)
 
@@ -56,9 +58,10 @@ class TestSampleLogs:
             assert False, 'Should have failed "sl.nonexistantlog.value"'
 
     @pytest.mark.datarepo
-    def test_insert(self, datarepo_dir):
+    def test_insert(self, datarepo_dir, clean_workspace):
         test_file = pjn(datarepo_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
         ws = LoadNexusProcessed(test_file)
+        clean_workspace(ws)
         sl = SampleLogs(ws)
         sl.insert("string_log", "log value")
         assert sl.string_log.value, "log value"

@@ -435,7 +435,7 @@ def create_gold_result():
 
 
 @pytest.mark.parametrize("workspace_with_instrument", [dict(name="EQSANS", Nx=8, Ny=20)], indirect=True)
-def test_prepare_sensitivity(workspace_with_instrument):
+def test_prepare_sensitivity(workspace_with_instrument, clean_workspace):
     """This tests that prepare_sensitivity gives the expected result.
 
     Nx = 8:    8 tubes
@@ -494,7 +494,9 @@ def test_prepare_sensitivity(workspace_with_instrument):
         uncertainties=ffm_uncertainty_with_mask,
         view="array",
     )
+    clean_workspace(ws)
     out = calculate_sensitivity_correction(ws, min_threshold=0.5, max_threshold=2.0, min_detectors_per_tube=0)
+    clean_workspace(out)
 
     out_result = np.flip(np.transpose(out.extractY().reshape(8, 20)), 0)
     out_uncertainty = np.flip(np.transpose(out.extractE().reshape(8, 20)), 0)

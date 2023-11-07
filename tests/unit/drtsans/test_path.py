@@ -4,7 +4,7 @@ import pathlib
 import stat
 from mantid.simpleapi import CreateWorkspace
 from drtsans.path import abspath, exists, registered_workspace, allow_overwrite
-from drtsans.settings import amend_config, unique_workspace_dundername as uwd
+from drtsans.settings import amend_config
 from os.path import exists as os_exists
 from tempfile import gettempdir, NamedTemporaryFile
 
@@ -121,8 +121,8 @@ def test_exists_without_archivesearch(hint, found, reference_dir, has_sns_mount)
         assert exists(hint) == found  # allows verifying against True and False
 
 
-def test_registered_workspace():
-    w_name = uwd()
+def test_registered_workspace(temp_workspace_name):
+    w_name = temp_workspace_name()
     assert registered_workspace(w_name) is False
     w = CreateWorkspace(DataX=[1], Datay=[1], OutputWorkspace=w_name)
     assert registered_workspace(w_name) is True

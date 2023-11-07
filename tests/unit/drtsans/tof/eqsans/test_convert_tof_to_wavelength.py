@@ -27,13 +27,14 @@ def add_frame_skipping_log(ws):
     ],
     indirect=True,
 )
-def test_william(generic_workspace):
+def test_william(generic_workspace, clean_workspace):
     """Test the conversion of time-of-flight to wavelength
     in master document section 3.3
     dev - Pete Peterson <petersonpf@ornl.gov>
     SME - William Heller <hellerwt@ornl.gov>"""
     # set up input workspace in the first frame
     ws = generic_workspace  # friendly name
+    clean_workspace(ws)
     add_frame_skipping_log(ws)
 
     # run the drt-sans version
@@ -75,13 +76,14 @@ TOF = [12345.0, 12346.0]
     ],
     indirect=True,
 )
-def test_shuo(generic_workspace):
+def test_shuo(generic_workspace, clean_workspace):
     """Test the conversion of time-of-flight to wavelength
     in master document section 3.3
     dev - Pete Peterson <petersonpf@ornl.gov>
     SME - Shuo Qian"""
     # set up input workspace in the first frame
     ws = generic_workspace  # friendly name
+    clean_workspace(ws)
     add_frame_skipping_log(ws)
 
     # run the drt-sans version

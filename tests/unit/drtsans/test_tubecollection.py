@@ -377,9 +377,10 @@ class TestTubeCollection(object):
     ],
     indirect=True,
 )
-def test_flat_panel(workspace_with_instrument):
+def test_flat_panel(workspace_with_instrument, clean_workspace):
     r"""Make sure a flat detector is pieced into 'tubes'"""
     workspace = workspace_with_instrument(axis_values=[1.0, 2.0], intensities=np.random.rand(9).reshape((9, 1)))
+    clean_workspace(workspace)
     collection = tubecollection.TubeCollection(workspace, "detector1")
     assert len(collection) == 3
 

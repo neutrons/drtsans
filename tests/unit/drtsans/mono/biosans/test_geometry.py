@@ -25,8 +25,9 @@ import pytest
 #
 
 
-def test_set_position_south_detector(fetch_idf):
+def test_set_position_south_detector(fetch_idf, clean_workspace):
     workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
+    clean_workspace(workspace)
     # set the sample 0.042 meters away from the origin
     MoveInstrumentComponent(Workspace=workspace, ComponentName="sample-position", Z=-0.042, RelativePosition=False)
     set_position_south_detector(workspace, distance=7.0)  # meters
@@ -34,29 +35,33 @@ def test_set_position_south_detector(fetch_idf):
     assert_almost_equal(SampleLogs(workspace).sample_detector_distance.value, 7.042, decimal=3)
 
 
-def test_angle_wing_detector(fetch_idf):
+def test_angle_wing_detector(fetch_idf, clean_workspace):
     workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
+    clean_workspace(workspace)
     assert_almost_equal(get_angle_wing_detector(workspace), 0.0, decimal=3)
     set_angle_wing_detector(workspace, angle=42.0)  # degrees
     assert_almost_equal(get_angle_wing_detector(workspace), 42.0, decimal=3)
 
 
-def test_angle_midrange_detector(fetch_idf):
+def test_angle_midrange_detector(fetch_idf, clean_workspace):
     workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
+    clean_workspace(workspace)
     assert_almost_equal(get_angle_midrange_detector(workspace), 0.0, decimal=3)
     set_angle_midrange_detector(workspace, angle=42.0)  # degrees
     assert_almost_equal(get_angle_midrange_detector(workspace), 42.0, decimal=3)
 
 
-def test_angle_south_detector(fetch_idf):
+def test_angle_south_detector(fetch_idf, clean_workspace):
     workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
+    clean_workspace(workspace)
     set_position_south_detector(workspace, distance=7.0)  # meters
     expected_angle = 4.3887  # arctan(0.537 / 7.0) and 0.537 is half the width of the south detector
     assert_almost_equal(get_angle_south_detector(workspace), expected_angle, decimal=3)
 
 
-def test_midrange_rotation_by_criterium(fetch_idf):
+def test_midrange_rotation_by_criterium(fetch_idf, clean_workspace):
     workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
+    clean_workspace(workspace)
     set_position_south_detector(workspace, distance=7.0)  # meters
     # position the wing detector at an angle much bigger than the angle span of the midrange detector
     set_angle_wing_detector(workspace, angle=30.0)  # degrees
@@ -68,37 +73,42 @@ def test_midrange_rotation_by_criterium(fetch_idf):
     assert_almost_equal(phi, 4.0342, decimal=3)
 
 
-def test_midrange_to_wing_tubepixel(fetch_idf):
+def test_midrange_to_wing_tubepixel(fetch_idf, clean_workspace):
     workspace = LoadEmptyInstrument(InstrumentName="BIOSANS", Filename=fetch_idf("BIOSANS_Definition.xml"))
+    clean_workspace(workspace)
     SampleLogs(workspace).insert("wavelength", 12.0, unit="A")  # Angstroms
     md2ww = midrange_to_wing_tubepixel(workspace)
     assert [min(md2ww), max(md2ww)] == [90, 164]
 
 
-def test_apply_samplelogs_midrange_rotation(fetch_idf):
+def test_apply_samplelogs_midrange_rotation(fetch_idf, clean_workspace):
     workspace = LoadEmptyInstrument(Filename=fetch_idf("BIOSANS_Definition_2019_2023.xml"))
+    clean_workspace(workspace)
     SampleLogs(workspace).insert_time_series("md_rot_Readback", [0.0], [42.0], unit="deg")
     workspace = update_idf(workspace)
     assert_almost_equal(get_angle_midrange_detector(workspace), 42.0, decimal=2)
 
 
-def test_apply_samplelogs_wing_rotation(fetch_idf):
+def test_apply_samplelogs_wing_rotation(fetch_idf, clean_workspace):
     workspace = LoadEmptyInstrument(Filename=fetch_idf("BIOSANS_Definition_2019_2023.xml"))
+    clean_workspace(workspace)
     SampleLogs(workspace).insert_time_series("ww_rot_Readback", [0.0], [42.0], unit="deg")
     workspace = update_idf(workspace)
     assert_almost_equal(get_angle_wing_detector(workspace), 42.0, decimal=2)
 
 
-def test_apply_samplelogs_sample_detector_distance(fetch_idf):
+def test_apply_samplelogs_sample_detector_distance(fetch_idf, clean_workspace):
     workspace = LoadEmptyInstrument(Filename=fetch_idf("BIOSANS_Definition_2019_2023.xml"))
+    clean_workspace(workspace)
     SampleLogs(workspace).insert_time_series("sample_detector_distance", [0.0], [12.0], unit="m")
     workspace = update_idf(workspace)
     assert_almost_equal(get_position_south_detector(workspace), 12.0, decimal=2)
 
 
 @pytest.mark.datarepo
-def test_api_geometry(biosans_f):
+def test_api_geometry(biosans_f, clean_workspace):
     ws = LoadHFIRSANS(Filename=biosans_f["beamcenter"])
+    clean_workspace(ws)
 
     instrument = ws.getInstrument()
     pos_main = instrument.getComponentByName("detector1").getPos()

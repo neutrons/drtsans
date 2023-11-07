@@ -8,8 +8,9 @@ from drtsans.mono.gpsans import attenuation_factor
 from drtsans.samplelogs import SampleLogs
 
 
-def test_attenuation_factor(generic_workspace):
+def test_attenuation_factor(generic_workspace, clean_workspace):
     ws = generic_workspace  # friendly name
+    clean_workspace(ws)
 
     # Test input and expected values provided by Lisa Debeer-Schmitt, 2020-02-26
     wavelength = 4.75
@@ -26,8 +27,9 @@ def test_attenuation_factor(generic_workspace):
     assert error == pytest.approx(expected_error)
 
 
-def test_attenuation_factor_open_close(generic_workspace):
+def test_attenuation_factor_open_close(generic_workspace, clean_workspace):
     ws = generic_workspace  # friendly name
+    clean_workspace(ws)
 
     # add wavelength
     SampleLogs(ws).insert("wavelength", 1.54, "Angstrom")
@@ -48,11 +50,12 @@ def test_attenuation_factor_open_close(generic_workspace):
     assert attenuation_factor(ws) == (1, 0)
 
 
-def test_attenuation_factor_missing_logs(generic_workspace):
+def test_attenuation_factor_missing_logs(generic_workspace, clean_workspace):
     """This test that correct error messages are return if the required
     attenuator or wavelenght logs is missing
     """
     ws = generic_workspace  # friendly name
+    clean_workspace(ws)
 
     # Missing attenuator and wavelength log
     with pytest.raises(RuntimeError) as excinfo:

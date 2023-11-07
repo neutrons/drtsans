@@ -11,7 +11,6 @@ import drtsans.plots.api
 
 # from drtsans.plots.api import plot_IQmod, plot_IQazimuthal
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import unique_workspace_dundername as uwd
 from os.path import join as path_join
 
 from drtsans.dataobjects import IQmod
@@ -89,27 +88,31 @@ def test_load_all_files_simple(has_sns_mount):
 
 
 @pytest.mark.parametrize("generic_workspace", [{"name": "ws_raw_histo"}], indirect=True)
-def test_prepare_data_workspaces_simple(generic_workspace):
+def test_prepare_data_workspaces_simple(clean_workspace, generic_workspace):
     ws = generic_workspace  # friendly name
+    clean_workspace(ws)
 
     output = prepare_data_workspaces(ws)
+    clean_workspace(output)
     # this should make a clone of the workspace
     assert ws is not output
     # and change the workspace name automatically
     assert ws.name() == "ws_raw_histo"
     assert output.name() == "ws_processed_histo"
 
-    output2 = prepare_data_workspaces(ws, output_workspace="foobar")
+    output2 = prepare_data_workspaces(ws, output_workspace=clean_workspace("foobar"))
     # the ws name should change to what is set
     assert ws.name() == "ws_raw_histo"
     assert output2.name() == "foobar"
 
 
 @pytest.mark.datarepo
-def test_prepare_data_workspaces_center(biosans_f):
+def test_prepare_data_workspaces_center(biosans_f, clean_workspace):
     ws = LoadHFIRSANS(Filename=biosans_f["beamcenter"])
+    clean_workspace(ws)
 
     output = prepare_data_workspaces(ws, center_x=0.111, center_y=0.123, center_y_wing=0.222, solid_angle=False)
+    clean_workspace(output)
 
     # this should make a clone of the workspace
     assert ws is not output
@@ -309,13 +312,13 @@ def test_prepare_data_center(reference_dir, has_sns_mount):
 @pytest.mark.datarepo
 @mock_patch("drtsans.load.__monitor_counts")
 @mock_patch("drtsans.load.LoadEventNexus")
-def test_prepare_data_center_midrange_success(mock_LoadEventNexus, mock_monitor_counts, datarepo_dir):
+def test_prepare_data_center_midrange_success(mock_LoadEventNexus, mock_monitor_counts, datarepo_dir, clean_workspace):
     # similar test to test_prepare_data_workspaces_center
     # load the file with mock patch
     # generate the output workspace from prepare_data with center parameters for main, wing and midrange detectors
     # check the algorithm history to ensure instrument components were moved with the requested coordinates
 
-    output_workspace = "CG3_92300"
+    output_workspace = clean_workspace("CG3_92300")
     synthetics_datasets = os.path.join(datarepo_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
@@ -363,12 +366,12 @@ def test_prepare_data_center_midrange_success(mock_LoadEventNexus, mock_monitor_
 @pytest.mark.datarepo
 @mock_patch("drtsans.load.__monitor_counts")
 @mock_patch("drtsans.load.LoadEventNexus")
-def test_prepare_data_center_midrange_failure(mock_LoadEventNexus, mock_monitor_counts, datarepo_dir):
+def test_prepare_data_center_midrange_failure(mock_LoadEventNexus, mock_monitor_counts, datarepo_dir, clean_workspace):
     # similar test to test_prepare_data_center_midrange_success
     # midrange center is required, but not passed
     # results to failure to move the instrument components
 
-    output_workspace = "CG3_92300"
+    output_workspace = clean_workspace("CG3_92300")
     synthetics_datasets = os.path.join(datarepo_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
@@ -393,12 +396,14 @@ def test_prepare_data_center_midrange_failure(mock_LoadEventNexus, mock_monitor_
 @pytest.mark.datarepo
 @mock_patch("drtsans.load.__monitor_counts")
 @mock_patch("drtsans.load.LoadEventNexus")
-def test_prepare_data_apply_mask_detectors_lst(mock_LoadEventNexus, mock_monitor_counts, datarepo_dir):
+def test_prepare_data_apply_mask_detectors_lst(
+    mock_LoadEventNexus, mock_monitor_counts, datarepo_dir, clean_workspace
+):
     # load the file with mock patch
     # generate the output workspace from prepare_data
     # mask detector with a list of detector names
 
-    output_workspace = "CG3_92300"
+    output_workspace = clean_workspace("CG3_92300")
     synthetics_datasets = os.path.join(datarepo_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
@@ -425,12 +430,14 @@ def test_prepare_data_apply_mask_detectors_lst(mock_LoadEventNexus, mock_monitor
 @pytest.mark.datarepo
 @mock_patch("drtsans.load.__monitor_counts")
 @mock_patch("drtsans.load.LoadEventNexus")
-def test_prepare_data_apply_mask_detectors_str(mock_LoadEventNexus, mock_monitor_counts, datarepo_dir):
+def test_prepare_data_apply_mask_detectors_str(
+    mock_LoadEventNexus, mock_monitor_counts, datarepo_dir, clean_workspace
+):
     # load the file with mock patch
     # generate the output workspace from prepare_data
     # mask detector with a detector name
 
-    output_workspace = "CG3_92300"
+    output_workspace = clean_workspace("CG3_92300")
     synthetics_datasets = os.path.join(datarepo_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
@@ -454,11 +461,11 @@ def test_prepare_data_apply_mask_detectors_str(mock_LoadEventNexus, mock_monitor
     assert alg.getPropertyValue("ComponentList") == mask_detectors
 
 
-def test_prepare_data_workspaces_dark_current():
+def test_prepare_data_workspaces_dark_current(clean_workspace, temp_workspace_name):
     # Create dark current workspace, insert the duration of the dark
     # current run as one of the log entries in the dark current
     # workspace.
-    dark_current_workspace = uwd()  # arbitrary name for the dark current workspace
+    dark_current_workspace = temp_workspace_name()  # arbitrary name for the dark current workspace
     CreateWorkspace(
         DataX=[2.5, 3.5],
         DataY=np.full(2, 100.0),
@@ -469,7 +476,7 @@ def test_prepare_data_workspaces_dark_current():
     SampleLogs(dark_current_workspace).insert("duration", 3600.0, "second")
 
     # Create a sample run workspace.
-    data_workspace = uwd()  # arbitrary name for the sample workspace
+    data_workspace = temp_workspace_name()  # arbitrary name for the sample workspace
     CreateWorkspace(
         DataX=[2.5, 3.5],
         DataY=np.array([1.0, 2.0]),
@@ -483,6 +490,7 @@ def test_prepare_data_workspaces_dark_current():
     SampleLogs(data_workspace).insert("duration", 36.0, "second")
 
     output = prepare_data_workspaces(data_workspace, dark_current=dark_current_workspace, solid_angle=False)
+    clean_workspace(output)
 
     assert output.getHistory().size() == 8
 
@@ -491,13 +499,15 @@ def test_prepare_data_workspaces_dark_current():
 
 
 @pytest.mark.parametrize("generic_workspace", [{"intensities": [[1, 2], [3, 4]]}], indirect=True)
-def test_prepare_data_workspaces_flux_method(generic_workspace):
+def test_prepare_data_workspaces_flux_method(generic_workspace, clean_workspace):
     ws = generic_workspace  # friendly name
+    clean_workspace(str(ws))
     SampleLogs(ws).insert("duration", 2.0)
     SampleLogs(ws).insert("monitor", 2e9)
 
     # No normalization
     output = prepare_data_workspaces(ws, flux_method=None, solid_angle=False)
+    clean_workspace(output)
     assert output.getHistory().size() == 3
     assert_almost_equal(output.extractY(), [[1], [2], [3], [4]])
 
@@ -512,11 +522,13 @@ def test_prepare_data_workspaces_flux_method(generic_workspace):
     assert_almost_equal(output.extractY(), [[0.05], [0.1], [0.15], [0.2]])
 
 
-def test_prepare_data_workspaces_apply_mask(generic_workspace):
+def test_prepare_data_workspaces_apply_mask(generic_workspace, clean_workspace):
     ws = generic_workspace
+    clean_workspace(str(ws))
 
     # mask_ws
     output = prepare_data_workspaces(ws, mask_ws=[0, 2], solid_angle=False)
+    clean_workspace(output)
     history = output.getHistory()
     assert history.size() == 4
     alg3 = history.getAlgorithm(3)
@@ -525,22 +537,24 @@ def test_prepare_data_workspaces_apply_mask(generic_workspace):
 
 
 @pytest.mark.parametrize("generic_workspace", [{"intensities": [[1, 1], [1, 1]]}], indirect=True)
-def test_prepare_data_workspaces_solid_angle(generic_workspace):
+def test_prepare_data_workspaces_solid_angle(generic_workspace, clean_workspace):
     ws = generic_workspace  # friendly name
+    clean_workspace(str(ws))
 
     # No normalization
     output = prepare_data_workspaces(ws, solid_angle=True)
+    clean_workspace(output)
     # CreateWorkspace, LoadInstrument, CloneWorkspace, CloneWorkspace,
     # ClearMaskFlag, SolidAngle, Divide, ReplaceSpecialValues
     assert output.getHistory().size() == 8
     assert_almost_equal(output.extractY(), [[25.6259267], [25.6259267], [25.6259267], [25.6259267]])
 
 
-def test_prepare_data_workspaces_sensitivity():
+def test_prepare_data_workspaces_sensitivity(temp_workspace_name, clean_workspace):
     # Create dark current workspace, insert the duration of the dark
     # current run as one of the log entries in the dark current
     # workspace.
-    sensitivity_workspace = uwd()  # arbitrary name for the dark current workspace
+    sensitivity_workspace = temp_workspace_name()  # arbitrary name for the dark current workspace
     CreateWorkspace(
         DataX=[2.5, 3.5],
         DataY=np.full(2, 2.0),
@@ -550,7 +564,7 @@ def test_prepare_data_workspaces_sensitivity():
     )
 
     # Create a sample run workspace.
-    data_workspace = uwd()  # arbitrary name for the sample workspace
+    data_workspace = temp_workspace_name()  # arbitrary name for the sample workspace
     CreateWorkspace(
         DataX=[2.5, 3.5],
         DataY=np.array([1.0, 2.0]),
@@ -560,6 +574,7 @@ def test_prepare_data_workspaces_sensitivity():
     )
 
     output = prepare_data_workspaces(data_workspace, sensitivity_workspace=sensitivity_workspace, solid_angle=False)
+    clean_workspace(output)
 
     assert output.getHistory().size() == 6
 
@@ -568,8 +583,9 @@ def test_prepare_data_workspaces_sensitivity():
 
 
 @pytest.mark.parametrize("generic_workspace", [{"intensities": [[1, 2], [3, 4]]}], indirect=True)
-def test_process_single_configuration_thickness_absolute_scale(generic_workspace):
+def test_process_single_configuration_thickness_absolute_scale(generic_workspace, clean_workspace):
     ws = generic_workspace
+    clean_workspace(str(ws))
 
     # This should only run prepare_data_workspaces,
     # normalize_by_thickness and scale by absolute_scale
@@ -587,6 +603,7 @@ def test_process_single_configuration_thickness_absolute_scale(generic_workspace
     assert not trans["background"]
 
     output, _ = process_single_configuration(ws, solid_angle=False, absolute_scale=1.5)
+    clean_workspace(output)
     assert_equal(output.extractY(), [[1.5], [3], [4.5], [6]])
 
     output, _ = process_single_configuration(ws, solid_angle=False, thickness=0.1)

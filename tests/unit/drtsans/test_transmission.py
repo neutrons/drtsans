@@ -252,22 +252,25 @@ pixel_size = 0.005  # meter
     ],
     indirect=True,
 )
-def test_transmission(generic_workspace):
+def test_transmission(generic_workspace, clean_workspace):
     """Test the calculation of the detector transmission in the master document section 7.2
     dev - Pete Peterson <petersonpf@ornl.gov>
     SME - Lilin He <hel3@ornl.gov>
     """
     Isam = generic_workspace  # convenient name
+    clean_workspace(Isam)
     assert Isam.extractY().sum() == 50212  # checksum
 
     # generate the reference data - uncertainties are set separately
     Iref = 1.8 * Isam
+    clean_workspace(Iref)
     Iref = SetUncertainties(InputWorkspace=Iref, OutputWorkspace=Iref, SetError="sqrt")
     assert Iref.extractY().sum() == 1.8 * 50212  # checksum
     assert 1.8 * Isam.extractE().sum() > Iref.extractE().sum()  # shouldn't match
 
     # run the algorithm
     result = calculate_transmission(Isam, Iref, 2.5 * pixel_size, "m")
+    clean_workspace(result)
 
     # it should be a single value workspace
     assert result.getNumberHistograms(), 1

@@ -8,7 +8,6 @@ from pytest import approx
 from mantid.simpleapi import LoadHFIRSANS
 
 # from drtsans.save_ascii import save_ascii_1D, save_xml_1D
-from drtsans.settings import unique_workspace_name
 
 
 def numbers_in_line(line, numbers):
@@ -17,10 +16,10 @@ def numbers_in_line(line, numbers):
 
 
 @pytest.mark.datarepo
-def test_save_ascii(gpsans_f):
+def test_save_ascii(gpsans_f, temp_workspace_name):
     ws = LoadHFIRSANS(
         Filename=gpsans_f["sample_transmission"],
-        OutputWorkspace=unique_workspace_name(),
+        OutputWorkspace=temp_workspace_name(),
     )
     assert ws is not None
 

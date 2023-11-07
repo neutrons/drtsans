@@ -2,13 +2,12 @@ import numpy as np
 import pytest
 from pytest import approx
 from mantid.simpleapi import LoadEventNexus
-from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.settings import amend_config
 from drtsans.tof.eqsans import center_detector, find_beam_center
 
 
 @pytest.mark.datarepo
-def test_find_beam_center(datarepo_dir):
+def test_find_beam_center(datarepo_dir, temp_workspace_name):
     r"""
     Test for finding the beam center for EQSANS on real data
 
@@ -18,12 +17,12 @@ def test_find_beam_center(datarepo_dir):
         FindCenterOfMassPosition https://docs.mantidproject.org/nightly/algorithms/FindCenterOfMassPosition-v2.html
     """
     with amend_config(data_dir=datarepo_dir.eqsans):
-        w = LoadEventNexus(Filename="EQSANS_92160.nxs.h5", OutputWorkspace=uwd())
+        w = LoadEventNexus(Filename="EQSANS_92160.nxs.h5", OutputWorkspace=temp_workspace_name())
     assert find_beam_center(w)[:-1] == approx((0.02997, 0.01379), abs=1e-3)
 
 
 @pytest.mark.datarepo
-def test_center_detector(datarepo_dir):
+def test_center_detector(datarepo_dir, temp_workspace_name):
     r"""
     Translate detector according to method center_of_mass
 
@@ -35,7 +34,7 @@ def test_center_detector(datarepo_dir):
         MoveInstrumentComponent https://docs.mantidproject.org/nightly/algorithms/MoveInstrumentComponent-v1.html
     """
     with amend_config(data_dir=datarepo_dir.eqsans):
-        w = LoadEventNexus(Filename="EQSANS_92160.nxs.h5", OutputWorkspace=uwd())
+        w = LoadEventNexus(Filename="EQSANS_92160.nxs.h5", OutputWorkspace=temp_workspace_name())
     r = find_beam_center(w, method="center_of_mass")
     assert r[:-1] == approx((0.02997, 0.0138), abs=1e-3)
     pos_old = w.getInstrument().getDetector(0).getPos()

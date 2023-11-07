@@ -7,10 +7,11 @@ import numpy as np
 
 
 @pytest.mark.datarepo
-def test_save_nist_dat(datarepo_dir):
+def test_save_nist_dat(datarepo_dir, clean_workspace):
     filename = join(datarepo_dir.eqsans, "test_save_output/EQSANS_68200_Iqxy.nxs")
     reference_filename = join(datarepo_dir.eqsans, "test_save_output/EQSANS_68200_Iqxy.dat")
     ws = LoadNexus(filename)
+    clean_workspace(ws)
     with tempfile.NamedTemporaryFile("r+") as tmp:
         save_nist_dat(ws, tmp.name)
         output = np.loadtxt(
@@ -30,10 +31,14 @@ def test_save_nist_dat(datarepo_dir):
 
 
 @pytest.mark.datarepo
-def test_save_nexus(datarepo_dir):
+def test_save_nexus(datarepo_dir, clean_workspace):
     filename = join(datarepo_dir.eqsans, "test_save_output/EQSANS_68200_Iqxy.nxs")
     ws = LoadNexus(filename)
+    clean_workspace(ws)
     with tempfile.NamedTemporaryFile("r+") as tmp:
         save_nexus(ws, "EQSANS 68200", tmp.name)
         output_ws = LoadNexus(tmp.name)
-        assert CompareWorkspaces(Workspace1=ws, Workspace2=output_ws)
+        clean_workspace(output_ws)
+        result, messages = CompareWorkspaces(Workspace1=ws, Workspace2=output_ws)
+        clean_workspace(messages)
+        assert result

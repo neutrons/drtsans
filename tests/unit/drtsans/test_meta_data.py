@@ -12,7 +12,7 @@ from drtsans.geometry import (
 
 
 @pytest.mark.parametrize("workspace_with_instrument", [{"Nx": 3, "Ny": 3}], indirect=True)
-def test_set_mono_meta_data(workspace_with_instrument):
+def test_set_mono_meta_data(workspace_with_instrument, clean_workspace):
     """ """
     data = np.array([[7.0, 8.0, 12.0], [10.0, 17.0, 13.0], [10.0, 10.0, 9.0]])
 
@@ -25,6 +25,7 @@ def test_set_mono_meta_data(workspace_with_instrument):
         uncertainties=data_error,
         view="pixel",
     )
+    clean_workspace(data_ws)
 
     # Add meta data
     mono_set_meta_data(
@@ -53,7 +54,7 @@ def test_set_mono_meta_data(workspace_with_instrument):
 
 
 @pytest.mark.parametrize("workspace_with_instrument", [{"Nx": 3, "Ny": 3}], indirect=True)
-def test_set_eqsans_meta_data(workspace_with_instrument):
+def test_set_eqsans_meta_data(workspace_with_instrument, clean_workspace):
     """ """
     data = np.array([[7.0, 8.0, 12.0], [10.0, 17.0, 13.0], [10.0, 10.0, 9.0]])
 
@@ -66,6 +67,7 @@ def test_set_eqsans_meta_data(workspace_with_instrument):
         uncertainties=data_error,
         view="pixel",
     )
+    clean_workspace(data_ws)
 
     assert data_ws is not None
 

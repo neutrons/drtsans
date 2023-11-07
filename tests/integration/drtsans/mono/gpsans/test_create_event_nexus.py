@@ -609,7 +609,7 @@ def verify_histogram(source_nexus, test_nexus):
 
 
 @pytest.mark.datarepo
-def test_convert_spice_to_nexus(datarepo_dir, temp_directory):
+def test_convert_spice_to_nexus(datarepo_dir, temp_directory, clean_workspace):
     """Test to convert SPICE to NeXus
 
     Parameters
@@ -667,7 +667,7 @@ def test_convert_spice_to_nexus(datarepo_dir, temp_directory):
     expected_nexus_h5.close()
 
     # Load
-    test_ws_name = "TestSpice2Nexus315560"
+    test_ws_name = clean_workspace("TestSpice2Nexus315560")
     LoadEventNexus(
         Filename=out_nexus_file,
         OutputWorkspace=test_ws_name,
@@ -685,6 +685,7 @@ def test_convert_spice_to_nexus(datarepo_dir, temp_directory):
         LoadNexusInstrumentXML=True,
     )
     template_ws = mtd["cg3template"]
+    clean_workspace(template_ws)
 
     # Check number of histograms
     assert test_nexus_ws.getNumberHistograms() == template_ws.getNumberHistograms()
@@ -726,7 +727,7 @@ def test_convert_spice_to_nexus(datarepo_dir, temp_directory):
 
     # Load original SPICE file
     spice_ws_name = os.path.basename(spice_data_file).split(".")[0]
-    spice_ws_name = f"CG2IntTestSpice_{spice_ws_name}"
+    spice_ws_name = clean_workspace(f"CG2IntTestSpice_{spice_ws_name}")
     LoadHFIRSANS(Filename=spice_data_file, OutputWorkspace=spice_ws_name)
     spice_ws = mtd[spice_ws_name]
 

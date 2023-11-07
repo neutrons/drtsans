@@ -561,6 +561,9 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
     assert np.nanmax(first_curve) == pytest.approx(24192, rel=1e-3)
     assert np.nanmax(second_curve) == pytest.approx(26300, rel=1e-3)
 
+    clean_all_ws(prefix)
+    del output
+
 
 @pytest.mark.datarepo
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
@@ -665,6 +668,9 @@ def test_reduce_single_configuration_with_wedges_synthetic_dataset(
     assert np.nanmax(wedge2_first_curve) == pytest.approx(24621, rel=1e-3)
     assert np.nanmax(wedge2_second_curve) == pytest.approx(20615, rel=1e-3)
 
+    clean_all_ws(prefix)
+    del output
+
 
 @pytest.mark.datarepo
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
@@ -745,6 +751,9 @@ def test_reduce_single_configuration_ignore_midrange(mock_monitor_counts, biosan
     assert len(iq1d_combined) == 82
     assert np.nanmax(main_region) == pytest.approx(24192, rel=1e-3)
     assert np.nanmax(wing_region) == pytest.approx(17888, rel=1e-3)
+
+    clean_all_ws(prefix)
+    del output
 
 
 if __name__ == "__main__":

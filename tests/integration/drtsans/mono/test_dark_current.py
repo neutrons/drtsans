@@ -3,12 +3,11 @@ import numpy as np
 
 # CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 # DeleteWorkspaces <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspaces-v1.html>
-from mantid.simpleapi import mtd, CreateWorkspace, DeleteWorkspaces
+from mantid.simpleapi import mtd, CreateWorkspace
 
 # unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
 # SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 # subtract_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/dark_current
-from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.dark_current import subtract_dark_current
 
@@ -84,7 +83,7 @@ def data_test_16a():
     )
 
 
-def test_subtract_dark_current(data_test_16a):
+def test_subtract_dark_current(data_test_16a, temp_workspace_name):
     r"""Test of dark current subtraction from data. Dark current must be normalized
 
     For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/156
@@ -105,7 +104,7 @@ def test_subtract_dark_current(data_test_16a):
     """
     # Create dark current workspace, insert the duration of the dark current run as one of the log entries in the
     # dark current workspace.
-    dark_current_workspace = unique_workspace_dundername()  # arbitrary name for the dark current workspace
+    dark_current_workspace = temp_workspace_name()  # arbitrary name for the dark current workspace
     CreateWorkspace(
         DataX=data_test_16a["wavelength_bin_boundaries"],
         DataY=np.array(data_test_16a["I_dc"]).ravel(),
@@ -116,7 +115,7 @@ def test_subtract_dark_current(data_test_16a):
     SampleLogs(dark_current_workspace).insert("duration", data_test_16a["dark_current_duration"], "second")
 
     # Create a sample run workspace.
-    data_workspace = unique_workspace_dundername()  # arbitrary name for the sample workspace
+    data_workspace = temp_workspace_name()  # arbitrary name for the sample workspace
     CreateWorkspace(
         DataX=data_test_16a["wavelength_bin_boundaries"],
         DataY=np.array(data_test_16a["I_data"]).ravel(),
@@ -140,9 +139,6 @@ def test_subtract_dark_current(data_test_16a):
     computed_errors = mtd[data_workspace].extractE().ravel()
     test_errors = np.array(data_test_16a["I_data_norm_err"]).ravel()
     assert computed_errors == pytest.approx(test_errors, abs=data_test_16a["precision"])
-
-    # some cleanup
-    DeleteWorkspaces([dark_current_workspace, data_workspace])
 
 
 if __name__ == "__main__":

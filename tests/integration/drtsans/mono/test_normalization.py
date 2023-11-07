@@ -7,7 +7,6 @@ from mantid.simpleapi import CreateWorkspace
 # unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
 # SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 # time, monitor within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
-from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.normalization import normalize_by_time, normalize_by_monitor
 
@@ -54,7 +53,7 @@ def data_test_16a():
     )
 
 
-def test_normalization_by_time(data_test_16a):
+def test_normalization_by_time(data_test_16a, temp_workspace_name):
     r"""
     Normalize sample intensities by the duration of the run.
     Addresses section of the 6.1 of the master document
@@ -84,7 +83,7 @@ def test_normalization_by_time(data_test_16a):
         DataY=intensities_list,
         DataE=errors_list,
         NSpec=data_test_16a["n_pixels"],
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=temp_workspace_name(),
     )
     # Insert the duration of the run as a metadata item
     SampleLogs(ws).insert("timer", data_test_16a["t_sam"], "Second")
@@ -99,7 +98,7 @@ def test_normalization_by_time(data_test_16a):
     ws_samnorm.delete()  # some clean up
 
 
-def test_normalization_by_monitor(data_test_16a):
+def test_normalization_by_monitor(data_test_16a, temp_workspace_name):
     r"""
     Normalize sample intensities by flux at monitor
     Addresses section of the 6.2 the master document
@@ -130,7 +129,7 @@ def test_normalization_by_monitor(data_test_16a):
         DataY=intensities_list,
         DataE=intensities_errors,
         NSpec=data_test_16a["n_pixels"],
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=temp_workspace_name(),
     )
     # Insert the flux at the monitor as a metadata item
     SampleLogs(ws).insert("monitor", data_test_16a["flux_sam"])

@@ -10,7 +10,7 @@ namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/dr
 empty_beam_scaling <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/absolute_units.py>
 """
 from drtsans import center_detector
-from drtsans.settings import unique_workspace_dundername, namedtuplefy
+from drtsans.settings import namedtuplefy
 from drtsans.mono import empty_beam_scaling
 
 
@@ -66,7 +66,7 @@ def test_data_15b():
     [dict(name="EQSANS", Nx=17, Ny=15, dx=0.01, dy=0.01, zc=1.0)],
     indirect=True,
 )
-def test_empty_beam_scaling(workspace_with_instrument, test_data_15b):
+def test_empty_beam_scaling(workspace_with_instrument, test_data_15b, temp_workspace_name):
     r"""
     This test implements issue #179 and test 15B, addressing master document section 12b.
 
@@ -92,7 +92,7 @@ def test_empty_beam_scaling(workspace_with_instrument, test_data_15b):
     number_of_pixels = intensities.size
 
     # Create a Mantid workspace with an embedded instrument and store the attenuated empty beam intensities
-    empty_beam_workspace = unique_workspace_dundername()  # some random name
+    empty_beam_workspace = temp_workspace_name()  # some random name
     workspace_with_instrument(
         axis_values=test_data_15b.wavelength_bin,
         intensities=intensities,
@@ -127,7 +127,7 @@ def test_empty_beam_scaling(workspace_with_instrument, test_data_15b):
     # Link to the test:
     # https://www.dropbox.com/s/8xddym8iteozrhz/Calculate%20scale%20factor%20from%20the%20absolute%20intensity_He.xlsx
     data_intensities = np.zeros(number_of_pixels).reshape((15, 17, 1))
-    data_workspace = unique_workspace_dundername()  # some random name
+    data_workspace = temp_workspace_name()  # some random name
     workspace_with_instrument(
         axis_values=test_data_15b.wavelength_bin,
         intensities=data_intensities,

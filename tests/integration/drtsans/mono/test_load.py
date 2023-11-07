@@ -7,11 +7,11 @@ from drtsans.mono.meta_data import get_sample_detector_offset
 from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import sample_detector_distance
 from drtsans.load import move_instrument
-from mantid.simpleapi import AddSampleLogMultiple, DeleteWorkspace
+from mantid.simpleapi import AddSampleLogMultiple
 
 
 @pytest.mark.mount_eqsans
-def test_load_gpsans(has_sns_mount):
+def test_load_gpsans(has_sns_mount, clean_workspace):
     """Test load GPSANS data
 
     Returns
@@ -33,6 +33,7 @@ def test_load_gpsans(has_sns_mount):
         detector_offset=0,
         sample_offset=0,
     )
+    clean_workspace(ws)  # delete on test completion
 
     # Check current instrument setup and meta data (sample logs)
     logs = SampleLogs(ws)
@@ -71,12 +72,9 @@ def test_load_gpsans(has_sns_mount):
 
     assert new_sample_det_distance == raw_sample_det_distance
 
-    # cleanup
-    DeleteWorkspace(ws)
-
 
 @pytest.mark.mount_eqsans
-def test_load_biosans(has_sns_mount):
+def test_load_biosans(has_sns_mount, clean_workspace):
     """Test load BIOSANS data
 
     Returns
@@ -99,6 +97,7 @@ def test_load_biosans(has_sns_mount):
         detector_offset=0,
         sample_offset=0,
     )
+    clean_workspace(ws)
 
     # Check current instrument setup and meta data (sample logs)
     logs = SampleLogs(ws)
@@ -132,12 +131,9 @@ def test_load_biosans(has_sns_mount):
     assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1e-3, 1e-7)
     assert sample_det_distance_cal == pytest.approx(7.00000019, 1e-7)
 
-    # cleanup
-    DeleteWorkspace(ws)
-
 
 @pytest.mark.mount_eqsans
-def test_load_biosans_sample_off_nominal(has_sns_mount):
+def test_load_biosans_sample_off_nominal(has_sns_mount, clean_workspace):
     """Test load BIOSANS data with sample position off nominal position
 
     Returns
@@ -160,6 +156,7 @@ def test_load_biosans_sample_off_nominal(has_sns_mount):
         detector_offset=0,
         sample_offset=0,
     )
+    clean_workspace(ws)
 
     # Verify: sample position at (0., 0., 0.)
     sample_pos = np.array(ws.getInstrument().getSample().getPos())
@@ -211,12 +208,9 @@ def test_load_biosans_sample_off_nominal(has_sns_mount):
     assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1e-3, 1e-7)
     assert sample_det_distance_cal == pytest.approx(7.00000019, 1e-7)
 
-    # cleanup
-    DeleteWorkspace(ws)
-
 
 @pytest.mark.mount_eqsans
-def test_load_biosans_overwrite_swd(has_sns_mount):
+def test_load_biosans_overwrite_swd(has_sns_mount, clean_workspace):
     """Test load BIOSANS data with overwriting sample Si window distance
 
     Returns
@@ -239,6 +233,7 @@ def test_load_biosans_overwrite_swd(has_sns_mount):
         detector_offset=0,
         sample_offset=0,
     )
+    clean_workspace(ws)
 
     # Calculate offset with overwriting to sample-detector-distance
     sample_offset, detector_offset = get_sample_detector_offset(
@@ -272,12 +267,9 @@ def test_load_biosans_overwrite_swd(has_sns_mount):
     swd = logs.find_log_with_units("CG3:CS:SampleToSi", unit="mm")
     assert swd == pytest.approx(74.21, 1e-10)
 
-    # cleanup
-    DeleteWorkspace(ws)
-
 
 @pytest.mark.mount_eqsans
-def test_load_biosans_overwrite_sdd(has_sns_mount):
+def test_load_biosans_overwrite_sdd(has_sns_mount, clean_workspace):
     """Test load BIOSANS data with overwriting sample detector distance related meta data
 
     Returns
@@ -300,6 +292,7 @@ def test_load_biosans_overwrite_sdd(has_sns_mount):
         detector_offset=0,
         sample_offset=0,
     )
+    clean_workspace(ws)
 
     # Check current instrument setup and meta data (sample logs)
     logs = SampleLogs(ws)
@@ -340,9 +333,6 @@ def test_load_biosans_overwrite_sdd(has_sns_mount):
     # verify the values from calculated and from meta data are identical
     sample_det_distance_meta = sample_detector_distance(ws, unit="mm", search_logs=True)
     assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1e-3, 1e-7)
-
-    # cleanup
-    DeleteWorkspace(ws)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,6 @@ from mantid.simpleapi import mtd, CreateWorkspace
 # unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
 # subtract_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>  # noqa: E501
 # SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.dark_current import subtract_dark_current
 
@@ -99,7 +98,7 @@ def data_test_16a():
     )
 
 
-def test_subtract_dark_current(data_test_16a):
+def test_subtract_dark_current(data_test_16a, temp_workspace_name):
     """Test of dark current subtraction from data. Dark current must be normalized
 
     For details see https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/156
@@ -140,7 +139,7 @@ def test_subtract_dark_current(data_test_16a):
     dark_errors_list /= len(wavelength_bin_boundaries) - 1
 
     # The dark current workspace now becomes:
-    dark_workspace = unique_workspace_dundername()  # arbitrary name for the dark current workspace
+    dark_workspace = temp_workspace_name()  # arbitrary name for the dark current workspace
     CreateWorkspace(
         DataX=wavelength_bin_boundaries,
         UnitX="Wavelength",
@@ -163,7 +162,7 @@ def test_subtract_dark_current(data_test_16a):
     data_errors_list = np.repeat(data_errors_list[:, np.newaxis], len(wavelength_bin_boundaries) - 1, axis=1)
     data_errors_list /= len(wavelength_bin_boundaries) - 1
 
-    data_workspace = unique_workspace_dundername()  # arbitrary name for the sample workspace
+    data_workspace = temp_workspace_name()  # arbitrary name for the sample workspace
     CreateWorkspace(
         DataX=wavelength_bin_boundaries,
         UnitX="Wavelength",

@@ -8,7 +8,6 @@ from mantid.api import mtd
 # unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
 # SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 # time, monitor within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
-from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import (
     load_events,
@@ -21,23 +20,25 @@ from drtsans.tof.eqsans import (
 
 
 @pytest.mark.datarepo
-def test_normalize_by_time(datarepo_dir):
+def test_normalize_by_time(datarepo_dir, clean_workspace, temp_workspace_name):
     r"""
     Test normalization by time duration.
     """
-    output_workspace = unique_workspace_dundername()
+    output_workspace = temp_workspace_name()
     load_events(
         "EQSANS_68168",
         data_dir=datarepo_dir.eqsans,
         output_workspace=output_workspace,
     )
     workspace, bands = transform_to_wavelength(output_workspace)
+    clean_workspace(workspace)
     workspace = set_init_uncertainties(workspace)
     time_duration = SampleLogs(output_workspace).duration.value
 
     # Let's pick one spectrum (spectrum 42) and verify we are dividing its intensity by the time duration
     intensity, uncertainty = np.copy(workspace.readY(42)), np.copy(workspace.readE(42))
     workspace_normalized = normalize_by_time(output_workspace)
+    clean_workspace(workspace_normalized)
 
     # Verify we selected 'duration' as the log entry to find out the duration of the run
     assert SampleLogs(output_workspace).normalizing_duration.value == "duration"
@@ -90,7 +91,7 @@ def data_test_16a_by_time():
     )
 
 
-def test_normalization_by_time(data_test_16a_by_time):
+def test_normalization_by_time(data_test_16a_by_time, temp_workspace_name):
     r"""
     Normalize sample intensities by run duration.
     Addresses section of the 6.1 the master document
@@ -112,7 +113,7 @@ def test_normalization_by_time(data_test_16a_by_time):
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalization.py>
     """
     # Create a sample workspace with the input data
-    data_workspace = unique_workspace_dundername()
+    data_workspace = temp_workspace_name()
     CreateWorkspace(
         DataX=data_test_16a_by_time["wavelength_bin_boundaries"],
         DataY=np.array(data_test_16a_by_time["I_sam"]).ravel(),
@@ -252,7 +253,7 @@ def data_test_16a_by_monitor():
     )
 
 
-def test_normalization_by_monitor(data_test_16a_by_monitor):
+def test_normalization_by_monitor(data_test_16a_by_monitor, temp_workspace_name):
     r"""
     Normalize sample intensities by flux at monitor using also flux-to-monitor ratios.
     Addresses section of the 6.2 the master document
@@ -289,7 +290,7 @@ def test_normalization_by_monitor(data_test_16a_by_monitor):
         DataY=intensities_list,
         DataE=errors_list,
         NSpec=data_test_16a_by_monitor["n_pixels"],
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=temp_workspace_name(),
     )
     SampleLogs(data_workspace).insert("is_frame_skipping", False)  # Monitor normalization does not work in skip-frame
 
@@ -299,7 +300,7 @@ def test_normalization_by_monitor(data_test_16a_by_monitor):
         DataY=data_test_16a_by_monitor["monitor_counts"],
         DataE=np.zeros(number_wavelength_bins),
         NSpec=1,
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=temp_workspace_name(),
     )
 
     # In the reduction framework, the flux-to-monitor file will be loaded to a Mantid workspace
@@ -308,7 +309,7 @@ def test_normalization_by_monitor(data_test_16a_by_monitor):
         DataY=data_test_16a_by_monitor["flux_to_monitor_ratios"],
         DataE=np.zeros(number_wavelength_bins),
         NSpec=1,
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=temp_workspace_name(),
     )
     # Carry out the normalization with the reduction framework
     data_workspace = normalize_by_monitor(data_workspace, flux_to_monitor_workspace, monitor_workspace)
@@ -435,7 +436,7 @@ def data_test_16a_by_proton_charge_and_flux():
     )
 
 
-def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton_charge_and_flux):
+def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton_charge_and_flux, temp_workspace_name):
     r"""
     Normalize sample intensities by flux and proton charge.
     Addresses section of the 6.3 the master document
@@ -473,7 +474,7 @@ def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton_charge_and_
         DataY=intensities_list,
         DataE=errors_list,
         NSpec=test_data["n_pixels"],
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=temp_workspace_name(),
     )
     # Insert the proton charge in the logs of the workspace
     SampleLogs(data_workspace).insert("gd_prtn_chrg", test_data["proton_sam"])
@@ -482,7 +483,7 @@ def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton_charge_and_
     flux_workspace = CreateWorkspace(
         DataX=test_data["wavelength_bin_boundaries"],
         DataY=test_data["phi"],
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=temp_workspace_name(),
     )
 
     # Carry out the normalization with the reduction framework

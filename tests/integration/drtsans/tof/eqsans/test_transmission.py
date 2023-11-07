@@ -102,7 +102,9 @@ def test_data_9a_part_1():
     [dict(name="EQSANS", Nx=10, Ny=10, dx=1.0e-3, dy=1.0e-3, zc=1.0)],
     indirect=True,
 )
-def test_calculate_transmission_single_bin(test_data_9a_part_1, reference_dir, workspace_with_instrument):
+def test_calculate_transmission_single_bin(
+    test_data_9a_part_1, reference_dir, temp_workspace_name, workspace_with_instrument
+):
     r"""
     This test calculates the raw transmission at zero scattering angle starting with sample and empty-beam datasets,
     integrated on wavelength, over a predefined region of interest.
@@ -128,7 +130,7 @@ def test_calculate_transmission_single_bin(test_data_9a_part_1, reference_dir, w
 
     # Load the empty reference into a workspace
     reference_counts = np.array(data.emtpy_reference, dtype=float).reshape((10, 10, 1))
-    reference_workspace = unique_workspace_dundername()  # some temporary random name for the workspace
+    reference_workspace = temp_workspace_name()  # some temporary random name for the workspace
     workspace_with_instrument(
         axis_values=data.wavelength_range,
         intensities=reference_counts,
@@ -140,7 +142,7 @@ def test_calculate_transmission_single_bin(test_data_9a_part_1, reference_dir, w
 
     # Load the sample into a workspace
     sample_counts = np.array(data.sample, dtype=float).reshape((10, 10, 1))
-    sample_workspace = unique_workspace_dundername()  # some temporary random name for the workspace
+    sample_workspace = temp_workspace_name()  # some temporary random name for the workspace
     workspace_with_instrument(
         axis_values=data.wavelength_range,
         intensities=sample_counts,
@@ -233,7 +235,7 @@ def test_data_9a_part_2():
     )
 
 
-def test_fit_transmission_and_calc(test_data_9a_part_2):
+def test_fit_transmission_and_calc(test_data_9a_part_2, temp_workspace_name):
     r"""
     This test fits a raw transmission at zero scattering angle, wavelength dependent, with a linear model.
 
@@ -251,7 +253,7 @@ def test_fit_transmission_and_calc(test_data_9a_part_2):
     data = test_data_9a_part_2  # let's cut-down on the verbosity
 
     # Load the raw transmissions at zero scattering angle into a workspace.
-    raw_transmission_workspace = unique_workspace_dundername()  # some temporary random name for the workspace
+    raw_transmission_workspace = temp_workspace_name()  # some temporary random name for the workspace
     CreateWorkspace(
         DataX=data.wavelength_bin_boundaries,
         UnitX="Wavelength",
@@ -268,7 +270,7 @@ def test_fit_transmission_and_calc(test_data_9a_part_2):
     sample_logs.insert("wavelength_lead_max", data.wavelength_bin_boundaries[-1], unit="Angstrom")
 
     # use drtsans to fit the raw transmission values
-    fitted_transmission_workspace = unique_workspace_dundername()  # some temporary random name for the workspace
+    fitted_transmission_workspace = temp_workspace_name()  # some temporary random name for the workspace
     fit_results = fit_raw_transmission(raw_transmission_workspace, output_workspace=fitted_transmission_workspace)
 
     # Verify fitted transmission values
@@ -315,15 +317,15 @@ def transmission_fixture(datarepo_dir):
 
 
 @pytest.mark.datarepo
-def test_masked_beam_center(datarepo_dir, transmission_fixture):
+def test_masked_beam_center(datarepo_dir, transmission_fixture, temp_workspace_name):
     r"""
     (this test was written previously to the testset with the instrument team)
     Test for an exception raised when the beam centers are masked
     """
     mask = pjn(transmission_fixture.data_dir, "beam_center_masked.xml")
     with amend_config(data_dir=datarepo_dir.eqsans):
-        sample_workspace = prepare_data("EQSANS_88975", mask=mask, output_workspace=unique_workspace_dundername())
-        reference_workspace = prepare_data("EQSANS_88973", mask=mask, output_workspace=unique_workspace_dundername())
+        sample_workspace = prepare_data("EQSANS_88975", mask=mask, output_workspace=temp_workspace_name())
+        reference_workspace = prepare_data("EQSANS_88973", mask=mask, output_workspace=temp_workspace_name())
     with pytest.raises(RuntimeError, match=r"Transmission at zero-angle is NaN"):
         calculate_transmission(sample_workspace, reference_workspace)
     [workspace.delete() for workspace in (sample_workspace, reference_workspace)]
@@ -363,7 +365,7 @@ def test_calculate_fitted_transmission(transmission_fixture):
 
 
 @pytest.mark.datarepo
-def test_apply_transmission(transmission_fixture):
+def test_apply_transmission(transmission_fixture, temp_workspace_name):
     r"""
     (this test was written previously to the testset with the instrument team)
     """
@@ -371,7 +373,7 @@ def test_apply_transmission(transmission_fixture):
     corr = apply_transmission_correction(
         transmission_fixture.sample,
         trans,
-        output_workspace=unique_workspace_dundername(),
+        output_workspace=temp_workspace_name(),
     )
     corr = SumSpectra(corr, OutputWorkspace=corr.name())
     transmission_fixture.compare(corr, "sample_corrected.nxs")
@@ -380,7 +382,7 @@ def test_apply_transmission(transmission_fixture):
     corr = apply_transmission_correction(
         transmission_fixture.sample_skip,
         trans,
-        output_workspace=unique_workspace_dundername(),
+        output_workspace=temp_workspace_name(),
     )
     corr = SumSpectra(corr, OutputWorkspace=corr.name())
     transmission_fixture.compare(corr, "sample_corrected_skip.nxs")

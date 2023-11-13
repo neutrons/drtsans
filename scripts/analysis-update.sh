@@ -16,7 +16,7 @@ esac
 set +u
 export PATH=/SNS/software/miniconda2/bin:$PATH
 source activate ${CONDA_ENV}
-conda install -q -y -c mantid/label/nightly mantid-framework
+conda install -q -y -c mantid/label/main mantid-framework
 pip install /opt/sans-backend
 
 # PyONCat install

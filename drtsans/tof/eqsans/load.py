@@ -32,7 +32,7 @@ __all__ = [
     "load_events_monitor",
     "sum_data",
     "load_events_and_histogram",
-    "load_and_split",
+    "load_and_split_and_histogram",
     "prepare_monitors",
 ]
 
@@ -415,16 +415,6 @@ def load_and_split(
     output_suffix="",
     overwrite_instrument=True,
     pixel_calibration=False,
-    bin_width=0.1,
-    low_tof_clip=500,
-    high_tof_clip=2000,
-    center_x=None,
-    center_y=None,
-    centering_method="center_of_mass",
-    centering_options={},
-    mask=None,
-    monitors=False,
-    keep_events=True,
     time_interval: Union[float, List[float]] = None,
     time_offset: float = 0.0,
     time_period: float = None,
@@ -485,9 +475,6 @@ def load_and_split(
         **kwargs,
     )
 
-    # Init
-    bands = None
-
     for _w in ws_group:
         # Correct TOF offset
         correct_tof_offset(_w)
@@ -495,6 +482,90 @@ def load_and_split(
         correct_detector_frame(_w, path_to_pixel=path_to_pixel)
         # Correct TOF for emission time
         correct_emission_time(_w)
+
+    return ws_group
+
+
+def load_and_split_and_histogram(
+    run,
+    detector_offset=0.0,
+    sample_offset=0.0,
+    path_to_pixel=True,
+    data_dir=None,
+    output_workspace=None,
+    output_suffix="",
+    overwrite_instrument=True,
+    pixel_calibration=False,
+    bin_width=0.1,
+    low_tof_clip=500,
+    high_tof_clip=2000,
+    center_x=None,
+    center_y=None,
+    centering_method="center_of_mass",
+    centering_options={},
+    mask=None,
+    monitors=False,
+    keep_events=True,
+    time_interval: Union[float, List[float]] = None,
+    time_offset: float = 0.0,
+    time_period: float = None,
+    log_name=None,
+    log_value_interval=None,
+    reuse_workspace=False,
+    **kwargs,
+):
+    r"""Load an event NeXus file and filter into a WorkspaceGroup depending
+    on the provided filter options. Either a time_interval must be
+    provided or a log_name and log_value_interval.
+
+    Parameters
+    ----------
+    run: str, ~mantid.api.IEventWorkspace
+        Examples: ``CG3_55555``, ``CG355555`` or file path.
+    pixel_calibration: bool
+        Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
+    centering_method: str
+        Method to calculate the beam center. Available methods are:
+        - 'center_of_mass', invokes :ref:`FindCenterOfMassPosition <algm-FindCenterOfMassPosition-v1>`
+        - 'gaussian', 2D Gaussian fit to beam center data
+    centering_options: dict
+        Arguments to be passed on to the centering method.
+    time_interval
+        Array for lengths of time intervals for splitters.  If the array has one value,
+        then all splitters will have same time intervals. If the size of the array is larger
+        than one, then the splitters can have various time interval values.
+    time_offset
+        Offset to be added to the start time of the first splitter, in seconds.
+    time_period
+        A multiple integer of the time interval. If specified, it indicates that the time
+        slicing is periodic so that events in time intervals separated by one (or more) period
+        should be reduced together.
+
+    Returns
+    -------
+    ~tuple
+        (WorkspaceGroup, Bands): Reference to the workspace groups containing all the split workspaces
+    """
+    ws_group = load_and_split(
+        run,
+        detector_offset=detector_offset,
+        sample_offset=sample_offset,
+        path_to_pixel=path_to_pixel,
+        data_dir=data_dir,
+        output_workspace=output_workspace,
+        output_suffix=output_suffix,
+        overwrite_instrument=overwrite_instrument,
+        pixel_calibration=pixel_calibration,
+        time_interval=time_interval,
+        time_offset=time_offset,
+        time_period=time_period,
+        log_name=log_name,
+        log_value_interval=log_value_interval,
+        reuse_workspace=reuse_workspace,
+        **kwargs,
+    )
+    bands = None
+    for _w in ws_group:
         if center_x is None or center_y is None:
             center_x, center_y, _ = find_beam_center(
                 _w,
@@ -503,7 +574,6 @@ def load_and_split(
                 centering_options=centering_options,
             )
         center_detector(_w, center_x=center_x, center_y=center_y)  # operates in-place
-
         ws_i, c_bands = transform_to_wavelength(
             _w,
             bin_width=bin_width,
@@ -512,7 +582,6 @@ def load_and_split(
             keep_events=keep_events,
         )
         set_init_uncertainties(_w)
-
         if bands is None:
             bands = c_bands
 

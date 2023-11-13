@@ -37,7 +37,7 @@ from drtsans.path import abspath, abspaths, registered_workspace  # noqa E402
 from drtsans.tof.eqsans.load import (
     load_events,
     load_events_and_histogram,
-    load_and_split,
+    load_and_split_and_histogram,
 )  # noqa E402
 from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
 from drtsans.tof.eqsans.cfg import load_config  # noqa E402
@@ -211,7 +211,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
                     reduction_config["logSliceInterval"],
                 )
             filenames.add(filename)
-            load_and_split(
+            load_and_split_and_histogram(
                 filename,
                 output_workspace=ws_name,
                 time_interval=timesliceinterval,

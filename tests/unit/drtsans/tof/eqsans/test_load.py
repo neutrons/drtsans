@@ -6,10 +6,10 @@ from mantid.simpleapi import Rebin, SumSpectra, mtd
 from drtsans.settings import amend_config
 from drtsans.tof.eqsans.load import (
     load_events,
-    load_events_monitor,
-    sum_data,
-    load_and_split,
     load_events_and_histogram,
+    load_events_monitor,
+    load_and_split_and_histogram,
+    sum_data,
 )
 from drtsans.load import load_and_split as generic_load_and_split
 from drtsans.tof.eqsans.correct_frame import (
@@ -205,9 +205,9 @@ def test_generic_load_and_split(datarepo_dir, clean_workspace):
 
 
 @pytest.mark.datarepo
-def test_load_and_split(datarepo_dir, clean_workspace):
+def test_load_and_split_and_histogram(datarepo_dir, clean_workspace):
     # split by the SampleTemp log
-    filtered_ws, bands = load_and_split(
+    filtered_ws, bands = load_and_split_and_histogram(
         "EQSANS_104088.nxs.h5",
         data_dir=datarepo_dir.eqsans,
         log_name="SampleTemp",

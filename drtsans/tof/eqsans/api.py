@@ -189,7 +189,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     # ----- END OF SETUP of load_params -----
 
     # check for time/log slicing
-    timeslice, logslice = resolve_slicing(reduction_config)
+    timeslice, logslice = resolve_slicing(reduction_input)
 
     # Load (and optionally slice) sample runs
     # special loading case for sample to allow the slicing options

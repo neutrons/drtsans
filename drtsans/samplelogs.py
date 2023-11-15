@@ -90,9 +90,9 @@ def periodic_index_log(
     duration: float,
     run_start: Union[str, DateAndTime],
     offset: float = 0.0,
-    step: int = 1,
+    step: float = 1.0,
     name: str = "periodic_index",
-) -> Int64TimeSeriesProperty:
+) -> FloatTimeSeriesProperty:
     r"""
     Generate a periodic log whose values are integers ranging from 0 to ``period / interval``.
 
@@ -131,7 +131,7 @@ def periodic_index_log(
         raise ValueError(f"period {period} must be a multiple of interval {interval}")
 
     times = np.arange(offset, duration, interval)  # times at which we insert a new log entry
-    values_in_period = step * np.arange(0, int(period / interval), dtype=int)  # 0, 1,.., period/interval
+    values_in_period = step * np.arange(0, int(period / interval))  # 0, 1,.., period/interval
     period_count = 1 + int((duration - offset) / period)  # additional period if "/" truncates times
     entries = np.tile(values_in_period, period_count)[: len(times)].tolist()  # cast to python's int type
 

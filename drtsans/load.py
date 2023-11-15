@@ -8,6 +8,7 @@ import mantid
 from mantid.dataobjects import Workspace2D, EventWorkspace
 from mantid.simpleapi import mtd
 from mantid.simpleapi import (
+    DeleteWorkspace,
     LoadEventNexus,
     MergeRuns,
     GenerateEventsFilter,
@@ -92,13 +93,17 @@ def _insert_periodic_timeslice_log(
     time_offset
     """
     sample_logs = SampleLogs(input_workspace)
+    try:
+        run_start = sample_logs.run_start.value
+    except AttributeError:
+        run_start = sample_logs.start_time.value
     log = periodic_index_log(
-        time_period,
-        time_interval,
-        sample_logs.duration.value,
-        sample_logs.run_start.value,
+        period=time_period,
+        interval=time_interval,
+        duration=sample_logs.duration.value,
+        run_start=run_start,
         offset=time_offset,
-        step=1,
+        step=1.0,
         name=name,
     )
     sample_logs.insert(name=name, value=log)
@@ -404,11 +409,10 @@ def load_and_split(
     if not (time_interval or (log_name and log_value_interval)):
         raise ValueError("Must provide with time_interval or log_name and log_value_interval")
 
-    # Check whether need to load or not
+    # Check whether we need to load or not
     run = str(run)
     if registered_workspace(run):
-        # Input is a workspace or name of a workspace in ADS
-        ws = mtd[run]
+        all_events_workspace = run  # run is a workspace, or the name of a workspace in the AnalysisDataService
         monitors = monitors or is_mono
         assert instrument_unique_name is not None, "Instrument name must be given!"
     else:
@@ -421,10 +425,11 @@ def load_and_split(
         # monitors are required for gpsans and biosans
         monitors = monitors or is_mono
 
-        ws = load_events(
+        all_events_workspace = "_load_tmp"  # temporary workspace
+        load_events(
             run=run,
             data_dir=data_dir,
-            output_workspace="_load_tmp",
+            output_workspace=all_events_workspace,
             overwrite_instrument=overwrite_instrument,
             pixel_calibration=pixel_calibration,
             output_suffix=output_suffix,
@@ -443,9 +448,10 @@ def load_and_split(
     # the periodicity of the time intervals. This is so because Mantid algorithm GenerateEventsFilter
     # does not support periodic time slicing, but it does support the slicing of a periodic log.
     if isinstance(time_interval, float) and time_period:
+        log_name = "periodic_time_slicing"
         _insert_periodic_timeslice_log(
-            ws,
-            name="periodic_time_slicing",
+            all_events_workspace,
+            name=log_name,
             time_interval=time_interval,
             time_period=time_period,
             time_offset=time_offset,
@@ -454,7 +460,7 @@ def load_and_split(
 
     # Create event filter workspace
     GenerateEventsFilter(
-        InputWorkspace=str(ws),
+        InputWorkspace=all_events_workspace,
         OutputWorkspace="_filter",
         InformationWorkspace="_info",
         TimeInterval=time_interval,
@@ -464,7 +470,7 @@ def load_and_split(
 
     # Filter data
     FilterEvents(
-        InputWorkspace=str(ws),
+        InputWorkspace=all_events_workspace,
         SplitterWorkspace="_filter",
         OutputWorkspaceBaseName=output_workspace,
         InformationWorkspace="_info",
@@ -484,7 +490,7 @@ def load_and_split(
     if monitors:
         # Filter monitors
         FilterEvents(
-            InputWorkspace=str(ws) + "_monitors",
+            InputWorkspace=all_events_workspace + "_monitors",
             SplitterWorkspace="_filter",
             OutputWorkspaceBaseName=output_workspace + "_monitors",
             InformationWorkspace="_info",
@@ -532,9 +538,14 @@ def load_and_split(
             samplelogs.insert("slice_start", float(slice_start), samplelogs[log_name].units)
             samplelogs.insert("slice_end", float(slice_end), samplelogs[log_name].units)
 
+    # Clean up
+    for name in [all_events_workspace, "_filter", "_info"]:
+        DeleteWorkspace(name)
+
     if is_mono or not monitors:
         return mtd[output_workspace]
     else:  # If EQSANS and the filtered monitors are also being returned
+        DeleteWorkspace(all_events_workspace + "_monitors")
         return mtd[output_workspace], mtd[output_workspace + "_monitors"]
 
 
@@ -583,14 +594,14 @@ def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monito
     return mtd[output_workspace]
 
 
-def resolve_slicing(reduction_configuration: dict) -> Tuple[bool, bool]:
+def resolve_slicing(reduction_input: dict) -> Tuple[bool, bool]:
     r"""
     Resolve if the reduction configuration parameters specify time or log slicing
 
 
     Parameters
     ----------
-    reduction_configuration
+    reduction_input
         Dictionary of reduction configuration parameters
 
     Returns
@@ -603,11 +614,12 @@ def resolve_slicing(reduction_configuration: dict) -> Tuple[bool, bool]:
         - If the sample input data is composed of more than one run
         - If both time and log slicing are ``True``
     """
-    timeslice, logslice = reduction_configuration["useTimeSlice"], reduction_configuration["useLogSlice"]
+    parameters = reduction_input["configuration"]
+    timeslice, logslice = parameters["useTimeSlice"], parameters["useLogSlice"]
     if timeslice and logslice:
         raise ValueError("Can't do both time and log slicing")
     if timeslice or logslice:
-        sample = reduction_configuration["sample"]["runNumber"]
+        sample = reduction_input["sample"]["runNumber"]
         if len(sample.split(",")) > 1:
             raise ValueError("Can't do slicing on summed data sets")
     return timeslice, logslice

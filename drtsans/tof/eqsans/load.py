@@ -504,7 +504,6 @@ def load_and_split_and_histogram(
     centering_method="center_of_mass",
     centering_options={},
     mask=None,
-    monitors=False,
     keep_events=True,
     time_interval: Union[float, List[float]] = None,
     time_offset: float = 0.0,

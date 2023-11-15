@@ -5,7 +5,7 @@ import pytest
 import tempfile
 
 # third party imports
-from mantid.kernel import Int64TimeSeriesProperty
+from mantid.kernel import FloatTimeSeriesProperty
 from mantid.simpleapi import CreateWorkspace
 
 # package imports
@@ -50,7 +50,7 @@ def test_periodic_timeslice_log(temp_workspace_name):
     sample_logs = SampleLogs(workspace)
     assert "periodic_log" in sample_logs
     log = sample_logs["periodic_log"]
-    assert isinstance(log, Int64TimeSeriesProperty)
+    assert isinstance(log, FloatTimeSeriesProperty)
     assert log.size() == (3600.0 - 42) / 1.5
     assert log.firstTime().toISO8601String() == "2000-01-01T00:00:42"
     assert "2000-01-01T00:59:58.5" in log.lastTime().toISO8601String()
@@ -61,15 +61,15 @@ def test_periodic_timeslice_log(temp_workspace_name):
 
 
 def test_resolve_slicing():
-    options = {"useTimeSlice": True, "useLogSlice": False, "sample": {"runNumber": "12345"}}
+    options = {"configuration": {"useTimeSlice": True, "useLogSlice": False}, "sample": {"runNumber": "12345"}}
     assert resolve_slicing(options) == (True, False)
 
     with pytest.raises(ValueError) as except_info:
-        options["useLogSlice"] = True
+        options["configuration"]["useLogSlice"] = True
         resolve_slicing(options)
     assert "Can't do both time and log slicing" in str(except_info.value)
 
-    options = {"useTimeSlice": True, "useLogSlice": False, "sample": {"runNumber": "1,2,3"}}
+    options = {"configuration": {"useTimeSlice": True, "useLogSlice": False}, "sample": {"runNumber": "1,2,3"}}
     with pytest.raises(ValueError) as except_info:
         resolve_slicing(options)
     assert "Can't do slicing on summed data sets" in str(except_info.value)

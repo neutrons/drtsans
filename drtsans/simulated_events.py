@@ -127,7 +127,7 @@ def insert_events(
         pulse_time = first_pulse
     else:
         pulse_time = DateAndTime(pulse_time)
-        assert pulse_time >= first_pulse
+        assert pulse_time > first_pulse or pulse_time == first_pulse
 
     for efficiency, component in zip(efficiencies, components):
         x, y, z = get_xyz(workspace, component)  # pixes coordinates, in meters

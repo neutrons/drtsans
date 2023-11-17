@@ -10,8 +10,8 @@ RUN apt-get update \
     && apt-get upgrade -y \
     # libgl1 and libtiff are needed by mantid
     && apt-get install -y libglu1 libtiff5 make \
-    # for mounting SNS data file (equivalent to previous yum install nfs-utils)
-    && apt-get install -y nfs-common nfs-kernel-server \
+    # for data repository as submodule
+    && apt-get install -y git-lfs \
     && apt-get autoremove -y \
     && apt-get clean -y
 

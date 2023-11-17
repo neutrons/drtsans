@@ -61,8 +61,8 @@
 
         "useTimeSlice":      {"$ref":  "common.json#/configuration/useTimeSlice", "default": false},
         "timeSliceInterval": {"$ref":  "common.json#/configuration/timeSliceInterval", "default": 300},
-        "timeSliceOffset":  {"$ref":  "common.json#/configuration/timeSliceOffset", "default": 0.0},
-        "timeSlicePeriod":  {"$ref":  "common.json#/configuration/timeSlicePeriod", "default": null},
+        "timeSliceOffset":   {"$ref":  "common.json#/configuration/timeSliceOffset", "default": 0.0},
+        "timeSlicePeriod":   {"$ref":  "common.json#/configuration/timeSlicePeriod", "default": null},
 
         "useLogSlice":      {"$ref":  "common.json#/configuration/useLogSlice", "default": false},
         "logSliceName":     {"$ref":  "common.json#/configuration/logSliceName"},

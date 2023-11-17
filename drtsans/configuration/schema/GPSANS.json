@@ -27,8 +27,10 @@
         "wavelength":       {"$ref":  "common.json#/configuration/wavelength"},
         "wavelengthSpread": {"$ref":  "common.json#/configuration/wavelengthSpread"},
 
-        "useTimeSlice":         {"$ref":  "common.json#/configuration/useTimeSlice", "default": false},
-        "timeSliceInterval": {"$ref":  "common.json#/configuration/timeSliceInterval"},
+        "useTimeSlice":      {"$ref":  "common.json#/configuration/useTimeSlice", "default": false},
+        "timeSliceInterval": {"$ref":  "common.json#/configuration/timeSliceInterval", "default": 300},
+        "timeSliceOffset":   {"$ref":  "common.json#/configuration/timeSliceOffset", "default": 0.0},
+        "timeSlicePeriod":   {"$ref":  "common.json#/configuration/timeSlicePeriod", "default": null},
 
         "useLogSlice":         {"$ref":  "common.json#/configuration/useLogSlice", "default": false},
         "logSliceName":     {"$ref":  "common.json#/configuration/logSliceName"},
@@ -102,10 +104,10 @@
         "subpixelsX":        {"$ref":  "common.json#/configuration/subpixelsX", "default": 5},
         "subpixelsY":        {"$ref":  "common.json#/configuration/subpixelsY", "default": 5}
       },
-      "maxProperties": 58,
+      "maxProperties": 60,
       "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "timeSliceInterval",
-        "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset",
-        "useDetectorOffset", "detectorOffset", "sampleDetectorDistance",
+        "timeSliceOffset", "timeSlicePeriod", "useLogSlice", "logSliceName", "logSliceInterval",
+        "sampleOffset", "useDetectorOffset", "detectorOffset", "sampleDetectorDistance",
         "sampleToSi", "sampleApertureSize", "sourceApertureDiameter",
         "usePixelCalibration", "maskFileName", "useDefaultMask", "defaultMask",
         "useMaskBackTubes", "darkFileName", "normalization", "normalizationResortToTime",

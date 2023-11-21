@@ -199,28 +199,26 @@ def load_all_files(reduction_input, prefix="", load_params=None):
         if not registered_workspace(ws_name):
             filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts)
             print(f"Loading filename {filename}")
-            if timeslice:
-                timesliceinterval = reduction_config["timeSliceInterval"]
-                timesliceoffset = reduction_config["timeSliceOffset"]
-                timesliceperiod = reduction_config["timeSlicePeriod"]
-                logslicename = logsliceinterval = None
-            elif logslice:
-                timesliceinterval = None
-                logslicename, logsliceinterval = (
-                    reduction_config["logSliceName"],
-                    reduction_config["logSliceInterval"],
-                )
             filenames.add(filename)
-            load_and_split_and_histogram(
-                filename,
-                output_workspace=ws_name,
-                time_interval=timesliceinterval,
-                time_offset=timesliceoffset,
-                time_period=timesliceperiod,
-                log_name=logslicename,
-                log_value_interval=logsliceinterval,
-                **load_params,
-            )
+            if timeslice:
+                logslicename = None
+                load_and_split_and_histogram(
+                    filename,
+                    output_workspace=ws_name,
+                    time_interval=reduction_config["timeSliceInterval"],
+                    time_offset=reduction_config["timeSliceOffset"],
+                    time_period=reduction_config["timeSlicePeriod"],
+                    **load_params
+                )
+            elif logslice:
+                logslicename = reduction_config["logSliceName"]
+                load_and_split_and_histogram(
+                    filename,
+                    output_workspace=ws_name,
+                    log_name=logslicename,
+                    log_value_interval=reduction_config["logSliceInterval"],
+                    **load_params,
+                )
             for _w in mtd[ws_name]:
                 if default_mask:
                     apply_mask(_w, mask=default_mask)

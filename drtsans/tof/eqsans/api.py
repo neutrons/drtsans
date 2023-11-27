@@ -208,7 +208,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
                     time_interval=reduction_config["timeSliceInterval"],
                     time_offset=reduction_config["timeSliceOffset"],
                     time_period=reduction_config["timeSlicePeriod"],
-                    **load_params
+                    **load_params,
                 )
             elif logslice:
                 logslicename = reduction_config["logSliceName"]

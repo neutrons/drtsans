@@ -77,18 +77,15 @@ def test_abspath_with_ipts(hint, instr, ipts, fullpath):
         assert abspath(hint, instrument=instr, ipts=ipts) == fullpath
 
 
-@pytest.mark.mount_eqsans
-def test_abspath_with_directory(reference_dir, has_sns_mount):
-    if not has_sns_mount:
-        pytest.skip("Do not have /SNS properly mounted on this system")
-
-    filename = os.path.join(reference_dir.biosans, "CG3_5709.nxs.h5")
-    assert abspath("CG3_5709", directory=reference_dir.biosans, search_archive=False) == filename
+@pytest.mark.datarepo
+def test_abspath_with_directory(datarepo_dir):
+    filename = os.path.join(datarepo_dir.biosans, "CG3_5705.nxs.h5")
+    assert abspath("CG3_5705", directory=datarepo_dir.biosans, search_archive=False) == filename
     assert (
         abspath(
-            "5709",
+            "5705",
             instrument="CG3",
-            directory=reference_dir.biosans,
+            directory=datarepo_dir.biosans,
             search_archive=False,
         )
         == filename

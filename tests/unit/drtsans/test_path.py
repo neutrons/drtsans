@@ -108,16 +108,13 @@ def test_exists_with_archivesearch(hint, found, reference_dir, has_sns_mount):
         assert exists(hint) == found  # allows verifying against True and False
 
 
-@pytest.mark.mount_eqsans
+@pytest.mark.datarepo
 @pytest.mark.parametrize(
     "hint, found",
-    [("EQSANS_106026", True), ("EQSANS106028", False), ("EQSANS_88974.nxs.h5", True)],
+    [("EQSANS_105428", True), ("EQSANS105428", True), ("EQSANS_88975.nxs.h5", True)],
 )
-def test_exists_without_archivesearch(hint, found, reference_dir, has_sns_mount):
-    if not has_sns_mount:
-        pytest.skip("Do not have /SNS properly mounted on this system")
-
-    with amend_config(SEARCH_OFF, data_dir=reference_dir.eqsans):
+def test_exists_without_archivesearch(hint, found, datarepo_dir):
+    with amend_config(SEARCH_OFF, data_dir=datarepo_dir.eqsans):
         assert exists(hint) == found  # allows verifying against True and False
 
 

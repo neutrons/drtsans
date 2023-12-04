@@ -260,7 +260,6 @@ def create_ring_pattern(config: dict, metadata: dict):
     transmission_value = 0.75  # expected ratio between the transmission (with the sample) and the empty-transmission
     _insert_beam_spot(ws_transmission, int(max_allowed_count * transmission_value))
     _insert_flat_noise(ws_transmission)
-    _, intensities = _histogram_all_events(ws_transmission, units="Wavelength", binning="0.0,1.0,5.0")
     save_and_delete(ws_transmission, run_number=config["sample"]["transmission"]["runNumber"])
     # we're making the background transmission the same run number than the sample transmission, so no export again
 
@@ -849,7 +848,7 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
 
     Parameters
     ----------
-    ring_pattern
+    three_rings_pattern
         Fixture evaluating to a reduction configuration, containing all the necessary run numbers
         and reduction parameters
     temp_directory

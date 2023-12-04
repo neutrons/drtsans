@@ -1,3 +1,7 @@
+# standard imports
+import os
+
+# local imports
 from drtsans.dataobjects import IQazimuthal
 
 try:
@@ -8,13 +12,13 @@ from mantid.simpleapi import SaveCanSAS1D
 import numpy as np
 
 
-def save_ascii_binned_1D(filename, title, *args, **kwargs):
+def save_ascii_binned_1D(filename: str, title, *args, **kwargs):
     """Save I(q) data in Ascii format
 
     Parameters
     ----------
-    filename: str
-        output filename
+    filename
+        absolute path to output filename for the 1D I(Q) profile
     title: str
         title to be added on the first line
     args: drtsans.dataobjects.IQmod
@@ -40,6 +44,9 @@ def save_ascii_binned_1D(filename, title, *args, **kwargs):
         intensity = kwargs["intensity"]
         error = kwargs["error"]
         dq = kwargs["delta_mod_q"]
+
+    # create directory if non-existent
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
 
     with open(filename, "w+") as f:
         f.write("# " + title + "\n")
@@ -91,13 +98,13 @@ def save_xml_1D(wksp, title, filename):
     SaveCanSAS1D(InputWorkspace=wksp, Process=title, Filename=filename)
 
 
-def save_ascii_binned_2D(filename, title, *args, **kwargs):
+def save_ascii_binned_2D(filename: str, title, *args, **kwargs):
     r"""Save I(qx, qy) data in Ascii format
 
     Parameters
     ----------
-    filename: str
-        output filename
+    filename:
+        absolute path for output 2D profile file
     title: str
         title to be added on the first line
     args: ~drtsans.dataobjects.IQazimuthal
@@ -120,6 +127,9 @@ def save_ascii_binned_2D(filename, title, *args, **kwargs):
     if dqx is not None and dqy is not None:
         dqx = dqx.ravel()
         dqy = dqy.ravel()
+
+    # create directory if non-existent
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
 
     with open(filename, "w+") as f:
         f.write("# " + title + "\n")

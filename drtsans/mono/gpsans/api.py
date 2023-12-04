@@ -1,49 +1,49 @@
 """ GPSANS API """
+# standard imports
+from collections import namedtuple
 import copy
 from datetime import datetime
 import os
-from collections import namedtuple
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
-from mantid.simpleapi import mtd, MaskDetectors, logger, SaveNexusProcessed, MoveInstrumentComponent
+from typing import List, Union
 
-from drtsans import getWedgeSelection
-from drtsans.path import abspath, abspaths, registered_workspace
-from drtsans.instruments import extract_run_number, instrument_filesystem_name
-from drtsans.settings import namedtuplefy
-from drtsans.samplelogs import SampleLogs
-from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
-from drtsans.reductionlog import savereductionlog
-from drtsans.solid_angle import solid_angle_correction
-from drtsans.beam_finder import center_detector, find_beam_center, fbc_options_json
-from drtsans.mask_utils import apply_mask, load_mask
-from drtsans.mono.load import (
-    load_events,
-    transform_to_wavelength,
-    load_events_and_histogram,
-    load_and_split,
-    set_init_uncertainties,
-)
-from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
-from drtsans.mono.dark_current import subtract_dark_current
-from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
-from drtsans.mono.transmission import (
-    apply_transmission_correction,
-    calculate_transmission,
-)
-from drtsans.thickness_normalization import normalize_by_thickness
-from drtsans.mono.absolute_units import empty_beam_scaling
-from drtsans.mono.gpsans.attenuation import attenuation_factor
-from drtsans.mono.gpsans import convert_to_q
-from drtsans import subtract_background
-from drtsans.iq import bin_all
-from drtsans.save_ascii import save_ascii_binned_2D
+# third party imports
+from mantid.simpleapi import logger, mtd, MaskDetectors, MoveInstrumentComponent, SaveNexusProcessed
+from matplotlib.colors import LogNorm
+import matplotlib.pyplot as plt
+
+# local imports
+from drtsans import getWedgeSelection, subtract_background
+from drtsans.beam_finder import center_detector, fbc_options_json, find_beam_center
 from drtsans.dataobjects import save_iqmod
-from drtsans.mono.meta_data import set_meta_data, get_sample_detector_offset
-from drtsans.load import move_instrument
-from drtsans.path import allow_overwrite
-from drtsans.mono.meta_data import parse_json_meta_data
+from drtsans.instruments import extract_run_number, instrument_filesystem_name
+from drtsans.iq import bin_all
+from drtsans.load import move_instrument, resolve_slicing
+from drtsans.mask_utils import apply_mask, load_mask
 from drtsans.mono import meta_data
+from drtsans.mono.absolute_units import empty_beam_scaling
+from drtsans.mono.dark_current import subtract_dark_current
+from drtsans.mono.gpsans import convert_to_q
+from drtsans.mono.gpsans.attenuation import attenuation_factor
+from drtsans.mono.load import (
+    load_and_split,
+    load_events,
+    load_events_and_histogram,
+    set_init_uncertainties,
+    transform_to_wavelength,
+)
+from drtsans.mono.meta_data import get_sample_detector_offset, parse_json_meta_data, set_meta_data
+from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
+from drtsans.path import allow_overwrite
+from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
+from drtsans.path import abspath, abspaths, registered_workspace
+from drtsans.plots import plot_detector, plot_IQazimuthal, plot_IQmod
+from drtsans.reductionlog import savereductionlog
+from drtsans.samplelogs import SampleLogs
+from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
+from drtsans.settings import namedtuplefy
+from drtsans.solid_angle import solid_angle_correction
+from drtsans.thickness_normalization import normalize_by_thickness
+from drtsans.save_ascii import save_ascii_binned_2D
 
 # Functions exposed to the general user (public) API
 __all__ = [
@@ -66,7 +66,7 @@ def load_all_files(
     reduction_input,
     prefix="",
     load_params=None,
-    path=None,
+    path: Union[str, List[str]] = None,
     use_nexus_idf: bool = False,
     debug_output: bool = False,
     back_panel_correction: bool = False,
@@ -78,8 +78,8 @@ def load_all_files(
     reduction_input
     prefix
     load_params
-    path : str or None
-        Path to search the NeXus file
+    path
+        Absolute path to one or more directories where to search for the NeXus files
     use_nexus_idf: bool
         Flag to use IDF inside NeXus file.  True for SPICE data
     debug_output: bool
@@ -151,14 +151,7 @@ def load_all_files(
 
     if path is None:
         path = f"/HFIR/{instrument_filesystem_name(instrument_name)}/IPTS-{ipts}/nexus"
-    assert os.path.exists(path), "NeXus file path {} does not exist".format(path)
-
-    # check for time/log slicing
-    timeslice = reduction_config["useTimeSlice"]
-    logslice = reduction_config["useLogSlice"]
-    if timeslice or logslice:
-        if len(sample.split(",")) > 1:
-            raise ValueError("Can't do slicing on summed data sets")
+        assert os.path.exists(path), "NeXus file path {} does not exist".format(path)
 
     # sample thickness
     # thickness is written to sample log if it is defined...
@@ -224,6 +217,9 @@ def load_all_files(
         dark_current_run=False,
     )
 
+    # check for time/log slicing
+    timeslice, logslice = resolve_slicing(reduction_input)
+
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
     if timeslice or logslice:
@@ -234,15 +230,18 @@ def load_all_files(
             logger.notice(f"Loading filename {filename} to slice")
             if timeslice:
                 timesliceinterval = reduction_config["timeSliceInterval"]
+                timesliceperiod = reduction_config["timeSlicePeriod"]
                 logslicename = logsliceinterval = None
             elif logslice:
-                timesliceinterval = None
+                timesliceinterval, timesliceperiod = None, None
                 logslicename = reduction_config["logslicename"]
                 logsliceinterval = reduction_config["logsliceinterval"]
             load_and_split(
                 filename,
                 output_workspace=ws_name,
                 time_interval=timesliceinterval,
+                time_offset=reduction_config["timeSliceOffset"],
+                time_period=timesliceperiod,
                 log_name=logslicename,
                 log_value_interval=logsliceinterval,
                 sample_to_si_name=SAMPLE_SI_META_NAME,
@@ -366,9 +365,9 @@ def load_all_files(
             # load dark current file
             logger.notice(f"Loading dark current file {dark_current_file} to {ws_name}")
             # identify to use exact given path to NeXus or use OnCat instead
-            temp_name = os.path.join(path, "{}_{}.nxs.h5".format(instrument_name, run_number))
-            if os.path.exists(temp_name):
-                dark_current_file = temp_name
+            dark_current_path = abspath(str(run_number), instrument=instrument_name, directory=path)
+            if os.path.exists(dark_current_path):
+                dark_current_file = dark_current_path
             load_events_and_histogram(
                 dark_current_file,
                 output_workspace=ws_name,

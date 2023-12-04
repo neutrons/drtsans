@@ -328,6 +328,36 @@ def move_instrument(
     return mtd[workspace_name]
 
 
+def _monitor_split_and_log(monitor: str, monitor_group: str, sample_group: str, is_mono: bool, filter_events: dict):
+    r"""
+    Split the monitor workspace and insert the total count in each splitted workspace as log entry
+    'monitor' in the corresponding splited sample workspaces
+
+    Parameters
+    ----------
+    monitor
+        name of the input events monitor workspace
+    monitor_group
+        name of the output WorkspaceGroup containing the splited workspaces for the sample monitor
+    sample_group
+        name of the WorkspaceGroup containing the splited workspaces for the sample
+    is_mono
+        monochromatic or time-of-flight instrument?
+    filter_events
+        options to be passed on to Mantid algorithm `FilterEvents`
+    """
+    FilterEvents(
+        InputWorkspace=monitor,
+        OutputWorkspaceBaseName=monitor_group,
+        SpectrumWithoutDetector="Skip only if TOF correction",
+        **filter_events,
+    )
+    if is_mono:
+        splitted_workspaces_count = mtd[sample_group].getNumberOfEntries()
+        for n in range(splitted_workspaces_count):
+            SampleLogs(mtd[sample_group].getItem(n)).insert("monitor", mtd[monitor_group].getItem(n).getNumberEvents())
+
+
 def load_and_split(
     run,
     data_dir=None,
@@ -469,15 +499,14 @@ def load_and_split(
     )
 
     # Filter data
-    FilterEvents(
-        InputWorkspace=all_events_workspace,
+    filter_events_opts = dict(
         SplitterWorkspace="_filter",
-        OutputWorkspaceBaseName=output_workspace,
         InformationWorkspace="_info",
         FilterByPulseTime=True,
         GroupWorkspaces=True,
         OutputWorkspaceIndexedFrom1=True,
     )
+    FilterEvents(InputWorkspace=all_events_workspace, OutputWorkspaceBaseName=output_workspace, **filter_events_opts)
 
     # Remove empty workspaces from event filtering
     split_ws_list = [mtd[output_workspace].getItem(n) for n in range(mtd[output_workspace].getNumberOfEntries())]
@@ -487,28 +516,15 @@ def load_and_split(
             logger.notice(f"Remove empty sliced workspace {str(split_ws)}")
             mtd[output_workspace].remove(str(split_ws))
 
-    if monitors:
-        # Filter monitors
-        FilterEvents(
-            InputWorkspace=all_events_workspace + "_monitors",
-            SplitterWorkspace="_filter",
-            OutputWorkspaceBaseName=output_workspace + "_monitors",
-            InformationWorkspace="_info",
-            FilterByPulseTime=True,
-            GroupWorkspaces=True,
-            SpectrumWithoutDetector="Skip only if TOF correction",
-            OutputWorkspaceIndexedFrom1=True,
-        )
-
-    # Check is_mono
     assert is_mono is not None, "is_mono shall be either set or specified"
-    if is_mono:
-        # Set monitor log to be correct for each workspace
-        for n in range(mtd[output_workspace].getNumberOfEntries()):
-            SampleLogs(mtd[output_workspace].getItem(n)).insert(
-                "monitor",
-                mtd[output_workspace + "_monitors"].getItem(n).getNumberEvents(),
-            )
+    if monitors:
+        _monitor_split_and_log(
+            monitor=all_events_workspace + "_monitors",
+            monitor_group=output_workspace + "_monitors",
+            sample_group=output_workspace,
+            is_mono=is_mono,
+            filter_events=filter_events_opts,
+        )
 
     # Add metadata for each slice with details
     for n in range(mtd[output_workspace].getNumberOfEntries()):

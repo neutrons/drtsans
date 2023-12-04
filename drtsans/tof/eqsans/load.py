@@ -455,6 +455,7 @@ def load_and_split(
     ~tuple
         (WorkspaceGroup, Bands): Reference to the workspace groups containing all the split workspaces
     """
+
     # FIXME the issues with the monitor on EQSANS has not been fixed. Enable normalization by monitor (issue #538)
     kwargs["monitors"] = False
 

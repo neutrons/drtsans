@@ -44,7 +44,7 @@ def allow_overwrite(folder):
             pass  # ignore all permission errors
 
 
-def abspath(path, instrument="", ipts="", directory=None, search_archive=True):
+def abspath(path: str, instrument="", ipts="", directory=None, search_archive=True):
     r"""
     Returns an absolute path
 
@@ -58,6 +58,8 @@ def abspath(path, instrument="", ipts="", directory=None, search_archive=True):
 
     Parameters
     ----------
+    path
+        Either a run number, a file name (e.g. CG2_1235), or an absolute file path,
     directory: str, list
         One or more directory paths where to look for the data file
     """

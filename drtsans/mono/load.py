@@ -1,17 +1,19 @@
+# standard imports
 import os
+from typing import List, Union
 
-# https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
-from mantid.simpleapi import LoadHFIRSANS, HFIRSANS2Wavelength, mtd, SaveNexusProcessed
+# third-party imports
 from mantid.kernel import logger
+from mantid.simpleapi import LoadHFIRSANS, HFIRSANS2Wavelength, mtd, SaveNexusProcessed
 
 # the generic version is feature complete for monochromatic data
-from drtsans.load import load_events, sum_data
-from drtsans.load import load_and_split as drt_load_and_split
-from drtsans.process_uncertainties import set_init_uncertainties
-from drtsans.instruments import extract_run_number, instrument_enum_name
-from drtsans.mono.meta_data import get_sample_detector_offset
-from drtsans.load import move_instrument
+# local imports
 from drtsans.geometry import sample_detector_distance
+from drtsans.instruments import extract_run_number, instrument_enum_name
+from drtsans.load import load_events, move_instrument, sum_data
+from drtsans.load import load_and_split as generic_load_and_split
+from drtsans.mono.meta_data import get_sample_detector_offset
+from drtsans.process_uncertainties import set_init_uncertainties
 from drtsans.samplelogs import SampleLogs
 
 
@@ -402,7 +404,9 @@ def load_and_split(
     output_suffix="",
     overwrite_instrument=True,
     pixel_calibration=False,
-    time_interval=None,
+    time_interval: Union[float, List[float]] = None,
+    time_offset: float = 0.0,
+    time_period: float = None,
     log_name=None,
     log_value_interval=None,
     sample_to_si_value=None,
@@ -442,10 +446,16 @@ def load_and_split(
         desired IDF.
     pixel_calibration: bool
         Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
-    time_interval: float or list of floats
+    time_interval
         Array for lengths of time intervals for splitters.  If the array has one value,
         then all splitters will have same time intervals. If the size of the array is larger
         than one, then the splitters can have various time interval values.
+    time_offset
+        Offset to be added to the start time of the first splitter, in seconds.
+    time_period
+        A multiple integer of the time interval. If specified, it indicates that the time
+        slicing is periodic so that events in time intervals separated by one (or more) period
+        should be reduced together.
     sample_to_si_value: float or None
         Sample to silicon window distance to overwrite the EPICS value.  None for no operation.  unit = meter
     sample_detector_distance_value: float or None
@@ -499,7 +509,7 @@ def load_and_split(
         output_workspace = "{}_{}{}".format(instrument_name, run_number, output_suffix)
 
     # Split the workspace
-    split_ws_group = drt_load_and_split(
+    split_ws_group = generic_load_and_split(
         run=ws,
         data_dir=data_dir,
         output_workspace=output_workspace,
@@ -508,6 +518,8 @@ def load_and_split(
         detector_offset=0.0,
         sample_offset=0.0,
         time_interval=time_interval,
+        time_offset=time_offset,
+        time_period=time_period,
         log_name=log_name,
         log_value_interval=log_value_interval,
         reuse_workspace=reuse_workspace,

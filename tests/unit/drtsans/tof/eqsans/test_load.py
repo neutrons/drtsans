@@ -208,7 +208,7 @@ def test_generic_load_and_split(datarepo_dir, clean_workspace):
 def test_load_and_split_and_histogram(datarepo_dir, clean_workspace):
     # split by the SampleTemp log
     filtered_ws, bands = load_and_split_and_histogram(
-        "EQSANS_104088.nxs.h5",
+        run="EQSANS_104088.nxs.h5",
         data_dir=datarepo_dir.eqsans,
         log_name="SampleTemp",
         log_value_interval=0.1,

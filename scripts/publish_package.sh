@@ -1,6 +1,7 @@
 # Build conda library
 set -ex
-echo "GITHUB REF ${CI_COMMIT_REF_SLUG}"
+echo "GITHUB REF = ${CI_COMMIT_REF_SLUG}"
+echo "CI_COMMIT_TAG = ${CI_COMMIT_TAG}"
 
 # activate conda environment
 source activate drtsans-dev
@@ -19,7 +20,7 @@ cd /tmp/sans-backend/conda.recipe
 # setup and build the conda package
 #conda render .
 echo "Building conda package"
-VERSION=$(python -m versioningit ../) conda mambabuild --output-folder . . -c mantid/label/main -c conda-forge || exit 1
+VERSION=$(python -m versioningit ../) conda mambabuild --output-folder ./ -c mantid/label/main -c conda-forge ./ || exit 1
 
 # show what tarballs were created
 ls */*.tar.bz2
@@ -31,16 +32,16 @@ conda-verify ./noarch/drtsans-*.tar.bz2
 # Deploy tags to anaconda.org
 if [ -n "${CI_COMMIT_TAG}" ]; then
     if [ -z "${ANACONDA_TOKEN}" ]; then
-	echo "ANACONDA_TOKEN is not set"
-	exit -1
+	    echo "ANACONDA_TOKEN is not set"
+	    exit -1
     fi
     # determine the label for anaconda
     if echo "${CI_COMMIT_TAG}" | grep -q "v.\+rc.\+" ; then
-	CONDA_LABEL="rc"
+	    CONDA_LABEL="rc"
     elif echo "${CI_COMMIT_TAG}" | grep -q "v.\+" ; then
-	CONDA_LABEL="main"
+	    CONDA_LABEL="main"
     else
-	CONDA_LABEL="dev"
+	    CONDA_LABEL="dev"
     fi
     # push the package
     echo pushing $CI_COMMIT_REF_SLUG with label $CONDA_LABEL

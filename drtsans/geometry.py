@@ -927,6 +927,9 @@ def spectrum_info_ranges(
         "EQSANS": {
             "detector1": (0, 49152),  # 49152 is 1 + last_pixel_index
         },
+        "GPSANS": {
+            "detector1": (0, 49152),  # 49152 is 1 + last_pixel_index
+        },
     }
     instrument = instrument_standard_name(input_workspace)
     return ranges[instrument][component]
@@ -1017,6 +1020,7 @@ def get_xy(input_workspace: Union[str, MantidWorkspace], component: str) -> Tupl
 _instrument_solid_angles_cache = {
     "BIOSANS": {"midrange_detector": None, "wing_detector": None, "detector1": None},
     "EQSANS": {"detector1": None},
+    "GPSANS": {"detector1": None},
 }
 
 

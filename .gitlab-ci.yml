@@ -86,7 +86,8 @@ docs-feature:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "source activate drtsans-dev&& cp -R /opt/sans-backend /tmp/ && cd /tmp/sans-backend/docs&& make html"
+    # use bash -i to run .bashrc and activate the conda environment
+    - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -i -c "cp -R /opt/sans-backend /tmp/ && cd /tmp/sans-backend/docs&& make html"
     - ls .
     - popd
   after_script:
@@ -114,8 +115,9 @@ code-unit-test:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - COMMAND="git -C /opt/sans-backend/tests/data/drtsans-data/ lfs pull && bash /opt/sans-backend/test_job.sh -m 'not mount_eqsans' -s unit"
-    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "$COMMAND"
+    - COMMAND="cd /opt/sans-backend/tests/data/drtsans-data/ && git lfs install && git lfs pull && cd /opt/sans-backend && bash /opt/sans-backend/test_job.sh -m 'not mount_eqsans' -s unit"
+    # use bash -i to run .bashrc and activate the conda environment
+    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -i -c "$COMMAND"
     - popd
   after_script:
     - cp -r /tmp/sans-backend/unit_test_results.xml unit_test_results.xml
@@ -144,8 +146,9 @@ code-integration-test:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - COMMAND="git -C /opt/sans-backend/tests/data/drtsans-data/ lfs pull && bash /opt/sans-backend/test_job.sh -m 'not mount_eqsans' -s integration"
-    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "$COMMAND"
+    - COMMAND="cd /opt/sans-backend/tests/data/drtsans-data/ && git lfs install && git lfs pull && cd /opt/sans-backend && bash /opt/sans-backend/test_job.sh -m 'not mount_eqsans' -s integration"
+    # use bash -i to run .bashrc and activate the conda environment
+    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -i -c "$COMMAND"
     - popd
   after_script:
     - cp -r /tmp/sans-backend/integration_test_results.xml integration_test_results.xml

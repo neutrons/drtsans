@@ -5,11 +5,8 @@ import stat
 from mantid.simpleapi import CreateWorkspace
 from drtsans.path import abspath, exists, registered_workspace, allow_overwrite
 from drtsans.settings import amend_config
-from os.path import exists as os_exists
 from tempfile import gettempdir, NamedTemporaryFile
-
-# arbitrarily selected IPTS to see if the mount is in place
-HAVE_EQSANS_MOUNT = os_exists("/SNS/EQSANS/IPTS-23732/nexus/EQSANS_106055.nxs.h5")
+from unittest.mock import patch
 
 SEARCH_ON = {}
 SEARCH_OFF = {"datasearch.searcharchive": "off"}
@@ -29,9 +26,15 @@ IPTS_22699 = "/HFIR/CG3/IPTS-22699/nexus/"
     ],
     ids=("EQSANS_106026", "EQSANS_106026", "EQSANS_88974"),
 )
-def test_abspath_with_archivesearch(hint, fullpath, reference_dir):
-    # set the data directory in the result using the test fixture
-    pytest.skip(f"Search {hint} inside archive is skipped as build server cannot query through ONCAT.")
+def test_abspath_with_archivesearch(hint, fullpath, has_sns_mount):
+    """Test files that require archive search in ONCat
+
+    Note: ONCat returns the path on the analysis cluster, and Mantid's FileFinder checks that the path exists before
+    returning it. This test therefore requires the SNS mount.
+    """
+    if not has_sns_mount:
+        pytest.skip("Do not have /SNS properly mounted on this system")
+
     assert abspath(hint, search_archive=True) == fullpath
 
 
@@ -42,6 +45,7 @@ def test_abspath_with_archivesearch(hint, fullpath, reference_dir):
     ids=("randomname", "EQSANS_906026", "EQSANS_906026"),
 )
 def test_abspath_without_archivesearch(hint, has_sns_mount):
+    """Test files that require archive search in ONCat"""
     if not has_sns_mount:
         pytest.skip("Do not have /SNS properly mounted on this system")
 
@@ -50,7 +54,6 @@ def test_abspath_without_archivesearch(hint, has_sns_mount):
         assert False, 'found "{}" at "{}"'.format(hint, found)
 
 
-@pytest.mark.mount_eqsans
 @pytest.mark.parametrize(
     "hint, instr, ipts, fullpath",
     [
@@ -69,11 +72,18 @@ def test_abspath_without_archivesearch(hint, has_sns_mount):
     ),
 )
 def test_abspath_with_ipts(hint, instr, ipts, fullpath):
-    if not os.path.exists(fullpath):
-        pytest.skip("{} does not exist".format(fullpath))
+    """Test constructing the path from file hint, instrument and IPTS"""
 
-    # do not turn on archive search
-    with amend_config(data_dir=[], data_dir_insert_mode="replace"):
+    def is_fullpath(path):
+        return path == fullpath
+
+    with (
+        amend_config(data_dir=[], data_dir_insert_mode="replace"),
+        patch("os.path.exists") as mock_path_exists,
+        patch("drtsans.path.FileFinder") as mock_file_finder,
+    ):
+        mock_path_exists.side_effect = is_fullpath
+        mock_file_finder.getFullPath.return_value = fullpath
         assert abspath(hint, instrument=instr, ipts=ipts) == fullpath
 
 

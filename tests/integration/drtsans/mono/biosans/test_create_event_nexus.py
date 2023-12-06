@@ -20,31 +20,28 @@ from drtsans.mono.biosans.cg3_spice_to_nexus import generate_event_nexus
 # from matplotlib import pyplot as plt
 
 
-@pytest.mark.mount_eqsans
-def test_duplicate_event_nexus(has_sns_mount, reference_dir, temp_directory, clean_workspace):
+@pytest.mark.datarepo
+def test_duplicate_event_nexus(has_sns_mount, datarepo_dir, temp_directory, clean_workspace):
     """Test duplicating an HDF5/NeXus in 2 different approaches in order to verify EventNexusWriter
 
     Verification is to load both of the generated Event NeXus to do a comparison
 
-    Test data: BIOSANS run 5709
+    Test data: BIOSANS run 5705
 
     Returns
     -------
 
     """
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
-
     # Get the source file
-    source_nexus_file = "CG3_5709.nxs.h5"
-    source_nexus_file = os.path.join(reference_dir.biosans, source_nexus_file)
+    source_nexus_file = "CG3_5705.nxs.h5"
+    source_nexus_file = os.path.join(datarepo_dir.biosans, source_nexus_file)
     assert os.path.exists(source_nexus_file), f"Test data {source_nexus_file} does not exist"
 
     # Duplicate the source file to the temporary directory
     output_dir = temp_directory(prefix="dupcg3nexus")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    product_dup_nexus = os.path.join(output_dir, "CG3_5709_product.nxs.h5")
+    product_dup_nexus = os.path.join(output_dir, "CG3_5705_product.nxs.h5")
 
     # Duplicate with both approach
     logs_white_list = [

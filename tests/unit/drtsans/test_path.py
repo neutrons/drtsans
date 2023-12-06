@@ -38,17 +38,12 @@ def test_abspath_with_archivesearch(hint, fullpath, has_sns_mount):
     assert abspath(hint, search_archive=True) == fullpath
 
 
-@pytest.mark.mount_eqsans
 @pytest.mark.parametrize(
     "hint",
-    ["randomname", "EQSANS_906026", "EQSANS_906026"],
-    ids=("randomname", "EQSANS_906026", "EQSANS_906026"),
+    ["randomname", "EQSANS_906026"],
+    ids=("randomname", "EQSANS_906026"),
 )
-def test_abspath_without_archivesearch(hint, has_sns_mount):
-    """Test files that require archive search in ONCat"""
-    if not has_sns_mount:
-        pytest.skip("Do not have /SNS properly mounted on this system")
-
+def test_abspath_file_not_exist(hint):
     with pytest.raises(RuntimeError):
         found = abspath(hint, search_archive=False)
         assert False, 'found "{}" at "{}"'.format(hint, found)
@@ -108,6 +103,11 @@ def test_abspath_with_directory(datarepo_dir):
     [("EQSANS_106026", True), ("EQSANS106027", True), ("EQSANS_88974.nxs.h5", True)],
 )
 def test_exists_with_archivesearch(hint, found, reference_dir, has_sns_mount):
+    """Test files that require archive search in ONCat
+
+    Note: ONCat returns the path on the analysis cluster, and Mantid's FileFinder checks that the path exists before
+    returning it. This test therefore requires the SNS mount.
+    """
     if not has_sns_mount:
         pytest.skip("Do not have /SNS properly mounted on this system")
 

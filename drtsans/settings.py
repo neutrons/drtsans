@@ -1,18 +1,14 @@
 # third party imports
 import mantid
 from mantid.api import mtd
-from mantid.kernel import ConfigService
 
 
 # standard library imports
 from collections import namedtuple, OrderedDict
 from collections.abc import Mapping
-from contextlib import contextmanager
-from copy import deepcopy
 import functools
 import random
 import string
-from typing import Union
 
 # import mantid's workspace types exposed to python
 workspace_types = [

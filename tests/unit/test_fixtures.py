@@ -1,9 +1,8 @@
 # local imports
 from drtsans.load import load_events
-from drtsans.settings import amend_config
 
 # third-party imports
-from mantid.kernel import V3D
+from mantid.kernel import V3D, amend_config
 from mantid.simpleapi import CreateSampleWorkspace, LoadNexusProcessed
 import numpy as np
 import pytest

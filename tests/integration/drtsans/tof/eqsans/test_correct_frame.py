@@ -16,7 +16,8 @@ from mantid.simpleapi import (
     LoadEventNexus,
 )
 from mantid.api import AnalysisDataService
-from drtsans.settings import amend_config, unique_workspace_dundername as uwd
+from mantid.kernel import amend_config
+from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.tof.eqsans.correct_frame import (
     correct_detector_frame,
     correct_monitor_frame,

@@ -3,8 +3,8 @@ import pytest
 import pathlib
 import stat
 from mantid.simpleapi import CreateWorkspace
+from mantid.kernel import amend_config
 from drtsans.path import abspath, exists, registered_workspace, allow_overwrite
-from drtsans.settings import amend_config
 from tempfile import gettempdir, NamedTemporaryFile
 from unittest.mock import patch
 

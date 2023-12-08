@@ -1,6 +1,5 @@
 # local imports
 from drtsans.dataobjects import _Testing, load_iq1d_from_h5, load_iq2d_from_h5
-from drtsans.settings import amend_config
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (
     load_all_files,
@@ -9,6 +8,7 @@ from drtsans.tof.eqsans.api import (
 
 # third party imports
 from mantid.simpleapi import mtd, DeleteWorkspace
+from mantid.kernel import amend_config
 import pytest
 
 # standard library imports

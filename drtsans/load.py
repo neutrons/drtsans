@@ -15,7 +15,7 @@ from mantid.simpleapi import (
     FilterEvents,
 )
 from mantid.simpleapi import AddSampleLogMultiple
-from mantid.kernel import Logger
+from mantid.kernel import Logger, amend_config
 from drtsans.geometry import (
     translate_detector_by_z,
     translate_sample_by_z,
@@ -32,7 +32,6 @@ from drtsans.instruments import (
 from drtsans.path import abspath, registered_workspace, exists as path_exists
 from drtsans.pixel_calibration import apply_calibrations
 from drtsans.samplelogs import SampleLogs, periodic_index_log
-from drtsans.settings import amend_config
 
 
 __all__ = ["load_events", "sum_data", "load_and_split", "move_instrument"]
@@ -176,7 +175,7 @@ def load_events(
         return mtd[output_workspace]
     else:
         # load the data into the appropriate workspace
-        with amend_config({"default.instrument": str(instrument_unique_name)}, data_dir=data_dir):
+        with amend_config(instrument=str(instrument_unique_name), data_dir=data_dir):
             # not loading the instrument xml from the nexus file will use the correct one that is inside mantid
             # decide the value of LoadNexusInstrumentXML
             # if not specified, determine by overwrite_instrument

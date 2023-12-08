@@ -9,11 +9,12 @@ from drtsans.instruments import (
 )
 from drtsans.instruments import fetch_idf as instruments_fetch_idf
 from drtsans.mono.biosans.geometry import get_angle_wing_detector, get_position_south_detector
-from drtsans.settings import amend_config, unique_workspace_dundername
+from drtsans.settings import unique_workspace_dundername
 
 # third party imports
 from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import CreateWorkspace, DeleteWorkspace, LoadEmptyInstrument, LoadEventNexus
+from mantid.kernel import amend_config
 from numpy.testing import assert_almost_equal
 import pytest
 from os.path import join as path_join

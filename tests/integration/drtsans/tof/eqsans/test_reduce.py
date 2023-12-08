@@ -1,9 +1,10 @@
 import pytest
 from os.path import join as pj
 from mantid.simpleapi import LoadNexus, SumSpectra, CompareWorkspaces
+from mantid.kernel import amend_config
 
 from drtsans.tof.eqsans import reduce
-from drtsans.settings import amend_config, unique_workspace_dundername as uwd
+from drtsans.settings import unique_workspace_dundername as uwd
 
 
 @pytest.mark.datarepo

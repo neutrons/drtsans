@@ -10,7 +10,7 @@ from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
 from drtsans.mono.biosans.prepare_sensitivities_correction import (
     PrepareSensitivityCorrection as PrepareSensitivityCorrectionBiosans,
 )
-from drtsans.settings import amend_config
+from mantid.kernel import amend_config
 from mantid.simpleapi import LoadNexusProcessed
 from mantid.simpleapi import DeleteWorkspace
 from tempfile import mktemp

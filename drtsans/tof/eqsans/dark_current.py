@@ -4,18 +4,20 @@ r""" Links to mantid algorithms
 CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 Minus <https://docs.mantidproject.org/nightly/algorithms/Minus-v1.html>
 Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
+amend_config <https://docs.mantidproject.org/nightly/api/python/mantid/kernel/AmendConfig.html>
 """
 from mantid.simpleapi import mtd, CreateWorkspace, Minus, Scale
+from mantid.kernel import amend_config
 
 r"""
 Hyperlinks to drtsans functions
-amend_config, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 exists, registered_workspace <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/path.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 clipped_bands_from_logs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py>
 duration, counts_in_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dark_current.py>
 """  # noqa: E501
-from drtsans.settings import amend_config, unique_workspace_dundername
+from drtsans.settings import unique_workspace_dundername
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.correct_frame import clipped_bands_from_logs
@@ -186,7 +188,7 @@ def load_dark_current_workspace(dark_current_filename, output_workspace):
     if (isinstance(dark_current_filename, str) and exists(dark_current_filename)) or isinstance(
         dark_current_filename, int
     ):
-        with amend_config({"default.instrument": "EQSANS"}):
+        with amend_config(instrument="EQSANS"):
             load_events(run=dark_current_filename, output_workspace=output_workspace)
     else:
         message = "Unable to find or load the dark current {}".format(dark_current_filename)

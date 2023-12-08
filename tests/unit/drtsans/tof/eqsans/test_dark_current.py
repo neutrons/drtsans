@@ -8,6 +8,7 @@ CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspa
 Load <https://docs.mantidproject.org/nightly/algorithms/Load-v1.html>
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 SumSpectra <https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html>
+amend_config <https://docs.mantidproject.org/nightly/api/python/mantid/kernel/AmendConfig.html>
 """
 from mantid.simpleapi import (
     CompareWorkspaces,
@@ -16,14 +17,15 @@ from mantid.simpleapi import (
     LoadNexus,
     SumSpectra,
 )
+from mantid.kernel import amend_config
 
 r"""
 Hyperlinks to drtsans functions
-amend_config, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof.eqsans/dark_current.py>
 """  # noqa: E501
-from drtsans.settings import amend_config, unique_workspace_dundername
+from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import dark_current
 

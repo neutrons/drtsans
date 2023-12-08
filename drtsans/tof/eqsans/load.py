@@ -4,6 +4,7 @@ from typing import List, Union
 
 # third-party imports
 from mantid.simpleapi import mtd, LoadNexusMonitors
+from mantid.kernel import amend_config
 
 # local imports
 from drtsans.beam_finder import center_detector, find_beam_center
@@ -13,7 +14,7 @@ from drtsans.load import (
     sum_data,
     load_and_split as generic_load_and_split,
 )
-from drtsans.settings import amend_config, namedtuplefy
+from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.correct_frame import (
     correct_detector_frame,
@@ -65,7 +66,7 @@ def load_events_monitor(run, data_dir=None, output_workspace=None):
         else:
             output_workspace = "EQSANS_{}{}".format(run, suffix)
 
-    with amend_config({"default.instrument": "EQSANS"}, data_dir=data_dir):
+    with amend_config(instrument="EQSANS", data_dir=data_dir):
         LoadNexusMonitors(Filename=str(run), LoadOnly="Events", OutputWorkspace=output_workspace)
 
     smd = source_monitor_distance(output_workspace, unit="mm")

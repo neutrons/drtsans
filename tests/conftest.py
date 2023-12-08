@@ -11,7 +11,7 @@ from drtsans.mono.biosans.geometry import (
 )
 from drtsans.path import registered_workspace
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import amend_config, unique_workspace_dundername
+from drtsans.settings import unique_workspace_dundername
 from drtsans.simulated_events import (
     insert_beam_spot,
     insert_background,
@@ -23,6 +23,7 @@ from drtsans.simulated_events import (
 # third party imports
 from mantid.api import mtd
 import mantid.simpleapi as mtds
+from mantid.kernel import amend_config
 from mantid.simpleapi import (
     AddSampleLog,
     CloneWorkspace,

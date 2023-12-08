@@ -1,12 +1,11 @@
 from mantid.api import AnalysisDataService, FileFinder
-from mantid.kernel import ConfigService
+from mantid.kernel import ConfigService, amend_config
 from drtsans.instruments import (
     instrument_label,
     extract_run_number,
     instrument_filesystem_name,
     InstrumentEnumName,
 )
-from drtsans.settings import amend_config
 import os
 import stat
 import pathlib
@@ -136,12 +135,11 @@ def abspath(path: str, instrument="", ipts="", directory=None, search_archive=Tr
     # path in case any weren't already
     try:
         config = {
-            "default.instrument": instrument,
             "datasearch.searcharchive": "hfir, sns",
         }
         if bool(search_archive) is False:
             config["datasearch.searcharchive"] = "Off"
-        with amend_config(config, data_dir=directories):
+        with amend_config(instrument=instrument, data_dir=directories, **config):
             options = [os.path.abspath(item) for item in FileFinder.findRuns(str(runnumber))]
             found = "nothing" if len(options) == 0 else f"{options}"
             message_archive = f"FileFinder.findRuns({runnumber}) found {found}  with {config}"

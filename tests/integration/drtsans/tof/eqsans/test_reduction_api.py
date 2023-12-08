@@ -8,13 +8,13 @@ from drtsans.tof.eqsans.api import (
 )  # noqa E402
 from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
 from mantid.simpleapi import mtd, DeleteWorkspace
+from mantid.kernel import amend_config
 import numpy as np
 from drtsans.dataobjects import save_i_of_q_to_h5, load_iq1d_from_h5, load_iq2d_from_h5
 from typing import List, Any, Union, Tuple, Dict
 from drtsans.dataobjects import _Testing
 from matplotlib import pyplot as plt
 from drtsans.dataobjects import IQmod
-from drtsans.settings import amend_config
 
 
 # EQSANS reduction

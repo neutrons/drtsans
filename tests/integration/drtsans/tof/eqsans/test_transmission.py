@@ -9,13 +9,15 @@ CompareWorkspaces <https://docs.mantidproject.org/nightly/algorithms/CompareWork
 CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 SumSpectra <https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html>
+amend_config <https://docs.mantidproject.org/nightly/api/python/mantid/kernel/AmendConfig.html>
 """
 from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, LoadNexus, SumSpectra
 from mantid.api import mtd
+from mantid.kernel import amend_config
 
 r"""
 Hyperlinks to drtsans functions
-amend_config, namedtuplefy, unique_workspace_dundername available at:
+namedtuplefy, unique_workspace_dundername available at:
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 insert_aperture_logs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py>
@@ -25,7 +27,7 @@ calculate_transmission, fit_raw_transmission available at:
 apply_transmission_correction <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py>
 find_beam_center, center_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/beam_finder.py>
 """  # noqa: E501
-from drtsans.settings import amend_config, namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.geometry import insert_aperture_logs
 from drtsans.tof.eqsans.api import prepare_data

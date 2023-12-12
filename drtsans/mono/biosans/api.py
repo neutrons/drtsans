@@ -1639,30 +1639,16 @@ def reduce_single_configuration(
         )
         output.append(current_output)
 
-        _inside_detectordata = {}
-        # TODO: fix this bug - only one combined profile is saved in the reduction log, but for wedges there are two
-        if iq1d_combined_out[-1].intensity.size > 0:
-            _inside_detectordata = {"combined": {"iq": [iq1d_combined_out[-1]]}}
-        else:
-            _inside_detectordata = {}
-        index = 0
-        for _iq1d_main, _iq1d_midrange, _iq1d_wing, _iq2d_main, _iq2d_midrange, _iq2d_wing in zip(
-            iq1d_main_out, iq1d_midrange_out, iq1d_wing_out, [iq2d_main_out], [iq2d_midrange_out], [iq2d_wing_out]
-        ):
-            _inside_detectordata["main_{}".format(index)] = {
-                "iq": [_iq1d_main],
-                "iqxqy": _iq2d_main,
-            }
-            _inside_detectordata["midrange_{}".format(index)] = {
-                "iq": [_iq1d_midrange],
-                "iqxqy": _iq2d_midrange,
-            }
-            _inside_detectordata["wing_{}".format(index)] = {
-                "iq": [_iq1d_wing],
-                "iqxqy": _iq2d_wing,
-            }
-
-        detectordata[sample_name] = _inside_detectordata
+        detectordata[sample_name] = get_sample_detectordata(
+            iq1d_main_out,
+            iq1d_midrange_out,
+            iq1d_wing_out,
+            iq1d_combined_out,
+            iq2d_main_out,
+            iq2d_midrange_out,
+            iq2d_wing_out,
+            reduction_config["has_midrange_detector"],
+        )
 
     # save reduction log
 
@@ -1771,6 +1757,53 @@ def save_iqmod_all(
             f"{output_filename}{output_suffix}_1D_combined{add_suffix}.txt",
         )
         save_iqmod(iq1d_combined[j], combined_1D_filename, skip_nan=skip_nan)
+
+
+def get_sample_detectordata(
+    iq1d_main, iq1d_midrange, iq1d_wing, iq1d_combined, iq2d_main, iq2d_midrange, iq2d_wing, has_midrange
+):
+    """Construct a dictionary of I(Q) output for the reduction logs
+
+    Parameters
+    ----------
+    iq1d_main: ~drtsans.dataobjects.IQmod
+        Intensity profile for the main detector
+    iq1d_midrange: ~drtsans.dataobjects.IQmod
+        Intensity profile for the midrange detector
+    iq1d_wing: ~drtsans.dataobjects.IQmod
+        Intensity profile for the wing detector
+    iq1d_combined: ~drtsans.dataobjects.IQmod
+        Combined (stitched) intensity profile from different detectors
+    iq2d_main: ~drtsans.dataobjects.IQazimuthal
+        I(Qx, Qy) for the main detector
+    iq2d_midrange: ~drtsans.dataobjects.IQazimuthal
+        I(Qx, Qy) for the midrange detector
+    iq2d_wing: ~drtsans.dataobjects.IQazimuthal
+        I(Qx, Qy) for the wing detector
+    has_midrange: bool
+        If True, the run includes the midrange detector
+    """
+    detector_data = {}
+    # TODO: fix this bug - only one combined profile is saved in the reduction log, but for wedges there are two
+    if iq1d_combined[-1].intensity.size > 0:
+        detector_data["combined"] = {"iq": [iq1d_combined[-1]]}
+
+    # one 1D I(Q) per detector for scalar and annular binning and two 1D I(Q) per detector for wedge binning
+    for index, (_iq1d_main, _iq1d_wing) in enumerate(zip(iq1d_main, iq1d_wing)):
+        detector_data[f"main_{index}"] = {"iq": [_iq1d_main]}
+        detector_data[f"wing_{index}"] = {"iq": [_iq1d_wing]}
+    if has_midrange:
+        for index, (_iq1d_midrange) in enumerate(iq1d_midrange):
+            detector_data[f"midrange_{index}"] = {"iq": [_iq1d_midrange]}
+
+    # one 2D I(Q) per detector, assign to index 0
+    index = 0
+    detector_data[f"main_{index}"]["iqxqy"] = iq2d_main
+    detector_data[f"wing_{index}"]["iqxqy"] = iq2d_wing
+    if has_midrange:
+        detector_data[f"midrange_{index}"]["iqxqy"] = iq2d_midrange
+
+    return detector_data
 
 
 def prepare_data(

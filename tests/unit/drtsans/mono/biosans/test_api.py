@@ -13,7 +13,7 @@ import drtsans.plots.api
 from drtsans.samplelogs import SampleLogs
 from os.path import join as path_join
 
-from drtsans.dataobjects import IQmod
+from drtsans.dataobjects import IQazimuthal, IQmod, testing
 from drtsans.mono.biosans.api import (
     load_all_files,
     prepare_data_workspaces,
@@ -23,6 +23,7 @@ from drtsans.mono.biosans.api import (
     save_iqmod_all,
     plot_reduction_output,
     check_overlap_stitch_configuration,
+    get_sample_detectordata,
 )
 
 # standard imports
@@ -817,6 +818,84 @@ def test_check_overlap_stitch_configuration(
         assert "overlapStitch" in str(error_info.value)
     else:
         check_overlap_stitch_configuration(reduction_input)
+
+
+@pytest.mark.parametrize("has_midrange", [True, False])
+@pytest.mark.parametrize(
+    "iqmod1d, iqmod2d",
+    [
+        # case when "1DQbinType" is "scalar" or "annular": one 1D intensity profile per detector
+        (
+            [
+                IQmod(
+                    intensity=[1.0, 1.0, 1.0],
+                    error=[0.1, 0.1, 0.1],
+                    mod_q=[0.1, 0.2, 0.3],
+                    delta_mod_q=[0.01, 0.01, 0.01],
+                )
+            ],
+            IQazimuthal(
+                intensity=[1.0, 1.0, 1.0],
+                error=[0.1, 0.1, 0.1],
+                qx=[0.1, 0.2, 0.3],
+                qy=[0.1, 0.2, 0.3],
+                delta_qx=[0.01, 0.01, 0.01],
+                delta_qy=[0.01, 0.01, 0.01],
+            ),
+        ),
+        # case when "1DQbinType" is "wedge": two 1D intensity profiles per detector
+        (
+            [
+                IQmod(
+                    intensity=[1.0, 1.0, 1.0],
+                    error=[0.1, 0.1, 0.1],
+                    mod_q=[0.1, 0.2, 0.3],
+                    delta_mod_q=[0.01, 0.01, 0.01],
+                ),
+                IQmod(
+                    intensity=[2.0, 2.0, 2.0],
+                    error=[0.1, 0.1, 0.1],
+                    mod_q=[0.1, 0.2, 0.3],
+                    delta_mod_q=[0.01, 0.01, 0.01],
+                ),
+            ],
+            IQazimuthal(
+                intensity=[1.0, 1.0, 1.0],
+                error=[0.1, 0.1, 0.1],
+                qx=[0.1, 0.2, 0.3],
+                qy=[0.1, 0.2, 0.3],
+                delta_qx=[0.01, 0.01, 0.01],
+                delta_qy=[0.01, 0.01, 0.01],
+            ),
+        ),
+    ],
+)
+def test_get_sample_detectordata(has_midrange, iqmod1d, iqmod2d):
+    """Test of helper function get_sample_detectordata"""
+    # create detector data
+    detector_data = get_sample_detectordata(
+        iqmod1d, iqmod1d, iqmod1d, iqmod1d, iqmod2d, iqmod2d, iqmod2d, has_midrange
+    )
+
+    # test the contents of detector data
+    testing.assert_allclose(detector_data["combined"]["iq"][0], iqmod1d[-1])
+    testing.assert_allclose(detector_data["main_0"]["iq"][0], iqmod1d[0])
+    testing.assert_allclose(detector_data["wing_0"]["iq"][0], iqmod1d[0])
+    testing.assert_allclose(detector_data["main_0"]["iqxqy"], iqmod2d)
+    testing.assert_allclose(detector_data["wing_0"]["iqxqy"], iqmod2d)
+    if has_midrange:
+        testing.assert_allclose(detector_data["midrange_0"]["iq"][0], iqmod1d[0])
+        testing.assert_allclose(detector_data["midrange_0"]["iqxqy"], iqmod2d)
+    else:
+        assert "midrange_0" not in detector_data
+
+    if len(iqmod1d) == 2:  # case when "1DQbinType" is "wedge"
+        testing.assert_allclose(detector_data["main_1"]["iq"][0], iqmod1d[1])
+        testing.assert_allclose(detector_data["wing_1"]["iq"][0], iqmod1d[1])
+        if has_midrange:
+            testing.assert_allclose(detector_data["midrange_1"]["iq"][0], iqmod1d[1])
+        else:
+            assert "midrange_1" not in detector_data
 
 
 if __name__ == "__main__":

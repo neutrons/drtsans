@@ -121,7 +121,7 @@ def test_exists_with_archivesearch(hint, found, reference_dir, has_sns_mount):
     [("EQSANS_105428", True), ("EQSANS105428", True), ("EQSANS_88975.nxs.h5", True)],
 )
 def test_exists_without_archivesearch(hint, found, datarepo_dir):
-    with amend_config(SEARCH_OFF, data_dir=datarepo_dir.eqsans):
+    with amend_config(data_dir=datarepo_dir.eqsans, **SEARCH_OFF):
         assert exists(hint) == found  # allows verifying against True and False
 
 

@@ -6,6 +6,7 @@ from drtsans.instruments import (
     empty_instrument_workspace,
     instrument_enum_name,
     is_time_of_flight,
+    instrument_facility_name,
 )
 from drtsans.instruments import fetch_idf as instruments_fetch_idf
 from drtsans.mono.biosans.geometry import get_angle_wing_detector, get_position_south_detector
@@ -128,6 +129,33 @@ def test_fetch_idf(tmpdir):
     with pytest.raises(FileNotFoundError) as excinfo:
         instruments_fetch_idf("nonexisting.xml", output_directory=tmpdir)
     assert "nonexisting.xml" in str(excinfo.value)
+
+
+@pytest.mark.datarepo
+def test_instrument_facility_name(datarepo_dir, temp_workspace_name):
+    # test instrument name
+    assert instrument_facility_name("EQSANS") == "SNS"
+    assert instrument_facility_name("BIOSANS") == "HFIR"
+    assert instrument_facility_name("GPSANS") == "HFIR"
+    assert instrument_facility_name("CG3") == "HFIR"
+    assert instrument_facility_name("CG2") == "HFIR"
+    with pytest.raises(ValueError):
+        assert instrument_facility_name("")
+
+    # test filename
+    assert instrument_facility_name("somepath/CG3_961.nxs.h5") == "HFIR"
+    assert instrument_facility_name("EQSANS_92353.nxs.h5") == "SNS"
+    with pytest.raises(ValueError):
+        assert instrument_facility_name("nonexistantsansinstrument")
+
+    # test workspace
+    event_workspace = LoadEventNexus(
+        path_join(datarepo_dir.eqsans, "EQSANS_92353.nxs.h5"), OutputWorkspace=temp_workspace_name()
+    )
+    assert instrument_facility_name(event_workspace) == "SNS"
+    workspace = CreateWorkspace(DataX=range(42), DataY=range(42), OutputWorkspace=temp_workspace_name())
+    with pytest.raises(ValueError):
+        assert instrument_facility_name(workspace)
 
 
 if __name__ == "__main__":

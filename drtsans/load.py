@@ -27,6 +27,7 @@ from drtsans.instruments import (
     extract_run_number,
     instrument_enum_name,
     InstrumentEnumName,
+    instrument_facility_name,
     is_time_of_flight,
 )
 from drtsans.path import abspath, registered_workspace, exists as path_exists
@@ -175,7 +176,8 @@ def load_events(
         return mtd[output_workspace]
     else:
         # load the data into the appropriate workspace
-        with amend_config(instrument=str(instrument_unique_name), data_dir=data_dir):
+        facility = instrument_facility_name(instrument_unique_name)
+        with amend_config(facility=facility, instrument=str(instrument_unique_name), data_dir=data_dir):
             # not loading the instrument xml from the nexus file will use the correct one that is inside mantid
             # decide the value of LoadNexusInstrumentXML
             # if not specified, determine by overwrite_instrument

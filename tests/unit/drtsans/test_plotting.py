@@ -1,12 +1,15 @@
 from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
+from drtsans.plots.api import _save_file, MatBackendManager, Backend
 from drtsans.dataobjects import IQmod, IQazimuthal
 from mantid.simpleapi import LoadEmptyInstrument, LoadNexus
 import numpy as np
 import os
 import pytest
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import imread
 from typing import Tuple, Any
+import mpld3  # noqa E402
 
 
 def verify_images(test_png: str, gold_png):
@@ -69,6 +72,57 @@ def test_IQmod_multi(backend, filename):
     plot_IQmod([data1, data2], filename=filename, backend=backend)
     plt.close()
     fileCheckAndRemove(filename)
+
+
+@pytest.mark.parametrize(
+    "backend, filename, show",
+    [
+        ("mpl", "test_IQmod_multi.png", False),
+        ("mpl", "test_IQmod_multi.png", True),
+        ("d3", "test_IQmod_multi.json", False),
+        ("mpld3", "test_IQmod_multi.json", False),
+    ],
+    ids=["mpl", "mpl", "d3", "mpld3"],
+)
+def test_save_file(backend, filename, show):
+    """Test save_file"""
+
+    figure, _ax = plt.subplots()
+
+    def mock_show(figure):
+        return False
+
+    mpld3.show = mock_show
+
+    _save_file(figure, filename, Backend.getMode(backend), show)
+    fileCheckAndRemove(filename)
+
+
+def test_save_file_inline_error():
+    """Test save_file with unsupported backend"""
+
+    figure, _ax = plt.subplots()
+
+    def mock_show(figure):
+        return False
+
+    mpld3.show = mock_show
+    backend, filename, show = "inline", "test_IQmod_multi.json", True
+    with pytest.raises(RuntimeError) as excinfo:
+        _save_file(figure, filename, Backend.getMode(backend), show)
+    assert str(excinfo.value) == "Unsupported backend: inline"
+
+
+def test_MatBackendManager():
+    """Test MatBackendManager"""
+
+    outer_backend = "pdf"
+    inner_backend = "agg"
+
+    matplotlib.use(outer_backend)
+    with MatBackendManager(inner_backend) as _m:
+        assert matplotlib.get_backend() == inner_backend
+    assert matplotlib.get_backend() == outer_backend
 
 
 @pytest.fixture

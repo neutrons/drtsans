@@ -1,4 +1,3 @@
-from enum import Enum
 import json
 import numpy as np
 from typing import List, Any, Dict
@@ -7,7 +6,6 @@ import warnings
 
 warnings.simplefilter("ignore", UserWarning)
 
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa E402
 from matplotlib.colors import LogNorm  # noqa E402
 import mpld3  # noqa E402
@@ -38,34 +36,51 @@ if mpld3.__version__ == "0.3":
     _display.NumpyEncoder = NumpyEncoder
 
 
-class Backend(Enum):
+class Backend:
     """Class for denoting which back-end to save the plot using"""
 
     MPLD3 = "d3"  # read-only
     MATPLOTLIB = "mpl"  # read and write
+    MPL_ALT = "mpld3"  # alternative backend for d3
+    MATPLOTLIB_ALT = "matplotlib"  # r alternative backend for mpl
 
-    def __str__(self):
-        return self.value
-
-    @staticmethod
-    def getMode(mode):
+    @classmethod
+    def getMode(cls, mode: str):
         """Public function to convert anything into :py:obj:`Backend`"""
-        try:
-            if mode in Backend:
-                return mode
-        except TypeError:
-            pass  # intentionally ignore
 
-        mode = str(mode)
+        mode = str(mode).lower()
         if mode == "mpl" or mode == "matplotlib":
-            return Backend.MATPLOTLIB
+            return cls.MATPLOTLIB
         elif mode == "mpld3" or mode == "d3":
-            return Backend.MPLD3
+            return cls.MPLD3
         else:
-            return Backend[mode.upper()]
+            # add the new mode
+            setattr(cls, mode.upper(), mode)
+            return getattr(cls, mode.upper())
+
+    @classmethod
+    def isSupported(cls, mode: str):
+        """function to check if mode is supported"""
+        return mode.lower() in [cls.MPLD3, cls.MPL_ALT, cls.MATPLOTLIB_ALT, cls.MATPLOTLIB]
 
 
-def _save_file(figure, filename, backend, show=False):
+class MatBackendManager:
+    """Context Manager for setting matplotlib backend"""
+
+    def __init__(self, innerbackend):
+        self.innerbackend = innerbackend
+        self.outerbackend = matplotlib.get_backend()
+
+    def __enter__(self):
+        """set the inner backend on entering the code block"""
+        matplotlib.use(self.innerbackend)
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        """set the outer backend on exiting the code block"""
+        matplotlib.use(self.outerbackend)
+
+
+def _save_file(figure, filename, backend: str, show=False):
     """Convenience method for the common bits of saving the file based on
     the selected backend.
 
@@ -75,40 +90,41 @@ def _save_file(figure, filename, backend, show=False):
         The figure to save to a file
     filename: str
         The name of the file to save to
-    backend: Backend
+    backend
         Which :py:obj:`Backend` to use for saving
     show: bool
         Whether or not to show the figure rather than saving. This is only
         available if the :py:obj:`~Backend.MPLD3` backend is selected.
     """
-    if backend == Backend.MATPLOTLIB:
-        if filename:
-            figure.savefig(filename)
-        if show:
-            if "inline" in matplotlib.get_backend():  # ipython notebook
-                figure.show()
-            else:
-                raise RuntimeError("Cannot show data with matplotlib backend")
-    else:
-        if not filename.endswith("json"):
-            raise RuntimeError('File "{}" must have ".json" suffix'.format(filename))
+    with MatBackendManager("agg") as _m:
+        if Backend.isSupported(backend):
+            if backend == Backend.MATPLOTLIB:
+                if filename:
+                    figure.savefig(filename)
+                if show:
+                    figure.show()
+            elif backend == Backend.MPLD3:
+                if not filename.endswith("json"):
+                    raise RuntimeError('File "{}" must have ".json" suffix'.format(filename))
 
-        plugins.connect(figure, plugins.MousePosition(fontsize=14, fmt=".0f"))
-        with open(filename, "w") as outfile:
-            mpld3.save_json(figure, outfile)
+                plugins.connect(figure, plugins.MousePosition(fontsize=14, fmt=".0f"))
+                with open(filename, "w") as outfile:
+                    mpld3.save_json(figure, outfile)
 
-        if show:
-            mpld3.show(figure)
+                if show:
+                    mpld3.show(figure)
+        else:
+            raise RuntimeError("Unsupported backend: {}".format(backend))
 
 
-def _q_label(backend, subscript=""):
+def _q_label(backend: str, subscript=""):
     """mpld3 doesn't currently support latex markup. This generates an
     acceptable label for the supplied backend.
 
     Parameters
     ----------
-    backend: Backend
-        Which :py:obj:`Backend` to generate the caption for
+    backend
+        Which :py:obj:`Backend` attribute to generate the caption for
     subscript: str
         The subscript on the "Q" label. If none is specified then no
         subscript will be displayed
@@ -123,7 +139,7 @@ def _q_label(backend, subscript=""):
         return label + " (1/{})".format("\u212B")
 
 
-def plot_IQmod(workspaces, filename, loglog=True, backend="d3", errorbar_kwargs={}, **kwargs):
+def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_kwargs={}, **kwargs):
     """Save a plot representative of the supplied workspaces
 
     Parameters
@@ -137,7 +153,7 @@ def plot_IQmod(workspaces, filename, loglog=True, backend="d3", errorbar_kwargs=
         backend, the type of file is determined from the file extension
     loglog: bool
         If true will set both axis to logarithmic, otherwise leave them as linear
-    backend: Backend
+    backend
         Which backend to save the file using
     errorbar_kwargs: dict
         Optional arguments to :py:obj:`matplotlib.axes.Axes.errorbar`
@@ -283,7 +299,7 @@ def _require_transpose_intensity(iq2d) -> bool:
 def plot_IQazimuthal(
     workspace,
     filename,
-    backend="d3",
+    backend: str = "d3",
     qmin: float = None,
     qmax: float = None,
     wedges: List[Any] = None,
@@ -316,7 +332,7 @@ def plot_IQazimuthal(
         Add the wedge offset by 180 degrees if True
     mask_alpha: float
         Opacity for for selection area
-    backend: Backend
+    backend
         Which backend to save the file using
     imshow_kwargs: ~dict
         Optional arguments to :py:obj:`matplotlib.axes.Axes.imshow` e.g. ``{"norm": LogNorm()}``
@@ -391,7 +407,7 @@ def plot_IQazimuthal(
 def plot_detector(
     input_workspace,
     filename=None,
-    backend="d3",
+    backend: str = "d3",
     axes_mode="tube-pixel",
     panel_name=None,
     figure_kwargs={"figsize": (8, 6)},
@@ -407,7 +423,7 @@ def plot_detector(
     filename: str
         The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
         backend, the type of file is determined from the file extension
-    backend: Backend
+    backend
         Which backend to save the file using
     axes_mode: str
         Plot intensities versus different axes. Options are: 'xy' for plotting versus pixel coordinates;

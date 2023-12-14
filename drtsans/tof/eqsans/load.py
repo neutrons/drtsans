@@ -66,7 +66,7 @@ def load_events_monitor(run, data_dir=None, output_workspace=None):
         else:
             output_workspace = "EQSANS_{}{}".format(run, suffix)
 
-    with amend_config(instrument="EQSANS", data_dir=data_dir):
+    with amend_config(facility="SNS", instrument="EQSANS", data_dir=data_dir):
         LoadNexusMonitors(Filename=str(run), LoadOnly="Events", OutputWorkspace=output_workspace)
 
     smd = source_monitor_distance(output_workspace, unit="mm")

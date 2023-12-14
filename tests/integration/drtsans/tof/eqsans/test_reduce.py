@@ -9,7 +9,7 @@ from drtsans.settings import unique_workspace_dundername as uwd
 
 @pytest.mark.datarepo
 def test_load_w(datarepo_dir, clean_workspace, temp_workspace_name):
-    with amend_config(data_dir=datarepo_dir.eqsans):
+    with amend_config(facility="SNS", instrument="EQSANS", data_dir=datarepo_dir.eqsans):
         _w0 = reduce.load_w(
             "EQSANS_92353",
             output_workspace=uwd(),

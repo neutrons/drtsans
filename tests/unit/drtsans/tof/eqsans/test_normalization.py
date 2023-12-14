@@ -68,7 +68,7 @@ def data_ws(datarepo_dir):
 def monitor_ws(datarepo_dir):
     r"""Single-spectrum Workspace containing wavelength-dependent monitor counts for run 88565."""
     ws = dict()
-    with amend_config(data_dir=datarepo_dir.eqsans):
+    with amend_config(facility="SNS", instrument="EQSANS", data_dir=datarepo_dir.eqsans):
         for run in ("88565",):
             ws[run] = prepare_monitors(run)
     return ws

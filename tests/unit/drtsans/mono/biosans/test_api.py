@@ -30,25 +30,14 @@ from drtsans.mono.biosans.api import (
 from unittest.mock import patch as mock_patch
 
 
-# @pytest.mark.skipif(
-#     not os.path.exists("/HFIR/CG3/IPTS-23782/nexus/CG3_960.nxs.h5"),
-#     reason="Required data is not available",
-# )
-@pytest.mark.mount_eqsans
-def test_load_all_files_simple(has_sns_mount):
-    if not has_sns_mount:
-        pytest.skip("Skip test if SNS mount is not found.")
-
-    # NOTE: path parsing is not correct, need double check
-    pytest.skip("The path building is incorrect, need to be fixed!!!")
-
+def test_load_all_files_simple(datarepo_dir):
     reduction_input = {
         "instrumentName": "CG3",
-        "iptsNumber": "23782",
-        "sample": {"runNumber": "960", "transmission": {"runNumber": ""}},
+        "iptsNumber": "24665",
+        "sample": {"runNumber": "1322", "transmission": {"runNumber": ""}},
         "background": {"runNumber": "", "transmission": {"runNumber": ""}},
         "emptyTransmission": {"runNumber": ""},
-        "beamCenter": {"runNumber": "960"},
+        "beamCenter": {"runNumber": "1322"},
         "configuration": {
             "useDefaultMask": False,
             "blockedBeamRunNumber": "",
@@ -56,14 +45,14 @@ def test_load_all_files_simple(has_sns_mount):
     }
 
     reduction_input = reduction_parameters(reduction_input, "BIOSANS", validate=False)
-    loaded = load_all_files(reduction_input)
+    loaded = load_all_files(reduction_input, path=datarepo_dir.biosans)
 
     assert loaded.sample is not None
     assert len(loaded.sample) == 1
     history = loaded.sample[0].getHistory()
     assert history.size() == 9
     assert history.getAlgorithm(0).name() == "LoadEventNexus"
-    assert history.getAlgorithm(0).getProperty("Filename").value == "/HFIR/CG3/IPTS-23782/nexus/CG3_960.nxs.h5"
+    assert history.getAlgorithm(0).getProperty("Filename").value.endswith("sans/hfir/biosans/CG3_1322.nxs.h5")
     assert history.getAlgorithm(1).name() == "MoveInstrumentComponent"  # moderator
     assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"  # sample-position
     assert history.getAlgorithm(3).name() == "MoveInstrumentComponent"  # detector1

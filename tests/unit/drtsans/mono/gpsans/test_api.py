@@ -11,18 +11,7 @@ from drtsans.mono.gpsans import reduction_parameters
 from drtsans.samplelogs import SampleLogs
 
 
-@pytest.mark.mount_eqsans
-def test_load_all_files_simple(has_sns_mount):
-    # NOTE: this test is current broken as the internal function cannot
-    #       reconstruct the path correctly with given output
-    pytest.skip("This is a broken test, need to fix it first!!!")
-
-    if not has_sns_mount:
-        pytest.skip("Skipping test as SNS mount is not available")
-    # NOTE:
-    # This test will build the IPTS path internally and try to access the raw
-    # IPTS folder. We will mark it as a offline manual test for now, but additional
-    # work is needed to make this test work without access the raw IPTS folder.
+def test_load_all_files_simple(datarepo_dir):
     reduction_input = {
         "instrumentName": "CG2",
         "iptsNumber": "23801",
@@ -34,14 +23,14 @@ def test_load_all_files_simple(has_sns_mount):
     }
 
     reduction_input = reduction_parameters(reduction_input, "GPSANS", validate=False)
-    loaded = load_all_files(reduction_input)
+    loaded = load_all_files(reduction_input, path=datarepo_dir.gpsans)
 
     assert loaded.sample is not None
     assert len(loaded.sample) == 1
     history = loaded.sample[0].getHistory()
     assert history.size() == 9
     assert history.getAlgorithm(0).name() == "LoadEventNexus"
-    assert history.getAlgorithm(0).getProperty("Filename").value == "/HFIR/CG2/IPTS-23801/nexus/CG2_1338.nxs.h5"
+    assert history.getAlgorithm(0).getProperty("Filename").value.endswith("sans/hfir/gpsans/CG2_1338.nxs.h5")
     assert history.getAlgorithm(1).name() == "MoveInstrumentComponent"  # moderator
     assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"  # sample-position
     assert history.getAlgorithm(3).name() == "MoveInstrumentComponent"  # detector1

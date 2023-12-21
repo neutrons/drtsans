@@ -74,6 +74,8 @@ class CorrectionConfiguration:
         optional, manually set the qmax used for incoherent calculation
     factor: float
         optional, automatically determine the qmin qmax by checking the intensity profile
+    output_wavelength_dependent_profile: bool
+        if True then output Iq for each wavelength before and after k and b correction
     """
 
     def __init__(
@@ -84,6 +86,7 @@ class CorrectionConfiguration:
         qmin=None,
         qmax=None,
         factor=None,
+        output_wavelength_dependent_profile=False,
     ):
         self._do_correction = do_correction
         self._select_min_incoherence = select_min_incoherence
@@ -93,6 +96,7 @@ class CorrectionConfiguration:
         self._factor = factor
         self._elastic_ref_run_setup = None
         self._sample_thickness = 1  # mm
+        self._output_wavelength_dependent_profile = output_wavelength_dependent_profile
 
     def __str__(self):
         if self._do_correction:
@@ -155,6 +159,10 @@ class CorrectionConfiguration:
         """
         assert isinstance(reference_run_setup, ElasticReferenceRunSetup)
         self._elastic_ref_run_setup = reference_run_setup
+
+    @property
+    def output_wavelength_dependent_profile(self):
+        return self._output_wavelength_dependent_profile
 
 
 # TODO - when python is upgraded to 3.7+, this class shall be wrapped as dataclass
@@ -233,9 +241,16 @@ def parse_correction_config(reduction_config):
         qmin = run_config.get("incohfit_qmin")
         qmax = run_config.get("incohfit_qmax")
         factor = run_config.get("incohfit_factor")
+        output_wavelength_dependent_profile = run_config.get("outputWavelengthDependentProfile", False)
 
         _config = CorrectionConfiguration(
-            do_correction, select_min_incoherence, select_intensityweighted, qmin, qmax, factor
+            do_correction,
+            select_min_incoherence,
+            select_intensityweighted,
+            qmin,
+            qmax,
+            factor,
+            output_wavelength_dependent_profile,
         )
 
         # Optional elastic normalization
@@ -318,6 +333,8 @@ def do_inelastic_incoherence_correction_q1d(
         correction_setup.qmin,
         correction_setup.qmax,
         correction_setup.factor,
+        correction_setup.output_wavelength_dependent_profile,
+        output_dir,
     )
 
     # save file

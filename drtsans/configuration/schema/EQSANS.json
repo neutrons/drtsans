@@ -201,6 +201,11 @@
 	    "default": null,
 	    "description": "if set the qmin and qmax will be automatically determined by checking the intensity profile"
 	},
+        "outputWavelengthDependentProfile": {
+	    "type": "boolean",
+	    "default": false,
+	    "description": "if true then output profiles for each wavelength from before and after k and b correction"
+	},
         "elasticReference": {
           "type": "object",
           "properties" : {
@@ -241,7 +246,7 @@
         "selectMinIncoh": {"type": "boolean", "default": false,
                            "description": "use smallest wavelength as reference wavelength"}
       },
-      "maxProperties": 67,
+      "maxProperties": 68,
       "required": ["outputDir", "instrumentConfigurationDir","useTimeSlice", "timeSliceInterval", "timeSliceOffset",
         "timeSlicePeriod", "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset", "useDetectorOffset",
         "detectorOffset", "sampleApertureSize", "sourceApertureDiameter","usePixelCalibration",

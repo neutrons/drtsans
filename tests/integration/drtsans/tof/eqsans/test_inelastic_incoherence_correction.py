@@ -16,6 +16,7 @@ import json
 from jsonschema.exceptions import ValidationError
 import filecmp
 import os
+import glob
 from typing import Tuple, Dict
 
 
@@ -324,6 +325,7 @@ def test_incoherence_correction_elastic_normalization(has_sns_mount, reference_d
     configuration["configuration"]["outputDir"] = test_dir
     configuration["outputFileName"] = base_name
     configuration["dataDirectories"] = test_dir
+    configuration["configuration"]["outputWavelengthDependentProfile"] = True
 
     # validate and clean configuration
     input_config = reduction_parameters(configuration)
@@ -354,6 +356,17 @@ def test_incoherence_correction_elastic_normalization(has_sns_mount, reference_d
         for version in acceptable_versions
     ]
     assert any(checks), "Test result does not match any of the gold data"
+
+    # check that the wavelength dependent profiles are created
+    number_of_wavelengths = 31
+    # before k correction
+    assert len(glob.glob(os.path.join(test_dir, "IQ_*_before_k_correction.dat"))) == number_of_wavelengths
+    # after k correction
+    assert len(glob.glob(os.path.join(test_dir, "IQ_*_after_k_correction.dat"))) == number_of_wavelengths
+    # before b correction
+    assert len(glob.glob(os.path.join(test_dir, "IQ_*_before_b_correction.dat"))) == number_of_wavelengths
+    # after b correction
+    assert len(glob.glob(os.path.join(test_dir, "IQ_*_after_b_correction.dat"))) == number_of_wavelengths
 
     # cleanup
     # NOTE: loaded is not a dict that is iterable, so we have to delete the

@@ -5,24 +5,16 @@ from drtsans.mono.gpsans import prepare_data, find_beam_center
 from mantid.simpleapi import DeleteWorkspace
 
 
-@pytest.mark.mount_eqsans
-def test_gpsans_find_beam_center(has_sns_mount):
+def test_gpsans_find_beam_center(datarepo_dir):
     """Integration test on algorithm to find beam center for GPSANS
 
     Returns
     -------
 
     """
-    # Check data mount to decide to skip or not
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
-
-    if not os.path.exists("/HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5"):
-        pytest.skip("Testing file /HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5 cannot be accessed")
-
     # Load data
     beam_center_ws = prepare_data(
-        data="/HFIR/CG2/IPTS-23801/nexus/CG2_8148.nxs.h5",
+        data=os.path.join(datarepo_dir.gpsans, "CG2_8148.nxs.h5"),
         btp={"Pixel": "1-8,249-256"},
         detector_offset=0,
         sample_offset=0,

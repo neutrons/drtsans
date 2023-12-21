@@ -299,7 +299,12 @@ def bin_i_with_correction(
                         "Not expected that there are more than 1 IQmod of " "elastic reference run."
                     )
                 # normalization
-                iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(iq1d_main_wl[0], iq1d_elastic_wl[0])
+                iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(
+                    iq1d_main_wl[0],
+                    iq1d_elastic_wl[0],
+                    incoherence_correction_setup.output_wavelength_dependent_profile,
+                    output_dir,
+                )
                 iq1d_main_wl[0] = iq1d_wl
                 # write
                 run_number = os.path.basename(str(incoherence_correction_setup.elastic_reference.run_number)).split(

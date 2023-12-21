@@ -1,8 +1,9 @@
 # Main method in this module implement step 2 of
 # wavelength dependent inelastic incoherent scattering correction
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
-from drtsans.dataobjects import verify_same_q_bins, IQmod, IQazimuthal
+from drtsans.dataobjects import verify_same_q_bins, IQmod, IQazimuthal, save_iqmod
 import numpy as np
+import os
 
 
 __all__ = [
@@ -133,7 +134,7 @@ def reshape_q_wavelength_matrix(i_of_q):
     return wl_vector, q_vector, intensity_array, error_array, dq_array
 
 
-def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
+def normalize_by_elastic_reference(i_of_q, ref_i_of_q, output_wavelength_dependent_profile=False, output_dir=None):
     """Normalize I(Q1D) by elastic reference run
 
     Parameters
@@ -142,6 +143,10 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
         Input I(Q, wavelength) to normalize
     ref_i_of_q: ~drtsans.dataobjects.IQmod
         Input I(Q, wavelength) as elastic reference run
+    output_wavelength_dependent_profile: bool
+        If True then output Iq for each wavelength before and after k correction
+    output_dir: str
+        output directory for Iq profiles
 
     Returns
     -------
@@ -182,6 +187,19 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
         wl_vec, ref_i_array, ref_error_array, ref_wl_ie, qmin_index, qmax_index
     )
 
+    if output_wavelength_dependent_profile and output_dir:
+        for tmpwlii, wl in enumerate(wl_vec):
+            tmpfn = os.path.join(output_dir, f"IQ_{wl}_before_k_correction.dat")
+            save_iqmod(
+                IQmod(
+                    intensity=i_array[:, tmpwlii],
+                    error=error_array[:, tmpwlii],
+                    mod_q=q_vec,
+                    delta_mod_q=dq_array[:, tmpwlii],
+                ),
+                tmpfn,
+            )
+
     # Normalize
     data_ref_wl_ie = determine_reference_wavelength_q1d_mesh(
         wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index
@@ -201,6 +219,19 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q):
 
     # Convert normalized intensities and errors to IModQ
     normalized_i_of_q = build_i_of_q1d(wl_vec, q_vec, normalized[0], normalized[1], dq_array)
+
+    if output_wavelength_dependent_profile and output_dir:
+        for tmpwlii, wl in enumerate(wl_vec):
+            tmpfn = os.path.join(output_dir, f"IQ_{wl}_after_k_correction.dat")
+            save_iqmod(
+                IQmod(
+                    intensity=normalized[0][:, tmpwlii],
+                    error=normalized[1][:, tmpwlii],
+                    mod_q=q_vec,
+                    delta_mod_q=dq_array[:, tmpwlii],
+                ),
+                tmpfn,
+            )
 
     return normalized_i_of_q, k_vec, k_error_vec
 

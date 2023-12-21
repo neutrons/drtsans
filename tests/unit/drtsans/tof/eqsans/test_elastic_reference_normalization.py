@@ -1,3 +1,4 @@
+import os
 import pytest
 from drtsans.dataobjects import IQmod
 
@@ -231,19 +232,37 @@ def test_calculate_scale_factor():
     np.testing.assert_allclose(delta_k_vec, mk_error_vec)
 
 
-def test_workflow_q1d():
+def test_workflow_q1d(temp_directory):
     """Test method normalize_by_elastic_reference"""
     # Get testing data and gold data
     test_i_of_q, gold_k_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
 
+    output_dir = temp_directory()
+
     # Normalize
-    normalized_iq1d, k_vec, delta_k_vec = normalize_by_elastic_reference(test_i_of_q, ref_i_of_q=test_i_of_q)
+    normalized_iq1d, k_vec, delta_k_vec = normalize_by_elastic_reference(
+        test_i_of_q, ref_i_of_q=test_i_of_q, output_wavelength_dependent_profile=True, output_dir=output_dir
+    )
 
     # Verify
     np.testing.assert_allclose(normalized_iq1d.mod_q, test_i_of_q.mod_q, rtol=1e-6)
     np.testing.assert_allclose(normalized_iq1d.wavelength, test_i_of_q.wavelength, rtol=1e-6)
     np.testing.assert_allclose(normalized_iq1d.intensity, gold_intensity_vec, 1e-3)
     np.testing.assert_allclose(normalized_iq1d.error, gold_error_vec, 1e-3)
+
+    # check the output iq wavelength profiles
+    expected_len = [14, 13, 13, 11]
+    for n in range(4):
+        wl = n + 3.0
+        filename = os.path.join(output_dir, f"IQ_{wl}_before_k_correction.dat")
+        assert os.path.exists(filename)
+        data = np.loadtxt(filename)
+        assert len(data) == expected_len[n]
+
+        filename = os.path.join(output_dir, f"IQ_{wl}_after_k_correction.dat")
+        assert os.path.exists(filename)
+        data = np.loadtxt(filename)
+        assert len(data) == expected_len[n]
 
 
 def test_normalize_i_of_q1d():
@@ -568,6 +587,7 @@ def create_testing_iq1d():
     # Q vector
     vec_q = np.arange(1, 21) * 0.01
     vec_q = np.repeat(vec_q, 4)
+    error_q_vec = np.sqrt(vec_q)
     print(f"q: {vec_q.shape}")
 
     # Wavelength vector
@@ -576,7 +596,9 @@ def create_testing_iq1d():
     print(f"lambda: {wavelength_vec.shape}")
 
     # Construct IQmod
-    i_of_q = IQmod(intensity=intensity_vec, error=error_vec, mod_q=vec_q, wavelength=wavelength_vec)
+    i_of_q = IQmod(
+        intensity=intensity_vec, error=error_vec, mod_q=vec_q, delta_mod_q=error_q_vec, wavelength=wavelength_vec
+    )
 
     # Expected K vector
     expected_k_vec = np.array([1.0000, 0.9090909090909, 0.833333333333333, 1.11111111111111])

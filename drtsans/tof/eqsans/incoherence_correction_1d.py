@@ -6,8 +6,10 @@ from drtsans.tof.eqsans.elastic_reference_normalization import (
     build_i_of_q1d,
     determine_reference_wavelength_q1d_mesh,
 )
+from drtsans.dataobjects import IQmod, save_iqmod
 from collections import namedtuple
 import numpy as np
+import os
 
 
 __all__ = ["correct_incoherence_inelastic_1d", "CorrectedIQ1D"]
@@ -18,7 +20,14 @@ CorrectedIQ1D = namedtuple("CorrectedIQ1D", "iq1d b_factor b_error")
 
 
 def correct_incoherence_inelastic_1d(
-    i_of_q, select_minimum_incoherence, intensity_weighted=False, qmin=None, qmax=None, factor=None
+    i_of_q,
+    select_minimum_incoherence,
+    intensity_weighted=False,
+    qmin=None,
+    qmax=None,
+    factor=None,
+    output_wavelength_dependent_profile=False,
+    output_dir=None,
 ):
     """Correct I(Q1D) accounting wavelength dependant incoherent inelastic scattering
 
@@ -39,6 +48,10 @@ def correct_incoherence_inelastic_1d(
         manually set the qmax used for incoherent calculation
     factor: float
         automatically determine the qmin qmax by checking the intensity profile
+    output_wavelength_dependent_profile: bool
+        If True then output Iq for each wavelength before and after b correction
+    output_dir: str
+        output directory for Iq profiles
 
     Returns
     -------
@@ -46,6 +59,7 @@ def correct_incoherence_inelastic_1d(
         named tuple include ~drtsans.dataobjects.IQmod (corrected I(Q, wavelength)),  B vector, B error vector
 
     """
+
     # Convert to mesh grid I(Q) and delta I(Q)
     wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
 
@@ -64,6 +78,19 @@ def correct_incoherence_inelastic_1d(
         f"Incoherent correction using qmin={q_vec[qmin_index]} qmax={q_vec[qmax_index]} "
         f"with qmin_index={qmin_index}, qmax_index={qmax_index}"
     )
+
+    if output_wavelength_dependent_profile and output_dir:
+        for tmpwlii, wl in enumerate(wl_vec):
+            tmpfn = os.path.join(output_dir, f"IQ_{wl}_before_b_correction.dat")
+            save_iqmod(
+                IQmod(
+                    intensity=i_array[:, tmpwlii],
+                    error=error_array[:, tmpwlii],
+                    mod_q=q_vec,
+                    delta_mod_q=dq_array[:, tmpwlii],
+                ),
+                tmpfn,
+            )
 
     # calculate B factors and errors
     b_array, ref_wl_ie = calculate_b_factors(
@@ -84,6 +111,19 @@ def correct_incoherence_inelastic_1d(
 
     # construct the output and return
     corrected_i_of_q = build_i_of_q1d(wl_vec, q_vec, corrected_intensities, corrected_errors, dq_array)
+
+    if output_wavelength_dependent_profile and output_dir:
+        for tmpwlii, wl in enumerate(wl_vec):
+            tmpfn = os.path.join(output_dir, f"IQ_{wl}_after_b_correction.dat")
+            save_iqmod(
+                IQmod(
+                    intensity=corrected_intensities[:, tmpwlii],
+                    error=corrected_errors[:, tmpwlii],
+                    mod_q=q_vec,
+                    delta_mod_q=dq_array[:, tmpwlii],
+                ),
+                tmpfn,
+            )
 
     corrected = {
         "iq1d": corrected_i_of_q,

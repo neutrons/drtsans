@@ -14,6 +14,7 @@ from drtsans.tof.eqsans.incoherence_correction_1d import (
     tuneqmin,
 )
 import numpy as np
+import os
 
 
 def test_calculate_b_factor():
@@ -99,7 +100,7 @@ def test_calculate_b_factor_select_min_incoherence():
     np.testing.assert_allclose(b_array, b_array_prototype)
 
 
-def test_incoherence_inelastic_correction():
+def test_incoherence_inelastic_correction(temp_directory):
     """Test methods to correct I(Q1D) accounting wavelength dependent incoherence
     inelastic scattering
     """
@@ -154,9 +155,27 @@ def test_incoherence_inelastic_correction():
     # Compare results from correct_intensity_error and prototypes
     np.testing.assert_allclose(corrected_errors, corrected[1])
 
+    output_dir = temp_directory()
+
     # Test overall workflow
-    corrected_i_of_q = correct_incoherence_inelastic_1d(test_iq1d, False)
+    corrected_i_of_q = correct_incoherence_inelastic_1d(
+        test_iq1d, False, output_wavelength_dependent_profile=True, output_dir=output_dir
+    )
     np.testing.assert_allclose(corrected_i_of_q.iq1d.intensity, generate_expected_corrected_intensities())
+
+    # Check the wavelength dependent profile outputs
+    before_intensity = [0.1, 0.13, 0.15, 0.14, 0.11]
+    for n in range(5):
+        wl = n + 1.0
+        filename = os.path.join(output_dir, f"IQ_{wl}_before_b_correction.dat")
+        assert os.path.exists(filename)
+        data = np.loadtxt(filename)
+        np.testing.assert_allclose(data[:, 1], before_intensity[n])
+
+        filename = os.path.join(output_dir, f"IQ_{wl}_after_b_correction.dat")
+        assert os.path.exists(filename)
+        data = np.loadtxt(filename)
+        np.testing.assert_allclose(data[:, 1], 0.1)
 
     # Test with weighted intensity
     corrected_i_of_q_w = correct_incoherence_inelastic_1d(test_iq1d, False, True)
@@ -352,9 +371,12 @@ def generate_test_data():
 
     # Error
     error_vec = np.sqrt(intensity_vec)
+    error_q_vec = np.sqrt(vec_q)
 
     # Construct IQmod
-    i_of_q = IQmod(intensity=intensity_vec, error=error_vec, mod_q=vec_q, wavelength=wavelength_vec)
+    i_of_q = IQmod(
+        intensity=intensity_vec, error=error_vec, mod_q=vec_q, delta_mod_q=error_q_vec, wavelength=wavelength_vec
+    )
 
     return i_of_q
 

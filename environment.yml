@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - mantid>=6.8.20231207
+  - mantid>=6.8.20231221
   - anaconda-client
   - black
   - libmambapy=1.4.2  # auto-selected libarchive=3.6.2 depends on this version

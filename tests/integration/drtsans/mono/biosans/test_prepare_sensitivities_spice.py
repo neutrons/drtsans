@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch as mock_patch
 import os
 import numpy as np
 import warnings
@@ -8,7 +9,7 @@ from drtsans.mono.spice_data import SpiceRun
 from drtsans.mono.biosans.prepare_sensitivities_correction import (
     prepare_spice_sensitivities_correction,
 )
-from mantid.simpleapi import LoadNexusProcessed
+from mantid.simpleapi import LoadNexusProcessed, Load
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -24,8 +25,13 @@ workspaces = [
 ]
 
 
-@pytest.mark.mount_eqsans
-def test_main_detector(has_sns_mount, reference_dir, temp_directory, clean_workspace):
+def _mock_LoadEventNexus(*args, **kwargs):
+    # Substitute LoadEventNexus with Load because some of the data was reduced in size and saved with SaveNexus
+    return Load(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
+
+
+@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+def test_main_detector(datarepo_dir, temp_directory, clean_workspace):
     """Test case for CG3 main detector
 
     This test is skipped
@@ -39,11 +45,6 @@ def test_main_detector(has_sns_mount, reference_dir, temp_directory, clean_works
     Dark Current for all configurations above -
     /HFIR/CG3/IPTS-17241/exp549/Datafiles/BioSANS_exp549_scan0022_0001.xml
     """
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
-
-    # TODO: investigate if we can use a smaller file than 8 GB file CG3_054900090001.nxs.h5
-    pytest.skip("Requires large memory")
 
     # output testing directory
     output_dir = temp_directory()
@@ -130,11 +131,10 @@ def test_main_detector(has_sns_mount, reference_dir, temp_directory, clean_works
         MIN_THRESHOLD,
         MAX_THRESHOLD,
         SENSITIVITY_FILE,
-        nexus_dir=reference_dir.biosans,
+        nexus_dir=datarepo_dir.biosans,
     )
-
     # Verify
-    gold_sens_file = os.path.join(reference_dir.biosans, "CG3_sens_main_exp549_scan9.nxs")
+    gold_sens_file = os.path.join(datarepo_dir.biosans, "CG3_sens_main_exp549_scan9.nxs")
     assert os.path.exists(gold_sens_file)
     verify_results(SENSITIVITY_FILE, gold_sens_file, clean_workspace)
 

@@ -5,6 +5,7 @@ from drtsans.mono import gpsans as sans
 import drtsans
 import lmfit
 import pytest
+import json
 import os
 
 
@@ -18,19 +19,36 @@ def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
     return val
 
 
-@pytest.mark.mount_eqsans
-def test_gaussian_fit(has_sns_mount):
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
+def test_gaussian_fit(datarepo_dir, temp_directory):
+    # create pixel_calibration.json with tablefile pointing to data repo
+    tmp_dir = temp_directory()
+    pixel_calibration = [
+        {
+            "caltype": "BARSCAN",
+            "instrument": "GPSANS",
+            "component": "detector1",
+            "daystamp": 20200103,
+            "runnumbers": [7465],
+            "tablefile": os.path.join(datarepo_dir.gpsans, "barscan_GPSANS_detector1_20200103.nxs"),
+        },
+        {
+            "caltype": "TUBEWIDTH",
+            "instrument": "GPSANS",
+            "component": "detector1",
+            "daystamp": 20200130,
+            "runnumbers": [8143],
+            "tablefile": os.path.join(datarepo_dir.gpsans, "tubewidth_GPSANS_detector1_20200130.nxs"),
+        },
+    ]
+    pixel_calibration_filename = os.path.join(tmp_dir, "pixel_calibration.json")
+    with open(pixel_calibration_filename, "w") as f:
+        json.dump(pixel_calibration, f)
 
-    if not os.path.exists("/HFIR/CG2/IPTS-26004/nexus/CG2_13078.nxs.h5"):
-        pytest.skip("Required data is not available")
-
-    flood_file = "/HFIR/CG2/shared/drt_sensitivity/sens_c489_bar.nxs"
+    flood_file = os.path.join(datarepo_dir.gpsans, "sens_c489_bar.nxs")
     # Find beam center for main detector
     # loading beam center data
-    center_filename = "/HFIR/CG2/IPTS-26004/nexus/CG2_13078.nxs.h5"
-    ws = sans.load_events(center_filename, output_workspace="ws_center", pixel_calibration=True)
+    center_filename = os.path.join(datarepo_dir.gpsans, "CG2_9188.nxs.h5")
+    ws = sans.load_events(center_filename, output_workspace="ws_center", pixel_calibration=pixel_calibration_filename)
     ws = sans.transform_to_wavelength(ws)
     ws = drtsans.process_uncertainties.set_init_uncertainties(ws)
     sans.solid_angle_correction(ws)
@@ -83,9 +101,9 @@ def test_gaussian_fit(has_sns_mount):
     assert x0 == pytest.approx(results.params["x0"].value)
     assert y0 == pytest.approx(results.params["y0"].value)
     # update ref val after upgrading mantid (v5 -> v6)
-    assert fit_results["amp"]["value"] == pytest.approx(1360200663376.656, rel=1e-4)
-    assert fit_results["sigma_x"]["value"] == pytest.approx(0.010603256092469593, rel=1e-4)
-    assert fit_results["sigma_y"]["value"] == pytest.approx(0.007517092414260906, rel=1e-4)
+    assert fit_results["amp"]["value"] == pytest.approx(720510910)
+    assert fit_results["sigma_x"]["value"] == pytest.approx(0.0133174719397)
+    assert fit_results["sigma_y"]["value"] == pytest.approx(0.0075641382315)
     assert fit_results["theta"]["value"] == pytest.approx(np.pi / 2.0)
 
     params["theta"].value = 0.0
@@ -99,9 +117,9 @@ def test_gaussian_fit(has_sns_mount):
     assert x0 == pytest.approx(results.params["x0"].value)
     assert y0 == pytest.approx(results.params["y0"].value)
     # update ref val after upgrading mantid (v5 -> v6)
-    assert fit_results["amp"]["value"] == pytest.approx(1360200459321.1245, rel=1e-4)
-    assert fit_results["sigma_x"]["value"] == pytest.approx(0.007517094619706732, rel=1e-4)
-    assert fit_results["sigma_y"]["value"] == pytest.approx(0.010603256114750437, rel=1e-4)
+    assert fit_results["amp"]["value"] == pytest.approx(720510910)
+    assert fit_results["sigma_x"]["value"] == pytest.approx(0.0075641382315)
+    assert fit_results["sigma_y"]["value"] == pytest.approx(0.0133174719397)
     assert fit_results["theta"]["value"] == pytest.approx(0.0)
 
     # cleanup
@@ -112,8 +130,8 @@ def test_gaussian_fit(has_sns_mount):
     # barscan_GPSANS_detector1_20200818:	0.393216 MB
     # tubewidth_GPSANS_detector1_20200612:	0.393216 MB
     # for testing purposes, we will manually delete them here
-    DeleteWorkspace("barscan_GPSANS_detector1_20200818")
-    DeleteWorkspace("tubewidth_GPSANS_detector1_20200612")
+    DeleteWorkspace("barscan_GPSANS_detector1_20200103")
+    DeleteWorkspace("tubewidth_GPSANS_detector1_20200130")
 
 
 if __name__ == "__main__":

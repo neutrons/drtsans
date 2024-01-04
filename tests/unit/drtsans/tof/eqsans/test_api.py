@@ -1,3 +1,4 @@
+import os
 import pytest
 from collections import namedtuple
 import numpy as np
@@ -16,35 +17,35 @@ from drtsans.samplelogs import SampleLogs
 ws_mon_pair = namedtuple("ws_mon_pair", ["data", "monitor"])
 
 
-# TODO: need to check if it is possible to use a file that already in git-lfs
-#       or copy the file to git-lfs
-#       we should not access raw IPTS directory directly.
-# @pytest.mark.skipif(
-#     not os.path.exists("/SNS/EQSANS/IPTS-22747/nexus/EQSANS_105428.nxs.h5"),
-#     reason="Required data is not available",
-# )
-@pytest.mark.mount_eqsans
-def test_load_all_files_simple(has_sns_mount):
-    # double sanity check
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
-
+def test_load_all_files_simple(datarepo_dir):
+    # set some filenames to /bin/true so that it will pass the validation without being replaced with default values
     specs = {
         "iptsNumber": 22747,
         "sample": {"runNumber": 105428, "thickness": 1.0},
         "beamCenter": {"runNumber": 105428},
         "outputFileName": "test",
+        "dataDirectories": datarepo_dir.eqsans,
         "configuration": {
             "outputDir": "/tmp",
             "useDefaultMask": False,
+            "maskFileName": "/bin/true",
+            "darkFileName": "/bin/true",
+            "sensitivityFileName": "/bin/true",
             "sampleOffset": "0",
             "LogQBinsPerDecade": 10,
             "normalization": "Total charge",
             "absoluteScaleMethod": "standard",
             "StandardAbsoluteScale": "5.18325",
+            "instrumentConfigurationDir": os.path.join(datarepo_dir.eqsans, "instrument_configuration"),
         },
     }
     reduction_input = reduction_parameters(specs, instrument_name="EQSANS")
+
+    # replace the /bin/true filenames with None
+    reduction_input["configuration"]["maskFileName"] = None
+    reduction_input["configuration"]["darkFileName"] = None
+    reduction_input["configuration"]["sensitivityFileName"] = None
+
     loaded = load_all_files(reduction_input)
 
     assert loaded.sample is not None
@@ -53,7 +54,7 @@ def test_load_all_files_simple(has_sns_mount):
 
     assert history.size() == 11
     assert history.getAlgorithm(0).name() == "LoadEventNexus"
-    assert history.getAlgorithm(0).getProperty("Filename").value == "/SNS/EQSANS/IPTS-22747/nexus/EQSANS_105428.nxs.h5"
+    assert history.getAlgorithm(0).getProperty("Filename").value.endswith("sns/eqsans/EQSANS_105428.nxs.h5")
     assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"
     assert history.getAlgorithm(3).name() == "ChangeBinOffset"
     assert history.getAlgorithm(4).name() == "SetInstrumentParameter"
@@ -68,9 +69,9 @@ def test_load_all_files_simple(has_sns_mount):
     assert loaded.background_transmission.data is None
     assert loaded.empty.data is None
     assert loaded.sample_transmission.data is None
-    assert loaded.dark_current.data is not None
-    assert loaded.sensitivity is not None
-    assert loaded.mask is not None
+    assert loaded.dark_current.data is None
+    assert loaded.sensitivity is None
+    assert loaded.mask is None
 
     # Verify that if something is changed that it gets applied correctly on reload, use default mask as test
     # First check the current value

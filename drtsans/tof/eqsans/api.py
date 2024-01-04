@@ -236,7 +236,9 @@ def load_all_files(reduction_input, prefix="", load_params=None):
         # load Nexus file or files without splitting
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo"
         if not registered_workspace(ws_name):
-            filename = abspaths(sample.strip(), instrument=instrument_name, ipts=ipts)
+            filename = abspaths(
+                sample.strip(), instrument=instrument_name, ipts=ipts, directory=reduction_input["dataDirectories"]
+            )
             print(f"Loading filename {filename}")
             filenames.add(filename)
             loaded_sample_tup = load_events_and_histogram(filename, output_workspace=ws_name, **load_params)

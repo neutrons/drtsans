@@ -10,20 +10,15 @@ from drtsans.load import move_instrument
 from mantid.simpleapi import AddSampleLogMultiple
 
 
-@pytest.mark.mount_eqsans
-def test_load_gpsans(has_sns_mount, clean_workspace):
+def test_load_gpsans(datarepo_dir, clean_workspace):
     """Test load GPSANS data
 
     Returns
     -------
 
     """
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
 
-    nexus_file_name = "/HFIR/CG2/IPTS-23801/nexus/CG2_7116.nxs.h5"
-    if not os.path.exists(nexus_file_name):
-        pytest.skip("Skip due to NeXus file {} is not accessible.".format(nexus_file_name))
+    nexus_file_name = os.path.join(datarepo_dir.gpsans, "CG2_9165.nxs.h5")
 
     # Load data
     ws = load_events(
@@ -51,8 +46,8 @@ def test_load_gpsans(has_sns_mount, clean_workspace):
     # This is a technical debt
     sample_offset, detector_offset = get_sample_detector_offset(ws, "CG2:CS:SampleToSi", 0.0)
 
-    assert sample_offset == -0.088
-    assert detector_offset == -0.088
+    assert sample_offset == -0.083
+    assert detector_offset == -0.083
 
     # Move instrument
     # Move sample and detector
@@ -73,21 +68,15 @@ def test_load_gpsans(has_sns_mount, clean_workspace):
     assert new_sample_det_distance == raw_sample_det_distance
 
 
-@pytest.mark.mount_eqsans
-def test_load_biosans(has_sns_mount, clean_workspace):
+def test_load_biosans(datarepo_dir, clean_workspace):
     """Test load BIOSANS data
 
     Returns
     -------
 
     """
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
 
-    # Decide to skip data or not
-    nexus_file_name = "/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"
-    if not os.path.exists(nexus_file_name):
-        pytest.skip("Skip due to NeXus file {} is not accessible.".format(nexus_file_name))
+    nexus_file_name = os.path.join(datarepo_dir.biosans, "CG3_5705.nxs.h5")
 
     # Load data
     ws = load_events(
@@ -132,21 +121,15 @@ def test_load_biosans(has_sns_mount, clean_workspace):
     assert sample_det_distance_cal == pytest.approx(7.00000019, 1e-7)
 
 
-@pytest.mark.mount_eqsans
-def test_load_biosans_sample_off_nominal(has_sns_mount, clean_workspace):
+def test_load_biosans_sample_off_nominal(datarepo_dir, clean_workspace):
     """Test load BIOSANS data with sample position off nominal position
 
     Returns
     -------
 
     """
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
 
-    # Decide to skip data or not
-    nexus_file_name = "/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"
-    if not os.path.exists(nexus_file_name):
-        pytest.skip("Skip due to NeXus file {} is not accessible.".format(nexus_file_name))
+    nexus_file_name = os.path.join(datarepo_dir.biosans, "CG3_5705.nxs.h5")
 
     # Load data
     ws = load_events(
@@ -209,21 +192,15 @@ def test_load_biosans_sample_off_nominal(has_sns_mount, clean_workspace):
     assert sample_det_distance_cal == pytest.approx(7.00000019, 1e-7)
 
 
-@pytest.mark.mount_eqsans
-def test_load_biosans_overwrite_swd(has_sns_mount, clean_workspace):
+def test_load_biosans_overwrite_swd(datarepo_dir, clean_workspace):
     """Test load BIOSANS data with overwriting sample Si window distance
 
     Returns
     -------
 
     """
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
 
-    # Decide to skip data or not
-    nexus_file_name = "/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"
-    if not os.path.exists(nexus_file_name):
-        pytest.skip("Skip due to NeXus file {} is not accessible.".format(nexus_file_name))
+    nexus_file_name = os.path.join(datarepo_dir.biosans, "CG3_5705.nxs.h5")
 
     # Load data
     ws = load_events(
@@ -268,21 +245,15 @@ def test_load_biosans_overwrite_swd(has_sns_mount, clean_workspace):
     assert swd == pytest.approx(74.21, 1e-10)
 
 
-@pytest.mark.mount_eqsans
-def test_load_biosans_overwrite_sdd(has_sns_mount, clean_workspace):
+def test_load_biosans_overwrite_sdd(datarepo_dir, clean_workspace):
     """Test load BIOSANS data with overwriting sample detector distance related meta data
 
     Returns
     -------
 
     """
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
 
-    # Decide to skip data or not
-    nexus_file_name = "/HFIR/CG3/IPTS-23782/nexus/CG3_4829.nxs.h5"
-    if not os.path.exists(nexus_file_name):
-        pytest.skip("Skip due to NeXus file {} is not accessible.".format(nexus_file_name))
+    nexus_file_name = os.path.join(datarepo_dir.biosans, "CG3_5705.nxs.h5")
 
     # Load data
     ws = load_events(

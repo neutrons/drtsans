@@ -1,5 +1,4 @@
 # local imports
-from drtsans.dataobjects import _Testing, load_iq1d_from_h5, load_iq2d_from_h5
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (
     load_all_files,
@@ -14,10 +13,9 @@ import pytest
 # standard library imports
 import json
 from jsonschema.exceptions import ValidationError
-import filecmp
 import os
 import glob
-from typing import Tuple, Dict
+import numpy as np
 
 
 def test_parse_json(datarepo_dir):
@@ -152,14 +150,11 @@ def test_parse_invalid_json(datarepo_dir):
     assert input_config["configuration"].get("selectMinIncoh")
 
 
-@pytest.mark.mount_eqsans
-def test_incoherence_correction_elastic_normalization(has_sns_mount, reference_dir, temp_directory):
+def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directory):
     """Test incoherence correction with elastic correction"""
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
 
     # Set up the configuration dict
-    config_json_file = os.path.join(reference_dir.eqsans, "test_incoherence_correction/agbe_125707_test1.json")
+    config_json_file = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction/agbe_125707_test1.json")
     assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
     with open(config_json_file, "r") as config_json:
         configuration = json.load(config_json)
@@ -172,8 +167,23 @@ def test_incoherence_correction_elastic_normalization(has_sns_mount, reference_d
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
     configuration["configuration"]["outputDir"] = test_dir
     configuration["outputFileName"] = base_name
-    configuration["dataDirectories"] = test_dir
+    configuration["dataDirectories"] = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction")
     configuration["configuration"]["outputWavelengthDependentProfile"] = True
+    configuration["configuration"]["maskFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_incoherence_correction", "beamstop_mask_4m_ext.nxs"
+    )
+    configuration["configuration"]["darkFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_incoherence_correction", "EQSANS_124667.nxs.h5"
+    )
+    configuration["configuration"]["sensitivityFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_incoherence_correction", "Sensitivity_patched_thinPMMA_4m_124972.nxs"
+    )
+    configuration["configuration"]["instrumentConfigurationDir"] = os.path.join(
+        datarepo_dir.eqsans, "instrument_configuration"
+    )
+    configuration["configuration"]["beamFluxFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_normalization", "beam_profile_flux.txt"
+    )
 
     # validate and clean configuration
     input_config = reduction_parameters(configuration)
@@ -197,9 +207,9 @@ def test_incoherence_correction_elastic_normalization(has_sns_mount, reference_d
     # with date and developer UCAMS ID. The old data will be kept as it is.
     acceptable_versions = ["20220321_rys_", "20230730_jbq_"]  # golden data with differences within acceptable error
     checks = [
-        filecmp.cmp(
-            test_iq1d_file,
-            os.path.join(reference_dir.eqsans, "test_incoherence_correction", version + iq1d_base_name),
+        np.allclose(
+            np.loadtxt(test_iq1d_file),
+            np.loadtxt(os.path.join(datarepo_dir.eqsans, "test_incoherence_correction", version + iq1d_base_name)),
         )
         for version in acceptable_versions
     ]
@@ -239,16 +249,11 @@ def test_incoherence_correction_elastic_normalization(has_sns_mount, reference_d
             DeleteWorkspace(ws)
 
 
-@pytest.mark.mount_eqsans
-def test_incoherence_correction_elastic_normalization_weighted(has_sns_mount, reference_dir, temp_directory):
+def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, temp_directory):
     """Test incoherence correction with elastic correction"""
-    import filecmp
-
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
 
     # Set up the configuration dict
-    config_json_file = os.path.join(reference_dir.eqsans, "test_incoherence_correction/porsil_29024_abs_inel.json")
+    config_json_file = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction/porsil_29024_abs_inel.json")
     assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
     with open(config_json_file, "r") as config_json:
         configuration = json.load(config_json)
@@ -258,7 +263,7 @@ def test_incoherence_correction_elastic_normalization_weighted(has_sns_mount, re
     test_dir = temp_directory()
 
     def run_reduction_and_compare(config, expected_result_filename):
-        with amend_config(data_dir=reference_dir.eqsans):
+        with amend_config(data_dir=datarepo_dir.eqsans):
             # validate and clean configuration
             input_config = reduction_parameters(config)
             loaded = load_all_files(input_config)
@@ -270,9 +275,9 @@ def test_incoherence_correction_elastic_normalization_weighted(has_sns_mount, re
         assert reduction_output
 
         test_iq1d_file = os.path.join(test_dir, config["outputFileName"] + "_Iq.dat")
-        gold_iq1d_file = os.path.join(reference_dir.eqsans, "test_incoherence_correction", expected_result_filename)
+        gold_iq1d_file = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction", expected_result_filename)
         # compare
-        assert filecmp.cmp(test_iq1d_file, gold_iq1d_file)
+        np.testing.assert_allclose(np.loadtxt(test_iq1d_file), np.loadtxt(gold_iq1d_file))
 
         DeleteWorkspace("_empty")
         DeleteWorkspace("_mask")
@@ -287,7 +292,22 @@ def test_incoherence_correction_elastic_normalization_weighted(has_sns_mount, re
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
     configuration["configuration"]["outputDir"] = test_dir
     configuration["outputFileName"] = base_name
-    configuration["dataDirectories"] = reference_dir.eqsans
+    configuration["dataDirectories"] = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction")
+    configuration["configuration"]["darkFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_incoherence_correction", "EQSANS_129142.nxs.h5"
+    )
+    configuration["configuration"]["sensitivityFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_incoherence_correction", "Sensitivity_patched_thinPMMA_4m_129610.nxs"
+    )
+    configuration["configuration"]["instrumentConfigurationDir"] = os.path.join(
+        datarepo_dir.eqsans, "instrument_configuration"
+    )
+    configuration["configuration"]["maskFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_incoherence_correction", "EQSANS_132078_mask.nxs"
+    )
+    configuration["configuration"]["beamFluxFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_normalization", "beam_profile_flux.txt"
+    )
     run_reduction_and_compare(configuration, "EQSANS_132078_Iq.dat")
 
     # Run with weighted
@@ -319,34 +339,6 @@ def test_incoherence_correction_elastic_normalization_weighted(has_sns_mount, re
     run_reduction_and_compare(configuration, "EQSANS_132078_weighted_factor_Iq.dat")
 
     print(f"Output directory: {test_dir}")
-
-
-def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):
-    """Verify reduced I(Q1D) and I(qx, qy) by expected/gold data
-
-    Parameters
-    ----------
-    gold_file_dict: ~dict
-        dictionary for gold files
-    reduction_output: ~list
-        list of binned I(Q1D) and I(qx, qy)
-
-    """
-    num_frames_gold = len(gold_file_dict) // 2
-    assert num_frames_gold == len(
-        reduction_output
-    ), f"Frame numbers are different: gold = {len(gold_file_dict) // 2}; test = {len(reduction_output)}"
-
-    for frame_index in range(num_frames_gold):
-        # 1D
-        iq1d_h5_name = gold_file_dict[1, frame_index, 0]
-        gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
-        _Testing.assert_allclose(reduction_output[frame_index].I1D_main[0], gold_iq1d)
-
-        # 2D
-        iq2d_h5_name = gold_file_dict[2, frame_index]
-        gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
-        _Testing.assert_allclose(reduction_output[frame_index].I2D_main, gold_iq2d)
 
 
 if __name__ == "__main__":

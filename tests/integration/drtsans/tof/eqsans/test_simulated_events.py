@@ -16,7 +16,7 @@ from mantid.simpleapi import (
     SaveNexus,
 )
 from mantid.dataobjects import EventWorkspace
-from mantid.kernel import DateAndTime
+from mantid.kernel import DateAndTime, amend_config
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -27,7 +27,7 @@ from drtsans.instruments import empty_instrument_workspace
 from drtsans.load import load_events as generic_load_events
 from drtsans.load import load_and_split as generic_load_and_split
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import amend_config, namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.simulated_events import insert_background, insert_beam_spot, insert_events_isotropic, insert_events_ring
 from drtsans.tof.eqsans import (
     load_all_files,

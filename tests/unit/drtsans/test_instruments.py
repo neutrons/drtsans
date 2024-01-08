@@ -6,14 +6,16 @@ from drtsans.instruments import (
     empty_instrument_workspace,
     instrument_enum_name,
     is_time_of_flight,
+    instrument_facility_name,
 )
 from drtsans.instruments import fetch_idf as instruments_fetch_idf
 from drtsans.mono.biosans.geometry import get_angle_wing_detector, get_position_south_detector
-from drtsans.settings import amend_config, unique_workspace_dundername
+from drtsans.settings import unique_workspace_dundername
 
 # third party imports
 from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import CreateWorkspace, DeleteWorkspace, LoadEmptyInstrument, LoadEventNexus
+from mantid.kernel import amend_config
 from numpy.testing import assert_almost_equal
 import pytest
 from os.path import join as path_join
@@ -109,7 +111,7 @@ def test_copy_to_newest_instrument(fetch_idf, datarepo_dir, clean_workspace):
     assert workspace2.getNumberHistograms() > old_histogram_count
     #
     # assert intensities and detector positions
-    with amend_config(new_config={"default.instrument": "CG3"}, data_dir=datarepo_dir.biosans):
+    with amend_config(facility="HFIR", instrument="CG3", data_dir=datarepo_dir.biosans):
         workspace3 = LoadEventNexus(Filename="1322", OutputWorkspace=unique_workspace_dundername())
     clean_workspace(workspace3)
     pixel_counts = workspace3.getSpectrum(24956).getNumberEvents()
@@ -127,6 +129,33 @@ def test_fetch_idf(tmpdir):
     with pytest.raises(FileNotFoundError) as excinfo:
         instruments_fetch_idf("nonexisting.xml", output_directory=tmpdir)
     assert "nonexisting.xml" in str(excinfo.value)
+
+
+@pytest.mark.datarepo
+def test_instrument_facility_name(datarepo_dir, temp_workspace_name):
+    # test instrument name
+    assert instrument_facility_name("EQSANS") == "SNS"
+    assert instrument_facility_name("BIOSANS") == "HFIR"
+    assert instrument_facility_name("GPSANS") == "HFIR"
+    assert instrument_facility_name("CG3") == "HFIR"
+    assert instrument_facility_name("CG2") == "HFIR"
+    with pytest.raises(ValueError):
+        assert instrument_facility_name("")
+
+    # test filename
+    assert instrument_facility_name("somepath/CG3_961.nxs.h5") == "HFIR"
+    assert instrument_facility_name("EQSANS_92353.nxs.h5") == "SNS"
+    with pytest.raises(ValueError):
+        assert instrument_facility_name("nonexistantsansinstrument")
+
+    # test workspace
+    event_workspace = LoadEventNexus(
+        path_join(datarepo_dir.eqsans, "EQSANS_92353.nxs.h5"), OutputWorkspace=temp_workspace_name()
+    )
+    assert instrument_facility_name(event_workspace) == "SNS"
+    workspace = CreateWorkspace(DataX=range(42), DataY=range(42), OutputWorkspace=temp_workspace_name())
+    with pytest.raises(ValueError):
+        assert instrument_facility_name(workspace)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ from pytest import approx
 import numpy as np
 
 from mantid.simpleapi import Rebin, SumSpectra, mtd
-from drtsans.settings import amend_config
+from mantid.kernel import amend_config
 from drtsans.tof.eqsans.load import (
     load_events,
     load_events_and_histogram,

@@ -12,13 +12,14 @@ from mantid.dataobjects import EventWorkspace
 # https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html
 from mantid.simpleapi import SumSpectra, mtd, LoadNexus, CompareWorkspaces
 from mantid.simpleapi import DeleteWorkspace
+from mantid.kernel import amend_config
 
 # public API
 from drtsans.tof import eqsans
 from drtsans import solid_angle_correction
 
 # protected API
-from drtsans.settings import amend_config, namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy, unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import main_detector_name
 

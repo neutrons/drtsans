@@ -1,9 +1,8 @@
 # local imports
 from drtsans.load import load_events
-from drtsans.settings import amend_config
 
 # third-party imports
-from mantid.kernel import V3D
+from mantid.kernel import V3D, amend_config
 from mantid.simpleapi import CreateSampleWorkspace, LoadNexusProcessed
 import numpy as np
 import pytest
@@ -595,7 +594,7 @@ def test_biosans_synthetic_sensitivity_dataset(biosans_synthetic_sensitivity_dat
     @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
     def _executor():
         with amend_config(
-            new_config={"instrumentName": "CG3"}, data_dir=biosans_synthetic_sensitivity_dataset["data_dir"]
+            facility="HFIR", instrument="CG3", data_dir=biosans_synthetic_sensitivity_dataset["data_dir"]
         ):
             run_number = biosans_synthetic_sensitivity_dataset["runs"]["flood"]
             return load_events(f"CG3_{run_number}")

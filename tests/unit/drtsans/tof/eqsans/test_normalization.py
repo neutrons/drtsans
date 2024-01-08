@@ -5,18 +5,20 @@ from os.path import join as pj
 r"""
 Hyperlinks to Mantid algorithms
 SumSpectra <https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html>
+amend_config <https://docs.mantidproject.org/nightly/api/python/mantid/kernel/AmendConfig.html>
 """
 from mantid.simpleapi import SumSpectra
+from mantid.kernel import amend_config
 
 r"""
 Hyperlinks to drtsans functions
-amend_config, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 load_events <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/load.py>
 prepare_monitors <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/api.py>
 normalize_by_time,...load_flux_to_monitor_ratio_file <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/nomalization.py>
 """  # noqa: E501
-from drtsans.settings import amend_config, unique_workspace_dundername
+from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import (
     load_events,
@@ -66,7 +68,7 @@ def data_ws(datarepo_dir):
 def monitor_ws(datarepo_dir):
     r"""Single-spectrum Workspace containing wavelength-dependent monitor counts for run 88565."""
     ws = dict()
-    with amend_config(data_dir=datarepo_dir.eqsans):
+    with amend_config(facility="SNS", instrument="EQSANS", data_dir=datarepo_dir.eqsans):
         for run in ("88565",):
             ws[run] = prepare_monitors(run)
     return ws

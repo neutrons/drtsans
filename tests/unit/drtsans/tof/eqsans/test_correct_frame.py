@@ -5,11 +5,10 @@ from pytest import approx
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_allclose
 from mantid.simpleapi import Load, CreateWorkspace, CreateSampleWorkspace
-from mantid.kernel import DateAndTime
+from mantid.kernel import DateAndTime, amend_config
 from drtsans import wavelength as sans_wavelength
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import correct_frame
-from drtsans.settings import amend_config
 from drtsans.geometry import source_detector_distance
 
 BandsTuple = namedtuple("BandsTuple", "lead skip")

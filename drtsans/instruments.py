@@ -333,3 +333,23 @@ def copy_to_newest_instrument(
     if output_workspace is None:  # overwrite the input workspace
         target = RenameWorkspace(InputWorkspace=target_workspace, OutputWorkspace=str(input_workspace))
     return target
+
+
+def instrument_facility_name(input_query):
+    """Get the facility name for the instrument
+
+    Parameters
+    ----------
+    input_query: str,  ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+        string representing a filepath, a valid instrument name, or a Mantid workspace containing an instrument
+
+    Returns
+    -------
+    str
+        The name of facility for the instrument.
+    """
+    try:
+        instrument = ConfigService.getInstrument(instrument_standard_name(input_query))
+    except RuntimeError as exc:
+        raise ValueError(f"Failed to find instrument: {str(input_query)}") from exc
+    return str(instrument.facility())

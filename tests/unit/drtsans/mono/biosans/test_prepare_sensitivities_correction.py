@@ -1,7 +1,7 @@
 # local imports
 from drtsans.mono.biosans.prepare_sensitivities_correction import PrepareSensitivityCorrection
 from drtsans.path import abspath
-from drtsans.settings import amend_config
+from mantid.kernel import amend_config
 
 # third party imports
 import pytest

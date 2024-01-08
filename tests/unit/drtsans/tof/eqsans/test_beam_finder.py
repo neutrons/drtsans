@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pytest import approx
 from mantid.simpleapi import LoadEventNexus
-from drtsans.settings import amend_config
+from mantid.kernel import amend_config
 from drtsans.tof.eqsans import center_detector, find_beam_center
 
 

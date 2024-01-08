@@ -20,7 +20,7 @@ cd /tmp/sans-backend/conda.recipe
 # setup and build the conda package
 #conda render .
 echo "Building conda package"
-MANTID_CHANNEL=$(conda env export | grep "mantid/label" | cut -d "-" -f 2)
+MANTID_CHANNEL=$(conda env export | grep "mantid/label" | awk '{ print $2 }')
 VERSION=$(python -m versioningit ../) conda mambabuild --output-folder ./ -c "${MANTID_CHANNEL}" -c conda-forge ./ || exit 1
 
 # show what tarballs were created

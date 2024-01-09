@@ -3,7 +3,6 @@ channels:
   - mantid/label/nightly
   - conda-forge
   - defaults
-  - oncat
 dependencies:
   # base
   - pip
@@ -20,7 +19,6 @@ dependencies:
   - numexpr
   - pandas
   - lmfit
-  - pyoncat
   - jinja2
   - graphviz
   - jsonschema>=3.0.2

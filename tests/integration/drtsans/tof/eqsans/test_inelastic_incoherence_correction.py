@@ -172,9 +172,9 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
     configuration["configuration"]["maskFileName"] = os.path.join(
         datarepo_dir.eqsans, "test_incoherence_correction", "beamstop_mask_4m_ext.nxs"
     )
-    configuration["configuration"]["darkFileName"] = os.path.join(
-        datarepo_dir.eqsans, "test_incoherence_correction", "EQSANS_124667.nxs.h5"
-    )
+    configuration["configuration"][
+        "darkFileName"
+    ] = "/bin/true"  # so that it will pass the validator, later set to None
     configuration["configuration"]["sensitivityFileName"] = os.path.join(
         datarepo_dir.eqsans, "test_incoherence_correction", "Sensitivity_patched_thinPMMA_4m_124972.nxs"
     )
@@ -187,6 +187,7 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
 
     # validate and clean configuration
     input_config = reduction_parameters(configuration)
+    input_config["configuration"]["darkFileName"] = None
     loaded = load_all_files(input_config)
 
     # check loaded JSON file
@@ -203,17 +204,10 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
     test_iq1d_file = os.path.join(test_dir, iq1d_base_name)
     assert os.path.exists(test_iq1d_file), f"Expected test result {test_iq1d_file} does not exist"
 
-    # The gold data are not stored inside the repository so when gold data are changed a version prefix is added
-    # with date and developer UCAMS ID. The old data will be kept as it is.
-    acceptable_versions = ["20220321_rys_", "20230730_jbq_"]  # golden data with differences within acceptable error
-    checks = [
-        np.allclose(
-            np.loadtxt(test_iq1d_file),
-            np.loadtxt(os.path.join(datarepo_dir.eqsans, "test_incoherence_correction", version + iq1d_base_name)),
-        )
-        for version in acceptable_versions
-    ]
-    assert any(checks), "Test result does not match any of the gold data"
+    np.testing.assert_allclose(
+        np.loadtxt(test_iq1d_file),
+        np.loadtxt(os.path.join(datarepo_dir.eqsans, "test_incoherence_correction", iq1d_base_name)),
+    )
 
     # check that the wavelength dependent profiles are created
     number_of_wavelengths = 31
@@ -266,6 +260,7 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
         with amend_config(data_dir=datarepo_dir.eqsans):
             # validate and clean configuration
             input_config = reduction_parameters(config)
+            input_config["configuration"]["darkFileName"] = None
             loaded = load_all_files(input_config)
 
             # Reduce
@@ -293,9 +288,9 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
     configuration["configuration"]["outputDir"] = test_dir
     configuration["outputFileName"] = base_name
     configuration["dataDirectories"] = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction")
-    configuration["configuration"]["darkFileName"] = os.path.join(
-        datarepo_dir.eqsans, "test_incoherence_correction", "EQSANS_129142.nxs.h5"
-    )
+    configuration["configuration"][
+        "darkFileName"
+    ] = "/bin/true"  # so that it will pass the validator, later set to None
     configuration["configuration"]["sensitivityFileName"] = os.path.join(
         datarepo_dir.eqsans, "test_incoherence_correction", "Sensitivity_patched_thinPMMA_4m_129610.nxs"
     )
@@ -334,7 +329,7 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
     configuration["outputFileName"] = base_name
     configuration["configuration"]["incohfit_intensityweighted"] = True
     configuration["configuration"]["incohfit_factor"] = None
-    configuration["configuration"]["incohfit_qmin"] = 0.085
+    configuration["configuration"]["incohfit_qmin"] = 0.065
     configuration["configuration"]["incohfit_qmax"] = 0.224
     run_reduction_and_compare(configuration, "EQSANS_132078_weighted_factor_Iq.dat")
 

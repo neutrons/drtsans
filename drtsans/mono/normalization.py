@@ -106,6 +106,8 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
         monitor = None
         try:
             monitor = SampleLogs(input_workspace).single_value(entry_name) / reference_total_counts
+            if float(monitor) <= 0.0:
+                raise ValueError("Monitor has zero counts")
             break
         except RuntimeError:  # the entry is not found in the metadata
             continue  # search next entry

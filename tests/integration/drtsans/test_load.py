@@ -1,5 +1,6 @@
+import os
+import json
 import pytest
-from pathlib import Path
 
 from drtsans.load import load_events
 from drtsans.settings import unique_workspace_dundername
@@ -7,16 +8,37 @@ from mantid.simpleapi import DeleteWorkspace
 
 
 class TestLoadEvents:
-    @pytest.mark.mount_eqsans
-    def test_pixel_calibration(self, has_sns_mount, reference_dir):
-        r"""Check the pixel calibration is applied to a workspace upon loading"""
-        if not has_sns_mount:
-            pytest.skip("SNS mount is not available")
+    def test_pixel_calibration(self, datarepo_dir, temp_directory):
+        """Check the pixel calibration is applied to a workspace upon loading"""
 
-        file_name = str(Path(reference_dir.sans) / "pixel_calibration" / "CG2_8508.nxs.h5")
+        # create pixel_calibration.json with tablefile pointing to data repo
+        tmp_dir = temp_directory()
+        pixel_calibration = [
+            {
+                "caltype": "BARSCAN",
+                "instrument": "GPSANS",
+                "component": "detector1",
+                "daystamp": 20200103,
+                "runnumbers": [7465],
+                "tablefile": os.path.join(datarepo_dir.gpsans, "barscan_GPSANS_detector1_20200103.nxs"),
+            },
+            {
+                "caltype": "TUBEWIDTH",
+                "instrument": "GPSANS",
+                "component": "detector1",
+                "daystamp": 20200130,
+                "runnumbers": [8143],
+                "tablefile": os.path.join(datarepo_dir.gpsans, "tubewidth_GPSANS_detector1_20200130.nxs"),
+            },
+        ]
+        pixel_calibration_filename = os.path.join(tmp_dir, "pixel_calibration.json")
+        with open(pixel_calibration_filename, "w") as f:
+            json.dump(pixel_calibration, f)
+
+        file_name = os.path.join(datarepo_dir.gpsans, "CG2_8148.nxs.h5")
         workspace = load_events(
             file_name,
-            pixel_calibration=True,
+            pixel_calibration=pixel_calibration_filename,
             output_workspace=unique_workspace_dundername(),
         )
         component_info = workspace.componentInfo()
@@ -35,9 +57,7 @@ class TestLoadEvents:
         assert pixel_height == pytest.approx(0.00492, abs=1.0e-5)  # calibrated width
 
         # NOTE:
-        # It is unclear where the following two workspaces are loaded/created and
-        # whether they should be allowed to be persistent in memory.
-        # For testing purpose, we are deleteing them.
+        # These workspaces are created when the pixel calibration is read from the calibration database.
         # barscan_GPSANS_detector1_20200103:	0.393216 MB
         # tubewidth_GPSANS_detector1_20200130:	0.393216 MB
         DeleteWorkspace("barscan_GPSANS_detector1_20200103")

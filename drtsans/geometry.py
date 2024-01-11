@@ -426,18 +426,26 @@ def search_source_sample_distance_meta_name(source, specified_meta_name):
     """
     # Allowed meta data name for source-sample distance including aliases
     # Currently EPICS uses 'source_aperture_sample_aperture_distance'
-    log_keys = {
+    log_key_order = [
+        "source_aperture_sample_aperture_distance",
+        "source_aperture_sample_distance",
         "source-sample-distance",
         "source_sample-distance",
         "source_sample_distance",
         "sample-source-distance",
         "sample_source-distance",
         "sample_source_distance",
-        "source_aperture_sample_distance",
-        "source_aperture_sample_aperture_distance",
-    }
+    ]
+    log_keys = set(log_key_order)
+    meta_data_list = _search_meta_data(source, log_keys, specified_meta_name)
 
-    return _search_meta_data(source, log_keys, specified_meta_name)
+    # return the index of meta_data_name in the log_key_order list
+    def get_log_index(meta_data):
+        return log_key_order.index(meta_data[0])
+
+    # the meta_data are sorted based on log_key_order items' order
+    sorted_meta_data_list = sorted(meta_data_list, key=get_log_index)
+    return sorted_meta_data_list
 
 
 def sample_detector_distance(
@@ -563,7 +571,7 @@ def _search_meta_data(source, default_search_set, specified_meta_name):
     sample_logs = SampleLogs(source)
 
     # Intersection:
-    found_log_names = list(log_keys.intersection((sample_logs.keys())))
+    found_log_names = sorted(list(log_keys.intersection((sample_logs.keys()))))
 
     # Decide log name
     meta_list = list()

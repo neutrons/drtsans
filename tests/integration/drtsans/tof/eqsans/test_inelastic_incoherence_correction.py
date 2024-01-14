@@ -1,5 +1,4 @@
 # local imports
-from drtsans.dataobjects import _Testing, load_iq1d_from_h5, load_iq2d_from_h5
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (
     load_all_files,
@@ -14,31 +13,27 @@ import pytest
 # standard library imports
 import json
 from jsonschema.exceptions import ValidationError
-import filecmp
 import os
 import glob
-from typing import Tuple, Dict
+import numpy as np
 
 
-@pytest.mark.mount_eqsans
-def test_parse_json(has_sns_mount, reference_dir):
+def test_parse_json(datarepo_dir):
     """Test the JSON to dictionary"""
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
 
-    elastic_reference_run = "124680"
+    elastic_reference_run = "92160"
     elastic_reference_bkgd_run = ""
     # Specify JSON input
     reduction_input = {
         "instrumentName": "EQSANS",
         "iptsNumber": "26015",
-        "sample": {"runNumber": "115363", "thickness": "1.0"},
+        "sample": {"runNumber": "105428", "thickness": "1.0"},
         "background": {
-            "runNumber": "115361",
-            "transmission": {"runNumber": "115357", "value": ""},
+            "runNumber": "104088",
+            "transmission": {"runNumber": "101595", "value": ""},
         },
-        "emptyTransmission": {"runNumber": "115356", "value": ""},
-        "beamCenter": {"runNumber": "115356"},
+        "emptyTransmission": {"runNumber": "101595", "value": ""},
+        "beamCenter": {"runNumber": "92353"},
         "outputFileName": "test_wavelength_step",
         "configuration": {
             "outputDir": "/path/to/nowhere",
@@ -46,11 +41,7 @@ def test_parse_json(has_sns_mount, reference_dir):
             "wavelengthStepType": "constant Delta lambda/lambda",
             "sampleApertureSize": "10",
             "fluxMonitorRatioFile": None,
-            "sensitivityFileName": (
-                "/SNS/EQSANS/"
-                "shared/NeXusFiles/EQSANS/"
-                "2020A_mp/Sensitivity_patched_thinPMMA_2o5m_113514_mantid.nxs"
-            ),
+            "sensitivityFileName": "/bin/true",
             "numQBins": "100",
             "WedgeMinAngles": "-30, 60",
             "WedgeMaxAngles": "30, 120",
@@ -67,11 +58,13 @@ def test_parse_json(has_sns_mount, reference_dir):
                 "transmission": {"runNumber": "", "value": "0.9"},
             },
             "selectMinIncoh": True,
+            "maskFileName": "/bin/true",
+            "darkFileName": "/bin/true",
         },
     }
 
     # Validate
-    with amend_config(data_dir=reference_dir.eqsans):
+    with amend_config(data_dir=datarepo_dir.eqsans):
         input_config = reduction_parameters(reduction_input)
 
     # Check that inelastic incoherence config items were parsed
@@ -85,31 +78,28 @@ def test_parse_json(has_sns_mount, reference_dir):
     correction = parse_correction_config(input_config)
     assert correction.do_correction
     assert correction.elastic_reference
-    assert correction.elastic_reference.run_number == "124680"
+    assert correction.elastic_reference.run_number == "92160"
     assert correction.elastic_reference.thickness == 1.0
     assert correction.elastic_reference.transmission_value == 0.89
     assert correction.elastic_reference.background_run_number is None
 
 
-@pytest.mark.mount_eqsans
-def test_parse_invalid_json(has_sns_mount):
+def test_parse_invalid_json(datarepo_dir):
     """Test the JSON to dictionary"""
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
 
     invalid_run_num = "260159121"
-    valid_run_num = "115363"
+    valid_run_num = "85550"
     # Specify JSON input
     reduction_input = {
         "instrumentName": "EQSANS",
         "iptsNumber": "26015",
-        "sample": {"runNumber": "115363", "thickness": "1.0"},
+        "sample": {"runNumber": "85550", "thickness": "1.0"},
         "background": {
-            "runNumber": "115361",
-            "transmission": {"runNumber": "115357", "value": ""},
+            "runNumber": "86217",
+            "transmission": {"runNumber": "88565", "value": ""},
         },
-        "emptyTransmission": {"runNumber": "115356", "value": ""},
-        "beamCenter": {"runNumber": "115356"},
+        "emptyTransmission": {"runNumber": "88901", "value": ""},
+        "beamCenter": {"runNumber": "88973"},
         "outputFileName": "test_wavelength_step",
         "configuration": {
             "outputDir": "/path/to/nowhere",
@@ -117,11 +107,7 @@ def test_parse_invalid_json(has_sns_mount):
             "wavelengthStepType": "constant Delta lambda/lambda",
             "sampleApertureSize": "10",
             "fluxMonitorRatioFile": None,
-            "sensitivityFileName": (
-                "/SNS/EQSANS/"
-                "shared/NeXusFiles/EQSANS/"
-                "2020A_mp/Sensitivity_patched_thinPMMA_2o5m_113514_mantid.nxs"
-            ),
+            "sensitivityFileName": "/bin/true",
             "numQBins": "100",
             "WedgeMinAngles": "-30, 60",
             "WedgeMaxAngles": "30, 120",
@@ -138,19 +124,25 @@ def test_parse_invalid_json(has_sns_mount):
                 "transmission": {"runNumber": valid_run_num, "value": "0.9"},
             },
             "selectMinIncoh": True,
+            "maskFileName": "/bin/true",
+            "darkFileName": "/bin/true",
         },
     }
 
     # Validate
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as excinfo:
         # expect to fail as elastic reference run 260159121 does not exist
-        reduction_parameters(reduction_input)
+        with amend_config(data_dir=datarepo_dir.eqsans):
+            reduction_parameters(reduction_input)
+
+    assert "Cannot find events file associated to 260159121" in str(excinfo.value)
 
     # Respecify to use a valid run
     # json_str.replace('260159121', '26015')
     reduction_input["configuration"]["elasticReference"]["runNumber"] = valid_run_num
     # Defaults and Validate
-    input_config = reduction_parameters(reduction_input)
+    with amend_config(data_dir=datarepo_dir.eqsans):
+        input_config = reduction_parameters(reduction_input)
 
     # Check that inelastic incoherence config items were parsed
     assert input_config["configuration"].get("fitInelasticIncoh")
@@ -158,160 +150,11 @@ def test_parse_invalid_json(has_sns_mount):
     assert input_config["configuration"].get("selectMinIncoh")
 
 
-def generate_configuration_with_correction(output_dir: str = "/tmp/") -> Dict:
-    """Generate configuration dictionary (JSON) from test 2 in issue 689
-
-    Source: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689  *Test 2*
-
-    Returns
-    -------
-    ~dict
-        Reduction donfiguration JSON
-
-    """
-    reduction_configuration = {
-        "schemaStamp": "2020-05-21T17:18:11.528041",
-        "instrumentName": "EQSANS",
-        "iptsNumber": "24876",
-        "sample": {
-            "runNumber": "113915",
-            "thickness": 1,
-            "transmission": {"runNumber": "113914", "value": ""},
-        },
-        "background": {
-            "runNumber": "113919",
-            "transmission": {"runNumber": "113918", "value": ""},
-        },
-        "emptyTransmission": {"runNumber": "113682", "value": None},
-        "beamCenter": {"runNumber": "113682"},
-        "outputFileName": "water65D_2o5m2o5a_full",
-        "configuration": {
-            "outputDir": f"{output_dir}",
-            "useTimeSlice": False,
-            "timeSliceInterval": 300,
-            "useLogSlice": False,
-            "logSliceName": None,
-            "logSliceInterval": 10,
-            "cutTOFmin": 500,
-            "cutTOFmax": 2000,
-            "wavelengthStep": 0.1,
-            "wavelengthStepType": "constant Delta lambda",
-            "sampleOffset": 314.5,
-            "useDetectorOffset": True,
-            "detectorOffset": 80,
-            "sampleApertureSize": 10,
-            "sourceApertureDiameter": None,
-            "usePixelCalibration": None,
-            "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/mask_4m_extended.nxs",
-            "useDefaultMask": True,
-            "defaultMask": None,
-            "useMaskBackTubes": False,
-            "darkFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/EQSANS_113569.nxs.h5",
-            "normalization": "Total charge",
-            "fluxMonitorRatioFile": None,
-            "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
-            "sensitivityFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/"
-            "Sensitivity_patched_thinPMMA_2o5m_113514_mantid.nxs",
-            "useSolidAngleCorrection": True,
-            "useThetaDepTransCorrection": True,
-            "mmRadiusForTransmission": 25,
-            "absoluteScaleMethod": "standard",
-            "StandardAbsoluteScale": 1.0,
-            "numQxQyBins": 80,
-            "1DQbinType": "scalar",
-            "QbinType": "linear",
-            "numQBins": 100,
-            "LogQBinsPerDecade": None,
-            "useLogQBinsDecadeCenter": False,
-            "useLogQBinsEvenDecade": False,
-            "WedgeMinAngles": "-30, 60",
-            "WedgeMaxAngles": "30, 120",
-            "autoWedgeQmin": None,
-            "autoWedgeQmax": None,
-            "autoWedgeQdelta": None,
-            "autoWedgeAzimuthalDelta": None,
-            "autoWedgePeakWidth": None,
-            "autoWedgeBackgroundWidth": None,
-            "autoWedgeSignalToNoiseMin": None,
-            "AnnularAngleBin": 5.0,
-            "Qmin": None,
-            "Qmax": None,
-            "useErrorWeighting": True,
-            "smearingPixelSizeX": None,
-            "smearingPixelSizeY": None,
-            "useSubpixels": None,
-            "subpixelsX": None,
-            "subpixelsY": None,
-            "useSliceIDxAsSuffix": None,
-            # inelastic/incoherent correction
-            "fitInelasticIncoh": True,
-            "elasticReference": {
-                "runNumber": None,
-                "thickness": "1.0",
-                "transmission": {"runNumber": None, "value": "0.9"},
-            },
-            "elasticReferenceBkgd": {
-                "runNumber": None,
-                "transmission": {"runNumber": None, "value": "0.9"},
-            },
-            "selectMinIncoh": True,
-        },
-    }
-
-    return reduction_configuration
-
-
-# @pytest.mark.skipif(
-#     reason="The test is either incorrect or using wrong ref values",
-# )
-# def test_incoherence_correction_step4only(reference_dir, temp_directory):
-#     """Test incoherence correction without elastic correction"""
-#     # Set up the configuration dict
-#     configuration = generate_configuration_with_correction()
-#
-#     # Create temp output directory
-#     test_dir = temp_directory()
-#     base_name = "EQSANS_113915_Incoh_1d"
-#
-#     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
-#     configuration["configuration"]["outputDir"] = test_dir
-#     configuration["outputFileName"] = base_name
-#     configuration["dataDirectories"] = test_dir
-#
-#     # validate and clean configuration
-#     input_config = reduction_parameters(configuration)
-#     loaded = load_all_files(input_config)
-#
-#     # Reduce
-#     reduction_output = reduce_single_configuration(loaded, input_config, not_apply_incoherence_correction=False)
-#
-#     # Gold data directory
-#     gold_dir = os.path.join(reference_dir.eqsans, "gold_data/Incoherence_Corrected_113915/")
-#     assert os.path.exists(gold_dir), f"Gold/expected data directory {gold_dir} does not exist"
-#
-#     # Verify with gold data
-#     gold_file_dict = dict()
-#     for frame_index in range(1):
-#         iq1d_h5_name = os.path.join(gold_dir, f"EQSANS_11395iq1d_{frame_index}_0.h5")
-#         gold_file_dict[1, frame_index, 0] = iq1d_h5_name
-#         iq2d_h5_name = os.path.join(gold_dir, f"EQSANS_11395iq2d_{frame_index}.h5")
-#         gold_file_dict[2, frame_index] = iq2d_h5_name
-#         assert os.path.exists(iq1d_h5_name) and os.path.exists(iq2d_h5_name), (
-#             f"{iq1d_h5_name} and/or {iq2d_h5_name}" f"do not exist"
-#         )
-#
-#     # Verify
-#     verify_binned_iq(gold_file_dict, reduction_output)
-
-
-@pytest.mark.mount_eqsans
-def test_incoherence_correction_elastic_normalization(has_sns_mount, reference_dir, temp_directory):
+def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directory):
     """Test incoherence correction with elastic correction"""
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
 
     # Set up the configuration dict
-    config_json_file = os.path.join(reference_dir.eqsans, "test_incoherence_correction/agbe_125707_test1.json")
+    config_json_file = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction/agbe_125707_test1.json")
     assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
     with open(config_json_file, "r") as config_json:
         configuration = json.load(config_json)
@@ -324,11 +167,27 @@ def test_incoherence_correction_elastic_normalization(has_sns_mount, reference_d
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
     configuration["configuration"]["outputDir"] = test_dir
     configuration["outputFileName"] = base_name
-    configuration["dataDirectories"] = test_dir
+    configuration["dataDirectories"] = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction")
     configuration["configuration"]["outputWavelengthDependentProfile"] = True
+    configuration["configuration"]["maskFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_incoherence_correction", "beamstop_mask_4m_ext.nxs"
+    )
+    configuration["configuration"][
+        "darkFileName"
+    ] = "/bin/true"  # so that it will pass the validator, later set to None
+    configuration["configuration"]["sensitivityFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_incoherence_correction", "Sensitivity_patched_thinPMMA_4m_124972.nxs"
+    )
+    configuration["configuration"]["instrumentConfigurationDir"] = os.path.join(
+        datarepo_dir.eqsans, "instrument_configuration"
+    )
+    configuration["configuration"]["beamFluxFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_normalization", "beam_profile_flux.txt"
+    )
 
     # validate and clean configuration
     input_config = reduction_parameters(configuration)
+    input_config["configuration"]["darkFileName"] = None
     loaded = load_all_files(input_config)
 
     # check loaded JSON file
@@ -345,17 +204,10 @@ def test_incoherence_correction_elastic_normalization(has_sns_mount, reference_d
     test_iq1d_file = os.path.join(test_dir, iq1d_base_name)
     assert os.path.exists(test_iq1d_file), f"Expected test result {test_iq1d_file} does not exist"
 
-    # The gold data are not stored inside the repository so when gold data are changed a version prefix is added
-    # with date and developer UCAMS ID. The old data will be kept as it is.
-    acceptable_versions = ["20220321_rys_", "20230730_jbq_"]  # golden data with differences within acceptable error
-    checks = [
-        filecmp.cmp(
-            test_iq1d_file,
-            os.path.join(reference_dir.eqsans, "test_incoherence_correction", version + iq1d_base_name),
-        )
-        for version in acceptable_versions
-    ]
-    assert any(checks), "Test result does not match any of the gold data"
+    np.testing.assert_allclose(
+        np.loadtxt(test_iq1d_file),
+        np.loadtxt(os.path.join(datarepo_dir.eqsans, "test_incoherence_correction", iq1d_base_name)),
+    )
 
     # check that the wavelength dependent profiles are created
     number_of_wavelengths = 31
@@ -391,16 +243,11 @@ def test_incoherence_correction_elastic_normalization(has_sns_mount, reference_d
             DeleteWorkspace(ws)
 
 
-@pytest.mark.mount_eqsans
-def test_incoherence_correction_elastic_normalization_weighted(has_sns_mount, reference_dir, temp_directory):
+def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, temp_directory):
     """Test incoherence correction with elastic correction"""
-    import filecmp
-
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
 
     # Set up the configuration dict
-    config_json_file = os.path.join(reference_dir.eqsans, "test_incoherence_correction/porsil_29024_abs_inel.json")
+    config_json_file = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction/porsil_29024_abs_inel.json")
     assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
     with open(config_json_file, "r") as config_json:
         configuration = json.load(config_json)
@@ -410,9 +257,10 @@ def test_incoherence_correction_elastic_normalization_weighted(has_sns_mount, re
     test_dir = temp_directory()
 
     def run_reduction_and_compare(config, expected_result_filename):
-        with amend_config(data_dir=reference_dir.eqsans):
+        with amend_config(data_dir=datarepo_dir.eqsans):
             # validate and clean configuration
             input_config = reduction_parameters(config)
+            input_config["configuration"]["darkFileName"] = None
             loaded = load_all_files(input_config)
 
             # Reduce
@@ -422,9 +270,9 @@ def test_incoherence_correction_elastic_normalization_weighted(has_sns_mount, re
         assert reduction_output
 
         test_iq1d_file = os.path.join(test_dir, config["outputFileName"] + "_Iq.dat")
-        gold_iq1d_file = os.path.join(reference_dir.eqsans, "test_incoherence_correction", expected_result_filename)
+        gold_iq1d_file = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction", expected_result_filename)
         # compare
-        assert filecmp.cmp(test_iq1d_file, gold_iq1d_file)
+        np.testing.assert_allclose(np.loadtxt(test_iq1d_file), np.loadtxt(gold_iq1d_file))
 
         DeleteWorkspace("_empty")
         DeleteWorkspace("_mask")
@@ -439,7 +287,22 @@ def test_incoherence_correction_elastic_normalization_weighted(has_sns_mount, re
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
     configuration["configuration"]["outputDir"] = test_dir
     configuration["outputFileName"] = base_name
-    configuration["dataDirectories"] = reference_dir.eqsans
+    configuration["dataDirectories"] = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction")
+    configuration["configuration"][
+        "darkFileName"
+    ] = "/bin/true"  # so that it will pass the validator, later set to None
+    configuration["configuration"]["sensitivityFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_incoherence_correction", "Sensitivity_patched_thinPMMA_4m_129610.nxs"
+    )
+    configuration["configuration"]["instrumentConfigurationDir"] = os.path.join(
+        datarepo_dir.eqsans, "instrument_configuration"
+    )
+    configuration["configuration"]["maskFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_incoherence_correction", "EQSANS_132078_mask.nxs"
+    )
+    configuration["configuration"]["beamFluxFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_normalization", "beam_profile_flux.txt"
+    )
     run_reduction_and_compare(configuration, "EQSANS_132078_Iq.dat")
 
     # Run with weighted
@@ -466,39 +329,11 @@ def test_incoherence_correction_elastic_normalization_weighted(has_sns_mount, re
     configuration["outputFileName"] = base_name
     configuration["configuration"]["incohfit_intensityweighted"] = True
     configuration["configuration"]["incohfit_factor"] = None
-    configuration["configuration"]["incohfit_qmin"] = 0.085
+    configuration["configuration"]["incohfit_qmin"] = 0.065
     configuration["configuration"]["incohfit_qmax"] = 0.224
     run_reduction_and_compare(configuration, "EQSANS_132078_weighted_factor_Iq.dat")
 
     print(f"Output directory: {test_dir}")
-
-
-def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):
-    """Verify reduced I(Q1D) and I(qx, qy) by expected/gold data
-
-    Parameters
-    ----------
-    gold_file_dict: ~dict
-        dictionary for gold files
-    reduction_output: ~list
-        list of binned I(Q1D) and I(qx, qy)
-
-    """
-    num_frames_gold = len(gold_file_dict) // 2
-    assert num_frames_gold == len(
-        reduction_output
-    ), f"Frame numbers are different: gold = {len(gold_file_dict) // 2}; test = {len(reduction_output)}"
-
-    for frame_index in range(num_frames_gold):
-        # 1D
-        iq1d_h5_name = gold_file_dict[1, frame_index, 0]
-        gold_iq1d = load_iq1d_from_h5(iq1d_h5_name)
-        _Testing.assert_allclose(reduction_output[frame_index].I1D_main[0], gold_iq1d)
-
-        # 2D
-        iq2d_h5_name = gold_file_dict[2, frame_index]
-        gold_iq2d = load_iq2d_from_h5(iq2d_h5_name)
-        _Testing.assert_allclose(reduction_output[frame_index].I2D_main, gold_iq2d)
 
 
 if __name__ == "__main__":

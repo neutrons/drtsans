@@ -6,8 +6,7 @@ from pytest import approx
 # https://docs.mantidproject.org/nightly/algorithms/ClearMaskFlag-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/ExtractMaskMask-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/SaveMask-v1.html
-from mantid.simpleapi import ClearMaskFlag, ExtractMask, SaveMask
-from drtsans.settings import unique_workspace_dundername as uwd
+from mantid.simpleapi import ClearMaskFlag, ExtractMask, SaveMask, mtd
 from drtsans.tof.eqsans import (
     apply_mask,
     center_detector,
@@ -38,7 +37,7 @@ def test_find_beam_center(datarepo_dir, eqsans_p, temp_workspace_name):
     #
     apply_mask(ws, Tube=eqsans_p["tubes_to_mask"])
     x0, y0, _ = find_beam_center(ws)
-    mask_ws = ExtractMask(ws, OutputWorkspace=uwd()).OutputWorkspace
+    mask_ws = ExtractMask(ws, OutputWorkspace=mtd.unique_hidden_name()).OutputWorkspace
     ClearMaskFlag(ws)
     assert find_beam_center(ws, mask=mask_ws)[:-1] == approx((x0, y0))
     #

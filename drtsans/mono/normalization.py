@@ -8,10 +8,8 @@ from mantid.api import mtd
 
 r"""
 Hyperlinks to drtsans functions
-unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 """  # noqa: E501
-from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 
 __all__ = ["normalize_by_time", "normalize_by_monitor", "normalize_by_flux"]
@@ -56,7 +54,7 @@ def normalize_by_time(input_workspace, output_workspace=None):
         try:
             duration = SampleLogs(input_workspace).single_value(log_key)
             # Cast the timer value into a Mantid workspace to later divide the input workspace by this workspace
-            duration_workspace = CreateSingleValuedWorkspace(duration, OutputWorkspace=unique_workspace_dundername())
+            duration_workspace = CreateSingleValuedWorkspace(duration, OutputWorkspace=mtd.unique_hidden_name())
             break
         except RuntimeError:
             continue  # check next log entry
@@ -114,7 +112,7 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
     else:
         raise RuntimeError("No monitor metadata found")
     # Cast the monitor value into a Mantid workspace to later divide the input workspace by this workspace
-    monitor_workspace = CreateSingleValuedWorkspace(monitor, OutputWorkspace=unique_workspace_dundername())
+    monitor_workspace = CreateSingleValuedWorkspace(monitor, OutputWorkspace=mtd.unique_hidden_name())
     Divide(
         LHSWorkspace=input_workspace,
         RHSWorkspace=monitor_workspace,

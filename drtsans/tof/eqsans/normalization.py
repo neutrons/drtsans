@@ -31,12 +31,10 @@ from mantid.api import mtd
 
 r"""
 Hyperlinks to drtsans functions
-unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 path <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/path.py>
 duration <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>
 """  # noqa: E501
-from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans import path
 from drtsans.dark_current import duration as run_duration
@@ -76,7 +74,7 @@ def load_beam_flux_file(flux, data_workspace=None, output_workspace=None):
     MatrixWorkspace
     """
     if output_workspace is None:
-        output_workspace = unique_workspace_dundername()  # make a hidden workspace
+        output_workspace = mtd.unique_hidden_name()  # make a hidden workspace
 
     # Load flux filename to a point-data workspace (we have as many intensities as wavelength values)
     LoadAscii(
@@ -123,7 +121,7 @@ def normalize_by_proton_charge_and_flux(input_workspace, flux, output_workspace=
     if output_workspace is None:
         output_workspace = str(input_workspace)
     # Match the binning of the input workspace prior to carry out the division
-    rebinned_flux = unique_workspace_dundername()
+    rebinned_flux = mtd.unique_hidden_name()
     RebinToWorkspace(
         WorkspaceToRebin=flux,
         WorkspaceToMatch=input_workspace,
@@ -173,7 +171,7 @@ def load_flux_to_monitor_ratio_file(
     MatrixWorkspace
     """
     if output_workspace is None:
-        output_workspace = unique_workspace_dundername()  # make a hidden workspace
+        output_workspace = mtd.unique_hidden_name()  # make a hidden workspace
 
     # Let Mantid figure out what kind file format is the flux file
     Load(Filename=flux_to_monitor_ratio_file, OutputWorkspace=output_workspace, **loader_kwargs)
@@ -227,7 +225,7 @@ def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
         raise ValueError(msg)
 
     # Only the first spectrum of the monitor is required
-    monitor_workspace_rebinned = unique_workspace_dundername()
+    monitor_workspace_rebinned = mtd.unique_hidden_name()
     RebinToWorkspace(monitor_workspace, input_workspace, OutputWorkspace=monitor_workspace_rebinned)
     excess_idx = range(1, mtd[monitor_workspace_rebinned].getNumberHistograms())  # only one spectrum is needed
     RemoveSpectra(
@@ -237,7 +235,7 @@ def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
     )
 
     # Elucidate the nature of the flux to monitor input
-    flux_to_monitor_workspace = unique_workspace_dundername()
+    flux_to_monitor_workspace = mtd.unique_hidden_name()
     if isinstance(flux_to_monitor, str) and path.exists(flux_to_monitor):
         load_flux_to_monitor_ratio_file(
             flux_to_monitor,
@@ -255,7 +253,7 @@ def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
 
     # the neutron flux integrated over the duration of the run is the product of the monitor counts and the
     # flux-to-monitor ratios
-    flux_workspace = unique_workspace_dundername()
+    flux_workspace = mtd.unique_hidden_name()
     Multiply(
         monitor_workspace_rebinned,
         flux_to_monitor_workspace,

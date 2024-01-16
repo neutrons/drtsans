@@ -7,12 +7,11 @@ from drtsans.mono.spice_data import SpiceRun
 from drtsans.path import abspath
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
 from drtsans.process_uncertainties import set_init_uncertainties
-from drtsans.settings import unique_workspace_dundername as uwd
 
 # third party imports
 from mantid.api import Workspace as MantidWorkspace
 from mantid.kernel import logger
-from mantid.simpleapi import DeleteWorkspace, LoadEventNexus, LoadNexusProcessed, MaskAngle
+from mantid.simpleapi import DeleteWorkspace, LoadEventNexus, LoadNexusProcessed, MaskAngle, mtd
 import numpy as np
 
 # standard imports
@@ -58,7 +57,7 @@ class PrepareSensitivityCorrection(PrepareBase):
                     Filename=first_flood_run,
                     MetaDataOnly=True,  # no need to load the events
                     LoadNexusInstrumentXML=self._enforce_use_nexus_idf,
-                    OutputWorkspace=uwd(),
+                    OutputWorkspace=mtd.unique_hidden_name(),
                 )
             except RuntimeError:  # loading an events file saved as a nexus file by Mantid
                 _first_flood_run = LoadNexusProcessed(Filename=first_flood_run)

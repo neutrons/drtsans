@@ -5,7 +5,6 @@ import numpy as np
 from mantid.simpleapi import CreateWorkspace
 from mantid.api import mtd
 
-# unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
 # SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 # time, monitor within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
 from drtsans.samplelogs import SampleLogs
@@ -105,8 +104,6 @@ def test_normalization_by_time(data_test_16a_by_time, temp_workspace_name):
     <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 
     **drtsans functions used:**
-    ~drtsans.settings.unique_workspace_dundername
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
     ~drtsans.samplelogs.SampleLogs
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
     ~drtsans.tof.normalization.normalize_by_time
@@ -267,8 +264,6 @@ def test_normalization_by_monitor(data_test_16a_by_monitor, temp_workspace_name)
     <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 
     **drtsans functions used:**
-    ~drtsans.settings.unique_workspace_dundername
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
     ~drtsans.samplelogs.SampleLogs
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
     ~drtsans.tof.normalization.normalize_by_monitor
@@ -450,8 +445,6 @@ def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton_charge_and_
     <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 
     **drtsans functions used:**
-    ~drtsans.settings.unique_workspace_dundername
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
     ~drtsans.samplelogs.SampleLogs
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
     ~drtsans.tof.normalization.normalize_by_proton_charge_and_flux

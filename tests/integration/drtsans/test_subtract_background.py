@@ -1,13 +1,12 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/api.py
 from drtsans import subtract_background
 from drtsans.dataobjects import DataType, IQazimuthal, IQmod
-from drtsans.settings import unique_workspace_dundername as uwd
 from tests.conftest import assert_wksp_equal
 
 # https://docs.mantidproject.org/nightly/algorithms/CompareWorkspaces-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
-from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, DeleteWorkspace
+from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, DeleteWorkspace, mtd
 import numpy as np
 import pytest
 
@@ -61,7 +60,7 @@ class _Data1D(object):
                 DataY=y,
                 DataE=e,
                 UnitX="momentumtransfer",
-                OutputWorkspace=uwd(),
+                OutputWorkspace=mtd.unique_hidden_name(),
             )
         elif self.mode == DataType.IQ_MOD:
             return IQmod(intensity=y, error=e, mod_q=self.Q_Scale)

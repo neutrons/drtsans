@@ -11,7 +11,6 @@ from drtsans.mono.biosans.geometry import (
 )
 from drtsans.path import registered_workspace
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import unique_workspace_dundername
 from drtsans.simulated_events import (
     insert_beam_spot,
     insert_background,
@@ -46,7 +45,6 @@ from shutil import rmtree
 import string
 import sys
 import tempfile
-from typing import List
 
 # Resolve the path to the "external data"
 this_module_path = sys.modules[__name__].__file__
@@ -63,6 +61,8 @@ def fr(ipts_number, run_number):
 
 
 ret_val = namedtuple("ret_val", "ipts shared help r f w")
+
+pytest_plugins = ["mantid.fixtures"]
 
 
 class GetWS(object):
@@ -183,58 +183,6 @@ def __safe_delete_workspace(workspace_name: str):
             # saying a workspace exists when it doesn't
             if "Invalid value for property Workspace" not in str(e):
                 raise e
-
-
-@pytest.fixture(scope="function")
-def clean_workspace():
-    r"""
-    Fixture that will delete workspaces if registered in the Analysis Data Service when the test function exits.
-
-    Parameters
-    ----------
-    workspace: str, ~mantid.kernel.Workspace
-        Workspace handle or the name of the workspace to be deleted
-
-    Returns
-    -------
-    str
-        the name of the workspace marked for deletion
-    """
-    workspaces: List[str] = []
-
-    def _clean_workspace(workspace):
-        workspaces.append(str(workspace))
-        return str(workspace)
-
-    yield _clean_workspace
-
-    # Executed after test exits
-    workspaces = list(set(workspaces))  # get unique list
-    for workspace in workspaces:
-        __safe_delete_workspace(workspace)
-
-
-@pytest.fixture(scope="function")
-def temp_workspace_name(clean_workspace):
-    r"""
-    Fixture that returns a string guaranteed not to represent an already existing workpsace so that it can be
-    associated to a new workspace. The workspace will be deleted when the function exists or upon exception.
-
-    Usage:
-
-    def test_something(temp_workspace):
-        ws = LoadEmptyInstrument(Instrument="CG3", OutputWorkspace=temp_workspace())
-        # do stuff
-    when test_something( ) exits, ws will be deleted
-
-    """
-
-    def _temp_workspace():
-        name = unique_workspace_dundername()
-        clean_workspace(name)
-        return name
-
-    return _temp_workspace
 
 
 @pytest.fixture(scope="session")
@@ -1367,7 +1315,7 @@ def workspace_with_instrument(request):
         # Initialization of these options within the function signature results in the interpreter assigning a
         # function signature preserved through function call.
         if output_workspace is None:
-            output_workspace = unique_workspace_dundername()
+            output_workspace = mtd.unique_hidden_name()
 
         if view not in ["array", "pixel"]:
             raise RuntimeError('Invalid value of view="{}". Must be "array" or "pixel"'.format(view))
@@ -1571,7 +1519,7 @@ def biosans_synthetic_dataset(datarepo_dir, tmp_path_factory) -> dict:
 
     def common_empty_workspace(events=True) -> string:
         r"""Create an empty workspace with the correct instrument definition file"""
-        workspace_name = unique_workspace_dundername()
+        workspace_name = mtd.unique_hidden_name()
         empty_instrument_workspace(workspace_name, filename=idf_file, event_workspace=events)
         apply_common_run_settings(workspace_name)
         return workspace_name
@@ -1673,7 +1621,7 @@ def biosans_synthetic_dataset(datarepo_dir, tmp_path_factory) -> dict:
     for workspace_index in range(pixel_count):
         workspace.dataY(workspace_index)[:] = [float("nan")]
     for component in ["detector1", "wing_detector", "midrange_detector"]:
-        workspace = CloneWorkspace(InputWorkspace=ws_sensitivity, OutputWorkspace=unique_workspace_dundername())
+        workspace = CloneWorkspace(InputWorkspace=ws_sensitivity, OutputWorkspace=mtd.unique_hidden_name())
         # set the sensitivity values for each tube to 1.0, except the first and last 16 pixels
         gap = 16
         start, end = gap, PIXELS_IN_TUBE - gap

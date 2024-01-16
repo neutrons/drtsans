@@ -24,11 +24,6 @@ from mantid.simpleapi import (
 from mantid.api import mtd, MatrixWorkspace, IEventWorkspace
 import os
 
-# drtsans imports
-from drtsans.settings import (
-    unique_workspace_dundername,
-    unique_workspace_dundername as uwd,
-)
 
 __all__ = ["apply_mask", "circular_mask_from_beam_center"]
 
@@ -108,7 +103,7 @@ def apply_mask(input_workspace, mask=None, panel=None, **btp):
             if os.path.splitext(mask)[1] == ".xml":
                 # mask_workspace = LoadMask(Instrument=instrument, InputFile=mask,
                 #                           RefWorkspace=input_workspace,
-                #                           OutputWorkspace=unique_workspace_dundername())
+                #                           OutputWorkspace=mtd.unique_hidden_name())
                 mask_workspace = load_mask_xml(mask, input_workspace)
             else:
                 mask_workspace = load_mask(mask)
@@ -154,7 +149,7 @@ def load_mask(mask_file="", output_workspace=None):
     str, ~mantid.api.MatrixWorkspace Workspace
     """
     if not output_workspace:
-        output_workspace = unique_workspace_dundername()
+        output_workspace = mtd.unique_hidden_name()
     mask_workspace = LoadNexusProcessed(Filename=mask_file, OutputWorkspace=output_workspace)
     if isinstance(mask_workspace, IEventWorkspace):
         logger.warning(
@@ -180,7 +175,7 @@ def load_mask_xml(mask_file, ref_workspace, output_workspace=None):
 
     # Create output MaskWorkspace name if not specified
     if not output_workspace:
-        output_workspace = unique_workspace_dundername()
+        output_workspace = mtd.unique_hidden_name()
 
     # Get instrument name
     ref_workspace = str(ref_workspace)
@@ -286,7 +281,7 @@ def masked_detectors(input_workspace, query_ids=None):
     -------
     list
     """
-    mask_ws, det_ids = ExtractMask(input_workspace, OutputWorkspace=uwd())
+    mask_ws, det_ids = ExtractMask(input_workspace, OutputWorkspace=mtd.unique_hidden_name())
     if query_ids is not None:
         det_ids = sorted(list(set(det_ids) & set(query_ids)))
     mask_ws.delete()

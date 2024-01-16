@@ -13,10 +13,9 @@ the Midrange Detector. See Fixture ``biosans_synthetic_sensitivity_dataset`` for
 from drtsans.load import __monitor_counts
 from drtsans.mono.biosans.simulated_intensities import clone_component_intensities, insert_midrange_detector
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import unique_workspace_dundername
 
 # third-party imports
-from mantid.simpleapi import Integration, LoadEventNexus, SaveNexus
+from mantid.simpleapi import Integration, LoadEventNexus, SaveNexus, mtd
 
 # standard library imports
 import os
@@ -24,11 +23,11 @@ import os
 
 def clone_intensities_to_midrange(filepath_in, filepath_out):
     monitor_count = __monitor_counts(filepath_in)
-    input_workspace = unique_workspace_dundername()
+    input_workspace = mtd.unique_hidden_name()
     LoadEventNexus(Filename=filepath_in, OutputWorkspace=input_workspace)
     Integration(InputWorkspace=input_workspace, OutputWorkspace=input_workspace)
     SampleLogs(input_workspace).insert("monitor", monitor_count)
-    output_workspace = unique_workspace_dundername()
+    output_workspace = mtd.unique_hidden_name()
     insert_midrange_detector(input_workspace, output_workspace=output_workspace)
     clone_component_intensities(
         output_workspace, input_component="wing_detector", output_component="midrange_detector"

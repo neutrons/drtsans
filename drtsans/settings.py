@@ -1,14 +1,11 @@
 # third party imports
 import mantid
-from mantid.api import mtd
 
 
 # standard library imports
 from collections import namedtuple, OrderedDict
 from collections.abc import Mapping
 import functools
-import random
-import string
 
 # import mantid's workspace types exposed to python
 workspace_types = [
@@ -54,46 +51,6 @@ def namedtuplefy(func):
 
     wrapper.nt = None
     return wrapper
-
-
-def unique_workspace_name(n=5, prefix="", suffix=""):
-    r"""
-    Create a random sequence of `n` lowercase characters that is guaranteed
-    not to collide with the name of any existing Mantid workspace
-
-    uws stands for Unique Workspace Name
-
-    Parameters
-    ----------
-    n: int
-        Size of the sequence
-    prefix: str
-        String to prefix the randon sequence
-    suffix: str
-        String to suffix the randon sequence
-
-    Returns
-    -------
-    string
-    """
-
-    def random_name_generator():
-        name = "".join(random.choice(string.ascii_lowercase) for _ in range(n))
-        name = "{}{}{}".format(str(prefix), name, str(suffix))
-        return name
-
-    name_exists = True
-    while name_exists:
-        ws_name = random_name_generator()
-        try:
-            mtd[ws_name]  # better than AnalysisDataService.getObjectNames() for dunder-names
-        except KeyError:
-            name_exists = False  # the name is not registered as a workspace name
-    return ws_name
-
-
-def unique_workspace_dundername():
-    return unique_workspace_name(n=9, prefix="__")
 
 
 def unpack_v3d(functor, index):

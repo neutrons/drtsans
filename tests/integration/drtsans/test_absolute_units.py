@@ -8,7 +8,6 @@ from mantid.simpleapi import CreateSingleValuedWorkspace
 
 r""" Links to drtsans imports
 standard_sample_scaling <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/absolute_units.py>
-unique_workspace_name <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 """
 from drtsans.absolute_units import standard_sample_scaling  # noqa: E402
 

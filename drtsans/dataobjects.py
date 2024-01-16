@@ -8,7 +8,6 @@ from typing import Union
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 from mantid.simpleapi import mtd, CreateWorkspace
 
-from drtsans.settings import unique_workspace_dundername as uwd
 
 __all__ = [
     "getDataType",
@@ -400,7 +399,7 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"))
     def to_workspace(self, name=None):
         # create a name if one isn't provided
         if name is None:
-            name = uwd()
+            name = mtd.unique_hidden_name()
 
         dq = self.delta_mod_q
         if dq is None:

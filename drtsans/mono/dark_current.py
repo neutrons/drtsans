@@ -7,12 +7,10 @@ Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
 from mantid.simpleapi import Minus, mtd, DeleteWorkspace, Scale, Integration
 
 r""" links to drtsans imports
-unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 duration <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dark_current.py>
 set_init_uncertainties <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/process_uncertainties.py>
 """  # noqa: E501
-from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.dark_current import duration
 from drtsans.mono.load import load_mono
@@ -121,13 +119,13 @@ def subtract_dark_current(data_workspace, dark, output_workspace=None):
     if registered_workspace(dark):
         dark_workspace = dark
     else:
-        dark_workspace = load_dark_current_workspace(dark, output_workspace=unique_workspace_dundername())
+        dark_workspace = load_dark_current_workspace(dark, output_workspace=mtd.unique_hidden_name())
 
     # Integrate and set uncertainties
-    dark_integrated = Integration(dark_workspace, OutputWorkspace=unique_workspace_dundername())
+    dark_integrated = Integration(dark_workspace, OutputWorkspace=mtd.unique_hidden_name())
     dark_integrated = set_init_uncertainties(dark_integrated)
     # Normalize the dark current
-    normalized_dark_current = unique_workspace_dundername()  # temporary workspace
+    normalized_dark_current = mtd.unique_hidden_name()  # temporary workspace
     normalize_dark_current(dark_integrated, output_workspace=normalized_dark_current)
 
     # Find the duration of the data run using the same log key than that of the dark current

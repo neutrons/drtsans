@@ -1,7 +1,6 @@
 # local imports
 from drtsans.instruments import empty_instrument_workspace
 from drtsans.mask_utils import apply_mask
-from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans import geometry as geo
 from drtsans.mono.biosans import geometry as biogeo
@@ -12,6 +11,7 @@ from mantid.simpleapi import (
     LoadEmptyInstrument,
     LoadEventNexus,
     MoveInstrumentComponent,
+    mtd,
 )
 import numpy as np
 from numpy.testing import assert_almost_equal
@@ -64,7 +64,7 @@ def test_detector_translation():
     for instrument_name in ("EQ-SANS", "CG2"):
         workspace = LoadEmptyInstrument(
             InstrumentName=instrument_name,
-            OutputWorkspace=unique_workspace_dundername(),
+            OutputWorkspace=mtd.unique_hidden_name(),
         )
         instrument = workspace.getInstrument()
         component_detector = instrument.getComponentByName(detector_name)

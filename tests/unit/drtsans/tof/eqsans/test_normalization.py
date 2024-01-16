@@ -7,18 +7,16 @@ Hyperlinks to Mantid algorithms
 SumSpectra <https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html>
 amend_config <https://docs.mantidproject.org/nightly/api/python/mantid/kernel/AmendConfig.html>
 """
-from mantid.simpleapi import SumSpectra
+from mantid.simpleapi import SumSpectra, mtd
 from mantid.kernel import amend_config
 
 r"""
 Hyperlinks to drtsans functions
-unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 load_events <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/load.py>
 prepare_monitors <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/api.py>
 normalize_by_time,...load_flux_to_monitor_ratio_file <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/nomalization.py>
 """  # noqa: E501
-from drtsans.settings import unique_workspace_dundername
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import (
     load_events,
@@ -57,7 +55,7 @@ def data_ws(datarepo_dir):
         for run in ("92353", "88565"):
             w = load_events(
                 f"EQSANS_{run}.nxs.h5",
-                output_workspace=unique_workspace_dundername(),
+                output_workspace=mtd.unique_hidden_name(),
             )
             ws[run], bands = transform_to_wavelength(w, output_workspace=w.name())
             ws[run] = set_init_uncertainties(ws[run])

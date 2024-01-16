@@ -1,6 +1,5 @@
 import os
 import numpy as np
-from drtsans.settings import unique_workspace_name as uwn
 from drtsans.path import exists as path_exists
 
 r"""
@@ -117,7 +116,7 @@ def apply_sensitivity_correction(
         CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
     MaskDetectors(Workspace=output_workspace, MaskedWorkspace=sensitivity_workspace)
 
-    temp_sensitivity = uwn(prefix="__sensitivity_")
+    temp_sensitivity = mtd.unique_name(prefix="__sensitivity_")
     CloneWorkspace(InputWorkspace=sensitivity_workspace, OutputWorkspace=temp_sensitivity)
     if min_threshold is not None:
         MaskDetectorsIf(

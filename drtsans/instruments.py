@@ -1,11 +1,15 @@
-# local imports
-from drtsans.settings import unique_workspace_dundername
-
 # third party imports
 from mantid.kernel import ConfigService
 from mantid.api import mtd, MatrixWorkspace
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import config, LoadInstrument, LoadEmptyInstrument, MergeRuns, RemoveSpectra, RenameWorkspace
+from mantid.simpleapi import (
+    config,
+    LoadInstrument,
+    LoadEmptyInstrument,
+    MergeRuns,
+    RemoveSpectra,
+    RenameWorkspace,
+)
 
 # standard imports
 import enum
@@ -309,7 +313,7 @@ def copy_to_newest_instrument(
     """
     origin = mtd[str(input_workspace)]
     if output_workspace is None:
-        target_workspace = unique_workspace_dundername()  # temporary name
+        target_workspace = mtd.unique_hidden_name()  # temporary name
     else:
         target_workspace = output_workspace
     instrument_file = fetch_idf(f"{origin.getInstrument().getName()}_Definition.xml")

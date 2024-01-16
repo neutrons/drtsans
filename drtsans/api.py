@@ -1,5 +1,4 @@
 from drtsans.dataobjects import getDataType, DataType, IQazimuthal
-from drtsans.settings import unique_workspace_dundername as uwd
 
 # https://docs.mantidproject.org/nightly/algorithms/CloneWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html
@@ -115,17 +114,19 @@ def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0,
             background_rebinned = RebinToWorkspace(
                 WorkspaceToRebin=background,
                 WorkspaceToMatch=input_workspace,
-                OutputWorkspace=uwd(),
+                OutputWorkspace=mtd.unique_hidden_name(),
             )
         else:
             # subtract will check that the x-axis is identical
             # otherwise the subtraction will fail
-            background_rebinned = CloneWorkspace(InputWorkspace=background, OutputWorkspace=uwd())
+            background_rebinned = CloneWorkspace(InputWorkspace=background, OutputWorkspace=mtd.unique_hidden_name())
         workspaces_to_delete.append(str(background_rebinned))
 
         # need to create a special object if the uncertainty in the scale was specified
         if scale_error != 0.0:
-            scale = CreateSingleValuedWorkspace(DataValue=scale, ErrorValue=scale_error, OutputWorkspace=uwd())
+            scale = CreateSingleValuedWorkspace(
+                DataValue=scale, ErrorValue=scale_error, OutputWorkspace=mtd.unique_hidden_name()
+            )
         workspaces_to_delete.append(str(scale))
 
         # this takes care of the uncertainties as well
@@ -175,7 +176,7 @@ def _calc_flipping_ratio(polarization):
         return CreateSingleValuedWorkspace(
             DataValue=value,
             ErrorValue=uncertainty,
-            OutputWorkspace=uwd(),
+            OutputWorkspace=mtd.unique_hidden_name(),
             EnableLogging=False,
         )
     else:

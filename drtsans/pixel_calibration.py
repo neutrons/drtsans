@@ -51,7 +51,7 @@ from mantid.api import FileLoaderRegistry, mtd
 
 r"""
 Hyperlinks to drtsans functions
-namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
 """  # noqa: E501
@@ -62,7 +62,7 @@ from drtsans.instruments import (
 )
 from drtsans.mask_utils import apply_mask
 from drtsans.path import exists as file_exists
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
 from drtsans.tubecollection import TubeCollection
 
@@ -701,7 +701,7 @@ class Table:
         """
 
         # Create the template workspace for the views. It will contain a single intensity value per histogram
-        reference = unique_workspace_dundername()
+        reference = mtd.unique_hidden_name()
         # We only need one intensity value per histogram
         Rebin(
             InputWorkspace=reference_workspace,
@@ -1149,9 +1149,9 @@ def event_splitter(
         List of bar positions
     """
     if split_workspace is None:
-        split_workspace = unique_workspace_dundername()
+        split_workspace = mtd.unique_hidden_name()
     if info_workspace is None:
-        info_workspace = unique_workspace_dundername()
+        info_workspace = mtd.unique_hidden_name()
 
     # Find the amount by which the position of the bar is shifted every time we go on to the next scan.
     # It is assumed that this shift is a fixed amount
@@ -1224,9 +1224,9 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log="dcal_Readback
     if isinstance(barscan_dataset, str):
         # the whole barscan is contained in a single file. Must be splitted into subruns. Each subrun will contain
         # intensities for a run with the bar held at a fixed position.
-        spliter_workspace = unique_workspace_dundername()
-        info_workspace = unique_workspace_dundername()
-        barscan_workspace = unique_workspace_dundername()
+        spliter_workspace = mtd.unique_hidden_name()
+        info_workspace = mtd.unique_hidden_name()
+        barscan_workspace = mtd.unique_hidden_name()
         temporary_workspaces.extend([spliter_workspace, info_workspace, barscan_workspace])
         # BOTTLENECK
         LoadEventNexus(barscan_dataset, OutputWorkspace=barscan_workspace)
@@ -1237,7 +1237,7 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log="dcal_Readback
             info_workspace=info_workspace,
             bar_position_log=bar_position_log,
         )
-        splitted_workspace_group = unique_workspace_dundername()  # group of subruns
+        splitted_workspace_group = mtd.unique_hidden_name()  # group of subruns
         # Mantid algorithm using the 'spliter' and 'info' tables to carry out the splitting of
         # `barscans_workspace into a set of subruns.
         # BOTTLENECK
@@ -1259,7 +1259,7 @@ def barscan_workspace_generator(barscan_dataset, bar_position_log="dcal_Readback
         if isinstance(first_scan, str) and os.path.exists(first_scan):  # list of files, thus load into workspaces
             loader = loader_algorithm(barscan_dataset[0])
             barscan_workspaces = list()
-            barscan_workspace_basename = unique_workspace_dundername()
+            barscan_workspace_basename = mtd.unique_hidden_name()
             for scan_index, scan_data in enumerate(barscan_dataset):
                 barscan_workspace = f"{barscan_workspace_basename}_{scan_index:03d}"
                 temporary_workspaces.append(barscan_workspace)
@@ -1607,12 +1607,12 @@ def calculate_apparent_tube_width(flood_input, component="detector1", load_barsc
     """
     # Determine the type of input for the flood data
     if file_exists(flood_input):
-        input_workspace = unique_workspace_dundername()
+        input_workspace = mtd.unique_hidden_name()
         Load(Filename=flood_input, OutputWorkspace=input_workspace)
     else:
         input_workspace = str(flood_input)  # workspace object or workspace name
 
-    integrated_intensities = unique_workspace_dundername()
+    integrated_intensities = mtd.unique_hidden_name()
     Integration(InputWorkspace=input_workspace, OutputWorkspace=integrated_intensities)
 
     # Mask non-finite pixel_intensities (nan, inf). They can't be used in the calculation.
@@ -1627,7 +1627,7 @@ def calculate_apparent_tube_width(flood_input, component="detector1", load_barsc
         InfinityError=-1,
     )
     # Mask detectors with negative pixel_intensities
-    mask_workspace = unique_workspace_dundername()
+    mask_workspace = mtd.unique_hidden_name()
     MaskDetectorsIf(
         InputWorkspace=integrated_intensities,
         Operator="Less",
@@ -1790,10 +1790,10 @@ def split_barscan_run(input_file, output_directory, bar_position_log="dcal_Readb
     ouput_directory: str
         Path where the individual scans are saved
     """
-    barscan_workspace = unique_workspace_dundername()
-    spliter_workspace = unique_workspace_dundername()
-    info_workspace = unique_workspace_dundername()
-    splitted_workspace_group = unique_workspace_dundername()
+    barscan_workspace = mtd.unique_hidden_name()
+    spliter_workspace = mtd.unique_hidden_name()
+    info_workspace = mtd.unique_hidden_name()
+    splitted_workspace_group = mtd.unique_hidden_name()
 
     LoadEventNexus(input_file, OutputWorkspace=barscan_workspace)
     bar_positions = event_splitter(

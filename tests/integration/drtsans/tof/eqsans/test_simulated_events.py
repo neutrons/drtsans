@@ -27,7 +27,7 @@ from drtsans.instruments import empty_instrument_workspace
 from drtsans.load import load_events as generic_load_events
 from drtsans.load import load_and_split as generic_load_and_split
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy
 from drtsans.simulated_events import insert_background, insert_beam_spot, insert_events_isotropic, insert_events_ring
 from drtsans.tof.eqsans import (
     load_all_files,
@@ -59,7 +59,7 @@ def _histogram_all_events(
     """
     import mantid.simpleapi as mapi
 
-    temp_workspace = unique_workspace_dundername()  # a name not taken by any other already existing workspace
+    temp_workspace = mtd.unique_hidden_name()  # a name not taken by any other already existing workspace
     mapi.ConvertUnits(InputWorkspace=input_workspace, OutputWorkspace=temp_workspace, Target=units)
     mapi.Rebin(InputWorkspace=temp_workspace, OutputWorkspace=temp_workspace, Params=binning, PreserveEvents=False)
     mapi.SumSpectra(InputWorkspace=temp_workspace, OutputWorkspace=temp_workspace)
@@ -141,7 +141,7 @@ def create_ring_pattern(config: dict, metadata: dict):
     def common_empty_workspace(run_number: Union[int, str] = None, events=True) -> str:
         r"""Create an empty workspace with the correct instrument definition file and metadata"""
         # Create an empty events workspace for EQSANS with the detector at a certain position
-        workspace_name = unique_workspace_dundername()
+        workspace_name = mtd.unique_hidden_name()
         workspace_events = empty_instrument_workspace(
             workspace_name, instrument_name="EQSANS", event_workspace=events, monitors_have_spectra=False
         )
@@ -401,7 +401,7 @@ def create_three_rings_pattern(config: dict, metadata: dict):
     def common_empty_workspace(run_number: Union[int, str] = None, events=True) -> str:
         r"""Create an empty workspace with the correct instrument definition file and metadata"""
         # Create an empty events workspace for EQSANS with the detector at a certain position
-        workspace_name = unique_workspace_dundername()
+        workspace_name = mtd.unique_hidden_name()
         workspace_events = empty_instrument_workspace(
             workspace_name, instrument_name="EQSANS", event_workspace=events, monitors_have_spectra=False
         )

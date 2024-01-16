@@ -1,9 +1,8 @@
 # local imports
 from drtsans.mono.biosans import find_beam_center, prepare_data
-from drtsans.settings import unique_workspace_dundername
 
 # third party imports
-from mantid.simpleapi import DeleteWorkspace, LoadNexusProcessed
+from mantid.simpleapi import DeleteWorkspace, LoadNexusProcessed, mtd
 from numpy.testing import assert_allclose
 import pytest
 
@@ -33,7 +32,7 @@ def test_biosans_find_beam_center(mock_monitor_counts, biosans_synthetic_dataset
         center_y=0,
         flux_method="monitor",
         solid_angle=False,
-        output_workspace=unique_workspace_dundername(),
+        output_workspace=mtd.unique_hidden_name(),
         sample_thickness=0.1,
     )
     center_x, center_y, center_y_wing, center_y_midrange, _ = find_beam_center(beam_center_ws)

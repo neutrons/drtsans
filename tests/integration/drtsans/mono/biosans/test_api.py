@@ -4,7 +4,6 @@ from drtsans.mono.biosans.api import load_all_files, process_single_configuratio
 from drtsans.mono.load import transform_to_wavelength
 from drtsans.mono.transmission import calculate_transmission
 from drtsans.redparms import reduction_parameters
-from drtsans.settings import unique_workspace_dundername
 
 # third party imports
 from mantid.api import AnalysisDataService
@@ -120,7 +119,7 @@ def test_process_single_configuration(biosans_synthetic_dataset, clean_workspace
         -------
         Name of the MaskWorkspace
         """
-        ring_mask = unique_workspace_dundername()
+        ring_mask = mtd.unique_hidden_name()
         CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=ring_mask)
         MaskAngle(Workspace=ring_mask, MinAngle=twotheta_begin, MaxAngle=twotheta_end, Angle="TwoTheta")
         ExtractMask(InputWorkspace=ring_mask, OutputWorkspace=ring_mask)
@@ -154,7 +153,7 @@ def test_process_single_configuration(biosans_synthetic_dataset, clean_workspace
             Filename=pjoin(
                 biosans_synthetic_dataset["data_dir"], f"CG3_{biosans_synthetic_dataset['runs'][keyword]}.nxs.h5"
             ),
-            OutputWorkspace=unique_workspace_dundername(),
+            OutputWorkspace=mtd.unique_hidden_name(),
         )
         workspace = transform_to_wavelength(workspace)
         clean_workspace(workspace)  # mark it for deletion

@@ -29,7 +29,6 @@ from drtsans.mono.biosans.geometry import (
     set_position_south_detector,
 )
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import unique_workspace_dundername
 from drtsans.simulated_events import (
     insert_events,
     insert_beam_spot,
@@ -260,7 +259,7 @@ def _histogram_all_events(
     -------
     Tuple with two items, representing the histogram's bin boundaries and the histogram intensities, respectively
     """
-    temp_workspace = unique_workspace_dundername()  # a name not taken by any other already existing workspace
+    temp_workspace = mtd.unique_hidden_name()  # a name not taken by any other already existing workspace
     ConvertUnits(InputWorkspace=input_workspace, OutputWorkspace=temp_workspace, Target=units)
     Rebin(InputWorkspace=temp_workspace, OutputWorkspace=temp_workspace, Params=binning, PreserveEvents=False)
     SumSpectra(InputWorkspace=temp_workspace, OutputWorkspace=temp_workspace)

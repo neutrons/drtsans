@@ -8,7 +8,6 @@ from mantid.simpleapi import (
     SolidAngle,
 )
 from drtsans.instruments import instrument_enum_name
-from drtsans.settings import unique_workspace_dundername
 
 __all__ = ["calculate_solid_angle", "solid_angle_correction"]
 
@@ -97,7 +96,7 @@ def solid_angle_correction(
         solid_angle_ws = calculate_solid_angle(
             input_workspace=input_workspace,
             detector_type=detector_type,
-            output_workspace=unique_workspace_dundername(),
+            output_workspace=mtd.unique_hidden_name(),
             **kwargs,
         )
 

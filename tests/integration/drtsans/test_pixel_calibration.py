@@ -10,7 +10,7 @@ from drtsans.pixel_calibration import (
     load_calibration,
 )
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy
 from drtsans.tubecollection import TubeCollection
 
 # third-party imports
@@ -23,6 +23,7 @@ from mantid.simpleapi import (
     LoadNexus,
     LoadNexusProcessed,
     SaveNexus,
+    mtd,
 )
 import numpy as np
 
@@ -288,7 +289,7 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
 
     # Load the flood data into a Mantid workspace
     #
-    flood_workspace = unique_workspace_dundername()  # random name for the workspace
+    flood_workspace = mtd.unique_hidden_name()  # random name for the workspace
     intensities = np.array(data.flood_intensities).reshape((10, 10, 1))
     workspace_with_instrument(
         axis_values=data.wavelength_bin_boundaries,
@@ -888,7 +889,7 @@ def test_generate_barscan_calibration(
     # Let's find the bottom-edge pixels for each tube within each run that held the bar at a fixed position,
     # and then compare with the expected data
     bottom_pixels_multi_scan = list()
-    workspace = unique_workspace_dundername()
+    workspace = mtd.unique_hidden_name()
     # scan over each file, which contains intensities collected with the bar held at a fixed position
     for scan_index, file_name in enumerate(file_names):
         LoadNexus(Filename=file_name, OutputWorkspace=workspace)
@@ -988,7 +989,7 @@ def test_gpsans_calibration(has_sns_mount, reference_dir, temp_workspace_name):
     assert calibration.instrument == "GPSANS"
     assert calibration.positions[0:3] == pytest.approx([-0.51, -0.506, -0.502], abs=0.001)
     # Load and prepare the uncalibrated workspace
-    input_workspace = unique_workspace_dundername()
+    input_workspace = mtd.unique_hidden_name()
     LoadEmptyInstrument(InstrumentName="CG2", OutputWorkspace=input_workspace)
     SampleLogs(input_workspace).insert("run_number", 8000)
     SampleLogs(input_workspace).insert("start_time", "2020-02-19T17:03:29.554116982")  # a start time is required

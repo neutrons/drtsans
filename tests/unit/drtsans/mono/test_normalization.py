@@ -9,7 +9,6 @@ from mantid import mtd
 
 r"""
 Hyperlinks to drtsans functions
-unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 normalize_by_monitor, normalize_by_time <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
 """  # noqa: E501

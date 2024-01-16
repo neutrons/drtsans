@@ -6,15 +6,14 @@ r""" Links to mantid algorithms
 Load <https://docs.mantidproject.org/nightly/algorithms/Load-v1.html>
 amend_config <https://docs.mantidproject.org/nightly/api/python/mantid/kernel/AmendConfig.html>
 """
-from mantid.simpleapi import Load
+from mantid.simpleapi import Load, mtd
 from mantid.kernel import amend_config
 
 r"""
 Hyperlinks to drtsans functions
-unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 duration, counts_in_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dark_current.py>
 """  # noqa: E501
-from drtsans.settings import unique_workspace_dundername
+
 from drtsans.dark_current import duration, counts_in_detector
 
 
@@ -23,9 +22,9 @@ def workspaces(datarepo_dir):
     with amend_config(data_dir=datarepo_dir.eqsans):
         name = pjn(datarepo_dir.eqsans, "test_dark_current", "data.nxs")
         # data is a Workspace2D in wavelength
-        data = Load(name, OutputWorkspace=unique_workspace_dundername())
+        data = Load(name, OutputWorkspace=mtd.unique_hidden_name())
         # dark is an EventsWorkspace in time-of-flight
-        dark = Load("EQSANS_89157", OutputWorkspace=unique_workspace_dundername())
+        dark = Load("EQSANS_89157", OutputWorkspace=mtd.unique_hidden_name())
         return dict(data=data, dark=dark)
 
 

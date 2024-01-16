@@ -11,10 +11,10 @@ from mantid.api import mtd
 
 r"""
 Hyperlinks to drtsans functions
-namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 """  # noqa: E501
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
 
 
@@ -85,7 +85,7 @@ def counts_in_detector(input_workspace):
         counts, error in the counts
     """
     # Create a workspace containing the total counts per pixel, and starting errors
-    counts_workspace = unique_workspace_dundername()
+    counts_workspace = mtd.unique_hidden_name()
     Integration(input_workspace, OutputWorkspace=counts_workspace)
 
     counts = mtd[counts_workspace].extractY().flatten()

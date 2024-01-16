@@ -17,7 +17,6 @@ from mantid.simpleapi import (
 )
 from mantid.api import AnalysisDataService
 from mantid.kernel import amend_config
-from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.tof.eqsans.correct_frame import (
     correct_detector_frame,
     correct_monitor_frame,
@@ -48,7 +47,7 @@ def compare_to_eqsans_load(ws, wo, dl, s2d, ltc, htc):
     """
     eq_out = EQSANSLoad(
         InputWorkspace=wo.name(),
-        OutputWorkspace=uwd(),
+        OutputWorkspace=AnalysisDataService.unique_hidden_name(),
         NoBeamCenter=False,
         UseConfigBeam=False,
         UseConfigTOFCuts=False,
@@ -114,7 +113,7 @@ def test_smash_monitor_spikes(datarepo_dir):
 def test_correct_monitor_frame(datarepo_dir):
     for k, v in trials.items():
         with amend_config(data_dir=datarepo_dir.eqsans):
-            w = LoadNexusMonitors(v[0], LoadOnly="Events", OutputWorkspace=uwd())
+            w = LoadNexusMonitors(v[0], LoadOnly="Events", OutputWorkspace=AnalysisDataService.unique_hidden_name())
         if not bool(k.find("skip")):  # run in skip frame mode
             with pytest.raises(RuntimeError, match="cannot correct monitor"):
                 correct_monitor_frame(w)
@@ -128,8 +127,8 @@ def test_convert_to_wavelength(datarepo_dir):
     with amend_config(data_dir=datarepo_dir.eqsans):
         for v in trials.values():
             run_number, wavelength_bin, sadd = v[0:3]
-            wo = Load(Filename=run_number, OutputWorkspace=uwd())
-            ws = CloneWorkspace(wo, OutputWorkspace=uwd())
+            wo = Load(Filename=run_number, OutputWorkspace=AnalysisDataService.unique_hidden_name())
+            ws = CloneWorkspace(wo, OutputWorkspace=AnalysisDataService.unique_hidden_name())
             MoveInstrumentComponent(ws, ComponentName="detector1", Z=sadd)
             correct_frame.correct_detector_frame(ws, path_to_pixel=False)
             sodd = source_detector_distance(ws, unit="m")

@@ -89,7 +89,7 @@ def _get_angle_curved_detector(input_workspace, detector_name, offset_rotation, 
 def get_angle_wing_detector(input_workspace):
     r"""
     Get the angle (in degrees) of the wing detector away from the beam axis. Increasing angles move
-    the wing detector away from the beam axis.
+    the wing detector away (westward rotation) from the beam axis.
 
     Parameters
     ----------
@@ -108,7 +108,7 @@ def get_angle_wing_detector(input_workspace):
 def get_angle_midrange_detector(input_workspace):
     r"""
     Get the angle (in degrees) of the wing detector away from the beam axis. Increasing angles move
-    the midrange detector away from the beam axis.
+    the midrange detector away (eastward rotation) from the beam axis.
 
     Parameters
     ----------
@@ -162,7 +162,7 @@ def _set_angle_curved_panel(input_workspace, angle, detector_name, offset_rotati
 
 def set_angle_wing_detector(input_workspace, angle):
     r"""
-    Position the wing detector at a given angle away from the beam axis.
+    Position the wing detector at a given angle away from the beam axis (westward rotation)
 
     This will also update log entry "ww_rot_Readback" with the new angle.
 
@@ -184,9 +184,11 @@ def set_angle_wing_detector(input_workspace, angle):
 
 def set_angle_midrange_detector(input_workspace, angle):
     r"""
-    Position the midrange detector at a given angle away from the beam axis.
+    Position the midrange detector at a given angle away from the beam axis (eastward rotation).
 
-    This will also update log entry "md_rot_Readback" with the new angle.
+    This will also update log entry "mr_rot_Readback" with the new angle. Notice that PV variable mr_rot_Readback
+    follows the rotational convention of positive angles for clockwise rotation around the Y-axis. Thus,
+    mr_rot_Readback will store negative angle values when positioning the detector away from the beam axis.
 
     Parameters
     ----------
@@ -200,10 +202,12 @@ def set_angle_midrange_detector(input_workspace, angle):
     ValueError : if angle is not between 0 and 90 degrees
     """
     OFFSET_ROTATION = 2.48  # (degrees) rotation of the wing detector such that it grazes the beam axis
-    SampleLogs(input_workspace).insert("md_rot_Readback", angle)
     return _set_angle_curved_panel(
         input_workspace, angle, "midrange_detector", OFFSET_ROTATION, counter_clockwise=True
     )
+    # PV variable mr_rot_Readback follows the convention of positive angles for clockwise rotation around the Y-axis.
+    # Thus, mr_rot_Readback stores a negative values when positioning the detector away from the beam axis.
+    SampleLogs(input_workspace).insert("mr_rot_Readback", -angle)
 
 
 def adjust_midrange_detector(input_workspace, criterium="fair_tube_shadowing"):

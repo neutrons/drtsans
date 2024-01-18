@@ -84,7 +84,9 @@ def test_midrange_to_wing_tubepixel(fetch_idf, clean_workspace):
 def test_apply_samplelogs_midrange_rotation(fetch_idf, clean_workspace):
     workspace = LoadEmptyInstrument(Filename=fetch_idf("BIOSANS_Definition_2019_2023.xml"))
     clean_workspace(workspace)
-    SampleLogs(workspace).insert_time_series("md_rot_Readback", [0.0], [42.0], unit="deg")
+    # PV variable mr_rot_Readback follows the rotational convention of positive angles for clockwise rotation,
+    # thus -42.0 means rotate the panel eastward (away from the beam) by 42 degrees
+    SampleLogs(workspace).insert_time_series("mr_rot_Readback", [0.0], [-42.0], unit="deg")
     workspace = update_idf(workspace)
     assert_almost_equal(get_angle_midrange_detector(workspace), 42.0, decimal=2)
 

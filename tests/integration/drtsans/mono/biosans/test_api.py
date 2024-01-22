@@ -9,6 +9,7 @@ from drtsans.settings import unique_workspace_dundername
 # third party imports
 from mantid.api import AnalysisDataService
 from mantid.dataobjects import Workspace2D
+from mantid.kernel import amend_config
 from mantid.simpleapi import (
     mtd,
     CloneWorkspace,
@@ -195,28 +196,26 @@ def test_process_single_configuration(biosans_synthetic_dataset, clean_workspace
     DeleteWorkspaces([prefix + "_" + suffix for suffix in ("sample", "background")])
 
 
-@pytest.mark.mount_eqsans
-def test_reduce_single_configuration_slice_transmission_false(has_sns_mount, temp_directory):
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
-
+@pytest.mark.datarepo
+def test_reduce_single_configuration_slice_transmission_false(datarepo_dir, temp_directory):
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "BIOSANS",
         "iptsNumber": "24666",
         "dataDirectories": None,
         "sample": {
-            "runNumber": "8375",
-            "thickness": 0.2,
-            "transmission": {"runNumber": "8379", "value": None},
+            "runNumber": "8361",
+            "thickness": 0.1,
+            "transmission": {"runNumber": "8361", "value": None},
         },
         "background": {
-            "runNumber": "8374",
-            "transmission": {"runNumber": "8378", "value": None},
+            "runNumber": "8359",
+            "transmission": {"runNumber": "8359", "value": None},
         },
-        "emptyTransmission": {"runNumber": "8381", "value": None},
-        "beamCenter": {"runNumber": "8381"},
-        "outputFileName": "r8375_AgBeh_15m18Aqa",
+        "emptyTransmission": {"runNumber": "8364", "value": None},
+        "beamCenter": {"runNumber": "8373"},
+        "IntegrationRadius": None,
+        "outputFileName": "r8361_PorB3_15m",
         "configuration": {
             "wavelength": None,
             "wavelengthSpread": None,
@@ -227,11 +226,11 @@ def test_reduce_single_configuration_slice_transmission_false(has_sns_mount, tem
             "logSliceName": None,
             "logSliceInterval": None,
             "sampleOffset": None,
-            "sampleApertureSize": 12.0,
+            "sampleApertureSize": 14.0,
             "sampleDetectorDistance": None,
             "sampleToSi": None,
             "sourceApertureDiameter": None,
-            "usePixelCalibration": True,
+            "usePixelCalibration": False,
             "maskFileName": None,
             "useDefaultMask": True,
             "defaultMask": [
@@ -241,13 +240,13 @@ def test_reduce_single_configuration_slice_transmission_false(has_sns_mount, tem
                 {"Bank": "88", "Tube": "4"},
             ],
             "useMaskBackTubes": False,
-            "darkMainFileName": "CG3_8331.nxs.h5",
-            "darkWingFileName": "CG3_8331.nxs.h5",
-            "darkMidrangeFileName": "CG3_8331.nxs.h5",
+            "darkMainFileName": None,
+            "darkWingFileName": None,
+            "darkMidrangeFileName": None,
             "normalization": "Monitor",
             "normalizationResortToTime": False,
-            "sensitivityMainFileName": "/HFIR/CG3/shared/Cycle490/Sens_f8367m7p0_bsSVP.nxs",
-            "sensitivityWingFileName": "/HFIR/CG3/shared/Cycle490/Sens_f8369w1p4_bsSVP.nxs",
+            "sensitivityMainFileName": os.path.join(datarepo_dir.biosans, "Sens_f6368m4p0_bsSVP.nxs"),
+            "sensitivityWingFileName": os.path.join(datarepo_dir.biosans, "Sens_f6380w1p4_bsSVP.nxs"),
             # sensitivity file for mid-range detector should be added after
             # the installation of the new mid-range detector.
             "useSolidAngleCorrection": True,
@@ -256,7 +255,7 @@ def test_reduce_single_configuration_slice_transmission_false(has_sns_mount, tem
             "DBScalingBeamRadius": 40.0,
             "mmRadiusForTransmission": None,
             "absoluteScaleMethod": "standard",
-            "StandardAbsoluteScale": 2.286e-09,
+            "StandardAbsoluteScale": 2.094e-10,
             "numMainQxQyBins": 100,
             "numWingQxQyBins": 100,
             "numMidrangeQxQyBins": 100,
@@ -286,14 +285,14 @@ def test_reduce_single_configuration_slice_transmission_false(has_sns_mount, tem
             "useSubpixels": False,
             "subpixelsX": None,
             "subpixelsY": None,
-            "QminMain": 0.0009,
-            "QmaxMain": 0.016,
-            "QminWing": 0.009,
-            "QmaxWing": 0.3,
-            "QminMidrange": 0.009,
-            "QmaxMidrange": 0.3,
-            "overlapStitchQmin": [0.0105],
-            "overlapStitchQmax": [0.0145],
+            "QminMain": 0.003,
+            "QmaxMain": 0.045,
+            "QminWing": 0.03,
+            "QmaxWing": 0.9,
+            "QminMidrange": 0.03,
+            "QmaxMidrange": 0.9,
+            "overlapStitchQmin": [0.0325],
+            "overlapStitchQmax": [0.0425],
             "wedge1QminMain": 0.003,
             "wedge1QmaxMain": 0.0425,
             "wedge1QminWing": 0.02,
@@ -318,7 +317,8 @@ def test_reduce_single_configuration_slice_transmission_false(has_sns_mount, tem
     reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_false")
 
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
-    loaded = load_all_files(reduction_input, prefix)
+    with amend_config(data_dir=datarepo_dir.biosans):
+        loaded = load_all_files(reduction_input, prefix)
     _ = reduce_single_configuration(loaded, reduction_input)
     # just need a couple components from reduce
     # but the whole thing needs to be run then a few components pulled
@@ -328,7 +328,7 @@ def test_reduce_single_configuration_slice_transmission_false(has_sns_mount, tem
     )
     transmission_val = transmission.extractY()[0][0]
     clean_all_ws(prefix)
-    assert isclose(transmission_val, 0.5734218305525239)  # provided by s6v
+    assert isclose(transmission_val, 0.9032617874341662)  # provided by s6v
     del _
 
 
@@ -345,11 +345,8 @@ def remove_ws(workspace):
         DeleteWorkspace(workspace)
 
 
-@pytest.mark.mount_eqsans
-def test_reduce_single_configuration_slice_transmission_true(has_sns_mount, temp_directory):
-    if not has_sns_mount:
-        pytest.skip("SNS mount is not available")
-
+@pytest.mark.datarepo
+def test_reduce_single_configuration_slice_transmission_true(datarepo_dir, temp_directory):
     reduction_input = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "BIOSANS",
@@ -382,7 +379,7 @@ def test_reduce_single_configuration_slice_transmission_true(has_sns_mount, temp
             "sampleDetectorDistance": None,
             "sampleToSi": None,
             "sourceApertureDiameter": None,
-            "usePixelCalibration": True,
+            "usePixelCalibration": False,
             "maskFileName": None,
             "useDefaultMask": True,
             "defaultMask": [
@@ -392,13 +389,13 @@ def test_reduce_single_configuration_slice_transmission_true(has_sns_mount, temp
                 {"Bank": "88", "Tube": "4"},
             ],
             "useMaskBackTubes": False,
-            "darkMainFileName": "CG3_8331.nxs.h5",
-            "darkWingFileName": "CG3_8331.nxs.h5",
-            "darkMidrangeFileName": "CG3_8331.nxs.h5",
+            "darkMainFileName": None,
+            "darkWingFileName": None,
+            "darkMidrangeFileName": None,
             "normalization": "Monitor",
             "normalizationResortToTime": False,
-            "sensitivityMainFileName": "/HFIR/CG3/shared/Cycle490/Sens_f8367m7p0_bsSVP.nxs",
-            "sensitivityWingFileName": "/HFIR/CG3/shared/Cycle490/Sens_f8369w1p4_bsSVP.nxs",
+            "sensitivityMainFileName": os.path.join(datarepo_dir.biosans, "Sens_f6368m4p0_bsSVP.nxs"),
+            "sensitivityWingFileName": os.path.join(datarepo_dir.biosans, "Sens_f6380w1p4_bsSVP.nxs"),
             # sensitivity file for mid-range detector should be added after
             # the installation of the new mid-range detector.
             "useSolidAngleCorrection": True,
@@ -468,7 +465,8 @@ def test_reduce_single_configuration_slice_transmission_true(has_sns_mount, temp
     }
     reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_true")
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
-    loaded = load_all_files(reduction_input, prefix)
+    with amend_config(data_dir=datarepo_dir.biosans):
+        loaded = load_all_files(reduction_input, prefix)
     _ = reduce_single_configuration(loaded, reduction_input)
     # just need a couple components from reduce
     # but the whole thing needs to be run then a few components pulled
@@ -479,7 +477,7 @@ def test_reduce_single_configuration_slice_transmission_true(has_sns_mount, temp
 
     transmission_val = transmission.extractY()[0][0]
     clean_all_ws(prefix)
-    assert isclose(transmission_val, 0.7526460467895154)  # from above config using older workflow
+    assert isclose(transmission_val, 0.7498433455874779)  # from above config using older workflow
     del _
 
 

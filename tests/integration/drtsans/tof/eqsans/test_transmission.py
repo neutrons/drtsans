@@ -17,7 +17,7 @@ from mantid.kernel import amend_config
 
 r"""
 Hyperlinks to drtsans functions
-namedtuplefy, unique_workspace_dundername available at:
+namedtuplefy available at:
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 insert_aperture_logs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py>
@@ -27,7 +27,7 @@ calculate_transmission, fit_raw_transmission available at:
 apply_transmission_correction <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py>
 find_beam_center, center_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/beam_finder.py>
 """  # noqa: E501
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.geometry import insert_aperture_logs
 from drtsans.tof.eqsans.api import prepare_data
@@ -295,15 +295,15 @@ def transmission_fixture(datarepo_dir):
 
     def quick_compare(tentative, asset):
         r"""asset: str, name of golden standard nexus file"""
-        ws = LoadNexus(pjn(cmp_dir, asset), OutputWorkspace=unique_workspace_dundername())
+        ws = LoadNexus(pjn(cmp_dir, asset), OutputWorkspace=mtd.unique_hidden_name())
         return CompareWorkspaces(tentative, ws, Tolerance=1.0e-4).Result
 
-    a = LoadNexus(pjn(data_dir, "sample.nxs"), OutputWorkspace=unique_workspace_dundername())
+    a = LoadNexus(pjn(data_dir, "sample.nxs"), OutputWorkspace=mtd.unique_hidden_name())
     insert_aperture_logs(a)  # source and sample aperture diameters
-    b = LoadNexus(pjn(data_dir, "direct_beam.nxs"), OutputWorkspace=unique_workspace_dundername())
+    b = LoadNexus(pjn(data_dir, "direct_beam.nxs"), OutputWorkspace=mtd.unique_hidden_name())
     insert_aperture_logs(b)
-    c = LoadNexus(pjn(data_dir, "sample_skip.nxs"), OutputWorkspace=unique_workspace_dundername())
-    d = LoadNexus(pjn(data_dir, "direct_beam_skip.nxs"), OutputWorkspace=unique_workspace_dundername())
+    c = LoadNexus(pjn(data_dir, "sample_skip.nxs"), OutputWorkspace=mtd.unique_hidden_name())
+    d = LoadNexus(pjn(data_dir, "direct_beam_skip.nxs"), OutputWorkspace=mtd.unique_hidden_name())
     for workspace in (a, c):
         sample_logs = SampleLogs(workspace)
         sample_logs.insert("low_tof_clip", 0.0, unit="ms")

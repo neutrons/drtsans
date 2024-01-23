@@ -11,7 +11,7 @@ from mantid.simpleapi import CreateWorkspace, LoadInstrument
 r"""
 Hyperlinks to drtsans functions
 convert_to_q <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/momentum_transfer.py>
-namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 """  # noqa: E501
 from drtsans.momentum_transfer import convert_to_q
 from drtsans.settings import namedtuplefy

@@ -6,7 +6,7 @@ r"""
 Links to mantid algorithms
 CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 """
-from mantid.simpleapi import CreateWorkspace
+from mantid.simpleapi import CreateWorkspace, mtd
 
 
 r"""
@@ -14,7 +14,6 @@ Hyperlinks to drtsans functions
 normalize_by_thickness <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans
 /thickness_normalization.py>
 """  # noqa: E501
-from drtsans.settings import unique_workspace_dundername
 from drtsans.thickness_normalization import normalize_by_thickness
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -41,14 +40,14 @@ def workspaces(testdata):
         DataX=np.arange(nbins + 1),
         DataY=I,
         DataE=E,
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=mtd.unique_hidden_name(),
     )
     expected_output_ws = CreateWorkspace(
         NSpec=1,
         DataX=np.arange(nbins + 1),
         DataY=normedI,
         DataE=normedE,
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=mtd.unique_hidden_name(),
     )
     yield inputws, expected_output_ws
     # Delete upon closure of the fixture

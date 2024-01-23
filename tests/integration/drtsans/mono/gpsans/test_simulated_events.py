@@ -22,7 +22,7 @@ import pytest
 from drtsans.dataobjects import IQmod
 from drtsans.instruments import empty_instrument_workspace
 from drtsans.samplelogs import SampleLogs
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy
 from drtsans.simulated_events import insert_background, insert_beam_spot, insert_events_isotropic, insert_events_ring
 from drtsans.mono.gpsans import (
     load_all_files,
@@ -104,7 +104,7 @@ def create_three_rings_pattern(config: dict, metadata: dict):
     def common_empty_workspace(run_number: Union[int, str] = None, events=True) -> str:
         r"""Create an empty workspace with the correct instrument definition file and metadata"""
         # Create an empty events workspace for GPSANS with the detector at a certain position
-        workspace_name = unique_workspace_dundername()
+        workspace_name = mtd.unique_hidden_name()
         workspace_events = empty_instrument_workspace(
             workspace_name, instrument_name="CG2", event_workspace=events, monitors_have_spectra=False
         )

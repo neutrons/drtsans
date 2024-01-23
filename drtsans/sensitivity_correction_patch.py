@@ -17,9 +17,6 @@ from mantid.simpleapi import (
     CreateWorkspace,
 )
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsettings.py
-from drtsans.settings import unique_workspace_dundername as uwd
-
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fdetector.py
 from drtsans.detector import Component
 
@@ -79,7 +76,7 @@ def calculate_sensitivity_correction(
         # More than 1 bins in spectra: do integration to single bin
         # This is for EQSANS specially
         # output workspace name shall be unique and thus won't overwrite any existing one
-        input_workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
+        input_workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=mtd.unique_hidden_name())
         # set flag to delete input workspace later
         delete_input_workspace = True
     else:

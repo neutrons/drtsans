@@ -10,11 +10,10 @@ from drtsans.instruments import (
 )
 from drtsans.instruments import fetch_idf as instruments_fetch_idf
 from drtsans.mono.biosans.geometry import get_angle_wing_detector, get_position_south_detector
-from drtsans.settings import unique_workspace_dundername
 
 # third party imports
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import CreateWorkspace, DeleteWorkspace, LoadEmptyInstrument, LoadEventNexus
+from mantid.simpleapi import CreateWorkspace, DeleteWorkspace, LoadEmptyInstrument, LoadEventNexus, mtd
 from mantid.kernel import amend_config
 from numpy.testing import assert_almost_equal
 import pytest
@@ -73,7 +72,7 @@ def test_extract_run_number():
 
 def test_empty_instrument_workspace():
     workspace = empty_instrument_workspace(
-        output_workspace=unique_workspace_dundername(),
+        output_workspace=mtd.unique_hidden_name(),
         instrument_name="BIOSANS",
         event_workspace=True,
         monitors_have_spectra=False,
@@ -90,7 +89,7 @@ def test_copy_to_newest_instrument(fetch_idf, datarepo_dir, clean_workspace):
     #
     # assert that spectra originally assigned to monitors is respected
     workspace1 = LoadEmptyInstrument(
-        Filename=fetch_idf("BIOSANS_Definition_2019_2023.xml"), OutputWorkspace=unique_workspace_dundername()
+        Filename=fetch_idf("BIOSANS_Definition_2019_2023.xml"), OutputWorkspace=mtd.unique_hidden_name()
     )
     clean_workspace(workspace1)
     old_histogram_count = workspace1.getNumberHistograms()
@@ -101,7 +100,7 @@ def test_copy_to_newest_instrument(fetch_idf, datarepo_dir, clean_workspace):
     # assert that event workspace is preserved
     workspace2 = LoadEmptyInstrument(
         Filename=fetch_idf("BIOSANS_Definition_2019_2023.xml"),
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=mtd.unique_hidden_name(),
         MakeEventWorkspace=True,
     )
     clean_workspace(workspace2)
@@ -112,7 +111,7 @@ def test_copy_to_newest_instrument(fetch_idf, datarepo_dir, clean_workspace):
     #
     # assert intensities and detector positions
     with amend_config(facility="HFIR", instrument="CG3", data_dir=datarepo_dir.biosans):
-        workspace3 = LoadEventNexus(Filename="1322", OutputWorkspace=unique_workspace_dundername())
+        workspace3 = LoadEventNexus(Filename="1322", OutputWorkspace=mtd.unique_hidden_name())
     clean_workspace(workspace3)
     pixel_counts = workspace3.getSpectrum(24956).getNumberEvents()
     position_detector1 = get_position_south_detector(workspace3)

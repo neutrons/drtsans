@@ -1,7 +1,6 @@
 from mantid.simpleapi import mtd, LoadEventNexus
 from mantid.kernel import amend_config
 
-from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans import geometry
 from drtsans.tof.eqsans import geometry as e_geometry, correct_frame
 
@@ -28,7 +27,7 @@ def load_w(run, low_tof_clip=0, high_tof_clip=0, dw=0.1, data_dir=None, output_w
     MatrixWorkspace
     """
     if output_workspace is None:
-        output_workspace = uwd()  # unique hidden name
+        output_workspace = mtd.unique_hidden_name()  # unique hidden name
 
     with amend_config(data_dir=data_dir, **{"instrumentName": "EQSANS"}):
         LoadEventNexus(Filename=run, OutputWorkspace=output_workspace)

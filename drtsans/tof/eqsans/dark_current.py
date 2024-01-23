@@ -11,13 +11,11 @@ from mantid.kernel import amend_config
 
 r"""
 Hyperlinks to drtsans functions
-unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 exists, registered_workspace <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/path.py>
 SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 clipped_bands_from_logs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py>
 duration, counts_in_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dark_current.py>
 """  # noqa: E501
-from drtsans.settings import unique_workspace_dundername
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.correct_frame import clipped_bands_from_logs
@@ -164,7 +162,7 @@ def subtract_normalized_dark_current(input_workspace, dark_ws, output_workspace=
 
     duration_log_key = SampleLogs(dark_ws).normalizing_duration.value
     d = duration(input_workspace, log_key=duration_log_key).value
-    scaled = Scale(InputWorkspace=dark_ws, Factor=d, OutputWorkspace=unique_workspace_dundername())
+    scaled = Scale(InputWorkspace=dark_ws, Factor=d, OutputWorkspace=mtd.unique_hidden_name())
     Minus(
         LHSWorkspace=input_workspace,
         RHSWorkspace=scaled,
@@ -222,9 +220,9 @@ def subtract_dark_current(input_workspace, dark, output_workspace=None):
     if registered_workspace(dark):
         _dark = dark
     else:
-        _dark = load_dark_current_workspace(dark, unique_workspace_dundername())
+        _dark = load_dark_current_workspace(dark, mtd.unique_hidden_name())
 
-    _dark_normal = normalize_dark_current(_dark, input_workspace, output_workspace=unique_workspace_dundername())
+    _dark_normal = normalize_dark_current(_dark, input_workspace, output_workspace=mtd.unique_hidden_name())
     subtract_normalized_dark_current(input_workspace, _dark_normal, output_workspace=output_workspace)
     _dark_normal.delete()
     if _dark is not dark:

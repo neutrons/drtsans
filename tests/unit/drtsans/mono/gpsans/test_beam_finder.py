@@ -4,13 +4,12 @@ from mantid import mtd
 
 # https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html
 from mantid.simpleapi import LoadHFIRSANS
-from drtsans.settings import unique_workspace_dundername
 from drtsans.mono.gpsans import center_detector, find_beam_center
 
 
 @pytest.mark.datarepo
 def test_beam_finder(gpsans_f):
-    ws = unique_workspace_dundername()
+    ws = mtd.unique_hidden_name()
     LoadHFIRSANS(Filename=gpsans_f["beamcenter"], OutputWorkspace=ws)
 
     x, y, _ = find_beam_center(ws)

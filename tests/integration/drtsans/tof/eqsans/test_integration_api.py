@@ -19,7 +19,7 @@ from drtsans.tof import eqsans
 from drtsans import solid_angle_correction
 
 # protected API
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import main_detector_name
 
@@ -58,14 +58,14 @@ def flux_file(datarepo_dir):
 def run_infoset(datarepo_dir, request):
     run_set = request.param
     run = run_set["run"]
-    tof_workspace = unique_workspace_dundername()
+    tof_workspace = mtd.unique_hidden_name()
     with amend_config(data_dir=datarepo_dir.eqsans):
         eqsans.load_events(run, output_workspace=tof_workspace)
     wavelength_workspace, bands = eqsans.transform_to_wavelength(
         tof_workspace,
         low_tof_clip=500,
         high_tof_clip=2000,
-        output_workspace=unique_workspace_dundername(),
+        output_workspace=mtd.unique_hidden_name(),
     )
     wavelength_workspace = eqsans.set_init_uncertainties(wavelength_workspace)
     return {**run_set, **dict(ws=tof_workspace, wl=wavelength_workspace)}
@@ -103,7 +103,7 @@ class TestLoadEvents(object):
         with amend_config(data_dir=datarepo_dir.eqsans):
             workspace = eqsans.load_events(
                 "EQSANS_86217",
-                output_workspace=unique_workspace_dundername(),
+                output_workspace=mtd.unique_hidden_name(),
                 detector_offset=42,
                 sample_offset=-24,
             )
@@ -120,7 +120,7 @@ def test_transform_to_wavelength(run_infoset):
         run_infoset.ws,
         low_tof_clip=500,
         high_tof_clip=2000,
-        output_workspace=unique_workspace_dundername(),
+        output_workspace=mtd.unique_hidden_name(),
     )
     ws = eqsans.set_init_uncertainties(ws)
     sl = SampleLogs(ws)
@@ -139,7 +139,7 @@ def test_normalize_by_flux(run_infoset, flux_file):
         data_workspace,
         flux_file,
         method="proton charge",
-        output_workspace=unique_workspace_dundername(),
+        output_workspace=mtd.unique_hidden_name(),
     )
     normalized_data_workspace = SumSpectra(normalized_data_workspace)
     assert 1.0e6 * np.average(normalized_data_workspace.readY(0)) == approx(run_infoset.flux_normalized, abs=1.0)
@@ -150,9 +150,9 @@ def test_normalize_by_flux(run_infoset, flux_file):
 @pytest.mark.datarepo
 def test_subtract_background(datarepo_dir):
     data_dir = pj(datarepo_dir.eqsans, "test_subtract_background")
-    ws = LoadNexus(pj(data_dir, "sample.nxs"), OutputWorkspace=unique_workspace_dundername())
+    ws = LoadNexus(pj(data_dir, "sample.nxs"), OutputWorkspace=mtd.unique_hidden_name())
     ws_name = ws.name()
-    wb = LoadNexus(pj(data_dir, "background.nxs"), OutputWorkspace=unique_workspace_dundername())
+    wb = LoadNexus(pj(data_dir, "background.nxs"), OutputWorkspace=mtd.unique_hidden_name())
     ws_wb = eqsans.subtract_background(ws, wb, scale=0.42)
     assert ws_wb.name() == ws_name
     assert max(ws_wb.readY(0)) < 1.0e-09
@@ -176,7 +176,7 @@ def test_prepare_monitors(datarepo_dir):
         assert sl.wavelength_max.value == approx(13.6, abs=0.1)
         v = LoadNexus(
             "EQSANS_88565_monitors_wav.nxs",
-            OutputWorkspace=unique_workspace_dundername(),
+            OutputWorkspace=mtd.unique_hidden_name(),
         )
         assert CompareWorkspaces(w, v, Tolerance=1e-3, ToleranceRelErr=True).Result is True
     # cleanup
@@ -192,7 +192,7 @@ def test_prepare_monitors(datarepo_dir):
 def test_solid_angle(run_infoset):
     ws2 = solid_angle_correction(
         run_infoset.ws,
-        output_workspace=unique_workspace_dundername(),
+        output_workspace=mtd.unique_hidden_name(),
         detector_type="VerticalTube",
     )
     assert isinstance(ws2, EventWorkspace)

@@ -14,7 +14,6 @@ from mantid.simpleapi import (
     GroupDetectors,
 )
 
-from drtsans.settings import unique_workspace_dundername
 from drtsans.mask_utils import circular_mask_from_beam_center, masked_detectors
 
 __all__ = [
@@ -60,7 +59,7 @@ def empty_beam_intensity(
         intensity spectrum with one bin only
     """
     if output_workspace is None:
-        output_workspace = unique_workspace_dundername()
+        output_workspace = mtd.unique_hidden_name()
 
     # Obtain the beam radius from the logs or calculate from the source and sample apertures
     if beam_radius is None:
@@ -135,7 +134,7 @@ def empty_beam_scaling(
         output_workspace = str(input_workspace)
 
     # Calculate the intensity impinging on the detector, taking into account attenuation.
-    beam_intensity = unique_workspace_dundername()  # temporary workspace
+    beam_intensity = mtd.unique_hidden_name()  # temporary workspace
     empty_beam_intensity(
         empty_beam_workspace,
         beam_radius=beam_radius,

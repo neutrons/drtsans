@@ -1,6 +1,5 @@
 # local imports
 from drtsans.mask_utils import apply_mask, mask_spectra_with_special_values
-from drtsans.settings import unique_workspace_dundername as uwd
 from drtsans.solid_angle import solid_angle_correction
 
 # third party imports
@@ -200,7 +199,7 @@ def find_beam_center(
         raise NotImplementedError()  # (f'{method} is not implemented')
 
     # integrate the TOF
-    flat_ws = Integration(InputWorkspace=input_workspace, OutputWorkspace=uwd())
+    flat_ws = Integration(InputWorkspace=input_workspace, OutputWorkspace=mtd.unique_hidden_name())
     mask_spectra_with_special_values(flat_ws)
 
     if mask is not None or mask_options != {}:

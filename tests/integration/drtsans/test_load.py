@@ -3,8 +3,7 @@ import json
 import pytest
 
 from drtsans.load import load_events
-from drtsans.settings import unique_workspace_dundername
-from mantid.simpleapi import DeleteWorkspace
+from mantid.simpleapi import DeleteWorkspace, mtd
 
 
 class TestLoadEvents:
@@ -39,7 +38,7 @@ class TestLoadEvents:
         workspace = load_events(
             file_name,
             pixel_calibration=pixel_calibration_filename,
-            output_workspace=unique_workspace_dundername(),
+            output_workspace=mtd.unique_hidden_name(),
         )
         component_info = workspace.componentInfo()
         component_info_index = 42  # identifies some detector pixel

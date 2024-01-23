@@ -1,5 +1,4 @@
 import pytest
-from drtsans.settings import unique_workspace_dundername
 
 r""" Links to mantid algorithms
 LoadHFIRSANS <https://docs.mantidproject.org/nightly/algorithms/LoadHFIRSANS-v1.html>
@@ -24,17 +23,17 @@ def test_dark_current_workspace(gpsans_f):
     (This test was introduced prior to the testset with the instrument team)
     """
     # First read the data
-    sample_workspace = unique_workspace_dundername()
+    sample_workspace = mtd.unique_hidden_name()
     LoadHFIRSANS(Filename=gpsans_f["sample_scattering"], OutputWorkspace=sample_workspace)
 
     # second read and normalize the dark current
-    dark_current_workspace = unique_workspace_dundername()
+    dark_current_workspace = mtd.unique_hidden_name()
     LoadHFIRSANS(Filename=gpsans_f["dark_current"], OutputWorkspace=dark_current_workspace)
-    normalized_dark_current = unique_workspace_dundername()
+    normalized_dark_current = mtd.unique_hidden_name()
     normalize_dark_current(dark_current_workspace, output_workspace=normalized_dark_current)
 
     # third let's a DC subraction
-    sample_subtracted = unique_workspace_dundername()
+    sample_subtracted = mtd.unique_hidden_name()
     subtract_dark_current(sample_workspace, dark_current_workspace, output_workspace=sample_subtracted)
 
     # Let's test:
@@ -63,17 +62,17 @@ def test_dark_current_filename(gpsans_f):
     (This test was introduced prior to the testset with the instrument team)
     """
     # First read the data
-    sample_workspace = unique_workspace_dundername()
+    sample_workspace = mtd.unique_hidden_name()
     LoadHFIRSANS(Filename=gpsans_f["sample_scattering"], OutputWorkspace=sample_workspace)
 
     # second read and normalize the dark current
-    dark_current_workspace = unique_workspace_dundername()
+    dark_current_workspace = mtd.unique_hidden_name()
     LoadHFIRSANS(Filename=gpsans_f["dark_current"], OutputWorkspace=dark_current_workspace)
-    normalized_dark_current = unique_workspace_dundername()
+    normalized_dark_current = mtd.unique_hidden_name()
     normalize_dark_current(dark_current_workspace, output_workspace=normalized_dark_current)
 
     # third let's a DC subraction
-    sample_subtracted = unique_workspace_dundername()
+    sample_subtracted = mtd.unique_hidden_name()
     subtract_dark_current(sample_workspace, gpsans_f["dark_current"], output_workspace=sample_subtracted)
 
     # Let's test:

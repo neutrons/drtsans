@@ -12,12 +12,12 @@ from mantid.simpleapi import CloneWorkspace, Fit, Plus
 
 r"""
 Hyperlinks to drtsans functions
-namedtuplefy, unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 calculate_transmission <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py>
 clipped_bands_from_logs, transmitted_bands available at:
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py>
 """  # noqa: E501
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy
 from drtsans.transmission import calculate_transmission as calculate_raw_transmission
 from drtsans.tof.eqsans.correct_frame import transmitted_bands_clipped
 from drtsans.tof.eqsans.geometry import insert_aperture_logs
@@ -74,7 +74,7 @@ def calculate_transmission(
         transmission values when `fit_function`` is not :py:obj:`None`.
     """
     if output_workspace is None:
-        output_workspace = unique_workspace_dundername()
+        output_workspace = mtd.unique_hidden_name()
 
     if output_raw_transmission is None:
         output_raw_transmission = output_workspace  # we return the raw transmissions
@@ -137,7 +137,7 @@ def fit_band(
         - mantid_fit_output: namedtuple, output of calling Mantid's Fit algorithm
     """
     if output_workspace is None:
-        output_workspace = unique_workspace_dundername()
+        output_workspace = mtd.unique_hidden_name()
 
     # We require IgnoreInvalidData=True for the boundary cases when band.min or band.max picks a `nan`
     # value from the neighboring band gap (only for skip frame mode)
@@ -148,7 +148,7 @@ def fit_band(
         StartX=band.min,
         EndX=band.max,
         IgnoreInvalidData=True,
-        Output=unique_workspace_dundername(),
+        Output=mtd.unique_hidden_name(),
     )
 
     # The fit only contains transmission values within the wavelength range [band.min, band.max]. Insert this values
@@ -214,7 +214,7 @@ def fit_raw_transmission(
         input_workspace,
         wavelength_bands.lead,
         fit_function=fit_function,
-        output_workspace=unique_workspace_dundername(),
+        output_workspace=mtd.unique_hidden_name(),
     )  # band from lead pulse
 
     # Fit transmission over the wavelength band corresponding to the skipped pulse, if running in skip-frame mode
@@ -224,7 +224,7 @@ def fit_raw_transmission(
             input_workspace,
             wavelength_bands.skip,
             fit_function=fit_function,
-            output_workspace=unique_workspace_dundername(),
+            output_workspace=mtd.unique_hidden_name(),
         )  # skipped pulse
 
     # The overall fitted transmission workspace is either the transmission over the wavelength range of the lead

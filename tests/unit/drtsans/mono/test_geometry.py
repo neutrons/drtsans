@@ -1,7 +1,6 @@
 import pytest
 from os.path import join as path_join
-from mantid.simpleapi import LoadEventNexus
-from drtsans.settings import unique_workspace_dundername
+from mantid.simpleapi import LoadEventNexus, mtd
 from drtsans.mono.geometry import beam_radius
 
 
@@ -11,7 +10,7 @@ def test_beam_radius(datarepo_dir):
 
     workspace = LoadEventNexus(
         Filename=path_join(datarepo_dir.gpsans, "CG2_9188.nxs.h5"),
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=mtd.unique_hidden_name(),
         MetaDataOnly=True,
         LoadLogs=True,
     )

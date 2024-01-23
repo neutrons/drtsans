@@ -3,7 +3,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import drtsans  # noqa E402
-import mantid.simpleapi as msapi  # noqa E402
+from mantid.simpleapi import mtd, LoadEmptyInstrument, MaskBTP, ExtractMask
 from drtsans.iq import (
     BinningMethod,
     determine_1d_linear_bins,
@@ -11,7 +11,6 @@ from drtsans.iq import (
 )  # noqa E402
 from drtsans.plots import plot_IQmod, plot_IQazimuthal
 from drtsans.save_ascii import save_ascii_binned_1D, save_ascii_binned_2D  # noqa E402
-from drtsans.settings import unique_workspace_dundername as uwd  # noqa E402
 
 
 def setup_configuration(json_params, instrument):
@@ -68,10 +67,10 @@ def setup_configuration(json_params, instrument):
         default_mask = []
         if instrument in ["GPSANS"]:
             default_mask = [{"Pixel": "1-12,245-256"}]
-        w = msapi.LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=uwd())
+        w = LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=mtd.unique_hidden_name())
         for d in default_mask:
-            msapi.MaskBTP(Workspace=w, **d)
-        config["mask"] = msapi.ExtractMask(w, OutputWorkspace=uwd()).OutputWorkspace
+            MaskBTP(Workspace=w, **d)
+        config["mask"] = ExtractMask(w, OutputWorkspace=mtd.unique_hidden_name()).OutputWorkspace
     elif json_params["configuration"]["maskFileName"] is not None:
         config["mask"] = json_params["configuration"]["maskFileName"]
 

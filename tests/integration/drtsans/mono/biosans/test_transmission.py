@@ -1,10 +1,9 @@
 # local imports
 from drtsans.mono.transmission import calculate_transmission
 from drtsans.mono.biosans import prepare_data
-from drtsans.settings import unique_workspace_dundername
 
 # third party imports
-from mantid.simpleapi import DeleteWorkspaces, LoadNexusProcessed
+from mantid.simpleapi import DeleteWorkspaces, LoadNexusProcessed, mtd
 from numpy.testing import assert_almost_equal
 import pytest
 
@@ -37,7 +36,7 @@ def test_transmission(mock_monitor_counts, biosans_synthetic_dataset):
             flux_method="monitor",
             solid_angle=False,
             sample_thickness=0.1,
-            output_workspace=unique_workspace_dundername(),
+            output_workspace=mtd.unique_hidden_name(),
         )
         for run in ("empty_transmission", "sample_transmission")
     ]

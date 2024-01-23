@@ -3,11 +3,9 @@ DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspa
 Divide          <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
 Multiply        <https://docs.mantidproject.org/nightly/algorithms/Multiply-v1.html>
 """
-from mantid.simpleapi import DeleteWorkspace, Divide, Multiply
+from mantid.simpleapi import DeleteWorkspace, Divide, Multiply, mtd
 from mantid.dataobjects import WorkspaceSingleValue
 
-# drtsans imports
-from drtsans.settings import unique_workspace_dundername as uwd
 
 __all__ = [
     "standard_sample_scaling",
@@ -41,7 +39,7 @@ def standard_sample_scaling(input_workspace, f, f_std, output_workspace=None):
     if output_workspace is None:
         output_workspace = str(input_workspace)
 
-    scaling_factor = Divide(LHSWorkspace=f_std, RHSWorkspace=f, OutputWorkspace=uwd())
+    scaling_factor = Divide(LHSWorkspace=f_std, RHSWorkspace=f, OutputWorkspace=mtd.unique_hidden_name())
     output_workspace = Multiply(LHSWorkspace=input_workspace, RHSWorkspace=scaling_factor)
     DeleteWorkspace(Workspace=scaling_factor)
     return output_workspace

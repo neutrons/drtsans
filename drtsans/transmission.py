@@ -18,12 +18,10 @@ from mantid.simpleapi import (
 )
 
 r""" links to drtsans imports
-unique_workspace_dundername <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
 circular_mask_from_beam_center, masked_detectors available at:
     <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mask_utils.py>
 beam_radius <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py>
 """  # noqa: E501
-from drtsans.settings import unique_workspace_dundername
 from drtsans.mask_utils import circular_mask_from_beam_center, masked_detectors
 
 # Symbols to be exported
@@ -65,7 +63,7 @@ def calculate_transmission(input_sample, input_reference, radius, radius_unit="m
         Workspace containing the raw transmission values
     """
     if output_workspace is None:
-        output_workspace = unique_workspace_dundername()
+        output_workspace = mtd.unique_hidden_name()
 
     if radius is None:
         logger.information("Calculating beam radius from sample logs")
@@ -94,12 +92,12 @@ def calculate_transmission(input_sample, input_reference, radius, radius_unit="m
     sample_intensity_workspace = GroupDetectors(
         InputWorkspace=input_sample,
         DetectorList=detector_ids,
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=mtd.unique_hidden_name(),
     )
     reference_intensity_workspace = GroupDetectors(
         InputWorkspace=input_reference,
         DetectorList=detector_ids,
-        OutputWorkspace=unique_workspace_dundername(),
+        OutputWorkspace=mtd.unique_hidden_name(),
     )
 
     # If the reference workspace used a different wavelength binning than that of the sample workspace, a rebinning
@@ -198,7 +196,7 @@ def apply_transmission_correction(
             InputWorkspace=trans_workspace,
             SmallNumberThreshold=1.0e-6,
             SmallNumberValue=1.0,
-            OutputWorkspace=unique_workspace_dundername(),
+            OutputWorkspace=mtd.unique_hidden_name(),
         )
         kwargs["TransmissionWorkspace"] = clean_trans_workspace
     elif trans_value is not None:  # we are passing a single value for the transmission

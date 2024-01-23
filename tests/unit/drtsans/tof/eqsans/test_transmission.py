@@ -3,12 +3,12 @@ from os.path import join as pjn
 from numpy.testing import assert_almost_equal
 
 # https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html
-from mantid.simpleapi import LoadNexus
+from mantid.simpleapi import LoadNexus, mtd
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/transmission.py
-from drtsans.settings import namedtuplefy, unique_workspace_dundername  # noqa: E402
+from drtsans.settings import namedtuplefy  # noqa: E402
 from drtsans.samplelogs import SampleLogs  # noqa: E402
 from drtsans.tof.eqsans.correct_frame import transmitted_bands  # noqa: E402
 from drtsans.tof.eqsans.transmission import fit_band, fit_raw_transmission  # noqa: E402
@@ -81,7 +81,7 @@ def test_fit_raw(trasmission_data, clean_workspace):
     changes to the source code are introduced. We use the goodness of fit (chi-square) to assess no changes.
     """
     # Non-skip mode
-    fitting_results = fit_raw_transmission(trasmission_data.raw, output_workspace=unique_workspace_dundername())
+    fitting_results = fit_raw_transmission(trasmission_data.raw, output_workspace=mtd.unique_hidden_name())
     clean_workspace(fitting_results.transmission),
     clean_workspace(fitting_results.lead_transmission),
     clean_workspace(fitting_results.lead_mantid_fit.OutputWorkspace)
@@ -90,7 +90,7 @@ def test_fit_raw(trasmission_data, clean_workspace):
     assert_almost_equal(fitting_results.lead_mantid_fit.OutputChi2overDoF, 1.1, decimal=1)
 
     # Frame-skipping mode
-    fitting_results = fit_raw_transmission(trasmission_data.raw_skip, output_workspace=unique_workspace_dundername())
+    fitting_results = fit_raw_transmission(trasmission_data.raw_skip, output_workspace=mtd.unique_hidden_name())
     clean_workspace(fitting_results.transmission),
     clean_workspace(fitting_results.lead_transmission),
     clean_workspace(fitting_results.lead_mantid_fit.OutputWorkspace)

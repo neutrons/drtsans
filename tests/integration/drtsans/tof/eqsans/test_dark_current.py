@@ -4,7 +4,6 @@ import numpy as np
 # CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 from mantid.simpleapi import mtd, CreateWorkspace
 
-# unique_workspace_dundername within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py> # noqa: 501
 # subtract_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>  # noqa: E501
 # SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
 from drtsans.samplelogs import SampleLogs
@@ -112,8 +111,6 @@ def test_subtract_dark_current(data_test_16a, temp_workspace_name):
         <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 
     **drtsans functions used:**
-    ~drtsans.settings.unique_workspace_dundername
-        <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
     ~drtsans.samplelogs.SampleLogs
         <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
     ~drtsans.tof.eqsans.dark_current.normalize_dark_current

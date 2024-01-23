@@ -4,10 +4,9 @@ from typing import List, Tuple
 from drtsans.dataobjects import IQmod
 from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
-from drtsans.settings import unique_workspace_dundername
 
 # https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html
-from mantid.simpleapi import DeleteWorkspace, logger, Gaussian, FlatBackground
+from mantid.simpleapi import DeleteWorkspace, logger, Gaussian, FlatBackground, mtd
 
 # https://docs.mantidproject.org/nightly/algorithms/Fit-v1.html
 from mantid.simpleapi import Fit
@@ -597,7 +596,7 @@ def _fitSpectrum(
     q_azimuthal_workspace = spectrum.to_workspace()
 
     # fit the positions of the two suspected peaks
-    fit_workspace_prefix = unique_workspace_dundername()
+    fit_workspace_prefix = mtd.unique_hidden_name()
     fit_function = ";".join(function)
     try:
         fitresult = Fit(

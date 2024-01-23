@@ -21,7 +21,7 @@ from drtsans.plots import plot_detector
 from drtsans.samplelogs import SampleLogs
 from drtsans.save_ascii import save_ascii_binned_2D
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
-from drtsans.settings import namedtuplefy, unique_workspace_dundername
+from drtsans.settings import namedtuplefy
 from drtsans.stitch import stitch_binned_profiles
 from drtsans.reductionlog import savereductionlog
 from drtsans.thickness_normalization import normalize_by_thickness
@@ -2083,7 +2083,7 @@ def file_has_midrange_detector(sample: str, instrument_name: str, ipts: str, dir
         ","
     )[0]
 
-    out_ws_name = unique_workspace_dundername()
+    out_ws_name = mtd.unique_hidden_name()
 
     try:
         workspace = LoadEventNexus(Filename=filename, MetadataOnly=True, OutputWorkspace=out_ws_name)

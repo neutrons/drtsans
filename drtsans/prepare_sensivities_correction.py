@@ -597,7 +597,7 @@ class PrepareSensitivityCorrection(object):
             event_nexus = parent_flood_run
             assert os.path.exists(event_nexus)
 
-        parent_ws = load_events(run=event_nexus, MetaDataOnly=True)
+        parent_ws = load_events(run=event_nexus, MetaDataOnly=True, LoadNexusInstrumentXML=self._enforce_use_nexus_idf)
 
         # Create new sensitivity workspace
         new_sens_name = "{}_new".format(str(sensitivity_ws))

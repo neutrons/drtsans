@@ -1,10 +1,9 @@
 import pytest
 from unittest.mock import patch as mock_patch
 import os
-import numpy as np
 import warnings
 from mantid.api import AnalysisDataService
-from mantid.simpleapi import DeleteWorkspace
+from mantid.simpleapi import DeleteWorkspace, CompareWorkspaces
 from drtsans.mono.spice_data import SpiceRun
 from drtsans.mono.biosans.prepare_sensitivities_correction import (
     prepare_spice_sensitivities_correction,
@@ -259,7 +258,8 @@ def verify_results(test_sensitivities_file: str, gold_sens_file: str, clean_work
     test_sens_ws = LoadNexusProcessed(Filename=test_sensitivities_file)
     clean_workspace(gold_sens_ws)
     clean_workspace(test_sens_ws)
-    np.testing.assert_allclose(test_sens_ws.extractY(), gold_sens_ws.extractY())
+    result, _ = CompareWorkspaces(gold_sens_ws, test_sens_ws)
+    assert result
     clean_all_ws()
 
 

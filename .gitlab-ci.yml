@@ -202,7 +202,7 @@ conda-package:
     - ls -l $CI_PROJECT_DIR
     - *teardown_cleanup
   tags:
-    - neutrons-multi-builder
+    - drtsans_lfs
 
 # comment out deploy-dev since we are currently not deploying automatically to the analysis cluster
 .deploy-dev:

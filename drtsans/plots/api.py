@@ -493,3 +493,4 @@ def plot_detector(
 
     if filename is not None:
         _save_file(fig, filename, backend)
+    return fig

@@ -39,7 +39,7 @@ MOVING_DETECTORS = "Moving Detectors"
 PATCHING_DETECTORS = "Patching Detectors"
 
 # As this script is a wrapper to handle script prepare_sensitivity
-# (https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/scripts%2Fprepare_sensitivities.py),
+# (e.g. https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/scripts%2Fprepare_sensitivities_biosans.py),
 # by which user just needs to set up instrument name but not is required to import the right modules
 # (for example drtsans.mono.gpsans or drtsans.tof.eqsans),
 # therefore it has to import the correct ones according instrument name in string.

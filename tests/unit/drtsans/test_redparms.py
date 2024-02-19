@@ -605,6 +605,14 @@ class TestReductionParameters:
     def test_init(self, redparms_data):
         ReductionParameters(redparms_data["reduction_parameters"], redparms_data["schema_instrument"])
 
+    def test_permissible(self, redparms_data):
+        reduction_parameters_new = deepcopy(redparms_data["reduction_parameters"])
+        reduction_parameters_new["configuration"]["entry_not_in_the_schema"] = None
+        with pytest.raises(KeyError) as error_info:
+            ReductionParameters(reduction_parameters_new, redparms_data["schema_instrument"])
+        assert "entry_not_in_the_schema" in str(error_info.value)
+        ReductionParameters(reduction_parameters_new, redparms_data["schema_instrument"], permissible=True)
+
 
 class TestReductionParametersGPSANS:
     parameters_common = {

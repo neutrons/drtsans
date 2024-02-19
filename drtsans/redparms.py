@@ -1,13 +1,18 @@
+# standard imports
 import ast
 from copy import deepcopy
 import itertools
 import json
 import jsonschema
 from jsonschema.exceptions import relevance
-from numpy import greater
 import os
 import re
 import warnings
+
+# third-party imports
+from numpy import greater
+from mantid.kernel import logger
+
 
 warnings.filterwarnings("ignore")
 
@@ -525,6 +530,9 @@ class ReductionParameters:
         The dictionary of reduction parameters to be validated.
     schema_instrument: dict
         One of the instrument schemae under subdirectory 'schema' of ~drtsans.configdir
+    permissible: bool
+        If `False`, raise an exception if a parameter in the parameters dictionary is not found in the instrument's
+        schema, and a warning otherwise.
     """
 
     # Routines organization
@@ -560,9 +568,10 @@ class ReductionParameters:
 
     # 3. member initialization
 
-    def __init__(self, parameters, schema_instrument):
+    def __init__(self, parameters, schema_instrument, permissible=False):
         self._parameters = parameters
         self._schema = schema_instrument
+        self._permissible = permissible
         # object in charge of offering a suggestion when the user enters the wrong property name
         self._entries = ReductionParameters.initialize_suggestions(schema_instrument)
         # object called when executing any of the validators
@@ -714,11 +723,15 @@ class ReductionParameters:
                 try:
                     schema_value = schema["additionalProperties"][name]
                 except KeyError as key_err:
-                    properties_keys = schema["properties"].keys()
-                    if "additionalProperties" in schema.keys():
-                        properties_keys.extend(schema["additionalProperties"].keys())
-                    errmsg = "Available properties: {}".format(properties_keys)
-                    raise KeyError(errmsg + ".  " + str(key_err))
+                    not_found_message = f"Parameter {name} not found in the schema."
+                    if self._permissible:
+                        logger.warning(not_found_message)
+                    else:
+                        properties_keys = schema["properties"].keys()
+                        if "additionalProperties" in schema.keys():
+                            properties_keys.extend(schema["additionalProperties"].keys())
+                        errmsg = f"{not_found_message}. Available properties are: {properties_keys}"
+                        raise KeyError(errmsg + ".  " + str(key_err))
             if isinstance(parameter_value, dict) is True:
                 # recursive call for nested dictionaries. We pass references to the child dictionaries
                 # for the schema and the reduction parameters
@@ -1201,7 +1214,7 @@ def generate_json_files(save_dir, timestamp=True, field="default"):
         default_json.dump(save_path)
 
 
-def validate_reduction_parameters(parameters):
+def validate_reduction_parameters(parameters, permissible=False):
     r"""
     Validate reduction parameters against the instrument's schema.
 
@@ -1209,6 +1222,9 @@ def validate_reduction_parameters(parameters):
     ----------
     parameters: dict, ~drtsans.redparms.ReductionParameters
         Reduction configuration
+    permissible: bool
+        If `False`, raise an exception if a parameter in the parameters dictionary is not found in the instrument's
+        schema, and a warning otherwise.
 
     Returns
     -------
@@ -1219,12 +1235,12 @@ def validate_reduction_parameters(parameters):
         parameters = parameters.parameters
     instrument_name = instrument_standard_name(parameters["instrumentName"])
     schema = load_schema(instrument_name)
-    parameters = ReductionParameters(parameters, schema)
+    parameters = ReductionParameters(parameters, schema, permissible=permissible)
     parameters.validate()
     return deepcopy(parameters.parameters)
 
 
-def update_reduction_parameters(parameters_original, parameter_changes, validate=True):
+def update_reduction_parameters(parameters_original, parameter_changes, validate=True, permissible=False):
     r"""
     Update the values of a reduction parameters dictionary with values from another dictionary. Handles nested
     dictionaries. Validate after update is done.
@@ -1238,6 +1254,10 @@ def update_reduction_parameters(parameters_original, parameter_changes, validate
     parameter_changes: dict
     validate: bool
         Perform validation of the parameters
+    permissible: bool
+        If `False`, raise an exception if a parameter in the overall parameters dictionary is not found in the
+        instrument's schema, and a warning otherwise.
+
     Returns
     -------
     dict
@@ -1246,7 +1266,7 @@ def update_reduction_parameters(parameters_original, parameter_changes, validate
     _update_reduction_parameters(parameters_updated, parameter_changes)
     if validate is False:
         return parameters_updated
-    return validate_reduction_parameters(parameters_updated)
+    return validate_reduction_parameters(parameters_updated, permissible=permissible)
 
 
 def _update_reduction_parameters(parameters_original: dict, parameter_changes: dict) -> None:
@@ -1272,7 +1292,7 @@ def _update_reduction_parameters(parameters_original: dict, parameter_changes: d
             parameters_original[name] = value
 
 
-def reduction_parameters(parameters_particular=None, instrument_name=None, validate=True):
+def reduction_parameters(parameters_particular=None, instrument_name=None, validate=True, permissible=False):
     r"""
     Serve all necessary (and validated if so desired) parameters for a reduction session of
     a particular instrument.
@@ -1288,6 +1308,10 @@ def reduction_parameters(parameters_particular=None, instrument_name=None, valid
         dictionary `parameters_particular`
     validate: bool
         Perform validation of the parameters
+    permissible: bool
+        If `False`, raise an exception if a parameter in the parameters dictionary is not found in the instrument's
+        schema, and a warning otherwise.
+
     Returns
     -------
     dict
@@ -1301,7 +1325,7 @@ def reduction_parameters(parameters_particular=None, instrument_name=None, valid
     if parameters_particular is None:
         if validate is False:
             return reduction_input  # nothing else to do
-        return validate_reduction_parameters(reduction_input)
+        return validate_reduction_parameters(reduction_input, permissible=permissible)
     return update_reduction_parameters(reduction_input, parameters_particular, validate=validate)
 
 

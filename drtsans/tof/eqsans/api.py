@@ -197,7 +197,9 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     if timeslice or logslice:
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
         if not registered_workspace(ws_name):
-            filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts)
+            filename = abspath(
+                sample.strip(), instrument=instrument_name, ipts=ipts, directory=reduction_input["dataDirectories"]
+            )
             print(f"Loading filename {filename}")
             filenames.add(filename)
             if timeslice:
@@ -867,7 +869,7 @@ def reduce_single_configuration(
     detectordata = {}
     processed_data_main = None
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
-        name = "slice_{}".format(i + 1)
+        slice_name = f"slice_{i}"
         if len(loaded_ws.sample) > 1:
             output_suffix = f"_{i}"
         raw_name = f"EQSANS_{raw_sample_ws.data.getRunNumber()}"
@@ -938,6 +940,10 @@ def reduce_single_configuration(
             assert iq1d_main_in_fr[wl_frame] is not None, "Input I(Q)      main input cannot be None."
             assert iq2d_main_in_fr[wl_frame] is not None, "Input I(qx, qy) main input cannot be None."
 
+            # create output directory, with sample number and frame number in case of multiple samples and/or frames
+            slice_frame_output_dir = os.path.join(output_dir, outputFilename, slice_name, f"frame_{wl_frame}")
+            os.makedirs(slice_frame_output_dir, exist_ok=True)
+
             iq2d_main_out, iq1d_main_out = bin_i_with_correction(
                 iq1d_main_in_fr,
                 iq2d_main_in_fr,
@@ -959,7 +965,7 @@ def reduce_single_configuration(
                 iq1d_elastic_ref_frames,
                 iq2d_elastic_ref_frames,
                 raw_name,
-                output_dir,
+                slice_frame_output_dir,
                 outputFilename,
             )
 
@@ -985,7 +991,7 @@ def reduce_single_configuration(
             output.append(current_output)
         # END binning loop over frame
 
-        detectordata[name] = _inside_detectordata
+        detectordata[slice_name] = _inside_detectordata
     # END reduction loop over sample workspaces
 
     # Save reduction log

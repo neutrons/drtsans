@@ -167,12 +167,12 @@ def test_incoherence_inelastic_correction(temp_directory):
     before_intensity = [0.1, 0.13, 0.15, 0.14, 0.11]
     for n in range(5):
         wl = n + 1.0
-        filename = os.path.join(output_dir, f"IQ_{wl}_before_b_correction.dat")
+        filename = os.path.join(output_dir, f"IQ_{wl:.3f}_before_b_correction.dat")
         assert os.path.exists(filename)
         data = np.loadtxt(filename)
         np.testing.assert_allclose(data[:, 1], before_intensity[n])
 
-        filename = os.path.join(output_dir, f"IQ_{wl}_after_b_correction.dat")
+        filename = os.path.join(output_dir, f"IQ_{wl:.3f}_after_b_correction.dat")
         assert os.path.exists(filename)
         data = np.loadtxt(filename)
         np.testing.assert_allclose(data[:, 1], 0.1)

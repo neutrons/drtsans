@@ -72,6 +72,7 @@ class EQSANSDiskChopperSet(object):
 
         # Determine period and if frame skipping mode from the first chopper
         ch = self._choppers[0]
+        # example of frame skipping: chopper speed 30 Hz, pulse frequency 60 Hz: abs(30 - 60) / 2 = 15
         condition = abs(ch.speed - sample_logs.frequency.value.mean()) / 2 > 1
         self.frame_mode = FrameMode.skip if condition else FrameMode.not_skip
 

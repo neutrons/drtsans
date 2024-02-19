@@ -155,7 +155,7 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q, output_wavelength_depende
 
     """
     # check i_of_q and ref_i_of_q shall have same binning
-    if not verify_same_q_bins(i_of_q, ref_i_of_q):
+    if not verify_same_q_bins(i_of_q, ref_i_of_q, False, tolerance=1e-3):
         raise RuntimeError("Input I(Q) and elastic reference I(Q) have different Q and wavelength binning")
 
     # Reshape Q, wavelength, intensities and errors to unique 1D array or 2D array
@@ -189,7 +189,7 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q, output_wavelength_depende
 
     if output_wavelength_dependent_profile and output_dir:
         for tmpwlii, wl in enumerate(wl_vec):
-            tmpfn = os.path.join(output_dir, f"IQ_{wl}_before_k_correction.dat")
+            tmpfn = os.path.join(output_dir, f"IQ_{wl:.3f}_before_k_correction.dat")
             save_iqmod(
                 IQmod(
                     intensity=i_array[:, tmpwlii],
@@ -222,7 +222,7 @@ def normalize_by_elastic_reference(i_of_q, ref_i_of_q, output_wavelength_depende
 
     if output_wavelength_dependent_profile and output_dir:
         for tmpwlii, wl in enumerate(wl_vec):
-            tmpfn = os.path.join(output_dir, f"IQ_{wl}_after_k_correction.dat")
+            tmpfn = os.path.join(output_dir, f"IQ_{wl:.3f}_after_k_correction.dat")
             save_iqmod(
                 IQmod(
                     intensity=normalized[0][:, tmpwlii],

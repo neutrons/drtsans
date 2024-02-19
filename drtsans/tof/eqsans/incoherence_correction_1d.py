@@ -304,13 +304,11 @@ def calculate_b_error_b(
         # operation into a (num_q, num_wl) 2D array
 
         ref_intensity_vec = unumpy.uarray(
-            (
-                ref_wavelengths.intensity_vec[qmin_index : qmax_index + 1].reshape((num_q, 1)),
-                ref_wavelengths.error_vec[qmin_index : qmax_index + 1].reshape((num_q, 1)),
-            )
+            ref_wavelengths.intensity_vec[qmin_index : qmax_index + 1].reshape((num_q, 1)),
+            ref_wavelengths.error_vec[qmin_index : qmax_index + 1].reshape((num_q, 1)),
         )
         intensity_vec = unumpy.uarray(
-            (intensity_array[qmin_index : qmax_index + 1, :], error_array[qmin_index : qmax_index + 1, :])
+            intensity_array[qmin_index : qmax_index + 1, :], error_array[qmin_index : qmax_index + 1, :]
         )
 
         b_vec = (ref_intensity_vec - intensity_vec) / ref_intensity_vec

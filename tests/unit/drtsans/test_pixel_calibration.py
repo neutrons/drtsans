@@ -71,7 +71,8 @@ class TestBarPositionFormula:
     def test_elucidate_formula(self):
         formula = BarPositionFormula._elucidate_formula(("BIOSANS", "detector1"))
         assert formula == "565 - {y} + 0.0083115 * (191 - {tube})"
-        formula = BarPositionFormula._elucidate_formula("Mary Poppings")
+        with pytest.warns(UserWarning, match="Unable to find a bar position formula for argument Mary Poppings"):
+            formula = BarPositionFormula._elucidate_formula("Mary Poppings")
         assert formula == "565 - {y} + 0.0 * {tube}"
 
     def test_validate_symbols(self):
@@ -79,10 +80,12 @@ class TestBarPositionFormula:
         for invalid_formula in ("{tube}", "{dcal}", "y"):
             with pytest.raises(ValueError):
                 BarPositionFormula._validate_symbols(invalid_formula)
-        assert BarPositionFormula._validate_symbols("565 - {y}") == "565 - {y} + 0.0 * {tube}"
+        with pytest.warns(UserWarning, match='Formula does not contain "{tube}"'):
+            assert BarPositionFormula._validate_symbols("565 - {y}") == "565 - {y} + 0.0 * {tube}"
 
     def test_str(self):
-        assert str(BarPositionFormula(instrument_component="unknown")) == BarPositionFormula._default_formula
+        with pytest.warns(UserWarning, match="Unable to find a bar position formula for argument unknown"):
+            assert str(BarPositionFormula(instrument_component="unknown")) == BarPositionFormula._default_formula
 
     def test_evaluate(self):
         formula = BarPositionFormula(instrument_component=("GPSANS", "detector1"))  # use default formula
@@ -93,7 +96,8 @@ class TestBarPositionFormula:
             BarPositionFormula(formula=formula).validate_top_position(0.0)
         with pytest.raises(RuntimeError):
             BarPositionFormula(("BIOSANS", "wing_detector")).validate_top_position(1150.0)
-        BarPositionFormula(formula="{y} - 565").validate_top_position(1150.0)
+        with pytest.warns(UserWarning, match='Formula does not contain "{tube}"'):
+            BarPositionFormula(formula="{y} - 565").validate_top_position(1150.0)
 
 
 class TestTable:

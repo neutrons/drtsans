@@ -96,6 +96,11 @@ def _save_file(figure, filename, backend: str, show=False):
         Whether or not to show the figure rather than saving. This is only
         available if the :py:obj:`~Backend.MPLD3` backend is selected.
     """
+
+    # Auto-closing of figures upon backend switching is deprecated since 3.8
+    # and will be removed two minor releases later, so explicitly call plt.close('all')
+    plt.close("all")
+
     with MatBackendManager("agg") as _m:
         if Backend.isSupported(backend):
             if backend == Backend.MATPLOTLIB:
@@ -366,7 +371,7 @@ def plot_IQazimuthal(
 
     # put together the plot
     fig, ax = plt.subplots()
-    current_cmap = matplotlib.cm.get_cmap()
+    current_cmap = matplotlib.colormaps.get_cmap("viridis")
     current_cmap.set_bad(color="grey")
     qxmin = workspace.qx.min()
     qxmax = workspace.qx.max()

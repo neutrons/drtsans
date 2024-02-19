@@ -305,9 +305,10 @@ def nominal_pixel_size(input_workspace):
     """
     workspace = mtd[str(input_workspace)]  # handle to Mantid Workspace object
     workspace_index = 0
+    detectorInfo = workspace.detectorInfo()
     while True:
-        detector = workspace.getDetector(workspace_index)
-        if detector.isMonitor() is False:
+        if detectorInfo.isMonitor(workspace_index) is False:
+            detector = workspace.getDetector(workspace_index)
             detector_shape = detector.shape().getBoundingBox().width()  # (X, Y, Z) values
             return {"width": detector_shape.X(), "height": detector_shape.Y()}
         workspace_index += 1

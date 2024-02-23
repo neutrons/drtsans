@@ -1326,7 +1326,9 @@ def reduction_parameters(parameters_particular=None, instrument_name=None, valid
         if validate is False:
             return reduction_input  # nothing else to do
         return validate_reduction_parameters(reduction_input, permissible=permissible)
-    return update_reduction_parameters(reduction_input, parameters_particular, validate=validate)
+    return update_reduction_parameters(
+        reduction_input, parameters_particular, validate=validate, permissible=permissible
+    )
 
 
 def load_schema(instrument_name):

@@ -18,6 +18,7 @@ import glob
 import numpy as np
 
 
+@pytest.mark.datarepo
 def test_parse_json(datarepo_dir):
     """Test the JSON to dictionary"""
 
@@ -84,6 +85,7 @@ def test_parse_json(datarepo_dir):
     assert correction.elastic_reference.background_run_number is None
 
 
+@pytest.mark.datarepo
 def test_parse_invalid_json(datarepo_dir):
     """Test the JSON to dictionary"""
 
@@ -150,6 +152,7 @@ def test_parse_invalid_json(datarepo_dir):
     assert input_config["configuration"].get("selectMinIncoh")
 
 
+@pytest.mark.datarepo
 def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directory):
     """Test incoherence correction with elastic correction"""
 
@@ -211,14 +214,15 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
 
     # check that the wavelength dependent profiles are created
     number_of_wavelengths = 31
+    output_dir = os.path.join(test_dir, base_name, "slice_0", "frame_0")
     # before k correction
-    assert len(glob.glob(os.path.join(test_dir, "IQ_*_before_k_correction.dat"))) == number_of_wavelengths
+    assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_k_correction.dat"))) == number_of_wavelengths
     # after k correction
-    assert len(glob.glob(os.path.join(test_dir, "IQ_*_after_k_correction.dat"))) == number_of_wavelengths
+    assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_k_correction.dat"))) == number_of_wavelengths
     # before b correction
-    assert len(glob.glob(os.path.join(test_dir, "IQ_*_before_b_correction.dat"))) == number_of_wavelengths
+    assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_b_correction.dat"))) == number_of_wavelengths
     # after b correction
-    assert len(glob.glob(os.path.join(test_dir, "IQ_*_after_b_correction.dat"))) == number_of_wavelengths
+    assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_b_correction.dat"))) == number_of_wavelengths
 
     # cleanup
     # NOTE: loaded is not a dict that is iterable, so we have to delete the
@@ -243,6 +247,7 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
             DeleteWorkspace(ws)
 
 
+@pytest.mark.datarepo
 def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, temp_directory):
     """Test incoherence correction with elastic correction"""
 
@@ -334,6 +339,72 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
     run_reduction_and_compare(configuration, "EQSANS_132078_weighted_factor_Iq.dat")
 
     print(f"Output directory: {test_dir}")
+
+
+@pytest.mark.mount_eqsans
+def test_incoherence_correction_elastic_normalization_slices_frames(has_sns_mount, datarepo_dir, temp_directory):
+    """Test incoherence correction with elastic correction with time slicing and frame mode"""
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
+    # Set up the configuration dict
+    config_json_file = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction/test_136908.json")
+    assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
+    with open(config_json_file, "r") as config_json:
+        configuration = json.load(config_json)
+    assert isinstance(configuration, dict)
+
+    # Create temp output directory
+    test_dir = temp_directory()
+    base_name = "EQSANS_136908"
+
+    assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
+    configuration["configuration"]["outputDir"] = test_dir
+    configuration["outputFileName"] = base_name
+
+    # validate and clean configuration
+    input_config = reduction_parameters(configuration)
+    input_config["configuration"]["darkFileName"] = None
+    loaded = load_all_files(input_config)
+
+    # check loaded JSON file
+    assert loaded.elastic_reference.data
+    assert loaded.elastic_reference_background.data is None
+
+    # Reduce
+    reduction_output = reduce_single_configuration(loaded, input_config, not_apply_incoherence_correction=False)
+    assert reduction_output
+    print(f"Output directory: {test_dir}")
+
+    # check that the wavelength dependent profiles are created in subdirectories for slices and frames
+    for islice in range(3):
+        for iframe in range(2):
+            if iframe == 0:
+                number_of_wavelengths = 29
+            else:
+                number_of_wavelengths = 28
+            output_dir = os.path.join(test_dir, base_name, f"slice_{islice}", f"frame_{iframe}")
+            # before k correction
+            assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_k_correction.dat"))) == number_of_wavelengths
+            # after k correction
+            assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_k_correction.dat"))) == number_of_wavelengths
+            # before b correction
+            assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_b_correction.dat"))) == number_of_wavelengths
+            # after b correction
+            assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_b_correction.dat"))) == number_of_wavelengths
+
+    # cleanup
+    DeleteWorkspace("_empty")
+    DeleteWorkspace("_mask")
+    DeleteWorkspace("_sensitivity")
+    DeleteWorkspace("_bkgd_trans")
+    DeleteWorkspace("_sample_trans")
+    DeleteWorkspace("TOFCorrectWS")
+    DeleteWorkspace("processed_data_main")
+    DeleteWorkspace("processed_elastic_ref")
+    for ws in mtd.getObjectNames():
+        if str(ws).startswith("_EQSANS_") and mtd.doesExist(str(ws)):
+            DeleteWorkspace(ws)
 
 
 if __name__ == "__main__":

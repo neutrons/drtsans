@@ -254,12 +254,12 @@ def test_workflow_q1d(temp_directory):
     expected_len = [14, 13, 13, 11]
     for n in range(4):
         wl = n + 3.0
-        filename = os.path.join(output_dir, f"IQ_{wl}_before_k_correction.dat")
+        filename = os.path.join(output_dir, f"IQ_{wl:.3f}_before_k_correction.dat")
         assert os.path.exists(filename)
         data = np.loadtxt(filename)
         assert len(data) == expected_len[n]
 
-        filename = os.path.join(output_dir, f"IQ_{wl}_after_k_correction.dat")
+        filename = os.path.join(output_dir, f"IQ_{wl:.3f}_after_k_correction.dat")
         assert os.path.exists(filename)
         data = np.loadtxt(filename)
         assert len(data) == expected_len[n]

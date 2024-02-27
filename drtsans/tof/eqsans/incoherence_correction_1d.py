@@ -81,7 +81,7 @@ def correct_incoherence_inelastic_1d(
 
     if output_wavelength_dependent_profile and output_dir:
         for tmpwlii, wl in enumerate(wl_vec):
-            tmpfn = os.path.join(output_dir, f"IQ_{wl}_before_b_correction.dat")
+            tmpfn = os.path.join(output_dir, f"IQ_{wl:.3f}_before_b_correction.dat")
             save_iqmod(
                 IQmod(
                     intensity=i_array[:, tmpwlii],
@@ -114,7 +114,7 @@ def correct_incoherence_inelastic_1d(
 
     if output_wavelength_dependent_profile and output_dir:
         for tmpwlii, wl in enumerate(wl_vec):
-            tmpfn = os.path.join(output_dir, f"IQ_{wl}_after_b_correction.dat")
+            tmpfn = os.path.join(output_dir, f"IQ_{wl:.3f}_after_b_correction.dat")
             save_iqmod(
                 IQmod(
                     intensity=corrected_intensities[:, tmpwlii],

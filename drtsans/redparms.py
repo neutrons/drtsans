@@ -3,21 +3,21 @@ import ast
 from copy import deepcopy
 import itertools
 import json
-import jsonschema
-from jsonschema.exceptions import relevance
 import os
 import re
 import warnings
 
 # third-party imports
+import jsonschema
+from jsonschema.exceptions import relevance
 from numpy import greater
 from mantid.kernel import logger
-
+import referencing
 
 warnings.filterwarnings("ignore")
-
 from mantid.kernel import IntArrayProperty  # noqa: E404
 
+# drtsans imports
 from drtsans import configdir  # noqa: E404, non-source files
 from drtsans.instruments import (
     instrument_filesystem_name,
@@ -26,6 +26,7 @@ from drtsans.instruments import (
 )  # noqa: E404
 from drtsans.path import abspath, abspaths  # noqa: E404
 
+COMMON_SCHEMA_FILEPATH = os.path.join(configdir, "schema", "common.json")
 
 __all__ = [
     "reduction_parameters",
@@ -169,9 +170,14 @@ def type_selector(preferred_type):  # noqa: C901
 
 class ReferenceResolver:
     r"""
-    Uncompress all {'$ref': URI} items with the value of the keyword pointed to by the URI.
+    Uncompress dictionary items of the sort `{'$ref': URI}` by substituting string `URI`
+    with the corresponding contents in the provided schema file.
 
-    Recursive uncompression when the URI value contains itself more {'$ref': URI} items.
+    Also recursive uncompression, when the URI-associated value contains itself more {'$ref': URI} items.
+
+    URI strings allways begin as `base_uri#/`, where `base_uri` is a string. The assumed convention is
+    that `base_uri` is the file name of the schema file. For instance,
+    if `ReferenceResolver("/tmp/common.json"), then `base_uri == "common.json"`.
 
     Parameters
     ----------
@@ -181,9 +187,14 @@ class ReferenceResolver:
     """
 
     def __init__(self, referred):
-        schema_dir = os.path.dirname(referred) + "/"
-        schema_file = os.path.basename(referred)
-        self._resolver = jsonschema.RefResolver(f"file://{schema_dir}", schema_file)
+        with open(
+            referred,
+        ) as file_handle:
+            schema_dict = json.load(file_handle)
+        resource = referencing.Resource.from_contents(schema_dict)
+        base_uri = os.path.basename(referred)
+        registry = referencing.Registry().with_resource(uri=base_uri, resource=resource)
+        self._resolver = registry.resolver()
 
     def dereference(self, to_resolve):
         r"""
@@ -201,35 +212,13 @@ class ReferenceResolver:
             property dictionary where items containing '$ref' keys have been resolved
         """
         while "$ref" in to_resolve:
-            # resolving a $ref introduces new $ref items when the URI points to
-            # a property in common.json which contains $ref entries
-            resolved = self._resolve_uri(to_resolve["$ref"])
+            resolved = self._resolver.lookup(to_resolve["$ref"]).contents
             to_resolve.pop("$ref")
             to_resolve.update(resolved)
         for name, value in to_resolve.items():
             if isinstance(value, dict):
-                # nested dictionary must be resolved, too
-                to_resolve[name] = self.dereference(value)
+                to_resolve[name] = self.dereference(value)  # nested dictionaries must be looked, just in case
         return to_resolve
-
-    def _resolve_uri(self, reference):
-        r"""
-        Resolve a reference as its corresponding dictionary.
-
-        No resolution of nested references is performed.
-
-        Parameters
-        ----------
-        reference: str
-            The value associated to a '$ref' property name
-
-        Returns
-        -------
-        dict
-            resolved reference value
-        """
-        _, fragment = self._resolver.resolve(reference)
-        return fragment
 
 
 class Suggest:
@@ -574,12 +563,12 @@ class ReductionParameters:
         self._permissible = permissible
         # object in charge of offering a suggestion when the user enters the wrong property name
         self._entries = ReductionParameters.initialize_suggestions(schema_instrument)
+        # object that resolves all {'$ref', URI} items
+        schema_dir = os.path.dirname(COMMON_SCHEMA_FILEPATH)
+        schema_filename = os.path.basename(COMMON_SCHEMA_FILEPATH)
+        self._reference_resolver = jsonschema.RefResolver(f"file://{schema_dir}/", schema_filename)
         # object called when executing any of the validators
         self._json_validator = self._initialize_json_validator()
-        # object that resolves all {'$ref', URI} items
-        self._reference_resolver = jsonschema.RefResolver(
-            f'file://{os.path.join(configdir, "schema")}/', "common.json"
-        )
         self._initialize_parameters()
 
     # 4. public bound methods

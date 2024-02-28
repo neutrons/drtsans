@@ -160,32 +160,6 @@ def test_load_schema(instrument_name):
 
 
 class TestReferenceResolver:
-    def test_init(self, redparms_data):
-        file_name = redparms_data["schema_common_file"]
-        resolver = ReferenceResolver(file_name)
-        assert resolver._resolver.base_uri == f"file://{os.path.dirname(file_name)}/"
-        assert resolver._resolver.referrer == os.path.basename(file_name)
-
-    def test_resolve_uri(self, redparms_data):
-        resolver = ReferenceResolver(redparms_data["schema_common_file"])
-        resolved = resolver._resolve_uri("common.json#/iptsNumber")
-        compared = {
-            "anyOf": [
-                {"type": "string", "minLength": 1, "pattern": "^[1-9][0-9]*$"},
-                {"type": "integer", "minimum": 1},
-            ],
-            "preferredType": "int",
-            "description": "The IPTS number for the data files",
-            "examples": ["24769"],
-        }
-        assert resolved == compared
-        resolved = resolver._resolve_uri("common.json#/configuration/timeSliceInterval")
-        compared = {
-            "$ref": "common.json#/definitions/safeStringPositiveFloat",
-            "description": "Interval for time slicing",
-        }
-        assert resolved == compared
-
     def test_derefence(self, redparms_data):
         resolver = ReferenceResolver(redparms_data["schema_common_file"])
         unresolved = {

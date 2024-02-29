@@ -559,17 +559,12 @@ class ReductionParameters:
 
     def __init__(self, parameters, schema_instrument, permissible=False):
         self._parameters = parameters
-        self._schema = schema_instrument
+        self._schema = resolver_common.dereference(schema_instrument)  # schema instrument without `$ref` entries
         self._permissible = permissible
         # object in charge of offering a suggestion when the user enters the wrong property name
         self._entries = ReductionParameters.initialize_suggestions(schema_instrument)
-        # object that resolves all {'$ref', URI} items
-        schema_dir = os.path.dirname(COMMON_SCHEMA_FILEPATH)
-        schema_filename = os.path.basename(COMMON_SCHEMA_FILEPATH)
-        self._reference_resolver = jsonschema.RefResolver(f"file://{schema_dir}/", schema_filename)
-        # object called when executing any of the validators
-        self._json_validator = self._initialize_json_validator()
         self._initialize_parameters()
+        self.validator = self.initialize_validator()
 
     # 4. public bound methods
 
@@ -584,9 +579,7 @@ class ReductionParameters:
         ------
         jsonschema.ValidationError
         """
-        self._json_validator.check_schema(self._schema)
-        validator = self._json_validator(self._schema, resolver=self._reference_resolver)
-        errors = iter(validator.iter_errors(self._parameters))
+        errors = iter(self.validator.iter_errors(self._parameters))
         best = next(errors, None)
         if best is None:
             return
@@ -681,6 +674,26 @@ class ReductionParameters:
             warnings.warn(f'{key} not found in the parameters dictionary. Closest match is "{top_match}"')
         self._parameters.__setitem__(key, value)
 
+    def initialize_validator(self):
+        # Find which schema-draft version in self._schema
+        draft = re.search("(draft-[0-9]+)", self._schema["$schema"]).groups()[0]
+        # select schema appropriate to the schema-draft version
+        meta_schema = {"draft-07": jsonschema.Draft7Validator}[draft]  # include more in the future
+
+        # Create a new class Validator by including the custom validator functions listed in
+        # ReductionParameters._validators into the standard class Validator
+        all_validators = dict(meta_schema.VALIDATORS)
+        for keyword, function_name in self._validators.items():
+            validator_function = getattr(self, function_name)
+            all_validators[keyword] = validator_function
+        validator_factory = jsonschema.validators.create(
+            meta_schema=meta_schema.META_SCHEMA, validators=all_validators
+        )
+
+        # create the validator as an instance of our custom class Validator, `validator_factory`
+        validator_factory.check_schema(self._schema)  # sanity check with static method `check_schema`
+        return validator_factory(self._schema)
+
     def _initialize_json_validator(self):
         # Elucidate the draft version for the meta-schema
         meta_schemas = {"draft-07": jsonschema.Draft7Validator}
@@ -704,6 +717,8 @@ class ReductionParameters:
         if schema is None:
             schema = self._schema
             parameters = self._parameters
+        else:
+            schema = resolver_common.dereference(schema)  # dereference entries with key `$ref`
         # We need list() in order to capture the initial state of parameter values
         for name, parameter_value in list(parameters.items()):
             try:

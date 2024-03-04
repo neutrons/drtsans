@@ -40,27 +40,5 @@ The ``drtsans`` wrapper script launches ipython with the selected conda environm
 
 One must have an XCAMS account to use either the jupyter kernel provided above.
 
--------------------------------------
-Using the Docker packaged environment
--------------------------------------
-
-This the instructions for someone who wants to use the Docker container
-created through the automated build pipeline to develop drt-sans, use
-drt-sans to develop reduction scripts, or test existing drt-sans
-functionality. The SNS analysis cluster does not have Docker installed
-and Docker is required to follow these instructions.
-
-1. (If not installed) `Install Docker <https://docs.docker.com/install/>`_
-2. Download the latest ``sans-backend-run.sh`` `script <scripts/sans-backend-run.sh>`_ from the feature, release, or master branch for which you are testing:
-3. Run the script with ``sudo bash sans-backend-run.sh -h`` to see the help menu.
-
-Current options include:
-
-* ``-i`` launches a bash shell
-* ``-u`` forces an update of the application
-* ``-h`` prints the help message
-
-You must download the wrapper script from the above link as the build process modifies the copy in version control.
-
 -----------------------------------------------
 Set-up for development in a virtual environment

@@ -61,14 +61,10 @@ dockerbuild:
     # kickstart or $CI_COMMIT_REF_SLUG
     - docker build -f dockerfiles/Dockerfile.kickstart --build-arg PROFILE=${PROFILE} -t $CONTAINER_URL .
     - docker push $CONTAINER_URL
-    # - sed -i "s|CONTAINER_URL|$CONTAINER_URL|" scripts/sans-backend-run.sh
   after_script:
     - *teardown_cleanup
   tags:
     - neutrons-multi-builder
-  artifacts:
-    paths:
-    - scripts/sans-backend-run.sh
 
 docs-feature:
   stage: test

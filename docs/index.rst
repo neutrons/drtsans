@@ -13,6 +13,7 @@ User Guide
    :maxdepth: 2
 
    /drtsans/reduction_parameters
+   /drtsans/reduction_scripts
 
 
 API documentation

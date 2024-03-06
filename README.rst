@@ -4,12 +4,22 @@ drt-sans
 
 Data Reduction Toolkit for Small Angle Neutron Scattering
 
-This packages is a collection of functionality for reducing SANS data developed in collaboration with the instrument scientists at the High Flux Isotope Reactor (HFIR) and Spallation Neutron Source (SNS) at Oak Ridge National Laboratory.
+This packages is a collection of functionality for reducing SANS data developed in collaboration with the instrument
+scientists at the High Flux Isotope Reactor (HFIR) and Spallation Neutron Source (SNS) at Oak Ridge National Laboratory.
 
-While much of the functionality is generic, this implementation is aimed at reducing data from BIOSANS, EQSANS, and GPSANS.
-As appropriate, this work is an abstraction layer on top of the mantid project.
+While much of the functionality is generic, this implementation is aimed at reducing data from BIOSANS, EQSANS,
+and GPSANS. As appropriate, this work is an abstraction layer on top of the mantid project.
 
 **This is a python3 only package.**
+
+--------------------------
+General User documentation
+--------------------------
+Most of the current documentation here refers to `drtsans` python programming application interface (API), suitable for
+power users. For the general user of `drtsans`, https://sans.ornl.gov is available.
+
+The general user documentation is hosted in repository https://code-int.ornl.gov/sites/sans.
+
 
 ------------------------------
 Usage from provided front-ends
@@ -35,7 +45,8 @@ The easiest way to start an interactive ipython session is by running
    $ drtsans
 
 adding ``--qa`` or ``--dev`` will start the qa or development version respectively.
-The ``drtsans`` wrapper script launches ipython with the selected conda environment located in ``/opt/anaconda/envs/` and deactivates the conda environment when the session ends.
+The ``drtsans`` wrapper script launches ipython with the selected conda environment located in ``/opt/anaconda/envs/`
+and deactivates the conda environment when the session ends.
 
 
 One must have an XCAMS account to use either the jupyter kernel provided above.

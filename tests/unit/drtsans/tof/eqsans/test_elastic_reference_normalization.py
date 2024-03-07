@@ -4,6 +4,7 @@ from drtsans.dataobjects import IQmod
 
 from drtsans.tof.eqsans.elastic_reference_normalization import (
     determine_common_mod_q_range_mesh,
+    normalize_by_elastic_reference,
 )
 from drtsans.tof.eqsans.elastic_reference_normalization import (
     calculate_scale_factor_mesh_grid,
@@ -15,9 +16,6 @@ from drtsans.tof.eqsans.elastic_reference_normalization import (
     determine_reference_wavelength_q1d_mesh,
 )
 from drtsans.tof.eqsans.elastic_reference_normalization import normalize_intensity_q1d
-from drtsans.tof.eqsans.elastic_reference_normalization import (
-    normalize_by_elastic_reference,
-)
 import numpy as np
 
 
@@ -94,8 +92,8 @@ def test_determine_common_q_range():
     qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
 
     # Verify by comparing results from 2 algorithms
-    assert 0.07 == q_vec[qmin_index]
-    assert 0.11 == q_vec[qmax_index]
+    assert q_vec[qmin_index] == 0.07
+    assert q_vec[qmax_index] == 0.11
 
 
 def test_determine_reference_wavelength():
@@ -137,7 +135,7 @@ def test_calculate_scale_factor():
     ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index)
 
     # Calculate scale factor
-    k_vec, k_error_vec, p_vec, s_vec = calculate_scale_factor_mesh_grid(
+    k_vec, k_error_vec = calculate_scale_factor_mesh_grid(
         wl_vec, i_array, error_array, ref_wl_ie, qmin_index, qmax_index
     )
 
@@ -153,8 +151,12 @@ def test_workflow_q1d(temp_directory):
     output_dir = temp_directory()
 
     # Normalize
-    normalized_iq1d, k_vec, delta_k_vec = normalize_by_elastic_reference(
-        test_i_of_q, ref_i_of_q=test_i_of_q, output_wavelength_dependent_profile=True, output_dir=output_dir
+    normalized_iq1d = normalize_by_elastic_reference(
+        test_i_of_q,
+        gold_k_vec,
+        gold_k_error_vec,
+        output_wavelength_dependent_profile=True,
+        output_dir=output_dir,
     )
 
     # Verify
@@ -192,7 +194,7 @@ def test_normalize_i_of_q1d():
     ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index)
 
     # Calculate scale factor
-    k_vec, k_error_vec, _, _ = calculate_scale_factor_mesh_grid(
+    k_vec, k_error_vec = calculate_scale_factor_mesh_grid(
         wl_vec, i_array, error_array, ref_wl_ie, qmin_index, qmax_index
     )
 

@@ -303,7 +303,7 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"))
         if len(intensity.shape) != 1:
             raise TypeError('"intensity" must be a 1-dimensional array, found shape={}'.format(intensity.shape))
 
-        # check that the manditory fields are parallel
+        # check that the mandatory fields are parallel
         _check_parallel(intensity, error, mod_q)
 
         # work with optional fields
@@ -575,7 +575,7 @@ class IQazimuthal(namedtuple("IQazimuthal", "intensity error qx qy delta_qx delt
         qx = np.array(qx)
         qy = np.array(qy)
 
-        # check that the manditory fields are parallel
+        # check that the mandatory fields are parallel
         if len(intensity.shape) == 1:
             _check_parallel(intensity, error, qx, qy)
         elif len(intensity.shape) == 2:
@@ -729,7 +729,7 @@ class IQcrystal(namedtuple("IQazimuthal", "intensity error qx qy qz delta_qx del
         qy = np.array(qy)
         qz = np.array(qz)
 
-        # check that the manditory fields are parallel
+        # check that the mandatory fields are parallel
         if len(intensity.shape) != 1:
             raise NotImplementedError("Do not currently support dimension != 1, found {}".format(len(intensity.shape)))
         _check_parallel(intensity, error)

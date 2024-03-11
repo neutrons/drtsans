@@ -7,7 +7,9 @@ import os
 
 
 __all__ = [
-    "normalize_by_elastic_reference",
+    "normalize_by_elastic_reference_all",
+    "normalize_by_elastic_reference_1d",
+    "normalize_by_elastic_reference_2d",
     "determine_reference_wavelength_q1d_mesh",
     "reshape_q_wavelength_matrix",
     "build_i_of_q1d",
@@ -131,7 +133,7 @@ def normalize_by_elastic_reference_all(
     k_vec, k_error_vec = calculate_elastic_reference_normalization(wl_vec, q_vec, ref_i_of_q_1d)
 
     # 1D normalization
-    iq1d_wl = normalize_by_elastic_reference(
+    iq1d_wl = normalize_by_elastic_reference_1d(
         i_of_q_1d,
         k_vec,
         k_error_vec,
@@ -140,7 +142,7 @@ def normalize_by_elastic_reference_all(
     )
 
     # 2D normalization
-    iq2d_wl = normalize_by_elastic_reference2D(i_of_q_2d, k_vec, k_error_vec)
+    iq2d_wl = normalize_by_elastic_reference_2d(i_of_q_2d, k_vec, k_error_vec)
 
     return iq2d_wl, iq1d_wl, k_vec, k_error_vec
 
@@ -182,7 +184,7 @@ def calculate_elastic_reference_normalization(wl_vec, q_vec, ref_i_of_q):
     return k_vec, k_error_vec
 
 
-def normalize_by_elastic_reference(
+def normalize_by_elastic_reference_1d(
     i_of_q,
     k_vec,
     k_error_vec,
@@ -255,7 +257,7 @@ def normalize_by_elastic_reference(
     return normalized_i_of_q
 
 
-def normalize_by_elastic_reference2D(i_of_q, k_vec, k_error_vec):
+def normalize_by_elastic_reference_2d(i_of_q, k_vec, k_error_vec):
     """Normalize I(Q2D) by wavelength-dependent elastic reference normalization factor
 
     Parameters

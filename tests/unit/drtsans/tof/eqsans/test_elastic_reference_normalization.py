@@ -4,7 +4,7 @@ from drtsans.dataobjects import IQmod
 
 from drtsans.tof.eqsans.elastic_reference_normalization import (
     determine_common_mod_q_range_mesh,
-    normalize_by_elastic_reference,
+    normalize_by_elastic_reference_1d,
 )
 from drtsans.tof.eqsans.elastic_reference_normalization import (
     calculate_scale_factor_mesh_grid,
@@ -151,7 +151,7 @@ def test_workflow_q1d(temp_directory):
     output_dir = temp_directory()
 
     # Normalize
-    normalized_iq1d = normalize_by_elastic_reference(
+    normalized_iq1d = normalize_by_elastic_reference_1d(
         test_i_of_q,
         gold_k_vec,
         gold_k_error_vec,

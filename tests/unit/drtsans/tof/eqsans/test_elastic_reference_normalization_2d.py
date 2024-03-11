@@ -1,7 +1,7 @@
 import pytest
 from drtsans.dataobjects import IQazimuthal
 from drtsans.tof.eqsans.elastic_reference_normalization import (
-    normalize_by_elastic_reference2D,
+    normalize_by_elastic_reference_2d,
 )
 import numpy as np
 
@@ -100,7 +100,7 @@ def test_normalize_by_elastic_reference2d():
         k_error_vec,
     ) = create_testing_iq2d()  # noqa E501
 
-    normalized_i_of_q = normalize_by_elastic_reference2D(i_of_q, k_vec, k_error_vec)
+    normalized_i_of_q = normalize_by_elastic_reference_2d(i_of_q, k_vec, k_error_vec)
 
     np.testing.assert_allclose(normalized_i_of_q.intensity, expected_normalized_i_of_q.intensity, rtol=1e-5)
     np.testing.assert_allclose(normalized_i_of_q.error, expected_normalized_i_of_q.error, rtol=1e-5)

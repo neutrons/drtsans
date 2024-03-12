@@ -1,10 +1,7 @@
 import pytest
 from drtsans.dataobjects import IQazimuthal
 from drtsans.tof.eqsans.elastic_reference_normalization import (
-    calculate_K_2d,
-    determine_common_mod_q2d_range_mesh,
-    determine_reference_wavelength_q2d,
-    normalize_intensity_q2d,
+    normalize_by_elastic_reference_2d,
 )
 import numpy as np
 
@@ -16,11 +13,16 @@ def create_testing_iq2d():
     -------
 
     """
+    # Elastic reference normalization vector
+    k_vec = [1.0, 0.75, 1.4]
+    k_error_vec = [0.0, 2.0e-4, 3.0e-4]
+
     # Intensity vector
     intensity_vec_3 = np.ones((11, 11), dtype=np.float64)
     intensity_vec_3[3:8, 3:8] = np.nan
     intensity_vec_4 = np.full((11, 11), np.nan, dtype=np.float64)
     intensity_vec_4[1:10, 1:10] = 1.2
+    intensity_vec_4[2, 1:10] = 1.8
     intensity_vec_4[4:7, 4:7] = np.nan
     intensity_vec_5 = np.full((11, 11), np.nan, dtype=np.float64)
     intensity_vec_5[2:9, 2:9] = 0.9
@@ -28,6 +30,13 @@ def create_testing_iq2d():
     intensity_vec = intensity_vec_3
     intensity_vec = np.concatenate((intensity_vec, intensity_vec_4), axis=1)
     intensity_vec = np.concatenate((intensity_vec, intensity_vec_5), axis=1)
+
+    # Expected normalized intensity vector
+    normalized_intensity_vec_4 = k_vec[1] * intensity_vec_4
+    normalized_intensity_vec_5 = k_vec[2] * intensity_vec_5
+    normalized_intensity_vec = intensity_vec_3
+    normalized_intensity_vec = np.concatenate((normalized_intensity_vec, normalized_intensity_vec_4), axis=1)
+    normalized_intensity_vec = np.concatenate((normalized_intensity_vec, normalized_intensity_vec_5), axis=1)
 
     # Error
     error_vec_3 = np.full((11, 11), 0.02, dtype=np.float64)
@@ -42,6 +51,19 @@ def create_testing_iq2d():
     error_vec = error_vec_3
     error_vec = np.concatenate((error_vec, error_vec_4), axis=1)
     error_vec = np.concatenate((error_vec, error_vec_5), axis=1)
+
+    # Expected normalized intensity error
+    normalized_error_vec_3 = error_vec_3
+    normalized_error_vec_4 = np.full((11, 11), np.nan, dtype=np.float64)
+    normalized_error_vec_4[1:10, 1:10] = 0.0225015
+    normalized_error_vec_4[2, 1:10] = 0.0225029
+    normalized_error_vec_4[4:7, 4:7] = np.nan
+    normalized_error_vec_5 = np.full((11, 11), np.nan, dtype=np.float64)
+    normalized_error_vec_5[2:9, 2:9] = 0.0280013
+    normalized_error_vec_5[5, 5] = np.nan
+    normalized_error_vec = normalized_error_vec_3
+    normalized_error_vec = np.concatenate((normalized_error_vec, normalized_error_vec_4), axis=1)
+    normalized_error_vec = np.concatenate((normalized_error_vec, normalized_error_vec_5), axis=1)
 
     # Q vector
     vec_q = np.linspace(-0.1, 0.1, num=11, endpoint=True, dtype=np.float64)
@@ -58,81 +80,30 @@ def create_testing_iq2d():
     wavelength_vec = np.concatenate((wavelength_vec, np.full((11, 11), 4.0, dtype=np.float64)), axis=1)
     wavelength_vec = np.concatenate((wavelength_vec, np.full((11, 11), 5.0, dtype=np.float64)), axis=1)
 
-    # Construct IQmod
+    # Construct IQazimuthal
     i_of_q = IQazimuthal(intensity=intensity_vec, error=error_vec, qx=qx_vec, qy=qy_vec, wavelength=wavelength_vec)
 
-    expected_output = np.ones((11, 11), dtype=np.float64)
-    expected_output[5, 5] = np.nan
-
-    expected_output_before_renormalization = np.ones((11, 11), dtype=np.float64)
-    expected_output_before_renormalization[1:10, 1:10] = 1.1
-    expected_output_before_renormalization[2:9, 2:9] = 31.0 / 30.0
-    expected_output_before_renormalization[3:8, 3:8] = 1.05
-    expected_output_before_renormalization[4:7, 4:7] = 0.9
-    expected_output_before_renormalization[5, 5] = np.nan
-
-    expected_normalized_error_vec_3 = np.full((11, 11), 0.022360679774998, dtype=np.float64)
-    expected_normalized_error_vec_3[3:8, 3:8] = np.nan
-    expected_normalized_error_vec_4 = np.full((11, 11), np.nan, dtype=np.float64)
-    expected_normalized_error_vec_4[1:10, 1:10] = 0.027239931881135
-    expected_normalized_error_vec_4[3:8, 3:8] = 0.026266529187458
-    expected_normalized_error_vec_4[4:7, 4:7] = np.nan
-    expected_normalized_error_vec_5 = np.full((11, 11), np.nan, dtype=np.float64)
-    expected_normalized_error_vec_5[2:9, 2:9] = 0.023921166824012
-    expected_normalized_error_vec_5[3:8, 3:8] = 0.023044955171311
-    expected_normalized_error_vec_5[5, 5] = np.nan
-
-    expected_normalized_error_vec = expected_normalized_error_vec_3
-    expected_normalized_error_vec = np.concatenate(
-        (expected_normalized_error_vec, expected_normalized_error_vec_4), axis=1
-    )
-    expected_normalized_error_vec = np.concatenate(
-        (expected_normalized_error_vec, expected_normalized_error_vec_5), axis=1
+    # Construct normalized IQazimuthal
+    normalized_i_of_q = IQazimuthal(
+        intensity=normalized_intensity_vec, error=normalized_error_vec, qx=qx_vec, qy=qy_vec, wavelength=wavelength_vec
     )
 
-    return i_of_q, expected_output, expected_output_before_renormalization, expected_normalized_error_vec
+    return i_of_q, normalized_i_of_q, k_vec, k_error_vec
 
 
-def test_verify_q2d_functions():
-    np.set_printoptions(edgeitems=30, linewidth=100000)
+def test_normalize_by_elastic_reference2d():
+    # Test normalizing I(Q2D) by elastic reference normalization factor K
     (
         i_of_q,
-        expected_output,
-        expected_output_before_renormalization,
-        expected_normalized_error_vec,
+        expected_normalized_i_of_q,
+        k_vec,
+        k_error_vec,
     ) = create_testing_iq2d()  # noqa E501
 
-    # print(i_of_q)
-    k_vec, k_error2_vec, p_vec, s_vec = calculate_K_2d(i_of_q)
+    normalized_i_of_q = normalize_by_elastic_reference_2d(i_of_q, k_vec, k_error_vec)
 
-    np.testing.assert_allclose(k_vec, [1, 0.833333333333333, 1.11111111111111], rtol=1e-5, atol=0)
-    np.testing.assert_allclose(p_vec, [24, 28.8, 21.6], rtol=1e-5, atol=0)
-    np.testing.assert_allclose(s_vec, [24, 34.56, 19.44], rtol=1e-5, atol=0)
-    np.testing.assert_allclose(k_error2_vec, [3.33333e-05, 2.96586e-05, 4.59788e-05], rtol=1e-5, atol=0)
-
-    mask = determine_common_mod_q2d_range_mesh(i_of_q.qx, i_of_q.qy, i_of_q.wavelength, i_of_q.intensity)
-
-    ref_wavelength_vec = determine_reference_wavelength_q2d(i_of_q, mask)
-
-    normalized_intensity_array, normalized_error2_array = normalize_intensity_q2d(
-        i_of_q.wavelength,
-        i_of_q.qx,
-        i_of_q.qy,
-        i_of_q.intensity,
-        i_of_q.error,
-        ref_wavelength_vec,
-        k_vec,
-        p_vec,
-        s_vec,
-        mask,
-    )
-    ma = np.ma.MaskedArray(normalized_intensity_array.transpose(), mask=np.isnan(normalized_intensity_array))
-    averaged_normalized_intensity_array = np.ma.average(ma, axis=2)
-    np.testing.assert_allclose(averaged_normalized_intensity_array, expected_output, rtol=1e-5, atol=0)
-
-    np.testing.assert_allclose(
-        normalized_error2_array, expected_normalized_error_vec.transpose().reshape((3, 11, 11)), rtol=1e-5, atol=0
-    )  # noqa E501
+    np.testing.assert_allclose(normalized_i_of_q.intensity, expected_normalized_i_of_q.intensity, rtol=1e-5)
+    np.testing.assert_allclose(normalized_i_of_q.error, expected_normalized_i_of_q.error, rtol=1e-5)
 
 
 if __name__ == "__main__":

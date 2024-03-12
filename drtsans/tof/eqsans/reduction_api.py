@@ -21,8 +21,7 @@ from drtsans.tof.eqsans.correction_api import (
     save_k_vector,
 )
 from drtsans.tof.eqsans.elastic_reference_normalization import (
-    normalize_by_elastic_reference,
-    normalize_by_elastic_reference2D,
+    normalize_by_elastic_reference_all,
 )
 import os
 from collections import namedtuple
@@ -220,7 +219,67 @@ def bin_i_with_correction(
     output_dir,
     output_filename="",
 ):
-    """Bin I(Q) in 1D and 2D with the option to do inelastic incoherent correction"""
+    """Bin I(Q) in 1D and 2D with the option to do inelastic incoherent correction
+
+    Parameters
+    ----------
+    iq1d_in_frames: list[~drtsans.dataobjects.IQmod]
+        Objects containing 1D unbinned data I(\|Q\|). It will be used for scalar binned data
+    iq2d_in_frames: list[~drtsans.dataobjects.IQazimuthal]
+        Objects containing 2D unbinned data I(Qx, Qy). It will be used for 2D binned data,
+        and 1D wedge or annular binned data
+    wl_frame: int
+        Index of the frame in ``iq1d_in_frames`` and ``iq2d_in_frames`` to bin and correct
+    weighted_errors: bool
+        If True, the binning is done using the Weighted method
+    user_qmin: float
+        Minimum value of the momentum transfer modulus Q
+    user_qmax: float
+        Maximum value of the momentum transfer modulus Q
+    num_x_bins: int
+        Number of bins in the x direction for 2D binning
+    num_y_bins: int
+        Number of bins in the y direction for 2D binning
+    num_q1d_bins: int
+        Number of bins for the 1d binning.
+    num_q1d_bins_per_decade: int
+        Total number of bins will be this value multiplied by
+        number of decades from X min to X max
+    decade_on_center: bool
+        Flag to have the min X and max X on bin center; Otherwise, they will be on bin boundary
+    bin1d_type: str
+        Type of binning for 1D data. Possible choices are 'scalar', 'annular', or 'wedge'
+    log_binning: bool
+        If True, 1D scalar or wedge binning will be logarithmic. Ignored for anything else
+    annular_bin: float
+        Width of annular bin in degrees. Annular binning is linear
+    wedges: list
+        List of tuples (angle_min, angle_max) for the wedges. Both numbers have to be in
+        the [-90,270) range. It will add the wedge offset by 180 degrees dependent
+        on ``symmetric_wedges``
+    symmetric_wedges: bool
+        It will add the wedge offset by 180 degrees if True
+    incoherence_correction_setup: ~drtsans.tof.eqsans.correction_api.CorrectionConfiguration
+        Parameters for incoherence/inelastic scattering correction
+    iq1d_elastic_ref_fr: list[~drtsans.dataobjects.IQmod]
+        Objects containing 1D unbinned data I(\|Q\|) for the elastic reference run
+    iq2d_elastic_ref_fr: list[~drtsans.dataobjects.IQazimuthal]
+        Objects containing 2D unbinned data I(Qx, Qy) for the elastic reference run
+    raw_name: str
+        Prefix for file to save inelastic incoherent correction (B) data
+    output_dir: str
+        Output directory for I(Q) profiles
+    output_filename: str
+        Output filename parsed from input configuration file (JSON)
+
+    Returns
+    -------
+    (~drtsans.dataobjects.IQazimuthal, list[~drtsans.dataobjects.IQmod])
+        - Binned and optionally corrected IQazimuthal
+        - List of binned and optionally corrected IQmod objects. The list has length
+          1, unless the 'wedge' mode is selected, when the length is the number of
+          original wedges
+    """
 
     if incoherence_correction_setup.do_correction:
         # Define qmin and qmax for this frame
@@ -271,7 +330,7 @@ def bin_i_with_correction(
             )
 
         # Bin elastic reference run
-        if iq1d_elastic_ref_fr or iq2d_elastic_ref_fr:
+        if iq1d_elastic_ref_fr:
             # bin the reference elastic runs of the current frame
             iq2d_elastic_wl, iq1d_elastic_wl = bin_all(
                 iq2d_elastic_ref_fr[wl_frame],
@@ -293,40 +352,26 @@ def bin_i_with_correction(
                 error_weighted=weighted_errors,
                 n_wavelength_bin=None,
             )
-            if iq1d_elastic_ref_fr:
-                if len(iq1d_elastic_wl) != 1:
-                    raise NotImplementedError(
-                        "Not expected that there are more than 1 IQmod of " "elastic reference run."
-                    )
-                # normalization
-                iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference(
-                    iq1d_main_wl[0],
-                    iq1d_elastic_wl[0],
-                    incoherence_correction_setup.output_wavelength_dependent_profile,
-                    output_dir,
-                )
-                iq1d_main_wl[0] = iq1d_wl
-                # write
-                run_number = os.path.basename(str(incoherence_correction_setup.elastic_reference.run_number)).split(
-                    "."
-                )[0]
-                save_k_vector(
-                    iq1d_wl.wavelength,
-                    k_vec,
-                    k_error_vec,
-                    path=os.path.join(output_dir, f"k_{run_number}.dat"),
-                )
-            else:
-                # 2D normalization
-                iq2d_wl, k_vec, k_error_vec = normalize_by_elastic_reference2D(iq2d_main_wl[0], iq2d_elastic_wl[0])
-                iq2d_main_wl[0] = iq2d_wl
+            if len(iq1d_elastic_wl) != 1:
+                raise NotImplementedError("Not expected that there are more than 1 IQmod of elastic reference run.")
 
-                save_k_vector(
-                    iq2d_wl.wavelength,
-                    k_vec,
-                    k_error_vec,
-                    path=os.path.join(output_dir, f"k_{run_number}.dat"),
-                )
+            iq2d_main_wl, iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference_all(
+                iq2d_main_wl,
+                iq1d_main_wl[0],
+                iq1d_elastic_wl[0],
+                incoherence_correction_setup.output_wavelength_dependent_profile,
+                output_dir,
+            )
+            iq1d_main_wl[0] = iq1d_wl
+
+            # write
+            run_number = os.path.basename(str(incoherence_correction_setup.elastic_reference.run_number)).split(".")[0]
+            save_k_vector(
+                iq1d_wl.wavelength,
+                k_vec,
+                k_error_vec,
+                path=os.path.join(output_dir, f"k_{run_number}.dat"),
+            )
 
         # 1D correction
         b_file_prefix = f"{raw_name}_frame_{wl_frame}"

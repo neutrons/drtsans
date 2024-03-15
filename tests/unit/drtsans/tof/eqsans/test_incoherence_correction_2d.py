@@ -1,9 +1,11 @@
 # Test drtsans.tof.eqsans.incoherence_correction_2d
 import pytest
-from drtsans.dataobjects import IQazimuthal
+
 import numpy as np
+from numpy.testing import assert_allclose
 
 import drtsans.tof.eqsans.incoherence_correction_2d as ic2d
+from drtsans.dataobjects import IQazimuthal
 
 
 def generate_test_data():
@@ -638,13 +640,34 @@ def generate_test_data():
         wavelength=wavelength_vec,
     )
 
-    return i_of_q
+    b_array = np.array([[0.0, 0.03, 0.05, 0.04, 0.01], [0.0, 0.001, 0.001, 0.001, 0.001]])
+
+    # the correction will scale all intensities to 0.1 (the intensity of the first wavelength)
+    expected_intensity_vec = np.copy(intensity_vec)
+    finite_mask = ~np.isnan(expected_intensity_vec)
+    expected_intensity_vec[finite_mask] = 0.1
+
+    # the errors depend on the wavelength-dependent b factor value and whether the bin
+    # was inside or outside the q subset for valid intensity at all wavelengths
+    expected_error_vec = np.copy(error_vec)
+    error_q_subset_wl = [0.0, 0.3452067, 0.37081127, 0.35823782, 0.31754422]
+    error_non_q_subset_wl = [0.0, 0.36055651, 0.38729963, 0.37416707, 0.33166399]
+    # massage the errors into the right shape for comparison with the IQazimuthal data structure
+    q_subset_mask = ic2d.gen_q_subset_mask(i_of_q, 11, 11, 5)
+    num_wl = np.unique(i_of_q.wavelength).shape[0]
+    for i_wl in range(1, num_wl):  # skip reference wavelength = 0
+        error_wl = expected_error_vec[i_wl::num_wl]
+        finite_mask = ~np.isnan(error_wl)
+        error_wl[q_subset_mask & finite_mask] = error_q_subset_wl[i_wl]
+        error_wl[~q_subset_mask & finite_mask] = error_non_q_subset_wl[i_wl]
+
+    return i_of_q, b_array, expected_intensity_vec, expected_error_vec
 
 
 def test_reshape_q_azimuthal():
     # IQazimuthal does not require specific ordering; however,
     # calculations performed assume a specific ordering
-    i_of_q = generate_test_data()
+    i_of_q, *_ = generate_test_data()
     # create some random order that will be de-randomed
     r_order = np.arange(i_of_q.intensity.shape[0])
     np.random.shuffle(r_order)
@@ -671,7 +694,7 @@ def test_gen_q_subset_mask():
     # 2:-2, 8, :
     # 2, 2:-2, :
     # 8, 2:-2, :
-    i_of_q = generate_test_data()
+    i_of_q, *_ = generate_test_data()
     qx_len = np.unique(i_of_q.qx).shape[0]
     qy_len = np.unique(i_of_q.qy).shape[0]
     wavelength_len = np.unique(i_of_q.wavelength).shape[0]
@@ -695,24 +718,20 @@ def test_gen_q_subset_mask():
     assert np.any(np.isnan(i_of_q.intensity[~q_subset_filter]))
 
 
-def test_calculate_b2d():
-    i_of_q = generate_test_data()
-    qx_len = np.unique(i_of_q.qx).shape[0]
-    qy_len = np.unique(i_of_q.qy).shape[0]
-    wavelength_len = np.unique(i_of_q.wavelength).shape[0]
-    q_subset_mask = ic2d.gen_q_subset_mask(i_of_q, qx_len, qy_len, wavelength_len)
-    b_pack = ic2d.calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_incoh=False)
-    b_vals, b_e_vals, ref = b_pack
-    assert b_vals.shape[0] == wavelength_len
-    assert b_e_vals.shape[0] == wavelength_len
-    assert ref == 0
-    known_b_vals = np.array([0, 0.03, 0.05, 0.04, 0.01])
-    assert np.allclose(b_vals, known_b_vals)
-    b_pack = ic2d.calculate_b2d(i_of_q, q_subset_mask, qx_len, qy_len, wavelength_len, min_incoh=True)
-    b_vals, b_e_vals, ref = b_pack
-    assert b_vals.shape[0] == wavelength_len
-    assert b_e_vals.shape[0] == wavelength_len
-    assert np.allclose(b_vals, known_b_vals)
+def test_correct_incoherence_inelastic_2d():
+    """test of the function correct_incoherence_inelastic_2d"""
+    i_of_q, b_array, expected_intensity_vec, expected_error_vec = generate_test_data()
+
+    corrected_i_of_q = ic2d.correct_incoherence_inelastic_2d(i_of_q, b_array, ref_wl_index=0)
+
+    assert isinstance(corrected_i_of_q, ic2d.CorrectedIQ2D)
+    assert_allclose(corrected_i_of_q.iq2d.intensity, expected_intensity_vec)
+    assert_allclose(corrected_i_of_q.iq2d.error, expected_error_vec)
+
+    # test that the reference wavelength (every num_wl element) is unchanged
+    num_wl = np.unique(i_of_q.wavelength).shape[0]
+    assert_allclose(corrected_i_of_q.iq2d.intensity[0::num_wl], i_of_q.intensity[0::num_wl])
+    assert_allclose(corrected_i_of_q.iq2d.error[0::num_wl], i_of_q.error[0::num_wl])
 
 
 if __name__ == "__main__":

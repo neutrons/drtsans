@@ -6,21 +6,22 @@ from drtsans.tof.eqsans.elastic_reference_normalization import (
     build_i_of_q1d,
     determine_reference_wavelength_q1d_mesh,
 )
+from drtsans.tof.eqsans.incoherence_correction_2d import correct_incoherence_inelastic_2d
 from drtsans.dataobjects import IQmod, save_iqmod
 from collections import namedtuple
 import numpy as np
 import os
 
 
-__all__ = ["correct_incoherence_inelastic_1d", "CorrectedIQ1D"]
-
+__all__ = ["correct_incoherence_inelastic_all", "correct_incoherence_inelastic_1d", "CorrectedIQ1D"]
 
 # Output of corrected 1D case
 CorrectedIQ1D = namedtuple("CorrectedIQ1D", "iq1d b_factor b_error")
 
 
-def correct_incoherence_inelastic_1d(
-    i_of_q,
+def correct_incoherence_inelastic_all(
+    i_of_q_2d,
+    i_of_q_1d,
     select_minimum_incoherence,
     intensity_weighted=False,
     qmin=None,
@@ -29,22 +30,24 @@ def correct_incoherence_inelastic_1d(
     output_wavelength_dependent_profile=False,
     output_dir=None,
 ):
-    """Correct I(Q1D) accounting wavelength dependant incoherent inelastic scattering
+    """Correct I(Q2D) and I(Q1D) accounting wavelength dependant incoherent inelastic scattering
 
-    This is the envelop method for the complete workflow to correct I(Q1D) accounting
-    wavelength-dependent incoherent inelastic
+    This is the envelope method for the complete workflow to correct I(Q1D) and I(Q2D) accounting
+    wavelength-dependent incoherent inelastic scattering
 
     Parameters
     ----------
-    i_of_q: ~drtsans.dataobjects.IQmod
-        I(Q, wavelength) and error
+    i_of_q_2d: ~drtsans.dataobjects.IQazimuthal or None
+        I(Q2D, wavelength) and error
+    i_of_q_1d: ~drtsans.dataobjects.IQmod
+        I(Q1D, wavelength) and error
     select_minimum_incoherence: bool
         flag to determine correction B by minimum incoherence
     intensity_weighted: bool
-        Change this factor to determine if the b factor is calculated in a weighted function by intensity
-    qmin_index: float
+        if set to true, the B factor is calculated using weighted function by intensity
+    qmin: float
         manually set the qmin used for incoherent calculation
-    qmax_index: float
+    qmax: float
         manually set the qmax used for incoherent calculation
     factor: float
         automatically determine the qmin qmax by checking the intensity profile
@@ -55,13 +58,13 @@ def correct_incoherence_inelastic_1d(
 
     Returns
     -------
-    CorrectedIQ1D
+    tuple[CorrectedIQ2D, CorrectedIQ1D]
         named tuple include ~drtsans.dataobjects.IQmod (corrected I(Q, wavelength)),  B vector, B error vector
 
     """
 
     # Convert to mesh grid I(Q) and delta I(Q)
-    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q_1d)
 
     if qmin is not None and qmax is not None:
         qmin_index, qmax_index = np.searchsorted(q_vec, [qmin, qmax])
@@ -79,6 +82,86 @@ def correct_incoherence_inelastic_1d(
         f"with qmin_index={qmin_index}, qmax_index={qmax_index}"
     )
 
+    # calculate B factors and errors
+    b_array, ref_wl_ie, ref_wl_index = calculate_b_factors(
+        wl_vec,
+        q_vec,
+        i_array,
+        error_array,
+        select_minimum_incoherence,
+        qmin_index,
+        qmax_index,
+        intensity_weighted=intensity_weighted,
+    )
+
+    # Correct 1D
+    corrected_1d = correct_incoherence_inelastic_1d(
+        wl_vec,
+        q_vec,
+        i_array,
+        error_array,
+        dq_array,
+        b_array,
+        qmin_index,
+        qmax_index,
+        ref_wl_ie,
+        output_wavelength_dependent_profile,
+        output_dir,
+    )
+
+    # Correct 2D
+    if i_of_q_2d:
+        corrected_2d = correct_incoherence_inelastic_2d(i_of_q_2d, b_array, ref_wl_index)
+    else:
+        corrected_2d = None
+
+    return corrected_2d, corrected_1d
+
+
+def correct_incoherence_inelastic_1d(
+    wl_vec,
+    q_vec,
+    i_array,
+    error_array,
+    dq_array,
+    b_array,
+    qmin_index,
+    qmax_index,
+    ref_wl_ie,
+    output_wavelength_dependent_profile=False,
+    output_dir=None,
+):
+    """
+    Parameters
+    ----------
+    wl_vec: ~numpy.ndarray
+        1D vector of wavelength (in ascending order)
+    q_vec: ~numpy.ndarray
+        1D vector of Q (in ascending order)
+    i_array: ~numpy.ndarray
+        2D array of intensities, shape[0] = number of Q, shape[1] = number of wavelength
+    error_array: ~numpy.ndarray
+        2D array if intensity errors
+    dq_array: ~numpy.ndarray
+        2D array of errors, shape[0] = number of Q, shape[1] = number of wavelength
+    b_array: ~numpy.ndarray
+        incoherence inelastic correction factor B, row 0: B factor, row 1: delta B
+    qmin_index: int
+        index of minimum common q in q vector
+    qmax_index: int
+        index of maximum common q in q vector
+    ref_wl_ie: ReferenceWavelength
+        the reference wavelength data used to calculate B
+    output_wavelength_dependent_profile: bool
+        If True then output Iq for each wavelength before and after b correction
+    output_dir: str
+        output directory for Iq profiles
+
+    Returns
+    -------
+    CorrectedIQ1D
+        I(Q1D) with inelastic incoherent correction applied
+    """
     if output_wavelength_dependent_profile and output_dir:
         for tmpwlii, wl in enumerate(wl_vec):
             tmpfn = os.path.join(output_dir, f"IQ_{wl:.3f}_before_b_correction.dat")
@@ -91,18 +174,6 @@ def correct_incoherence_inelastic_1d(
                 ),
                 tmpfn,
             )
-
-    # calculate B factors and errors
-    b_array, ref_wl_ie = calculate_b_factors(
-        wl_vec,
-        q_vec,
-        i_array,
-        error_array,
-        select_minimum_incoherence,
-        qmin_index,
-        qmax_index,
-        intensity_weighted=intensity_weighted,
-    )
 
     # correct intensities and errors
     corrected_intensities, corrected_errors = correct_intensity_error(
@@ -185,7 +256,10 @@ def calculate_b_factors(
         if set to true, the B factor is calculated using weighted function by intensity
     Returns
     -------
-
+    tuple[~numpy.ndarray, ReferenceWavelength, int]
+        - row 0: B factor, row 1: delta B
+        - the reference wavelength used to calculate B
+        - the index of the reference wavelength in the wavelength vector
     """
     # Sanity check
     assert intensity_array.shape == error_array.shape
@@ -245,7 +319,9 @@ def calculate_b_factors(
             b_array[np.isfinite(b_array)].min() >= -1e-20
         ), f"B array has negative values: {b_array}"
         """
-    return b_array, ref_wl_ie
+    else:
+        ref_wl_index = 0
+    return b_array, ref_wl_ie, ref_wl_index
 
 
 def calculate_b_error_b(
@@ -278,6 +354,8 @@ def calculate_b_error_b(
         instance of ReferenceWavelengths containing intensities and errors
     calculate_b_error: bool
         flag to calculate B factor's error
+    intensity_weighted: bool
+        if set to true, the B factor is calculated using weighted function by intensity
 
     Returns
     -------

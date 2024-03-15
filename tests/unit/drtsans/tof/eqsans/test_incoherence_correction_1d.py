@@ -10,7 +10,7 @@ from drtsans.tof.eqsans.incoherence_correction_1d import (
     calculate_b_error_b,
     calculate_b_factors,
     correct_intensity_error,
-    correct_incoherence_inelastic_1d,
+    correct_incoherence_inelastic_all,
     tuneqmin,
 )
 import numpy as np
@@ -85,7 +85,7 @@ def test_calculate_b_factor_select_min_incoherence():
     qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
 
     # calculate B factor and error with select minimum incoherence flag on
-    b_array, ref_wl_ie = calculate_b_factors(
+    b_array, ref_wl_ie, ref_wl_index = calculate_b_factors(
         wl_vec, q_vec, i_array, error_array, select_min_incoh, qmin_index, qmax_index
     )
 
@@ -116,14 +116,14 @@ def test_incoherence_inelastic_correction(temp_directory):
     qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
 
     # calculate B factors and errors
-    b_array, ref_wl_ie = calculate_b_factors(
+    b_array, ref_wl_ie, ref_wl_index = calculate_b_factors(
         wl_vec, q_vec, i_array, error_array, select_min_incoh, qmin_index, qmax_index
     )
     # verify
     np.testing.assert_allclose(b_array[0], generate_expected_b_factors(), verbose=True)
 
     # Test with intensity weighted
-    b_array_w, ref_wl_ie_w = calculate_b_factors(
+    b_array_w, ref_wl_ie_w, ref_wl_index_w = calculate_b_factors(
         wl_vec, q_vec, i_array, error_array, select_min_incoh, qmin_index, qmax_index, intensity_weighted=True
     )
     # verify
@@ -158,8 +158,8 @@ def test_incoherence_inelastic_correction(temp_directory):
     output_dir = temp_directory()
 
     # Test overall workflow
-    corrected_i_of_q = correct_incoherence_inelastic_1d(
-        test_iq1d, False, output_wavelength_dependent_profile=True, output_dir=output_dir
+    _, corrected_i_of_q = correct_incoherence_inelastic_all(
+        None, test_iq1d, False, output_wavelength_dependent_profile=True, output_dir=output_dir
     )
     np.testing.assert_allclose(corrected_i_of_q.iq1d.intensity, generate_expected_corrected_intensities())
 
@@ -178,7 +178,7 @@ def test_incoherence_inelastic_correction(temp_directory):
         np.testing.assert_allclose(data[:, 1], 0.1)
 
     # Test with weighted intensity
-    corrected_i_of_q_w = correct_incoherence_inelastic_1d(test_iq1d, False, True)
+    _, corrected_i_of_q_w = correct_incoherence_inelastic_all(None, test_iq1d, False, True)
     np.testing.assert_allclose(corrected_i_of_q_w.iq1d.intensity, generate_expected_corrected_intensities(True))
 
 

@@ -114,7 +114,7 @@ Test Driven Development (TDD)
   Examples:
 
   * `drtsans/resolution.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/drtsans/resolution.py>`_ and `tests/unit/new/drtsans/test_resolution.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/tests/unit/new/drtsans/test_resolution.py>`_.
-  * `drtsans/tof/eqsans/incoherence_correction_q1d.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/drtsans/tof/eqsans/incoherence_correction_1d.py>`_ and `tests/unit/new/drtsans/tof/eqsans/test_incoherence_correction_q1d.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/tests/unit/new/drtsans/tof/eqsans/test_incoherence_correction_q1d.py>`_.
+  * `drtsans/tof/eqsans/incoherence_correction_1d.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/drtsans/tof/eqsans/incoherence_correction_1d.py>`_ and `tests/unit/new/drtsans/tof/eqsans/test_incoherence_correction_1d.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/tests/unit/new/drtsans/tof/eqsans/test_incoherence_correction_1d.py>`_.
 
 * Integration test
 

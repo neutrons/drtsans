@@ -16,8 +16,7 @@ from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 import numpy as np
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.tof.eqsans.correction_api import (
-    do_inelastic_incoherence_correction_q1d,
-    do_inelastic_incoherence_correction_q2d,
+    do_inelastic_incoherence_correction,
     save_k_vector,
 )
 from drtsans.tof.eqsans.elastic_reference_normalization import (
@@ -375,17 +374,9 @@ def bin_i_with_correction(
 
         # 1D correction
         b_file_prefix = f"{raw_name}_frame_{wl_frame}"
-        corrected_iq1d = do_inelastic_incoherence_correction_q1d(
-            iq1d_main_wl[0],
-            incoherence_correction_setup,
-            b_file_prefix,
-            output_dir,
-            output_filename,
-        )
-
-        # 2D correction
-        corrected_iq2d = do_inelastic_incoherence_correction_q2d(
+        corrected_iq2d, corrected_iq1d = do_inelastic_incoherence_correction(
             iq2d_main_wl,
+            iq1d_main_wl[0],
             incoherence_correction_setup,
             b_file_prefix,
             output_dir,

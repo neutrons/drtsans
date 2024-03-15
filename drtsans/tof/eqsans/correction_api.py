@@ -7,11 +7,10 @@ from collections import namedtuple
 from drtsans.iq import bin_all  # noqa E402
 from typing import Union
 from drtsans.tof.eqsans.incoherence_correction_1d import (
-    correct_incoherence_inelastic_1d,
+    correct_incoherence_inelastic_all,
     CorrectedIQ1D,
 )
 from drtsans.tof.eqsans.incoherence_correction_2d import (
-    correct_incoherence_inelastic_2d,
     CorrectedIQ2D,
 )
 
@@ -295,17 +294,20 @@ def parse_correction_config(reduction_config):
 NormFactor = namedtuple("NormFactor", "k k_error p s")
 
 
-def do_inelastic_incoherence_correction_q1d(
+def do_inelastic_incoherence_correction(
+    iq2d: IQazimuthal,
     iq1d: IQmod,
     correction_setup: CorrectionConfiguration,
     prefix: str,
     output_dir: str,
     output_filename: str = "",
-) -> IQmod:
-    """Do inelastic incoherence correction on 1D data (Q1d)
+) -> tuple[IQazimuthal, IQmod]:
+    """Do inelastic incoherence correction on 2D and 1D I(Q)
 
     Parameters
     ----------
+    iq2d: IQazimuthal
+        I(Q2D)
     iq1d: IQmod
         I(Q1D)
     correction_setup: CorrectionConfiguration
@@ -319,14 +321,16 @@ def do_inelastic_incoherence_correction_q1d(
 
     Returns
     -------
-    IQmod
-
+    tuple[IQazimuthal, IQmod]
+        The corrected I(Q2D) and I(Q1D)
     """
     # type check
     assert isinstance(iq1d, IQmod), f"Assuming each element in input is IQmod but not {type(iq1d)}"
+    assert isinstance(iq2d, IQazimuthal), f"iq2d must be IQazimuthal but not {type(iq2d)}"
 
     # do inelastic/incoherent correction
-    corrected = correct_incoherence_inelastic_1d(
+    corrected_2d, corrected_1d = correct_incoherence_inelastic_all(
+        iq2d,
         iq1d,
         correction_setup.select_min_incoherence,
         correction_setup.select_intensityweighted,
@@ -339,33 +343,11 @@ def do_inelastic_incoherence_correction_q1d(
 
     # save file
     save_b_factor(
-        corrected,
+        corrected_1d,
         os.path.join(output_dir, f"{output_filename}_inelastic_b1d_{prefix}.dat"),
     )
 
-    return corrected.iq1d
-
-
-def do_inelastic_incoherence_correction_q2d(
-    iq2d: IQazimuthal,
-    correction_setup: CorrectionConfiguration,
-    prefix: Union[int, str],
-    output_dir: str,
-    output_filename: str = "",
-) -> IQazimuthal:
-    # type check
-    assert isinstance(iq2d, IQazimuthal), f"iq2d must be IQazimuthal but not {type(iq2d)}"
-
-    # apply the correction to each
-    corrected = correct_incoherence_inelastic_2d(iq2d, correction_setup.select_min_incoherence)
-
-    # save file
-    save_b_factor(
-        corrected,
-        os.path.join(output_dir, f"{output_filename}_inelastic_b2d_{prefix}.dat"),
-    )
-
-    return corrected.iq2d
+    return corrected_2d.iq2d, corrected_1d.iq1d
 
 
 def save_b_factor(i_of_q: Union[CorrectedIQ1D, CorrectedIQ2D], path: str) -> None:

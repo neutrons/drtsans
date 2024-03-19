@@ -328,6 +328,8 @@ def bin_i_with_correction(
                 f"Not expected that there are more than 1 IQmod main but " f"{len(iq1d_main_wl)}"
             )
 
+        b_file_prefix = f"{raw_name}"
+
         # Bin elastic reference run
         if iq1d_elastic_ref_fr:
             # bin the reference elastic runs of the current frame
@@ -364,16 +366,14 @@ def bin_i_with_correction(
             iq1d_main_wl[0] = iq1d_wl
 
             # write
-            run_number = os.path.basename(str(incoherence_correction_setup.elastic_reference.run_number)).split(".")[0]
             save_k_vector(
                 iq1d_wl.wavelength,
                 k_vec,
                 k_error_vec,
-                path=os.path.join(output_dir, f"k_{run_number}.dat"),
+                path=os.path.join(output_dir, f"{output_filename}_elastic_k1d_{b_file_prefix}.dat"),
             )
 
         # 1D correction
-        b_file_prefix = f"{raw_name}_frame_{wl_frame}"
         corrected_iq2d, corrected_iq1d = do_inelastic_incoherence_correction(
             iq2d_main_wl,
             iq1d_main_wl[0],

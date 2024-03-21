@@ -187,6 +187,9 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
     configuration["configuration"]["beamFluxFileName"] = os.path.join(
         datarepo_dir.eqsans, "test_normalization", "beam_profile_flux.txt"
     )
+    # lower number of bins to make I(Q) comparison less flaky
+    configuration["configuration"]["numQBins"] = 80
+    configuration["configuration"]["numQxQyBins"] = 40
 
     # validate and clean configuration
     input_config = reduction_parameters(configuration)
@@ -210,6 +213,16 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
     np.testing.assert_allclose(
         np.loadtxt(test_iq1d_file),
         np.loadtxt(os.path.join(datarepo_dir.eqsans, "test_incoherence_correction", iq1d_base_name)),
+    )
+
+    # Check 2D output result
+    iq2d_base_name = "EQSANS_125707__Iqxqy.dat"
+    test_iq2d_file = os.path.join(test_dir, iq2d_base_name)
+    assert os.path.exists(test_iq2d_file), f"Expected test result {test_iq2d_file} does not exist"
+
+    np.testing.assert_allclose(
+        np.loadtxt(test_iq2d_file, skiprows=4),
+        np.loadtxt(os.path.join(datarepo_dir.eqsans, "test_incoherence_correction", iq2d_base_name), skiprows=4),
     )
 
     # check that the wavelength dependent profiles are created
@@ -261,7 +274,7 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
     # Create temp output directory
     test_dir = temp_directory()
 
-    def run_reduction_and_compare(config, expected_result_filename):
+    def run_reduction_and_compare(config, expected_result_basename):
         with amend_config(data_dir=datarepo_dir.eqsans):
             # validate and clean configuration
             input_config = reduction_parameters(config)
@@ -275,9 +288,18 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
         assert reduction_output
 
         test_iq1d_file = os.path.join(test_dir, config["outputFileName"] + "_Iq.dat")
-        gold_iq1d_file = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction", expected_result_filename)
+        gold_iq1d_file = os.path.join(
+            datarepo_dir.eqsans, "test_incoherence_correction", expected_result_basename + "_Iq.dat"
+        )
         # compare
         np.testing.assert_allclose(np.loadtxt(test_iq1d_file), np.loadtxt(gold_iq1d_file))
+
+        test_iq2d_file = os.path.join(test_dir, config["outputFileName"] + "_Iqxqy.dat")
+        gold_iq2d_file = os.path.join(
+            datarepo_dir.eqsans, "test_incoherence_correction", expected_result_basename + "_Iqxqy.dat"
+        )
+        # compare
+        np.testing.assert_allclose(np.loadtxt(test_iq2d_file, skiprows=4), np.loadtxt(gold_iq2d_file, skiprows=4))
 
         DeleteWorkspace("_empty")
         DeleteWorkspace("_mask")
@@ -308,7 +330,7 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
     configuration["configuration"]["beamFluxFileName"] = os.path.join(
         datarepo_dir.eqsans, "test_normalization", "beam_profile_flux.txt"
     )
-    run_reduction_and_compare(configuration, "EQSANS_132078_Iq.dat")
+    run_reduction_and_compare(configuration, "EQSANS_132078")
 
     # Run with weighted
     base_name = "EQSANS_132078_weighted"
@@ -317,7 +339,7 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
     configuration["configuration"]["incohfit_factor"] = None
     configuration["configuration"]["incohfit_qmin"] = None
     configuration["configuration"]["incohfit_qmax"] = None
-    run_reduction_and_compare(configuration, "EQSANS_132078_weighted_Iq.dat")
+    run_reduction_and_compare(configuration, "EQSANS_132078_weighted")
 
     # Run with weighted and factor
     base_name = "EQSANS_132078_weighted_factor"
@@ -326,7 +348,7 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
     configuration["configuration"]["incohfit_factor"] = 10
     configuration["configuration"]["incohfit_qmin"] = None
     configuration["configuration"]["incohfit_qmax"] = None
-    run_reduction_and_compare(configuration, "EQSANS_132078_weighted_factor_Iq.dat")
+    run_reduction_and_compare(configuration, "EQSANS_132078_weighted_factor")
 
     # Run with weighted and manual q range
     # q-range is set to be the same as what the factor calculation finds
@@ -336,7 +358,7 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
     configuration["configuration"]["incohfit_factor"] = None
     configuration["configuration"]["incohfit_qmin"] = 0.065
     configuration["configuration"]["incohfit_qmax"] = 0.224
-    run_reduction_and_compare(configuration, "EQSANS_132078_weighted_factor_Iq.dat")
+    run_reduction_and_compare(configuration, "EQSANS_132078_weighted_factor")
 
     print(f"Output directory: {test_dir}")
 

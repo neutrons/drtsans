@@ -210,9 +210,10 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
     test_iq1d_file = os.path.join(test_dir, iq1d_base_name)
     assert os.path.exists(test_iq1d_file), f"Expected test result {test_iq1d_file} does not exist"
 
+    gold_dir = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction")
     np.testing.assert_allclose(
         np.loadtxt(test_iq1d_file),
-        np.loadtxt(os.path.join(datarepo_dir.eqsans, "test_incoherence_correction", iq1d_base_name)),
+        np.loadtxt(os.path.join(gold_dir, iq1d_base_name)),
     )
 
     # Check 2D output result
@@ -222,7 +223,7 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
 
     np.testing.assert_allclose(
         np.loadtxt(test_iq2d_file, skiprows=4),
-        np.loadtxt(os.path.join(datarepo_dir.eqsans, "test_incoherence_correction", iq2d_base_name), skiprows=4),
+        np.loadtxt(os.path.join(gold_dir, iq2d_base_name), skiprows=4),
     )
 
     # check that the wavelength dependent profiles are created
@@ -236,6 +237,24 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
     assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_b_correction.dat"))) == number_of_wavelengths
     # after b correction
     assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_b_correction.dat"))) == number_of_wavelengths
+
+    # check the k factor file
+    k_base_name = "EQSANS_125707__elastic_k1d_EQSANS_125707.dat"
+    test_k_file = os.path.join(output_dir, k_base_name)
+    assert os.path.exists(test_k_file), f"Expected test result {test_k_file} does not exist"
+    np.testing.assert_allclose(
+        np.loadtxt(test_k_file, delimiter=",", skiprows=1),
+        np.loadtxt(os.path.join(gold_dir, k_base_name), delimiter=",", skiprows=1),
+    )
+
+    # check the b factor file
+    b_base_name = "EQSANS_125707__inelastic_b1d_EQSANS_125707.dat"
+    test_b_file = os.path.join(output_dir, b_base_name)
+    assert os.path.exists(test_b_file), f"Expected test result {test_b_file} does not exist"
+    np.testing.assert_allclose(
+        np.loadtxt(test_b_file, delimiter=",", skiprows=1),
+        np.loadtxt(os.path.join(gold_dir, b_base_name), delimiter=",", skiprows=1),
+    )
 
     # cleanup
     # NOTE: loaded is not a dict that is iterable, so we have to delete the

@@ -17,6 +17,8 @@ from matplotlib import pyplot as plt
 from drtsans.dataobjects import IQmod
 
 
+SENSITIVITY_FILE = "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/Sensitivity_patched_thinPMMA_4m_113512_mantid.nxs"
+
 # EQSANS reduction
 specs_eqsans = {
     "EQSANS_88980": {
@@ -55,7 +57,6 @@ def test_regular_setup(has_sns_mount, run_config, basename, temp_directory, refe
 
     # set flag to use weighted binning
     weighted_binning = False
-
     common_config = {
         "configuration": {
             "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
@@ -63,6 +64,7 @@ def test_regular_setup(has_sns_mount, run_config, basename, temp_directory, refe
             "normalization": "Total charge",
             "fluxMonitorRatioFile": None,
             "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
+            "sensitivityFileName": SENSITIVITY_FILE,
             "absoluteScaleMethod": "standard",
             "detectorOffset": 0,
             "mmRadiusForTransmission": 25,
@@ -170,6 +172,7 @@ def test_weighted_binning_setup(has_sns_mount, run_config, basename, temp_direct
             "normalization": "Total charge",
             "fluxMonitorRatioFile": None,
             "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
+            "sensitivityFileName": SENSITIVITY_FILE,
             "absoluteScaleMethod": "standard",
             "detectorOffset": 0,
             "mmRadiusForTransmission": 25,
@@ -361,6 +364,8 @@ def test_wavelength_step(has_sns_mount, reference_dir):
         "beamCenter": {"runNumber": 115356},
         "outputFileName": "test_wavelength_step",
         "configuration": {
+            "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/mask_4m_general.nxs",
+            "darkFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/EQSANS_113569.nxs.h5",
             "cutTOFmax": "1500",
             "wavelengthStepType": "constant Delta lambda/lambda",
             "sampleApertureSize": "10",

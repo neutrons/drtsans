@@ -101,14 +101,12 @@
         },
         "usePixelCalibration": {"$ref":  "common.json#/configuration/usePixelCalibration", "default": false},
 
-        "maskFileName":     {"$ref":  "common.json#/configuration/maskFileName",
-          "default": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/mask_4m_general.nxs"},
+        "maskFileName":     {"$ref":  "common.json#/configuration/maskFileName"},
         "useDefaultMask":   {"$ref":  "common.json#/configuration/useDefaultMask", "default": true},
         "defaultMask":      {"$ref":  "common.json#/configuration/defaultMask"},
         "useMaskBackTubes": {"$ref":  "common.json#/configuration/useMaskBackTubes", "default": false},
 
-        "darkFileName":    {"$ref":  "common.json#/configuration/darkFileName",
-          "default":  "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/EQSANS_113569.nxs.h5"},
+        "darkFileName":    {"$ref":  "common.json#/configuration/darkFileName"},
         "normalization": {
           "anyOf": [{"type": "string", "enum": ["Monitor", "Total charge", "Time"]},
                     {"type": "null"}],
@@ -131,8 +129,7 @@
           "examples":  ["/path/to/file/beamFluxfile.dat"],
           "default": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample"
         },
-        "sensitivityFileName":        {"$ref":  "common.json#/configuration/sensitivityFileName",
-          "default": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/Sensitivity_patched_thinPMMA_4m_113512_mantid.nxs"},
+        "sensitivityFileName":        {"$ref":  "common.json#/configuration/sensitivityFileName"},
         "useSolidAngleCorrection":    {"$ref":  "common.json#/configuration/useSolidAngleCorrection", "default": true},
         "useThetaDepTransCorrection": {"$ref":  "common.json#/configuration/useThetaDepTransCorrection", "default": true},
         "mmRadiusForTransmission": {

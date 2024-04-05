@@ -10,10 +10,11 @@ User Guide
 ----------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    /drtsans/reduction_parameters
    /drtsans/reduction_scripts
+   release_notes
 
 
 API documentation
@@ -32,11 +33,11 @@ API documentation
    /drtsans/drtsans.tof.eqsans
    /drtsans/modules
 
-developer
+Developer
 ---------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    /developer/index
 

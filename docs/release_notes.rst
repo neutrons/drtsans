@@ -1,0 +1,47 @@
+.. release_notes
+
+=============
+Release Notes
+=============
+
+1.11.0
+------
+**User:**
+
+- Pixel calibration and reduction of data collected at the BIOSANS midrange detector.
+- Python notebooks for pixel calibration of the BIOSANS midrange detector.
+- Overlap wedge stitching parameters for the BIOSANS panel detectors.
+- The script to calculate pixel sensitivities for the monochromatic instruments has been splited into one script
+  for BIOSANS and one script for GPSANS.
+- Ability to split and reduce data according to a periodic process-variable. For instance, if the sample
+  was subjected to a sinusoidal external magnetic field with a period `T` of 10 seconds,
+  User can split the run into 0.1 seconds segments and add segments separated by `T` seconds,
+  yielding 100 different `I(Q)` profiles.
+  Each profile is associated to a particular value of the external magnetic field.
+- Fix a defect preventing plotting after importing `drtsans` in Mantid's workbench.
+- Option to export the wavelength-dependent `I(Q)` profiles before and after applying the incoherent-inelastic and
+  the coherent elastic corrections.
+  Files are exported to different subdirectories when time or log slicing is requested, and also when in
+  skipped-frame mode (EQSANS only).
+- Standard reduction scripts for each instrument available and described in User's online documentation.
+- For EQSANS, default files have been removed for dark run, mask, and sensitivity corrections.
+  Associated parameters in the JSON configuration must provide paths to these files or be left emtpy if
+  the corrections are not desired.
+- It is highly likely that in the future, new parameters will be introduced into the instrument JSON schema.
+  Still, User wants to run the current `drtsans` with a JSON file compliant with these future schema.
+  User now has the option to set parameter `permissible=True` in API reduction functions
+  `validate_reduction_parameters` and `update_reduction_parameters`.
+  This setting permits using current `drtsans` to reduce "futuristic" JSON files.
+
+**Developer:**
+
+- Move from `versioneer` to `versioningit`.
+- Functionality to generate a fake set of TOF events to generate typical intensity patterns
+  (e.g. concentric rings, a flood pattern) in the detector panels.
+  Useful for testing without using real event Nexus files.
+- Store large data files into dedicated Git LFS repository `drtsans-data` for purposes of integration testing.
+  Developer's docs explain how to use this repository and how to run tests that make use of this dataset.
+- Exclude from GitLab CI testing those tests requiring files stored in the `/SNS` or `/HFIR` file systems.
+  These tests may be run manually from a machine where these file systems are reachable.
+  These tests can be selected with pytest marker `eqsans_mount`. Developer's documentation explains how-to.
+- Results from the elastic-correction of `I(Q)` are now reused for the elastic-correction of `I(Qx, Qy)`.

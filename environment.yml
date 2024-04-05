@@ -1,6 +1,6 @@
 name: drtsans-dev
 channels:
-  - mantid/label/nightly
+  - mantid/label/main
   - conda-forge
   - defaults
 dependencies:

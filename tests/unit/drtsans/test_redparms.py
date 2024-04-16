@@ -615,6 +615,16 @@ class TestReductionParametersGPSANS:
             update_reduction_parameters(self.parameters_all, parameter_changes)
         assert validator_name in str(error_info.value)
 
+    @pytest.mark.datarepo
+    def test_permissible(self, datarepo_dir):
+        parameters_new = update_reduction_parameters(
+            self.parameters_common,
+            {"dataDirectories": datarepo_dir.gpsans, "configuration": {"entry_not_in_the_schema": None}},
+            validate=False,
+            permissible=True,
+        )
+        reduction_parameters(parameters_new, permissible=True)
+
 
 class TestReductionParametersBIOSANS:
     parameters_common = {
@@ -702,6 +712,39 @@ class TestReductionParametersBIOSANS:
             assert qmax_name in str(error_info.value)
         else:
             validate_reduction_parameters(parameters)
+
+    @pytest.mark.datarepo
+    def test_permissible(self, datarepo_dir):
+        parameters_new = update_reduction_parameters(
+            self.parameters_common,
+            {
+                "dataDirectories": os.path.join(datarepo_dir.biosans, "pixel_calibration", "test_loader_algorithm"),
+                "configuration": {"entry_not_in_the_schema": None},
+            },
+            validate=False,
+            permissible=True,
+        )
+        reduction_parameters(parameters_new, permissible=True)
+
+
+class TestReductionParametersEQSANS:
+    parameters_common = {
+        "instrumentName": "EQSANS",
+        "iptsNumber": 20196,
+        "sample": {"runNumber": 89157, "thickness": 1.0},
+        "outputFileName": "test_validator_datasource",
+        "configuration": {"outputDir": "/tmp", "QbinType": "linear", "numQBins": 100},
+    }
+
+    @pytest.mark.datarepo
+    def test_permissible(self, datarepo_dir):
+        parameters_new = update_reduction_parameters(
+            self.parameters_common,
+            {"dataDirectories": datarepo_dir.eqsans, "configuration": {"entry_not_in_the_schema": None}},
+            validate=False,
+            permissible=True,
+        )
+        reduction_parameters(parameters_new, permissible=True)
 
 
 def test_generate_json_files(tmpdir, cleanfile):

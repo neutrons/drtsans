@@ -104,7 +104,6 @@
         "subpixelsX":        {"$ref":  "common.json#/configuration/subpixelsX", "default": 5},
         "subpixelsY":        {"$ref":  "common.json#/configuration/subpixelsY", "default": 5}
       },
-      "maxProperties": 60,
       "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "timeSliceInterval",
         "timeSliceOffset", "timeSlicePeriod", "useLogSlice", "logSliceName", "logSliceInterval",
         "sampleOffset", "useDetectorOffset", "detectorOffset", "sampleDetectorDistance",
@@ -121,7 +120,6 @@
         "useSubpixels", "subpixelsX", "subpixelsY"]
     }
   },
-  "maxProperties": 10,
   "required": ["schemaStamp", "instrumentName", "iptsNumber", "dataDirectories", "sample", "background",
     "emptyTransmission", "beamCenter", "outputFileName", "configuration"]
 }

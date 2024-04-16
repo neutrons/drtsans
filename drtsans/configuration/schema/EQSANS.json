@@ -243,7 +243,6 @@
         "selectMinIncoh": {"type": "boolean", "default": false,
                            "description": "use smallest wavelength as reference wavelength"}
       },
-      "maxProperties": 68,
       "required": ["outputDir", "instrumentConfigurationDir","useTimeSlice", "timeSliceInterval", "timeSliceOffset",
         "timeSlicePeriod", "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset", "useDetectorOffset",
         "detectorOffset", "sampleApertureSize", "sourceApertureDiameter","usePixelCalibration",
@@ -260,7 +259,6 @@
         "elasticReferenceBkgd", "selectMinIncoh"]
     }
   },
-  "maxProperties": 10,
   "required": ["schemaStamp", "instrumentName", "iptsNumber", "dataDirectories", "sample", "background",
     "emptyTransmission", "beamCenter", "outputFileName", "configuration"]
 }

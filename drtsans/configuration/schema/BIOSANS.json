@@ -250,8 +250,6 @@
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs"
         }
       },
-
-      "maxProperties": 89,
       "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "useTimeSliceTransmission",
         "timeSliceInterval", "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset", "sampleApertureSize",
         "sampleDetectorDistance", "sourceApertureDiameter", "usePixelCalibration", "maskFileName", "useDefaultMask",
@@ -272,7 +270,6 @@
         "wedge2QminMidrange", "wedge2QmaxMidrange", "wedge2overlapStitchQmin", "wedge2overlapStitchQmax"]
     }
   },
-  "maxProperties": 10,
   "required": ["schemaStamp", "instrumentName", "iptsNumber", "dataDirectories", "sample", "background",
     "emptyTransmission", "beamCenter", "outputFileName", "configuration"]
 }

@@ -1088,6 +1088,11 @@ def fit_positions(
     valid_bar_positions = bar_positions[np.where(edge_pixels != ignore_value)]
 
     try:
+        # if the algorithm was unable to find the pixel indexes associated with the bottom edge of the bar, it usually
+        # assigns the top pixel (index 249). For instance, the first tube of the midrange front-panel has
+        # [249, 249, ...,249] as edge_pixels. We check the number of unique indexes bigger than order
+        if len(np.unique(valid_edge_pixels)) <= int(order):
+            raise ValueError("Insufficient distinct number of pixel indexes")
         # fit the bar positions to a 5th degree polynomial in edge_pixels
         coefficients = np.polynomial.polynomial.polyfit(valid_edge_pixels, valid_bar_positions, int(order))
         # calculate the coefficients of the derivative
@@ -1358,12 +1363,14 @@ def calculate_barscan_calibration(
     bottom_shadow_pixels = []
     delete_workspaces = True if inspect_data is False else False  # retain workspace per scan if we want to inspect
 
-    for bar_position, barscan_workspace in barscan_workspace_generator(
+    barscan_list = barscan_workspace_generator(
         barscan_dataset,
         bar_position_log=bar_position_log,
         mask=mask,
         delete_workspaces=delete_workspaces,
-    ):
+    )
+
+    for bar_position, barscan_workspace in barscan_list:
         if instrument_name is None:  # retrieve some info from the first bar position
             instrument_name = instrument_standard_name(barscan_workspace)
             daystamp = day_stamp(barscan_workspace)

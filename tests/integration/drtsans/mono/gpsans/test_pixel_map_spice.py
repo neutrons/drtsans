@@ -54,7 +54,7 @@ def test_pixel_calibration(datarepo_dir, temp_directory):
         test_output_dir,
         mask_file,
     )
-    calibration_table_file = None
+    calibration_table = None
     for index, returned in enumerate(calibration_results):
         if index == 0:
             bar_scan_dataset, flood_file = returned
@@ -68,22 +68,21 @@ def test_pixel_calibration(datarepo_dir, temp_directory):
             calibration_stage1, flood_ws_name = returned
             assert calibration_stage1.state_flag == 2
         elif index == 3:
-            calibration_table_file = returned
+            calibration_table = returned
         else:
             raise RuntimeError(f"Index = {index} is not defined")
-
-    print(f"Calibraton file {calibration_table_file} of type {type(calibration_table_file)}")
-    assert os.path.exists(calibration_table_file)
+    assert os.path.exists(calibration_table)
 
     # Get expected data file
-    expected_calib_nexus = os.path.join(
+    expected_calibration_table = os.path.join(
         datarepo_dir.gpsans,
         f"calibrations/CG2_Pixel_Calibration_Expected_{last_pt - first_pt + 1}.nxs",
     )
-    assert os.path.exists(expected_calib_nexus), f"Gold result (file) {expected_calib_nexus} cannot be found."
+    assert os.path.exists(
+        expected_calibration_table
+    ), f"Gold result (file) {expected_calibration_table} cannot be found."
 
-    # Compare 2 NeXus file
-    compare_pixel_calibration_files(calibration_table_file, expected_calib_nexus)
+    compare_pixel_calibration_files(calibration_table, expected_calibration_table)
 
     # clean up
     # mysterious leftover workspace due to the design of generate_spice_pixel_map
@@ -96,7 +95,7 @@ def test_pixel_calibration(datarepo_dir, temp_directory):
 
 
 def compare_pixel_calibration_files(test_file_name, gold_file_name):
-    """Compare 2 calibration file by the pixel calibration value
+    """Compare two calibration files by the pixel calibration value
 
     Algorithm:
     1. Load both processed NeXus files

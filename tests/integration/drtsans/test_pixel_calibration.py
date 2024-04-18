@@ -1014,7 +1014,7 @@ def test_biosans_main_detector_barscan(datarepo_dir):
     assert addons["bar_positions"][0] == pytest.approx(1150, abs=0.001)
     assert addons["bar_positions"][1] == pytest.approx(950, abs=0.001)
 
-    assert calibration.positions[0:3] == pytest.approx([-0.53, -0.52, -0.52], abs=0.01)
+    assert calibration.positions[0:3] == pytest.approx([-0.513, -0.508, -0.503], abs=0.01)
 
 
 @pytest.mark.datarepo

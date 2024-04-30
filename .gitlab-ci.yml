@@ -117,12 +117,15 @@ code-unit-test:
     - popd
   after_script:
     - cp -r /tmp/sans-backend/unit_test_results.xml unit_test_results.xml
+    - cp -r /tmp/sans-backend/unit_test_coverage.xml unit_test_coverage.xml
     - *teardown_cleanup
   artifacts:
     paths:
       -  unit_test_results.xml
+      -  unit_test_coverage.xml
     reports:
       junit: unit_test_results.xml
+  coverage: /TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/
   tags:
     - drtsans_lfs
 
@@ -148,14 +151,18 @@ code-integration-test:
     - popd
   after_script:
     - cp -r /tmp/sans-backend/integration_test_results.xml integration_test_results.xml
+    - cp -r /tmp/sans-backend/integration_test_coverage.xml integration_test_coverage.xml
     - *teardown_cleanup
   artifacts:
     paths:
       -  integration_test_results.xml
+      -  integration_test_coverage.xml
     reports:
       junit: integration_test_results.xml
+  coverage: /TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/
   tags:
     - drtsans_lfs
+
 
 create-wheel:
   stage: test

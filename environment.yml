@@ -30,6 +30,7 @@ dependencies:
   - ipywidgets
   # testing
   - pytest >= 3.2
+  - pytest-cov
   - pytest-runner
   - pytest-xdist
   # documentation

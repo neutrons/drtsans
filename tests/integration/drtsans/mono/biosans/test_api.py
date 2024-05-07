@@ -462,6 +462,7 @@ def test_reduce_single_configuration_slice_transmission_true(datarepo_dir, temp_
         },
         "logslice_data": {},
     }
+    reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
     reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_true")
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
     with amend_config(data_dir=datarepo_dir.biosans):

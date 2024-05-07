@@ -71,10 +71,10 @@
     "wavelengthStep": "0.1",
     "smearingPixelSizeX": "",
     "smearingPixelSizeY": "",
-    "timeslice": false,
-    "timesliceinterval": "300.0",
-    "logslice": false,
-    "logslicename": "",
-    "logsliceinterval": "10.0"
+    "timeSlice": false,
+    "timeSliceInterval": "300.0",
+    "logSlice": false,
+    "logSlicename": "",
+    "logSliceInterval": "10.0"
   }
 }

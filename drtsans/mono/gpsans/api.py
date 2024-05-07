@@ -234,8 +234,8 @@ def load_all_files(
                 logslicename = logsliceinterval = None
             elif logslice:
                 timesliceinterval, timesliceperiod = None, None
-                logslicename = reduction_config["logslicename"]
-                logsliceinterval = reduction_config["logsliceinterval"]
+                logslicename = reduction_config["logSliceName"]
+                logsliceinterval = reduction_config["logSliceInterval"]
             load_and_split(
                 filename,
                 output_workspace=ws_name,

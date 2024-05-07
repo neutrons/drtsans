@@ -65,9 +65,9 @@ def test_parse_json_geometry_current():
         "overlapStitchQmax": "0.095",
         "timeslice": false,
         "timesliceinterval": "200",
-        "logslicename": "",
-        "logslice": false,
-        "logsliceinterval": "",
+        "logSliceName": "",
+        "logSlice": false,
+        "logSliceInterval": "",
         "SampleToSi": "234.56",
         "SampleDetectorDistance": "32.11"
         }

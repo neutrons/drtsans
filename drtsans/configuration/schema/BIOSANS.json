@@ -35,8 +35,10 @@
         "wavelengthSpread": {"$ref":  "common.json#/configuration/wavelengthSpread"},
 
         "useTimeSlice":         {"$ref":  "common.json#/configuration/useTimeSlice", "default": false},
-        "useTimeSliceTransmission": {"$ref":  "common.json#/configuration/useTimeSlice", "default": false},
         "timeSliceInterval": {"$ref":  "common.json#/configuration/timeSliceInterval"},
+        "timeSliceOffset":   {"$ref":  "common.json#/configuration/timeSliceOffset", "default": 0.0},
+        "timeSlicePeriod":   {"$ref":  "common.json#/configuration/timeSlicePeriod", "default": null},
+        "useTimeSliceTransmission": {"$ref":  "common.json#/configuration/useTimeSlice", "default": false},
 
         "useLogSlice":         {"$ref":  "common.json#/configuration/useLogSlice", "default": false},
         "logSliceName":     {"$ref":  "common.json#/configuration/logSliceName"},
@@ -250,8 +252,9 @@
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs"
         }
       },
-      "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "useTimeSliceTransmission",
-        "timeSliceInterval", "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset", "sampleApertureSize",
+      "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "timeSliceInterval",
+        "timeSliceOffset", "timeSlicePeriod", "useTimeSliceTransmission",
+        "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset", "sampleApertureSize",
         "sampleDetectorDistance", "sourceApertureDiameter", "usePixelCalibration", "maskFileName", "useDefaultMask",
         "defaultMask", "useMaskBackTubes", "darkMainFileName", "darkWingFileName", "darkMidrangeFileName",
         "normalization", "normalizationResortToTime", "sensitivityMainFileName", "sensitivityWingFileName",

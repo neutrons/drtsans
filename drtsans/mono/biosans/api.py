@@ -245,15 +245,18 @@ def load_all_files(
             logger.notice(f"Loading filename {filename}")
             if timeslice:
                 timesliceinterval = float(reduction_config["timeSliceInterval"])
+                timesliceperiod = reduction_config["timeSlicePeriod"]
                 logslicename = logsliceinterval = None
             elif logslice:
-                timesliceinterval = None
+                timesliceinterval, timesliceperiod = None, None
                 logslicename = reduction_config["logSliceName"]
                 logsliceinterval = reduction_config["logSliceInterval"]
             biosans.load_and_split(
                 filename,
                 output_workspace=ws_name,
                 time_interval=timesliceinterval,
+                time_offset=reduction_config["timeSliceOffset"],
+                time_period=timesliceperiod,
                 log_name=logslicename,
                 log_value_interval=logsliceinterval,
                 sample_to_si_name=SAMPLE_SI_META_NAME,

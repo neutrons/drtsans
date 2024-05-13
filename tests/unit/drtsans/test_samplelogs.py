@@ -99,6 +99,29 @@ class TestSampleLogs:
         assert "2023-09-02T13:00:00.466" in sl.periodic.lastTime().toISO8601String()
         assert sl.periodic.lastValue() == 14
 
+    @pytest.mark.datarepo
+    def test_single_value(self, datarepo_dir, clean_workspace):
+        test_file = pjn(datarepo_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
+        ws = LoadNexusProcessed(Filename=test_file)
+        clean_workspace(ws)
+        sl = SampleLogs(ws)
+        assert isinstance(sl.single_value("run_start"), str)
+        assert sl.single_value("sample_detector_distance") == sl.sample_detector_distance.value
+        assert_almost_equal(sl.single_value("proton_charge"), sl._run.getStatistics("proton_charge").mean, decimal=0)
+        with pytest.raises(RuntimeError):
+            sl.single_value("log_does_not_exist")
+
+    @pytest.mark.datarepo
+    def test_records_json(self, datarepo_dir, clean_workspace):
+        test_file = pjn(datarepo_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
+        ws = LoadNexusProcessed(Filename=test_file)
+        clean_workspace(ws)
+        sl = SampleLogs(ws)
+        records = sl.records_json(log="run_start", logs=["proton_charge", "log_does_not_exist"], default=None)
+        assert records["run_start"] == "2017-12-19T21:38:25.356596666"
+        assert_almost_equal(records["proton_charge"], 10064207.3, decimal=0)
+        assert records["log_does_not_exist"] is None
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

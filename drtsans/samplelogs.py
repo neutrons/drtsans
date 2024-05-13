@@ -228,8 +228,31 @@ class SampleLogs(object):
         return self._ws
 
     def single_value(self, log_key, operation=np.mean):
+        r"""Cast the log entry to a single value
+
+        Parameters
+        ----------
+        log_key: str
+            the name of the log
+        operation: funct
+            The casting operation to perform on the values when the log entry is a time series.
+
+        Returns
+        -------
+        str, float, None
+            The single value associated with the log entry.
+
+        Raises
+        ------
+        RuntimeError
+            When the log_key is not found in the sample logs
+        """
         _run = self.__dict__["_run"]
-        return float(operation(_run[log_key].value))
+        value = _run[log_key].value
+        if isinstance(value, str):
+            return value
+        else:
+            return float(operation(value))
 
     def find_run(self, other):
         r"""
@@ -298,3 +321,35 @@ class SampleLogs(object):
                 raise RuntimeError(error_msg)
             return np.average(self[log_key].value)
         raise RuntimeError(f"Could not find {log_key} with unit {unit} in logs: {self.keys()}")
+
+    def records_json(self, log=None, logs=None, default=None):
+        r"""Save the `single_value` of the requested log entries to a dictionary, useful for reporting.
+
+        If both `log` and `logs` are passed, the `log` entry is appended to the `logs` list
+
+        Parameters
+        ----------
+        log: str
+            log entry name
+        logs: List[str]
+            list of log entry names
+        default
+            Value assigned to log entry if no entry is found
+
+        Returns
+        -------
+        dict
+            log names and single values for each of the requested log entries
+        """
+        if logs is None:
+            logs = list()
+        if log is not None:
+            logs.append(log)
+        output = {}
+        for log_entry in logs:
+            try:
+                value = self.single_value(log_entry)
+            except (KeyError, RuntimeError):
+                value = default
+            output[log_entry] = value
+        return output

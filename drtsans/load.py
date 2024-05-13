@@ -494,7 +494,9 @@ def load_and_split(
         InputWorkspace=all_events_workspace,
         OutputWorkspace="_filter",
         InformationWorkspace="_info",
+        StartTime=str(time_offset),  # the algorithm requires a string object
         TimeInterval=time_interval,
+        UnitOfTime="Seconds",
         LogName=log_name,
         LogValueInterval=log_value_interval,
     )

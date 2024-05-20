@@ -105,7 +105,8 @@ def missing_files(root_path: Path, run_numbers: List[str], file_names: List[str]
 def create_ring_pattern(config: dict, metadata: dict):
     r"""
     Create a set of processed event Nexus files simulating the scattering from a sample that leaves an intensity
-    pattern in the shape of a ring in the main detector of EQSANS, plus additional files to simulate the:
+    pattern in the shape of three time-resoved rings in the main detector of EQSANS,
+    plus additional files to simulate the:
     - transmission of the sample
     - background run (run without the sample)
     - background transmission run
@@ -365,7 +366,8 @@ def ring_pattern(datarepo_dir) -> dict:
 def create_three_rings_pattern(config: dict, metadata: dict):
     r"""
     Create a set of processed event Nexus files simulating the scattering from a sample that leaves an intensity
-    pattern in the shape of a ring in the main detector of EQSANS, plus additional files to simulate the:
+    pattern in the shape of three time-resoved rings in the main detector of EQSANS,
+    plus additional files to simulate the:
     - transmission of the sample
     - background run (run without the sample)
     - background transmission run
@@ -541,7 +543,8 @@ def create_three_rings_pattern(config: dict, metadata: dict):
 def three_rings_pattern(datarepo_dir) -> dict:
     r"""
     A set of processed event Nexus files simulating the scattering from a sample that leaves an intensity
-    pattern in the shape of a ring in the main detector of EQSANS. Read :func:`create_ring_pattern` for more details.
+    pattern in the shape of three time-resoved rings in the main detector of EQSANS.
+    Read :func:`create_ring_pattern` for more details.
 
     Files are stored in the data repository under subdirectory :code:`/eqsans/simulated_events/ring_pattern`
 
@@ -742,7 +745,7 @@ def test_reduce_ring(ring_pattern: dict, temp_directory: Callable[[Any], str]):
 def test_reduce_three_rings(three_rings_pattern: dict, temp_directory: Callable[[Any], str]):
     r"""
     Reduce a single configuration that simulates scattering from a sample which imprints an intensity pattern in the
-    shape of a ring in the main detector of EQSANS.
+    shape of three time-resoved rings in the main detector of EQSANS.
 
     Parameters
     ----------
@@ -844,7 +847,7 @@ def _mock_eqsans_load_and_split(*args, **kwargs):
 def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[Any], str]):
     r"""
     Reduce a single configuration that simulates scattering from a sample which imprints an intensity pattern in the
-    shape of a ring in the main detector of EQSANS.
+    shape of three time-resoved rings in the main detector of EQSANS.
 
     Parameters
     ----------

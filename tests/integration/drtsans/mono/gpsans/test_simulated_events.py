@@ -1,9 +1,11 @@
-# standard library imports
+# standard imports
 from pathlib import Path
 from typing import Any, Callable, List, Union
 from unittest.mock import patch as mock_patch
 
 # third party imports
+from mantid.dataobjects import EventWorkspace
+from mantid.kernel import DateAndTime
 from mantid.simpleapi import (
     AddSampleLog,
     DeleteWorkspace,
@@ -13,23 +15,21 @@ from mantid.simpleapi import (
     Plus,
     SaveNexus,
 )
-from mantid.dataobjects import EventWorkspace
-from mantid.kernel import DateAndTime
 import numpy as np
 import pytest
 
-# local imports
+# drtsans imports
 from drtsans.dataobjects import IQmod
 from drtsans.instruments import empty_instrument_workspace
-from drtsans.samplelogs import SampleLogs
-from drtsans.settings import namedtuplefy
-from drtsans.simulated_events import insert_background, insert_beam_spot, insert_events_isotropic, insert_events_ring
 from drtsans.mono.gpsans import (
     load_all_files,
     reduce_single_configuration,
     reduction_parameters,
     update_reduction_parameters,
 )
+from drtsans.samplelogs import SampleLogs
+from drtsans.settings import namedtuplefy
+from drtsans.simulated_events import insert_background, insert_beam_spot, insert_events_isotropic, insert_events_ring
 
 
 def construct_file_name(run_number: Union[str, int]) -> str:
@@ -69,7 +69,7 @@ def missing_files(root_path: Path, run_numbers: List[str], file_names: List[str]
 def create_three_rings_pattern(config: dict, metadata: dict):
     r"""
     Create a set of processed event Nexus files simulating the scattering from a sample that leaves an intensity
-    pattern in the shape of a ring in the main detector of GPSANS, plus additional files to simulate the:
+    pattern in the shape of three rings in the main detector of GPSANS, plus additional files to simulate the:
     - transmission of the sample
     - background run (run without the sample)
     - background transmission run
@@ -89,7 +89,9 @@ def create_three_rings_pattern(config: dict, metadata: dict):
     if not root_path.is_dir():
         root_path.mkdir(parents=True)
 
-    # create only one flat noise workspace for all events
+    # we're going to be reusing some intensity patterns more than once. For instance, we'll reuse a
+    # flat noise pattern for the sample run as well as the transmission run. Thus,
+    # cache these intensity patterns
     events_cache = {}
 
     def save_and_delete(
@@ -207,7 +209,7 @@ def create_three_rings_pattern(config: dict, metadata: dict):
 
         Plus(LHSWorkspace=input_workspace, RHSWorkspace=events_cache["beam_spot"], OutputWorkspace=input_workspace)
 
-    # SAMPLE RUN (one ring, one isotropic scattering, one flat noise)
+    # SAMPLE RUN (three time-resolved rings, one isotropic scattering, one flat noise)
     ws_sample = common_empty_workspace(run_number=config["sample"]["runNumber"])
     for pulse_time, two_theta in zip(
         metadata["pulse_times"], np.tile(metadata["two_theta_at_max"], len(metadata["pulse_times"]))
@@ -260,9 +262,10 @@ def create_three_rings_pattern(config: dict, metadata: dict):
 def three_rings_pattern(datarepo_dir) -> dict:
     r"""
     A set of processed event Nexus files simulating the scattering from a sample that leaves an intensity
-    pattern in the shape of a ring in the main detector of GPSANS. Read :func:`create_ring_pattern` for more details.
+    pattern in the shape of three time-resolved rings in the main detector of GPSANS.
+    Read :func:`create_ring_pattern` for more details.
 
-    Files are stored in the data repository under subdirectory :code:`/gpsans/simulated_events/ring_pattern`
+    Files are stored in the data repository under subdirectory :code:`/gpsans/simulated_events/three_rings_pattern`
 
     Returns
     -------
@@ -273,6 +276,7 @@ def three_rings_pattern(datarepo_dir) -> dict:
     """
     assert Path(datarepo_dir.gpsans).is_dir(), f"Data repository {datarepo_dir.gpsans} not found"
     datadir = Path(datarepo_dir.gpsans) / "simulated_events" / "three_rings_pattern"
+    # configuration for the reduction workflow
     config = {
         "schemaStamp": "2020-04-15T21:09:52.745905",
         "instrumentName": "GPSANS",
@@ -325,6 +329,7 @@ def three_rings_pattern(datarepo_dir) -> dict:
         },
     }
     wavelength = config["configuration"]["wavelength"]
+    # configuration for the neutrons, instruments and experiment
     metadata = {
         "sample_detector_distance": 5.0,  # in meters
         "sample_to_Si": 1.0,  # in mm
@@ -377,7 +382,7 @@ def _mock_LoadEventNexus(*_, **kwargs):
 def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[Any], str]):
     r"""
     Reduce a single configuration that simulates scattering from a sample which imprints an intensity pattern in the
-    shape of a ring in the main detector of GPSANS.
+    shape of three time-resolved rings in the main detector of GPSANS.
 
     Parameters
     ----------

@@ -328,6 +328,7 @@ def bin_i_with_correction(
                 f"Not expected that there are more than 1 IQmod main but " f"{len(iq1d_main_wl)}"
             )
 
+        os.makedirs(output_dir, exist_ok=True)
         b_file_prefix = f"{raw_name}"
 
         # Bin elastic reference run

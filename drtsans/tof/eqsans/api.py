@@ -942,7 +942,6 @@ def reduce_single_configuration(
 
             # create output directory, with sample number and frame number in case of multiple samples and/or frames
             slice_frame_output_dir = os.path.join(output_dir, outputFilename, slice_name, f"frame_{wl_frame}")
-            os.makedirs(slice_frame_output_dir, exist_ok=True)
 
             iq2d_main_out, iq1d_main_out = bin_i_with_correction(
                 iq1d_main_in_fr,

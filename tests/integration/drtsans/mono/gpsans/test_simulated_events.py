@@ -21,6 +21,7 @@ import pytest
 # drtsans imports
 from drtsans.dataobjects import IQmod
 from drtsans.instruments import empty_instrument_workspace
+from drtsans.mono.load import transform_to_wavelength
 from drtsans.mono.gpsans import (
     load_all_files,
     reduce_single_configuration,
@@ -372,12 +373,19 @@ def three_rings_pattern(datarepo_dir) -> dict:
     return dict(config=config, metadata=metadata)
 
 
+def _mock_LoadEventAsWorkspace2D(*_, **kwargs):
+    ws = LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
+    ws = transform_to_wavelength(ws)
+    return ws
+
+
 def _mock_LoadEventNexus(*_, **kwargs):
-    # Substitute LoadEventNexus with LoadNexusProcessed because our synthetic files were created with SaveNexus
-    return LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
+    ws = LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
+    return ws
 
 
 @pytest.mark.datarepo
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D)
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[Any], str]):
     r"""

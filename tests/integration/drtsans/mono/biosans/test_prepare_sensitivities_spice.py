@@ -24,12 +24,12 @@ workspaces = [
 ]
 
 
-def _mock_LoadEventNexus(*args, **kwargs):
-    # Substitute LoadEventNexus with Load because some of the data was reduced in size and saved with SaveNexus
+def _mock_LoadEventAsWorkspace2D(*args, **kwargs):
+    # Substitute LoadEventAsWorkspace2D with Load because some of the data was reduced in size and saved with SaveNexus
     return Load(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
 
 
-@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D)
 def test_main_detector(datarepo_dir, temp_directory, clean_workspace):
     """Test case for CG3 main detector
 

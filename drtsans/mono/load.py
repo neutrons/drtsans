@@ -167,7 +167,7 @@ def load_events_and_histogram(
     reuse_workspace: bool
         When true, return the ``output_workspace`` if it already exists
     kwargs: dict
-        Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
+        Additional positional arguments for :ref:`LoadEventAsWorkspace2D <algm-LoadEventAsWorkspace2D-v1>`.
 
     Returns
     -------
@@ -228,8 +228,6 @@ def load_events_and_histogram(
             sample_si_window_overwrite_value=sample_to_si_value,
             sample_detector_distance_overwrite_value=sample_detector_distance_value,
         )
-        # Transform to wavelength
-        ws = transform_to_wavelength(ws)
 
         # Append
         temp_workspaces.append(ws)

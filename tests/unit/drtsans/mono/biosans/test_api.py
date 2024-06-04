@@ -50,17 +50,16 @@ def test_load_all_files_simple(datarepo_dir):
     assert loaded.sample is not None
     assert len(loaded.sample) == 1
     history = loaded.sample[0].getHistory()
-    assert history.size() == 9
-    assert history.getAlgorithm(0).name() == "LoadEventNexus"
+    assert history.size() == 8
+    assert history.getAlgorithm(0).name() == "LoadEventAsWorkspace2D"
     assert history.getAlgorithm(0).getProperty("Filename").value.endswith("sans/hfir/biosans/CG3_1322.nxs.h5")
     assert history.getAlgorithm(1).name() == "MoveInstrumentComponent"  # moderator
     assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"  # sample-position
     assert history.getAlgorithm(3).name() == "MoveInstrumentComponent"  # detector1
     assert history.getAlgorithm(4).name() == "AddSampleLogMultiple"  # CG2:CS:SampleToSi
     assert history.getAlgorithm(5).name() == "AddSampleLogMultiple"  # sample_detector_distance
-    assert history.getAlgorithm(6).name() == "HFIRSANS2Wavelength"
-    assert history.getAlgorithm(7).name() == "SetUncertainties"
-    assert history.getAlgorithm(8).name() == "AddSampleLogMultiple"  # sample_offset
+    assert history.getAlgorithm(6).name() == "SetUncertainties"
+    assert history.getAlgorithm(7).name() == "AddSampleLogMultiple"  # sample_offset
 
     assert loaded.background is None
     assert loaded.background_transmission is None
@@ -301,8 +300,10 @@ def test_prepare_data_center(reference_dir, has_sns_mount):
 
 @pytest.mark.datarepo
 @mock_patch("drtsans.load.__monitor_counts")
-@mock_patch("drtsans.load.LoadEventNexus")
-def test_prepare_data_center_midrange_success(mock_LoadEventNexus, mock_monitor_counts, datarepo_dir, clean_workspace):
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D")
+def test_prepare_data_center_midrange_success(
+    mock_LoadEventAsWorkspace2D, mock_monitor_counts, datarepo_dir, clean_workspace
+):
     # similar test to test_prepare_data_workspaces_center
     # load the file with mock patch
     # generate the output workspace from prepare_data with center parameters for main, wing and midrange detectors
@@ -312,9 +313,11 @@ def test_prepare_data_center_midrange_success(mock_LoadEventNexus, mock_monitor_
     synthetics_datasets = os.path.join(datarepo_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
-    mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
+    mock_LoadEventAsWorkspace2D.return_value = LoadNexusProcessed(
+        synthetics_data_path, OutputWorkspace=output_workspace
+    )
     mock_monitor_counts.return_value = 42
-    previous_history = mock_LoadEventNexus.return_value.getHistory().size()
+    previous_history = mock_LoadEventAsWorkspace2D.return_value.getHistory().size()
 
     output = prepare_data(
         synthetics_data_path,
@@ -355,8 +358,10 @@ def test_prepare_data_center_midrange_success(mock_LoadEventNexus, mock_monitor_
 
 @pytest.mark.datarepo
 @mock_patch("drtsans.load.__monitor_counts")
-@mock_patch("drtsans.load.LoadEventNexus")
-def test_prepare_data_center_midrange_failure(mock_LoadEventNexus, mock_monitor_counts, datarepo_dir, clean_workspace):
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D")
+def test_prepare_data_center_midrange_failure(
+    mock_LoadEventAsWorkspace2D, mock_monitor_counts, datarepo_dir, clean_workspace
+):
     # similar test to test_prepare_data_center_midrange_success
     # midrange center is required, but not passed
     # results to failure to move the instrument components
@@ -365,9 +370,11 @@ def test_prepare_data_center_midrange_failure(mock_LoadEventNexus, mock_monitor_
     synthetics_datasets = os.path.join(datarepo_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
-    mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
+    mock_LoadEventAsWorkspace2D.return_value = LoadNexusProcessed(
+        synthetics_data_path, OutputWorkspace=output_workspace
+    )
     mock_monitor_counts.return_value = 42
-    previous_history = mock_LoadEventNexus.return_value.getHistory().size()
+    previous_history = mock_LoadEventAsWorkspace2D.return_value.getHistory().size()
 
     output = prepare_data(
         synthetics_data_path,
@@ -385,9 +392,9 @@ def test_prepare_data_center_midrange_failure(mock_LoadEventNexus, mock_monitor_
 
 @pytest.mark.datarepo
 @mock_patch("drtsans.load.__monitor_counts")
-@mock_patch("drtsans.load.LoadEventNexus")
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D")
 def test_prepare_data_apply_mask_detectors_lst(
-    mock_LoadEventNexus, mock_monitor_counts, datarepo_dir, clean_workspace
+    mock_LoadEventAsWorkspace2D, mock_monitor_counts, datarepo_dir, clean_workspace
 ):
     # load the file with mock patch
     # generate the output workspace from prepare_data
@@ -397,7 +404,9 @@ def test_prepare_data_apply_mask_detectors_lst(
     synthetics_datasets = os.path.join(datarepo_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
-    mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
+    mock_LoadEventAsWorkspace2D.return_value = LoadNexusProcessed(
+        synthetics_data_path, OutputWorkspace=output_workspace
+    )
     mock_monitor_counts.return_value = 42
 
     # mask_ws
@@ -419,9 +428,9 @@ def test_prepare_data_apply_mask_detectors_lst(
 
 @pytest.mark.datarepo
 @mock_patch("drtsans.load.__monitor_counts")
-@mock_patch("drtsans.load.LoadEventNexus")
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D")
 def test_prepare_data_apply_mask_detectors_str(
-    mock_LoadEventNexus, mock_monitor_counts, datarepo_dir, clean_workspace
+    mock_LoadEventAsWorkspace2D, mock_monitor_counts, datarepo_dir, clean_workspace
 ):
     # load the file with mock patch
     # generate the output workspace from prepare_data
@@ -431,7 +440,9 @@ def test_prepare_data_apply_mask_detectors_str(
     synthetics_datasets = os.path.join(datarepo_dir.biosans, "synthetic_dataset")
     synthetics_data_path = os.path.join(synthetics_datasets, f"{output_workspace}.nxs.h5")
 
-    mock_LoadEventNexus.return_value = LoadNexusProcessed(synthetics_data_path, OutputWorkspace=output_workspace)
+    mock_LoadEventAsWorkspace2D.return_value = LoadNexusProcessed(
+        synthetics_data_path, OutputWorkspace=output_workspace
+    )
     mock_monitor_counts.return_value = 42
 
     # mask_ws

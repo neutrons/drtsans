@@ -21,6 +21,11 @@ def _mock_LoadEventNexus(*args, **kwargs):
     return LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
 
 
+def _mock_LoadEventAsWorkspace2D(*args, **kwargs):
+    # Similarly for LoadEventAsWorkspace2D
+    return LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
+
+
 def verify_sensitivities_file(test_sens_file, gold_sens_file, atol=None):
     """ """
     if atol is None:
@@ -334,7 +339,7 @@ def test_cg3_wing_prepare_sensitivities(has_sns_mount, tmp_path):
 
 
 @pytest.mark.datarepo
-@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D)
 def test_cg3_midrange_prepare_sensitivities(biosans_synthetic_sensitivity_dataset, tmp_path, cleanfile):
     """Integration test on algorithms to prepare sensitivities for BIOSANS's midrange detector"""
     # CG3: Mid

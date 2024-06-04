@@ -298,6 +298,9 @@ def load_all_files(
         if not registered_workspace(ws_name):
             # if sample is not an absolute path to nexus file, convert it to the absolute path
             filename = abspaths(sample, instrument=instrument_name, ipts=ipts, directory=path)
+            # Pass load params to be used in LoadEventAsWorkspace2D
+            load_params["XCenter"] = wave_length_dict[meta_data.SAMPLE]
+            load_params["XWidth"] = wave_length_spread_dict[meta_data.SAMPLE]
             logger.notice(f"Loading filename {filename} from sample {sample}")
             biosans.load_events_and_histogram(
                 filename,
@@ -319,9 +322,7 @@ def load_all_files(
                 smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.SAMPLE],
                 smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE],
             )
-            # Re-transform to wave length if overwriting values are specified
-            if wave_length_dict[meta_data.SAMPLE]:
-                transform_to_wavelength(ws_name)
+
             # Apply mask
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)
@@ -342,6 +343,9 @@ def load_all_files(
             ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
             if not registered_workspace(ws_name):
                 filename = abspaths(run_number, instrument=instrument_name, ipts=ipts, directory=path)
+                # Pass load params to be used in LoadEventAsWorkspace2D
+                load_params["XCenter"] = wave_length_dict[run_type]
+                load_params["XWidth"] = wave_length_spread_dict[run_type]
                 logger.notice(f"Loading filename {filename}")
                 biosans.load_events_and_histogram(
                     filename,
@@ -363,9 +367,6 @@ def load_all_files(
                     smearing_pixel_size_x=smearing_pixel_size_x_dict[run_type],
                     smearing_pixel_size_y=smearing_pixel_size_y_dict[run_type],
                 )
-                # Re-transform X-axis to wave length with spread due to overwriting wave length
-                if wave_length_dict[run_type]:
-                    transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
 
@@ -627,6 +628,9 @@ def dark_current_correction(
         temp_name = abspath(dark_current_file, instrument=instrument_name, ipts=ipts, directory=path)
         if os.path.exists(temp_name):
             dark_current_file = temp_name
+        # Pass load params to be used in LoadEventAsWorkspace2D
+        load_params["XCenter"] = wavelength
+        load_params["XWidth"] = wavelength_spread_user
         biosans.load_events_and_histogram(
             dark_current_file,
             output_workspace=ws_name,
@@ -647,9 +651,6 @@ def dark_current_correction(
             smearing_pixel_size_x=smearing_pixel_size_x,
             smearing_pixel_size_y=smearing_pixel_size_y,
         )
-        # Re-Transform X-axis to wave length with spread
-        if wavelength:
-            transform_to_wavelength(ws_name)
         for btp_params in default_mask:
             apply_mask(ws_name, **btp_params)
         dark_current = mtd[ws_name]

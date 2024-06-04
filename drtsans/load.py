@@ -9,6 +9,7 @@ from mantid.dataobjects import Workspace2D, EventWorkspace
 from mantid.simpleapi import mtd
 from mantid.simpleapi import (
     DeleteWorkspace,
+    LoadEventAsWorkspace2D,
     LoadEventNexus,
     MergeRuns,
     GenerateEventsFilter,
@@ -152,7 +153,9 @@ def load_events(
     reuse_workspace: bool
         When true, return the ``output_workspace`` if it already exists
     kwargs: dict
-        Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
+        Additional positional arguments for loading algorithm;
+        :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`,
+        or :ref:`LoadEventAsWorkspace2D <algm-LoadEventAsWorkspace2D-v1>`.
 
     Returns
     -------
@@ -185,7 +188,11 @@ def load_events(
                 kwargs["LoadNexusInstrumentXML"] = not overwrite_instrument
 
             logger.notice(f"Loading {filename} to {output_workspace}")
-            LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
+            if is_mono and all([kwarg not in kwargs for kwarg in ["LoadMonitors", "NumberOfBins"]]):
+                # For monochromatic non-event filtering workflows, LoadEventAsWorkspace2D is more efficient
+                LoadEventAsWorkspace2D(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
+            else:
+                LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
 
             # FIXME - what is the difference from: pixel_calibration is True?
             if pixel_calibration is not False:

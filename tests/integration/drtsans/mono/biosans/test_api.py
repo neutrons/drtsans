@@ -34,9 +34,11 @@ from typing import Union
 from unittest.mock import patch as mock_patch
 
 
-def _mock_LoadEventNexus(*args, **kwargs):
-    # Substitute LoadEventNexus with LoadNexusProcessed because our synthetic files were created with SaveNexus
-    return LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
+def _mock_LoadEventAsWorkspace2D_syntheticDataset(*args, **kwargs):
+    # Substitute LoadEventAsWorkspace2D with LoadNexusProcessed because our synthetic files were created with SaveNexus
+    ws = LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
+    ws = transform_to_wavelength(ws)
+    return ws
 
 
 # need to hardcode these worspace removals, is there a way to derive them?
@@ -482,7 +484,7 @@ def test_reduce_single_configuration_slice_transmission_true(datarepo_dir, temp_
 
 
 @pytest.mark.datarepo
-@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D_syntheticDataset)
 @mock_patch("drtsans.load.__monitor_counts")
 def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, biosans_synthetic_dataset, temp_directory):
     data = biosans_synthetic_dataset
@@ -564,7 +566,7 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
 
 
 @pytest.mark.datarepo
-@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D_syntheticDataset)
 @mock_patch("drtsans.load.__monitor_counts")
 def test_reduce_single_configuration_with_wedges_synthetic_dataset(
     mock_monitor_counts, biosans_synthetic_dataset, temp_directory
@@ -671,7 +673,7 @@ def test_reduce_single_configuration_with_wedges_synthetic_dataset(
 
 
 @pytest.mark.datarepo
-@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D_syntheticDataset)
 @mock_patch("drtsans.load.__monitor_counts")
 def test_reduce_single_configuration_ignore_midrange(mock_monitor_counts, biosans_synthetic_dataset, temp_directory):
     """Test that data from the midrange detector is ignored when parameter "overlapStitchIgnoreMidrange" is True"""

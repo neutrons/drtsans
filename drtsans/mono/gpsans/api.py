@@ -281,6 +281,9 @@ def load_all_files(
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo"
         if not registered_workspace(ws_name):
             filename = abspaths(sample, instrument=instrument_name, ipts=ipts, directory=path)
+            # Pass load params to be used in LoadEventAsWorkspace2D
+            load_params["XCenter"] = wave_length_dict[meta_data.SAMPLE]
+            load_params["XWidth"] = wave_length_spread_dict[meta_data.SAMPLE]
             logger.notice(f"Loading filename {filename} to {ws_name}")
             load_events_and_histogram(
                 filename,
@@ -302,9 +305,6 @@ def load_all_files(
                 smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.SAMPLE],
                 smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE],
             )
-            # Re-transform to wave length if overwriting values are specified
-            if wave_length_dict[meta_data.SAMPLE]:
-                transform_to_wavelength(ws_name)
             logger.information(
                 "[META] Wavelength range is from {} to {}"
                 "".format(mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1])
@@ -328,6 +328,9 @@ def load_all_files(
             ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
             if not registered_workspace(ws_name):
                 filename = abspaths(run_number, instrument=instrument_name, ipts=ipts, directory=path)
+                # Pass load params to be used in LoadEventAsWorkspace2D
+                load_params["XCenter"] = wave_length_dict[run_type]
+                load_params["XWidth"] = wave_length_spread_dict[run_type]
                 logger.notice(f"Loading {run_type} filename {filename} to {ws_name}")
                 load_events_and_histogram(
                     filename,
@@ -349,9 +352,6 @@ def load_all_files(
                     smearing_pixel_size_x=smearing_pixel_size_x_dict[run_type],
                     smearing_pixel_size_y=smearing_pixel_size_y_dict[run_type],
                 )
-                if wave_length_dict[run_type]:
-                    # Transform X-axis to wave length with spread
-                    transform_to_wavelength(ws_name)
                 for btp_params in default_mask:
                     apply_mask(ws_name, **btp_params)
 
@@ -368,6 +368,9 @@ def load_all_files(
             dark_current_path = abspath(str(run_number), instrument=instrument_name, directory=path)
             if os.path.exists(dark_current_path):
                 dark_current_file = dark_current_path
+            # Pass load params to be used in LoadEventAsWorkspace2D
+            load_params["XCenter"] = wave_length_dict[meta_data.DARK_CURRENT]
+            load_params["XWidth"] = wave_length_spread_dict[meta_data.DARK_CURRENT]
             load_events_and_histogram(
                 dark_current_file,
                 output_workspace=ws_name,
@@ -388,9 +391,6 @@ def load_all_files(
                 smearing_pixel_size_x=smearing_pixel_size_x_dict[meta_data.DARK_CURRENT],
                 smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.DARK_CURRENT],
             )
-            # Re-transform X-axis to wave length with spread
-            if wave_length_dict[meta_data.DARK_CURRENT]:
-                transform_to_wavelength(ws_name)
             for btp_params in default_mask:
                 apply_mask(ws_name, **btp_params)
             dark_current = mtd[ws_name]

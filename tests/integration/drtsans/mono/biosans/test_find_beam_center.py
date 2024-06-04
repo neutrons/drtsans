@@ -11,13 +11,13 @@ from unittest.mock import patch as mock_patch
 import os
 
 
-def _mock_LoadEventNexus(*args, **kwargs):
-    # Substitute LoadEventNexus with LoadNexusProcessed because our synthetic files were created with SaveNexus
+def _mock_LoadEventAsWorkspace2D(*args, **kwargs):
+    # Substitute LoadEventAsWorkspace2D with LoadNexusProcessed because our synthetic files were created with SaveNexus
     return LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
 
 
 @pytest.mark.datarepo
-@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D)
 @mock_patch("drtsans.load.__monitor_counts")
 def test_biosans_find_beam_center(mock_monitor_counts, biosans_synthetic_dataset):
     mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]

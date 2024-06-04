@@ -28,17 +28,16 @@ def test_load_all_files_simple(datarepo_dir):
     assert loaded.sample is not None
     assert len(loaded.sample) == 1
     history = loaded.sample[0].getHistory()
-    assert history.size() == 9
-    assert history.getAlgorithm(0).name() == "LoadEventNexus"
+    assert history.size() == 8
+    assert history.getAlgorithm(0).name() == "LoadEventAsWorkspace2D"
     assert history.getAlgorithm(0).getProperty("Filename").value.endswith("sans/hfir/gpsans/CG2_1338.nxs.h5")
     assert history.getAlgorithm(1).name() == "MoveInstrumentComponent"  # moderator
     assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"  # sample-position
     assert history.getAlgorithm(3).name() == "MoveInstrumentComponent"  # detector1
     assert history.getAlgorithm(4).name() == "AddSampleLogMultiple"  # CG2:CS:SampleToSi
     assert history.getAlgorithm(5).name() == "AddSampleLogMultiple"  # sample_detector_distance
-    assert history.getAlgorithm(6).name() == "HFIRSANS2Wavelength"
-    assert history.getAlgorithm(7).name() == "SetUncertainties"
-    assert history.getAlgorithm(8).name() == "AddSampleLogMultiple"  # sample_offset
+    assert history.getAlgorithm(6).name() == "SetUncertainties"
+    assert history.getAlgorithm(7).name() == "AddSampleLogMultiple"  # sample_offset
 
     assert loaded.background is None
     assert loaded.background_transmission is None

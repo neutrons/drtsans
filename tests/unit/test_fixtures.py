@@ -587,11 +587,12 @@ def test_biosans_synthetic_dataset(biosans_synthetic_dataset):
 
 @pytest.mark.datarepo
 def test_biosans_synthetic_sensitivity_dataset(biosans_synthetic_sensitivity_dataset):
-    def _mock_LoadEventNexus(*args, **kwargs):
-        # Substitute LoadEventNexus with LoadNexusProcessed because our synthetic files were created with SaveNexus
+    def _mock_LoadEventAsWorkspace2D(*args, **kwargs):
+        # Substitute LoadEventAsWorkspace2D with LoadNexusProcessed
+        # because our synthetic files were created with SaveNexus
         return LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
 
-    @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+    @mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D)
     def _executor():
         with amend_config(
             facility="HFIR", instrument="CG3", data_dir=biosans_synthetic_sensitivity_dataset["data_dir"]

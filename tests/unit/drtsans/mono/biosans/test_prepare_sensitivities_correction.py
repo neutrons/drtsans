@@ -47,12 +47,12 @@ class TestPrepareSensitivityCorrection:
         assert opts == opts_expected
 
     @pytest.mark.datarepo
-    @mock_patch("drtsans.load.LoadEventNexus")
+    @mock_patch("drtsans.load.LoadEventAsWorkspace2D")
     @mock_patch("drtsans.load.__monitor_counts")
     def test_get_beam_center_workspace(
         self,
         mock_monitor_counts,
-        mock_load_LoadEventNexus,
+        mock_load_LoadEventAsWorkspace2D,
         biosans_synthetic_dataset,
         clean_workspace,
     ):
@@ -64,7 +64,7 @@ class TestPrepareSensitivityCorrection:
                 Filename=abspath(beam_center_run, instrument="CG3"), OutputWorkspace=f"BC_CG3_{beam_center_run}"
             )
             clean_workspace(workspace_beam_center)  # mark for deletion upon exit or exception
-            mock_load_LoadEventNexus.return_value = workspace_beam_center
+            mock_load_LoadEventAsWorkspace2D.return_value = workspace_beam_center
             mock_monitor_counts.return_value = 42
             # test the method
             preparer_main = PrepareSensitivityCorrection(component="detector1")

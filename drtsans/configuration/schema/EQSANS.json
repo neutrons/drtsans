@@ -17,8 +17,8 @@
       "properties" : {
         "runNumber": {
           "$ref": "common.json#/definitions/runNumberTypes",
-          "description": "The run number(s) for the sample. The sample filename will be EQSANS_{runNumber}.nxs.h5",
-          "examples": ["12345", 12345]
+          "description": "The run(s) for the sample.",
+          "examples": ["12345", 12345, "12345,12346,12347", "EQSANS_12345.nxs.h5", "/SNS/EQSANS/IPTS-5929/0/12345/NeXus/EQSANS_12345_event.nxs"]
         },
         "thickness": {
           "anyOf": [{"type": "string", "minLength": 1}, {"type": "number", "exclusiveMinimum": 0}],
@@ -29,8 +29,8 @@
           "properties": {
             "runNumber": {
               "$ref": "common.json#/definitions/runNumberOptionalTypes",
-              "description": "The run number(s) for the transmission sample. The filename will be EQSANS_{runNumber}.nxs.h5",
-              "examples": ["12345", 12345]
+              "description": "The run(s) number for the transmission sample",
+              "examples": ["12345", 12345, "12345,12346,12347", "EQSANS_12345.nxs.h5", "/SNS/EQSANS/IPTS-5929/0/12345/NeXus/EQSANS_12345_event.nxs"]
             },
             "value": {"$ref": "common.json#/definitions/transmissionValueTypes"}
           },
@@ -208,8 +208,8 @@
           "properties" : {
             "runNumber": {
               "$ref": "common.json#/definitions/runNumberOptionalTypes",
-              "description": "The run number(s) for the sample. The sample filename will be EQSANS_{runNumber}.nxs.h5",
-              "examples": ["12345", 12345],
+              "description": "The run(s) for the elastic reference",
+              "examples": ["12345", 12345, "12345,12346,12347", "EQSANS_12345.nxs.h5", "/SNS/EQSANS/IPTS-5929/0/12345/NeXus/EQSANS_12345_event.nxs"],
               "default": null
             },
             "thickness": {
@@ -221,8 +221,8 @@
               "properties": {
                 "runNumber": {
                   "$ref": "common.json#/definitions/runNumberOptionalTypes",
-                  "description": "The run number(s) for the transmission sample. The filename will be EQSANS_{runNumber}.nxs.h5",
-                  "examples": ["12345", 12345],
+                  "description": "The elastic reference transmission run(s).",
+                  "examples": ["12345", 12345, "12345,12346,12347", "EQSANS_12345.nxs.h5", "/SNS/EQSANS/IPTS-5929/0/12345/NeXus/EQSANS_12345_event.nxs"],
                   "default": null
                 },
                 "value": {

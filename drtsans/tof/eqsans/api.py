@@ -84,6 +84,22 @@ IofQ_output = namedtuple("IofQ_output", ["I2D_main", "I1D_main"])
 
 
 def _get_configuration_file_parameters(sample_run, directory=None):
+    r"""
+    Configuration options from a eqsans_configuration.* configuration file.
+    See files in /SNS/EQSANS/shared/instrument_configuration/ for examples
+
+    Parameters
+    ----------
+    sample_run: int
+        run number (e.g. 12345)
+    directory: str
+        absolute path to the directory containing configuration files
+
+    Returns
+    -------
+    dict
+        contents of the configuration file
+    """
     try:
         configuration_file_parameters = load_config(source=sample_run, config_dir=directory)
     except RuntimeError as e:
@@ -158,7 +174,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     if reduction_config["useDefaultMask"]:
         first_run = sample.split(",")[0].strip()
         configuration_file_parameters = _get_configuration_file_parameters(
-            first_run, directory=reduction_config["instrumentConfigurationDir"]
+            extract_run_number(first_run), directory=reduction_config["instrumentConfigurationDir"]
         )
         default_mask = configuration_file_parameters["combined mask"]
 

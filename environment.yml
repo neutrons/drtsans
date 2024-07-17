@@ -15,7 +15,7 @@ dependencies:
   - conda-verify
   - versioningit
   # runtime
-  - mantid>=6.8.20231221
+  - mantid>=6.10.0
   - numexpr
   - pandas
   - lmfit<1.2.0

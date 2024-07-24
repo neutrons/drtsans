@@ -4,9 +4,23 @@
 Release Notes
 =============
 
+<Next Release>
+--------------
+(date of release)
+
+**Of interest to the User**:
+
+- MR #XYZ: one-liner description
+
+**Of interest to the Developer:**
+
+- MR #XYZ: one-liner description
+
 1.11.0
 ------
-**User:**
+2024-04-05
+
+**Of interest to the User**:
 
 - Pixel calibration and reduction of data collected at the BIOSANS midrange detector.
 - Python notebooks for pixel calibration of the BIOSANS midrange detector.
@@ -33,7 +47,7 @@ Release Notes
   `validate_reduction_parameters` and `update_reduction_parameters`.
   This setting permits using current `drtsans` to reduce "futuristic" JSON files.
 
-**Developer:**
+**Of interest to the Developer:**
 
 - Move from `versioneer` to `versioningit`.
 - Functionality to generate a fake set of TOF events to generate typical intensity patterns
@@ -45,3 +59,19 @@ Release Notes
   These tests may be run manually from a machine where these file systems are reachable.
   These tests can be selected with pytest marker `eqsans_mount`. Developer's documentation explains how-to.
 - Results from the elastic-correction of `I(Q)` are now reused for the elastic-correction of `I(Qx, Qy)`.
+
+1.10.2
+------
+2023-10-19
+
+**Of interest to the User**:
+
+- MR 1060: New option in configuration file to split/sum with periodic log profiles in EQSANS
+- MR 1059: Make stitch_profiles backwards compatible by allowing two formats for parameter overlaps
+
+
+**Of interest to the Developer:**
+
+- Mr 1085: use mamba instead of conda to build the docs
+- MR 1074: EQSANS integration test with simulated TOF scattering
+- MR 1058: Add the test repository as a git submodule

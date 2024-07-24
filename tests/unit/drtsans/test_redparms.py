@@ -1,6 +1,5 @@
 from copy import deepcopy
 import json
-import jsonschema
 import os
 from pathlib import Path
 import pytest
@@ -20,6 +19,7 @@ from drtsans.redparms import (
     resolver_common,
     update_reduction_parameters,
     validate_reduction_parameters,
+    ReductionParameterError,
 )
 
 
@@ -611,9 +611,9 @@ class TestReductionParametersGPSANS:
             pytest.skip("No SNS mount")
 
         parameter_changes["dataDirectories"] = str(Path(reference_dir.gpsans))
-        with pytest.raises(jsonschema.ValidationError) as error_info:
+        with pytest.raises(ReductionParameterError) as error_info:
             update_reduction_parameters(self.parameters_all, parameter_changes)
-        assert validator_name in str(error_info.value)
+            assert validator_name in str(error_info.schema.keys())
 
     @pytest.mark.datarepo
     def test_permissible(self, datarepo_dir):
@@ -653,7 +653,7 @@ class TestReductionParametersBIOSANS:
         # remove all parameters related to the midrange detector
         config_no_midrange = {k: v for k, v in parameters["configuration"].items() if "Midrange" not in k}
         parameters["configuration"] = config_no_midrange
-        with pytest.raises(jsonschema.ValidationError) as error_info:
+        with pytest.raises(ReductionParameterError) as error_info:
             validate_reduction_parameters(parameters)
         assert "'darkMidrangeFileName' is a required property" in str(error_info.value)
 
@@ -666,7 +666,7 @@ class TestReductionParametersBIOSANS:
         parameters["dataDirectories"] = str(Path(reference_dir.biosans))
         parameters["configuration"]["QminMidrange"] = 0.07
         parameters["configuration"]["QmaxMidrange"] = 0.05
-        with pytest.raises(jsonschema.ValidationError) as error_info:
+        with pytest.raises(ReductionParameterError) as error_info:
             validate_reduction_parameters(parameters)
         assert "0.07 is not smaller than #configuration/QmaxMidrange" in str(error_info.value)
 
@@ -707,9 +707,9 @@ class TestReductionParametersBIOSANS:
         parameters["configuration"][qmin_name] = qmin_value
         parameters["configuration"][qmax_name] = qmax_value
         if throws_error:
-            with pytest.raises(jsonschema.ValidationError) as error_info:
+            with pytest.raises(ReductionParameterError) as error_info:
                 validate_reduction_parameters(parameters)
-            assert qmax_name in str(error_info.value)
+            assert qmin_name in str(error_info.value)
         else:
             validate_reduction_parameters(parameters)
 
@@ -751,6 +751,111 @@ def test_generate_json_files(tmpdir, cleanfile):
     directory = tmpdir.mkdir("generate_json_files")
     cleanfile(directory)
     generate_json_files(directory)
+
+
+class TestReductionParameterError:
+    @pytest.fixture
+    def mock_runNumber_exists(self, monkeypatch):
+        """Trick the validation to think that the runNumber exists"""
+        fake_path = "fake/path"
+
+        def mock_exists(path):
+            return True
+
+        def mock_abspath(path):
+            return fake_path
+
+        monkeypatch.setattr(os.path, "exists", mock_exists)
+        monkeypatch.setattr(os.path, "abspath", mock_abspath)
+
+    parameters_EQSANS = {
+        "instrumentName": "EQSANS",
+        "iptsNumber": 20196,
+        "dataDirectories": None,
+        "sample": {"runNumber": 89157, "thickness": 1.0, "transmission": {"runNumber": 59157, "value": 1.0}},
+        "background": {
+            "runNumber": 89158,
+            "transmission": {"runNumber": 59158, "value": 1.0},
+        },
+        "emptyTransmission": {"runNumber": 89159, "value": 1.0},
+        "beamCenter": {"runNumber": 89160},
+        "outputFileName": "tmp",
+        "configuration": {
+            "outputDir": "/tmp",
+            "instrumentConfigurationDir": "/SNS/EQSANS/shared/instrument_configuration",
+            "useTimeSlice": False,
+            "timeSliceInterval": 300,
+            "incohfit_qmin": None,
+            "incohfit_qmax": None,
+            "QbinType": "log",
+            "numQBins": 100,
+        },
+    }
+
+    def test_reduction_parameters_nominal(self, mock_runNumber_exists):
+        reduction_parameters(self.parameters_EQSANS, validate=True)
+
+    def test_reduction_parameters_missing_runNumber(self, mock_runNumber_exists):
+        parameters = deepcopy(self.parameters_EQSANS)
+        parameters["sample"]["runNumber"] = None
+        with pytest.raises(ReductionParameterError) as error_info:
+            reduction_parameters(parameters, validate=True)
+        assert "runNumber" in str(error_info.value)
+
+    def test_runNumber_wrong_type(self, mock_runNumber_exists):
+        parameters = deepcopy(self.parameters_EQSANS)
+        parameters["iptsNumber"] = 8.75
+        with pytest.raises(ReductionParameterError) as error_info:
+            reduction_parameters(parameters, validate=True)
+            assert "Description: " in str(error_info.message)
+        assert "iptsNumber" in str(error_info.value)
+
+    def test_max_less_than_min(self, mock_runNumber_exists):
+        parameters = deepcopy(self.parameters_EQSANS)
+        parameters["configuration"]["incohfit_qmin"] = 2000
+        parameters["configuration"]["incohfit_qmax"] = 500
+        schema = load_schema("EQSANS")
+        with pytest.raises(ReductionParameterError) as error_info:
+            reduction_parameters(parameters, validate=True)
+            assert schema["properties"]["configuration"]["properties"]["incohfit_qmax"]["description"] in str(
+                error_info.message
+            )
+        assert "incohfit_qmax" in str(error_info.value)
+
+    def test_common_description(self, mock_runNumber_exists):
+        parameters = deepcopy(self.parameters_EQSANS)
+        parameters["configuration"]["timeSliceInterval"] = -45
+        schema = load_schema("EQSANS")
+        with pytest.raises(ReductionParameterError) as error_info:
+            reduction_parameters(parameters, validate=True)
+            assert schema["properties"]["configuration"]["properties"]["timeSliceInterval"]["description"] in str(
+                error_info.message
+            )
+            assert schema["properties"]["configuration"]["properties"]["timeSliceInterval"]["default"] in str(
+                error_info.message
+            )
+        assert "timeSliceInterval" in str(error_info.value)
+
+    def test_missing_required(self, mock_runNumber_exists):
+        parameters = deepcopy(self.parameters_EQSANS)
+        del parameters["configuration"]["numQBins"]
+        with pytest.raises(ReductionParameterError) as error_info:
+            reduction_parameters(parameters, validate=True)
+        assert "numQBins" in str(error_info.value)
+
+    def test_eval_condition(self, mock_runNumber_exists):
+        parameters = deepcopy(self.parameters_EQSANS)
+        parameters["configuration"]["numQBins"] = None
+        with pytest.raises(ReductionParameterError) as error_info:
+            reduction_parameters(parameters, validate=True)
+        assert "numQBins" in str(error_info.value)
+
+    def test_print_error_property(self, mock_runNumber_exists):
+        parameters = deepcopy(self.parameters_EQSANS)
+        parameters["configuration"]["numQBins"] = None
+        with pytest.raises(ReductionParameterError) as error_info:
+            reduction_parameters(parameters, validate=True)
+            assert "numQBins" in error_info.error_user_friendly
 
 
 if __name__ == "__main__":

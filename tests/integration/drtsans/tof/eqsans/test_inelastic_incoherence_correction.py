@@ -12,7 +12,7 @@ import pytest
 
 # standard library imports
 import json
-from jsonschema.exceptions import ValidationError
+from drtsans.redparms import ReductionParameterError
 import os
 import glob
 import numpy as np
@@ -132,7 +132,7 @@ def test_parse_invalid_json(datarepo_dir):
     }
 
     # Validate
-    with pytest.raises(ValidationError) as excinfo:
+    with pytest.raises(ReductionParameterError) as excinfo:
         # expect to fail as elastic reference run 260159121 does not exist
         with amend_config(data_dir=datarepo_dir.eqsans):
             reduction_parameters(reduction_input)

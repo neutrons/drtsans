@@ -9,7 +9,7 @@ import warnings
 
 # third-party imports
 import jsonschema
-from jsonschema.exceptions import relevance
+from jsonschema.exceptions import relevance, ValidationError
 from numpy import greater
 from mantid.kernel import logger
 import referencing
@@ -504,6 +504,49 @@ class DefaultJson:
         return names
 
 
+class ReductionParameterError(Exception):
+    r"""Custom exception for validation errors in the reduction parameters to make
+    the error message more informative
+
+    Parameters
+    ----------
+    error: ValidationError
+        Validation error raised by the jsonschema package validation routine
+    """
+
+    def __init__(self, error: ValidationError):
+        self.message = error.message
+        self.path = list(error.path)
+        self.schema = error.schema
+        self.cause = error.cause
+
+    def __str__(self):
+        msg = self.message
+        msg += f"\nPath: {'.'.join(self.path)}"
+        if "description" in self.schema.keys():
+            msg += f"\nDescription: {self.schema['description']}"
+        if "type" in self.schema.keys():
+            msg += f"\nType: {self.schema['type']}"
+        if "anyOf" in self.schema.keys():
+            items = []
+            for each in self.schema["anyOf"]:
+                items.append(each["type"])
+            msg += f'\nType: {", ".join(items)}'
+        if "enum" in self.schema.keys():
+            msg += f"\nType: enum, values: {self.schema['enum']}"
+        if "preferredType" in self.schema.keys():
+            msg += f"\nPreferred type: {self.schema['preferredType']}"
+        if "examples" in self.schema.keys():
+            msg += f"\nExamples: {self.schema['examples']}"
+        if "default" in self.schema.keys():
+            msg += f"\nDefault Value(s): {self.schema['default']}"
+        return msg
+
+    @property
+    def error_user_friendly(self):
+        return self.__str__()
+
+
 class ReductionParameters:
     r"""
     Validation and sanity checks for all parameters defining a reduction.
@@ -585,7 +628,7 @@ class ReductionParameters:
             return
         error = max(itertools.chain([best], errors), key=relevance)
         if error is not None:
-            raise error
+            raise ReductionParameterError(error)
 
     def dump(self, output_json, target="parameters", **kwargs):
         r"""

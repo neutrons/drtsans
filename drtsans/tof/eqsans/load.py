@@ -167,6 +167,7 @@ def load_events(
         pixel_calibration=pixel_calibration,
         detector_offset=detector_offset,
         sample_offset=sample_offset,
+        **kwargs,
     )
 
     # EQSANS specific part benefits from converting workspace to a string

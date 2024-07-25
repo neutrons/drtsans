@@ -2,6 +2,12 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
 
   "definitions": {
+    "eventsLoaderOptions": {
+      "type": "object",
+      "default": {},
+      "description": "Options that can be passed to Mantid algorithms LoadEventNexus or LoadEvenAsWorkspace2D. Consult the documentation of these algorithms to find the available options. These options will take effect when loading the sample run(s), but not other runs",
+      "examples": ["{'FilterByTofMin': 1000.0, 'FilterByTofMax': 16000.0}"]
+    },
     "runNumberTypes": {
       "anyOf": [{"type": "string", "minLength": 1},
                 {"type": "integer", "minimum": 1},
@@ -130,6 +136,7 @@
         "description": "The run number(s) for the sample. More than one run number can be specified by passing a list or by passing a string containing the run numbers separated by commas.",
         "examples": ["12345", 12345]
       },
+      "loadOptions":{"$ref": "common.json#/definitions/eventsLoaderOptions"},
       "thickness": {
         "anyOf": [{"type": "string","minLength": 1}, {"type": "number", "exclusiveMinimum": 0}],
         "description": "The sample thickness in cm",
@@ -153,7 +160,7 @@
         "examples": ["0.9", 1.0]
       }
     },
-    "maxProperties": 3,
+    "maxProperties": 4,
     "required": ["runNumber", "thickness", "transmission"]
   },
   "background": {

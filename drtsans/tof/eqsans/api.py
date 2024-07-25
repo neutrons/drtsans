@@ -139,6 +139,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     ipts = reduction_input["iptsNumber"]
     sample = reduction_input["sample"]["runNumber"]
     sample_trans = reduction_input["sample"]["transmission"]["runNumber"]
+    sample_load_options = reduction_input["sample"]["loadOptions"]
     bkgd = reduction_input["background"]["runNumber"]
     bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
     empty = reduction_input["emptyTransmission"]["runNumber"]
@@ -179,6 +180,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
         default_mask = configuration_file_parameters["combined mask"]
 
     filenames: Set[str] = set()
+
     load_params = set_beam_center(reduction_input, prefix, default_mask, load_params, filenames)
 
     # Adjust pixel heights and widths
@@ -206,7 +208,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
 
     # check for time/log slicing
     timeslice, logslice = resolve_slicing(reduction_input)
-
+    load_params_sample = {**sample_load_options, **load_params}
     # Load (and optionally slice) sample runs
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
@@ -226,7 +228,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
                     time_interval=reduction_config["timeSliceInterval"],
                     time_offset=reduction_config["timeSliceOffset"],
                     time_period=reduction_config["timeSlicePeriod"],
-                    **load_params,
+                    **load_params_sample,
                 )
             elif logslice:
                 logslicename = reduction_config["logSliceName"]
@@ -235,7 +237,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
                     output_workspace=ws_name,
                     log_name=logslicename,
                     log_value_interval=reduction_config["logSliceInterval"],
-                    **load_params,
+                    **load_params_sample,
                 )
             for _w in mtd[ws_name]:
                 if default_mask:
@@ -259,7 +261,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
             )
             print(f"Loading filename {filename}")
             filenames.add(filename)
-            loaded_sample_tup = load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
+            loaded_sample_tup = load_events_and_histogram(filename, output_workspace=ws_name, **load_params_sample)
             sample_bands = loaded_sample_tup.bands
             if default_mask:
                 apply_mask(ws_name, mask=default_mask)

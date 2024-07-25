@@ -20,6 +20,7 @@
           "description": "The run(s) for the sample.",
           "examples": ["12345", 12345, "12345,12346,12347", "EQSANS_12345.nxs.h5", "/SNS/EQSANS/IPTS-5929/0/12345/NeXus/EQSANS_12345_event.nxs"]
         },
+        "loadOptions":{"$ref": "common.json#/definitions/eventsLoaderOptions"},
         "thickness": {
           "anyOf": [{"type": "string", "minLength": 1}, {"type": "number", "exclusiveMinimum": 0}],
           "default": 1.0, "description": "The sample thickness in cm"
@@ -40,7 +41,7 @@
           "examples": ["0.9", 1.0]
         }
       },
-      "maxProperties": 3,
+      "maxProperties": 4,
       "required": ["runNumber", "thickness", "transmission"]
     },
     "background":        {"$ref":  "common.json#/background"},

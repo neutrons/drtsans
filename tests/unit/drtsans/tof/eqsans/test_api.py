@@ -17,6 +17,86 @@ from drtsans.samplelogs import SampleLogs
 ws_mon_pair = namedtuple("ws_mon_pair", ["data", "monitor"])
 
 
+def test_load_all_files_simple_interval(datarepo_dir):
+    """This test should test options FilterByTimeStart and FilterByTimeStop that can be passed to Mantid algorithms
+    LoadEventNexus or LoadEvenAsWorkspace2D.
+    """
+    # set some filenames to /bin/true so that it will pass the validation without being replaced with default values
+    specs = {
+        "iptsNumber": 22747,
+        "sample": {"runNumber": 105428, "thickness": 1.0},
+        "beamCenter": {"runNumber": 105428},
+        "outputFileName": "test",
+        "dataDirectories": datarepo_dir.eqsans,
+        "configuration": {
+            "outputDir": "/tmp",
+            "useDefaultMask": False,
+            "maskFileName": "/bin/true",
+            "darkFileName": "/bin/true",
+            "sensitivityFileName": "/bin/true",
+            "sampleOffset": "0",
+            "LogQBinsPerDecade": 10,
+            "normalization": "Total charge",
+            "absoluteScaleMethod": "standard",
+            "StandardAbsoluteScale": "5.18325",
+            "instrumentConfigurationDir": os.path.join(datarepo_dir.eqsans, "instrument_configuration"),
+        },
+    }
+    reduction_input = reduction_parameters(specs, instrument_name="EQSANS")
+
+    # replace the /bin/true filenames with None
+    reduction_input["configuration"]["maskFileName"] = None
+    reduction_input["configuration"]["darkFileName"] = None
+    reduction_input["configuration"]["sensitivityFileName"] = None
+
+    start_time = 0.0
+    end_time = 1.0
+    reduction_input["sample"]["loadOptions"] = {"FilterByTimeStart": start_time, "FilterByTimeStop": end_time}
+
+    loaded = load_all_files(reduction_input)
+
+    assert loaded.sample is not None
+    assert len(loaded.sample) == 1
+    history = loaded.sample[0].data.getHistory()
+
+    assert history.size() == 11
+    assert history.getAlgorithm(0).name() == "LoadEventNexus"
+    assert history.getAlgorithm(0).getProperty("Filename").value.endswith("sns/eqsans/EQSANS_105428.nxs.h5")
+    assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"
+    assert history.getAlgorithm(3).name() == "ChangeBinOffset"
+    assert history.getAlgorithm(4).name() == "SetInstrumentParameter"
+    # assert history.getAlgorithm(4).name() == "ModeratorTZero"
+    assert history.getAlgorithm(6).name() == "MoveInstrumentComponent"
+    assert history.getAlgorithm(7).name() == "ConvertUnits"
+    assert history.getAlgorithm(8).name() == "Rebin"
+    assert history.getAlgorithm(9).name() == "SetUncertainties"
+    assert history.getAlgorithm(10).name() == "AddSampleLogMultiple"
+
+    assert loaded.background.data is None
+    assert loaded.background_transmission.data is None
+    assert loaded.empty.data is None
+    assert loaded.sample_transmission.data is None
+    assert loaded.dark_current.data is None
+    assert loaded.sensitivity is None
+    assert loaded.mask is None
+
+    # Verify that if something is changed that it gets applied correctly on reload, use default mask as test
+    # First check the current value
+    assert not loaded.sample[0].data.detectorInfo().isMasked(1)
+
+    # check interval
+    w = loaded.sample[0].data
+    assert int(w.extractY().sum()) == 706
+
+    # Change reduction input and rerun load_all_files
+    reduction_input["configuration"]["useDefaultMask"] = True
+    reduction_input["configuration"]["defaultMask"] = "{'Pixel':'1'}"
+    loaded = load_all_files(reduction_input)
+
+    # Check that the value has changed
+    assert loaded.sample[0].data.detectorInfo().isMasked(1)
+
+
 def test_load_all_files_simple(datarepo_dir):
     # set some filenames to /bin/true so that it will pass the validation without being replaced with default values
     specs = {

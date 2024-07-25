@@ -10,14 +10,17 @@
     },
     "iptsNumber":            {"$ref":  "common.json#/iptsNumber"},
     "dataDirectories":  {"$ref":  "common.json#/dataDirectories"},
-    "sample":{
+    "sample": {
       "type": "object",
-      "properties" : {
-        "runNumber": {"$ref": "common.json#/sample/properties/runNumber"},
+      "properties": {
+        "runNumber": {
+          "$ref": "common.json#/sample/properties/runNumber"
+        },
+        "loadOptions":{"$ref": "common.json#/definitions/eventsLoaderOptions"},
         "thickness": {"$ref": "common.json#/sample/properties/thickness", "default": 1.0},
         "transmission": {"$ref":  "common.json#/sample/properties/transmission"}
       },
-      "maxProperties": 3,
+      "maxProperties": 4,
       "required": ["runNumber", "thickness", "transmission"]
     },
     "background":        {"$ref":  "common.json#/background"},

@@ -116,3 +116,6 @@ testenv2.7
 
 # gvim
 *.swp
+
+#version
+src/drtsans/_version.py

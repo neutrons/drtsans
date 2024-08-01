@@ -59,6 +59,7 @@ Release Notes
   These tests may be run manually from a machine where these file systems are reachable.
   These tests can be selected with pytest marker `eqsans_mount`. Developer's documentation explains how-to.
 - Results from the elastic-correction of `I(Q)` are now reused for the elastic-correction of `I(Qx, Qy)`.
+- Python wheel/Conda package process modernization and documentation of the process
 
 1.10.2
 ------

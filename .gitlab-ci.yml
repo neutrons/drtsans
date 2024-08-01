@@ -66,9 +66,8 @@ dockerbuild:
   tags:
     - neutrons-multi-builder
 
-docs-feature:
+create-wheel:
   stage: test
-  retry: 1
   dependencies:
     - dockerbuild
   script:
@@ -76,24 +75,18 @@ docs-feature:
     - set -x
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
-    # test directory may contain large files from data repo submodule
-    - sudo rsync -av --exclude='tests' ./ /tmp/sans-backend/
+    - sudo cp -r . /tmp/sans-backend
     - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    # use bash -i to run .bashrc and activate the conda environment
-    - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -i -c "cp -R /opt/sans-backend /tmp/ && cd /tmp/sans-backend/docs&& make html"
-    - ls .
+    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/create_wheel.sh"
     - popd
   after_script:
     - ls -l $CI_PROJECT_DIR
     - *teardown_cleanup
   tags:
     - neutrons-multi-builder
-  except:
-    - next
-    - master
 
 code-unit-test:
   stage: test
@@ -111,7 +104,7 @@ code-unit-test:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - COMMAND="cd /opt/sans-backend/tests/data/drtsans-data/ && git lfs install && git lfs pull && cd /opt/sans-backend && bash /opt/sans-backend/test_job.sh -m 'not mount_eqsans' -s unit"
+    - COMMAND="cd /opt/sans-backend/tests/data/drtsans-data/ && git lfs install && git lfs pull && cd /opt/sans-backend && python -m pip install -e . && bash /opt/sans-backend/test_job.sh -m 'not mount_eqsans' -s unit"
     # use bash -i to run .bashrc and activate the conda environment
     - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -i -c "$COMMAND"
     - popd
@@ -145,7 +138,7 @@ code-integration-test:
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - COMMAND="cd /opt/sans-backend/tests/data/drtsans-data/ && git lfs install && git lfs pull && cd /opt/sans-backend && bash /opt/sans-backend/test_job.sh -m 'not mount_eqsans' -s integration"
+    - COMMAND="cd /opt/sans-backend/tests/data/drtsans-data/ && git lfs install && git lfs pull && cd /opt/sans-backend && python -m pip install -e . && bash /opt/sans-backend/test_job.sh -m 'not mount_eqsans' -s integration"
     # use bash -i to run .bashrc and activate the conda environment
     - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -i -c "$COMMAND"
     - popd
@@ -164,8 +157,10 @@ code-integration-test:
     - drtsans_lfs
 
 
-create-wheel:
+
+docs-feature:
   stage: test
+  retry: 1
   dependencies:
     - dockerbuild
   script:
@@ -173,18 +168,24 @@ create-wheel:
     - set -x
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
-    - sudo cp -r . /tmp/sans-backend
+    # test directory may contain large files from data repo submodule
+    - sudo rsync -av --exclude='tests' ./ /tmp/sans-backend/
     - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
     - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
     - time docker pull $CONTAINER_URL
-    - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/create_wheel.sh"
+    # use bash -i to run .bashrc and activate the conda environment
+    - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -i -c "cd /opt/sans-backend/ && cp -R /opt/sans-backend /tmp/ && cd /tmp/sans-backend/ && python -m pip install -e . && cd docs && make html"
+    - ls .
     - popd
   after_script:
     - ls -l $CI_PROJECT_DIR
     - *teardown_cleanup
   tags:
     - neutrons-multi-builder
+  except:
+    - next
+    - master
 
 conda-package:
   stage: publish

@@ -1,8 +1,8 @@
-# load information from setup.cfg/setup.py
-{% set data = load_setup_py_data() %}
-{% set license = data.get('license') %}
-{% set description = data.get('description') %}
-{% set url = data.get('url') %}
+# load information from pyproject.toml
+{% set pyproject = load_file_data('pyproject.toml') %}
+{% set license = pyproject.get('license') %}
+{% set description = pyproject.get('description') %}
+{% set url = pyproject.get('url') %}
 # this will get the version set by environment variable
 {% set version = environ.get('VERSION') %}
 {% set version_number = environ.get('GIT_DESCRIBE_NUMBER', '0') | string %}
@@ -26,7 +26,8 @@ requirements:
   host:
     - python
     - versioningit
-
+    - setuptools>=42
+    - wheel
   build:
     - python
     - setuptools>=42

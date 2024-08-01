@@ -4,6 +4,32 @@ Developer documentation
 
 See `solid_angle_correction.py <drtsans/solid_angle_correction.py>`_ for propely documented code
 
+--------------------------------------------
+Package Build and Installation Instructions
+--------------------------------------------
+
+Python wheel
+
+ .. code-block:: shell
+
+    $ python -m build --wheel --no-isolation
+    $ check-wheel-contents dist/drtsans-*.whl
+
+Conda package
+
+ .. code-block:: shell
+
+    # create a conda package
+    $ cd conda.recipe
+    $ echo "versioningit $(versioningit ../)"
+    $ CHANNELS="--channel mantid/label/main --channel conda-forge"
+    $ VERSION=$(versioningit ../) conda mambabuild $CHANNELS --output-folder . .
+    $ conda verify noarch/drtsans-*.tar.bz2
+    # install a local conda package
+    $ conda install noarch/<drtsans .tar.bz2 file>
+
+* Note: For developers with a mamba installation (instead of conda), please replace conda ``mambabuild`` with ``mamba build``
+
 .. _devdocs-standardnames:
 
 --------------------------------------------

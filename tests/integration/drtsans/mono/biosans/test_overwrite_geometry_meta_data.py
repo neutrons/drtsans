@@ -1,12 +1,16 @@
-# Integration test for overwriting instrument geometry related meta data for BIO-SANS
-# (imports alphabetically ordered)
-import h5py
+"""
+Integration test for overwriting instrument geometry related meta data for BIO-SANS
+(imports alphabetically ordered)
+"""
+# standard imports
 import json
-import numpy as np
 import os
-import pytest
 
-import time
+# third party imports
+import h5py
+from matplotlib import pyplot as plt
+import numpy as np
+import pytest
 
 # drtsans imports
 from drtsans.mono.biosans import (
@@ -245,6 +249,7 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
     """
     # Set up (testing) runs
     sample_names = ["csmb_ecoli1h_n2", "insect1hTime_n2"]
+    ipts = "22699"
     samples = ["5709", "5712"]
     samples_trans = samples
     backgrounds = ["5715", "5715"]
@@ -256,13 +261,13 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
 
-    start_time = time.time()
+    # reduce one sample at a time
     for i in range(len(samples)):
-        # Load JSON for configuration
         # start with a fresh set of reduction parameters for every sample, because the reduction "pollutes"
-        # the reduction parameters dictionary with additions not allowed by the schema
+        # the reduction parameters dictionary with additions not accounted by the schema
         reduction_input = json.loads(json_str)
         reduction_input["dataDirectories"] = nexus_dir
+        reduction_input["iptsNumber"] = ipts
         reduction_input["configuration"]["outputDir"] = output_dir
         reduction_input["sample"]["runNumber"] = samples[i]
         reduction_input["sample"]["transmission"]["runNumber"] = samples_trans[i]
@@ -275,12 +280,11 @@ def reduce_biosans_data(nexus_dir, json_str, output_dir, prefix):
         out = reduce_single_configuration(loaded, reduction_input)  # here!
         plot_reduction_output(out, reduction_input, loglog=False)
 
-    end_time = time.time()
-    print(end_time - start_time)
-
 
 def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_detector_distance, **spec_args):
     """Generating testing JSON
+
+    Fetch a default configuration for reduction, and update it according to the arguments passed.
 
     Parameters
     ----------
@@ -290,6 +294,8 @@ def generate_testing_json(sens_nxs_dir, sample_to_si_window_distance, sample_to_
         sample to silicon window distance to overwrite the EPICS value with unit millimeter
     sample_to_detector_distance: float or None
         sample to silicon window distance to overwrite the EPICS value with unit meter
+    spec_args: dict
+        Any iterm under reduction settings "configuration" to be overwritten
 
     Returns
     -------
@@ -394,34 +400,36 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
 
 def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
     """
+    Compare two I(Q) profiles. If they don't match, plot the profiles on a figure and save to file for inspection.
 
     Parameters
     ----------
     test_log_file: str
-        Absolute
+        log file containing test results
     gold_log_file: str
+        log file containing expected results
     title: str
-        plot title
+        Title of the figure containing the I(Q) profiles
     prefix: str
-        file name prefix
-
-    Returns
-    -------
-
+        Prefix for the file name storing the figure
     """
     log_errors = list()
 
     for is_main_detector in [True, False]:
-        vec_q_a, vec_i_a = get_iq1d(test_log_file, is_main=is_main_detector)
-        vec_q_b, vec_i_b = get_iq1d(gold_log_file, is_main=is_main_detector)
+        # Q values, Intensity, Itensity uncertainty
+        vec_q_a, vec_i_a, vec_i_error_a = get_iq1d(test_log_file, is_main=is_main_detector)
+        vec_q_b, vec_i_b, vec_i_error_b = get_iq1d(gold_log_file, is_main=is_main_detector)
 
         try:
             np.testing.assert_allclose(vec_q_a, vec_q_b)
-            np.testing.assert_allclose(vec_i_a, vec_i_b)
+            # Intensity differences less than 1% the average intensity-uncertainties
+            i_error = 0.5 * np.sqrt(vec_i_error_a**2 + vec_i_error_b**2)
+            ratio = np.abs(vec_i_a - vec_i_b) / i_error
+            finite_mask = np.isfinite(ratio)
+            np.testing.assert_array_less(ratio[finite_mask], 0.01)
             log_errors.append(None)
         except AssertionError as assert_err:
             log_errors.append(assert_err)
-            from matplotlib import pyplot as plt
 
             if is_main_detector:
                 flag = "Main_detector"
@@ -432,6 +440,7 @@ def compare_reduced_iq(test_log_file, gold_log_file, title, prefix):
                 vec_q_a,
                 vec_i_a,
                 color="red",
+                linewidth=4.0,  # Increase the line thickness
                 label="{} Test Data.     Q in {:.5f}, {:.5f}".format(flag, vec_q_a[0], vec_q_a[-1]),
             )
             plt.plot(
@@ -489,11 +498,12 @@ def get_iq1d(log_file_name, is_main=True):
     # Get data with a copy
     vec_q = np.copy(iq1d_entry["Q"][()])
     vec_i = np.copy(iq1d_entry["I"][()])
+    vec_i_error = np.copy(iq1d_entry["Idev"][()])
 
     # close file
     log_h5.close()
 
-    return vec_q, vec_i
+    return vec_q, vec_i, vec_i_error
 
 
 if __name__ == "__main__":

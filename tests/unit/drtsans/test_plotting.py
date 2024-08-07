@@ -89,10 +89,10 @@ def test_save_file(backend, filename, show):
 
     figure, _ax = plt.subplots()
 
-    def mock_show(figure):
+    def mock_show():
         return False
 
-    mpld3.show = mock_show
+    figure.show = mock_show
 
     _save_file(figure, filename, Backend.getMode(backend), show)
     fileCheckAndRemove(filename)

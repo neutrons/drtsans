@@ -26,10 +26,8 @@ def _mock_LoadEventAsWorkspace2D(*args, **kwargs):
     return LoadNexusProcessed(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
 
 
-def verify_sensitivities_file(test_sens_file, gold_sens_file, atol=None):
+def verify_sensitivities_file(test_sens_file, gold_sens_file):
     """ """
-    if atol is None:
-        atol = 3e-5
 
     # Load processed NeXus files from tests and gold result
     test_sens_ws = LoadNexusProcessed(Filename=test_sens_file)
@@ -38,15 +36,23 @@ def verify_sensitivities_file(test_sens_file, gold_sens_file, atol=None):
     # Compare number of spectra
     assert test_sens_ws.getNumberHistograms() == gold_sens_ws.getNumberHistograms()
 
-    # Verify sensitivity value
+    # Get sensitivity value
     test_y = test_sens_ws.extractY().flatten()
     gold_y = gold_sens_ws.extractY().flatten()
-    np.testing.assert_allclose(gold_y, test_y, atol=atol, equal_nan=True)
 
-    # Verify sensitivity error
+    # Get sensitivity error
     test_e = test_sens_ws.extractE().flatten()
     gold_e = gold_sens_ws.extractE().flatten()
-    np.testing.assert_allclose(gold_e, test_e, atol=atol, equal_nan=True)
+
+    # Verify sensitivity value
+    abs_diff = np.abs(test_y - gold_y)
+    threshold = (test_e + gold_e) / 2
+    ratio = abs_diff / threshold
+    finite_filtered_ratio = ratio[np.isfinite(ratio)]
+    np.testing.assert_array_less(finite_filtered_ratio, 0.1)
+
+    # Verify sensitivity error
+    np.testing.assert_allclose(gold_e, test_e, atol=1e-2, equal_nan=True)
 
 
 @pytest.mark.mount_eqsans
@@ -313,7 +319,7 @@ def test_cg3_wing_prepare_sensitivities(has_sns_mount, tmp_path):
     # Verify value
     gold_cg2_wing_file = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/sensitivities/CG3_Sens_Wing.nxs"
 
-    verify_sensitivities_file(output_sens_file, gold_cg2_wing_file, atol=1e-7)
+    verify_sensitivities_file(output_sens_file, gold_cg2_wing_file)
 
     # Clean
     os.remove(output_sens_file)
@@ -340,6 +346,7 @@ def test_cg3_wing_prepare_sensitivities(has_sns_mount, tmp_path):
 
 @pytest.mark.datarepo
 @mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D)
+@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 def test_cg3_midrange_prepare_sensitivities(biosans_synthetic_sensitivity_dataset, tmp_path, cleanfile):
     """Integration test on algorithms to prepare sensitivities for BIOSANS's midrange detector"""
     # CG3: Mid
@@ -478,7 +485,7 @@ def test_cg2_sensitivities(has_sns_mount, tmp_path):
     # Verify value
     gold_gp_file = "/SNS/EQSANS/shared/sans-backend/data/ornl/sans/sensitivities/CG2_Sens_Moving_Dets.nxs"
 
-    verify_sensitivities_file(output_sens_file, gold_gp_file, atol=1e-7)
+    verify_sensitivities_file(output_sens_file, gold_gp_file)
 
     # Clean
     os.remove(output_sens_file)

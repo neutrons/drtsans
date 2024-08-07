@@ -30,6 +30,7 @@ def _mock_LoadEventAsWorkspace2D(*args, **kwargs):
 
 
 @mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D)
+@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventAsWorkspace2D)
 def test_main_detector(datarepo_dir, temp_directory, clean_workspace):
     """Test case for CG3 main detector
 

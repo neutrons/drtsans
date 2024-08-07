@@ -188,8 +188,10 @@ def load_events(
                 kwargs["LoadNexusInstrumentXML"] = not overwrite_instrument
 
             logger.notice(f"Loading {filename} to {output_workspace}")
-            if is_mono and all([kwarg not in kwargs for kwarg in ["LoadMonitors", "NumberOfBins"]]):
+            # MetaDataOnly doesn't require loading events and transform to wavelength
+            if is_mono and all([kwarg not in kwargs for kwarg in ["LoadMonitors", "NumberOfBins", "MetaDataOnly"]]):
                 # For monochromatic non-event filtering workflows, LoadEventAsWorkspace2D is more efficient
+                # LoadEventAsWorkspace2D does not have MetaDataOnly as an argument parameter  "MetaDataOnly"
                 LoadEventAsWorkspace2D(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
             else:
                 LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)

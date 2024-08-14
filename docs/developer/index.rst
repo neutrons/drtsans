@@ -32,6 +32,12 @@ Conda package
 
 .. _devdocs-standardnames:
 
+------------------------------------------
+Creating Candidate and Production Releases
+------------------------------------------
+- Follow the `Software Maturity Model <https://ornl-neutrons.atlassian.net/wiki/spaces/NDPD/pages/23363585/Software+Maturity+Model>`_ for continous versioning as well as creating release candidates and stable releases.
+- Update file `release_notes.rst` with major fixes, updates and additions since last stable release.
+
 --------------------------------------------
 Standard variable names and what they denote
 --------------------------------------------

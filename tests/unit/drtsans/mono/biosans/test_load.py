@@ -91,9 +91,7 @@ def test_sum_data(reference_dir, has_sns_mount):
     # Merge the same file twice
     # NOTE: the file is too large for CI, can only run on analysis cluster manually
     workspace1 = load_events(
-        "CG3_961.nxs.h5",
-        data_dir=reference_dir.biosans,
-        output_workspace="workspace1",
+        "CG3_961.nxs.h5", data_dir=reference_dir.biosans, output_workspace="workspace1", MetaDataOnly=False
     )
 
     with pytest.raises(ValueError) as excinfo:
@@ -106,6 +104,7 @@ def test_sum_data(reference_dir, has_sns_mount):
         "CG3_960.nxs.h5",
         data_dir=reference_dir.biosans,
         output_workspace="workspace2",
+        MetaDataOnly=False,  # MetaDataOnly passed as an argument parameter to use LoadEventNexus in load_events
     )
     workspace2 = transform_to_wavelength(workspace2)
     workspace2 = set_init_uncertainties(workspace2)
@@ -160,7 +159,6 @@ def test_sum_data(reference_dir, has_sns_mount):
 def test_load_events_and_histogram(reference_dir, has_sns_mount):
     if not has_sns_mount:
         pytest.skip("SNS mount not available")
-
     # NOTE: the file is too large for CI, can only run on analysis cluster manually
     workspace = load_events_and_histogram(
         "CG3_961.nxs.h5",
@@ -175,7 +173,7 @@ def test_load_events_and_histogram(reference_dir, has_sns_mount):
     assert sample_logs.monitor.value == 19173627
     assert sample_logs.duration.value == pytest.approx(1809.4842529296875, abs=1e-11)
     assert sample_logs.wavelength.size() == 692
-    assert mtd[str(workspace)].extractY().sum() == 11067715
+    assert mtd[str(workspace)].extractY().sum() == 11067718
 
     workspace2 = load_events_and_histogram(
         "CG3_961.nxs.h5, CG3_960.nxs.h5",
@@ -191,7 +189,7 @@ def test_load_events_and_histogram(reference_dir, has_sns_mount):
     assert sample_logs2.monitor.value == 19173627 + 1039
     assert sample_logs2.duration.value == pytest.approx(1809.4842529296875 + 0.08333253860473633, abs=1e-11)
     assert sample_logs2.wavelength.size() == 692 + 2
-    assert mtd[str(workspace2)].extractY().sum() == 11067715 + 1
+    assert mtd[str(workspace2)].extractY().sum() == 11067718 + 1
 
 
 @pytest.mark.mount_eqsans

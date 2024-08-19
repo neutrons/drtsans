@@ -9,8 +9,8 @@ from mantid.dataobjects import Workspace2D, EventWorkspace
 from mantid.simpleapi import mtd
 from mantid.simpleapi import (
     DeleteWorkspace,
-    LoadEventAsWorkspace2D,
     LoadEventNexus,
+    LoadEventAsWorkspace2D,
     MergeRuns,
     GenerateEventsFilter,
     FilterEvents,

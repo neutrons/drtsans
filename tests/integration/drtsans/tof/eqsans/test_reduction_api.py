@@ -6,7 +6,7 @@ from drtsans.tof.eqsans.api import (
     load_all_files,
     reduce_single_configuration,
 )  # noqa E402
-from mantid.simpleapi import LoadNexusProcessed, CheckWorkspacesMatch
+from mantid.simpleapi import LoadNexusProcessed, CompareWorkspaces
 from mantid.simpleapi import mtd, DeleteWorkspace
 from mantid.kernel import amend_config
 import numpy as np
@@ -537,7 +537,7 @@ def verify_processed_workspace(
 
     gold_ws = LoadNexusProcessed(Filename=gold_file, OutputWorkspace=f"{ws_prefix}_gold")
     test_ws = LoadNexusProcessed(Filename=test_file, OutputWorkspace=f"{ws_prefix}_test")
-    r = CheckWorkspacesMatch(Workspace1=gold_ws, Workspace2=test_ws)
+    r = CompareWorkspaces(Workspace1=gold_ws, Workspace2=test_ws)
     print(f"[INT-TEST] Verify reduced workspace {test_ws} match expected/gold {gold_ws}: {r}")
     if r != "Success":
         assert (

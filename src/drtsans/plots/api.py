@@ -64,22 +64,6 @@ class Backend:
         return mode.lower() in [cls.MPLD3, cls.MPL_ALT, cls.MATPLOTLIB_ALT, cls.MATPLOTLIB]
 
 
-class MatBackendManager:
-    """Context Manager for setting matplotlib backend"""
-
-    def __init__(self, innerbackend):
-        self.innerbackend = innerbackend
-        self.outerbackend = matplotlib.get_backend()
-
-    def __enter__(self):
-        """set the inner backend on entering the code block"""
-        matplotlib.use(self.innerbackend)
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        """set the outer backend on exiting the code block"""
-        matplotlib.use(self.outerbackend)
-
-
 def _save_file(figure, filename, backend: str, show=False):
     """Convenience method for the common bits of saving the file based on
     the selected backend.
@@ -97,29 +81,24 @@ def _save_file(figure, filename, backend: str, show=False):
         available if the :py:obj:`~Backend.MPLD3` backend is selected.
     """
 
-    # Auto-closing of figures upon backend switching is deprecated since 3.8
-    # and will be removed two minor releases later, so explicitly call plt.close('all')
-    plt.close("all")
+    if Backend.isSupported(backend):
+        if backend == Backend.MATPLOTLIB:
+            if filename:
+                figure.savefig(filename)
+            if show:
+                figure.show()
+        elif backend == Backend.MPLD3:
+            if not filename.endswith("json"):
+                raise RuntimeError('File "{}" must have ".json" suffix'.format(filename))
 
-    with MatBackendManager("agg") as _m:
-        if Backend.isSupported(backend):
-            if backend == Backend.MATPLOTLIB:
-                if filename:
-                    figure.savefig(filename)
-                if show:
-                    figure.show()
-            elif backend == Backend.MPLD3:
-                if not filename.endswith("json"):
-                    raise RuntimeError('File "{}" must have ".json" suffix'.format(filename))
+            plugins.connect(figure, plugins.MousePosition(fontsize=14, fmt=".0f"))
+            with open(filename, "w") as outfile:
+                mpld3.save_json(figure, outfile)
 
-                plugins.connect(figure, plugins.MousePosition(fontsize=14, fmt=".0f"))
-                with open(filename, "w") as outfile:
-                    mpld3.save_json(figure, outfile)
-
-                if show:
-                    mpld3.show(figure)
-        else:
-            raise RuntimeError("Unsupported backend: {}".format(backend))
+            if show:
+                mpld3.show(figure)
+    else:
+        raise RuntimeError("Unsupported backend: {}".format(backend))
 
 
 def _q_label(backend: str, subscript=""):

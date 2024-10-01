@@ -1,11 +1,10 @@
 from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
-from drtsans.plots.api import _save_file, MatBackendManager, Backend
+from drtsans.plots.api import _save_file, Backend
 from drtsans.dataobjects import IQmod, IQazimuthal
 from mantid.simpleapi import LoadEmptyInstrument, LoadNexus
 import numpy as np
 import os
 import pytest
-import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import imread
 from typing import Tuple, Any
@@ -111,18 +110,6 @@ def test_save_file_inline_error():
     with pytest.raises(RuntimeError) as excinfo:
         _save_file(figure, filename, Backend.getMode(backend), show)
     assert str(excinfo.value) == "Unsupported backend: inline"
-
-
-def test_MatBackendManager():
-    """Test MatBackendManager"""
-
-    outer_backend = "pdf"
-    inner_backend = "agg"
-
-    matplotlib.use(outer_backend)
-    with MatBackendManager(inner_backend) as _m:
-        assert matplotlib.get_backend() == inner_backend
-    assert matplotlib.get_backend() == outer_backend
 
 
 @pytest.fixture

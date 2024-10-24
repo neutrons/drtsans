@@ -7,7 +7,14 @@ import os
 from typing import List, Union
 
 # third party imports
-from mantid.simpleapi import logger, mtd, MaskDetectors, MoveInstrumentComponent, SaveNexusProcessed
+from mantid.simpleapi import (
+    logger,
+    mtd,
+    MaskDetectors,
+    MoveInstrumentComponent,
+    SaveNexusProcessed,
+    RemoveWorkspaceHistory,
+)
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 
@@ -865,6 +872,7 @@ def process_single_configuration(
     absolute_scale=1.0,
     keep_processed_workspaces=True,
     debug=False,
+    remove_algorithm_history=False,
 ):
     r"""
     This function provides full data processing for a single experimental configuration,
@@ -926,6 +934,8 @@ def process_single_configuration(
         flag to keep the processed blocked beam and background workspaces
     debug: bool
         flag to do some debugging output
+    remove_algorithm_history: bool
+        flag to remove the algorithm history from the processed-data workspace before writing to Nexus file
 
     Returns
     -------
@@ -1065,6 +1075,9 @@ def process_single_configuration(
             backend="mpl",
             imshow_kwargs={"norm": LogNorm(vmin=1)},
         )
+        # remove history to write less data and speed up I/O
+        if remove_algorithm_history:
+            RemoveWorkspaceHistory(output_workspace)
         SaveNexusProcessed(
             InputWorkspace=output_workspace,
             Filename=f"final_processed_{form_output_name(output_workspace)}.nxs",
@@ -1110,6 +1123,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     wedges_max = reduction_config["WedgeMaxAngles"]
     wedges = None if wedges_min is None or wedges_max is None else list(zip(wedges_min, wedges_max))
 
+    remove_algorithm_history = reduction_input["configuration"]["removeAlgorithmHistory"]
     # automatically determine wedge binning if it wasn't explicitly set
     autoWedgeOpts = {}
     symmetric_wedges = True
@@ -1255,6 +1269,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             absolute_scale=absolute_scale,
             keep_processed_workspaces=False,
             debug=debug_output,
+            remove_algorithm_history=remove_algorithm_history,
         )
         # binning
         subpixel_kwargs = dict()

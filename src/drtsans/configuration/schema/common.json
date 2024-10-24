@@ -365,6 +365,10 @@
       "type": "boolean",
       "description": "Flag to apply the barscan and tube-width calibrations"
     },
+    "removeAlgorithmHistory": {
+      "type": "boolean",
+      "description": "Flag to remove history from a workspace before writing to Nexus file"
+    },
     "maskFileName": {
       "$ref": "common.json#/definitions/safeString",
       "dataSource": "file",

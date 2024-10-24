@@ -11,6 +11,7 @@ Release Notes
 **Of interest to the User**:
 
 - MR #XYZ: one-liner description
+- MR #7718: Add a parameters  removeAlgorithmHistory to write less data and speed up I/O during reduction
 
 **Of interest to the Developer:**
 

@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 # third party imports
 import matplotlib.pyplot as plt
-from mantid.simpleapi import mtd, logger, RebinToWorkspace, SaveNexus
+from mantid.simpleapi import mtd, logger, RebinToWorkspace, SaveNexus, RemoveWorkspaceHistory
 
 # local imports
 import drtsans  # noqa E402
@@ -929,6 +929,9 @@ def reduce_single_configuration(
         # Save nexus processed
         # For EQSANS the suffix has to add _processed to tell the output file apart
         # from the original data file
+        # remove history to write less data and speed up I/O
+        if reduction_config["removeAlgorithmHistory"]:
+            RemoveWorkspaceHistory(processed_data_main)
         filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}_processed.nxs")
         SaveNexus(processed_data_main, Filename=filename)
         print(f"SaveNexus to {filename}")

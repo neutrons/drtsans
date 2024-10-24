@@ -29,7 +29,14 @@ from drtsans.thickness_normalization import normalize_by_thickness
 # third party imports
 from mantid.dataobjects import Workspace2D
 from mantid.kernel import Logger
-from mantid.simpleapi import mtd, MaskDetectors, LoadEventNexus, LoadNexusProcessed, DeleteWorkspace
+from mantid.simpleapi import (
+    mtd,
+    MaskDetectors,
+    LoadEventNexus,
+    LoadNexusProcessed,
+    DeleteWorkspace,
+    RemoveWorkspaceHistory,
+)
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 
@@ -1475,6 +1482,10 @@ def reduce_single_configuration(
 
             main_name = f'{form_output_name(processed_data_main).split(".")[0]}.nxs'
             wing_name = f'{form_output_name(processed_data_wing).split(".")[0]}.nxs'
+            # remove history to write less data and speed up I/O
+            if reduction_config["removeAlgorithmHistory"]:
+                RemoveWorkspaceHistory(processed_data_main)
+                RemoveWorkspaceHistory(processed_data_wing)
             SaveNexusProcessed(InputWorkspace=processed_data_main, Filename=main_name)
             SaveNexusProcessed(InputWorkspace=processed_data_wing, Filename=wing_name)
             plot_detector(
@@ -1490,6 +1501,9 @@ def reduce_single_configuration(
             )  # , imshow_kwargs={'norm': LogNorm(vmin=1)})
             if reduction_config["has_midrange_detector"]:
                 midrange_name = f'{form_output_name(processed_data_midrange).split(".")[0]}.nxs'
+                # remove history to write less data and speed up I/O
+                if reduction_config["removeAlgorithmHistory"]:
+                    RemoveWorkspaceHistory(processed_data_midrange)
                 SaveNexusProcessed(InputWorkspace=processed_data_midrange, Filename=midrange_name)
                 plot_detector(
                     processed_data_midrange,

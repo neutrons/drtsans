@@ -57,6 +57,7 @@
         },
 
         "usePixelCalibration": {"$ref":  "common.json#/configuration/usePixelCalibration", "default": false},
+        "removeAlgorithmHistory": {"$ref":  "common.json#/configuration/removeAlgorithmHistory", "default": false},
 
         "maskFileName":     {"$ref":  "common.json#/configuration/maskFileName"},
         "useDefaultMask":   {"$ref":  "common.json#/configuration/useDefaultMask", "default": true,
@@ -258,7 +259,7 @@
       "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "timeSliceInterval",
         "timeSliceOffset", "timeSlicePeriod", "useTimeSliceTransmission",
         "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset", "sampleApertureSize",
-        "sampleDetectorDistance", "sourceApertureDiameter", "usePixelCalibration", "maskFileName", "useDefaultMask",
+        "sampleDetectorDistance", "sourceApertureDiameter", "usePixelCalibration", "removeAlgorithmHistory","maskFileName", "useDefaultMask",
         "defaultMask", "useMaskBackTubes", "darkMainFileName", "darkWingFileName", "darkMidrangeFileName",
         "normalization", "normalizationResortToTime", "sensitivityMainFileName", "sensitivityWingFileName",
         "sensitivityMidrangeFileName", "useSolidAngleCorrection", "blockedBeamRunNumber", "useThetaDepTransCorrection",

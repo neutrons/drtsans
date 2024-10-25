@@ -19,6 +19,14 @@ Release Notes
 
 - MR #XYZ: one-liner description
 
+?.??.?
+------
+????-??-??
+
+**Of interest to the User**:
+
+- MR #1159:  Separate configuration for elastic normalization and inelastic incoherence correction
+
 1.11.0
 ------
 2024-04-05

@@ -1,14 +1,16 @@
-from drtsans.plots import plot_IQmod, plot_IQazimuthal, plot_detector
-from drtsans.plots.api import _save_file, Backend
-from drtsans.dataobjects import IQmod, IQazimuthal
-from mantid.simpleapi import LoadEmptyInstrument, LoadNexus
-import numpy as np
 import os
-import pytest
+from typing import Any, Tuple
+
 import matplotlib.pyplot as plt
-from matplotlib.pyplot import imread
-from typing import Tuple, Any
 import mpld3  # noqa E402
+import numpy as np
+import pytest
+from mantid.simpleapi import LoadEmptyInstrument, LoadNexus
+from matplotlib.pyplot import imread
+
+from drtsans.dataobjects import IQazimuthal, IQmod
+from drtsans.plots import plot_detector, plot_IQazimuthal, plot_IQmod
+from drtsans.plots.api import Backend, _save_file
 
 
 def verify_images(test_png: str, gold_png):
@@ -179,7 +181,7 @@ def test_IQazimuthal_1d(backend, filename, reference_name, test_iq2d_data):
     if reference_name:
         fileCheckAndRemove(filename, remove=False)
         verify_images(filename, reference_name)
-    fileCheckAndRemove(filename, remove=False)
+    fileCheckAndRemove(filename)
 
 
 @pytest.mark.parametrize(
@@ -367,7 +369,7 @@ def test_detector(backend, filename):
     workspace = LoadEmptyInstrument(InstrumentName="CG3")  # this will load monitors as well
     plot_detector(workspace, filename, backend)
     plt.close()
-    fileCheckAndRemove(filename, False)
+    fileCheckAndRemove(filename)
 
 
 @pytest.mark.datarepo

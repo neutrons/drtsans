@@ -11,7 +11,7 @@ classifiers = [
     "Natural Language :: English",
     "Operating System :: Linux",
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache Software License"
+    "License :: OSI Approved :: Apache Software License",
 ]
 dependencies = [
     "docutils",
@@ -19,12 +19,12 @@ dependencies = [
     "jsonschema>=3.0.2",
     "lmfit",
     # mantid is not here b/c it doesn't exist in pypi
-    "matplotlib",  # is this necessary
+    "matplotlib",       # is this necessary
     "mpld3",
     "numexpr",
     "pandas",
     "sortedcontainers",
-    "tinydb"
+    "tinydb",
 ]
 
 license = { file = "LICENSE" }
@@ -35,12 +35,7 @@ Source = "https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/"
 BugTracker = "https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues"
 
 [build-system]
-requires = [
-    "setuptools >= 42",
-    "toml",
-    "wheel",
-    "versioningit"
-]
+requires = ["setuptools >= 42", "toml", "wheel", "versioningit"]
 build-backend = "setuptools.build_meta"
 
 [tool.versioningit.vcs]
@@ -73,16 +68,13 @@ script-files = [
     "scripts/plot/EQSANS_raw_2D.py",
     "scripts/prepare_sensitivities_biosans.py",
     "scripts/prepare_sensitivities_gpsans.py",
-    "scripts/process_reduction.py"
+    "scripts/process_reduction.py",
 ]
 
 [tool.setuptools.package-data]
-"*" = [
-    "configuration/schema/*.json",
-    "mono/biosans/cg3_to_nexus_mapping.yml"
-]
+"*" = ["configuration/schema/*.json", "mono/biosans/cg3_to_nexus_mapping.yml"]
 
-[build_sphinx]
+[tool.build_sphinx]
 source-dir = "docs"
 warning-is-error = 1
 
@@ -90,30 +82,41 @@ warning-is-error = 1
 line-length = 119
 
 [tool.ruff]
+cache-dir = "/tmp/ruff_cache"
 line-length = 119
 # https://beta.ruff.rs/docs/rules/
 # suggestions: BLE blind exceptions, I sorts imports
 # Full pylint PL = PLC, PLE, PLR (~500 issues), PLW. Enable most
 select = ["A", "ARG", "E", "F", "PLC", "PLE", "PLW"]
-ignore = ["A002", "A003", # shadowing python built-ins
-          "ARG001", "ARG002", # unused argument
-          "E402", # import not at the top of the file
-	  "E712", # comparison to false
-          "E741", # ambiguous variable name
+ignore = [
+    "A002",
+    "A003",   # shadowing python built-ins
+    "ARG001",
+    "ARG002", # unused argument
+    "E402",   # import not at the top of the file
+    "E712",   # comparison to false
+    "E741",   # ambiguous variable name
 ]
 
 [tool.pytest.ini_options]
-pythonpath = [".","src","scripts"]
+pythonpath = [".", "src", "scripts"]
 testpaths = ["tests"]
 python_files = ["test*.py"]
-norecursedirs = [".git", "tmp*", "_tmp*", "__pycache__", "*dataset*", "*data_set*"]
+norecursedirs = [
+    ".git",
+    "tmp*",
+    "_tmp*",
+    "__pycache__",
+    "*dataset*",
+    "*data_set*",
+]
 markers = [
     "long_execution_time: mark test as having a long execution time",
     "requires_large_memory: mark test as requiring a large amount of RAM memory",
     "datarepo: mark a test as using drtsans-data repository",
-    "mount_eqsans: mark a test as using /SNS/EQSANS/shared/sans-backend/data/ data mount"
-    ]
+    "mount_eqsans: mark a test as using /SNS/EQSANS/shared/sans-backend/data/ data mount",
+]
 addopts = "--verbose -n 8"
 
-[aliases]
-test="pytest"
+# [aliases]
+# test = "pytest"

@@ -1,30 +1,35 @@
 # Move part of the methods from api.py to avoid importing in loops
-from mantid.simpleapi import (
-    mtd,
-    SaveAscii,
-)  # noqa E402
-
-# Import rolled up to complete a single top-level API
-from drtsans import apply_sensitivity_correction, solid_angle_correction  # noqa E402
-from drtsans import subtract_background  # noqa E402
-from drtsans.transmission import apply_transmission_correction  # noqa E402
-from drtsans.tof.eqsans.transmission import calculate_transmission  # noqa E402
-from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
-from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
-from drtsans.mask_utils import apply_mask  # noqa E402
-from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
-import numpy as np
-from drtsans.iq import bin_all  # noqa E402
-from drtsans.tof.eqsans.correction_api import (
-    do_inelastic_incoherence_correction,
-    save_k_vector,
-)
-from drtsans.tof.eqsans.elastic_reference_normalization import (
-    normalize_by_elastic_reference_all,
-)
 import os
 from collections import namedtuple
 from typing import Dict, List
+
+import numpy as np
+from mantid.simpleapi import (
+    SaveAscii,
+    mtd,
+)  # noqa E402
+
+# Import rolled up to complete a single top-level API
+from drtsans import (  # noqa E402
+    apply_sensitivity_correction,
+    solid_angle_correction,
+    subtract_background,  # noqa E402
+)
+from drtsans.iq import bin_all  # noqa E402
+from drtsans.mask_utils import apply_mask  # noqa E402
+from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
+from drtsans.tof.eqsans.correction_api import (
+    CorrectionConfiguration,
+    do_inelastic_incoherence_correction,
+    save_k_vector,
+)
+from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
+from drtsans.tof.eqsans.elastic_reference_normalization import (
+    normalize_by_elastic_reference_all,
+)
+from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
+from drtsans.tof.eqsans.transmission import calculate_transmission  # noqa E402
+from drtsans.transmission import apply_transmission_correction  # noqa E402
 
 # Binning parameters
 BinningSetup = namedtuple(
@@ -211,14 +216,14 @@ def bin_i_with_correction(
     annular_bin,
     wedges,
     symmetric_wedges,
-    incoherence_correction_setup,
+    correction_setup: CorrectionConfiguration,
     iq1d_elastic_ref_fr,
     iq2d_elastic_ref_fr,
     raw_name,
     output_dir,
     output_filename="",
 ):
-    """Bin I(Q) in 1D and 2D with the option to do inelastic incoherent correction
+    """Bin I(Q) in 1D and 2D with the option to do elastic and/or inelastic incoherent correction
 
     Parameters
     ----------
@@ -258,8 +263,8 @@ def bin_i_with_correction(
         on ``symmetric_wedges``
     symmetric_wedges: bool
         It will add the wedge offset by 180 degrees if True
-    incoherence_correction_setup: ~drtsans.tof.eqsans.correction_api.CorrectionConfiguration
-        Parameters for incoherence/inelastic scattering correction
+    correction_setup: ~drtsans.tof.eqsans.correction_api.CorrectionConfiguration
+        Parameters for elastic and inelastic/incoherence scattering correction
     iq1d_elastic_ref_fr: list[~drtsans.dataobjects.IQmod]
         Objects containing 1D unbinned data I(\|Q\|) for the elastic reference run
     iq2d_elastic_ref_fr: list[~drtsans.dataobjects.IQazimuthal]
@@ -280,7 +285,14 @@ def bin_i_with_correction(
           original wedges
     """
 
-    if incoherence_correction_setup.do_correction:
+    # Setup for corrections
+    if correction_setup.do_elastic_correction or correction_setup.do_inelastic_correction:
+        # If any correction is turned on, then weighted_errors is always true
+        weighted_errors = True
+
+        # Create output directory
+        os.makedirs(output_dir, exist_ok=True)
+
         # Define qmin and qmax for this frame
         if user_qmin is None:
             qmin = iq1d_in_frames[wl_frame].mod_q.min()
@@ -291,14 +303,9 @@ def bin_i_with_correction(
         else:
             qmax = user_qmax
 
-        # Determine qxrange and qyrange for this frame
-        qx_min = np.min(iq2d_in_frames[wl_frame].qx)
-        qx_max = np.max(iq2d_in_frames[wl_frame].qx)
-        qxrange = qx_min, qx_max
-
-        qy_min = np.min(iq2d_in_frames[wl_frame].qy)
-        qy_max = np.max(iq2d_in_frames[wl_frame].qy)
-        qyrange = qy_min, qy_max
+        # Set qxrange and qyrange for this frame
+        qxrange = np.min(iq2d_in_frames[wl_frame].qx), np.max(iq2d_in_frames[wl_frame].qx)
+        qyrange = np.min(iq2d_in_frames[wl_frame].qy), np.max(iq2d_in_frames[wl_frame].qy)
 
         # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
         iq2d_main_wl, iq1d_main_wl = bin_all(
@@ -328,8 +335,12 @@ def bin_i_with_correction(
                 f"Not expected that there are more than 1 IQmod main but " f"{len(iq1d_main_wl)}"
             )
 
-        os.makedirs(output_dir, exist_ok=True)
-        b_file_prefix = f"{raw_name}"
+    else:
+        ...
+
+    # Elastic correction
+    if correction_setup.do_elastic_correction:
+        k_file_prefix = f"{raw_name}"
 
         # Bin elastic reference run
         if iq1d_elastic_ref_fr:
@@ -361,7 +372,7 @@ def bin_i_with_correction(
                 iq2d_main_wl,
                 iq1d_main_wl[0],
                 iq1d_elastic_wl[0],
-                incoherence_correction_setup.output_wavelength_dependent_profile,
+                correction_setup.output_wavelength_dependent_profile,
                 output_dir,
             )
             iq1d_main_wl[0] = iq1d_wl
@@ -371,38 +382,39 @@ def bin_i_with_correction(
                 iq1d_wl.wavelength,
                 k_vec,
                 k_error_vec,
-                path=os.path.join(output_dir, f"{output_filename}_elastic_k1d_{b_file_prefix}.dat"),
+                path=os.path.join(output_dir, f"{output_filename}_elastic_k1d_{k_file_prefix}.dat"),
             )
 
+    # Inelastic incoherence correction
+    if correction_setup.do_inelastic_correction:
+        b_file_prefix = f"{raw_name}"
+
         # 1D correction
-        corrected_iq2d, corrected_iq1d = do_inelastic_incoherence_correction(
+        iq2d_main_wl, iq1d_wl = do_inelastic_incoherence_correction(
             iq2d_main_wl,
             iq1d_main_wl[0],
-            incoherence_correction_setup,
+            correction_setup,
             b_file_prefix,
             output_dir,
             output_filename,
         )
+        iq1d_main_wl[0] = iq1d_wl
 
+    if not correction_setup.do_inelastic_correction and not correction_setup.do_elastic_correction:
+        finite_iq1d = iq1d_in_frames[wl_frame]
+        finite_iq2d = iq2d_in_frames[wl_frame]
+        qmin = user_qmin
+        qmax = user_qmax
+    else:
         # Be finite
-        finite_iq1d = corrected_iq1d.be_finite()
-        finite_iq2d = corrected_iq2d.be_finite()
+        finite_iq1d = iq1d_main_wl[0].be_finite()
+        finite_iq2d = iq2d_main_wl.be_finite()
         # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
         assert len(iq1d_main_wl) == 1, (
             f"It is assumed that output I(Q) list contains 1 I(Q)" f" but not {len(iq1d_main_wl)}"
         )
-    else:
-        finite_iq2d = iq2d_in_frames[wl_frame]
-        finite_iq1d = iq1d_in_frames[wl_frame]
-        qmin = user_qmin
-        qmax = user_qmax
-    # END-IF-ELSE
 
-    # If incoherence correction is turned on, then weighted_errors is always ture.
-    # Or just use the user defined value.
-    if incoherence_correction_setup.do_correction:
-        weighted_errors = True
-
+    # Bin output in wavelength space
     iq2d_main_out, iq1d_main_out = bin_all(
         finite_iq2d,
         finite_iq1d,

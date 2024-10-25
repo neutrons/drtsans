@@ -1,10 +1,13 @@
 # Main method in this module implement step 2 of
 # wavelength dependent inelastic incoherent scattering correction
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
-from drtsans.dataobjects import verify_same_q_bins, IQmod, IQazimuthal, save_iqmod
-import numpy as np
 import os
+from dataclasses import dataclass
+from typing import Optional
 
+import numpy as np
+
+from drtsans.dataobjects import IQazimuthal, IQmod, save_iqmod, verify_same_q_bins
 
 __all__ = [
     "normalize_by_elastic_reference_all",
@@ -17,40 +20,30 @@ __all__ = [
 ]
 
 
-# TODO - make it dataclass when python is upgraded to 3.7
-# TODO - @dataclass
+@dataclass
 class ReferenceWavelengths:
     """
     Class for keeping track of reference wavelength for each momentum transfer Q (1D)
+
+    Parameters
+    ----------
+    q_values: ~numpy.ndarray
+        vector for Q
+    ref_wavelengths: ~numpy.ndarray
+        vector for reference wavelength vector for each Q
+    intensities: ~numpy.ndarray
+        vector for intensities of (Q, reference wavelength)
+    errors: ~numpy.ndarray
+        vector for errors of (Q, reference wavelength)
     """
 
-    # TODO - make the following as definition of dataclass when python is upgraded to 3.7
-    # q_vec: np.ndarray
-    # ref_wl_vec: np.ndarray
-    # intensity_vec: np.ndarray
-    # error_vec: np.ndarray
-
-    def __init__(self, q_values, ref_wavelengths, intensities, errors):
-        """Initialization
-
-        Parameters
-        ----------
-        q_values: ~numpy.ndarray
-            vector for Q
-        ref_wavelengths: ~numpy.ndarray
-            vector for reference wavelength vector for each Q
-        intensities: ~numpy.ndarray
-            vector for intensities of (Q, reference wavelength)
-        errors: ~numpy.ndarray
-            vector for errors of (Q, reference wavelength)
-        """
-        self.q_vec = q_values
-        self.ref_wl_vec = ref_wavelengths
-        self.intensity_vec = intensities
-        self.error_vec = errors
+    q_vec: np.ndarray
+    ref_wl_vec: np.ndarray
+    intensity_vec: np.ndarray
+    error_vec: np.ndarray
 
 
-def reshape_q_wavelength_matrix(i_of_q):
+def reshape_q_wavelength_matrix(i_of_q: IQmod) -> tuple:
     """Reshape I(Q) into a mesh grid of (Q, wavelength)
 
     Parameters
@@ -185,12 +178,12 @@ def calculate_elastic_reference_normalization(wl_vec, q_vec, ref_i_of_q):
 
 
 def normalize_by_elastic_reference_1d(
-    i_of_q,
-    k_vec,
-    k_error_vec,
-    output_wavelength_dependent_profile=False,
-    output_dir=None,
-):
+    i_of_q: IQmod,
+    k_vec: np.ndarray,
+    k_error_vec: np.ndarray,
+    output_wavelength_dependent_profile: bool = False,
+    output_dir: Optional[str] = None,
+) -> IQmod:
     """Normalize I(Q1D) by wavelength-dependent elastic reference normalization factor
 
     Parameters
@@ -317,7 +310,7 @@ def normalize_by_elastic_reference_2d(i_of_q, k_vec, k_error_vec):
     return normalized_i_of_q
 
 
-def build_i_of_q1d(wl_vector, q_vector, intensity_array, error_array, delta_q_array):
+def build_i_of_q1d(wl_vector, q_vector, intensity_array, error_array, delta_q_array) -> IQmod:
     """From wavelength, Q, intensity, error and delta Q to build I(Q1D)
 
     This is the reversed operation to method reshape_q_wavelength_matrix

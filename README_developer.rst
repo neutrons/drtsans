@@ -56,7 +56,7 @@ To make it easier to use, configure `direnv <https://direnv.net>`_ to activate t
 
  .. code-block:: shell
 
-    $ python setup.py develop
+    $ pip install -e .
 
 4. Try it out. Start ``python`` and try
 
@@ -106,6 +106,15 @@ To update the submodule to the latest commit on the branch being tracked
 .. code-block:: shell
 
    $ git submodule update --remote --merge
+
+where ``--remote`` tells git to fetch the latest changes from the upstream repository and ``--merge`` tells git to merge the changes into the working tree.
+
+Then, to get the data files associated with the submodule, run
+
+.. code-block:: shell
+
+   $ cd tests/data/drtsans-data
+   $ git lfs fetch
 
 See the `git-submodules documentation <https://git-scm.com/book/en/v2/Git-Tools-Submodules>`_ for more detailed information.
 

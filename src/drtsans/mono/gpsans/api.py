@@ -1347,6 +1347,14 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         "sample_transmission": sample_transmission_dict,
         "background_transmission": background_transmission_dict,
     }
+    if processed_data_main.run().hasProperty("direct_beam_scaling") and processed_data_main.run().hasProperty(
+        "direct_beam_scaling_error"
+    ):
+        scaling_value = processed_data_main.run().getProperty("direct_beam_scaling").value
+        scaling_error = processed_data_main.run().getProperty("direct_beam_scaling_error").value
+        logger.notice(f"Direct Beam Scaling: {scaling_value}\tError: {scaling_error}")
+        specialparameters["direct_beam_scaling"] = {"value": scaling_value, "error": scaling_error}
+
     samplelogs = {"main": SampleLogs(processed_data_main)}
     logslice_data_dict = reduction_input["logslice_data"]
 

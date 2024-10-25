@@ -154,3 +154,8 @@ def test_empty_beam_scaling(workspace_with_instrument, test_data_15b, temp_works
     assert mtd[data_workspace].readE(center_pixel_id)[0] == pytest.approx(
         test_data_15b.scaled_uncertainty, abs=test_data_15b.precision
     )
+
+    # Check that the beam scaling is saved as a property in the workspace
+    ws = mtd[data_workspace]
+    assert ws.run().hasProperty("direct_beam_scaling")
+    assert ws.run().hasProperty("direct_beam_scaling_error")

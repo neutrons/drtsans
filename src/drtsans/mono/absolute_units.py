@@ -144,6 +144,11 @@ def empty_beam_scaling(
         output_workspace=beam_intensity,
     )
 
+    ws = mtd[beam_intensity]
+    input_ws = mtd[str(input_workspace)]
+    input_ws.mutableRun().addProperty("direct_beam_scaling", float(ws.readY(0)[0]), True)
+    input_ws.mutableRun().addProperty("direct_beam_scaling_error", float(ws.readE(0)[0]), True)
+
     # Divide the sample intensity by the empty beam intensity
     Divide(
         LHSWorkspace=input_workspace,

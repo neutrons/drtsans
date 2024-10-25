@@ -180,6 +180,10 @@ def test_reduction(datarepo_dir, temp_directory):
         prefix="CG2MetaRaw_",
     )
 
+    output_log = h5py.File(os.path.join(output_dir, f"{sample_names[0]}_reduction_log.hdf"), "r")
+    assert output_log["reduction_information"]["special_parameters"]["direct_beam_scaling"]["value"]
+    assert output_log["reduction_information"]["special_parameters"]["direct_beam_scaling"]["error"]
+
     # NOTE:
     # mysterious leftover workspaces in memory
     # _bkgd_trans:	1.182917 MB

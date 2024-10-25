@@ -1,5 +1,9 @@
 # project specific things to ignore
-drtsans/_version.py
+src/drtsans/_version.py
+BIOSANS_Definition.xml
+CG3_Definition.xml
+BIOSANS_54900090001_flood.nxs
+/test_output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -116,6 +120,3 @@ testenv2.7
 
 # gvim
 *.swp
-
-#version
-src/drtsans/_version.py

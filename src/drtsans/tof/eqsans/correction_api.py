@@ -53,7 +53,6 @@ Case 2: If an elastic reference run is specified.
 """
 
 
-# TODO - when python is upgraded to 3.7+, this class shall be wrapped as dataclass
 class CorrectionConfiguration:
     """
     A data class/structure to hold the parameters configured to do incoherence/inelastic
@@ -61,8 +60,10 @@ class CorrectionConfiguration:
 
     Parameters
     ----------
-    do_correction: bool
-        if to do correction or not
+    do_elastic_correction: bool
+        whether to do elastic correction or not
+    do_inelastic_correction: bool
+        whether to do correction or not
     select_minimum_incoherence: bool
         flag to determine correction B by minimum incoherence
     intensity_weighted: bool
@@ -79,7 +80,8 @@ class CorrectionConfiguration:
 
     def __init__(
         self,
-        do_correction=False,
+        do_elastic_correction=False,
+        do_inelastic_correction=False,
         select_min_incoherence=False,
         select_intensityweighted=False,
         qmin=None,
@@ -87,7 +89,8 @@ class CorrectionConfiguration:
         factor=None,
         output_wavelength_dependent_profile=False,
     ):
-        self._do_correction = do_correction
+        self._do_elastic_correction = do_elastic_correction
+        self._do_inelastic_correction = do_inelastic_correction
         self._select_min_incoherence = select_min_incoherence
         self._select_intensityweighted = select_intensityweighted
         self._qmin = qmin
@@ -98,21 +101,35 @@ class CorrectionConfiguration:
         self._output_wavelength_dependent_profile = output_wavelength_dependent_profile
 
     def __str__(self):
-        if self._do_correction:
-            output = (
-                f"Do correction: select min incoherence = {self._select_min_incoherence}, "
-                f"thickness = {self._sample_thickness}, "
+        output = ""
+        if not self._do_elastic_correction and not self._do_inelastic_correction:
+            output = "No correction"
+        if self._do_elastic_correction:
+            output += "Do elastic correction, "
+        if self._do_inelastic_correction:
+            output += (
+                f"Do incoherent inelastic correction: select min incoherence = {self._select_min_incoherence}, "
+                f"sample_thickness = {self._sample_thickness}, "
                 f"select_intensityweighted = {self._select_intensityweighted}, "
                 f"qmin = {self._qmin}, q_max = {self._qmax}, factor = {self._factor}"
             )
-        else:
-            output = "No correction"
-
         return output
 
     @property
-    def do_correction(self):
-        return self._do_correction
+    def do_elastic_correction(self):
+        return self._do_elastic_correction
+
+    @do_elastic_correction.setter
+    def do_elastic_correction(self, flag):
+        self._do_elastic_correction = flag
+
+    @property
+    def do_inelastic_correction(self):
+        return self._do_inelastic_correction
+
+    @do_inelastic_correction.setter
+    def do_inelastic_correction(self, flag):
+        self._do_inelastic_correction = flag
 
     @property
     def select_min_incoherence(self):
@@ -164,7 +181,6 @@ class CorrectionConfiguration:
         return self._output_wavelength_dependent_profile
 
 
-# TODO - when python is upgraded to 3.7+, this class shall be wrapped as dataclass
 class ElasticReferenceRunSetup:
     """
     A data class/structure to hold the reference run
@@ -212,13 +228,21 @@ class ElasticReferenceRunSetup:
             )
 
 
-def parse_correction_config(reduction_config):
+def parse_correction_config(
+    reduction_config,
+    not_apply_elastic_correction: bool = False,
+    not_apply_incoherence_correction: bool = False,
+) -> CorrectionConfiguration:
     """Parse correction configuration from reduction configuration (top level)
 
     Parameters
     ----------
     reduction_config: ~dict
         reduction configuration from JSON
+    not_apply_elastic_correction: bool
+        flag to skip elastic correction
+    not_apply_incoherence_correction: bool
+        flag to skip incoherence correction
 
     Returns
     -------
@@ -228,13 +252,19 @@ def parse_correction_config(reduction_config):
     """
     # an exception case
     if "configuration" not in reduction_config:
-        _config = CorrectionConfiguration(False)
+        _config = CorrectionConfiguration(
+            do_elastic_correction=False,
+            do_inelastic_correction=False,
+        )
     else:
         # properly configured
         run_config = reduction_config["configuration"]
 
         # incoherence inelastic correction setup: basic
-        do_correction = run_config.get("fitInelasticIncoh", False)
+        if not_apply_incoherence_correction:
+            do_inelastic_correction = False
+        else:
+            do_inelastic_correction = run_config.get("fitInelasticIncoh", False)
         select_min_incoherence = run_config.get("selectMinIncoh", False)
         select_intensityweighted = run_config.get("incohfit_intensityweighted", False)
         qmin = run_config.get("incohfit_qmin")
@@ -243,7 +273,8 @@ def parse_correction_config(reduction_config):
         output_wavelength_dependent_profile = run_config.get("outputWavelengthDependentProfile", False)
 
         _config = CorrectionConfiguration(
-            do_correction,
+            False,  # do_elastic_correction is False unless elastic ref run number is specified later
+            do_inelastic_correction,
             select_min_incoherence,
             select_intensityweighted,
             qmin,
@@ -284,6 +315,7 @@ def parse_correction_config(reduction_config):
 
                     # Set to configuration
                     _config.set_elastic_reference(elastic_ref_config)
+                    _config.do_elastic_correction = not not_apply_elastic_correction
                 except IndexError as index_err:
                     raise RuntimeError(f"Invalid JSON for elastic reference run setup: {index_err}")
 

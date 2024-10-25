@@ -1,9 +1,10 @@
-""" Top-level API for EQSANS """
+"""Top-level API for EQSANS"""
+
 # standard imports
-from collections import namedtuple
 import copy
-from datetime import datetime
 import os
+from collections import namedtuple
+from datetime import datetime
 from typing import Dict, List, Optional, Set, Tuple
 
 # third party imports
@@ -17,52 +18,54 @@ from drtsans import (
     getWedgeSelection,
     load_sensitivity_workspace,
     solid_angle_correction,
+    subtract_background,  # noqa E402
 )  # noqa E402
-from drtsans import subtract_background  # noqa E402
+from drtsans.beam_finder import fbc_options_json, find_beam_center  # noqa E402
+from drtsans.dataobjects import save_iqmod  # noqa E402
+from drtsans.instruments import extract_run_number  # noqa E402
+from drtsans.iq import bin_all  # noqa E402
 from drtsans.load import resolve_slicing
-from drtsans.settings import namedtuplefy  # noqa E402
+from drtsans.mask_utils import apply_mask, load_mask  # noqa E402
+from drtsans.path import (  # noqa E402
+    abspath,
+    abspaths,
+    allow_overwrite,  # noqa E402
+    registered_workspace,
+)
+from drtsans.plots import plot_IQazimuthal, plot_IQmod  # noqa E402
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa E402
+from drtsans.samplelogs import SampleLogs  # noqa E402
+from drtsans.save_2d import save_nexus, save_nist_dat  # noqa E402
 from drtsans.save_ascii import (
     save_ascii_1D,
-    save_xml_1D,
     save_ascii_binned_2D,
+    save_xml_1D,
 )  # noqa E402
-from drtsans.save_2d import save_nist_dat, save_nexus  # noqa E402
-from drtsans.transmission import apply_transmission_correction  # noqa E402
-from drtsans.tof.eqsans.transmission import calculate_transmission  # noqa E402
+from drtsans.settings import namedtuplefy  # noqa E402
 from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
-from drtsans.beam_finder import find_beam_center, fbc_options_json  # noqa E402
-from drtsans.instruments import extract_run_number  # noqa E402
-from drtsans.path import abspath, abspaths, registered_workspace  # noqa E402
+from drtsans.tof.eqsans.cfg import load_config  # noqa E402
+from drtsans.tof.eqsans.correction_api import (
+    parse_correction_config,
+)
+from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
 from drtsans.tof.eqsans.load import (
+    load_and_split_and_histogram,
     load_events,
     load_events_and_histogram,
-    load_and_split_and_histogram,
 )  # noqa E402
-from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
-from drtsans.tof.eqsans.cfg import load_config  # noqa E402
-from drtsans.samplelogs import SampleLogs  # noqa E402
-from drtsans.mask_utils import apply_mask, load_mask  # noqa E402
-from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.meta_data import set_meta_data  # noqa E402
 from drtsans.tof.eqsans.momentum_transfer import (
     convert_to_q,
     split_by_frame,
 )  # noqa E402
-from drtsans.plots import plot_IQmod, plot_IQazimuthal  # noqa E402
-from drtsans.iq import bin_all  # noqa E402
-from drtsans.dataobjects import save_iqmod  # noqa E402
-from drtsans.path import allow_overwrite  # noqa E402
+from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.reduction_api import (
+    bin_i_with_correction,
     prepare_data_workspaces,
     process_transmission,
-    bin_i_with_correction,
 )
-from drtsans.tof.eqsans.correction_api import (
-    parse_correction_config,
-    CorrectionConfiguration,
-)
-
+from drtsans.tof.eqsans.transmission import calculate_transmission  # noqa E402
+from drtsans.transmission import apply_transmission_correction  # noqa E402
 
 __all__ = [
     "apply_solid_angle_correction",
@@ -630,8 +633,10 @@ def reduce_single_configuration(
     reduction_input,
     prefix="",
     skip_nan=True,
+    not_apply_elastic_correction: bool = False,
     not_apply_incoherence_correction: bool = False,
 ):
+    # TODO: finish this incomplete docstring
     """Reduce samples from raw workspaces including
     1. prepare data
     1.
@@ -650,8 +655,10 @@ def reduce_single_configuration(
         reduction configuration
     prefix
     skip_nan
+    not_apply_elastic_correction: bool
+        If true, then no elastic scattering correction will be applied to reduction overriding JSON
     not_apply_incoherence_correction: bool
-        If true, then no incoherence scattering correction will be applied to reduction overriding JSON
+        If true, then no inelastic incoherence scattering correction will be applied to reduction overriding JSON
 
     Returns
     -------
@@ -662,14 +669,13 @@ def reduce_single_configuration(
     # Process reduction input: configuration and etc.
     reduction_config = reduction_input["configuration"]
 
-    # Process inelastic/incoherent scattering correction configuration if user does not specify
-    assert isinstance(not_apply_incoherence_correction, bool), "Only boolean for not_apply flag is allowed"
-    if not_apply_incoherence_correction is True:
-        # allow user to override JSON setup
-        incoherence_correction_setup = CorrectionConfiguration(do_correction=False)
-    else:
-        # parse JSON for correction setup
-        incoherence_correction_setup = parse_correction_config(reduction_input)
+    # Process elastic and inelastic/incoherent scattering correction configuration if user does not specify
+    # TODO: This assert line is probably not necessary due to type hinting - can test separately by passing wrong type
+    assert isinstance(not_apply_elastic_correction, bool), "Only boolean for skip flag is allowed"
+    assert isinstance(not_apply_incoherence_correction, bool), "Only boolean for skip flag is allowed"
+    correction_setup = parse_correction_config(
+        reduction_input, not_apply_elastic_correction, not_apply_incoherence_correction
+    )
 
     # process: flux, monitor, proton charge, ...
     flux_method_translator = {
@@ -793,10 +799,10 @@ def reduce_single_configuration(
     ############################
     # PROCESS ELASTIC REFERENCE
     ############################
-    if incoherence_correction_setup.do_correction and incoherence_correction_setup.elastic_reference:
+    if correction_setup.do_elastic_correction and correction_setup.elastic_reference:
         # sanity check
         assert loaded_ws.elastic_reference.data, (
-            f"Reference run is not loaded: " f"{incoherence_correction_setup.elastic_reference}"
+            f"Reference run is not loaded: " f"{correction_setup.elastic_reference}"
         )
 
         ##############################################
@@ -846,7 +852,7 @@ def reduce_single_configuration(
         ############################
         # I(Q) OF ELASTIC REFERENCE
         ############################
-        elastic_ref = incoherence_correction_setup.elastic_reference
+        elastic_ref = correction_setup.elastic_reference
         processed_elastic_ref = pre_process_single_configuration(
             loaded_ws.elastic_reference,
             sample_trans_ws=elasticref_trans_ws,
@@ -981,7 +987,7 @@ def reduce_single_configuration(
                 annular_bin,
                 wedges,
                 symmetric_wedges,
-                incoherence_correction_setup,
+                correction_setup,
                 iq1d_elastic_ref_frames,
                 iq2d_elastic_ref_frames,
                 raw_name,

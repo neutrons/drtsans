@@ -1,29 +1,48 @@
-# local imports
+import glob
+import json
+import os
+from pathlib import Path
+
+import numpy as np
+import pytest
+from mantid.kernel import amend_config
+from mantid.simpleapi import DeleteWorkspace, mtd
+
+from drtsans.redparms import ReductionParameterError
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (
     load_all_files,
     reduce_single_configuration,
-)  # noqa E402
-
-# third party imports
-from mantid.simpleapi import mtd, DeleteWorkspace
-from mantid.kernel import amend_config
-import pytest
-
-# standard library imports
-import json
-from drtsans.redparms import ReductionParameterError
-import os
-import glob
-import numpy as np
+)
+from drtsans.tof.eqsans.correction_api import parse_correction_config
 
 
 @pytest.mark.datarepo
-def test_parse_json(datarepo_dir):
+@pytest.mark.parametrize(
+    "elastic_reference_run, fitInelasticIncoh, "
+    + "skip_elastic, skip_inelastic, expected_do_elastic, expected_do_inelastic",
+    [
+        ("92160", True, False, False, True, True),  # both
+        (None, False, False, False, False, False),  # none
+        (None, True, False, False, False, True),  # inelastic only
+        ("92160", False, False, False, True, False),  # elastic only
+        ("92160", True, True, False, False, True),  # skip elastic
+        ("92160", True, False, True, True, False),  # skip inelastic
+        ("92160", True, True, True, False, False),  # skip both
+    ],
+    ids=["both", "none", "elastic_only", "inelastic_only", "skip_elastic", "skip_inelastic", "skip_both"],
+)
+def test_parse_json(
+    elastic_reference_run,
+    fitInelasticIncoh,
+    skip_elastic,
+    skip_inelastic,
+    expected_do_elastic,
+    expected_do_inelastic,
+    datarepo_dir,
+):
     """Test the JSON to dictionary"""
 
-    elastic_reference_run = "92160"
-    elastic_reference_bkgd_run = ""
     # Specify JSON input
     reduction_input = {
         "instrumentName": "EQSANS",
@@ -48,14 +67,14 @@ def test_parse_json(datarepo_dir):
             "WedgeMaxAngles": "30, 120",
             "AnnularAngleBin": "5",
             "useSliceIDxAsSuffix": True,
-            "fitInelasticIncoh": True,
+            "fitInelasticIncoh": fitInelasticIncoh,
             "elasticReference": {
                 "runNumber": elastic_reference_run,
                 "thickness": "1.0",
                 "transmission": {"runNumber": None, "value": "0.89"},
             },
             "elasticReferenceBkgd": {
-                "runNumber": elastic_reference_bkgd_run,
+                "runNumber": "",
                 "transmission": {"runNumber": "", "value": "0.9"},
             },
             "selectMinIncoh": True,
@@ -69,20 +88,20 @@ def test_parse_json(datarepo_dir):
         input_config = reduction_parameters(reduction_input)
 
     # Check that inelastic incoherence config items were parsed
-    assert input_config["configuration"].get("fitInelasticIncoh")
+    assert input_config["configuration"].get("fitInelasticIncoh") == fitInelasticIncoh
     assert input_config["configuration"]["elasticReference"].get("runNumber") == elastic_reference_run
     assert input_config["configuration"].get("selectMinIncoh")
 
     # Parse
-    from drtsans.tof.eqsans.correction_api import parse_correction_config
-
-    correction = parse_correction_config(input_config)
-    assert correction.do_correction
-    assert correction.elastic_reference
-    assert correction.elastic_reference.run_number == "92160"
-    assert correction.elastic_reference.thickness == 1.0
-    assert correction.elastic_reference.transmission_value == 0.89
-    assert correction.elastic_reference.background_run_number is None
+    correction = parse_correction_config(input_config, skip_elastic, skip_inelastic)
+    assert correction.do_elastic_correction == expected_do_elastic
+    assert correction.do_inelastic_correction == expected_do_inelastic
+    if expected_do_elastic:
+        assert correction.elastic_reference
+        assert correction.elastic_reference.run_number == "92160"
+        assert correction.elastic_reference.thickness == 1.0
+        assert correction.elastic_reference.transmission_value == 0.89
+        assert correction.elastic_reference.background_run_number is None
 
 
 @pytest.mark.datarepo
@@ -153,11 +172,22 @@ def test_parse_invalid_json(datarepo_dir):
 
 
 @pytest.mark.datarepo
-def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directory):
+@pytest.mark.parametrize(
+    "fitInelasticIncoh, elastic_reference_run",
+    [
+        (False, False),
+        (True, False),
+        (False, True),
+        (True, True),
+    ],
+)
+def test_incoherence_correction_elastic_normalization(
+    fitInelasticIncoh, elastic_reference_run, datarepo_dir, temp_directory
+):
     """Test incoherence correction with elastic correction"""
 
     # Set up the configuration dict
-    config_json_file = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction/agbe_125707_test1.json")
+    config_json_file = os.path.join(datarepo_dir.eqsans, "test_corrections/agbe_125707_test1.json")
     assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
     with open(config_json_file, "r") as config_json:
         configuration = json.load(config_json)
@@ -165,21 +195,33 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
 
     # Create temp output directory
     test_dir = temp_directory()
-    base_name = "EQSANS_125707_"
+    # test_dir = "test_output"
+    base_name = "EQSANS_125707"
+    corrections = (fitInelasticIncoh, elastic_reference_run)
+    if corrections == (False, False):
+        correction_case = "no_correction"
+    elif corrections == (True, False):
+        correction_case = "inelastic_correction"
+    elif corrections == (False, True):
+        correction_case = "elastic_correction"
+    elif corrections == (True, True):
+        correction_case = "elastic_inelastic_correction"
 
-    assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
+    output_dir = Path(test_dir) / f"{base_name}_{correction_case}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     configuration["configuration"]["outputDir"] = test_dir
-    configuration["outputFileName"] = base_name
-    configuration["dataDirectories"] = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction")
+    configuration["outputFileName"] = f"{base_name}_{correction_case}"
+    configuration["dataDirectories"] = os.path.join(datarepo_dir.eqsans, "test_corrections")
     configuration["configuration"]["outputWavelengthDependentProfile"] = True
     configuration["configuration"]["maskFileName"] = os.path.join(
-        datarepo_dir.eqsans, "test_incoherence_correction", "beamstop_mask_4m_ext.nxs"
+        datarepo_dir.eqsans, "test_corrections", "beamstop_mask_4m_ext.nxs"
     )
     configuration["configuration"][
         "darkFileName"
     ] = "/bin/true"  # so that it will pass the validator, later set to None
     configuration["configuration"]["sensitivityFileName"] = os.path.join(
-        datarepo_dir.eqsans, "test_incoherence_correction", "Sensitivity_patched_thinPMMA_4m_124972.nxs"
+        datarepo_dir.eqsans, "test_corrections", "Sensitivity_patched_thinPMMA_4m_124972.nxs"
     )
     configuration["configuration"]["instrumentConfigurationDir"] = os.path.join(
         datarepo_dir.eqsans, "instrument_configuration"
@@ -191,70 +233,83 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
     configuration["configuration"]["numQBins"] = 80
     configuration["configuration"]["numQxQyBins"] = 40
 
+    # override individual correction settings
+    if not elastic_reference_run:
+        configuration["configuration"]["elasticReference"]["runNumber"] = None
+    if not fitInelasticIncoh:
+        configuration["configuration"]["fitInelasticIncoh"] = False
+
     # validate and clean configuration
     input_config = reduction_parameters(configuration)
     input_config["configuration"]["darkFileName"] = None
     loaded = load_all_files(input_config)
 
     # check loaded JSON file
-    assert loaded.elastic_reference.data
+    if elastic_reference_run:
+        assert loaded.elastic_reference.data
     assert loaded.elastic_reference_background.data is None
 
     # Reduce
-    reduction_output = reduce_single_configuration(loaded, input_config, not_apply_incoherence_correction=False)
+    reduction_output = reduce_single_configuration(
+        loaded_ws=loaded,
+        reduction_input=input_config,
+        not_apply_incoherence_correction=not fitInelasticIncoh,
+        not_apply_elastic_correction=not elastic_reference_run,
+    )
     assert reduction_output
-    print(f"Output directory: {test_dir}")
 
     # Check output result
-    iq1d_base_name = "EQSANS_125707__Iq.dat"
+    iq1d_base_name = f"{base_name}_{correction_case}_Iq.dat"
     test_iq1d_file = os.path.join(test_dir, iq1d_base_name)
     assert os.path.exists(test_iq1d_file), f"Expected test result {test_iq1d_file} does not exist"
 
-    gold_dir = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction")
+    reference_data_dir = os.path.join(datarepo_dir.eqsans, "test_corrections", correction_case)
     np.testing.assert_allclose(
         np.loadtxt(test_iq1d_file),
-        np.loadtxt(os.path.join(gold_dir, iq1d_base_name)),
+        np.loadtxt(os.path.join(reference_data_dir, iq1d_base_name)),
     )
 
     # Check 2D output result
-    iq2d_base_name = "EQSANS_125707__Iqxqy.dat"
+    iq2d_base_name = f"{base_name}_{correction_case}_Iqxqy.dat"
     test_iq2d_file = os.path.join(test_dir, iq2d_base_name)
     assert os.path.exists(test_iq2d_file), f"Expected test result {test_iq2d_file} does not exist"
 
     np.testing.assert_allclose(
         np.loadtxt(test_iq2d_file, skiprows=4),
-        np.loadtxt(os.path.join(gold_dir, iq2d_base_name), skiprows=4),
+        np.loadtxt(os.path.join(reference_data_dir, iq2d_base_name), skiprows=4),
     )
 
     # check that the wavelength dependent profiles are created
     number_of_wavelengths = 31
-    output_dir = os.path.join(test_dir, base_name, "slice_0", "frame_0")
-    # before k correction
-    assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_k_correction.dat"))) == number_of_wavelengths
-    # after k correction
-    assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_k_correction.dat"))) == number_of_wavelengths
-    # before b correction
-    assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_b_correction.dat"))) == number_of_wavelengths
-    # after b correction
-    assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_b_correction.dat"))) == number_of_wavelengths
+    output_dir = os.path.join(test_dir, f"{base_name}_{correction_case}", "slice_0", "frame_0")
+    if correction_case in ["elastic_correction", "elastic_inelastic_correction"]:
+        assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_k_correction.dat"))) == number_of_wavelengths
+        assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_k_correction.dat"))) == number_of_wavelengths
+    elif correction_case in ["inelastic_correction", "elastic_inelastic_correction"]:
+        assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_b_correction.dat"))) == number_of_wavelengths
+        assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_b_correction.dat"))) == number_of_wavelengths
+    else:
+        pass
 
-    # check the k factor file
-    k_base_name = "EQSANS_125707__elastic_k1d_EQSANS_125707.dat"
-    test_k_file = os.path.join(output_dir, k_base_name)
-    assert os.path.exists(test_k_file), f"Expected test result {test_k_file} does not exist"
-    np.testing.assert_allclose(
-        np.loadtxt(test_k_file, delimiter=",", skiprows=1),
-        np.loadtxt(os.path.join(gold_dir, k_base_name), delimiter=",", skiprows=1),
-    )
+    # check the k factor file, if elastic correction is enabled
+    if elastic_reference_run:
+        k_base_name = f"{base_name}_{correction_case}_elastic_k1d_{base_name}.dat"
+        test_k_file = os.path.join(output_dir, k_base_name)
+        assert os.path.exists(test_k_file), f"Expected test result {test_k_file} does not exist"
+        np.testing.assert_allclose(
+            np.loadtxt(test_k_file, delimiter=",", skiprows=1),
+            np.loadtxt(os.path.join(reference_data_dir, k_base_name), delimiter=",", skiprows=1),
+        )
 
-    # check the b factor file
-    b_base_name = "EQSANS_125707__inelastic_b1d_EQSANS_125707.dat"
-    test_b_file = os.path.join(output_dir, b_base_name)
-    assert os.path.exists(test_b_file), f"Expected test result {test_b_file} does not exist"
-    np.testing.assert_allclose(
-        np.loadtxt(test_b_file, delimiter=",", skiprows=1),
-        np.loadtxt(os.path.join(gold_dir, b_base_name), delimiter=",", skiprows=1),
-    )
+    # check the b factor file, if inelastic correction is enabled
+    if fitInelasticIncoh:
+        b_base_name = f"{base_name}_{correction_case}_inelastic_b1d_{base_name}.dat"
+        test_b_file = os.path.join(output_dir, b_base_name)
+        assert os.path.exists(test_b_file), f"Expected test result {test_b_file} does not exist"
+        np.testing.assert_allclose(
+            np.loadtxt(test_b_file, delimiter=",", skiprows=1),
+            np.loadtxt(os.path.join(reference_data_dir, b_base_name), delimiter=",", skiprows=1),
+        )
 
     # cleanup
     # NOTE: loaded is not a dict that is iterable, so we have to delete the
@@ -273,7 +328,8 @@ def test_incoherence_correction_elastic_normalization(datarepo_dir, temp_directo
     DeleteWorkspace("_mask")
     DeleteWorkspace("_sensitivity")
     DeleteWorkspace("processed_data_main")
-    DeleteWorkspace("processed_elastic_ref")
+    if elastic_reference_run:
+        DeleteWorkspace("processed_elastic_ref")
     for ws in mtd.getObjectNames():
         if str(ws).startswith("_EQSANS_"):
             DeleteWorkspace(ws)
@@ -284,7 +340,7 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
     """Test incoherence correction with elastic correction"""
 
     # Set up the configuration dict
-    config_json_file = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction/porsil_29024_abs_inel.json")
+    config_json_file = os.path.join(datarepo_dir.eqsans, "test_corrections/porsil_29024_abs_inel.json")
     assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
     with open(config_json_file, "r") as config_json:
         configuration = json.load(config_json)
@@ -307,16 +363,12 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
         assert reduction_output
 
         test_iq1d_file = os.path.join(test_dir, config["outputFileName"] + "_Iq.dat")
-        gold_iq1d_file = os.path.join(
-            datarepo_dir.eqsans, "test_incoherence_correction", expected_result_basename + "_Iq.dat"
-        )
+        gold_iq1d_file = os.path.join(datarepo_dir.eqsans, "test_corrections", expected_result_basename + "_Iq.dat")
         # compare
         np.testing.assert_allclose(np.loadtxt(test_iq1d_file), np.loadtxt(gold_iq1d_file))
 
         test_iq2d_file = os.path.join(test_dir, config["outputFileName"] + "_Iqxqy.dat")
-        gold_iq2d_file = os.path.join(
-            datarepo_dir.eqsans, "test_incoherence_correction", expected_result_basename + "_Iqxqy.dat"
-        )
+        gold_iq2d_file = os.path.join(datarepo_dir.eqsans, "test_corrections", expected_result_basename + "_Iqxqy.dat")
         # compare
         np.testing.assert_allclose(np.loadtxt(test_iq2d_file, skiprows=4), np.loadtxt(gold_iq2d_file, skiprows=4))
 
@@ -333,18 +385,18 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
     configuration["configuration"]["outputDir"] = test_dir
     configuration["outputFileName"] = base_name
-    configuration["dataDirectories"] = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction")
+    configuration["dataDirectories"] = os.path.join(datarepo_dir.eqsans, "test_corrections")
     configuration["configuration"][
         "darkFileName"
     ] = "/bin/true"  # so that it will pass the validator, later set to None
     configuration["configuration"]["sensitivityFileName"] = os.path.join(
-        datarepo_dir.eqsans, "test_incoherence_correction", "Sensitivity_patched_thinPMMA_4m_129610.nxs"
+        datarepo_dir.eqsans, "test_corrections", "Sensitivity_patched_thinPMMA_4m_129610.nxs"
     )
     configuration["configuration"]["instrumentConfigurationDir"] = os.path.join(
         datarepo_dir.eqsans, "instrument_configuration"
     )
     configuration["configuration"]["maskFileName"] = os.path.join(
-        datarepo_dir.eqsans, "test_incoherence_correction", "EQSANS_132078_mask.nxs"
+        datarepo_dir.eqsans, "test_corrections", "EQSANS_132078_mask.nxs"
     )
     configuration["configuration"]["beamFluxFileName"] = os.path.join(
         datarepo_dir.eqsans, "test_normalization", "beam_profile_flux.txt"
@@ -389,7 +441,7 @@ def test_incoherence_correction_elastic_normalization_slices_frames(has_sns_moun
         pytest.skip("SNS mount is not available")
 
     # Set up the configuration dict
-    config_json_file = os.path.join(datarepo_dir.eqsans, "test_incoherence_correction/test_136908.json")
+    config_json_file = os.path.join(datarepo_dir.eqsans, "test_corrections/test_136908.json")
     assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
     with open(config_json_file, "r") as config_json:
         configuration = json.load(config_json)

@@ -1,6 +1,6 @@
 name: drtsans-dev
 channels:
-  - mantid/label/nightly
+  - mantid/label/main
   - conda-forge
   - defaults
 dependencies:
@@ -15,7 +15,7 @@ dependencies:
   - conda-verify
   - versioningit
   # runtime
-  - mantid>=6.10
+  - mantid>=6.11
   - numexpr
   - pandas
   - lmfit<1.2.0

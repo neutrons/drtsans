@@ -8,6 +8,7 @@ variables:
 # to reuse setup and teardown commands
 #####
 .startup_cleanup: &startup_cleanup
+  - test -d .ruff_cache && ls -lR .ruff_cache && sudo rm -rf .ruff_cache
   - curl https://code.ornl.gov/rse-deployment/rse-sharables/raw/master/rse-bash-modules.sh -O
   - source rse-bash-modules.sh
   - func_rse_docker_cleanup
@@ -34,6 +35,11 @@ stages:
 pre-commit:
   stage: static-analysis
   retry: 1
+  cache:
+    paths:
+      - .ruff_cache
+    #  pull .ruff_cache cache from previous pipeline. Do not attempt to delete, modify, or clean up
+    policy: pull
   before_script:
     - *startup_cleanup
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
@@ -45,13 +51,17 @@ pre-commit:
   after_script:
     - *teardown_cleanup
     - sudo chown -R gitlab-runner .
-    - test -d .ruff_cache && sudo chown -R gitlab-runner .ruff_cache
   tags:
     - neutrons-multi-builder
 
 dockerbuild:
   stage: dockerbuild
   retry: 1
+  cache:
+    paths:
+      - .ruff_cache
+    #  pull .ruff_cache cache from previous pipeline. Do not attempt to delete, modify, or clean up
+    policy: pull
   before_script:
     - *startup_cleanup
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
@@ -68,10 +78,16 @@ dockerbuild:
 
 create-wheel:
   stage: test
+  cache:
+    paths:
+      - .ruff_cache
+    #  pull .ruff_cache cache from previous pipeline. Do not attempt to delete, modify, or clean up
+    policy: pull
   dependencies:
     - dockerbuild
-  script:
+  before_script:
     - *startup_cleanup
+  script:
     - set -x
     - sudo rm -rf /tmp/sans-backend || true
     - sudo mkdir -p /tmp/sans-backend
@@ -91,6 +107,11 @@ create-wheel:
 code-unit-test:
   stage: test
   retry: 1
+  cache:
+    paths:
+      - .ruff_cache
+    #  pull .ruff_cache cache from previous pipeline. Do not attempt to delete, modify, or clean up
+    policy: pull
   dependencies:
     - dockerbuild
   before_script:
@@ -125,6 +146,11 @@ code-unit-test:
 code-integration-test:
   stage: test
   retry: 1
+  cache:
+    paths:
+      - .ruff_cache
+    #  pull .ruff_cache cache from previous pipeline. Do not attempt to delete, modify, or clean up
+    policy: pull
   dependencies:
     - dockerbuild
   before_script:
@@ -156,11 +182,14 @@ code-integration-test:
   tags:
     - drtsans_lfs
 
-
-
 docs-feature:
   stage: test
   retry: 1
+  cache:
+    paths:
+      - .ruff_cache
+    #  pull .ruff_cache cache from previous pipeline. Do not attempt to delete, modify, or clean up
+    policy: pull
   dependencies:
     - dockerbuild
   script:
@@ -189,6 +218,11 @@ docs-feature:
 
 conda-package:
   stage: publish
+  cache:
+    paths:
+      - .ruff_cache
+    #  pull .ruff_cache cache from previous pipeline. Do not attempt to delete, modify, or clean up
+    policy: pull
   dependencies:
     - create-wheel
     - dockerbuild

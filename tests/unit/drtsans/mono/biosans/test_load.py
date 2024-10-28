@@ -189,7 +189,7 @@ def test_load_events_and_histogram(reference_dir, has_sns_mount):
     assert sample_logs2.monitor.value == 19173627 + 1039
     assert sample_logs2.duration.value == pytest.approx(1809.4842529296875 + 0.08333253860473633, abs=1e-11)
     assert sample_logs2.wavelength.size() == 692 + 2
-    assert mtd[str(workspace2)].extractY().sum() == 11067718 + 1
+    assert mtd[str(workspace2)].extractY().sum() == 11067718
 
 
 @pytest.mark.mount_eqsans

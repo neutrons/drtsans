@@ -141,7 +141,8 @@ def load_all_files(
     if use_nexus_idf:
         load_params["LoadNexusInstrumentXML"] = use_nexus_idf
 
-    # Adjust pixel heights and widths
+    # Adjust pixel positions, pixel heights and widths
+    load_params["scale_components"] = reduction_config.get("scaleComponents", None)
     load_params["pixel_calibration"] = reduction_config.get("usePixelCalibration", False)
 
     # wave length and wave length spread
@@ -505,6 +506,7 @@ def load_all_files(
 
 def prepare_data(
     data,
+    scale_components=None,
     pixel_calibration=False,
     mask_detector=None,
     detector_offset=0,
@@ -539,6 +541,11 @@ def prepare_data(
     ----------
     data: int, str, ~mantid.api.IEventWorkspace
         Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
+    scale_components: Optional[dict]
+        Dictionary of component names and scaling factors in the form of a three-element list,
+        indicating rescaling of the pixels in the component along the X, Y, and Z axes.
+        For instance, ``{"detector1": [1.0, 2.0, 1.0]}`` scales pixels along the Y-axis by a factor of 2,
+        leaving the other pixel dimensions unchanged.
     pixel_calibration: bool, str
         Adjust pixel heights and widths according to barscan and tube-width calibrations.
         Options are
@@ -620,6 +627,7 @@ def prepare_data(
         overwrite_instrument=True,
         output_workspace=output_workspace,
         output_suffix=output_suffix,
+        scale_components=scale_components,
         pixel_calibration=pixel_calibration,
         detector_offset=0,
         sample_offset=sample_offset,

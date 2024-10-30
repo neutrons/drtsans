@@ -588,6 +588,7 @@ class ReductionParameters:
         "useEntry": "_validate_use_entry",
         "wedgeSources": "_validate_wedge_sources",
         "pairwiseLessThan": "_validate_pairwise_less_than",
+        "scalableComponents": "_validate_components_to_scale",
     }
 
     # 2. public class methods and static functions
@@ -764,21 +765,21 @@ class ReductionParameters:
             schema = resolver_common.dereference(schema)  # dereference entries with key `$ref`
         # We need list() in order to capture the initial state of parameter values
         for name, parameter_value in list(parameters.items()):
-            try:
-                schema_value = schema["properties"][name]  # schema dictionary associated to parameter_value
-            except KeyError:
-                try:
-                    schema_value = schema["additionalProperties"][name]
-                except KeyError as key_err:
-                    not_found_message = f"Parameter {name} not found in the schema."
-                    if self._permissible:
-                        logger.warning(not_found_message)
-                    else:
-                        properties_keys = schema["properties"].keys()
-                        if "additionalProperties" in schema.keys():
-                            properties_keys.extend(schema["additionalProperties"].keys())
-                        errmsg = f"{not_found_message}. Available properties are: {properties_keys}"
-                        raise KeyError(errmsg + ".  " + str(key_err))
+            if "properties" in schema and name in schema["properties"]:
+                schema_value = schema["properties"][name]
+            elif "additionalProperties" in schema and name in schema["additionalProperties"]:
+                schema_value = schema["additionalProperties"][name]
+            else:
+                available_properties = list(schema.get("properties", {}).keys())
+                available_properties.extend(list(schema.get("additionalProperties", {}).keys()))
+                not_found_message = (
+                    f"Parameter {name} not found in the schema. " f"Available properties are: {available_properties}"
+                )
+                if self._permissible:
+                    logger.warning(not_found_message)
+                else:
+                    raise KeyError(not_found_message)
+
             if isinstance(parameter_value, dict) is True:
                 # recursive call for nested dictionaries. We pass references to the child dictionaries
                 # for the schema and the reduction parameters
@@ -945,6 +946,30 @@ class ReductionParameters:
             if instance and other_instance:
                 if not greater(other_instance, instance).all():
                     yield jsonschema.ValidationError(f"Pairwise less than failed for {instance} < {other_instance}")
+
+    def _validate_components_to_scale(self, validator, value, instance, schema):
+        r"""
+        Verify that the instrument components requested to be rescaled are actually scalable.
+
+        Parameters
+        ----------
+        validator: ~jsonschema.IValidator
+        value: list
+            list of components in the instrument that can be rescaled
+        instance: dict
+            Entries are.component-name: XYZ-scalings (e.g. "detector1": [1, 1, 1], "detector1": None, "detector1": "")
+        schema: dict
+            schema related to `instance`. Not used in this function but required by the jsonschema's API
+
+        Raises
+        ------
+        ~jsonschema.ValidationError
+            when any one of the components in `value` has a triad of scaling factors, but is not scalable. Most likely
+            because it's not a valid component name of the instrument.
+        """
+        for component, scalings in instance.items():
+            if bool(scalings) and component not in value:
+                yield jsonschema.ValidationError(f"{component} is not scalable. Is it part of the instrument?")
 
     def _validate_exclusive_or(self, validator, value, instance, schema):
         r"""

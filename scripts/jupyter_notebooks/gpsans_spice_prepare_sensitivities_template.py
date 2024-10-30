@@ -35,6 +35,16 @@ MASK_BEAM_CENTER_RADIUS = 140  # mm
 # Default mask to detector
 MASKED_PIXELS = "1-8,249-256"
 
+# Adjust pixel positions, heights and widths Mantid algorithm ScaleInstrumentComponent
+# A valid input is a dictionary of scaling triads. For instance,
+#
+# SCALE_COMPONENT={"detector1": [1.0, 2.0, 1.0], "wing_detector":[0.5, 1.0, 0.5]}
+#
+# doubles the height of pixels in "detector1" (Y-axis is the vertical axis in the detector coordinate system),
+# and halves the width of pixels in "wing_detector". No changes for "midrange detector".
+SCALE_COMPONENTS = None  # no change to pixel positions, heights and widths
+
+
 # Pixel calibration
 # Pixel calibration: False/True (default database)/user specified calibration database
 # PIXEL_CALIBRATION = None
@@ -84,6 +94,7 @@ prepare_spice_sensitivities_correction(
     MASK_BEAM_CENTER_RADIUS,
     solid_angle_correction=SOLID_ANGLE_CORRECTION,
     pixel_calibration_file=PIXEL_CALIBRATION,
+    scale_components=SCALE_COMPONENTS,
     output_dir=OUTPUT_DIR,
     file_suffix="spice",
 )

@@ -11,14 +11,16 @@ Release Notes
 **Of interest to the User**:
 
 - MR #XYZ: one-liner description
-- MR 1165: update Mantid version to 6.11
 - MR 1162: When reducing `gpsans` data with `direct_beam` scaling, the `direct_beam_scaling` parameter is now logged during
   the reduction process and stored in the output Nexus file at `reduction_information/special_parameters/direct_beam_scaling/value`.
-- MR #7718: Add a parameters  removeAlgorithmHistory to write less data and speed up I/O during reduction
+- MR #1160: expose pixel detector rescalings to the instrument API's
+- MR #1161: Add a parameters  removeAlgorithmHistory to write less data and speed up I/O during reduction
 
 **Of interest to the Developer:**
 
 - MR #XYZ: one-liner description
+- MR 1165: update Mantid version to 6.11
+- MR #1158: added options in the JSON schemae to rescale whole detector panels
 
 ?.??.?
 ------

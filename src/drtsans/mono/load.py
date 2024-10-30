@@ -128,6 +128,7 @@ def load_events_and_histogram(
     output_workspace=None,
     output_suffix="",
     overwrite_instrument=True,
+    scale_components=None,
     pixel_calibration=False,
     reuse_workspace=False,
     sample_to_si_name=None,
@@ -154,6 +155,11 @@ def load_events_and_histogram(
         If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
         latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
         desired IDF.
+    scale_components: Optional[dict]
+        Dictionary of component names and scaling factors in the form of a three-element list,
+        indicating rescaling of the pixels in the component along the X, Y, and Z axes.
+        For instance, ``{"detector1": [1.0, 2.0, 1.0]}`` scales pixels along the Y-axis by a factor of 2,
+        leaving the other pixel dimensions unchanged.
     pixel_calibration: bool
         Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
     sample_to_si_name: str
@@ -213,6 +219,7 @@ def load_events_and_histogram(
             output_workspace=output_ws_name,
             overwrite_instrument=overwrite_instrument,
             output_suffix=output_suffix,
+            scale_components=scale_components,
             pixel_calibration=pixel_calibration,
             detector_offset=0.0,
             sample_offset=0.0,
@@ -401,6 +408,7 @@ def load_and_split(
     output_workspace=None,
     output_suffix="",
     overwrite_instrument=True,
+    scale_components=None,
     pixel_calibration=False,
     time_interval: Union[float, List[float]] = None,
     time_offset: float = 0.0,
@@ -442,6 +450,11 @@ def load_and_split(
         If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
         latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
         desired IDF.
+    scale_components: Optional[dict]
+        Dictionary of component names and scaling factors in the form of a three-element list,
+        indicating rescaling of the pixels in the component along the X, Y, and Z axes.
+        For instance, ``{"detector1": [1.0, 2.0, 1.0]}`` scales pixels along the Y-axis by a factor of 2,
+        leaving the other pixel dimensions unchanged.
     pixel_calibration: bool
         Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
     time_interval
@@ -481,6 +494,7 @@ def load_and_split(
         data_dir=data_dir,
         output_workspace="_load_tmp",
         overwrite_instrument=overwrite_instrument,
+        scale_components=scale_components,
         pixel_calibration=pixel_calibration,
         output_suffix=output_suffix,
         detector_offset=0.0,

@@ -35,6 +35,15 @@ BEAM_CENTER_RADIUS = 38  # mm
 # - transmission runs
 PIXEL_CALIBRATION = True
 
+# Adjust pixel positions, heights and widths Mantid algorithm ScaleInstrumentComponent
+# A valid input is a dictionary of scaling triads. For instance,
+#
+# SCALE_COMPONENT={"detector1": [1.0, 2.0, 1.0], "wing_detector":[0.5, 1.0, 0.5]}
+#
+# doubles the height of pixels in "detector1" (Y-axis is the vertical axis in the detector coordinate system),
+# and halves the width of pixels in "wing_detector". No changes for "midrange detector".
+SCALE_COMPONENTS = None  # no change to pixel positions, heights and widths
+
 # Geometry Corrections
 SOLID_ANGLE_CORRECTION = True
 # Flag to do dependent correction with transmission correction
@@ -99,6 +108,9 @@ for (
     # Dark runs
     if DARK_CURRENT_RUNS is not None:
         preparer.set_dark_current_runs(DARK_CURRENT_RUNS)
+
+    # Component scaling
+    preparer.scale_components = SCALE_COMPONENTS
 
     # Pixel calibration
     preparer.set_pixel_calibration_flag(PIXEL_CALIBRATION)

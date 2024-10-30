@@ -35,7 +35,10 @@
         "useLogSlice":         {"$ref":  "common.json#/configuration/useLogSlice", "default": false},
         "logSliceName":     {"$ref":  "common.json#/configuration/logSliceName"},
         "logSliceInterval": {"$ref":  "common.json#/configuration/logSliceInterval"},
-
+        "scaleComponents": {
+          "$ref": "common.json#/configuration/scaleComponents",
+          "scalableComponents": ["detector1"]
+        },
         "sampleOffset":           {"$ref":  "common.json#/configuration/sampleOffset"},
         "useDetectorOffset":      {"$ref":  "common.json#/configuration/useDetectorOffset", "default": true,
                                    "useEntry": "#configuration/detectorOffset"},
@@ -107,7 +110,7 @@
       },
       "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "timeSliceInterval",
         "timeSliceOffset", "timeSlicePeriod", "useLogSlice", "logSliceName", "logSliceInterval",
-        "sampleOffset", "useDetectorOffset", "detectorOffset", "sampleDetectorDistance",
+        "scaleComponents", "sampleOffset", "useDetectorOffset", "detectorOffset", "sampleDetectorDistance",
         "sampleToSi", "sampleApertureSize", "sourceApertureDiameter",
         "usePixelCalibration", "removeAlgorithmHistory", "maskFileName", "useDefaultMask", "defaultMask",
         "useMaskBackTubes", "darkFileName", "normalization", "normalizationResortToTime",

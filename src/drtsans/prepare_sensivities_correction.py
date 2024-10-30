@@ -1,4 +1,20 @@
-# local imports
+# standard imports
+import os
+from typing import Optional
+
+# third party imports
+import h5py
+from mantid.api import mtd
+from mantid.kernel import logger
+from mantid.simpleapi import (
+    SaveNexusProcessed,
+    Integration,
+    MaskDetectors,
+    CreateWorkspace,
+)
+import numpy as np
+
+# drtsans imports
 from drtsans.load import load_events
 from drtsans.geometry import panel_names
 from drtsans.instruments import extract_run_number
@@ -13,21 +29,6 @@ from drtsans.sensitivity_correction_patch import (
     calculate_sensitivity_correction as calculate_sensitivity_correction_patch,
 )
 import drtsans.tof.eqsans
-
-# third party imports
-import h5py
-from mantid.api import mtd
-from mantid.kernel import logger
-from mantid.simpleapi import (
-    SaveNexusProcessed,
-    Integration,
-    MaskDetectors,
-    CreateWorkspace,
-)
-import numpy as np
-
-# standard imports
-import os
 
 
 # Constants
@@ -253,12 +254,45 @@ class PrepareSensitivityCorrection(object):
         # Pixel calibration default
         self._apply_calibration = False
 
+        # Scale Component default
+        self._scale_components: Optional[dict] = None
+
         # Apply solid angle correction or not?
         self._solid_angle_correction = False
 
     @property
     def beam_center_radius(self) -> float:
         return self._beam_center_radius
+
+    @property
+    def scale_components(self) -> Optional[dict]:
+        return self._scale_components
+
+    @scale_components.setter
+    def scale_components(self, scalings=None):
+        """
+        Setter method for the `scale_component` property.
+
+        Adjust pixel positions, heights and widths with Mantid algorithm ScaleInstrumentComponent
+
+        Parameters
+        ----------
+        scalings : dict or None, optional
+            dictionary of scaling triads. For instance,
+            `scalings={"detector1": [1.0, 2.0, 1.0], "wing_detector":[0.5, 1.0, 0.5]}`
+            doubles the height of pixels in "detector1" (Y-axis is the vertical axis in the detector coordinate
+            system), and halves the width of pixels in "wing_detector". No changes for "midrange detector".
+
+        Raises
+        ------
+        TypeError
+            If `scalings` is not a list.
+        AssertionError
+            If the length of `scalings` is not equal to 3.
+        """
+        if scalings is not None:
+            assert isinstance(scalings, dict)
+            self._scale_components = scalings
 
     def set_pixel_calibration_flag(self, apply_calibration):
         """Set the flag to apply pixel calibrations.
@@ -527,6 +561,7 @@ class PrepareSensitivityCorrection(object):
 
         flood_ws = PREPARE_DATA[self._instrument](
             data=flood_run,
+            scale_components=self.scale_components,
             pixel_calibration=self._apply_calibration,
             mask=self._default_mask,
             btp=self._extra_mask_dict,

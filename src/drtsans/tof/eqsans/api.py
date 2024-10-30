@@ -186,7 +186,8 @@ def load_all_files(reduction_input, prefix="", load_params=None):
 
     load_params = set_beam_center(reduction_input, prefix, default_mask, load_params, filenames)
 
-    # Adjust pixel heights and widths
+    # Adjust pixel pixel positions, heights and widths
+    load_params["scale_components"] = reduction_config.get("scaleComponents", None)
     load_params["pixel_calibration"] = reduction_config.get("usePixelCalibration", False)
 
     if reduction_config["detectorOffset"] is not None:
@@ -1275,6 +1276,7 @@ def set_beam_center(
 
 def prepare_data(
     data,
+    scale_components=None,
     pixel_calibration=False,
     detector_offset=0,
     sample_offset=0,
@@ -1308,6 +1310,11 @@ def prepare_data(
     ----------
     data: int, str, ~mantid.api.IEventWorkspace
         Run number as int or str, file path, :py:obj:`~mantid.api.IEventWorkspace`
+    scale_components: Optional[dict]
+        Dictionary of component names and scaling factors in the form of a three-element list,
+        indicating rescaling of the pixels in the component along the X, Y, and Z axes.
+        For instance, ``{"detector1": [1.0, 2.0, 1.0]}`` scales pixels along the Y-axis by a factor of 2,
+        leaving the other pixel dimensions unchanged.
     pixel_calibration: bool
         Adjust pixel heights and widths according to barscan and tube-width calibrations.
     detector_offset: float
@@ -1383,6 +1390,7 @@ def prepare_data(
     # The output_workspace name is for the Mantid workspace
     workspaces = load_events_and_histogram(
         data,
+        scale_components=scale_components,
         pixel_calibration=pixel_calibration,
         detector_offset=detector_offset,
         sample_offset=sample_offset,

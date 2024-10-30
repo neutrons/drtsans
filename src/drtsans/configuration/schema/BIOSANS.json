@@ -46,7 +46,10 @@
         "useLogSlice":         {"$ref":  "common.json#/configuration/useLogSlice", "default": false},
         "logSliceName":     {"$ref":  "common.json#/configuration/logSliceName"},
         "logSliceInterval": {"$ref":  "common.json#/configuration/logSliceInterval"},
-
+        "scaleComponents": {
+          "$ref": "common.json#/configuration/scaleComponents",
+          "scalableComponents": ["detector1", "wing_detector", "midrange_detector"]
+        },
         "sampleOffset":     {"$ref":  "common.json#/configuration/sampleOffset"},
         "sampleApertureSize":     {"$ref":  "common.json#/configuration/sampleApertureSize"},
         "sampleDetectorDistance": {"$ref":  "common.json#/configuration/sampleDetectorDistance"},
@@ -258,8 +261,8 @@
       },
       "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "timeSliceInterval",
         "timeSliceOffset", "timeSlicePeriod", "useTimeSliceTransmission",
-        "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset", "sampleApertureSize",
-        "sampleDetectorDistance", "sourceApertureDiameter", "usePixelCalibration", "removeAlgorithmHistory","maskFileName", "useDefaultMask",
+        "useLogSlice", "logSliceName", "logSliceInterval", "scaleComponents","sampleOffset", "sampleApertureSize",
+        "sampleDetectorDistance", "sourceApertureDiameter", "usePixelCalibration", "maskFileName", "useDefaultMask",
         "defaultMask", "useMaskBackTubes", "darkMainFileName", "darkWingFileName", "darkMidrangeFileName",
         "normalization", "normalizationResortToTime", "sensitivityMainFileName", "sensitivityWingFileName",
         "sensitivityMidrangeFileName", "useSolidAngleCorrection", "blockedBeamRunNumber", "useThetaDepTransCorrection",

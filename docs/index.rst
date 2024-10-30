@@ -12,6 +12,7 @@ User Guide
 .. toctree::
    :maxdepth: 1
 
+   /user/calibration
    /drtsans/reduction_parameters
    /drtsans/reduction_scripts
    release_notes

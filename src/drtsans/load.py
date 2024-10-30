@@ -9,11 +9,12 @@ from mantid.dataobjects import Workspace2D, EventWorkspace
 from mantid.simpleapi import mtd
 from mantid.simpleapi import (
     DeleteWorkspace,
+    FilterEvents,
+    GenerateEventsFilter,
     LoadEventNexus,
     LoadEventAsWorkspace2D,
     MergeRuns,
-    GenerateEventsFilter,
-    FilterEvents,
+    ScaleInstrumentComponent,
 )
 from mantid.simpleapi import AddSampleLogMultiple
 from mantid.kernel import Logger, amend_config
@@ -116,6 +117,7 @@ def load_events(
     output_workspace=None,
     overwrite_instrument=True,
     output_suffix="",
+    scale_components=None,
     pixel_calibration=False,
     detector_offset=0.0,
     sample_offset=0.0,
@@ -134,12 +136,17 @@ def load_events(
     data_dir: str, list
         Additional data search directories
     overwrite_instrument: bool, str
-        If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
-        latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
-        desired IDF.
+        If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`,
+        use the latest instrument definition file (IDF) available in Mantid. If ``str``,
+        then it should be the filepath to the desired IDF.
     output_suffix: str
         If the ``output_workspace`` is not specified, this is appended to the automatically generated
         output workspace name.
+    scale_components: Optional[dict]
+        Dictionary of component names and scaling factors in the form of a three-element list,
+        indicating rescaling of the pixels in the component along the X, Y, and Z axes.
+        For instance, ``{"detector1": [1.0, 2.0, 1.0]}`` scales pixels along the Y-axis by a factor of 2,
+        leaving the other pixel dimensions unchanged.
     pixel_calibration: bool, str
         Adjust pixel heights and widths according to bar-scan and tube-width calibrations. Options are
         (1) No calibration (2) Using default calibration file (True) and
@@ -196,14 +203,23 @@ def load_events(
             else:
                 LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
 
-            # FIXME - what is the difference from: pixel_calibration is True?
-            if pixel_calibration is not False:
-                # pixel calibration is specified as not False
-                if isinstance(pixel_calibration, str):
-                    calib_file = pixel_calibration
-                else:
-                    calib_file = None
-                apply_calibrations(output_workspace, database=calib_file)
+        if isinstance(scale_components, dict):
+            for component, scalings in scale_components.items():
+                if isinstance(scalings, list) and len(scalings) == 3:
+                    ScaleInstrumentComponent(
+                        Workspace=mtd[output_workspace],
+                        ComponentName=component,
+                        Scalings=scalings,
+                        ScalePixelSizes=True,
+                    )
+
+        if pixel_calibration is not False:  # pixel_calibration can be True or a string
+            # pixel calibration is specified as not False
+            if isinstance(pixel_calibration, str):
+                calib_file = pixel_calibration
+            else:
+                calib_file = None
+            apply_calibrations(output_workspace, database=calib_file)
 
     # insert monitor counts for monochromatic instruments
     if is_mono:
@@ -374,6 +390,7 @@ def load_and_split(
     output_workspace=None,
     output_suffix="",
     overwrite_instrument=True,
+    scale_components=None,
     pixel_calibration=False,
     detector_offset=0.0,
     sample_offset=0.0,
@@ -413,6 +430,11 @@ def load_and_split(
         If not :py:obj:`False`, ignore the instrument embedeed in the Nexus file. If :py:obj:`True`, use the
         latest instrument definition file (IDF) available in Mantid. If ``str``, then it should be the filepath to the
         desired IDF.
+    scale_components: Optional[dict]
+        Dictionary of component names and scaling factors in the form of a three-element list,
+        indicating rescaling of the pixels in the component along the X, Y, and Z axes.
+        For instance, ``{"detector1": [1.0, 2.0, 1.0]}`` scales pixels along the Y-axis by a factor of 2,
+        leaving the other pixel dimensions unchanged.
     pixel_calibration: bool
         Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
     detector_offset: float
@@ -471,6 +493,7 @@ def load_and_split(
             data_dir=data_dir,
             output_workspace=all_events_workspace,
             overwrite_instrument=overwrite_instrument,
+            scale_components=scale_components,
             pixel_calibration=pixel_calibration,
             output_suffix=output_suffix,
             detector_offset=detector_offset,

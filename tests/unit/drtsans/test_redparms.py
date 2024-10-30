@@ -1,25 +1,31 @@
+# standard library imports
 from copy import deepcopy
 import json
 import os
+from os.path import join as path_join
 from pathlib import Path
-import pytest
 import shutil
 import tempfile
 
+# third-party imports
+from mantid.kernel import amend_config
+import pytest
+
+# drtsans imports
 from drtsans import configdir
 from drtsans.instruments import instrument_standard_names, instrument_standard_name
 from drtsans.redparms import (
     DefaultJson,
-    Suggest,
-    ReductionParameters,
-    ReferenceResolver,
     generate_json_files,
     load_schema,
+    ReductionParameterError,
+    ReductionParameters,
+    ReferenceResolver,
     reduction_parameters,
     resolver_common,
+    Suggest,
     update_reduction_parameters,
     validate_reduction_parameters,
-    ReductionParameterError,
 )
 
 
@@ -616,6 +622,64 @@ class TestReductionParametersGPSANS:
             assert validator_name in str(error_info.schema.keys())
 
     @pytest.mark.datarepo
+    def test_scale_components(self, datarepo_dir):
+        r"""Test the validation of the scaleComponents parameter"""
+
+        parameters = deepcopy(self.parameters_all)
+        # default value
+        # (we need to tell pytest where to find file CG2_9165.nxs.h5)
+        with amend_config(data_dir=datarepo_dir.gpsans):
+            validate_reduction_parameters(parameters)
+        assert parameters["configuration"]["scaleComponents"] == {
+            "detector1": None,
+            "midrange_detector": None,
+            "wing_detector": None,
+        }
+
+        # no error cases
+        parameters["configuration"]["scaleComponents"] = {"detector1": [1.0, 1.0, 1.0]}
+        with amend_config(data_dir=datarepo_dir.gpsans):
+            validate_reduction_parameters(parameters)
+
+        # non-existent detector name
+        with pytest.raises(KeyError) as exc_info:
+            parameters["configuration"]["scaleComponents"] = {"impossible_detector_name": [1.0, 1.0, 1.0]}
+            with amend_config(data_dir=datarepo_dir.gpsans):
+                validate_reduction_parameters(parameters)
+        assert "Parameter impossible_detector_name not found in the schema" in str(exc_info.value)
+
+        # detectors of BIOSANS, not appropriate for GPSANS
+        parameters["configuration"]["scaleComponents"] = {"midrange_detector": "", "wing_detector": ""}
+        # no scaling factors don't raise an error
+        with amend_config(data_dir=datarepo_dir.gpsans):
+            validate_reduction_parameters(parameters)
+        # attempting to scale a detector of BIOSANS when the instrument is GPSANS should raise an error
+        for component in ["midrange_detector", "wing_detector"]:
+            with pytest.raises(ReductionParameterError) as exc_info:
+                parameters["configuration"]["scaleComponents"] = {component: [1.0, 1.0, 1.0]}
+                with amend_config(data_dir=datarepo_dir.gpsans):
+                    validate_reduction_parameters(parameters)
+            assert f"{component} is not scalable" in str(exc_info.value)
+
+        # wrong type for scaling value
+        with pytest.raises(ReductionParameterError):
+            parameters["configuration"]["scaleComponents"] = {"detector1": "one point three"}
+            with amend_config(data_dir=datarepo_dir.gpsans):
+                validate_reduction_parameters(parameters)
+
+        # wrong scaling value
+        with pytest.raises(ReductionParameterError):
+            parameters["configuration"]["scaleComponents"] = {"detector1": [-1.0, 1.0, 1.0]}
+            with amend_config(data_dir=datarepo_dir.gpsans):
+                validate_reduction_parameters(parameters)
+
+        # wrong number of scaling values
+        with pytest.raises(ReductionParameterError):
+            parameters["configuration"]["scaleComponents"] = {"detector1": [-1.0, 1.0]}
+            with amend_config(data_dir=datarepo_dir.gpsans):
+                validate_reduction_parameters(parameters)
+
+    @pytest.mark.datarepo
     def test_permissible(self, datarepo_dir):
         parameters_new = update_reduction_parameters(
             self.parameters_common,
@@ -714,6 +778,56 @@ class TestReductionParametersBIOSANS:
             validate_reduction_parameters(parameters)
 
     @pytest.mark.datarepo
+    def test_scale_components(self, datarepo_dir):
+        r"""Test the validation of the scaleComponents parameter"""
+
+        parameters = deepcopy(self.parameters_all)
+
+        # check default value
+        # (we need to tell pytest where to find file CG3_960.nxs.h5)
+        with amend_config(data_dir=path_join(datarepo_dir.biosans, "pixel_calibration", "test_loader_algorithm")):
+            validate_reduction_parameters(parameters)
+        assert parameters["configuration"]["scaleComponents"] == {
+            "detector1": None,
+            "midrange_detector": None,
+            "wing_detector": None,
+        }
+
+        # no error cases
+        parameters["configuration"]["scaleComponents"] = {
+            "detector1": [1.0, 1.0, 1.0],
+            "wing_detector": "",
+            "midrange_detector": None,
+        }
+        with amend_config(data_dir=path_join(datarepo_dir.biosans, "pixel_calibration", "test_loader_algorithm")):
+            validate_reduction_parameters(parameters)
+
+        # wrong detector name
+        with pytest.raises(KeyError) as exc_info:
+            parameters["configuration"]["scaleComponents"] = {"impossible_detector_name": [1.0, 1.0, 1.0]}
+            with amend_config(data_dir=path_join(datarepo_dir.biosans, "pixel_calibration", "test_loader_algorithm")):
+                validate_reduction_parameters(parameters)
+        assert "Parameter impossible_detector_name not found in the schema" in str(exc_info.value)
+
+        # wrong type for scaling value
+        with pytest.raises(ReductionParameterError):
+            parameters["configuration"]["scaleComponents"] = {"detector1": "one point three"}
+            with amend_config(data_dir=path_join(datarepo_dir.biosans, "pixel_calibration", "test_loader_algorithm")):
+                validate_reduction_parameters(parameters)
+
+        # wrong scaling value
+        with pytest.raises(ReductionParameterError):
+            parameters["configuration"]["scaleComponents"] = {"detector1": [-1.0, 1.0, 1.0]}
+            with amend_config(data_dir=path_join(datarepo_dir.biosans, "pixel_calibration", "test_loader_algorithm")):
+                validate_reduction_parameters(parameters)
+
+        # wrong number of scaling values
+        with pytest.raises(ReductionParameterError):
+            parameters["configuration"]["scaleComponents"] = {"detector1": [-1.0, 1.0]}
+            with amend_config(data_dir=path_join(datarepo_dir.biosans, "pixel_calibration", "test_loader_algorithm")):
+                validate_reduction_parameters(parameters)
+
+    @pytest.mark.datarepo
     def test_permissible(self, datarepo_dir):
         parameters_new = update_reduction_parameters(
             self.parameters_common,
@@ -735,6 +849,66 @@ class TestReductionParametersEQSANS:
         "outputFileName": "test_validator_datasource",
         "configuration": {"outputDir": "/tmp", "QbinType": "linear", "numQBins": 100},
     }
+    parameters_all = reduction_parameters(parameters_common, validate=False)
+
+    @pytest.mark.datarepo
+    def test_scale_components(self, datarepo_dir):
+        r"""Test the validation of the scaleComponents parameter"""
+
+        parameters = deepcopy(self.parameters_all)
+
+        # default value
+        # (we need to tell pytest where to find file EQSANS_89157.nxs.h5)
+        with amend_config(data_dir=datarepo_dir.eqsans):
+            validate_reduction_parameters(parameters)
+        assert parameters["configuration"]["scaleComponents"] == {
+            "detector1": None,
+            "midrange_detector": None,
+            "wing_detector": None,
+        }
+
+        # no error cases
+        parameters["configuration"]["scaleComponents"] = {"detector1": [1.0, 1.0, 1.0]}
+        with amend_config(data_dir=datarepo_dir.eqsans):
+            validate_reduction_parameters(parameters)
+
+        # non-existent detector name
+        with pytest.raises(KeyError) as exc_info:
+            parameters["configuration"]["scaleComponents"] = {"impossible_detector_name": [1.0, 1.0, 1.0]}
+            with amend_config(data_dir=datarepo_dir.eqsans):
+                validate_reduction_parameters(parameters)
+        assert "Parameter impossible_detector_name not found in the schema" in str(exc_info.value)
+
+        # detectors of BIOSANS, not appropriate for EQSANS
+        parameters["configuration"]["scaleComponents"] = {"midrange_detector": "", "wing_detector": ""}
+        # no scaling factors don't raise an error
+        with amend_config(data_dir=datarepo_dir.eqsans):
+            validate_reduction_parameters(parameters)
+        # attempting to scale a detector of BIOSANS when the instrument is EQSANS should raise an error
+        for component in ["midrange_detector", "wing_detector"]:
+            with pytest.raises(ReductionParameterError) as exc_info:
+                parameters["configuration"]["scaleComponents"] = {component: [1.0, 1.0, 1.0]}
+                with amend_config(data_dir=datarepo_dir.eqsans):
+                    validate_reduction_parameters(parameters)
+            assert f"{component} is not scalable" in str(exc_info.value)
+
+        # wrong type for scaling value
+        with pytest.raises(ReductionParameterError):
+            parameters["configuration"]["scaleComponents"] = {"detector1": "one point three"}
+            with amend_config(data_dir=datarepo_dir.eqsans):
+                validate_reduction_parameters(parameters)
+
+        # wrong scaling value
+        with pytest.raises(ReductionParameterError):
+            parameters["configuration"]["scaleComponents"] = {"detector1": [-1.0, 1.0, 1.0]}
+            with amend_config(data_dir=datarepo_dir.eqsans):
+                validate_reduction_parameters(parameters)
+
+        # wrong number of scaling values
+        with pytest.raises(ReductionParameterError):
+            parameters["configuration"]["scaleComponents"] = {"detector1": [-1.0, 1.0]}
+            with amend_config(data_dir=datarepo_dir.eqsans):
+                validate_reduction_parameters(parameters)
 
     @pytest.mark.datarepo
     def test_permissible(self, datarepo_dir):

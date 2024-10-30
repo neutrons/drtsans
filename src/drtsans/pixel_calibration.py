@@ -792,7 +792,7 @@ def load_calibration(
     caltype: str
         Either 'BARSCAN' or 'TUBEWIDTH'. A saved calibration can only contain one of these, but not both.
     component: str
-        Name of one of the double detector array panels. For BIOSANS we have 'detector1', 'wing-detector' or
+        Name of one of the double detector array panels. For BIOSANS we have 'detector1', 'wing_detector' or
         'midrange_detector'
     database: str
         Path to database file containing the metadata for the calibrations. If :py:obj:`None`, the default database

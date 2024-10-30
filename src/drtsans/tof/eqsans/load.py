@@ -107,6 +107,7 @@ def prepare_monitors(data, bin_width=0.1, output_workspace=None):
 
 def load_events(
     run,
+    scale_components=None,
     pixel_calibration=False,
     detector_offset=0.0,
     sample_offset=0.0,
@@ -129,6 +130,11 @@ def load_events(
     ----------
     run: int, str
         Examples: ``55555`` or ``EQSANS_55555`` or file path.
+    scale_components: Optional[dict]
+        Dictionary of component names and scaling factors in the form of a three-element list,
+        indicating rescaling of the pixels in the component along the X, Y, and Z axes.
+        For instance, ``{"detector1": [1.0, 2.0, 1.0]}`` scales pixels along the Y-axis by a factor of 2,
+        leaving the other pixel dimensions unchanged.
     pixel_calibration: bool
         Adjust pixel heights and widths according to barscan and tube-width calibrations.
     detector_offset: float
@@ -164,6 +170,7 @@ def load_events(
         data_dir=data_dir,
         output_workspace=output_workspace,
         output_suffix=output_suffix,
+        scale_components=scale_components,
         pixel_calibration=pixel_calibration,
         detector_offset=detector_offset,
         sample_offset=sample_offset,
@@ -186,6 +193,7 @@ def load_events(
 @namedtuplefy
 def load_events_and_histogram(
     run,
+    scale_components=None,
     pixel_calibration=False,
     detector_offset=0.0,
     sample_offset=0.0,
@@ -219,6 +227,11 @@ def load_events_and_histogram(
     ----------
     run: list of runs to load
         Examples: ``55555`` or ``EQSANS_55555`` or file path or ``EQSANS_55555, EQSANS_55556``
+    scale_components: Optional[dict]
+        Dictionary of component names and scaling factors in the form of a three-element list,
+        indicating rescaling of the pixels in the component along the X, Y, and Z axes.
+        For instance, ``{"detector1": [1.0, 2.0, 1.0]}`` scales pixels along the Y-axis by a factor of 2,
+        leaving the other pixel dimensions unchanged.
     pixel_calibration: bool
         Adjust pixel heights and widths according to barscan and tube-width calibrations.
     detector_offset: float
@@ -299,6 +312,7 @@ def load_events_and_histogram(
 
         ws = load_events(
             run=run[0],
+            scale_components=scale_components,
             pixel_calibration=pixel_calibration,
             detector_offset=detector_offset,
             sample_offset=sample_offset,
@@ -357,6 +371,8 @@ def load_events_and_histogram(
 
             load_events(
                 run=r,
+                scale_components=scale_components,
+                pixel_calibration=pixel_calibration,
                 detector_offset=detector_offset,
                 sample_offset=sample_offset,
                 path_to_pixel=path_to_pixel,
@@ -416,6 +432,7 @@ def load_and_split(
     output_workspace=None,
     output_suffix="",
     overwrite_instrument=True,
+    scale_components=None,
     pixel_calibration=False,
     time_interval: Union[float, List[float]] = None,
     time_offset: float = 0.0,
@@ -433,6 +450,11 @@ def load_and_split(
     ----------
     run: str, ~mantid.api.IEventWorkspace
         Examples: ``CG3_55555``, ``CG355555`` or file path.
+    scale_components: Optional[dict]
+        Dictionary of component names and scaling factors in the form of a three-element list,
+        indicating rescaling of the pixels in the component along the X, Y, and Z axes.
+        For instance, ``{"detector1": [1.0, 2.0, 1.0]}`` scales pixels along the Y-axis by a factor of 2,
+        leaving the other pixel dimensions unchanged.
     pixel_calibration: bool
         Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
     centering_method: str
@@ -467,6 +489,7 @@ def load_and_split(
         output_workspace=output_workspace,
         output_suffix=output_suffix,
         overwrite_instrument=overwrite_instrument,
+        scale_components=scale_components,
         pixel_calibration=pixel_calibration,
         detector_offset=detector_offset,
         sample_offset=sample_offset,
@@ -500,6 +523,7 @@ def load_and_split_and_histogram(
     output_workspace=None,
     output_suffix="",
     overwrite_instrument=True,
+    scale_components=None,
     pixel_calibration=False,
     bin_width=0.1,
     low_tof_clip=500,
@@ -526,6 +550,11 @@ def load_and_split_and_histogram(
     ----------
     run: str, ~mantid.api.IEventWorkspace
         Examples: ``CG3_55555``, ``CG355555`` or file path.
+    scale_components: Optional[dict]
+        Dictionary of component names and scaling factors in the form of a three-element list,
+        indicating rescaling of the pixels in the component along the X, Y, and Z axes.
+        For instance, ``{"detector1": [1.0, 2.0, 1.0]}`` scales pixels along the Y-axis by a factor of 2,
+        leaving the other pixel dimensions unchanged.
     pixel_calibration: bool
         Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
     centering_method: str
@@ -559,6 +588,7 @@ def load_and_split_and_histogram(
         output_workspace=output_workspace,
         output_suffix=output_suffix,
         overwrite_instrument=overwrite_instrument,
+        scale_components=scale_components,
         pixel_calibration=pixel_calibration,
         time_interval=time_interval,
         time_offset=time_offset,

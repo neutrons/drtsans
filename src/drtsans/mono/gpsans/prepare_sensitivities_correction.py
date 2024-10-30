@@ -3,7 +3,7 @@ import h5py
 import numpy as np
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
 from drtsans.mono.spice_data import SpiceRun
-from typing import List, Union
+from typing import List, Optional, Union
 
 MY_BEAM_LINE = "CG2"
 
@@ -21,6 +21,7 @@ def prepare_spice_sensitivities_correction(
     output_dir: Union[str, None],
     file_suffix: str = "spice",
     pixel_calibration_file: Union[str, None] = None,
+    scale_components: Optional[dict] = None,
     solid_angle_correction: bool = True,
 ) -> str:
     """
@@ -48,6 +49,11 @@ def prepare_spice_sensitivities_correction(
     file_suffix:
     pixel_calibration_file: str or None
         if it is specified as a pixel calibration, include pixel calibration in the computation
+    scale_components: Optional[dict]
+        Dictionary of component names and scaling factors in the form of a three-element list,
+        indicating rescaling of the pixels in the component along the X, Y, and Z axes.
+        For instance, ``{"detector1": [1.0, 2.0, 1.0]}`` scales pixels along the Y-axis by a factor of 2,
+        leaving the other pixel dimensions unchanged.
     solid_angle_correction: bool
         do solid angle correction
 
@@ -93,6 +99,10 @@ def prepare_spice_sensitivities_correction(
     if pixel_calibration_file:
         print(f"Pixel calibration: {pixel_calibration_file}")
         preparer.set_pixel_calibration_flag(pixel_calibration_file)
+
+    # Component scaling
+    if scale_components:
+        preparer.scale_components = scale_components
 
     # Solid angle
     preparer.set_solid_angle_correction_flag(solid_angle_correction)

@@ -90,7 +90,10 @@
           "examples": ["constant Delta lambda",  "constant Delta lambda/lambda"],
           "description": "Type of binning. Options are 'constant Delta lambda' and 'constant Delta lambda/lambda. Currently only 'constant Delta lambda' is implemented."
         },
-
+        "scaleComponents": {
+          "$ref": "common.json#/configuration/scaleComponents",
+          "scalableComponents": ["detector1"]
+        },
         "sampleOffset":           {"$ref":  "common.json#/configuration/sampleOffset", "default":  314.5},
         "useDetectorOffset":      {"$ref":  "common.json#/configuration/useDetectorOffset", "default": true,
                                    "useEntry": "#configuration/detectorOffset"},
@@ -246,8 +249,9 @@
                            "description": "use smallest wavelength as reference wavelength"}
       },
       "required": ["outputDir", "instrumentConfigurationDir","useTimeSlice", "timeSliceInterval", "timeSliceOffset",
-        "timeSlicePeriod", "useLogSlice", "logSliceName", "logSliceInterval", "sampleOffset", "useDetectorOffset",
-        "detectorOffset", "sampleApertureSize", "sourceApertureDiameter","usePixelCalibration", "removeAlgorithmHistory",
+        "timeSlicePeriod", "useLogSlice", "logSliceName", "logSliceInterval", "scaleComponents",
+        "sampleOffset", "useDetectorOffset",
+        "detectorOffset", "sampleApertureSize", "sourceApertureDiameter","usePixelCalibration",
         "maskFileName", "useDefaultMask", "defaultMask", "useMaskBackTubes", "darkFileName",
         "sensitivityFileName", "useSolidAngleCorrection", "useThetaDepTransCorrection",
         "mmRadiusForTransmission", "absoluteScaleMethod", "StandardAbsoluteScale", "numQxQyBins", "1DQbinType",

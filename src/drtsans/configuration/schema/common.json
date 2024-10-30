@@ -74,6 +74,13 @@
                 {"type": "array", "items": {"type": "number", "ExclusiveMinimum": 0}, "maxItems":  2}],
       "preferredType": "[float]"
     },
+    "safeScaleComponentsType":{
+      "anyOf": [
+        {"type": "string", "minLength": 0, "maxLength": 0},
+        {"type": "null"},
+        {"type": "array", "items": {"type": "number", "exclusiveMinimum": 0, "minItems": 3, "maxItems": 3}}
+      ]
+    },
       "lmfitParameter" : {
         "type": "object",
         "additionalProperties": {
@@ -578,6 +585,36 @@
     "normalizationResortToTime": {
       "type": "boolean",
       "description": "Carry out Time normalization if Monitor was selected but no monitor counts are found"
-    }
+    },
+   "scaleComponents": {
+     "type": "object",
+     "properties": {
+       "detector1": {
+         "$ref":  "common.json#/definitions/safeScaleComponentsType"
+       },
+       "wing_detector": {
+         "$ref":  "common.json#/definitions/safeScaleComponentsType"
+       },
+       "midrange_detector": {
+         "$ref":  "common.json#/definitions/safeScaleComponentsType"
+       }
+     },
+     "default": {},
+     "description": "Dictionary where keys are detector-panel names and values are lists of three float numbers representing size rescaling along X, Y, and Z dimensions. Default is an empty dictionary",
+       "examples": [
+        {
+          "detector1": [1.0, 1.1, 1.0],
+          "wing_detector": [0.95, 1.0, 0.95]
+        },
+        {
+          "detector1": [1.0, 1.1, 1.0],
+          "wing_detector": null
+        },
+        {
+          "detector1": [1.0, 1.1, 1.0],
+          "wing_detector": ""
+        }
+      ]
+   }
   }
 }

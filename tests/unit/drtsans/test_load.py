@@ -3,13 +3,15 @@ import h5py
 import os
 import pytest
 import tempfile
+from unittest import mock
 
 # third party imports
 from mantid.kernel import FloatTimeSeriesProperty
-from mantid.simpleapi import CreateWorkspace
+from mantid.simpleapi import CreateWorkspace, LoadEmptyInstrument, mtd
+from numpy.testing import assert_array_almost_equal
 
 # package imports
-from drtsans.load import _insert_periodic_timeslice_log, __monitor_counts, resolve_slicing
+from drtsans.load import _insert_periodic_timeslice_log, __monitor_counts, load_events, resolve_slicing
 from drtsans.samplelogs import SampleLogs
 
 
@@ -73,6 +75,50 @@ def test_resolve_slicing():
     with pytest.raises(ValueError) as except_info:
         resolve_slicing(options)
     assert "Can't do slicing on summed data sets" in str(except_info.value)
+
+
+class TestLoadEvents:
+    def test_scale_components(self, temp_workspace_name, tmp_path):
+        r"""Test application of Mantid algorithm ScaleInstrumentComponent inside src.drtsans.load.load_events
+
+        Create an empty instrument workspace for each instrument, then mock all the necessary
+        functions used in load_events() so that steps carrying out the loading of the event data
+        ends up returning the empty instrument workspace.
+        After that, apply ScaleInstrumentComponent to the workspace.
+        After that, mock all other functions used in load_events(). The effect of these functions is not
+        relevant to this test.
+        """
+        workspace = temp_workspace_name()
+        scalings = {"detector1": [1.1, 1.2, 1.3]}
+
+        # mock various functions used in load_events that are not relevant to this test
+        with mock.patch("drtsans.load.LoadEventNexus") as mock_load_event_nexus, mock.patch(
+            "drtsans.load.LoadEventAsWorkspace2D"
+        ) as mock_load_event_as_workspace2d, mock.patch(
+            "drtsans.load.__monitor_counts"
+        ) as mock_monitor_counts, mock.patch(
+            "drtsans.geometry.sample_detector_distance"
+        ) as mock_sample_detector_distance:
+            mock_monitor_counts.return_value = 42
+            mock_sample_detector_distance.return_value = 0.42
+
+            for instrument in ["CG2", "CG3", "EQSANS"]:
+                # create empty file `runfile` only to fool the functionality inside load_events() that
+                # verifies the existence of the input event data file
+                runfile = tmp_path / f"{instrument}_12345.nxs.h5"
+                runfile.touch()
+                LoadEmptyInstrument(InstrumentName=instrument, OutputWorkspace=workspace)
+                mock_load_event_nexus.return_value = None
+                mock_load_event_as_workspace2d.return_value = None
+                load_events(run=str(runfile), scale_components=scalings, output_workspace=workspace)
+
+                # check that the scalings [1.1, 1.2, 1.3] have been applied to panel 'detector1'
+                compInfo = mtd[workspace].componentInfo()
+                detectors = compInfo.detectorsInSubtree(compInfo.indexOfAny("detector1"))
+                step_size = int(len(detectors) / 10)  # check 10 detectors only
+                for i in range(0, len(detectors), step_size):
+                    detector_id = detectors[i]
+                    assert_array_almost_equal(compInfo.scaleFactor(int(detector_id)), scalings["detector1"])
 
 
 if __name__ == "__main__":

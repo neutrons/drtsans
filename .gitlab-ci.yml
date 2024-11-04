@@ -1,6 +1,6 @@
 variables:
-  CONTAINER_URL: "code.ornl.gov:4567/sns-hfir-scse/sans/sans-backend/$CI_COMMIT_REF_SLUG"
-  MINICONDA_CONTAINER: "code.ornl.gov:4567/rse/images/miniconda3:22.11.1-20230209.1219"
+  CONTAINER_URL: "$HARBOR_HOST/$HARBOR_PROJECT/$CI_COMMIT_REF_SLUG"
+  MINICONDA_CONTAINER: "savannah.ornl.gov/rse/miniconda3:22.11.1-20230209.1219"
   GIT_SUBMODULE_STRATEGY: recursive
 
 #####
@@ -45,7 +45,7 @@ pre-commit:
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u "$HARBOR_USERNAME" -p "$HARBOR_PASSWORD" "$HARBOR_URL"
     - docker pull $MINICONDA_CONTAINER
     - time docker run -v $PWD:/opt/sans-backend -t $MINICONDA_CONTAINER bash -c "conda install -y pre-commit && cd /opt/sans-backend && pre-commit run --all"
   after_script:
@@ -67,7 +67,7 @@ dockerbuild:
     - sudo cp scripts/fix_runner_perms.sh /etc/cron.hourly/fix_runner_perms.sh
     - sudo chmod +x /etc/cron.hourly/fix_runner_perms.sh
   script:
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u "$HARBOR_USERNAME" -p "$HARBOR_PASSWORD" "$HARBOR_URL"
     # kickstart or $CI_COMMIT_REF_SLUG
     - docker build -f dockerfiles/Dockerfile.kickstart --build-arg PROFILE=${PROFILE} -t $CONTAINER_URL .
     - docker push $CONTAINER_URL
@@ -94,7 +94,7 @@ create-wheel:
     - sudo cp -r . /tmp/sans-backend
     - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u "$HARBOR_USERNAME" -p "$HARBOR_PASSWORD" "$HARBOR_URL"
     - time docker pull $CONTAINER_URL
     - time docker run -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/create_wheel.sh"
     - popd
@@ -123,7 +123,7 @@ code-unit-test:
     - sudo cp -r . /tmp/sans-backend
     - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u "$HARBOR_USERNAME" -p "$HARBOR_PASSWORD" "$HARBOR_URL"
     - time docker pull $CONTAINER_URL
     - COMMAND="cd /opt/sans-backend/tests/data/drtsans-data/ && git lfs install && git lfs pull && cd /opt/sans-backend && python -m pip install -e . && bash /opt/sans-backend/test_job.sh -m 'not mount_eqsans' -s unit"
     # use bash -i to run .bashrc and activate the conda environment
@@ -162,7 +162,7 @@ code-integration-test:
     - sudo cp -r . /tmp/sans-backend
     - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u "$HARBOR_USERNAME" -p "$HARBOR_PASSWORD" "$HARBOR_URL"
     - time docker pull $CONTAINER_URL
     - COMMAND="cd /opt/sans-backend/tests/data/drtsans-data/ && git lfs install && git lfs pull && cd /opt/sans-backend && python -m pip install -e . && bash /opt/sans-backend/test_job.sh -m 'not mount_eqsans' -s integration"
     # use bash -i to run .bashrc and activate the conda environment
@@ -201,7 +201,7 @@ docs-feature:
     - sudo rsync -av --exclude='tests' ./ /tmp/sans-backend/
     - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u "$HARBOR_USERNAME" -p "$HARBOR_PASSWORD" "$HARBOR_URL"
     - time docker pull $CONTAINER_URL
     # use bash -i to run .bashrc and activate the conda environment
     - time docker run -u 0:0 -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -i -c "cd /opt/sans-backend/ && cp -R /opt/sans-backend /tmp/ && cd /tmp/sans-backend/ && python -m pip install -e . && cd docs && make html"
@@ -233,7 +233,7 @@ conda-package:
     - sudo cp -r . /tmp/sans-backend
     - sudo chmod 777 /tmp/sans-backend
     - pushd /tmp/sans-backend
-    - docker login --username=$CI_REGISTRY_USER --password=$CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u "$HARBOR_USERNAME" -p "$HARBOR_PASSWORD" "$HARBOR_URL"
     - time docker pull $CONTAINER_URL
     - time docker run -e "CI_COMMIT_REF_SLUG=${CI_COMMIT_REF_SLUG}" -e "CI_COMMIT_TAG=${CI_COMMIT_TAG}" -e "ANACONDA_TOKEN=${ANACONDA_TOKEN}" -v $PWD:/opt/sans-backend -t $CONTAINER_URL bash -c "bash /opt/sans-backend/scripts/publish_package.sh"
   after_script:

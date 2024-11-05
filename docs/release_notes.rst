@@ -19,7 +19,8 @@ Release Notes
 **Of interest to the Developer:**
 
 - MR #XYZ: one-liner description
-- MR 1165: update Mantid version to 6.11
+- MR #1171: update environment.yml to replace build in favor of python-build
+- MR #1165: update Mantid version to 6.11
 - MR #1158: added options in the JSON schemae to rescale whole detector panels
 
 ?.??.?

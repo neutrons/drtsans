@@ -10,9 +10,9 @@ dependencies:
   # packaging
   - anaconda-client
   - boa
-  - build
   - conda-build
   - conda-verify
+  - python-build
   - versioningit
   # runtime
   - mantid>=6.11

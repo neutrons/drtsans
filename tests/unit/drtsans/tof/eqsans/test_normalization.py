@@ -7,7 +7,7 @@ Hyperlinks to Mantid algorithms
 SumSpectra <https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html>
 amend_config <https://docs.mantidproject.org/nightly/api/python/mantid/kernel/AmendConfig.html>
 """
-from mantid.simpleapi import SumSpectra, mtd
+from mantid.simpleapi import SumSpectra, mtd, Scale, CloneWorkspace
 from mantid.kernel import amend_config
 
 r"""
@@ -27,6 +27,7 @@ from drtsans.tof.eqsans import (
     normalize_by_proton_charge_and_flux,
     normalize_by_time,
     normalize_by_monitor,
+    ZeroNeutronFluxError,
 )
 from drtsans.tof.eqsans.normalization import (
     load_beam_flux_file,
@@ -121,6 +122,30 @@ def test_normalize_by_proton_charge_and_flux(beam_flux, data_ws, temp_workspace_
 
 
 @pytest.mark.datarepo
+def test_normalize_by_proton_charge_and_flux_no_proton_charge(
+    beam_flux, data_ws, temp_workspace_name, clean_workspace
+):
+    r"""
+    (This test was introduced prior to the testset with the instrument team)
+
+    """
+    data_workspace = CloneWorkspace(data_ws["92353"])  # intensities versus wavelength for run 92353
+    SampleLogs(data_workspace).insert("gd_prtn_chrg", 0.0)  # set proton charge to zero
+    # Load flux file
+    # /SNS/EQSANS/shared/sans-backend/data/ornl/sans/sns/eqsans/test_normalization/beam_profile_flux.txt
+    # into a workspace
+    flux_workspace = load_beam_flux_file(beam_flux, data_workspace=data_workspace)
+    clean_workspace(flux_workspace)
+    output_workspace = temp_workspace_name()
+
+    # Use drtsans normalizing function
+    with pytest.raises(ZeroNeutronFluxError) as except_info:
+        normalize_by_proton_charge_and_flux(data_workspace, flux_workspace, output_workspace)
+
+    assert f"Zero neutron flux for workspace: {output_workspace}" in str(except_info.value)
+
+
+@pytest.mark.datarepo
 def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws, clean_workspace):
     r"""
     (This test was introduced prior to the testset with the instrument team)
@@ -183,6 +208,40 @@ def test_normalize_by_monitor(flux_to_monitor, data_ws, monitor_ws, temp_workspa
     # Second we integrate over all wavelength bins and check the value  will not change as the code in the
     # repository evolves
     assert sum(data_workspace_normalized.dataY(0)) == approx(0.621, abs=1e-03)
+
+
+@pytest.mark.datarepo
+def test_normalize_by_monitor_zero_counts(flux_to_monitor, data_ws, monitor_ws, temp_workspace_name):
+    r"""
+    (This test was introduced prior to the testset with the instrument team)
+    """
+    # First we try normalization in frame-skipping mode, which should raise an exception
+    data_workspace, monitor_workspace = data_ws["92353"], monitor_ws["88565"]
+    with pytest.raises(ValueError, match="not possible in frame-skipping"):
+        # the below statement will raise an exception of class ValueError with an error message that
+        # should contain the above "match" string
+        normalize_by_monitor(
+            data_workspace,
+            flux_to_monitor,
+            monitor_workspace,
+            output_workspace=temp_workspace_name(),
+        )
+    # Second we try normalization if non-skipping mode
+    data_workspace = data_ws["88565"]
+    monitor_workspace = CloneWorkspace(monitor_ws["88565"])
+    monitor_workspace = Scale(monitor_workspace, 0.0)  # set monitor counts to zero
+    output_workspace = temp_workspace_name()
+    # data and monitor for run 88565
+    # Use drtsans function to normalize by monitor counts
+    with pytest.raises(ZeroNeutronFluxError) as except_info:
+        normalize_by_monitor(
+            data_workspace,
+            flux_to_monitor,
+            monitor_workspace,
+            output_workspace,
+        )
+
+    assert f"Zero neutron flux for workspace: {output_workspace}" in str(except_info.value)
 
 
 @pytest.mark.datarepo

@@ -69,8 +69,8 @@ To make it easier to use, configure `direnv <https://direnv.net>`_ to activate t
 
  .. code-block:: shell
 
-    $ python -m pytest tests/unit/new/
-    $ python -m pytest tests/integration/new/
+    $ python -m pytest tests/unit/
+    $ python -m pytest tests/integration/
 
  Some unit and integration tests require testing data.  Thus these tests can be either run on
  * SNS analysis cluster or
@@ -128,8 +128,8 @@ The `build pipeline <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/
 
 .. code-block:: shell
 
-   $ python -m pytest tests/unit/new/
-   $ python -m pytest tests/integration/new/
+   $ python -m pytest tests/unit/
+   $ python -m pytest tests/integration/
 
 This is one of the ways `pytest allows for selecting tests <https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests>`_.
 Specifying a directory or file will run all tests within that directory (recursively) or file.

@@ -28,6 +28,7 @@ from mantid.simpleapi import (
     SplineInterpolation,
 )
 from mantid.api import mtd
+import numpy as np
 
 r"""
 Hyperlinks to drtsans functions
@@ -44,7 +45,12 @@ __all__ = [
     "normalize_by_time",
     "normalize_by_monitor",
     "normalize_by_proton_charge_and_flux",
+    "ZeroNeutronFluxError",
 ]
+
+
+class ZeroNeutronFluxError(ValueError):
+    pass
 
 
 def load_beam_flux_file(flux, data_workspace=None, output_workspace=None):
@@ -135,7 +141,10 @@ def normalize_by_proton_charge_and_flux(input_workspace, flux, output_workspace=
     )
     DeleteWorkspace(rebinned_flux)  # remove the temporary rebinned flux workspace
     # Normalize by the proton charge
-    NormaliseByCurrent(InputWorkspace=output_workspace, OutputWorkspace=output_workspace)
+    try:
+        NormaliseByCurrent(InputWorkspace=output_workspace, OutputWorkspace=output_workspace)
+    except RuntimeError:
+        raise ZeroNeutronFluxError(f"Zero neutron flux for workspace: {output_workspace}")
     return mtd[output_workspace]
 
 
@@ -259,6 +268,10 @@ def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
         flux_to_monitor_workspace,
         OutputWorkspace=flux_workspace,
     )
+
+    # if the neutron flux is zero we don't want to continue, raise an error
+    if np.count_nonzero(mtd[flux_workspace].readY(0)) == 0:
+        raise ZeroNeutronFluxError(f"Zero neutron flux for workspace: {output_workspace}")
 
     # Normalize our input workspace
     Divide(

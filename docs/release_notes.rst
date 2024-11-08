@@ -11,6 +11,7 @@ Release Notes
 **Of interest to the User**:
 
 - MR #XYZ: one-liner description
+- MR 1168: Document scaling the detector panels in the user's guide
 - MR 1162: When reducing `gpsans` data with `direct_beam` scaling, the `direct_beam_scaling` parameter is now logged during
   the reduction process and stored in the output Nexus file at `reduction_information/special_parameters/direct_beam_scaling/value`.
 - MR #1160: expose pixel detector rescalings to the instrument API's

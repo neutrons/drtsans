@@ -28,7 +28,7 @@ from io import StringIO
 from docutils.parsers.rst import Directive
 from docutils import nodes, statemachine
 
-sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("../src"))
 
 from drtsans import __version__ as release
 

@@ -39,7 +39,12 @@ from drtsans.mono.load import (
     transform_to_wavelength,
 )
 from drtsans.mono.meta_data import get_sample_detector_offset, parse_json_meta_data, set_meta_data
-from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
+from drtsans.mono.normalization import (
+    normalize_by_monitor,
+    normalize_by_time,
+    ZeroMonitorCountsError,
+    NoMonitorMetadataError,
+)
 from drtsans.path import allow_overwrite
 from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
 from drtsans.path import abspath, abspaths, registered_workspace
@@ -793,16 +798,16 @@ def prepare_data_workspaces(
     if str(flux_method).lower() == "monitor":
         try:
             normalize_by_monitor(output_workspace_name)
-        except RuntimeError as e:
+        except NoMonitorMetadataError as e:
             if monitor_fail_switch:
                 logger.warning(f"{e}. Resorting to normalization by time")
                 normalize_by_time(output_workspace_name)
             else:
-                msg = (
+                logger.warning(
                     '. Setting configuration "normalizationResortToTime": True will cause the'
                     " reduction to normalize by time if monitor counts are not available"
                 )
-                raise RuntimeError(str(e) + msg)
+                raise
     elif str(flux_method).lower() == "time":
         normalize_by_time(output_workspace_name)
     else:
@@ -1113,6 +1118,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     absolute_scale_method = reduction_config["absoluteScaleMethod"]
     beam_radius = reduction_config["DBScalingBeamRadius"]
     absolute_scale = reduction_config["StandardAbsoluteScale"]
+    time_slice = reduction_config["useTimeSlice"]
 
     output_dir = reduction_config["outputDir"]
 
@@ -1251,35 +1257,43 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         name = "_slice_{}".format(i + 1)
         if len(loaded_ws.sample) > 1:
             output_suffix = f"_{i}"
-        processed_data_main = process_single_configuration(
-            raw_sample_ws,
-            sample_trans_ws=sample_trans_ws,
-            sample_trans_value=sample_trans_value,
-            bkg_ws_raw=loaded_ws.background,
-            bkg_trans_ws=bkgd_trans_ws,
-            bkg_trans_value=bkg_trans_value,
-            blocked_ws_raw=loaded_ws.blocked_beam,
-            theta_deppendent_transmission=theta_deppendent_transmission,
-            center_x=xc,
-            center_y=yc,
-            dark_current=loaded_ws.dark_current,
-            flux_method=flux_method,
-            monitor_fail_switch=monitor_fail_switch,
-            mask_ws=loaded_ws.mask,
-            mask_panel=mask_panel,
-            solid_angle=solid_angle,
-            sensitivity_workspace=loaded_ws.sensitivity,
-            output_workspace="processed_data_main",
-            output_suffix=output_suffix,
-            thickness=thickness,
-            absolute_scale_method=absolute_scale_method,
-            empty_beam_ws=processed_center_ws,
-            beam_radius=beam_radius,
-            absolute_scale=absolute_scale,
-            keep_processed_workspaces=False,
-            debug=debug_output,
-            remove_algorithm_history=remove_algorithm_history,
-        )
+        try:
+            processed_data_main = process_single_configuration(
+                raw_sample_ws,
+                sample_trans_ws=sample_trans_ws,
+                sample_trans_value=sample_trans_value,
+                bkg_ws_raw=loaded_ws.background,
+                bkg_trans_ws=bkgd_trans_ws,
+                bkg_trans_value=bkg_trans_value,
+                blocked_ws_raw=loaded_ws.blocked_beam,
+                theta_deppendent_transmission=theta_deppendent_transmission,
+                center_x=xc,
+                center_y=yc,
+                dark_current=loaded_ws.dark_current,
+                flux_method=flux_method,
+                monitor_fail_switch=monitor_fail_switch,
+                mask_ws=loaded_ws.mask,
+                mask_panel=mask_panel,
+                solid_angle=solid_angle,
+                sensitivity_workspace=loaded_ws.sensitivity,
+                output_workspace="processed_data_main",
+                output_suffix=output_suffix,
+                thickness=thickness,
+                absolute_scale_method=absolute_scale_method,
+                empty_beam_ws=processed_center_ws,
+                beam_radius=beam_radius,
+                absolute_scale=absolute_scale,
+                keep_processed_workspaces=False,
+                debug=debug_output,
+                remove_algorithm_history=remove_algorithm_history,
+            )
+        except ZeroMonitorCountsError as e:
+            if time_slice:
+                logger.warning(f"Skipping slice {name}: {e}.")
+                continue
+            else:
+                raise
+
         # binning
         subpixel_kwargs = dict()
         if reduction_config["useSubpixels"] is True:
@@ -1339,6 +1353,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         output.append(current_output)
 
         detectordata[name] = {"main": {"iq": iq1d_main_out, "iqxqy": iq2d_main_out}}
+
+    try:
+        processed_data_main
+    except NameError:
+        raise RuntimeError("No data was processed. Check the input data.")
 
     # save reduction log
 

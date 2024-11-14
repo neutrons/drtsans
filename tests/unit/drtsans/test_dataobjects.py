@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import pytest
 import tempfile
@@ -12,6 +13,8 @@ from drtsans.dataobjects import (
 )
 from drtsans.dataobjects import verify_same_q_bins
 from tests.conftest import assert_wksp_equal
+
+from mantid.simpleapi import CreateWorkspace, CompareWorkspaces
 
 
 def test_concatenate():
@@ -518,6 +521,60 @@ class TestIQazimuthal:
         assert iq2.delta_qx is None
         assert iq2.delta_qy is None
         assert iq2.wavelength is None
+
+    def test_to_workspace_1D(self):
+        """test with one-dimensional Qx, Qy, I"""
+
+        qx = [1, 2, 3]
+        qy = [4, 5, 6]
+        I = [7, 8, 9]
+        E = [0, 0, 0]
+
+        iqaz = IQazimuthal(I, E, qx, qy)
+
+        ws = iqaz.to_workspace()
+
+        ws_expected = CreateWorkspace(
+            DataX=qx, DataY=I, DataE=E, VerticalAxisValues=qy, VerticalAxisUnit="MomentumTransfer", NSpec=len(qy)
+        )
+
+        assert CompareWorkspaces(ws, ws_expected)
+
+    def test_to_workspace_2D(self):
+        """test with two-dimensional Qx, Qy, I"""
+
+        i = np.array([[1, 2], [3, 4]])
+        e = np.array([[4, 5], [6, 7]])
+        qx = np.array([[7, 8], [9, 10]])
+        qy = np.array([[11, 12], [12, 13]])
+
+        iqaz = IQazimuthal(i, e, qx, qy)
+
+        ws = iqaz.to_workspace()
+
+        ws_expected = CreateWorkspace(
+            DataX=qx, DataY=i, DataE=e, NSpec=4, VerticalAxisValues=qy, VerticalAxisUnit="MomentumTransfer"
+        )
+
+        assert CompareWorkspaces(ws, ws_expected)
+
+    def test_to_workspace_I2D_Q1D(self):
+        """test with two-dimensional I, one-dimensional Qx, Qy"""
+
+        i = np.array([[1, 2, 3], [3, 4, 5]])
+        e = np.array([[4, 5, 6], [6, 7, 8]])
+        qx = [7, 8]
+        qy = [10, 11, 12]
+
+        iqaz = IQazimuthal(i, e, qx, qy)
+
+        ws = iqaz.to_workspace()
+
+        ws_expected = CreateWorkspace(
+            DataX=qx, DataY=i, DataE=e, Nspec=3, VerticalAxisValues=qy, VerticalAxisUnit="MomentumTransfer"
+        )
+
+        assert CompareWorkspaces(ws, ws_expected)
 
 
 class TestTesting:

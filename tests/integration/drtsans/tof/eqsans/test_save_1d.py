@@ -1,7 +1,8 @@
 import pytest
 import tempfile
 from os.path import join
-from drtsans.save_ascii import save_ascii_1D, save_xml_1D
+from drtsans.save_ascii import save_ascii_1D
+from drtsans.save_cansas import save_cansas_xml_1D
 
 from mantid.simpleapi import Load
 from mantid.simpleapi import DeleteWorkspace
@@ -10,7 +11,7 @@ import xml.etree.ElementTree as ET
 
 
 @pytest.mark.datarepo
-def test_save_ascii_1d(datarepo_dir):
+def test_save_1d(datarepo_dir):
     ws = Load(Filename=join(datarepo_dir.eqsans, "test_save_output/EQSANS_68200_iq.nxs"))
 
     with tempfile.NamedTemporaryFile("wt") as tmp:
@@ -29,7 +30,7 @@ def test_save_ascii_1d(datarepo_dir):
         assert np.allclose(output["dQ"], reference["dQ"], atol=1e-6)
 
     with tempfile.NamedTemporaryFile("wt") as tmp:
-        save_xml_1D(ws, "test_reduction_log.hdf", tmp.name)
+        save_cansas_xml_1D(ws, "test_reduction_log.hdf", tmp.name)
         output = []
         tree = ET.parse(tmp.name)
         root = tree.getroot()

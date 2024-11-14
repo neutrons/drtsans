@@ -20,6 +20,7 @@ from drtsans.path import abspath, abspaths, allow_overwrite, registered_workspac
 from drtsans.plots import plot_detector
 from drtsans.samplelogs import SampleLogs
 from drtsans.save_ascii import save_ascii_binned_2D
+from drtsans.save_cansas import save_cansas_nx
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
 from drtsans.settings import namedtuplefy
 from drtsans.stitch import stitch_binned_profiles
@@ -1615,9 +1616,10 @@ def reduce_single_configuration(
         # create output directories
         create_output_dir(output_dir)
 
-        # save ASCII files
-        filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_main.dat")
-        save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
+        # save ASCII and NXCANSAS files
+        filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_main")
+        save_ascii_binned_2D(f"{filename}.dat", "I(Qx,Qy)", iq2d_main_out)
+        save_cansas_nx(iq2d_main_out.to_workspace(), f"{filename}.h5")
         filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_wing.dat")
         save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_wing_out)
         filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_midrange.dat")

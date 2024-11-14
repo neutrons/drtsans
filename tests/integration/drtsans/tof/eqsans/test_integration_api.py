@@ -199,7 +199,9 @@ def test_solid_angle(run_infoset):
     assert ws2.getNumberEvents() == run_infoset.num_events
 
 
-@pytest.mark.parametrize("name", ["save_ascii_1D", "save_xml_1D", "save_nist_dat", "save_nexus"])
+@pytest.mark.parametrize(
+    "name", ["save_ascii_1D", "save_cansas_xml_1D", "save_cansas_nx", "save_nist_dat", "save_nexus"]
+)
 def test_api_contents(name):
     assert name in dir(eqsans)
 

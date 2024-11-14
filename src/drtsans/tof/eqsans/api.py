@@ -55,7 +55,7 @@ from drtsans.tof.eqsans.momentum_transfer import (
     convert_to_q,
     split_by_frame,
 )  # noqa E402
-from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
+from drtsans.tof.eqsans.normalization import normalize_by_flux, ZeroNeutronFluxError  # noqa E402
 from drtsans.tof.eqsans.reduction_api import (
     bin_i_with_correction,
     prepare_data_workspaces,
@@ -723,6 +723,8 @@ def reduce_single_configuration(
     reduction_config["wedges"] = wedges
     reduction_config["symmetric_wedges"] = True
 
+    time_slice = reduction_config["useTimeSlice"]
+
     # automatically determine wedge binning if it wasn't explicitly set
     autoWedgeOpts, symmetric_wedges = parse_auto_wedge_setup(reduction_config, bin1d_type, wedges_min)
 
@@ -898,31 +900,37 @@ def reduce_single_configuration(
         raw_name = f"EQSANS_{raw_sample_ws.data.getRunNumber()}"
 
         # process data without correction
-        processed_data_main = pre_process_single_configuration(
-            raw_sample_ws,
-            sample_trans_ws=sample_trans_ws,
-            sample_trans_value=sample_trans_value,
-            bkg_ws_raw=loaded_ws.background,
-            bkg_trans_ws=bkgd_trans_ws,
-            bkg_trans_value=bkg_trans_value,
-            theta_dependent_transmission=theta_dependent_transmission,  # noqa E502
-            dark_current=loaded_ws.dark_current,
-            flux_method=flux_method,
-            flux=flux,
-            mask_ws=loaded_ws.mask,
-            mask_panel=mask_panel,
-            solid_angle=solid_angle,
-            sensitivity_workspace=loaded_ws.sensitivity,
-            output_workspace="processed_data_main",
-            output_suffix=output_suffix,
-            thickness=thickness,
-            absolute_scale_method=absolute_scale_method,
-            empty_beam_ws=empty_trans_ws,
-            beam_radius=beam_radius,
-            absolute_scale=absolute_scale,
-            keep_processed_workspaces=False,
-        )
-
+        try:
+            processed_data_main = pre_process_single_configuration(
+                raw_sample_ws,
+                sample_trans_ws=sample_trans_ws,
+                sample_trans_value=sample_trans_value,
+                bkg_ws_raw=loaded_ws.background,
+                bkg_trans_ws=bkgd_trans_ws,
+                bkg_trans_value=bkg_trans_value,
+                theta_dependent_transmission=theta_dependent_transmission,  # noqa E502
+                dark_current=loaded_ws.dark_current,
+                flux_method=flux_method,
+                flux=flux,
+                mask_ws=loaded_ws.mask,
+                mask_panel=mask_panel,
+                solid_angle=solid_angle,
+                sensitivity_workspace=loaded_ws.sensitivity,
+                output_workspace="processed_data_main",
+                output_suffix=output_suffix,
+                thickness=thickness,
+                absolute_scale_method=absolute_scale_method,
+                empty_beam_ws=empty_trans_ws,
+                beam_radius=beam_radius,
+                absolute_scale=absolute_scale,
+                keep_processed_workspaces=False,
+            )
+        except ZeroNeutronFluxError as e:
+            if time_slice:
+                logger.warning(f"Skipping slice {slice_name}: {e}.")
+                continue
+            else:
+                raise
         # convert to Q
         iq1d_main_in = convert_to_q(processed_data_main, mode="scalar", **subpixel_kwargs)
         iq2d_main_in = convert_to_q(processed_data_main, mode="azimuthal", **subpixel_kwargs)
@@ -1019,6 +1027,9 @@ def reduce_single_configuration(
 
         detectordata[slice_name] = _inside_detectordata
     # END reduction loop over sample workspaces
+
+    if processed_data_main is None:
+        raise RuntimeError("No data was processed. Check the input data.")
 
     # Save reduction log
     save_reduction_log(

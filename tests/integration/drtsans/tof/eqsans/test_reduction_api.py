@@ -15,6 +15,7 @@ from typing import List, Any, Union, Tuple, Dict
 from drtsans.dataobjects import _Testing
 from matplotlib import pyplot as plt
 from drtsans.dataobjects import IQmod
+from drtsans.samplelogs import SampleLogs
 
 
 SENSITIVITY_FILE = "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/Sensitivity_patched_thinPMMA_4m_113512_mantid.nxs"
@@ -261,6 +262,79 @@ def test_weighted_binning_setup(has_sns_mount, run_config, basename, temp_direct
     for ws in mtd.getObjectNames():
         if str(ws).startswith("_EQSANS_8"):
             DeleteWorkspace(ws)
+
+
+@pytest.mark.mount_eqsans
+@pytest.mark.parametrize(
+    "run_config, basename",
+    [(specs_eqsans["EQSANS_88980"], "EQSANS_88980")],
+    ids=["88980"],
+)
+def test_timeslice(has_sns_mount, run_config, basename, temp_directory, reference_dir):
+    """Test timeslice skipping"""
+    if not has_sns_mount:
+        pytest.skip("SNS mount is not available")
+
+    # set flag to use weighted binning
+    weighted_binning = False
+    common_config = {
+        "configuration": {
+            "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs",
+            "useDefaultMask": True,
+            "normalization": "Total charge",
+            "fluxMonitorRatioFile": None,
+            "beamFluxFileName": "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample",
+            "sensitivityFileName": SENSITIVITY_FILE,
+            "absoluteScaleMethod": "standard",
+            "detectorOffset": 0,
+            "mmRadiusForTransmission": 25,
+            "numQxQyBins": 80,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "useErrorWeighting": weighted_binning,
+            "numQBins": 120,
+            "AnnularAngleBin": 5,
+            "wavelengthStepType": "constant Delta lambda",
+            "wavelengthStep": 0.1,
+            "useTimeSlice": True,
+            "timeSliceInterval": 250,
+        }
+    }
+    # defaults and common options
+    input_config = reduction_parameters(common_config, "EQSANS", validate=False)
+    # final changes and validation
+    input_config = update_reduction_parameters(input_config, run_config, validate=False)
+    output_dir = temp_directory()
+    amendments = {
+        "outputFileName": basename,
+        "configuration": {"outputDir": output_dir},
+    }
+    input_config = update_reduction_parameters(input_config, amendments, validate=True)
+
+    # Load and reduce
+    with amend_config(data_dir=run_config["dataDirectories"]):
+        loaded = load_all_files(input_config)
+
+    assert len(loaded.sample) == 4
+
+    reduction_output = reduce_single_configuration(loaded, input_config)
+    assert len(reduction_output) == 8
+
+    # set the proton charge to zero for every second workspace
+    for ws in loaded.sample[::2]:
+        SampleLogs(ws.data).insert("gd_prtn_chrg", 0.0)
+
+    reduction_output = reduce_single_configuration(loaded, input_config)
+    assert len(reduction_output) == 4  # half the slices are skipped
+
+    # set the proton charge to zero for every workspace
+    for ws in loaded.sample:
+        SampleLogs(ws.data).insert("gd_prtn_chrg", 0.0)
+
+    with pytest.raises(RuntimeError) as e:
+        reduce_single_configuration(loaded, input_config)
+
+    assert "No data was processed. Check the input data." in str(e.value)
 
 
 def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):

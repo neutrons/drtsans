@@ -50,14 +50,17 @@ import tempfile
 this_module_path = sys.modules[__name__].__file__
 parent_dir = pjoin(os.path.dirname(this_module_path), os.pardir)
 
-data_dir = "/SNS/EQSANS/shared/sans-backend/data"
-
-HAVE_SNS_MOUNT = os.path.exists(data_dir)
-
 
 def fr(ipts_number, run_number):
     """Nexus file path from run number"""
     return pjoin(ipts_number, "nexus", "EQSANS_{}.nxs.h5".format(run_number))
+
+
+sns_data_dir = "/SNS/EQSANS/shared/sans-backend/data"
+HAS_SNS_MOUNT = os.path.exists(sns_data_dir)
+
+hfir_data_dir = "/HFIR/"
+HAS_HFIR_MOUNT = os.path.exists(hfir_data_dir)
 
 
 ret_val = namedtuple("ret_val", "ipts shared help r f w")
@@ -112,7 +115,13 @@ class GetWS(object):
 @pytest.fixture(scope="session")
 def has_sns_mount():
     """Fixture that returns True if the SNS mount is available"""
-    return HAVE_SNS_MOUNT
+    return HAS_SNS_MOUNT
+
+
+@pytest.fixture(scope="session")
+def has_hfir_mount():
+    """Fixture that returns True if the HFIR mount is available"""
+    return HAS_HFIR_MOUNT
 
 
 @pytest.fixture(scope="module")
@@ -208,11 +217,11 @@ def reference_dir():
         "data sans biosans gpsans eqsans",
     )
     return ref_dir(
-        data_dir,
-        pjoin(data_dir, "ornl", "sans"),
-        pjoin(data_dir, "ornl", "sans", "hfir", "biosans"),
-        pjoin(data_dir, "ornl", "sans", "hfir", "gpsans"),
-        pjoin(data_dir, "ornl", "sans", "sns", "eqsans"),
+        sns_data_dir,
+        pjoin(sns_data_dir, "ornl", "sans"),
+        pjoin(sns_data_dir, "ornl", "sans", "hfir", "biosans"),
+        pjoin(sns_data_dir, "ornl", "sans", "hfir", "gpsans"),
+        pjoin(sns_data_dir, "ornl", "sans", "sns", "eqsans"),
     )
 
 

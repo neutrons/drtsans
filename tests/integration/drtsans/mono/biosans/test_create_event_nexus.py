@@ -172,7 +172,7 @@ def verify_histogram(source_nexus, test_nexus):
 
     # write the error message to disk
     report_file_name = os.path.basename(source_nexus).split(".")[0] + "_error_log.txt"
-    with open(report_file_name, "w") as report_file:
+    with open(f"test_output/{report_file_name}", "w") as report_file:
         report_file.write(error_message)
         report_file.write(f"source: {source_nexus}\n")
         report_file.write(f"target: {test_nexus}\n")

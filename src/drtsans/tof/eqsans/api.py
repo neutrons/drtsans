@@ -669,7 +669,6 @@ def reduce_single_configuration(
     reduction_config = reduction_input["configuration"]
 
     # Process elastic and inelastic/incoherent scattering correction configuration if user does not specify
-    # TODO: This assert line is probably not necessary due to type hinting - can test separately by passing wrong type
     assert isinstance(not_apply_elastic_correction, bool), "Only boolean for skip flag is allowed"
     assert isinstance(not_apply_incoherence_correction, bool), "Only boolean for skip flag is allowed"
     correction_setup = parse_correction_config(
@@ -795,9 +794,10 @@ def reduce_single_configuration(
         bkgd_returned = (None, None, None)
     bkgd_trans_ws, background_transmission_dict, background_transmission_raw_dict = bkgd_returned
 
-    ############################
-    # PROCESS ELASTIC REFERENCE
-    ############################
+    ##########################################
+    # PROCESS ELASTIC REFERENCE NORMALIZATION
+    ##########################################
+
     if correction_setup.do_elastic_correction and correction_setup.elastic_reference:
         # sanity check
         assert loaded_ws.elastic_reference.data, (
@@ -951,28 +951,28 @@ def reduce_single_configuration(
                 symmetric_wedges,
             )
 
-        n_wl_frames = len(iq2d_main_in_fr)
+        num_of_frames = len(iq2d_main_in_fr)
         _inside_detectordata = {}
 
         # Process each frame separately
-        for wl_frame in range(n_wl_frames):
-            if n_wl_frames > 1:
-                fr_log_label = f"_frame_{wl_frame}"
+        for frameskip_frame in range(num_of_frames):
+            if num_of_frames > 1:
+                fr_log_label = f"_frame_{frameskip_frame}"
                 fr_label = fr_log_label
             else:
                 fr_log_label = "frame"
                 fr_label = ""
 
-            assert iq1d_main_in_fr[wl_frame] is not None, "Input I(Q)      main input cannot be None."
-            assert iq2d_main_in_fr[wl_frame] is not None, "Input I(qx, qy) main input cannot be None."
+            assert iq1d_main_in_fr[frameskip_frame] is not None, "Input I(Q)      main input cannot be None."
+            assert iq2d_main_in_fr[frameskip_frame] is not None, "Input I(qx, qy) main input cannot be None."
 
             # create output directory, with sample number and frame number in case of multiple samples and/or frames
-            slice_frame_output_dir = os.path.join(output_dir, outputFilename, slice_name, f"frame_{wl_frame}")
+            slice_frame_output_dir = os.path.join(output_dir, outputFilename, slice_name, f"frame_{frameskip_frame}")
 
             iq2d_main_out, iq1d_main_out = bin_i_with_correction(
                 iq1d_main_in_fr,
                 iq2d_main_in_fr,
-                wl_frame,
+                frameskip_frame,
                 weighted_errors,
                 qmin,
                 qmax,

@@ -3,7 +3,7 @@ from drtsans.mono.biosans.beam_finder import find_beam_center
 from drtsans.mono.biosans.api import load_all_files, process_single_configuration, reduce_single_configuration
 from drtsans.mono.load import transform_to_wavelength
 from drtsans.mono.transmission import calculate_transmission
-from drtsans.redparms import reduction_parameters
+from drtsans.redparams import reduction_parameters
 
 # third party imports
 from mantid.api import AnalysisDataService

@@ -3,28 +3,19 @@
 =============
 Release Notes
 =============
+..
+  Use the following template to add a new release note.
 
-<Next Release>
---------------
-(date of release)
+  <Next Release>
+  --------------
+  (date of release)
 
-**Of interest to the User**:
+  **Of interest to the User**:
+  - MR #XYZ: one-liner description
 
-- MR #XYZ: one-liner description
-- MR #1169: I(Qx, Qy) is saved in NXCANSAS format for biosans, gpsans, and eqsans workflows
-- MR 1168: Document scaling the detector panels in the user's guide
-- MR 1162: When reducing `gpsans` data with `direct_beam` scaling, the `direct_beam_scaling` parameter is now logged during
-  the reduction process and stored in the output Nexus file at `reduction_information/special_parameters/direct_beam_scaling/value`.
-- MR #1160: expose pixel detector rescalings to the instrument API's
-- MR #1161: Add a parameters  removeAlgorithmHistory to write less data and speed up I/O during reduction
-
-**Of interest to the Developer:**
-
-- MR #XYZ: one-liner description
-- MR #1169: creates src/drtsans/save_cansas.py to define CANSAS format file handling methods
-- MR #1171: update environment.yml to replace build in favor of python-build
-- MR #1165: update Mantid version to 6.11
-- MR #1158: added options in the JSON schemae to rescale whole detector panels
+  **Of interest to the Developer:**
+  - MR #XYZ: one-liner description
+..
 
 ?.??.?
 ------
@@ -32,7 +23,21 @@ Release Notes
 
 **Of interest to the User**:
 
-- MR #1159:  Separate configuration for elastic normalization and inelastic incoherence correction
+- MR #1169: I(Qx, Qy) is saved in NXCANSAS format for biosans, gpsans, and eqsans workflows
+- MR #1168: Document scaling the detector panels in the user's guide
+- MR #1167: Allow separate configurations for inelastic incoherence correction per frame in frame skipping mode
+- MR #1162: When reducing `gpsans` data with `direct_beam` scaling, the `direct_beam_scaling` parameter is now logged during
+  the reduction process and stored in the output Nexus file at `reduction_information/special_parameters/direct_beam_scaling/value`.
+- MR #1161: Add a parameters  removeAlgorithmHistory to write less data and speed up I/O during reduction
+- MR #1160: Expose pixel detector rescalings to the instrument API's
+- MR #1159: Separate configuration for elastic normalization and inelastic incoherence correction
+
+**Of interest to the Developer:**
+
+- MR #1171: update environment.yml to replace build in favor of python-build
+- MR #1169: creates src/drtsans/save_cansas.py to define CANSAS format file handling methods
+- MR #1165: update Mantid version to 6.11
+- MR #1158: added options in the JSON schemae to rescale whole detector panels
 
 1.11.0
 ------

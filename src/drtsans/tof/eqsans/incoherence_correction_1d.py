@@ -1,3 +1,8 @@
+"""
+This module provides the functionality to correct I(Q, wavelength) accounting for wavelength-dependent incoherent
+inelastic scattering, for both 1D and 2D data (despite its name).
+"""
+
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
 # Step 3: Correct wave-dependent incoherence intensity for I(Q, wavelength)
 from drtsans.tof.eqsans.elastic_reference_normalization import (

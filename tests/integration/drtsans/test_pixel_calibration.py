@@ -1147,6 +1147,9 @@ def test_biosans_midrange_tube_calibration(datarepo_dir, temp_workspace_name):
 
 @pytest.mark.mount_eqsans
 def test_as_intensities(has_sns_mount, reference_dir):
+    """Requires access to:
+    /HFIR/CG2/shared/calibration/pixel_calibration.json
+    """
     if not has_sns_mount:
         pytest.skip("SNS mount is not available")
 

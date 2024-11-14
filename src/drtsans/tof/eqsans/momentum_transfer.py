@@ -250,10 +250,9 @@ def split_by_frame(input_workspace, *args, **kwargs):
 
     Returns
     -------
-    ~list
-        A list with namedtuples
+    list
+        A list with namedtuples for each frame (1 or 2)
     """
-    # Verbose?
     if "verbose" in kwargs:
         verbose = kwargs["verbose"]
     else:

@@ -13,6 +13,7 @@ User Guide
    :maxdepth: 1
 
    /user/calibration
+   /user/reduction_output
    /drtsans/reduction_parameters
    /drtsans/reduction_scripts
    release_notes

@@ -704,6 +704,28 @@ class IQazimuthal(namedtuple("IQazimuthal", "intensity error qx qy delta_qx delt
             **kwargs,
         )
 
+    def to_workspace(self, name=None):
+        """Return a workspace representing I(Qx, Qy) with error E"""
+
+        # create a name if one isn't provided
+        if name is None:
+            name = mtd.unique_hidden_name()
+
+        ws = CreateWorkspace(
+            DataX=self.qx,
+            UnitX="MomentumTransfer",
+            VerticalAxisValues=self.qy,
+            VerticalAxisUnit="MomentumTransfer",
+            NSpec=self.qy.size,
+            DataY=self.intensity,
+            DataE=self.error,
+            OutputWorkspace=name,
+            # dx=
+            EnableLogging=False,
+        )
+
+        return ws
+
 
 class IQcrystal(namedtuple("IQazimuthal", "intensity error qx qy qz delta_qx delta_qy delta_qz wavelength")):
     """This class holds the information for the crystallographic projection, I(Qx, Qy, Qz). All of the

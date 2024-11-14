@@ -36,11 +36,8 @@ from drtsans.plots import plot_IQazimuthal, plot_IQmod  # noqa E402
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa E402
 from drtsans.samplelogs import SampleLogs  # noqa E402
 from drtsans.save_2d import save_nexus, save_nist_dat  # noqa E402
-from drtsans.save_ascii import (
-    save_ascii_1D,
-    save_ascii_binned_2D,
-    save_xml_1D,
-)  # noqa E402
+from drtsans.save_ascii import save_ascii_1D, save_ascii_binned_2D  # noqa E402
+from drtsans.save_cansas import save_cansas_nx, save_cansas_xml_1D
 from drtsans.settings import namedtuplefy  # noqa E402
 from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
 from drtsans.tof.eqsans.cfg import load_config  # noqa E402
@@ -72,7 +69,8 @@ __all__ = [
     "subtract_background",
     "prepare_data",
     "save_ascii_1D",
-    "save_xml_1D",
+    "save_cansas_xml_1D",
+    "save_cansas_nx",
     "save_nist_dat",
     "save_nexus",
     "set_init_uncertainties",
@@ -1001,18 +999,19 @@ def reduce_single_configuration(
                 "iqxqy": iq2d_main_out,
             }
 
-            # save ASCII files
-            filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{fr_label}_Iqxqy.dat")
+            # save ASCII and NXCANSAS files
+            filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{fr_label}_Iqxqy")
             if iq2d_main_out:
-                save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
+                save_ascii_binned_2D(f"{filename}.dat", "I(Qx,Qy)", iq2d_main_out)
+                save_cansas_nx(iq2d_main_out.to_workspace(), f"{filename}.h5")
 
             for j in range(len(iq1d_main_out)):
                 add_suffix = ""
                 if len(iq1d_main_out) > 1:
                     add_suffix = f"_wedge_{j}"
                 add_suffix += fr_label
-                ascii_1D_filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq.dat")
-                save_iqmod(iq1d_main_out[j], ascii_1D_filename, skip_nan=skip_nan)
+                ascii_1D_filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq")
+                save_iqmod(iq1d_main_out[j], f"{ascii_1D_filename}.dat", skip_nan=skip_nan)
 
             current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=iq1d_main_out)
             output.append(current_output)

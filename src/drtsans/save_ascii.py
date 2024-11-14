@@ -8,7 +8,7 @@ try:
     from mantid.plots.datafunctions import get_spectrum  # mantid >4.2
 except ImportError:
     from mantid.plots.helperfunctions import get_spectrum  # mantid <=4.2
-from mantid.simpleapi import SaveCanSAS1D
+
 import numpy as np
 
 
@@ -81,21 +81,6 @@ def save_ascii_1D(wksp, title, filename):
         f.write("{:.6E}\t".format(sigma_i[i]))
         f.write("{:.6E}\n".format(dq[i]))
     f.close()
-
-
-def save_xml_1D(wksp, title, filename):
-    """Save the I(q) workspace in SaveCanSAS (XML) format
-
-    Parameters
-    ----------
-    wksp : ~mantid.api.MatrixWorkspace
-        Workspace containing only one spectrum (the I(q) curve)
-    title : string
-        Text to append to Process section
-    filename : string
-        The output filename
-    """
-    SaveCanSAS1D(InputWorkspace=wksp, Process=title, Filename=filename)
 
 
 def save_ascii_binned_2D(filename: str, title, *args, **kwargs):

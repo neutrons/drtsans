@@ -51,6 +51,7 @@ from drtsans.settings import namedtuplefy
 from drtsans.solid_angle import solid_angle_correction
 from drtsans.thickness_normalization import normalize_by_thickness
 from drtsans.save_ascii import save_ascii_binned_2D
+from drtsans.save_cansas import save_cansas_nx
 
 # Functions exposed to the general user (public) API
 __all__ = [
@@ -1320,16 +1321,18 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             error_weighted=weighted_errors,
         )
 
-        # save ASCII files
-        filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D.dat")
-        save_ascii_binned_2D(filename, "I(Qx,Qy)", iq2d_main_out)
+        # save ASCII and NXCANSAS files
+        filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D")
+        save_ascii_binned_2D(f"{filename}.dat", "I(Qx,Qy)", iq2d_main_out)
+        save_cansas_nx(iq2d_main_out.to_workspace(), f"{filename}.h5")
 
         for j in range(len(iq1d_main_out)):
             add_suffix = ""
             if len(iq1d_main_out) > 1:
                 add_suffix = f"_wedge_{j}"
-            ascii_1D_filename = os.path.join(output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}.txt")
-            save_iqmod(iq1d_main_out[j], ascii_1D_filename, skip_nan=skip_nan)
+            ascii_1D_filename = os.path.join(output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}")
+
+            save_iqmod(iq1d_main_out[j], f"{ascii_1D_filename}.txt", skip_nan=skip_nan)
 
         IofQ_output = namedtuple("IofQ_output", ["I2D_main", "I1D_main"])
         current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=iq1d_main_out)

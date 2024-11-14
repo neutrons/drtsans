@@ -14,7 +14,7 @@ import pytest
 # drtsans imports
 from drtsans import configdir
 from drtsans.instruments import instrument_standard_names, instrument_standard_name
-from drtsans.redparms import (
+from drtsans.redparams import (
     DefaultJson,
     generate_json_files,
     load_schema,
@@ -30,7 +30,7 @@ from drtsans.redparms import (
 
 
 @pytest.fixture(scope="module")
-def redparms_data():
+def redparams_data():
     schema_common = json.loads(
         r"""
     {
@@ -166,8 +166,8 @@ def test_load_schema(instrument_name):
 
 
 class TestReferenceResolver:
-    def test_derefence(self, redparms_data):
-        resolver = ReferenceResolver(redparms_data["schema_common_file"])
+    def test_derefence(self, redparams_data):
+        resolver = ReferenceResolver(redparams_data["schema_common_file"])
         unresolved = {
             "background": {
                 "iptsNumber": {"$ref": "common.json#/iptsNumber"},
@@ -427,6 +427,40 @@ class TestReferenceResolver:
             "required": ["sample", "configuration"],
         }
         assert resolved == compared
+        # array of references
+        unresolved = {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object",
+            "properties": {
+                "example-multi-type": {
+                    "oneOf": [
+                        {"$ref": "common.json#/configuration/timeSliceInterval"},
+                        {"$ref": "common.json#/configuration/outputDir"},
+                    ]
+                }
+            },
+        }
+        resolved = resolver.dereference(unresolved)
+        compared = {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object",
+            "properties": {
+                "example-multi-type": {
+                    "oneOf": [
+                        {
+                            "description": "Interval for time slicing",
+                            "anyOf": [
+                                {"type": "string", "pattern": "^$|^[0-9]*.[0-9]*$"},
+                                {"type": "number", "exclusiveMinimum": 0},
+                            ],
+                            "preferredType": "float",
+                        },
+                        {"type": "string", "description": "Output folder"},
+                    ]
+                }
+            },
+        }
+        assert resolved == compared
 
     # common.json can resolve itself, thus we include it in the list below
     @pytest.mark.parametrize("file_name", ["common"] + instrument_standard_names())
@@ -468,9 +502,9 @@ class TestSuggest:
 
 
 @pytest.fixture(scope="module")
-def default_json(redparms_data):
-    resolver = ReferenceResolver(redparms_data["schema_common_file"])
-    schema_resolved = resolver.dereference(redparms_data["schema_instrument"])
+def default_json(redparams_data):
+    resolver = ReferenceResolver(redparams_data["schema_common_file"])
+    schema_resolved = resolver.dereference(redparams_data["schema_instrument"])
     return DefaultJson(schema_resolved)
 
 
@@ -582,16 +616,16 @@ configuration:
 
 
 class TestReductionParameters:
-    def test_init(self, redparms_data):
-        ReductionParameters(redparms_data["reduction_parameters"], redparms_data["schema_instrument"])
+    def test_init(self, redparams_data):
+        ReductionParameters(redparams_data["reduction_parameters"], redparams_data["schema_instrument"])
 
-    def test_permissible(self, redparms_data):
-        reduction_parameters_new = deepcopy(redparms_data["reduction_parameters"])
+    def test_permissible(self, redparams_data):
+        reduction_parameters_new = deepcopy(redparams_data["reduction_parameters"])
         reduction_parameters_new["configuration"]["entry_not_in_the_schema"] = None
         with pytest.raises(KeyError) as error_info:
-            ReductionParameters(reduction_parameters_new, redparms_data["schema_instrument"])
+            ReductionParameters(reduction_parameters_new, redparams_data["schema_instrument"])
         assert "entry_not_in_the_schema" in str(error_info.value)
-        ReductionParameters(reduction_parameters_new, redparms_data["schema_instrument"], permissible=True)
+        ReductionParameters(reduction_parameters_new, redparams_data["schema_instrument"], permissible=True)
 
 
 class TestReductionParametersGPSANS:
@@ -850,6 +884,38 @@ class TestReductionParametersEQSANS:
         "configuration": {"outputDir": "/tmp", "QbinType": "linear", "numQBins": 100},
     }
     parameters_all = reduction_parameters(parameters_common, validate=False)
+
+    @pytest.mark.datarepo
+    def test_incohfit_parameters(self, datarepo_dir):
+        parameters = deepcopy(self.parameters_all)
+        with amend_config(data_dir=datarepo_dir.eqsans):
+            validate_reduction_parameters(parameters)
+        # assert incohfit_qmin/qmax/factor are null by default
+        assert parameters["configuration"]["incohfit_qmin"] is None
+        assert parameters["configuration"]["incohfit_qmax"] is None
+        assert parameters["configuration"]["incohfit_factor"] is None
+
+        # assert incohfit_qmin/qmax/factor can be set to a float
+        parameters["configuration"]["incohfit_qmin"] = 0.01
+        parameters["configuration"]["incohfit_qmax"] = 0.1
+        parameters["configuration"]["incohfit_factor"] = 10
+        with amend_config(data_dir=datarepo_dir.eqsans):
+            validate_reduction_parameters(parameters)
+
+        # assert incohfit_qmin/qmax/factor can be set to a list of floats
+        parameters["configuration"]["incohfit_qmin"] = [0.01, 0.02]
+        parameters["configuration"]["incohfit_qmax"] = [0.1, 0.2]
+        parameters["configuration"]["incohfit_factor"] = [10, 20]
+        with amend_config(data_dir=datarepo_dir.eqsans):
+            validate_reduction_parameters(parameters)
+
+        # assert incohfit_qmin/qmax/factor must be lists length 1 or 2
+        with pytest.raises(ReductionParameterError):
+            parameters["configuration"]["incohfit_qmin"] = [0.01, 0.02, 0.03]
+            parameters["configuration"]["incohfit_qmax"] = []
+            parameters["configuration"]["incohfit_factor"] = [10, 20, 30, 40]
+            with amend_config(data_dir=datarepo_dir.eqsans):
+                validate_reduction_parameters(parameters)
 
     @pytest.mark.datarepo
     def test_scale_components(self, datarepo_dir):

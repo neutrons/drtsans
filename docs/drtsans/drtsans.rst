@@ -195,10 +195,10 @@ drtsans.process\_uncertainties module
    :undoc-members:
    :show-inheritance:
 
-drtsans.redparms module
+drtsans.redparams module
 -----------------------
 
-.. automodule:: drtsans.redparms
+.. automodule:: drtsans.redparams
    :members:
    :undoc-members:
    :show-inheritance:

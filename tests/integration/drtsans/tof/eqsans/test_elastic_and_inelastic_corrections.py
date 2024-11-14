@@ -8,7 +8,7 @@ import pytest
 from mantid.kernel import amend_config
 from mantid.simpleapi import DeleteWorkspace, mtd
 
-from drtsans.redparms import ReductionParameterError
+from drtsans.redparams import ReductionParameterError
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (
     load_all_files,
@@ -22,13 +22,13 @@ from drtsans.tof.eqsans.correction_api import parse_correction_config
     "elastic_reference_run, fitInelasticIncoh, "
     + "skip_elastic, skip_inelastic, expected_do_elastic, expected_do_inelastic",
     [
-        ("92160", True, False, False, True, True),  # both
-        (None, False, False, False, False, False),  # none
-        (None, True, False, False, False, True),  # inelastic only
-        ("92160", False, False, False, True, False),  # elastic only
-        ("92160", True, True, False, False, True),  # skip elastic
-        ("92160", True, False, True, True, False),  # skip inelastic
-        ("92160", True, True, True, False, False),  # skip both
+        ("92160", [True], False, False, True, [True, True]),
+        (None, [False], False, False, False, [False, False]),
+        (None, [True], False, False, False, [True, True]),
+        ("92160", [False], False, False, True, [False, False]),
+        ("92160", [True], True, False, False, [True, True]),
+        ("92160", [True], False, True, True, [False, False]),
+        ("92160", [True], True, True, False, [False, False]),
     ],
     ids=["both", "none", "elastic_only", "inelastic_only", "skip_elastic", "skip_inelastic", "skip_both"],
 )
@@ -134,7 +134,7 @@ def test_parse_invalid_json(datarepo_dir):
             "WedgeMaxAngles": "30, 120",
             "AnnularAngleBin": "5",
             "useSliceIDxAsSuffix": True,
-            "fitInelasticIncoh": True,
+            "fitInelasticIncoh": [True],
             "elasticReference": {
                 "runNumber": invalid_run_num,
                 "thickness": "1.0",
@@ -237,7 +237,7 @@ def test_incoherence_correction_elastic_normalization(
     if not elastic_reference_run:
         configuration["configuration"]["elasticReference"]["runNumber"] = None
     if not fitInelasticIncoh:
-        configuration["configuration"]["fitInelasticIncoh"] = False
+        configuration["configuration"]["fitInelasticIncoh"] = [False]
 
     # validate and clean configuration
     input_config = reduction_parameters(configuration)
@@ -336,20 +336,23 @@ def test_incoherence_correction_elastic_normalization(
 
 
 @pytest.mark.datarepo
-def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, temp_directory):
+@pytest.mark.parametrize(
+    "base_name, expected_result_basename, weighted, qmin, qmax, factor",
+    [
+        ("EQSANS_132078", "EQSANS_132078", False, None, None, None),
+        ("EQSANS_132078_weighted", "EQSANS_132078_weighted", True, None, None, None),
+        ("EQSANS_132078_weighted_factor", "EQSANS_132078_weighted_factor", True, None, None, 10),
+        ("EQSANS_132078_weighted_qrange", "EQSANS_132078_weighted_factor", True, 0.065, 0.224, None),
+    ],
+    ids=["unweighted", "weighted", "weighted_factor", "weighted_qrange"],
+)
+def test_incoherence_correction_elastic_normalization_weighted(
+    base_name, expected_result_basename, weighted, qmin, qmax, factor, datarepo_dir, temp_directory
+):
     """Test incoherence correction with elastic correction"""
 
-    # Set up the configuration dict
-    config_json_file = os.path.join(datarepo_dir.eqsans, "test_corrections/porsil_29024_abs_inel.json")
-    assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
-    with open(config_json_file, "r") as config_json:
-        configuration = json.load(config_json)
-    assert isinstance(configuration, dict)
-
-    # Create temp output directory
-    test_dir = temp_directory()
-
-    def run_reduction_and_compare(config, expected_result_basename):
+    def _run_reduction_and_compare(config, expected_result_basename):
+        """Run reduction and compare the output with the expected result"""
         with amend_config(data_dir=datarepo_dir.eqsans):
             # validate and clean configuration
             input_config = reduction_parameters(config)
@@ -357,9 +360,7 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
             loaded = load_all_files(input_config)
 
             # Reduce
-            reduction_output = reduce_single_configuration(
-                loaded, input_config, not_apply_incoherence_correction=False
-            )
+            reduction_output = reduce_single_configuration(loaded, input_config)
         assert reduction_output
 
         test_iq1d_file = os.path.join(test_dir, config["outputFileName"] + "_Iq.dat")
@@ -380,11 +381,19 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
             if str(ws).startswith("_EQSANS_"):
                 DeleteWorkspace(ws)
 
-    # Run without intensity weighted correction
-    base_name = "EQSANS_132078"
+    # Create temp output directory
+    test_dir = temp_directory()
     assert os.path.exists(test_dir), f"Output dir {test_dir} does not exit"
+
+    # Set up the configuration dict
+    config_json_file = os.path.join(datarepo_dir.eqsans, "test_corrections/porsil_29024_abs_inel.json")
+    assert os.path.exists(config_json_file), f"Test JSON file {config_json_file} does not exist."
+    with open(config_json_file, "r") as config_json:
+        configuration = json.load(config_json)
+    assert isinstance(configuration, dict)
+
+    # Override common configuration values
     configuration["configuration"]["outputDir"] = test_dir
-    configuration["outputFileName"] = base_name
     configuration["dataDirectories"] = os.path.join(datarepo_dir.eqsans, "test_corrections")
     configuration["configuration"][
         "darkFileName"
@@ -401,41 +410,44 @@ def test_incoherence_correction_elastic_normalization_weighted(datarepo_dir, tem
     configuration["configuration"]["beamFluxFileName"] = os.path.join(
         datarepo_dir.eqsans, "test_normalization", "beam_profile_flux.txt"
     )
-    run_reduction_and_compare(configuration, "EQSANS_132078")
 
-    # Run with weighted
-    base_name = "EQSANS_132078_weighted"
+    # Override individual correction settings
     configuration["outputFileName"] = base_name
-    configuration["configuration"]["incohfit_intensityweighted"] = True
-    configuration["configuration"]["incohfit_factor"] = None
-    configuration["configuration"]["incohfit_qmin"] = None
-    configuration["configuration"]["incohfit_qmax"] = None
-    run_reduction_and_compare(configuration, "EQSANS_132078_weighted")
-
-    # Run with weighted and factor
-    base_name = "EQSANS_132078_weighted_factor"
-    configuration["outputFileName"] = base_name
-    configuration["configuration"]["incohfit_intensityweighted"] = True
-    configuration["configuration"]["incohfit_factor"] = 10
-    configuration["configuration"]["incohfit_qmin"] = None
-    configuration["configuration"]["incohfit_qmax"] = None
-    run_reduction_and_compare(configuration, "EQSANS_132078_weighted_factor")
-
-    # Run with weighted and manual q range
-    # q-range is set to be the same as what the factor calculation finds
-    base_name = "EQSANS_132078_weighted_qrange"
-    configuration["outputFileName"] = base_name
-    configuration["configuration"]["incohfit_intensityweighted"] = True
-    configuration["configuration"]["incohfit_factor"] = None
-    configuration["configuration"]["incohfit_qmin"] = 0.065
-    configuration["configuration"]["incohfit_qmax"] = 0.224
-    run_reduction_and_compare(configuration, "EQSANS_132078_weighted_factor")
+    configuration["configuration"]["incohfit_intensityweighted"] = weighted
+    configuration["configuration"]["incohfit_qmin"] = qmin
+    configuration["configuration"]["incohfit_qmax"] = qmax
+    configuration["configuration"]["incohfit_factor"] = factor
+    _run_reduction_and_compare(configuration, expected_result_basename)
 
     print(f"Output directory: {test_dir}")
 
 
 @pytest.mark.mount_eqsans
-def test_incoherence_correction_elastic_normalization_slices_frames(has_sns_mount, datarepo_dir, temp_directory):
+@pytest.mark.parametrize(
+    "fitInelasticIncoh, incohfit_intensityweighted, incohfit_qmin, incohfit_qmax, incohfit_factor",
+    [
+        # Original configuration
+        (True, False, 0.04, 0.08, None),
+        # Multiple fitInelasticIncoh values
+        ([True, False], False, 0.04, 0.08, None),
+        # Multiple incohfit_intensityweighted values
+        (True, [False, True], 0.04, 0.08, None),
+        # Multiple incohfit_qmin/qmax values
+        (True, False, [0.04, 0.06], [0.08, 0.1], None),
+        # Multiple incohfit_factor values
+        (True, False, 0.04, 0.08, [None, 10]),
+    ],
+)
+def test_incoherence_correction_elastic_normalization_slices_frames(
+    fitInelasticIncoh,
+    incohfit_intensityweighted,
+    incohfit_qmin,
+    incohfit_qmax,
+    incohfit_factor,
+    has_sns_mount,
+    datarepo_dir,
+    temp_directory,
+):
     """Test incoherence correction with elastic correction with time slicing and frame mode"""
     if not has_sns_mount:
         pytest.skip("SNS mount is not available")
@@ -446,6 +458,13 @@ def test_incoherence_correction_elastic_normalization_slices_frames(has_sns_moun
     with open(config_json_file, "r") as config_json:
         configuration = json.load(config_json)
     assert isinstance(configuration, dict)
+
+    # Override configuration values
+    configuration["configuration"]["fitInelasticIncoh"] = fitInelasticIncoh
+    configuration["configuration"]["incohfit_intensityweighted"] = incohfit_intensityweighted
+    configuration["configuration"]["incohfit_qmin"] = incohfit_qmin
+    configuration["configuration"]["incohfit_qmax"] = incohfit_qmax
+    configuration["configuration"]["incohfit_factor"] = incohfit_factor
 
     # Create temp output directory
     test_dir = temp_directory()
@@ -465,26 +484,29 @@ def test_incoherence_correction_elastic_normalization_slices_frames(has_sns_moun
     assert loaded.elastic_reference_background.data is None
 
     # Reduce
-    reduction_output = reduce_single_configuration(loaded, input_config, not_apply_incoherence_correction=False)
+    reduction_output = reduce_single_configuration(loaded, input_config)
     assert reduction_output
     print(f"Output directory: {test_dir}")
 
     # check that the wavelength dependent profiles are created in subdirectories for slices and frames
     for islice in range(3):
         for iframe in range(2):
-            if iframe == 0:
-                number_of_wavelengths = 29
+            # 29 wavelengths for the first frame, 28 for the second frame
+            # unless inelastic correction is disabled for the frame
+            if isinstance(fitInelasticIncoh, list) and fitInelasticIncoh[iframe] is False:
+                num_wavelengths_k = 29 - iframe
+                num_wavelengths_b = 0
             else:
-                number_of_wavelengths = 28
+                num_wavelengths_k = num_wavelengths_b = 29 - iframe
             output_dir = os.path.join(test_dir, base_name, f"slice_{islice}", f"frame_{iframe}")
             # before k correction
-            assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_k_correction.dat"))) == number_of_wavelengths
+            assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_k_correction.dat"))) == num_wavelengths_k
             # after k correction
-            assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_k_correction.dat"))) == number_of_wavelengths
+            assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_k_correction.dat"))) == num_wavelengths_k
             # before b correction
-            assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_b_correction.dat"))) == number_of_wavelengths
+            assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_b_correction.dat"))) == num_wavelengths_b
             # after b correction
-            assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_b_correction.dat"))) == number_of_wavelengths
+            assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_b_correction.dat"))) == num_wavelengths_b
 
     # cleanup
     DeleteWorkspace("_empty")

@@ -4,10 +4,10 @@ import numpy as np
 # testing https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/sensitivity.py
 from drtsans.sensitivity import apply_sensitivity_correction
 import os
-from tests.conftest import data_dir
+from tests.conftest import sns_data_dir
 
 WKSPNAME_IN = "EQSANS_87680"
-FILENAME_IN = os.path.join(data_dir, "EQSANS_87680_integrated.nxs")
+FILENAME_IN = os.path.join(sns_data_dir, "EQSANS_87680_integrated.nxs")
 MIN, MAX = 0.5, 2.0
 
 

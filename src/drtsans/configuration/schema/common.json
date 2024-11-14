@@ -9,143 +9,180 @@
       "examples": ["{'FilterByTofMin': 1000.0, 'FilterByTofMax': 16000.0}"]
     },
     "runNumberTypes": {
-      "anyOf": [{"type": "string", "minLength": 1},
-                {"type": "integer", "minimum": 1},
-                {"type": "array", "minItems": 1, "items": {"type": ["integer", "string"]}}],
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "integer", "minimum": 1 },
+        { "type": "array", "minItems": 1, "items": { "type": ["integer", "string"] } }
+      ],
       "dataSource": "events",
       "preferredType": "runstr"
     },
     "runNumberOptionalTypes": {
-      "anyOf": [{"type": "string"},
-                {"type":  "null"},
-                {"type": "integer", "minimum": 1},
-                {"type": "array", "items": {"type": ["integer", "string"]}}],
+      "anyOf": [
+        { "type": "string" },
+        { "type": "null" },
+        { "type": "integer", "minimum": 1 },
+        { "type": "array", "items": { "type": ["integer", "string"] } }
+      ],
       "dataSource": "events",
       "preferredType": "runstr"
     },
     "transmissionValueTypes": {
-      "anyOf": [{"type": "string", "pattern": "^$|^0?.[0-9]*$"},
-                {"type": "null"},
-                {"type": "number", "exclusiveMinimum": 0, "maximum": 1}],
+      "anyOf": [
+        { "type": "string", "pattern": "^$|^0?.[0-9]*$" },
+        { "type": "null" },
+        { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+      ],
       "preferredType": "float"
     },
     "safeString": {
-      "anyOf": [{"type": "string"},
-                {"type": "null"}]
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
     },
     "safeStringFloat": {
-      "anyOf": [{"type": "string", "pattern": "^$|^[0-9]*.[0-9]*$"},
-                {"type": "null"},
-                {"type": "number"}],
+      "anyOf": [{ "type": "string", "pattern": "^$|^[0-9]*.[0-9]*$" }, { "type": "null" }, { "type": "number" }],
       "preferredType": "float"
     },
+    "safeStringPositiveFloatArray": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/definitions/safeStringPositiveFloat"
+      },
+      "preferredType": "[float]"
+    },
     "safeStringNonNegativeFloat": {
-      "anyOf": [{"type": "string", "pattern": "^$|^[0-9]*.[0-9]*$"},
-                {"type": "null"},
-                {"type": "number", "minimum": 0}],
+      "anyOf": [
+        { "type": "string", "pattern": "^$|^[0-9]*.[0-9]*$" },
+        { "type": "null" },
+        { "type": "number", "minimum": 0 }
+      ],
       "preferredType": "float"
     },
     "safeStringPositiveFloat": {
-      "anyOf": [{"type": "string", "pattern": "^$|^[0-9]*.[0-9]*$"},
-                {"type": "null"},
-                {"type": "number", "exclusiveMinimum": 0}],
+      "anyOf": [
+        { "type": "string", "pattern": "^$|^[0-9]*.[0-9]*$" },
+        { "type": "null" },
+        { "type": "number", "exclusiveMinimum": 0 }
+      ],
       "preferredType": "float"
     },
     "safeStringPositiveFloatNotNone": {
-      "anyOf": [{"type": "string", "minLength": 1, "pattern": "^$|^[0-9]*.[0-9]*$"},
-                {"type": "number", "exclusiveMinimum": 0}],
+      "anyOf": [
+        { "type": "string", "minLength": 1, "pattern": "^$|^[0-9]*.[0-9]*$" },
+        { "type": "number", "exclusiveMinimum": 0 }
+      ],
       "preferredType": "float"
     },
     "safeStringPositiveInteger": {
-      "anyOf": [{"type": "string", "pattern": "^[1-9][0-9]*$"},
-                {"type": "null"},
-                {"type": "number", "minimum": 1}],
+      "anyOf": [
+        { "type": "string", "pattern": "^[1-9][0-9]*$" },
+        { "type": "null" },
+        { "type": "number", "minimum": 1 }
+      ],
       "preferredType": "int"
     },
     "safeWedgeAngleSpecs": {
-      "anyOf": [{"type": "number", "minimum": -90, "exclusiveMaximum": 270},
-                {"type": "null"},
-                {"type": "array", "items": {"type": "number", "minimum": -90, "exclusiveMaximum": 270}}],
+      "anyOf": [
+        { "type": "number", "minimum": -90, "exclusiveMaximum": 270 },
+        { "type": "null" },
+        { "type": "array", "items": { "type": "number", "minimum": -90, "exclusiveMaximum": 270 } }
+      ],
       "preferredType": "[float]"
     },
     "safeStitchQboundsSpecs": {
-      "anyOf": [{"type": "number", "ExclusiveMinimum": 0},
-                {"type": "null"},
-                {"type": "array", "items": {"type": "number", "ExclusiveMinimum": 0}, "maxItems":  2}],
+      "anyOf": [
+        { "type": "number", "ExclusiveMinimum": 0 },
+        { "type": "null" },
+        { "type": "array", "items": { "type": "number", "ExclusiveMinimum": 0 }, "maxItems": 2 }
+      ],
       "preferredType": "[float]"
     },
-    "safeScaleComponentsType":{
+    "safeScaleComponentsType": {
       "anyOf": [
-        {"type": "string", "minLength": 0, "maxLength": 0},
-        {"type": "null"},
-        {"type": "array", "items": {"type": "number", "exclusiveMinimum": 0, "minItems": 3, "maxItems": 3}}
+        { "type": "string", "minLength": 0, "maxLength": 0 },
+        { "type": "null" },
+        { "type": "array", "items": { "type": "number", "exclusiveMinimum": 0, "minItems": 3, "maxItems": 3 } }
       ]
     },
-      "lmfitParameter" : {
-        "type": "object",
-        "additionalProperties": {
-          "value": {
-            "type": "number",
-            "descriptions": "Numerical Parameter value."
-          },
-          "vary": {
-            "type": "boolean",
-            "description": "Whether the Parameter is varied during a fit."
-          },
-          "min": {
-            "type": "number",
-            "description": "Lower bound for value."
-          },
-          "max": {
-            "type": "number",
-            "description": "Upper bound for value."
-          },
-          "expr": {
-            "type": "string",
-            "description": "Mathematical expression used to constrain the value during the fit."
-          }
+    "lmfitParameter": {
+      "type": "object",
+      "additionalProperties": {
+        "value": {
+          "type": "number",
+          "descriptions": "Numerical Parameter value."
+        },
+        "vary": {
+          "type": "boolean",
+          "description": "Whether the Parameter is varied during a fit."
+        },
+        "min": {
+          "type": "number",
+          "description": "Lower bound for value."
+        },
+        "max": {
+          "type": "number",
+          "description": "Upper bound for value."
+        },
+        "expr": {
+          "type": "string",
+          "description": "Mathematical expression used to constrain the value during the fit."
         }
-     }
+      }
+    },
+    "incohfitFloatParameter": {
+      "oneOf": [
+        { "$ref": "common.json#/definitions/safeStringPositiveFloat" },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "common.json#/definitions/safeStringPositiveFloat"
+          },
+          "preferredType": "[float]",
+          "minItems": 1,
+          "maxItems": 2
+        }
+      ]
+    }
   },
 
   "schemaStamp": {
     "type": "string",
-    "format":  "date-time",
-    "default" : "2020-04-15T21:09:52.745905",
-    "description" : "schema version as a time stamp in ISO 8601 format (YYYY-MM-DDThh:mm:ssZ), in UTC time"
+    "format": "date-time",
+    "default": "2020-04-15T21:09:52.745905",
+    "description": "schema version as a time stamp in ISO 8601 format (YYYY-MM-DDThh:mm:ssZ), in UTC time"
   },
   "instrumentName": {
     "type": "string",
     "description": "The name of the instrument. Valid values are BIOSANS, EQSANS, and GPSANS",
-    "enum": [
-      "BIOSANS",
-      "EQSANS",
-      "GPSANS"
-    ],
+    "enum": ["BIOSANS", "EQSANS", "GPSANS"],
     "examples": ["BIOSANS", "EQSANS", "GPSANS"]
   },
   "iptsNumber": {
-    "anyOf": [{"type": "string", "minLength": 1, "pattern": "^[1-9][0-9]*$"},
-              {"type": "integer", "minimum": 1}],
+    "anyOf": [
+      { "type": "string", "minLength": 1, "pattern": "^[1-9][0-9]*$" },
+      { "type": "integer", "minimum": 1 }
+    ],
     "description": "The IPTS number for the data files. The path to datafiles will be /SNS/EQSANS/IPTS-{iptsNumber}/nexus"
   },
   "dataDirectories": {
-    "anyOf": [{"type": "null"}, {"type": "string"}, {"type": "array", "items":  {"type": "string"}}],
+    "anyOf": [{ "type": "null" }, { "type": "string" }, { "type": "array", "items": { "type": "string" } }],
     "preferredType": "[str]",
     "description": "Directories where to find events or histogram files",
     "examples": ["/tmp/data", ["/tmp/data1", "/tmp/data2"]]
   },
   "sample": {
     "type": "object",
-    "properties" : {
+    "properties": {
       "runNumber": {
         "$ref": "common.json#/definitions/runNumberTypes",
         "description": "The run number(s) for the sample. More than one run number can be specified by passing a list or by passing a string containing the run numbers separated by commas.",
         "examples": ["12345", 12345]
       },
-      "loadOptions":{"$ref": "common.json#/definitions/eventsLoaderOptions"},
+      "loadOptions": { "$ref": "common.json#/definitions/eventsLoaderOptions" },
       "thickness": {
-        "anyOf": [{"type": "string","minLength": 1}, {"type": "number", "exclusiveMinimum": 0}],
+        "anyOf": [
+          { "type": "string", "minLength": 1 },
+          { "type": "number", "exclusiveMinimum": 0 }
+        ],
         "description": "The sample thickness in cm",
         "preferredType": "float"
       },
@@ -262,7 +299,7 @@
           },
           "DirectBeam": {
             "type": "boolean",
-             "description": "If true, a direct beam calculation will be performed. Otherwise, the center of mass of the scattering data will be computed by excluding the beam area."
+            "description": "If true, a direct beam calculation will be performed. Otherwise, the center of mass of the scattering data will be computed by excluding the beam area."
           },
           "BeamRadius": {
             "$ref": "common.json#/definitions/safeStringPositiveFloat",
@@ -303,7 +340,7 @@
   },
 
   "configuration": {
-    "outputDir": {"type": "string", "description": "Output folder"},
+    "outputDir": { "type": "string", "description": "Output folder" },
     "useTimeSlice": {
       "type": "boolean",
       "useEntry": "#configuration/timeSliceInterval",
@@ -319,8 +356,8 @@
       "description": "Offset for time slicing from the beginning of the run, in seconds. Default is no offset."
     },
     "timeSlicePeriod": {
-        "$ref": "common.json#/definitions/safeStringPositiveFloat",
-        "description": "Period for time slicing, in seconds and a multiple of timeSliceInterval. Default is None, meaning no periodicity"
+      "$ref": "common.json#/definitions/safeStringPositiveFloat",
+      "description": "Period for time slicing, in seconds and a multiple of timeSliceInterval. Default is None, meaning no periodicity"
     },
     "useSliceIDxAsSuffix": {
       "type": "boolean",
@@ -358,7 +395,7 @@
       "description": "Distance between the sample and the detector array in mm"
     },
     "sampleToSi": {
-      "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+      "$ref": "common.json#/definitions/safeStringPositiveFloat",
       "description": "distance from sample to the silica window, in mm"
     },
     "sampleApertureSize": {
@@ -386,12 +423,11 @@
       "description": "flag to use a mask that is run number dependent (stored in a database)"
     },
     "defaultMask": {
-      "anyOf": [{"type": "array", "items": {"type": ["object", "string"]}},
-                {"type": "null"}],
+      "anyOf": [{ "type": "array", "items": { "type": ["object", "string"] } }, { "type": "null" }],
       "preferredType": "[dict]",
       "description": "mask as optional arguments to be passed on to function drtsans.mask_utils.apply_mask()",
       "examples": [
-        [{"Pixel": "1-18,239-256"}, {"Bank": "18-24,42-48"}],
+        [{ "Pixel": "1-18,239-256" }, { "Bank": "18-24,42-48" }],
         ["{'Pixel': '1-18,239-256'}", "{'Bank': '18-24,42-48'}"]
       ]
     },
@@ -430,7 +466,8 @@
       "description": "Integration radius (in mm) to be used for transmission calculation"
     },
     "absoluteScaleMethod": {
-      "type": "string", "enum": ["standard", "direct_beam"],
+      "type": "string",
+      "enum": ["standard", "direct_beam"],
       "description": "Absolute scaling method. Only 'standard' (multiply by a constant) is implemented for EQSANS",
       "examples": ["standard"]
     },
@@ -444,18 +481,26 @@
       "description": "Number of bins in the x and y direction for 2D binning"
     },
     "1DQbinType": {
-      "type": "string", "enum": ["scalar", "annular", "wedge"],
+      "type": "string",
+      "enum": ["scalar", "annular", "wedge"],
       "description": "Options for 1D binning: |Q|, azimuthal angle, or |Q| for a particular wedge",
       "wedgeSources": [
         ["#configuration/WedgeMinAngles", "#configuration/WedgeMaxAngles"],
-        ["#configuration/autoWedgeQmin", "#configuration/autoWedgeQdelta", "#configuration/autoWedgeQmax",
-         "#configuration/autoWedgeAzimuthalDelta","#configuration/autoWedgePeakWidth",
-         "#configuration/autoWedgeBackgroundWidth", "#configuration/autoWedgeSignalToNoiseMin"]
+        [
+          "#configuration/autoWedgeQmin",
+          "#configuration/autoWedgeQdelta",
+          "#configuration/autoWedgeQmax",
+          "#configuration/autoWedgeAzimuthalDelta",
+          "#configuration/autoWedgePeakWidth",
+          "#configuration/autoWedgeBackgroundWidth",
+          "#configuration/autoWedgeSignalToNoiseMin"
+        ]
       ],
       "examples": ["scalar", "annular", "wedge"]
-   },
+    },
     "QbinType": {
-      "type": "string", "enum": ["linear", "log"],
+      "type": "string",
+      "enum": ["linear", "log"],
       "description": "1D binning type for scalar or wedge modes ('linear' or 'log'). If 'linear' is selected, then 'numQbins' must be specified. If 'log' is selected, then either 'numQbins' or 'LogQBinsPerDecade' must be specified.",
       "examples": ["linear", "log"]
     },
@@ -529,7 +574,7 @@
       "description": "Angle bin size in degrees for annular binning"
     },
     "Qmin": {
-       "$ref": "common.json#/definitions/safeStringPositiveFloat",
+      "$ref": "common.json#/definitions/safeStringPositiveFloat",
       "pairedTo": "#configuration/Qmax",
       "lessThan": "#configuration/Qmax",
       "description": "The minimum |Q| value for scalar, wedge, or annular binning"
@@ -569,16 +614,17 @@
       "description": "Divide pixel heights width an integer number of times when calculating resolution in Q"
     },
     "wavelength": {
-      "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+      "$ref": "common.json#/definitions/safeStringPositiveFloat",
       "description": "Wave length in Angstrom"
     },
     "wavelengthSpread": {
-      "$ref":  "common.json#/definitions/safeStringPositiveFloat",
+      "$ref": "common.json#/definitions/safeStringPositiveFloat",
       "pairedTo": "#configuration/wavelength",
       "description": "Wave length spread in Angstrom.  `wavelength` must be specified too"
     },
     "normalization": {
-      "type": "string", "enum": ["Monitor", "Time"],
+      "type": "string",
+      "enum": ["Monitor", "Time"],
       "description": "Normalization type. Allowed values 'Total charge', 'Time', 'Monitor'",
       "examples": ["Monitor", "Time"]
     },
@@ -586,22 +632,22 @@
       "type": "boolean",
       "description": "Carry out Time normalization if Monitor was selected but no monitor counts are found"
     },
-   "scaleComponents": {
-     "type": "object",
-     "properties": {
-       "detector1": {
-         "$ref":  "common.json#/definitions/safeScaleComponentsType"
-       },
-       "wing_detector": {
-         "$ref":  "common.json#/definitions/safeScaleComponentsType"
-       },
-       "midrange_detector": {
-         "$ref":  "common.json#/definitions/safeScaleComponentsType"
-       }
-     },
-     "default": {},
-     "description": "Dictionary where keys are detector-panel names and values are lists of three float numbers representing size rescaling along X, Y, and Z dimensions. Default is an empty dictionary",
-       "examples": [
+    "scaleComponents": {
+      "type": "object",
+      "properties": {
+        "detector1": {
+          "$ref": "common.json#/definitions/safeScaleComponentsType"
+        },
+        "wing_detector": {
+          "$ref": "common.json#/definitions/safeScaleComponentsType"
+        },
+        "midrange_detector": {
+          "$ref": "common.json#/definitions/safeScaleComponentsType"
+        }
+      },
+      "default": {},
+      "description": "Dictionary where keys are detector-panel names and values are lists of three float numbers representing size rescaling along X, Y, and Z dimensions. Default is an empty dictionary",
+      "examples": [
         {
           "detector1": [1.0, 1.1, 1.0],
           "wing_detector": [0.95, 1.0, 0.95]
@@ -615,6 +661,6 @@
           "wing_detector": ""
         }
       ]
-   }
+    }
   }
 }

@@ -1,7 +1,7 @@
 # Move part of the methods from api.py to avoid importing in loops
 import os
 from collections import namedtuple
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 from mantid.simpleapi import (
@@ -15,6 +15,7 @@ from drtsans import (  # noqa E402
     solid_angle_correction,
     subtract_background,  # noqa E402
 )
+from drtsans.dataobjects import IQmod, IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.mask_utils import apply_mask  # noqa E402
 from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
@@ -200,29 +201,29 @@ def process_transmission(
 
 
 def bin_i_with_correction(
-    iq1d_in_frames,
-    iq2d_in_frames,
-    wl_frame,
-    weighted_errors,
-    user_qmin,
-    user_qmax,
-    num_x_bins,
-    num_y_bins,
-    num_q1d_bins,
-    num_q1d_bins_per_decade,
-    decade_on_center,
-    bin1d_type,
-    log_binning,
-    annular_bin,
-    wedges,
-    symmetric_wedges,
+    iq1d_in_frames: List[IQmod],
+    iq2d_in_frames: List[IQazimuthal],
+    frameskip_frame: int,
+    weighted_errors: bool,
+    user_qmin: float,
+    user_qmax: float,
+    num_x_bins: int,
+    num_y_bins: int,
+    num_q1d_bins: int,
+    num_q1d_bins_per_decade: int,
+    decade_on_center: bool,
+    bin1d_type: str,
+    log_binning: bool,
+    annular_bin: float,
+    wedges: List[Tuple[int, int]],
+    symmetric_wedges: bool,
     correction_setup: CorrectionConfiguration,
-    iq1d_elastic_ref_fr,
-    iq2d_elastic_ref_fr,
-    raw_name,
-    output_dir,
-    output_filename="",
-):
+    iq1d_elastic_ref_fr: List[IQmod],
+    iq2d_elastic_ref_fr: List[IQazimuthal],
+    raw_name: str,
+    output_dir: str,
+    output_filename: str = "",
+) -> Tuple[IQazimuthal, List[IQmod]]:
     """Bin I(Q) in 1D and 2D with the option to do elastic and/or inelastic incoherent correction
 
     Parameters
@@ -232,7 +233,7 @@ def bin_i_with_correction(
     iq2d_in_frames: list[~drtsans.dataobjects.IQazimuthal]
         Objects containing 2D unbinned data I(Qx, Qy). It will be used for 2D binned data,
         and 1D wedge or annular binned data
-    wl_frame: int
+    frameskip_frame: int
         Index of the frame in ``iq1d_in_frames`` and ``iq2d_in_frames`` to bin and correct
     weighted_errors: bool
         If True, the binning is done using the Weighted method
@@ -286,7 +287,7 @@ def bin_i_with_correction(
     """
 
     # Setup for corrections
-    if correction_setup.do_elastic_correction or correction_setup.do_inelastic_correction:
+    if correction_setup.do_elastic_correction or any(correction_setup.do_inelastic_correction):
         # If any correction is turned on, then weighted_errors is always true
         weighted_errors = True
 
@@ -295,22 +296,22 @@ def bin_i_with_correction(
 
         # Define qmin and qmax for this frame
         if user_qmin is None:
-            qmin = iq1d_in_frames[wl_frame].mod_q.min()
+            qmin = iq1d_in_frames[frameskip_frame].mod_q.min()
         else:
             qmin = user_qmin
         if user_qmax is None:
-            qmax = iq1d_in_frames[wl_frame].mod_q.max()
+            qmax = iq1d_in_frames[frameskip_frame].mod_q.max()
         else:
             qmax = user_qmax
 
         # Set qxrange and qyrange for this frame
-        qxrange = np.min(iq2d_in_frames[wl_frame].qx), np.max(iq2d_in_frames[wl_frame].qx)
-        qyrange = np.min(iq2d_in_frames[wl_frame].qy), np.max(iq2d_in_frames[wl_frame].qy)
+        qxrange = np.min(iq2d_in_frames[frameskip_frame].qx), np.max(iq2d_in_frames[frameskip_frame].qx)
+        qyrange = np.min(iq2d_in_frames[frameskip_frame].qy), np.max(iq2d_in_frames[frameskip_frame].qy)
 
         # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
         iq2d_main_wl, iq1d_main_wl = bin_all(
-            iq2d_in_frames[wl_frame],
-            iq1d_in_frames[wl_frame],
+            iq2d_in_frames[frameskip_frame],
+            iq1d_in_frames[frameskip_frame],
             num_x_bins,
             num_y_bins,
             n1dbins=num_q1d_bins,
@@ -346,8 +347,8 @@ def bin_i_with_correction(
         if iq1d_elastic_ref_fr:
             # bin the reference elastic runs of the current frame
             iq2d_elastic_wl, iq1d_elastic_wl = bin_all(
-                iq2d_elastic_ref_fr[wl_frame],
-                iq1d_elastic_ref_fr[wl_frame],
+                iq2d_elastic_ref_fr[frameskip_frame],
+                iq1d_elastic_ref_fr[frameskip_frame],
                 num_x_bins,
                 num_y_bins,
                 n1dbins=num_q1d_bins,
@@ -386,13 +387,14 @@ def bin_i_with_correction(
             )
 
     # Inelastic incoherence correction
-    if correction_setup.do_inelastic_correction:
+    if correction_setup.do_inelastic_correction[frameskip_frame]:
         b_file_prefix = f"{raw_name}"
 
         # 1D correction
         iq2d_main_wl, iq1d_wl = do_inelastic_incoherence_correction(
             iq2d_main_wl,
             iq1d_main_wl[0],
+            frameskip_frame,
             correction_setup,
             b_file_prefix,
             output_dir,
@@ -400,9 +402,9 @@ def bin_i_with_correction(
         )
         iq1d_main_wl[0] = iq1d_wl
 
-    if not correction_setup.do_inelastic_correction and not correction_setup.do_elastic_correction:
-        finite_iq1d = iq1d_in_frames[wl_frame]
-        finite_iq2d = iq2d_in_frames[wl_frame]
+    if not correction_setup.do_elastic_correction and not any(correction_setup.do_inelastic_correction):
+        finite_iq1d = iq1d_in_frames[frameskip_frame]
+        finite_iq2d = iq2d_in_frames[frameskip_frame]
         qmin = user_qmin
         qmax = user_qmax
     else:

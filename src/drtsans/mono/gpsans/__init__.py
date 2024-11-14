@@ -26,8 +26,8 @@ from ...path import *
 import drtsans.pixel_calibration
 from ...pixel_calibration import *
 
-import drtsans.redparms
-from ...redparms import *
+import drtsans.redparams
+from ...redparams import *
 
 import drtsans.stitch
 from ...stitch import *
@@ -76,7 +76,7 @@ __all__ = (
     + drtsans.mask_utils.__all__
     + drtsans.path.__all__
     + drtsans.pixel_calibration.__all__
-    + drtsans.redparms.__all__
+    + drtsans.redparams.__all__
     + drtsans.stitch.__all__
     + drtsans.solid_angle.__all__
     + drtsans.thickness_normalization.__all__

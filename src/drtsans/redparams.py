@@ -217,7 +217,11 @@ class ReferenceResolver:
             to_resolve.update(resolved)
         for name, value in to_resolve.items():
             if isinstance(value, dict):
-                to_resolve[name] = self.dereference(value)  # nested dictionaries must be looked, just in case
+                to_resolve[name] = self.dereference(value)  # dereference any nested dictionaries
+            elif isinstance(value, list):  # dereference any nested lists (such as anyOf, oneOf, allOf)
+                for i, item in enumerate(value):
+                    if isinstance(item, dict):
+                        value[i] = self.dereference(item)
         return to_resolve
 
 
@@ -785,7 +789,7 @@ class ReductionParameters:
                 # for the schema and the reduction parameters
                 self._initialize_parameters(schema=schema_value, parameters=parameter_value)
             else:
-                # initialization of parameters[name begins
+                # get default of parameters[name] and type coercion
                 if parameter_value in ("", None):
                     parameters[name] = schema_value.get("default", None)  # is there a default value?
                 elif "preferredType" in schema_value:  # parameter_value is not empty
@@ -897,18 +901,24 @@ class ReductionParameters:
         ~jsonschema.ValidationError
             when the validator fails or when `value` is not one of the allowed values
         """
-        if instance is not None and isinstance(instance, (int, float)) is False:
-            yield jsonschema.ValidationError(f"{instance} is not a number")
-        entry_paths = value
-        if isinstance(value, str):
-            entry_paths = [value]
-        for entry_path in entry_paths:
-            other_instance = self.get_parameter_value(entry_path)
-            if other_instance is not None:
-                if isinstance(other_instance, (int, float)) is False:
-                    yield jsonschema.ValidationError(f"{entry_path} is not a number")
-                if instance >= other_instance:
-                    yield jsonschema.ValidationError(f"{instance} is not smaller than {entry_path}")
+        if instance is None:
+            return
+        if isinstance(instance, list):
+            self._validate_pairwise_less_than(validator, value, instance, schema)
+        elif isinstance(instance, (int, float)):
+            # process as standard
+            entry_paths = value
+            if isinstance(value, str):  # convert to list if value is a string
+                entry_paths = [value]
+            for entry_path in entry_paths:
+                other_instance = self.get_parameter_value(entry_path)
+                if other_instance is not None:
+                    if isinstance(other_instance, (int, float)) is False:
+                        yield jsonschema.ValidationError(f"{entry_path} is not a number")
+                    if instance >= other_instance:
+                        yield jsonschema.ValidationError(f"{instance} is not smaller than {entry_path}")
+        else:
+            yield jsonschema.ValidationError(f"{instance} is not a number or a list")
 
     def _validate_pairwise_less_than(self, validator, value, instance, schema):
         r"""Check that values in a list are smaller than the value in the same position in another list
@@ -1215,7 +1225,7 @@ class ReductionParameters:
 
 def _instrument_json_generator(instrument=None, field="default"):
     r"""
-    For each instrument schema, yield a resolved ~drtsans.redparms.DefaultJson instance.
+    For each instrument schema, yield a resolved ~drtsans.redparams.DefaultJson instance.
 
     Parameters
     ----------
@@ -1292,7 +1302,7 @@ def validate_reduction_parameters(parameters, permissible=False):
 
     Parameters
     ----------
-    parameters: dict, ~drtsans.redparms.ReductionParameters
+    parameters: dict, ~drtsans.redparams.ReductionParameters
         Reduction configuration
     permissible: bool
         If `False`, raise an exception if a parameter in the parameters dictionary is not found in the instrument's

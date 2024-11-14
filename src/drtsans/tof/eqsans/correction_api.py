@@ -2,13 +2,14 @@
 # sample and background data accounting wavelength-dependent incoherent inelastic scattering.
 # The workflow algorithms will be directly called by eqsans.api.
 import os.path
-from drtsans.dataobjects import IQmod, IQazimuthal
 from collections import namedtuple
+from typing import List, Union
+
+from drtsans.dataobjects import IQazimuthal, IQmod
 from drtsans.iq import bin_all  # noqa E402
-from typing import Union
 from drtsans.tof.eqsans.incoherence_correction_1d import (
-    correct_incoherence_inelastic_all,
     CorrectedIQ1D,
+    correct_incoherence_inelastic_all,
 )
 from drtsans.tof.eqsans.incoherence_correction_2d import (
     CorrectedIQ2D,
@@ -62,32 +63,32 @@ class CorrectionConfiguration:
     ----------
     do_elastic_correction: bool
         whether to do elastic correction or not
-    do_inelastic_correction: bool
-        whether to do correction or not
+    do_inelastic_correction: List[bool]
+        whether to do correction or not for each frame
     select_minimum_incoherence: bool
         flag to determine correction B by minimum incoherence
-    intensity_weighted: bool
-       flag to determine if the b factor is calculated in a weighted function by intensity
-    qmin_index: float
-        optional, manually set the qmin used for incoherent calculation
-    qmax_index: float
-        optional, manually set the qmax used for incoherent calculation
-    factor: float
-        optional, automatically determine the qmin qmax by checking the intensity profile
+    select_intensityweighted: List[bool]
+       flag to determine if the b factor is calculated in a weighted function by intensity for each frame
+    qmin_index: List[float]
+        optional, manually set the qmin used for incoherent calculation in each frame
+    qmax_index: List[float]
+        optional, manually set the qmax used for incoherent calculation in each frame
+    factor: List[float]
+        optional, automatically determine the qmin qmax by checking the intensity profile for each frame
     output_wavelength_dependent_profile: bool
         if True then output Iq for each wavelength before and after k and b correction
     """
 
     def __init__(
         self,
-        do_elastic_correction=False,
-        do_inelastic_correction=False,
-        select_min_incoherence=False,
-        select_intensityweighted=False,
-        qmin=None,
-        qmax=None,
-        factor=None,
-        output_wavelength_dependent_profile=False,
+        do_elastic_correction: bool = False,
+        do_inelastic_correction: List[bool] = [False, False],
+        select_min_incoherence: bool = False,
+        select_intensityweighted: List[bool] = [False, False],
+        qmin: Union[None, List[float]] = None,
+        qmax: Union[None, List[float]] = None,
+        factor: Union[None, List[float]] = None,
+        output_wavelength_dependent_profile: bool = False,
     ):
         self._do_elastic_correction = do_elastic_correction
         self._do_inelastic_correction = do_inelastic_correction
@@ -231,18 +232,18 @@ class ElasticReferenceRunSetup:
 def parse_correction_config(
     reduction_config,
     not_apply_elastic_correction: bool = False,
-    not_apply_incoherence_correction: bool = False,
+    not_apply_incoherence_correction: Union[bool, List[bool]] = False,
 ) -> CorrectionConfiguration:
     """Parse correction configuration from reduction configuration (top level)
 
     Parameters
     ----------
-    reduction_config: ~dict
+    reduction_config: dict
         reduction configuration from JSON
     not_apply_elastic_correction: bool
         flag to skip elastic correction
-    not_apply_incoherence_correction: bool
-        flag to skip incoherence correction
+    not_apply_incoherence_correction: bool or List[bool]
+        flag to skip incoherence correction for each frame if list or for both frames if bool
 
     Returns
     -------
@@ -250,26 +251,30 @@ def parse_correction_config(
         incoherence/inelastic scattering correction configuration
 
     """
+
+    if isinstance(not_apply_incoherence_correction, bool):
+        not_apply_incoherence_correction = [not_apply_incoherence_correction, not_apply_incoherence_correction]
+
     # an exception case
     if "configuration" not in reduction_config:
         _config = CorrectionConfiguration(
             do_elastic_correction=False,
-            do_inelastic_correction=False,
+            do_inelastic_correction=[False, False],
         )
     else:
         # properly configured
         run_config = reduction_config["configuration"]
 
         # incoherence inelastic correction setup: basic
-        if not_apply_incoherence_correction:
-            do_inelastic_correction = False
+        if any(not_apply_incoherence_correction):
+            do_inelastic_correction = [not i for i in not_apply_incoherence_correction]
         else:
-            do_inelastic_correction = run_config.get("fitInelasticIncoh", False)
+            do_inelastic_correction = listify_incohfit_parameter(run_config.get("fitInelasticIncoh", False))
         select_min_incoherence = run_config.get("selectMinIncoh", False)
-        select_intensityweighted = run_config.get("incohfit_intensityweighted", False)
-        qmin = run_config.get("incohfit_qmin")
-        qmax = run_config.get("incohfit_qmax")
-        factor = run_config.get("incohfit_factor")
+        select_intensityweighted = listify_incohfit_parameter(run_config.get("incohfit_intensityweighted", False))
+        qmin = listify_incohfit_parameter(run_config.get("incohfit_qmin"))
+        qmax = listify_incohfit_parameter(run_config.get("incohfit_qmax"))
+        factor = listify_incohfit_parameter(run_config.get("incohfit_factor"))
         output_wavelength_dependent_profile = run_config.get("outputWavelengthDependentProfile", False)
 
         _config = CorrectionConfiguration(
@@ -282,7 +287,6 @@ def parse_correction_config(
             factor,
             output_wavelength_dependent_profile,
         )
-
         # Optional elastic normalization
         elastic_ref_json = run_config.get("elasticReference")
         if elastic_ref_json:
@@ -322,6 +326,18 @@ def parse_correction_config(
     return _config
 
 
+def listify_incohfit_parameter(parameter):
+    if isinstance(parameter, list):
+        # if list of one, return as single value
+        if len(parameter) == 1:
+            return [parameter[0], parameter[0]]
+        # else if list of two, return as is
+        elif len(parameter) == 2:
+            return parameter
+    else:  # if parameter is a single value, coerce and return as list of two
+        return [parameter, parameter]
+
+
 # Define named tuple for elastic scattering normalization factor
 NormFactor = namedtuple("NormFactor", "k k_error p s")
 
@@ -329,6 +345,7 @@ NormFactor = namedtuple("NormFactor", "k k_error p s")
 def do_inelastic_incoherence_correction(
     iq2d: IQazimuthal,
     iq1d: IQmod,
+    frameskip_frame: int,
     correction_setup: CorrectionConfiguration,
     prefix: str,
     output_dir: str,
@@ -342,6 +359,8 @@ def do_inelastic_incoherence_correction(
         I(Q2D)
     iq1d: IQmod
         I(Q1D)
+    frameskip_frame: int
+        frame skip index (0 or 1)
     correction_setup: CorrectionConfiguration
         correction configuration
     prefix: str
@@ -365,10 +384,10 @@ def do_inelastic_incoherence_correction(
         iq2d,
         iq1d,
         correction_setup.select_min_incoherence,
-        correction_setup.select_intensityweighted,
-        correction_setup.qmin,
-        correction_setup.qmax,
-        correction_setup.factor,
+        correction_setup.select_intensityweighted[frameskip_frame],
+        correction_setup.qmin[frameskip_frame],
+        correction_setup.qmax[frameskip_frame],
+        correction_setup.factor[frameskip_frame],
         correction_setup.output_wavelength_dependent_profile,
         output_dir,
     )

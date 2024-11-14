@@ -27,9 +27,9 @@ from drtsans.tof.eqsans import correct_frame
 from drtsans.geometry import source_detector_distance
 
 
-trials = dict(  # configurations with frame skipped
-    # (0)run, (1)wavelength_bin, (2)source-detector-distance
-    # (3)monitor-min-TOF
+# (run, wavelength_bin, source-detector-distance, monitor-min-TOF)
+trials = dict(
+    # configurations with frame skipped
     skip_1m=("EQSANS_86217.nxs.h5", 0.02, 1.3, -1),
     skip_4m=("EQSANS_92353.nxs.h5", 0.02, 4.0, -1),
     skip_5m=("EQSANS_85550.nxs.h5", 0.02, 5.0, -1),

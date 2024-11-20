@@ -986,6 +986,13 @@ class TestReductionParametersEQSANS:
         )
         reduction_parameters(parameters_new, permissible=True)
 
+    @pytest.mark.datarepo
+    def test_loadOptions_additionalProperties_true(self, datarepo_dir):
+        parameters = deepcopy(self.parameters_all)
+        with amend_config(data_dir=datarepo_dir.eqsans):
+            parameters["sample"]["loadOptions"]["additionalProperties"] = True
+            validate_reduction_parameters(parameters)
+
 
 def test_generate_json_files(tmpdir, cleanfile):
     directory = tmpdir.mkdir("generate_json_files")
@@ -1012,7 +1019,12 @@ class TestReductionParameterError:
         "instrumentName": "EQSANS",
         "iptsNumber": 20196,
         "dataDirectories": None,
-        "sample": {"runNumber": 89157, "thickness": 1.0, "transmission": {"runNumber": 59157, "value": 1.0}},
+        "sample": {
+            "runNumber": 89157,
+            "thickness": 1.0,
+            "transmission": {"runNumber": 59157, "value": 1.0},
+            "loadOptions": {"additionalProperties": True},
+        },
         "background": {
             "runNumber": 89158,
             "transmission": {"runNumber": 59158, "value": 1.0},

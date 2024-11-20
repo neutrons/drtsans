@@ -19,7 +19,7 @@ from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 
 # local imports
-from drtsans import getWedgeSelection, subtract_background
+from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
 from drtsans.beam_finder import center_detector, fbc_options_json, find_beam_center
 from drtsans.dataobjects import save_iqmod
 from drtsans.instruments import extract_run_number, instrument_filesystem_name
@@ -1357,7 +1357,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     try:
         processed_data_main
     except NameError:
-        raise RuntimeError("No data was processed. Check the input data.")
+        raise NoDataProcessedError()
 
     # save reduction log
 

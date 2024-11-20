@@ -17,7 +17,12 @@ from mantid.simpleapi import (
 )
 import numpy as np
 
-__all__ = ["half_polarization", "subtract_background"]
+__all__ = ["half_polarization", "subtract_background", "NoDataProcessedError"]
+
+
+class NoDataProcessedError(RuntimeError):
+    def __init__(self, message="No data was processed. Check the input data."):
+        super().__init__(message)
 
 
 def subtract_background(input_workspace, background, scale=1.0, scale_error=0.0, output_workspace=None):

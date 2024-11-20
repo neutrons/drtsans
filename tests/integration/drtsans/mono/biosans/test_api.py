@@ -5,6 +5,7 @@ from drtsans.mono.load import transform_to_wavelength
 from drtsans.mono.transmission import calculate_transmission
 from drtsans.redparams import reduction_parameters
 from drtsans.samplelogs import SampleLogs
+from drtsans.api import NoDataProcessedError
 
 # third party imports
 from mantid.api import AnalysisDataService
@@ -396,7 +397,7 @@ def test_reduce_single_configuration_slice_skip_all(datarepo_dir, temp_directory
     for ws in loaded.sample:
         SampleLogs(ws).insert("monitor", 0.0)
 
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(NoDataProcessedError) as e:
         _ = reduce_single_configuration(loaded, reduction_input)
     assert "No data was processed. Check the input data." in str(e.value)
 

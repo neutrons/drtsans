@@ -7,6 +7,7 @@ from drtsans.mono.gpsans import (
     reduce_single_configuration,
 )
 from drtsans.samplelogs import SampleLogs
+from drtsans.api import NoDataProcessedError
 
 
 @pytest.mark.datarepo
@@ -96,7 +97,7 @@ def test_timeslice(datarepo_dir, temp_directory):
     for ws in loaded.sample:
         SampleLogs(ws).insert("monitor", 0.0)
 
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(NoDataProcessedError) as e:
         reduce_single_configuration(loaded, reduction_input)
     assert "No data was processed. Check the input data." in str(e.value)
     mtd.clear()

@@ -1,7 +1,7 @@
 """ BIOSANS API """
 # local imports
 import drtsans
-from drtsans import getWedgeSelection, subtract_background
+from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
 from drtsans.dataobjects import save_iqmod, IQazimuthal
 from drtsans.instruments import extract_run_number
 from drtsans.iq import bin_all
@@ -1687,7 +1687,7 @@ def reduce_single_configuration(
     try:
         processed_data_main
     except NameError:
-        raise RuntimeError("No data was processed. Check the input data.")
+        raise NoDataProcessedError()
 
     # save reduction log
 

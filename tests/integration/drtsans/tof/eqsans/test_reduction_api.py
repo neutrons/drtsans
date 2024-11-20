@@ -16,6 +16,7 @@ from drtsans.dataobjects import _Testing
 from matplotlib import pyplot as plt
 from drtsans.dataobjects import IQmod
 from drtsans.samplelogs import SampleLogs
+from drtsans.api import NoDataProcessedError
 
 
 SENSITIVITY_FILE = "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/Sensitivity_patched_thinPMMA_4m_113512_mantid.nxs"
@@ -331,7 +332,7 @@ def test_timeslice(has_sns_mount, run_config, basename, temp_directory, referenc
     for ws in loaded.sample:
         SampleLogs(ws.data).insert("gd_prtn_chrg", 0.0)
 
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(NoDataProcessedError) as e:
         reduce_single_configuration(loaded, input_config)
 
     assert "No data was processed. Check the input data." in str(e.value)

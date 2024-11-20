@@ -14,6 +14,7 @@ from mantid.simpleapi import mtd, logger, RebinToWorkspace, SaveNexus, RemoveWor
 # local imports
 import drtsans  # noqa E402
 from drtsans import (
+    NoDataProcessedError,
     apply_sensitivity_correction,
     getWedgeSelection,
     load_sensitivity_workspace,
@@ -1029,7 +1030,7 @@ def reduce_single_configuration(
     # END reduction loop over sample workspaces
 
     if processed_data_main is None:
-        raise RuntimeError("No data was processed. Check the input data.")
+        raise NoDataProcessedError()
 
     # Save reduction log
     save_reduction_log(

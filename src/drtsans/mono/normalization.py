@@ -22,15 +22,13 @@ __all__ = [
 
 
 class ZeroMonitorCountsError(ValueError):
-    """Zero monitor counts found in the sample logs"""
-
-    pass
+    def __init__(self, message="Zero monitor counts found in the sample logs"):
+        super().__init__(message)
 
 
 class NoMonitorMetadataError(RuntimeError):
-    """No monitor metadata found in the sample logs"""
-
-    pass
+    def __init__(self, message="No monitor metadata found in the sample logs"):
+        super().__init__(message)
 
 
 def normalize_by_flux(ws, method):

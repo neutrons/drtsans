@@ -23,6 +23,7 @@ Release Notes
 
 **Of interest to the User**:
 
+- MR #1175: Input parameters JSON field `sample::loadOptions::additionalProperties` now accepts a boolean.
 - MR #1169: I(Qx, Qy) is saved in NXCANSAS format for biosans, gpsans, and eqsans workflows
 - MR #1168: Document scaling the detector panels in the user's guide
 - MR #1167: Allow separate configurations for inelastic incoherence correction per frame in frame skipping mode

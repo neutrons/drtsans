@@ -1,5 +1,6 @@
 # standard imports
 import ast
+from collections.abc import Iterable
 from copy import deepcopy
 import itertools
 import json
@@ -771,8 +772,12 @@ class ReductionParameters:
         for name, parameter_value in list(parameters.items()):
             if "properties" in schema and name in schema["properties"]:
                 schema_value = schema["properties"][name]
-            elif "additionalProperties" in schema and name in schema["additionalProperties"]:
-                schema_value = schema["additionalProperties"][name]
+            elif "additionalProperties" in schema:
+                if isinstance(schema["additionalProperties"], bool):
+                    schema_value = schema["additionalProperties"]
+                elif isinstance(schema["additionalProperties"], Iterable):
+                    if name in schema["additionalProperties"]:
+                        schema_value = schema["additionalProperties"][name]
             else:
                 available_properties = list(schema.get("properties", {}).keys())
                 available_properties.extend(list(schema.get("additionalProperties", {}).keys()))
@@ -792,9 +797,10 @@ class ReductionParameters:
                 # get default of parameters[name] and type coercion
                 if parameter_value in ("", None):
                     parameters[name] = schema_value.get("default", None)  # is there a default value?
-                elif "preferredType" in schema_value:  # parameter_value is not empty
-                    cast = type_selector(schema_value["preferredType"])
-                    parameters[name] = cast(parameter_value)
+                elif isinstance(schema_value, Iterable):
+                    if "preferredType" in schema_value:  # parameter_value is not empty
+                        cast = type_selector(schema_value["preferredType"])
+                        parameters[name] = cast(parameter_value)
 
     def _validate_data_source(self, validator, value, instance, schema):
         r"""

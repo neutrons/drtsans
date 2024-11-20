@@ -264,6 +264,9 @@ def getWedgeSelection(
     signal_to_noise_min=2.0,
     peak_search_window_size_factor=0.6,
     debug_dir="/tmp/",
+    auto_wedge_phi_min=0,
+    auto_wedge_phi_max=360,
+    auto_symmetric_wedges=False,
 ) -> List[List[Tuple[float, float]]]:
     """
     Calculate azimuthal binning ranges automatically based on finding peaks in the annular ring. The
@@ -292,6 +295,13 @@ def getWedgeSelection(
         Factor of 360 / (num peaks) to construct the search range for wedge peak
     debug_dir: str
         Full path of the output directory for debugging output files
+    auto_wedge_phi_min: float
+        minimum angle to find a wedge for subsequent symmetrisation. Used if symmetric_wedges is true
+    auto_wedge_phi_max: float
+        maximum angle to find a wedge for subsequent symmetrisation. Used if symmetric_wedges is true
+    auto_symmetric_wedges: bool
+        find a wedge between auto_wedge_phi_min and auto_wedge_phi_max, then symmetrize the findings to the remaining
+        phi angle domain
 
     Results
     =======
@@ -308,7 +318,6 @@ def getWedgeSelection(
         q_delta=q_delta,
         azimuthal_delta=azimuthal_delta,
     )
-
     fit_results_tuple = _fitQAndAzimuthal(
         azimuthal_rings,
         q_bins=q,
@@ -316,6 +325,9 @@ def getWedgeSelection(
         azimuthal_start=110.0,
         maxchisq=1000.0,
         peak_search_window_size_factor=peak_search_window_size_factor,
+        auto_wedge_phi_min=auto_wedge_phi_min,
+        auto_wedge_phi_max=auto_wedge_phi_max,
+        auto_symmetric_wedges=auto_symmetric_wedges,
     )
     center_vec, fwhm_vec, fit_dict = fit_results_tuple
 
@@ -512,6 +524,9 @@ def _fitSpectrum(
     azimuthal_start,
     peak_search_window_size_factor,
     verbose=True,
+    auto_wedge_phi_min=0,
+    auto_wedge_phi_max=360,
+    auto_symmetric_wedges=False,
 ):
     """Extract the peak fit parameters for the data. This is done by observing where 2 maxima are in the
     spectrum then fitting for the peak parameters. This makes the assumption that the two peaks are 180deg
@@ -530,6 +545,13 @@ def _fitSpectrum(
         Factor of 360 / (num peaks) to construct the search range for wedge peak
     verbose: bool
         Flag to output fitting information
+    auto_wedge_phi_min: float
+        minimum angle to find a wedge for subsequent symmetrisation. Used if symmetric_wedges is true
+    auto_wedge_phi_max: float
+        maximum angle to find a wedge for subsequent symmetrisation. Used if symmetric_wedges is true
+    auto_symmetric_wedges: bool
+        find a wedge between auto_wedge_phi_min and auto_wedge_phi_max, then symmetrize the findings to the remaining
+        azimuthal angle domain
 
     Returns
     -------
@@ -540,12 +562,18 @@ def _fitSpectrum(
     """
     # define a default window size based on the number of peaks the function supports
     # currently only two peaks that are approximately 180deg apart is supported
-    NUM_PEAK = 2
     # window_factor = 0.6  # default is 0.6 about 108 degree with 2 peaks .. for strong anisotropic: 0.1
-    peak_search_window_size = peak_search_window_size_factor * (360.0 / NUM_PEAK)
-    print(
+    peak_search_window_size = peak_search_window_size_factor * 180
+    if auto_symmetric_wedges:
+        if auto_wedge_phi_min < 0.0:
+            auto_wedge_phi_min += 360.0
+            auto_wedge_phi_max += 360.0
+
+        azimuthal_start = (auto_wedge_phi_min + auto_wedge_phi_max) / 2.0
+        peak_search_window_size = (auto_wedge_phi_max - auto_wedge_phi_min) / 2.0
+    logger.information(
         f"[WEDGE] Fixed window size = {peak_search_window_size}"
-        f"from factor {peak_search_window_size_factor} Number of peaks = {NUM_PEAK}"
+        f"from factor {peak_search_window_size_factor} Number of peaks = 2"
     )
 
     # filter out the nans
@@ -580,9 +608,9 @@ def _fitSpectrum(
     )
     function.append(gaussian_str.format(intensity_peak - background, azimuthal_first, sigma))
 
-    for peak_index in range(1, NUM_PEAK):
-        # assume the other peak is 360 / NUM_PEAK degrees away
-        azimuthal_start = azimuthal_first + (360.0 / NUM_PEAK * peak_index)
+    if not auto_symmetric_wedges:
+        # assume the other peak is 180 degrees away
+        azimuthal_start = azimuthal_first + 180.0
         intensity_peak, azimuthal_second, sigma = _estimatePeakParameters(
             spectrum.intensity[mask],
             spectrum.mod_q[mask],
@@ -599,15 +627,26 @@ def _fitSpectrum(
     fit_workspace_prefix = mtd.unique_hidden_name()
     fit_function = ";".join(function)
     try:
-        fitresult = Fit(
-            Function=";".join(function),
-            InputWorkspace=q_azimuthal_workspace,
-            Output=fit_workspace_prefix,
-            StartX=spectrum.mod_q.min() + 90.0,
-            EndX=spectrum.mod_q.min() + 90.0 + 360.0,
-            OutputParametersOnly=True,
-            IgnoreInvalidData=True,
-        )
+        if auto_symmetric_wedges:
+            fitresult = Fit(
+                Function=fit_function,
+                InputWorkspace=q_azimuthal_workspace,
+                Output=fit_workspace_prefix,
+                StartX=spectrum.mod_q.min() + auto_wedge_phi_min,
+                EndX=spectrum.mod_q.min() + auto_wedge_phi_max,
+                OutputParametersOnly=True,
+                IgnoreInvalidData=True,
+            )
+        else:
+            fitresult = Fit(
+                Function=fit_function,
+                InputWorkspace=q_azimuthal_workspace,
+                Output=fit_workspace_prefix,
+                StartX=spectrum.mod_q.min() + 90.0,
+                EndX=spectrum.mod_q.min() + 90.0 + 360.0,
+                OutputParametersOnly=True,
+                IgnoreInvalidData=True,
+            )
     except RuntimeError as e:
         raise RuntimeError("Failed to fit Q={} with fit function {}".format(q_value, fit_function)) from e
     finally:
@@ -629,6 +668,12 @@ def _fitSpectrum(
     # delete fit results
     for label in ["_Parameters", "_NormalisedCovarianceMatrix"]:
         DeleteWorkspace(Workspace=fit_workspace_prefix + label)
+
+    # symmetrize the result
+    if auto_symmetric_wedges:
+        result["f2.Height"] = result["f1.Height"]
+        result["f2.PeakCentre"] = (result["f1.PeakCentre"][0] + 180.0, result["f1.PeakCentre"][1])
+        result["f2.Sigma"] = result["f1.Sigma"]
 
     if verbose:
         print(f"Fit result: {result}")
@@ -707,6 +752,9 @@ def _fitQAndAzimuthal(
     maxchisq,
     peak_search_window_size_factor,
     verbose=True,
+    auto_wedge_phi_min=0,
+    auto_wedge_phi_max=360,
+    auto_symmetric_wedges=False,
 ):
     """Find the peaks in the azimuthal spectra, then combine them into
     two composite centers and fwhm. This is currently coded to only
@@ -767,6 +815,9 @@ def _fitQAndAzimuthal(
                 azimuthal_start=azimuthal_start,
                 peak_search_window_size_factor=peak_search_window_size_factor,
                 verbose=verbose,
+                auto_wedge_phi_min=auto_wedge_phi_min,
+                auto_wedge_phi_max=auto_wedge_phi_max,
+                auto_symmetric_wedges=auto_symmetric_wedges,
             )
             newlyFittedPeaks = [_toPositionAndFWHM(fitresult, label, maxchisq) for label in ["f1", "f2"]]
 

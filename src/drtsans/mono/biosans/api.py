@@ -1258,6 +1258,9 @@ def reduce_single_configuration(
             "peak_width": reduction_config["autoWedgePeakWidth"],
             "background_width": reduction_config["autoWedgeBackgroundWidth"],
             "signal_to_noise_min": reduction_config["autoWedgeSignalToNoiseMin"],
+            "auto_wedge_phi_min": reduction_config["autoWedgePhiMin"],
+            "auto_wedge_phi_max": reduction_config["autoWedgePhiMax"],
+            "auto_symmetric_wedges": reduction_config["autoSymmetricWedges"],
         }
         # auto-aniso returns all of the wedges
         symmetric_wedges = False

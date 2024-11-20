@@ -1111,6 +1111,12 @@ def process_auto_wedge(
     """
     logger.notice(f"Auto wedge options: {auto_wedge_setup}")
     auto_wedge_setup["debug_dir"] = output_dir
+    auto_wedge_setup["auto_wedge_phi_min"] = reduction_config["autoWedgePhiMin"]
+    auto_wedge_setup["auto_wedge_phi_max"] = reduction_config["autoWedgePhiMax"]
+    auto_wedge_setup["auto_symmetric_wedges"] = reduction_config[
+        "autoSymmetricWedges"
+    ]  # this is a parameter from json file
+
     wedges = getWedgeSelection(iq2d_input, **auto_wedge_setup)
     logger.notice(f"found wedge angles:\n" f"              peak: {wedges[0]}\n" f"        background: {wedges[1]}")
     # sanity check

@@ -468,6 +468,29 @@ def test_fitting():
     assert fwhm_list[0] == pytest.approx(fwhm_list[1], abs=2.0)
 
 
+def test_fitting_symmetric():
+    """Test that the fitting generates reasonable results for fitting the peaks"""
+    q, azimuthal_rings = _create_2d_histogram_data()
+    # this calling forces there to be two found peaks
+    ring_fit_tuple = _fitQAndAzimuthal(
+        azimuthal_rings,
+        q,
+        signal_to_noise_min=2.0,
+        azimuthal_start=110.0,
+        maxchisq=1000.0,
+        peak_search_window_size_factor=0.6,
+        auto_symmetric_wedges=True,
+        auto_wedge_phi_min=2.5,
+        auto_wedge_phi_max=217.5,
+    )
+    center_list = ring_fit_tuple[0]
+    fwhm_list = ring_fit_tuple[1]
+
+    assert center_list[0] == pytest.approx(180.0, abs=5.0)
+    assert center_list[1] == pytest.approx(360.0, abs=5.0)
+    assert fwhm_list[0] == pytest.approx(fwhm_list[1], abs=2.0)
+
+
 def test_integration():
     """Test the full workflow of the algorithm"""
     data2d = _create_2d_data()

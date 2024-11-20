@@ -193,6 +193,10 @@
         "autoWedgeBackgroundWidth": { "$ref": "common.json#/configuration/autoWedgeBackgroundWidth", "default": 1.5 },
         "autoWedgeSignalToNoiseMin": { "$ref": "common.json#/configuration/autoWedgeSignalToNoiseMin", "default": 2.0 },
         "AnnularAngleBin": { "$ref": "common.json#/configuration/AnnularAngleBin", "default": 1.0 },
+        "autoWedgePhiMin": {"$ref":  "common.json#/configuration/autoWedgePhiMin", "default": 0.0},
+        "autoWedgePhiMax": {"$ref":  "common.json#/configuration/autoWedgePhiMax", "default": 360.0},
+        "autoSymmetricWedges": {"$ref":  "common.json#/configuration/autoSymmetricWedges", "default": false},
+
 
         "Qmin": { "$ref": "common.json#/configuration/Qmin" },
         "Qmax": { "$ref": "common.json#/configuration/Qmax" },
@@ -374,7 +378,10 @@
         "fitInelasticIncoh",
         "elasticReference",
         "elasticReferenceBkgd",
-        "selectMinIncoh"
+        "selectMinIncoh",
+        "autoWedgePhiMin",
+        "autoWedgePhiMax",
+        "autoSymmetricWedges"
       ]
     }
   },

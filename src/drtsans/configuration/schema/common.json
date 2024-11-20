@@ -545,6 +545,21 @@
       "pairedTo": "#configuration/autoWedgeQmin",
       "description": "Maximum Q for automatic wedge fitting"
     },
+    "autoWedgePhiMin": {
+      "$ref": "common.json#/definitions/safeStringFloat",
+      "pairedTo": "#configuration/autoWedgePhiMax",
+      "lessThan": "#configuration/autoWedgePhiMax",
+      "description": "Minimum azimuthal angle for automatic wedge fitting"
+    },
+    "autoWedgePhiMax": {
+      "$ref": "common.json#/definitions/safeStringFloat",
+      "pairedTo": "#configuration/autoWedgePhiMin",
+      "description": "Maximum azimuthal angle for automatic wedge fitting"
+    },
+    "autoSymmetricWedges": {
+      "type": "boolean",
+      "description": "If true, find wedges only in between autoWedgePhiMin and autoWedgePhiMax, then symmetrize the findings to the remaining azimuthal angle domain"
+    },
     "autoWedgeQdelta": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
       "description": "Q step for automatic wedge fitting"

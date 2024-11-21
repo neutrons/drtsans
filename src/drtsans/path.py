@@ -177,17 +177,22 @@ def abspaths(runnumbers, instrument="", ipts="", directory=None, search_archive=
     """
     # this could be written differently to call ONCAT directly with all of the missing run numbers
     # once guessing the path didn't work
+    import re
+
     filenames = []
     for runnumber in runnumbers.split(","):
-        filenames.append(
-            abspath(
-                str(runnumber).strip(),
-                instrument=instrument,
-                ipts=ipts,
-                directory=directory,
-                search_archive=search_archive,
-            )
+        filepath = abspath(
+            str(runnumber).strip(),
+            instrument=instrument,
+            ipts=ipts,
+            directory=directory,
+            search_archive=search_archive,
         )
+        match = re.search(r"/SNS/EQSANS/IPTS-\d+/nexus/", filepath)
+        if match:
+            filenames.insert(0, filepath)
+        else:
+            filenames.append(filepath)
     return ",".join(filenames)
 
 

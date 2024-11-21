@@ -1357,7 +1357,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     try:
         processed_data_main
     except NameError:
-        raise NoDataProcessedError()
+        raise NoDataProcessedError
 
     # save reduction log
 

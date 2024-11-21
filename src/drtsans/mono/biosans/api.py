@@ -1687,7 +1687,7 @@ def reduce_single_configuration(
     try:
         processed_data_main
     except NameError:
-        raise NoDataProcessedError()
+        raise NoDataProcessedError
 
     # save reduction log
 

@@ -1030,7 +1030,7 @@ def reduce_single_configuration(
     # END reduction loop over sample workspaces
 
     if processed_data_main is None:
-        raise NoDataProcessedError()
+        raise NoDataProcessedError
 
     # Save reduction log
     save_reduction_log(

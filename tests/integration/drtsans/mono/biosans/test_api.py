@@ -4,6 +4,8 @@ from drtsans.mono.biosans.api import load_all_files, process_single_configuratio
 from drtsans.mono.load import transform_to_wavelength
 from drtsans.mono.transmission import calculate_transmission
 from drtsans.redparams import reduction_parameters
+from drtsans.samplelogs import SampleLogs
+from drtsans.api import NoDataProcessedError
 
 # third party imports
 from mantid.api import AnalysisDataService
@@ -197,130 +199,136 @@ def test_process_single_configuration(biosans_synthetic_dataset, clean_workspace
     DeleteWorkspaces([prefix + "_" + suffix for suffix in ("sample", "background")])
 
 
+REDUCTION_INPUT = {
+    "schemaStamp": "2020-04-15T21:09:52.745905",
+    "instrumentName": "BIOSANS",
+    "iptsNumber": "24666",
+    "dataDirectories": None,
+    "sample": {
+        "runNumber": "8361",
+        "thickness": 0.1,
+        "transmission": {"runNumber": "8361", "value": None},
+    },
+    "background": {
+        "runNumber": "8359",
+        "transmission": {"runNumber": "8359", "value": None},
+    },
+    "emptyTransmission": {"runNumber": "8364", "value": None},
+    "beamCenter": {"runNumber": "8373"},
+    "IntegrationRadius": None,
+    "outputFileName": "r8361_PorB3_15m",
+    "configuration": {
+        "wavelength": None,
+        "wavelengthSpread": None,
+        "useTimeSlice": False,
+        "useTimeSliceTransmission": False,
+        "timeSliceInterval": 60.0,
+        "useLogSlice": False,
+        "logSliceName": None,
+        "logSliceInterval": None,
+        "sampleOffset": None,
+        "sampleApertureSize": 14.0,
+        "sampleDetectorDistance": None,
+        "sampleToSi": None,
+        "sourceApertureDiameter": None,
+        "usePixelCalibration": False,
+        "maskFileName": None,
+        "useDefaultMask": True,
+        "defaultMask": [
+            {"Pixel": "1-18,239-256"},
+            {"Bank": "18-24,42-48"},
+            {"Bank": "49", "Tube": "1"},
+            {"Bank": "88", "Tube": "4"},
+        ],
+        "useMaskBackTubes": False,
+        "darkMainFileName": None,
+        "darkWingFileName": None,
+        "darkMidrangeFileName": None,
+        "normalization": "Monitor",
+        "normalizationResortToTime": False,
+        "sensitivityMainFileName": "Sens_f6368m4p0_bsSVP.nxs",
+        "sensitivityWingFileName": "Sens_f6380w1p4_bsSVP.nxs",
+        # sensitivity file for mid-range detector should be added after
+        # the installation of the new mid-range detector.
+        "useSolidAngleCorrection": True,
+        "blockedBeamRunNumber": None,
+        "useThetaDepTransCorrection": True,
+        "DBScalingBeamRadius": 40.0,
+        "mmRadiusForTransmission": None,
+        "absoluteScaleMethod": "standard",
+        "StandardAbsoluteScale": 2.094e-10,
+        "numMainQxQyBins": 100,
+        "numWingQxQyBins": 100,
+        "numMidrangeQxQyBins": 100,
+        "1DQbinType": "scalar",
+        "QbinType": "log",
+        "numMainQBins": None,
+        "numWingQBins": None,
+        "numMidrangeQBins": None,
+        "LogQBinsPerDecadeMain": 25,
+        "LogQBinsPerDecadeWing": 25,
+        "LogQBinsPerDecadeMidrange": 25,
+        "useLogQBinsDecadeCenter": False,
+        "useLogQBinsEvenDecade": False,
+        "WedgeMinAngles": None,
+        "WedgeMaxAngles": None,
+        "autoWedgeQmin": 0.003,
+        "autoWedgeQmax": 0.04,
+        "autoWedgeQdelta": 0.01,
+        "autoWedgeAzimuthalDelta": 1.0,
+        "autoWedgePeakWidth": 0.5,
+        "autoWedgeBackgroundWidth": 1.0,
+        "autoWedgeSignalToNoiseMin": 2.0,
+        "AnnularAngleBin": 1.0,
+        "useErrorWeighting": False,
+        "smearingPixelSizeX": None,
+        "smearingPixelSizeY": None,
+        "useSubpixels": False,
+        "subpixelsX": None,
+        "subpixelsY": None,
+        "QminMain": 0.003,
+        "QmaxMain": 0.045,
+        "QminWing": 0.03,
+        "QmaxWing": 0.9,
+        "QminMidrange": 0.03,
+        "QmaxMidrange": 0.9,
+        "overlapStitchQmin": [0.0325],
+        "overlapStitchQmax": [0.0425],
+        "wedge1QminMain": 0.003,
+        "wedge1QmaxMain": 0.0425,
+        "wedge1QminWing": 0.02,
+        "wedge1QmaxWing": 0.45,
+        "wedge1QminMidrange": 0.02,
+        "wedge1QmaxMidrange": 0.45,
+        "wedge1overlapStitchQmin": 0.025,
+        "wedge1overlapStitchQmax": 0.04,
+        "wedge2QminMain": 0.003,
+        "wedge2QmaxMain": 0.0425,
+        "wedge2QminWing": 0.03,
+        "wedge2QmaxWing": 0.45,
+        "wedge2QminMidrange": 0.03,
+        "wedge2QmaxMidrange": 0.45,
+        "wedge2overlapStitchQmin": 0.03,
+        "wedge2overlapStitchQmax": 0.04,
+        "wedges": None,
+        "symmetric_wedges": True,
+    },
+    "logslice_data": {},
+}
+
+
 @pytest.mark.datarepo
 def test_reduce_single_configuration_slice_transmission_false(datarepo_dir, temp_directory):
-    reduction_input = {
-        "schemaStamp": "2020-04-15T21:09:52.745905",
-        "instrumentName": "BIOSANS",
-        "iptsNumber": "24666",
-        "dataDirectories": None,
-        "sample": {
-            "runNumber": "8361",
-            "thickness": 0.1,
-            "transmission": {"runNumber": "8361", "value": None},
-        },
-        "background": {
-            "runNumber": "8359",
-            "transmission": {"runNumber": "8359", "value": None},
-        },
-        "emptyTransmission": {"runNumber": "8364", "value": None},
-        "beamCenter": {"runNumber": "8373"},
-        "IntegrationRadius": None,
-        "outputFileName": "r8361_PorB3_15m",
-        "configuration": {
-            "wavelength": None,
-            "wavelengthSpread": None,
-            "useTimeSlice": False,
-            "useTimeSliceTransmission": False,
-            "timeSliceInterval": 60.0,
-            "useLogSlice": False,
-            "logSliceName": None,
-            "logSliceInterval": None,
-            "sampleOffset": None,
-            "sampleApertureSize": 14.0,
-            "sampleDetectorDistance": None,
-            "sampleToSi": None,
-            "sourceApertureDiameter": None,
-            "usePixelCalibration": False,
-            "maskFileName": None,
-            "useDefaultMask": True,
-            "defaultMask": [
-                {"Pixel": "1-18,239-256"},
-                {"Bank": "18-24,42-48"},
-                {"Bank": "49", "Tube": "1"},
-                {"Bank": "88", "Tube": "4"},
-            ],
-            "useMaskBackTubes": False,
-            "darkMainFileName": None,
-            "darkWingFileName": None,
-            "darkMidrangeFileName": None,
-            "normalization": "Monitor",
-            "normalizationResortToTime": False,
-            "sensitivityMainFileName": os.path.join(datarepo_dir.biosans, "Sens_f6368m4p0_bsSVP.nxs"),
-            "sensitivityWingFileName": os.path.join(datarepo_dir.biosans, "Sens_f6380w1p4_bsSVP.nxs"),
-            # sensitivity file for mid-range detector should be added after
-            # the installation of the new mid-range detector.
-            "useSolidAngleCorrection": True,
-            "blockedBeamRunNumber": None,
-            "useThetaDepTransCorrection": True,
-            "DBScalingBeamRadius": 40.0,
-            "mmRadiusForTransmission": None,
-            "absoluteScaleMethod": "standard",
-            "StandardAbsoluteScale": 2.094e-10,
-            "numMainQxQyBins": 100,
-            "numWingQxQyBins": 100,
-            "numMidrangeQxQyBins": 100,
-            "1DQbinType": "scalar",
-            "QbinType": "log",
-            "numMainQBins": None,
-            "numWingQBins": None,
-            "numMidrangeQBins": None,
-            "LogQBinsPerDecadeMain": 25,
-            "LogQBinsPerDecadeWing": 25,
-            "LogQBinsPerDecadeMidrange": 25,
-            "useLogQBinsDecadeCenter": False,
-            "useLogQBinsEvenDecade": False,
-            "WedgeMinAngles": None,
-            "WedgeMaxAngles": None,
-            "autoWedgeQmin": 0.003,
-            "autoWedgeQmax": 0.04,
-            "autoWedgeQdelta": 0.01,
-            "autoWedgeAzimuthalDelta": 1.0,
-            "autoWedgePeakWidth": 0.5,
-            "autoWedgeBackgroundWidth": 1.0,
-            "autoWedgeSignalToNoiseMin": 2.0,
-            "AnnularAngleBin": 1.0,
-            "useErrorWeighting": False,
-            "smearingPixelSizeX": None,
-            "smearingPixelSizeY": None,
-            "useSubpixels": False,
-            "subpixelsX": None,
-            "subpixelsY": None,
-            "QminMain": 0.003,
-            "QmaxMain": 0.045,
-            "QminWing": 0.03,
-            "QmaxWing": 0.9,
-            "QminMidrange": 0.03,
-            "QmaxMidrange": 0.9,
-            "overlapStitchQmin": [0.0325],
-            "overlapStitchQmax": [0.0425],
-            "wedge1QminMain": 0.003,
-            "wedge1QmaxMain": 0.0425,
-            "wedge1QminWing": 0.02,
-            "wedge1QmaxWing": 0.45,
-            "wedge1QminMidrange": 0.02,
-            "wedge1QmaxMidrange": 0.45,
-            "wedge1overlapStitchQmin": 0.025,
-            "wedge1overlapStitchQmax": 0.04,
-            "wedge2QminMain": 0.003,
-            "wedge2QmaxMain": 0.0425,
-            "wedge2QminWing": 0.03,
-            "wedge2QmaxWing": 0.45,
-            "wedge2QminMidrange": 0.03,
-            "wedge2QmaxMidrange": 0.45,
-            "wedge2overlapStitchQmin": 0.03,
-            "wedge2overlapStitchQmax": 0.04,
-            "wedges": None,
-            "symmetric_wedges": True,
-        },
-        "logslice_data": {},
-    }
+    reduction_input = REDUCTION_INPUT.copy()
+
     reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_false")
 
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
     with amend_config(data_dir=datarepo_dir.biosans):
         loaded = load_all_files(reduction_input, prefix)
-    _ = reduce_single_configuration(loaded, reduction_input)
+    assert len(loaded.sample) == 1  # no time slice, so only one sample loaded
+    output = reduce_single_configuration(loaded, reduction_input)
+    assert len(output) == 1  # no time slice, so only one sample loaded
     # just need a couple components from reduce
     # but the whole thing needs to be run then a few components pulled
     transmission = calculate_transmission(
@@ -330,7 +338,7 @@ def test_reduce_single_configuration_slice_transmission_false(datarepo_dir, temp
     transmission_val = transmission.extractY()[0][0]
     clean_all_ws(prefix)
     assert isclose(transmission_val, 0.9032617874341662)  # provided by s6v
-    del _
+    del output
 
 
 def clean_all_ws(prefix):
@@ -348,128 +356,18 @@ def remove_ws(workspace):
 
 @pytest.mark.datarepo
 def test_reduce_single_configuration_slice_transmission_true(datarepo_dir, temp_directory):
-    reduction_input = {
-        "schemaStamp": "2020-04-15T21:09:52.745905",
-        "instrumentName": "BIOSANS",
-        "iptsNumber": "24666",
-        "dataDirectories": None,
-        "sample": {
-            "runNumber": "8361",
-            "thickness": 0.1,
-            "transmission": {"runNumber": "8361", "value": None},
-        },
-        "background": {
-            "runNumber": "8359",
-            "transmission": {"runNumber": "8359", "value": None},
-        },
-        "emptyTransmission": {"runNumber": "8364", "value": None},
-        "beamCenter": {"runNumber": "8373"},
-        "IntegrationRadius": None,
-        "outputFileName": "r8361_PorB3_15m",
-        "configuration": {
-            "wavelength": None,
-            "wavelengthSpread": None,
-            "useTimeSlice": True,
-            "useTimeSliceTransmission": True,
-            "timeSliceInterval": 60.0,
-            "useLogSlice": False,
-            "logSliceName": None,
-            "logSliceInterval": None,
-            "sampleOffset": None,
-            "sampleApertureSize": 14.0,
-            "sampleDetectorDistance": None,
-            "sampleToSi": None,
-            "sourceApertureDiameter": None,
-            "usePixelCalibration": False,
-            "maskFileName": None,
-            "useDefaultMask": True,
-            "defaultMask": [
-                {"Pixel": "1-18,239-256"},
-                {"Bank": "18-24,42-48"},
-                {"Bank": "49", "Tube": "1"},
-                {"Bank": "88", "Tube": "4"},
-            ],
-            "useMaskBackTubes": False,
-            "darkMainFileName": None,
-            "darkWingFileName": None,
-            "darkMidrangeFileName": None,
-            "normalization": "Monitor",
-            "normalizationResortToTime": False,
-            "sensitivityMainFileName": os.path.join(datarepo_dir.biosans, "Sens_f6368m4p0_bsSVP.nxs"),
-            "sensitivityWingFileName": os.path.join(datarepo_dir.biosans, "Sens_f6380w1p4_bsSVP.nxs"),
-            # sensitivity file for mid-range detector should be added after
-            # the installation of the new mid-range detector.
-            "useSolidAngleCorrection": True,
-            "blockedBeamRunNumber": None,
-            "useThetaDepTransCorrection": True,
-            "DBScalingBeamRadius": 40.0,
-            "mmRadiusForTransmission": None,
-            "absoluteScaleMethod": "standard",
-            "StandardAbsoluteScale": 2.094e-10,
-            "numMainQxQyBins": 100,
-            "numWingQxQyBins": 100,
-            "numMidrangeQxQyBins": 100,
-            "1DQbinType": "scalar",
-            "QbinType": "log",
-            "numMainQBins": None,
-            "numWingQBins": None,
-            "numMidrangeQBins": None,
-            "LogQBinsPerDecadeMain": 25,
-            "LogQBinsPerDecadeWing": 25,
-            "LogQBinsPerDecadeMidrange": 25,
-            "useLogQBinsDecadeCenter": False,
-            "useLogQBinsEvenDecade": False,
-            "WedgeMinAngles": None,
-            "WedgeMaxAngles": None,
-            "autoWedgeQmin": 0.003,
-            "autoWedgeQmax": 0.04,
-            "autoWedgeQdelta": 0.01,
-            "autoWedgeAzimuthalDelta": 1.0,
-            "autoWedgePeakWidth": 0.5,
-            "autoWedgeBackgroundWidth": 1.0,
-            "autoWedgeSignalToNoiseMin": 2.0,
-            "AnnularAngleBin": 1.0,
-            "useErrorWeighting": False,
-            "smearingPixelSizeX": None,
-            "smearingPixelSizeY": None,
-            "useSubpixels": False,
-            "subpixelsX": None,
-            "subpixelsY": None,
-            "QminMain": 0.003,
-            "QmaxMain": 0.045,
-            "QminWing": 0.03,
-            "QmaxWing": 0.9,
-            "QminMidrange": 0.03,
-            "QmaxMidrange": 0.9,
-            "overlapStitchQmin": [0.0325],
-            "overlapStitchQmax": [0.0425],
-            "wedge1QminMain": 0.003,
-            "wedge1QmaxMain": 0.0425,
-            "wedge1QminWing": 0.02,
-            "wedge1QmaxWing": 0.45,
-            "wedge1QminMidrange": 0.02,
-            "wedge1QmaxMidrange": 0.45,
-            "wedge1overlapStitchQmin": 0.025,
-            "wedge1overlapStitchQmax": 0.04,
-            "wedge2QminMain": 0.003,
-            "wedge2QmaxMain": 0.0425,
-            "wedge2QminWing": 0.03,
-            "wedge2QmaxWing": 0.45,
-            "wedge2QminMidrange": 0.03,
-            "wedge2QmaxMidrange": 0.45,
-            "wedge2overlapStitchQmin": 0.03,
-            "wedge2overlapStitchQmax": 0.04,
-            "wedges": None,
-            "symmetric_wedges": True,
-        },
-        "logslice_data": {},
-    }
+    reduction_input = REDUCTION_INPUT.copy()
+    reduction_input["configuration"]["useTimeSlice"] = True
+    reduction_input["configuration"]["useTimeSliceTransmission"] = True
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
     reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_true")
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
     with amend_config(data_dir=datarepo_dir.biosans):
         loaded = load_all_files(reduction_input, prefix)
-    _ = reduce_single_configuration(loaded, reduction_input)
+    assert len(loaded.sample) == 11  # 600.06/60 = 11 rounded up
+    output = reduce_single_configuration(loaded, reduction_input)
+    assert len(output) == 11  # expect 11 out since nothing should be skipped
+
     # just need a couple components from reduce
     # but the whole thing needs to be run then a few components pulled
     transmission = calculate_transmission(
@@ -480,7 +378,74 @@ def test_reduce_single_configuration_slice_transmission_true(datarepo_dir, temp_
     transmission_val = transmission.extractY()[0][0]
     clean_all_ws(prefix)
     assert isclose(transmission_val, 0.7498433455874779)  # from above config using older workflow
-    del _
+    del output
+
+
+@pytest.mark.datarepo
+def test_reduce_single_configuration_slice_skip_all(datarepo_dir, temp_directory):
+    reduction_input = REDUCTION_INPUT.copy()
+    reduction_input["configuration"]["useTimeSlice"] = True
+
+    reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
+    reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_true")
+    prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
+    with amend_config(data_dir=datarepo_dir.biosans):
+        loaded = load_all_files(reduction_input, prefix)
+    assert len(loaded.sample) == 11  # 600.06/60 = 11 rounded up
+
+    # set all monitor counts to zero
+    for ws in loaded.sample:
+        SampleLogs(ws).insert("monitor", 0.0)
+
+    with pytest.raises(NoDataProcessedError) as e:
+        _ = reduce_single_configuration(loaded, reduction_input)
+    assert "No data was processed. Check the input data." in str(e.value)
+
+
+@pytest.mark.datarepo
+def test_reduce_single_configuration_slice_transmission_skip_some(datarepo_dir, temp_directory):
+    reduction_input = REDUCTION_INPUT.copy()
+    reduction_input["configuration"]["useTimeSlice"] = True
+    reduction_input["configuration"]["useTimeSliceTransmission"] = True
+
+    reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
+    reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_true")
+    prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
+    with amend_config(data_dir=datarepo_dir.biosans):
+        loaded = load_all_files(reduction_input, prefix)
+    assert len(loaded.sample) == 11  # 600.06/60 = 11 rounded up
+
+    # set every second monitor counts to zero
+    for ws in loaded.sample[::2]:
+        SampleLogs(ws).insert("monitor", 0.0)
+
+    output = reduce_single_configuration(loaded, reduction_input)
+    assert len(output) == 5  # 6 should be skipped from the original 11
+
+    clean_all_ws(prefix)
+
+
+@pytest.mark.datarepo
+def test_reduce_single_configuration_slice_skip_some(datarepo_dir, temp_directory):
+    reduction_input = REDUCTION_INPUT.copy()
+    reduction_input["configuration"]["useTimeSlice"] = (True,)
+    reduction_input["configuration"]["useTimeSliceTransmission"] = False
+
+    reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
+    reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_true")
+    prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
+    with amend_config(data_dir=datarepo_dir.biosans):
+        loaded = load_all_files(reduction_input, prefix)
+    assert len(loaded.sample) == 11  # 600.06/60 = 11 rounded up
+
+    # set every second monitor counts to zero
+    for ws in loaded.sample[::2]:
+        SampleLogs(ws).insert("monitor", 0.0)
+
+    output = reduce_single_configuration(loaded, reduction_input)
+    assert len(output) == 5  # 6 should be skipped from the original 11
+
+    clean_all_ws(prefix)
 
 
 @pytest.mark.datarepo

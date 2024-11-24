@@ -1,7 +1,7 @@
 """ BIOSANS API """
 # local imports
 import drtsans
-from drtsans import getWedgeSelection, subtract_background
+from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
 from drtsans.dataobjects import save_iqmod, IQazimuthal
 from drtsans.instruments import extract_run_number
 from drtsans.iq import bin_all
@@ -14,7 +14,12 @@ from drtsans.mono.biosans.geometry import has_midrange_detector
 from drtsans.mono.dark_current import subtract_dark_current
 from drtsans.mono.load import load_events, transform_to_wavelength, set_init_uncertainties
 from drtsans.mono.meta_data import get_sample_detector_offset, parse_json_meta_data, set_meta_data
-from drtsans.mono.normalization import normalize_by_monitor, normalize_by_time
+from drtsans.mono.normalization import (
+    normalize_by_monitor,
+    normalize_by_time,
+    NoMonitorMetadataError,
+    ZeroMonitorCountsError,
+)
 from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
 from drtsans.path import abspath, abspaths, allow_overwrite, registered_workspace
 from drtsans.plots import plot_detector
@@ -774,16 +779,16 @@ def prepare_data_workspaces(
     if str(flux_method).lower() == "monitor":
         try:
             normalize_by_monitor(output_workspace)
-        except RuntimeError as e:
+        except NoMonitorMetadataError as e:
             if monitor_fail_switch:
                 logger.warning(f"{e}. Resorting to normalization by time")
                 normalize_by_time(output_workspace)
             else:
-                msg = (
+                logger.warning(
                     '. Setting "normalizationResortToTime": True will cause the'
                     " reduction to normalize by time if monitor counts are not available"
                 )
-                raise RuntimeError(str(e) + msg)
+                raise
     elif str(flux_method).lower() == "time":
         normalize_by_time(output_workspace)
     else:
@@ -1198,6 +1203,7 @@ def reduce_single_configuration(
     thickness = reduction_input["sample"]["thickness"]  # default thickness set in BIOSANS.json schema
     absolute_scale_method = reduction_config["absoluteScaleMethod"]
     absolute_scale = reduction_config["StandardAbsoluteScale"]
+    time_slice = reduction_config["useTimeSlice"]
     time_slice_transmission = reduction_config["useTimeSlice"] and reduction_config["useTimeSliceTransmission"]
     output_dir = reduction_config["outputDir"]
 
@@ -1385,67 +1391,11 @@ def reduce_single_configuration(
         if len(loaded_ws.sample) > 1:
             output_suffix = f"_{i}"
 
-        if time_slice_transmission:
-            _, sample_trans_ws = _prepare_sample_transmission_ws(raw_sample_ws)
+        try:
+            if time_slice_transmission:
+                _, sample_trans_ws = _prepare_sample_transmission_ws(raw_sample_ws)
 
-        processed_data_main, trans_main = process_single_configuration(
-            raw_sample_ws,
-            sample_trans_ws=sample_trans_ws,
-            sample_trans_value=sample_trans_value,
-            bkg_ws_raw=loaded_ws.background,
-            bkg_trans_ws=bkgd_trans_ws,
-            bkg_trans_value=bkg_trans_value,
-            blocked_ws_raw=loaded_ws.blocked_beam,
-            theta_dependent_transmission=theta_dependent_transmission,
-            center_x=xc,
-            center_y=yc,
-            center_y_wing=yw,
-            center_y_midrange=ym,
-            dark_current=loaded_ws.dark_current_main,
-            flux_method=flux_method,
-            monitor_fail_switch=monitor_fail_switch,
-            mask_detector=all_detectors_except_main,
-            mask_ws=loaded_ws.mask,
-            mask_panel=mask_panel,
-            solid_angle=solid_angle,
-            sensitivity_workspace=loaded_ws.sensitivity_main,
-            output_workspace=f"processed_data_main_{i}",
-            output_prefix=output_suffix,
-            thickness=thickness,
-            absolute_scale_method=absolute_scale_method,
-            absolute_scale=absolute_scale,
-            keep_processed_workspaces=False,
-        )
-        processed_data_wing, trans_wing = process_single_configuration(
-            raw_sample_ws,
-            sample_trans_ws=sample_trans_ws,
-            sample_trans_value=sample_trans_value,
-            bkg_ws_raw=loaded_ws.background,
-            bkg_trans_ws=bkgd_trans_ws,
-            bkg_trans_value=bkg_trans_value,
-            blocked_ws_raw=loaded_ws.blocked_beam,
-            theta_dependent_transmission=theta_dependent_transmission,
-            center_x=xc,
-            center_y=yc,
-            center_y_wing=yw,
-            center_y_midrange=ym,
-            dark_current=loaded_ws.dark_current_wing,
-            flux_method=flux_method,
-            monitor_fail_switch=monitor_fail_switch,
-            mask_detector=all_detectors_except_wing,
-            mask_ws=loaded_ws.mask,
-            mask_panel=mask_panel,
-            solid_angle=solid_angle,
-            sensitivity_workspace=loaded_ws.sensitivity_wing,
-            output_workspace=f"processed_data_wing_{i}",
-            output_prefix=output_suffix,
-            thickness=thickness,
-            absolute_scale_method=absolute_scale_method,
-            absolute_scale=absolute_scale,
-            keep_processed_workspaces=False,
-        )
-        if reduction_config["has_midrange_detector"]:
-            processed_data_midrange, trans_midrange = process_single_configuration(
+            processed_data_main, trans_main = process_single_configuration(
                 raw_sample_ws,
                 sample_trans_ws=sample_trans_ws,
                 sample_trans_value=sample_trans_value,
@@ -1458,29 +1408,92 @@ def reduce_single_configuration(
                 center_y=yc,
                 center_y_wing=yw,
                 center_y_midrange=ym,
-                dark_current=loaded_ws.dark_current_midrange,
+                dark_current=loaded_ws.dark_current_main,
                 flux_method=flux_method,
                 monitor_fail_switch=monitor_fail_switch,
-                mask_detector=["detector1", "wing_detector"],
+                mask_detector=all_detectors_except_main,
                 mask_ws=loaded_ws.mask,
                 mask_panel=mask_panel,
                 solid_angle=solid_angle,
-                sensitivity_workspace=loaded_ws.sensitivity_midrange,
-                output_workspace=f"processed_data_midrange_{i}",
+                sensitivity_workspace=loaded_ws.sensitivity_main,
+                output_workspace=f"processed_data_main_{i}",
                 output_prefix=output_suffix,
                 thickness=thickness,
                 absolute_scale_method=absolute_scale_method,
                 absolute_scale=absolute_scale,
                 keep_processed_workspaces=False,
             )
-        else:
-            processed_data_midrange, trans_midrange = (
-                None,
-                {
-                    "sample": None,
-                    "background": None,
-                },
+            processed_data_wing, trans_wing = process_single_configuration(
+                raw_sample_ws,
+                sample_trans_ws=sample_trans_ws,
+                sample_trans_value=sample_trans_value,
+                bkg_ws_raw=loaded_ws.background,
+                bkg_trans_ws=bkgd_trans_ws,
+                bkg_trans_value=bkg_trans_value,
+                blocked_ws_raw=loaded_ws.blocked_beam,
+                theta_dependent_transmission=theta_dependent_transmission,
+                center_x=xc,
+                center_y=yc,
+                center_y_wing=yw,
+                center_y_midrange=ym,
+                dark_current=loaded_ws.dark_current_wing,
+                flux_method=flux_method,
+                monitor_fail_switch=monitor_fail_switch,
+                mask_detector=all_detectors_except_wing,
+                mask_ws=loaded_ws.mask,
+                mask_panel=mask_panel,
+                solid_angle=solid_angle,
+                sensitivity_workspace=loaded_ws.sensitivity_wing,
+                output_workspace=f"processed_data_wing_{i}",
+                output_prefix=output_suffix,
+                thickness=thickness,
+                absolute_scale_method=absolute_scale_method,
+                absolute_scale=absolute_scale,
+                keep_processed_workspaces=False,
             )
+            if reduction_config["has_midrange_detector"]:
+                processed_data_midrange, trans_midrange = process_single_configuration(
+                    raw_sample_ws,
+                    sample_trans_ws=sample_trans_ws,
+                    sample_trans_value=sample_trans_value,
+                    bkg_ws_raw=loaded_ws.background,
+                    bkg_trans_ws=bkgd_trans_ws,
+                    bkg_trans_value=bkg_trans_value,
+                    blocked_ws_raw=loaded_ws.blocked_beam,
+                    theta_dependent_transmission=theta_dependent_transmission,
+                    center_x=xc,
+                    center_y=yc,
+                    center_y_wing=yw,
+                    center_y_midrange=ym,
+                    dark_current=loaded_ws.dark_current_midrange,
+                    flux_method=flux_method,
+                    monitor_fail_switch=monitor_fail_switch,
+                    mask_detector=["detector1", "wing_detector"],
+                    mask_ws=loaded_ws.mask,
+                    mask_panel=mask_panel,
+                    solid_angle=solid_angle,
+                    sensitivity_workspace=loaded_ws.sensitivity_midrange,
+                    output_workspace=f"processed_data_midrange_{i}",
+                    output_prefix=output_suffix,
+                    thickness=thickness,
+                    absolute_scale_method=absolute_scale_method,
+                    absolute_scale=absolute_scale,
+                    keep_processed_workspaces=False,
+                )
+            else:
+                processed_data_midrange, trans_midrange = (
+                    None,
+                    {
+                        "sample": None,
+                        "background": None,
+                    },
+                )
+        except ZeroMonitorCountsError as e:
+            if time_slice:
+                logger.warning(f"Skipping slice {sample_name}: {e}.")
+                continue
+            else:
+                raise
 
         if debug_output:
             from mantid.simpleapi import SaveNexusProcessed
@@ -1673,6 +1686,11 @@ def reduce_single_configuration(
             iq2d_wing_out,
             reduction_config["has_midrange_detector"],
         )
+
+    try:
+        processed_data_main
+    except NameError:
+        raise NoDataProcessedError
 
     # save reduction log
 

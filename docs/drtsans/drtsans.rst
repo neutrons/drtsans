@@ -196,7 +196,7 @@ drtsans.process\_uncertainties module
    :show-inheritance:
 
 drtsans.redparams module
------------------------
+------------------------
 
 .. automodule:: drtsans.redparams
    :members:

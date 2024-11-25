@@ -1,4 +1,4 @@
-.. _reduction_output
+.. _reduction_output:
 
 Reduction Output
 ================

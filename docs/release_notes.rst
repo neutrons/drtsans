@@ -22,7 +22,8 @@ Release Notes
 ????-??-??
 
 **Of interest to the User**:
-- MR #1176: The drirectory /SNS/EQSANS/IPTS-XXXX/nexus/ has a priority in file search algorithm
+
+- MR #1176: The drirectory /SNS/EQSANS/IPTS-XXXX/nexus/ has a priority in the file search algorithm
 - MR #1175: Input parameters JSON field `sample::loadOptions::additionalProperties` now accepts a boolean.
 - MR #1169: I(Qx, Qy) is saved in NXCANSAS format for biosans, gpsans, and eqsans workflows
 - MR #1168: Document scaling the detector panels in the user's guide

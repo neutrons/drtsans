@@ -7,7 +7,7 @@ SHELL=/bin/bash
 .ONESHELL:
 
 # list of all phony targets, alphabetically sorted
-.PHONY: all docs help
+.PHONY: all clean docs help
 
 help:
     # this nifty perl one-liner collects all commnents headed by the double "#" symbols next to each target and recycles them as comments
@@ -16,3 +16,13 @@ help:
 docs:  ## create HTML docs under docs/_build/html/. Requires activation of the drtsans conda environment
 	# this will fail on a warning
 	@cd docs&& make html SPHINXOPTS="-W --keep-going -n" && echo -e "##########\n DOCS point your browser to file://$$(pwd)/_build/html/index.html\n##########"
+
+.PHONY: clean
+clean: ## Delete some cruft from builds/testing/etc.
+	rm -rf `find . -name __pycache__ -o -name "*.egg-info"` \
+	`find . -type f -name '*.py[co]'` \
+	`find . -maxdepth 1 -type f -name 'BIOSANS_*.nxs' -o -name '*_Definition.xml'` \
+		docs/_build \
+		debug/ test_output/ \
+		.coverage build dist \
+		.pytest_cache .ruff_cache

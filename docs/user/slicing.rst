@@ -37,7 +37,7 @@ Example 1: Slicing using time interval
     }
 
 .. figure:: media/time_slicing_interval.png
-   :alt:
+   :alt: Diagram of time slicing using an interval
    :width: 800px
 
 Example 2: Slicing using time interval and offset
@@ -53,11 +53,14 @@ Example 2: Slicing using time interval and offset
     }
 
 .. figure:: media/time_slicing_offset.png
-   :alt:
+   :alt: Diagram of time slicing using an interval and offset
    :width: 800px
 
 Example 3: Slicing using time slice period
 ++++++++++++++++++++++++++++++++++++++++++
+
+When using a time slice period, slices for a given time interval are reduced together.
+In the figure, red slices are reduced together, and blue slices are reduced together.
 
 Note: the time slice period must be a multiple of the time slice interval.
 
@@ -71,7 +74,7 @@ Note: the time slice period must be a multiple of the time slice interval.
     }
 
 .. figure:: media/time_slicing_period.png
-   :alt:
+   :alt: Diagram of time slicing using an interval and a period
    :width: 800px
 
 Log Slicing
@@ -79,7 +82,7 @@ Log Slicing
 
 Log slicing refers to slicing by the value of a `sample log
 <https://docs.mantidproject.org/nightly/tutorials/mantid_basic_course/connecting_data_to_instruments/06_sample_logs.html>`_
-in the NeXus file.
+in the NeXus file corresponding to the sample run.
 
 .. code-block:: json
 
@@ -101,7 +104,7 @@ Example: Log slicing using log "Temperature"
     }
 
 .. figure:: media/log_slicing_interval.png
-   :alt:
+   :alt: Diagram of log slicing
    :width: 800px
 
 
@@ -118,6 +121,24 @@ error distribution to converge.
         "useErrorWeighting": true,
     }
 
+Figure 1 compares I(Q) for the whole run (blue dot markers) to I(Q) for time slices
+of the data (solid lines) for the time slice intervals 600 s, 1200 s, 2400 s and 4800 s. The time
+sliced I(Q) converges to the total I(Q) with increasing time slice interval.
+
 .. figure:: media/AlCell_He_1bar_timeslice_vs_no_timeslice.png
-   :alt:
+   :alt: I(Q) with and without time slicing for different time slice intervals using error-weighted averaging.
    :width: 800px
+
+   Figure 1: I(Q) for time slices of a run compared to the total run for different time slice intervals and
+   with error-weighted averaging (``"useErrorWeighting": true``).
+
+In Figure 2, the same comparison between time sliced and non-time sliced data but with
+error-weighted averaging turned off (i.e. using arithmetic averaging) shows no dependence on the
+time slice interval.
+
+.. figure:: media/AlCell_He_1bar_timeslice_vs_no_timeslice_no_error_weighting.png
+   :alt: I(Q) with and without time slicing for different time slice intervals using arithmetic averaging.
+   :width: 800px
+
+   Figure 2: I(Q) for time slices of a run compared to the total run for different time slice intervals and
+   with error-weighted averaging (``"useErrorWeighting": false``).

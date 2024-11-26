@@ -1,7 +1,6 @@
 import glob
 import json
 import os
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -206,20 +205,17 @@ def test_incoherence_correction_elastic_normalization(
         correction_case = "elastic_correction"
     elif corrections == (True, True):
         correction_case = "elastic_inelastic_correction"
-
-    output_dir = Path(test_dir) / f"{base_name}_{correction_case}"
-    output_dir.mkdir(parents=True, exist_ok=True)
+    outputFileName = f"{base_name}_{correction_case}"
 
     configuration["configuration"]["outputDir"] = test_dir
-    configuration["outputFileName"] = f"{base_name}_{correction_case}"
+    configuration["outputFileName"] = outputFileName
     configuration["dataDirectories"] = os.path.join(datarepo_dir.eqsans, "test_corrections")
     configuration["configuration"]["outputWavelengthDependentProfile"] = True
     configuration["configuration"]["maskFileName"] = os.path.join(
         datarepo_dir.eqsans, "test_corrections", "beamstop_mask_4m_ext.nxs"
     )
-    configuration["configuration"][
-        "darkFileName"
-    ] = "/bin/true"  # so that it will pass the validator, later set to None
+    # Set darkFileName so that it will pass the validator, later set to None
+    configuration["configuration"]["darkFileName"] = "/bin/true"
     configuration["configuration"]["sensitivityFileName"] = os.path.join(
         datarepo_dir.eqsans, "test_corrections", "Sensitivity_patched_thinPMMA_4m_124972.nxs"
     )
@@ -258,8 +254,20 @@ def test_incoherence_correction_elastic_normalization(
     )
     assert reduction_output
 
-    # Check output result
-    iq1d_base_name = f"{base_name}_{correction_case}_Iq.dat"
+    ### Check output results
+
+    elastic_output_dir = os.path.join(test_dir, "debug", "elastic_norm", f"{outputFileName}", "slice_0", "frame_0")
+    inelastic_output_dir = os.path.join(
+        test_dir, "debug", "inelastic_incoh", f"{outputFileName}", "slice_0", "frame_0"
+    )
+
+    # Check empty subdirectories not created for no correction case
+    if correction_case == "no_correction":
+        assert not os.path.exists(elastic_output_dir)
+        assert not os.path.exists(inelastic_output_dir)
+
+    # Check 1D output result
+    iq1d_base_name = f"{outputFileName}_Iq.dat"
     test_iq1d_file = os.path.join(test_dir, iq1d_base_name)
     assert os.path.exists(test_iq1d_file), f"Expected test result {test_iq1d_file} does not exist"
 
@@ -270,7 +278,7 @@ def test_incoherence_correction_elastic_normalization(
     )
 
     # Check 2D output result
-    iq2d_base_name = f"{base_name}_{correction_case}_Iqxqy.dat"
+    iq2d_base_name = f"{outputFileName}_Iqxqy.dat"
     test_iq2d_file = os.path.join(test_dir, iq2d_base_name)
     assert os.path.exists(test_iq2d_file), f"Expected test result {test_iq2d_file} does not exist"
 
@@ -279,22 +287,27 @@ def test_incoherence_correction_elastic_normalization(
         np.loadtxt(os.path.join(reference_data_dir, iq2d_base_name), skiprows=4),
     )
 
-    # check that the wavelength dependent profiles are created
+    # Check that the wavelength dependent profiles are created
     number_of_wavelengths = 31
-    output_dir = os.path.join(test_dir, f"{base_name}_{correction_case}", "slice_0", "frame_0")
     if correction_case in ["elastic_correction", "elastic_inelastic_correction"]:
-        assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_k_correction.dat"))) == number_of_wavelengths
-        assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_k_correction.dat"))) == number_of_wavelengths
+        assert (
+            len(glob.glob(os.path.join(elastic_output_dir, "IQ_*_before_k_correction.dat"))) == number_of_wavelengths
+        )
+        assert len(glob.glob(os.path.join(elastic_output_dir, "IQ_*_after_k_correction.dat"))) == number_of_wavelengths
     elif correction_case in ["inelastic_correction", "elastic_inelastic_correction"]:
-        assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_b_correction.dat"))) == number_of_wavelengths
-        assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_b_correction.dat"))) == number_of_wavelengths
+        assert (
+            len(glob.glob(os.path.join(inelastic_output_dir, "IQ_*_before_b_correction.dat"))) == number_of_wavelengths
+        )
+        assert (
+            len(glob.glob(os.path.join(inelastic_output_dir, "IQ_*_after_b_correction.dat"))) == number_of_wavelengths
+        )
     else:
         pass
 
     # check the k factor file, if elastic correction is enabled
     if elastic_reference_run:
-        k_base_name = f"{base_name}_{correction_case}_elastic_k1d_{base_name}.dat"
-        test_k_file = os.path.join(output_dir, k_base_name)
+        k_base_name = f"{outputFileName}_elastic_k1d_{base_name}.dat"
+        test_k_file = os.path.join(elastic_output_dir, k_base_name)
         assert os.path.exists(test_k_file), f"Expected test result {test_k_file} does not exist"
         np.testing.assert_allclose(
             np.loadtxt(test_k_file, delimiter=",", skiprows=1),
@@ -303,8 +316,8 @@ def test_incoherence_correction_elastic_normalization(
 
     # check the b factor file, if inelastic correction is enabled
     if fitInelasticIncoh:
-        b_base_name = f"{base_name}_{correction_case}_inelastic_b1d_{base_name}.dat"
-        test_b_file = os.path.join(output_dir, b_base_name)
+        b_base_name = f"{outputFileName}_inelastic_b1d_{base_name}.dat"
+        test_b_file = os.path.join(inelastic_output_dir, b_base_name)
         assert os.path.exists(test_b_file), f"Expected test result {test_b_file} does not exist"
         np.testing.assert_allclose(
             np.loadtxt(test_b_file, delimiter=",", skiprows=1),
@@ -498,15 +511,26 @@ def test_incoherence_correction_elastic_normalization_slices_frames(
                 num_wavelengths_b = 0
             else:
                 num_wavelengths_k = num_wavelengths_b = 29 - iframe
-            output_dir = os.path.join(test_dir, base_name, f"slice_{islice}", f"frame_{iframe}")
+            elastic_output_dir = os.path.join(
+                test_dir, "debug", "elastic_norm", f"{base_name}", f"slice_{islice}", f"frame_{iframe}"
+            )
+            inelastic_output_dir = os.path.join(
+                test_dir, "debug", "inelastic_incoh", f"{base_name}", f"slice_{islice}", f"frame_{iframe}"
+            )
             # before k correction
-            assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_k_correction.dat"))) == num_wavelengths_k
+            assert (
+                len(glob.glob(os.path.join(elastic_output_dir, "IQ_*_before_k_correction.dat"))) == num_wavelengths_k
+            )
             # after k correction
-            assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_k_correction.dat"))) == num_wavelengths_k
+            assert len(glob.glob(os.path.join(elastic_output_dir, "IQ_*_after_k_correction.dat"))) == num_wavelengths_k
             # before b correction
-            assert len(glob.glob(os.path.join(output_dir, "IQ_*_before_b_correction.dat"))) == num_wavelengths_b
+            assert (
+                len(glob.glob(os.path.join(inelastic_output_dir, "IQ_*_before_b_correction.dat"))) == num_wavelengths_b
+            )
             # after b correction
-            assert len(glob.glob(os.path.join(output_dir, "IQ_*_after_b_correction.dat"))) == num_wavelengths_b
+            assert (
+                len(glob.glob(os.path.join(inelastic_output_dir, "IQ_*_after_b_correction.dat"))) == num_wavelengths_b
+            )
 
     # cleanup
     DeleteWorkspace("_empty")

@@ -975,13 +975,11 @@ def reduce_single_configuration(
             assert iq1d_main_in_fr[frameskip_frame] is not None, "Input I(Q)      main input cannot be None."
             assert iq2d_main_in_fr[frameskip_frame] is not None, "Input I(qx, qy) main input cannot be None."
 
-            # create output directory, with sample number and frame number in case of multiple samples and/or frames
-            slice_frame_output_dir = os.path.join(output_dir, outputFilename, slice_name, f"frame_{frameskip_frame}")
-
             iq2d_main_out, iq1d_main_out = bin_i_with_correction(
                 iq1d_main_in_fr,
                 iq2d_main_in_fr,
                 frameskip_frame,
+                slice_name,
                 weighted_errors,
                 qmin,
                 qmax,
@@ -999,7 +997,7 @@ def reduce_single_configuration(
                 iq1d_elastic_ref_frames,
                 iq2d_elastic_ref_frames,
                 raw_name,
-                slice_frame_output_dir,
+                output_dir,
                 outputFilename,
             )
 

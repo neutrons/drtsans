@@ -204,6 +204,7 @@ def bin_i_with_correction(
     iq1d_in_frames: List[IQmod],
     iq2d_in_frames: List[IQazimuthal],
     frameskip_frame: int,
+    slice_name: str,
     weighted_errors: bool,
     user_qmin: float,
     user_qmax: float,
@@ -291,9 +292,6 @@ def bin_i_with_correction(
         # If any correction is turned on, then weighted_errors is always true
         weighted_errors = True
 
-        # Create output directory
-        os.makedirs(output_dir, exist_ok=True)
-
         # Define qmin and qmax for this frame
         if user_qmin is None:
             qmin = iq1d_in_frames[frameskip_frame].mod_q.min()
@@ -341,6 +339,11 @@ def bin_i_with_correction(
 
     # Elastic correction
     if correction_setup.do_elastic_correction:
+        elastic_output_dir = os.path.join(
+            output_dir, "debug", "elastic_norm", output_filename, slice_name, f"frame_{frameskip_frame}"
+        )
+        os.makedirs(elastic_output_dir, exist_ok=True)
+
         k_file_prefix = f"{raw_name}"
 
         # Bin elastic reference run
@@ -374,7 +377,7 @@ def bin_i_with_correction(
                 iq1d_main_wl[0],
                 iq1d_elastic_wl[0],
                 correction_setup.output_wavelength_dependent_profile,
-                output_dir,
+                elastic_output_dir,
             )
             iq1d_main_wl[0] = iq1d_wl
 
@@ -383,11 +386,16 @@ def bin_i_with_correction(
                 iq1d_wl.wavelength,
                 k_vec,
                 k_error_vec,
-                path=os.path.join(output_dir, f"{output_filename}_elastic_k1d_{k_file_prefix}.dat"),
+                path=os.path.join(elastic_output_dir, f"{output_filename}_elastic_k1d_{k_file_prefix}.dat"),
             )
 
     # Inelastic incoherence correction
     if correction_setup.do_inelastic_correction[frameskip_frame]:
+        inelastic_output_dir = os.path.join(
+            output_dir, "debug", "inelastic_incoh", output_filename, slice_name, f"frame_{frameskip_frame}"
+        )
+        os.makedirs(inelastic_output_dir, exist_ok=True)
+
         b_file_prefix = f"{raw_name}"
 
         # 1D correction
@@ -397,7 +405,7 @@ def bin_i_with_correction(
             frameskip_frame,
             correction_setup,
             b_file_prefix,
-            output_dir,
+            inelastic_output_dir,
             output_filename,
         )
         iq1d_main_wl[0] = iq1d_wl

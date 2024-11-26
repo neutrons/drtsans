@@ -2,7 +2,8 @@
 src/drtsans/_version.py
 BIOSANS_Definition.xml
 CG3_Definition.xml
-BIOSANS_54900090001_flood.nxs
+BIOSANS_*_flood.nxs
+/debug/
 /test_output/
 
 # Byte-compiled / optimized / DLL files

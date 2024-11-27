@@ -14,6 +14,7 @@ User Guide
 
    /user/calibration
    /user/reduction_output
+   /user/slicing
    /drtsans/reduction_parameters
    /drtsans/reduction_scripts
    release_notes

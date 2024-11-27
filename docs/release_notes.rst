@@ -23,16 +23,17 @@ Release Notes
 
 **Of interest to the User**:
 
+- MR #1180: User documentation on time and log slicing
 - MR #1177: Correction output now goes to `outputDir/debug/elastic_norm` and `outputDir/debug/incoherent_inelastic`
-- MR #1176: The drirectory /SNS/EQSANS/IPTS-XXXX/nexus/ has a priority in file search algorithm
+- MR #1176: The directory /SNS/EQSANS/IPTS-XXXX/nexus/ has a priority in file search algorithm
 - MR #1175: Input parameters JSON field `sample::loadOptions::additionalProperties` now accepts a boolean.
 - MR #1169: I(Qx, Qy) is saved in NXCANSAS format for biosans, gpsans, and eqsans workflows
 - MR #1168: Document scaling the detector panels in the user's guide
 - MR #1167: Allow separate configurations for inelastic incoherence correction per frame in frame skipping mode
 - MR #1166: Added option to _fitSpectrum to auto-find one wedge and mirror it
 - MR #1162: When reducing `gpsans` data with `direct_beam` scaling, the `direct_beam_scaling` parameter is now logged during
-  the reduction process and stored in the output Nexus file at `reduction_information/special_parameters/direct_beam_scaling/value`.
-- MR #1161: Add a parameters  removeAlgorithmHistory to write less data and speed up I/O during reduction
+the reduction process and stored in the output Nexus file at `reduction_information/special_parameters/direct_beam_scaling/value`.
+- MR #1161: Add a parameters removeAlgorithmHistory to write less data and speed up I/O during reduction
 - MR #1160: Expose pixel detector rescalings to the instrument API's
 - MR #1159: Separate configuration for elastic normalization and inelastic incoherence correction
 

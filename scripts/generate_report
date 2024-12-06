@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+
+"""
+Script to generate a report from an hdf5 log file
+"""
+import sys
+import os
+import numpy as np
+import h5py
+import yaml
+
+# default conf file os "generate_report.yaml"
+YAML_FILE = os.path.abspath(__file__) + ".yaml"
+
+file_keys = set()
+
+
+def print_usage():
+    """print usage"""
+    usage = """Generating a report requires a parameter hdf5 file name and an optional yaml input file
+    Usage: python generate_report file_name_hdf.log [input.yaml]"""
+    print(usage, file=sys.stderr)
+
+
+def print_report(output):
+    """pretty print report"""
+    for item in output:
+        print("{:<40} {:>40}".format(item[0], item[1]))
+
+
+def get_value_by_keys(file_path, key_set, mapping):
+    """Function to extract and print required keys and values"""
+    output = []
+    with h5py.File(file_path, "r") as file:
+        for key_path in key_set:
+            dataset = file[key_path]
+            if isinstance(dataset[()], float):
+                str_value = str(dataset[()])
+            elif isinstance(dataset[()], bytes):
+                str_value = dataset[()].decode()
+            elif isinstance(dataset[()], np.ndarray):
+                if isinstance(dataset[()][0], np.ndarray):
+                    str_value = str(dataset[()][0][0])
+                elif isinstance(dataset[()][0], bytes):
+                    str_value = dataset[()][0].decode()
+            else:
+                str_value = str(dataset[()])
+            output.append((mapping[key_path], str_value))
+    return output
+
+
+def read_yaml(file_path):
+    """Read the input yaml file"""
+    try:
+        with open(file_path, "r") as file:
+            data = yaml.safe_load(file)
+    except Exception as e:
+        print(f"Cannot read yaml file: {e}", file=sys.stderr)
+        sys.exit(1)
+    return data
+
+
+def collect_keys(name, obj):
+    """Callback function to collect the name of an object."""
+    file_keys.add(name)
+
+
+def read_hdf5(file_path):
+    """Read hdf5 file"""
+    try:
+        with h5py.File(file_path, "r") as file:
+            file.visititems(collect_keys)
+    except Exception as e:
+        print(f"Cannot read hdf5 file {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
+        print_usage()
+        sys.exit(1)
+    if os.path.isfile(sys.argv[1]):
+        log_file_name = sys.argv[1]
+        print("Reading log file: " + log_file_name)
+        read_hdf5(log_file_name)
+    else:
+        print("hdf5 log file required", file=sys.stderr)
+        sys.exit(1)
+
+    if len(sys.argv) == 3 and os.path.isfile(sys.argv[2]):
+        YAML_FILE = sys.argv[2]
+    elif not os.path.isfile(YAML_FILE):
+        print("yaml input file required", file=sys.stderr)
+        sys.exit(1)
+    print("Reading input file: " + YAML_FILE)
+    yaml_data = read_yaml(YAML_FILE)
+    required_keys = []
+    for k in yaml_data["options"].keys():
+        if k in file_keys:
+            required_keys.append(k)
+        else:
+            print("cannot find key {}".format(k), file=sys.stderr)
+    out = get_value_by_keys(log_file_name, required_keys, yaml_data["options"])
+    print_report(out)
+    sys.exit(0)

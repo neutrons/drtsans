@@ -69,6 +69,8 @@ script-files = [
     "scripts/prepare_sensitivities_biosans.py",
     "scripts/prepare_sensitivities_gpsans.py",
     "scripts/process_reduction.py",
+    "scripts/generate_report",
+    "scripts/generate_report.yaml",
 ]
 
 [tool.setuptools.package-data]

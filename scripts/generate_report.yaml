@@ -1,0 +1,12 @@
+options:
+  reduction_information/drtsans/version : "drtsan version"
+  reduction_information/mantid/version : "mantid version"
+  reduction_information/reduction_parameters/background/runNumber : "background run number"
+  reduction_information/special_parameters/background_transmission/value : "background_transmission"
+  reduction_information/special_parameters/background_transmission/error : "background_transmission error"
+  reduction_information/reduction_parameters/beamCenter/runNumber: "beam center run number"
+  reduction_information/special_parameters/beam_center/x : "beam center x"
+  reduction_information/special_parameters/beam_center/y : "beam center y"
+  reduction_information/special_parameters/sample_transmission/value : "sample transmission"
+  reduction_information/special_parameters/sample_transmission/error : "sample transmission error"
+  reduction_information/reduction_parameters/sample/runNumber: "sample run number"

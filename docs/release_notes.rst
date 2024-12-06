@@ -23,6 +23,7 @@ Release Notes
 
 **Of interest to the User**:
 
+- MR #1183: Added a script generate_report to generate a summary report from an hdf5 log file
 - MR #1180: User documentation on time and log slicing
 - MR #1177: Correction output now goes to `outputDir/debug/elastic_norm` and `outputDir/debug/incoherent_inelastic`
 - MR #1176: The directory /SNS/EQSANS/IPTS-XXXX/nexus/ has a priority in file search algorithm

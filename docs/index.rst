@@ -10,11 +10,12 @@ User Guide
 ----------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    /user/calibration
    /user/reduction_output
    /user/slicing
+   /user/binning
    /drtsans/reduction_parameters
    /drtsans/reduction_scripts
    release_notes

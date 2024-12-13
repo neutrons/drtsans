@@ -566,11 +566,11 @@ def test_real_data_biosans(datarepo_dir):
 
     # calculate the wedge angles to use
     wedge_angles = getWedgeSelection(
-        q2d_data,
-        0.00,
-        0.001,
-        0.02,
-        0.5,
+        data2d=q2d_data,
+        q_min=0.00,
+        q_delta=0.001,
+        q_max=0.02,
+        azimuthal_delta=0.5,
         peak_width=0.25,
         background_width=1.5,
         signal_to_noise_min=1.2,

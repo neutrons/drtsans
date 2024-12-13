@@ -1136,6 +1136,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     annular_bin = reduction_config["AnnularAngleBin"]
     wedges_min = reduction_config["WedgeMinAngles"]
     wedges_max = reduction_config["WedgeMaxAngles"]
+    # Example: wedges_min = [-30, 60], wedges_max = [30, 120] --> wedges = [(-30, 30), (60, 120)]
     wedges = None if wedges_min is None or wedges_max is None else list(zip(wedges_min, wedges_max))
 
     remove_algorithm_history = reduction_input["configuration"]["removeAlgorithmHistory"]

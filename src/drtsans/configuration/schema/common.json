@@ -571,11 +571,11 @@
     },
     "autoWedgePeakWidth": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "description": "Percent of full-width-half-max (FWHM) of the peak in automatic wedge fitting."
+      "description": "Percent of full-width-half-max (FWHM) of the peak in the I(phi) profile representing a wedge."
     },
     "autoWedgeBackgroundWidth": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "description": "Percent of full-width-half-max (FWHM) of the background in automatic wedge fitting."
+      "description": "Percent of full-width-half-max (FWHM) of the peak in the I(phi) profile representing a wedge."
     },
     "autoWedgeSignalToNoiseMin": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",

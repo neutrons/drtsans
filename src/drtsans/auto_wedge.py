@@ -268,21 +268,22 @@ def getWedgeSelection(
     auto_wedge_phi_max=360,
     auto_symmetric_wedges=False,
 ) -> List[List[Tuple[float, float]]]:
-    """
+    r"""
     Calculate azimuthal binning ranges automatically based on finding peaks in the annular ring. The
     output of this is intended to be used in :py:func:`~drtsans.iq.select_i_of_q_by_wedge`.
 
     Parameters
     ==========
     data2d: ~drtsans.dataobjects.Azimuthal
+        The 2D data object containing the azimuthal data.
     q_min: float
-        The left bin boundary for the first Q-bin
+        The left bin boundary for the first Q-bin.
     q_delta: float
-        The size of the bins in Q
+        The size of the bins in Q.
     q_max: float
-        The left bin  boundary for the last Q-bin
+        The left bin boundary for the last Q-bin.
     azimuthal_delta: float
-        The size of the bins in azimuthal angle
+        The size of the bins in azimuthal angle.
     peak_width: float
         Percent of full-width-half-max (FWHM) of the peak to define the signal to be within when
         determining the final range for azimuthal binning.
@@ -290,9 +291,9 @@ def getWedgeSelection(
         Percent of full-width-half-max (FWHM) of the peak to define the background between peaks
         to be within when determining the final range for azimuthal binning.
     signal_to_noise_min: float
-        Minimum signal to noise ratio for the data to be considered "fittable"
+        Minimum signal to noise ratio for the data to be considered fittable.
     peak_search_window_size_factor: float
-        Factor of 360 / (num peaks) to construct the search range for wedge peak
+        Factor of 360 / (num peaks) to construct the search range for wedge peak.
     debug_dir: str
         Full path of the output directory for debugging output files
     auto_wedge_phi_min: float
@@ -303,12 +304,14 @@ def getWedgeSelection(
         find a wedge between auto_wedge_phi_min and auto_wedge_phi_max, then symmetrize the findings to the remaining
         phi angle domain
 
-    Results
+    Returns
     =======
-    ~list
-      list containing 2 lists each contains 2 2-tuples
-      as ``[[(peak1_min, peak1_max), (peak2_min, peak2_max)], [(..., ...), (..., ...)]]``
-
+    list
+        A two-item list. The first item contains the azimuthal ranges for the two wedges
+        that enclose the intensity maxima. The second item contains the azimuthal ranges for the
+        background regions associated to the wedges.
+        The first item is `[(wedge1\_phimin, wedge1\_phimax), (wedge2\_phimin, wedge2\_phimax)]`,
+        and the second item is `[(back1\_phimin, back1\_phimax), (back2\_phimin, back2\_phimax)]]`.
     """
     # Bin azimuthal
     q, azimuthal_rings = _binInQAndAzimuthal(
@@ -349,15 +352,19 @@ def getWedgeSelection(
     # convert to min and max ranges
     min_vec, max_vec = [], []
 
+    # azimuthal range for the first wedge enclosing an intensity maximum
     min_vec.append(center_vec[0] - peak_width * fwhm_vec[0])
     max_vec.append(center_vec[0] + peak_width * fwhm_vec[0])
 
+    # azimuthal range enclosing the background for the first wedge
     min_vec.append(center_vec[0] + background_width * fwhm_vec[0])
     max_vec.append(center_vec[1] - background_width * fwhm_vec[1])
 
+    # azimuthal range for the second wedge enclosing an intensity maximum
     min_vec.append(center_vec[1] - peak_width * fwhm_vec[1])
     max_vec.append(center_vec[1] + peak_width * fwhm_vec[1])
 
+    # azimuthal range enclosing the background for the second wedge
     min_vec.append(center_vec[1] + background_width * fwhm_vec[1])
     max_vec.append(center_vec[0] - background_width * fwhm_vec[0])
 
@@ -371,7 +378,7 @@ def getWedgeSelection(
     min_vec[min_vec > 270.0] -= 360.0
     max_vec[max_vec > 270.0] -= 360.0
 
-    # put wedges on opposite sides together
+    # rearrange the ranges: first the wedges, then the backgrounds
     raw_wedges = list(zip(min_vec, max_vec))
     summing_wedges = []
     for i in range(len(raw_wedges) // 2):  # iterate over half the list

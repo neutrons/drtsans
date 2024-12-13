@@ -64,3 +64,18 @@ AgBe has a well defined diffraction peak so both peaks should overlap.
 .. figure:: media/scaling_detector_5.png
    :alt: Scaling Detector
    :width: 600px
+
+Insert a request to scale one (or more) components of the instrument in the reduction options.
+For instance, to rescale components `detector1` and `wing_detector` of the BIOSANS instrument:
+
+.. code-block:: json
+
+    {
+      "scaleComponents":
+        {
+          "detector1": [1.0, 1.1, 1.0],
+          "wing_detector": [0.95, 1.0, 0.95]
+        },
+    }
+
+See the `default parameter values page <https://drtsans.readthedocs.io/en/latest/drtsans/reduction_parameters.html>`_.

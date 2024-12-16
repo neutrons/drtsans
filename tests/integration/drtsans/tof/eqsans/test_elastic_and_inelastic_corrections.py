@@ -256,10 +256,8 @@ def test_incoherence_correction_elastic_normalization(
 
     ### Check output results
 
-    elastic_output_dir = os.path.join(test_dir, "debug", "elastic_norm", f"{outputFileName}", "slice_0", "frame_0")
-    inelastic_output_dir = os.path.join(
-        test_dir, "debug", "inelastic_incoh", f"{outputFileName}", "slice_0", "frame_0"
-    )
+    elastic_output_dir = os.path.join(test_dir, "info", "elastic_norm", f"{outputFileName}", "slice_0", "frame_0")
+    inelastic_output_dir = os.path.join(test_dir, "info", "inelastic_incoh", f"{outputFileName}", "slice_0", "frame_0")
 
     # Check empty subdirectories not created for no correction case
     if correction_case == "no_correction":
@@ -512,10 +510,10 @@ def test_incoherence_correction_elastic_normalization_slices_frames(
             else:
                 num_wavelengths_k = num_wavelengths_b = 29 - iframe
             elastic_output_dir = os.path.join(
-                test_dir, "debug", "elastic_norm", f"{base_name}", f"slice_{islice}", f"frame_{iframe}"
+                test_dir, "info", "elastic_norm", f"{base_name}", f"slice_{islice}", f"frame_{iframe}"
             )
             inelastic_output_dir = os.path.join(
-                test_dir, "debug", "inelastic_incoh", f"{base_name}", f"slice_{islice}", f"frame_{iframe}"
+                test_dir, "info", "inelastic_incoh", f"{base_name}", f"slice_{islice}", f"frame_{iframe}"
             )
             # before k correction
             assert (

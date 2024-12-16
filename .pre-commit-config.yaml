@@ -3,7 +3,7 @@
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: check-json
@@ -19,16 +19,16 @@ repos:
       - id: check-merge-conflict
       - id: end-of-file-fixer
       - id: sort-simple-yaml
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.275
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.3
     hooks:
       - id: ruff
         args: [--no-cache, --fix, --exit-non-zero-on-fix]
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 24.10.0
     hooks:
       - id: black
   - repo: https://github.com/kynan/nbstripout
-    rev: 0.6.1
+    rev: 0.8.1
     hooks:
     - id: nbstripout

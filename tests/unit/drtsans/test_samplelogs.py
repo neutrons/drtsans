@@ -1,8 +1,9 @@
-import pytest
-from numpy.testing import assert_almost_equal
 from os.path import join as pjn
-from mantid.simpleapi import LoadNexusProcessed
+
+import pytest
 from mantid.api import Run
+from mantid.simpleapi import LoadNexusProcessed
+from numpy.testing import assert_almost_equal
 
 from drtsans.samplelogs import SampleLogs, periodic_index_log
 
@@ -21,6 +22,49 @@ def test_periodic_index_log():
     assert log.firstValue() == 0
     assert "2023-09-02T13:00:00.466" in log.lastTime().toISO8601String()
     assert log.lastValue() == 14
+
+
+@pytest.mark.parametrize(
+    "period, interval, duration, offset, step, expected",
+    [
+        (0.9901076314875992, 0.01, 8371.0458984375, 0.6694618359281799, 1.0, 837038),
+        (0.990110528971648, 0.01, 8353.4296875, 0.4783230672977612, 1.0, "fail"),
+        (0.990107380210766, 0.1, 7111.37744140625, 0.8365827919520669, 1.0, "fail"),
+        (0.9901, 0.1, 763.654052734375, 0.578, 1.0, "fail"),
+        (9.0914642068604, 1.0, 382.9853210449219, 1.1055757465580345, 1.0, 382),
+        (9.091311484270927, 1.0, 380.5020751953125, 4.384090426034748, 1.0, 377),
+        (90.87363154577008, 1.0, 227.791259765625, 63.92350945782564, 1.0, 164),
+        (0.09990091554886044, 0.01, 228.7245635986328, 0.04903141722988207, 1.0, "fail"),
+        (0.09990091554886044, 0.01, 1903.1103515625, 0.04903141722988207, 1.0, "fail"),
+        (0.09990100006257276, 0.01, 7.999692916870117, 0.06871597503197445, 1.0, "fail"),
+        (0.09990099085909061, 0.009, 8.049692153930664, 0.011064958593924914, 1.0, "fail"),
+        (0.09990099496711198, 0.009, 38.19853591918945, 0.06973558286231382, 1.0, "fail"),
+        (2, 1, 10, 0, 1, 10),
+    ],
+    ids=[
+        "reduce_slice_157044",
+        "reduce_slice_157045",  #
+        "reduce_slice_157046",  #
+        "reduce_slice_157053",  #
+        "reduce_slice_157054",
+        "reduce_slice_157065",
+        "reduce_slice_157076",
+        "reduce_slice_157106",  #
+        "reduce_slice_157107",  #
+        "reduce_slice_157110",  #
+        "reduce_slice_157111",  #
+        "reduce_slice_157112",  #
+        "period_count-exact-integer",
+    ],
+)
+def test_periodic_index_log_cases(period, interval, duration, offset, step, expected):
+    run_start = "2000-01-01T00:00:00"
+    if expected == "fail":
+        with pytest.raises(AssertionError, match=r"(AssertionError: times and entries must have the same length)*"):
+            result = periodic_index_log(period, interval, duration, run_start, offset, step)
+    else:
+        result = periodic_index_log(period, interval, duration, run_start, offset, step)
+        assert result.size() == expected, f"Expected TimeSeriesProperty with size {expected}, got {result.size()}"
 
 
 class TestSampleLogs:

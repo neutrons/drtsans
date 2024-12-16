@@ -94,7 +94,8 @@ def periodic_index_log(
     name: str = "periodic_index",
 ) -> FloatTimeSeriesProperty:
     r"""
-    Generate a periodic log whose values are integers ranging from 0 to ``period / interval``.
+    Generate a periodic log whose values are integers ranging from 0 to ``period / interval``
+    using timeSliceXXX values from the reduction configuration.
 
     The first log entry is at ``run_start + offset`` with value 0. The next entry at
     ``run_start + offset + interval`` with value 1, and so on. The log wraps around
@@ -127,13 +128,25 @@ def periodic_index_log(
         If ``period`` is not a multiple of ``interval``.
     """
 
-    if SECONDS_TO_NANOSECONDS * period % interval > 1:  # allow for rounding errors of 1 nanosecond
+    if (SECONDS_TO_NANOSECONDS * period) % interval > 1:  # allow for rounding errors of 1 nanosecond
         raise ValueError(f"period {period} must be a multiple of interval {interval}")
 
-    times = np.arange(offset, duration, interval)  # times at which we insert a new log entry
-    values_in_period = step * np.arange(0, int(period / interval))  # 0, 1,.., period/interval
-    period_count = 1 + int((duration - offset) / period)  # additional period if "/" truncates times
-    entries = np.tile(values_in_period, period_count)[: len(times)].tolist()  # cast to python's int type
+    # times at which we insert a new log entry
+    times = np.arange(offset, duration, interval)
+
+    # number of periods in the duration (plus one in case division truncates)
+    period_count = 1 + int((duration - offset) / period)
+
+    # array of values in each period, scaled by the step
+    values_in_period = step * np.arange(0, int(period / interval))
+
+    # repeat the values in a period up to the number of periods,
+    # then truncate to the length of times, then cast to list
+    entries = np.tile(values_in_period, period_count)[: len(times)].tolist()
+
+    assert len(times) == len(
+        entries
+    ), f"times and entries must have the same length: len(times) {len(times)} != len(entries) {len(entries)}"
 
     return time_series(name, times, entries, run_start, unit="")
 

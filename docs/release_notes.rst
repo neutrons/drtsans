@@ -26,6 +26,7 @@ Release Notes
 - MR #1184: Document wedge binning
 - MR #1183: Added a script generate_report to generate a summary report from an hdf5 log file
 - MR #1180: User documentation on time and log slicing
+- MR #1179: Add validation for timeslice parameters, period must be integer multiple of interval
 - MR #1177: Correction output now goes to `outputDir/debug/elastic_norm` and `outputDir/debug/incoherent_inelastic`
 - MR #1176: The directory /SNS/EQSANS/IPTS-XXXX/nexus/ has a priority in file search algorithm
 - MR #1175: Input parameters JSON field `sample::loadOptions::additionalProperties` now accepts a boolean.

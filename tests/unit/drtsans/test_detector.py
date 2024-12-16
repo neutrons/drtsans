@@ -1,4 +1,3 @@
-import pytest
 from mantid.simpleapi import LoadEmptyInstrument, MaskBTP
 from drtsans.detector import Component
 

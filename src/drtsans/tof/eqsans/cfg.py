@@ -1,6 +1,7 @@
 """
 Reader for EQSANS configuration files in the old format
 """
+
 import os
 import re
 from copy import deepcopy

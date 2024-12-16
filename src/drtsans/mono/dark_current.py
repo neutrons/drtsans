@@ -4,6 +4,7 @@ DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspa
 Integration <https://docs.mantidproject.org/nightly/algorithms/Integration-v1.html>
 Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
 """
+
 from mantid.simpleapi import Minus, mtd, DeleteWorkspace, Scale, Integration
 
 r""" links to drtsans imports

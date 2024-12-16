@@ -1,6 +1,7 @@
 """
 Example script to plot the before and after k-correction data for a given slice and frame.
 """
+
 import glob
 import os
 from pathlib import Path

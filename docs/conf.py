@@ -215,6 +215,7 @@ class ExecDirective(Directive):
     Credit goes to:
     https://stackoverflow.com/questions/27875455/displaying-dictionary-data-in-sphinx-documentation/29789910#29789910
     """
+
     has_content = True
 
     def run(self):

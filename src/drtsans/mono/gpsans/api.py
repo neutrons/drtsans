@@ -1,4 +1,5 @@
 """ GPSANS API """
+
 # standard imports
 from collections import namedtuple
 import copy

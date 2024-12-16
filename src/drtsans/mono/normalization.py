@@ -3,6 +3,7 @@ Links to mantid algorithms
 CreateSingleValuedWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html>
 Divide <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
 """
+
 from mantid.simpleapi import CreateSingleValuedWorkspace, Divide
 from mantid.api import mtd
 

@@ -1,5 +1,4 @@
 import os
-import numpy as np
 from drtsans.path import exists as path_exists
 
 r"""
@@ -18,16 +17,12 @@ https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 from mantid.simpleapi import (
     mtd,
     CloneWorkspace,
-    CalculateEfficiency,
     DeleteWorkspace,
     Divide,
     LoadNexusProcessed,
     MaskDetectors,
     MaskDetectorsIf,
     ReplaceSpecialValues,
-    SaveNexusProcessed,
-    Integration,
-    CreateWorkspace,
 )
 
 __all__ = ["load_sensitivity_workspace", "apply_sensitivity_correction"]

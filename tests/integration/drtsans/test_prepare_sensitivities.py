@@ -1,6 +1,7 @@
 """
     Test EASANS sensitivities preparation algorithm
 """
+
 import pytest
 from unittest.mock import patch as mock_patch
 import numpy as np

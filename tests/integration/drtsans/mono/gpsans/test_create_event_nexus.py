@@ -1,6 +1,7 @@
 """
 Integration test to create event nexus file
 """
+
 import pytest
 import numpy as np
 import os

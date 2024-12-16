@@ -224,7 +224,7 @@ def fetch_idf(idf_xml: str, output_directory: str = os.getcwd()):
 
     idf = os.path.join(str(output_directory), idf_xml)
     url = f"https://raw.githubusercontent.com/mantidproject/mantid/main/instrument/{idf_xml}"
-    result = subprocess.run(f"curl -o {idf} {url}", shell=True, capture_output=True, text=True)
+    result = subprocess.run(f"curl -o {idf} {url}", shell=True, capture_output=True, text=True, check=False)
     if result.returncode == 0 and not _empty_download(idf):
         return idf
     else:

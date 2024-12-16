@@ -1,6 +1,7 @@
 """
   EQSANS example for the legacy reduction
 """
+
 # flake8: noqa
 import os
 

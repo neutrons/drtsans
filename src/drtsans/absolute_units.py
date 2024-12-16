@@ -3,6 +3,7 @@ DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspa
 Divide          <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
 Multiply        <https://docs.mantidproject.org/nightly/algorithms/Multiply-v1.html>
 """
+
 from mantid.simpleapi import DeleteWorkspace, Divide, Multiply, mtd
 from mantid.dataobjects import WorkspaceSingleValue
 

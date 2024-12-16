@@ -95,10 +95,12 @@ def _insert_periodic_timeslice_log(
     time_offset
     """
     sample_logs = SampleLogs(input_workspace)
+
     try:
         run_start = sample_logs.run_start.value
     except AttributeError:
         run_start = sample_logs.start_time.value
+
     log = periodic_index_log(
         period=time_period,
         interval=time_interval,

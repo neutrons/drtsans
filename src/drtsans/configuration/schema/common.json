@@ -358,7 +358,8 @@
     },
     "timeSlicePeriod": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "description": "Period for time slicing, in seconds and a multiple of timeSliceInterval. Default is None, meaning no periodicity"
+      "description": "Period for time slicing, in seconds and a multiple of timeSliceInterval. Default is None, meaning no periodicity",
+      "isIntegerMultiple": "#configuration/timeSliceInterval"
     },
     "useSliceIDxAsSuffix": {
       "type": "boolean",

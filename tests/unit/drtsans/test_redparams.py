@@ -890,6 +890,7 @@ class TestReductionParametersEQSANS:
         parameters = deepcopy(self.parameters_all)
         with amend_config(data_dir=datarepo_dir.eqsans):
             validate_reduction_parameters(parameters)
+
         # assert incohfit_qmin/qmax/factor are null by default
         assert parameters["configuration"]["incohfit_qmin"] is None
         assert parameters["configuration"]["incohfit_qmax"] is None
@@ -974,6 +975,38 @@ class TestReductionParametersEQSANS:
         with pytest.raises(ReductionParameterError):
             parameters["configuration"]["scaleComponents"] = {"detector1": [-1.0, 1.0]}
             with amend_config(data_dir=datarepo_dir.eqsans):
+                validate_reduction_parameters(parameters)
+
+    @pytest.mark.parametrize(
+        "timeSliceInterval, timeSlicePeriod, throws_error",
+        [
+            (10, 100, False),  # exact integer multiple
+            (0.001, 1.00000000001, False),  # nearly exact integer ratio
+            (-45, -100, True),  # negative values
+            (1, 100.1, True),  # not an integer multiple
+        ],
+        ids=["exact integer multiple", "nearly exact integer ratio", "negative values", "not an integer multiple"],
+    )
+    def test_timeslice_parameters(self, datarepo_dir, timeSliceInterval, timeSlicePeriod, throws_error):
+        parameters = deepcopy(self.parameters_all)
+
+        # default values
+        with amend_config(data_dir=datarepo_dir.eqsans):
+            validate_reduction_parameters(parameters)
+        assert parameters["configuration"]["useTimeSlice"] is False
+        assert parameters["configuration"]["timeSliceInterval"] == 300
+        assert parameters["configuration"]["timeSlicePeriod"] is None
+
+        # set timeSliceInterval and timeSlicePeriod
+        parameters["configuration"]["useTimeSlice"] = True
+        parameters["configuration"]["timeSliceInterval"] = timeSliceInterval
+        parameters["configuration"]["timeSlicePeriod"] = timeSlicePeriod
+
+        with amend_config(data_dir=datarepo_dir.eqsans):
+            if throws_error:
+                with pytest.raises(ReductionParameterError):
+                    validate_reduction_parameters(parameters)
+            else:
                 validate_reduction_parameters(parameters)
 
     @pytest.mark.datarepo

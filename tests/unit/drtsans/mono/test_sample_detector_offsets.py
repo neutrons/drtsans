@@ -1,6 +1,7 @@
 """
 Test methods to determine the correct sample and detector positions from meta data and overwriting
 """
+
 import os
 import pytest
 from mantid.simpleapi import LoadEmptyInstrument

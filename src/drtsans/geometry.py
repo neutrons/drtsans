@@ -836,8 +836,9 @@ def translate_detector_by_z(input_workspace, z=None, relative=True):
         update_log = True
         if (not relative) or (z != 0.0):
             logger.debug(
-                "Moving detector along Z = {}  is relative = {} to component {}"
-                "".format(z, relative, main_detector_name(input_workspace))
+                "Moving detector along Z = {}  is relative = {} to component {}" "".format(
+                    z, relative, main_detector_name(input_workspace)
+                )
             )
 
             MoveInstrumentComponent(

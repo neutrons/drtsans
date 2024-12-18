@@ -13,6 +13,7 @@ RemoveSpectra <https://docs.mantidproject.org/nightly/algorithms/RemoveSpectra-v
 Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
 SplineInterpolation <https://docs.mantidproject.org/nightly/algorithms/SplineInterpolation-v1.html>
 """
+
 from mantid.simpleapi import (
     CloneWorkspace,
     ConvertToHistogram,

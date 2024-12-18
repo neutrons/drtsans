@@ -224,7 +224,7 @@ def fetch_idf(idf_xml: str, output_directory: str = os.getcwd()):
 
     idf = os.path.join(str(output_directory), idf_xml)
     url = f"https://raw.githubusercontent.com/mantidproject/mantid/main/instrument/{idf_xml}"
-    result = subprocess.run(f"curl -o {idf} {url}", shell=True, capture_output=True, text=True)
+    result = subprocess.run(f"curl -o {idf} {url}", shell=True, capture_output=True, text=True, check=False)
     if result.returncode == 0 and not _empty_download(idf):
         return idf
     else:
@@ -328,7 +328,8 @@ def copy_to_newest_instrument(
     target.getAxis(0).setUnit(origin_unit)
     target.setYUnit(origin.YUnit())
     MergeRuns(
-        InputWorkspaces=[target_workspace, input_workspace], OutputWorkspace=target_workspace  # order is necessary
+        InputWorkspaces=[target_workspace, input_workspace],
+        OutputWorkspace=target_workspace,  # order is necessary
     )
     # Move components to the positions they have in input_workspace by reading their positions
     # in the logs. This is implicitly done when invoking algorithm LoadInstrument.

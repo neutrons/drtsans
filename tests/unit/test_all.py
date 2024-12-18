@@ -4,6 +4,7 @@ This is a collection of tests to verify that the wild imports
 
 See http://xion.io/post/code/python-all-wild-imports.html for more information
 """
+
 import pytest
 
 

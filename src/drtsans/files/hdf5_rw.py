@@ -89,16 +89,14 @@ class HDFNode(object):
         # compare attributes
         if set(self._attributes.keys()) != set(other_node.attributes.keys()):
             print(
-                "Data node {} Attributes are not same:\nself - other = {}]\nother - self = {}"
-                "".format(
+                "Data node {} Attributes are not same:\nself - other = {}]\nother - self = {}" "".format(
                     self.name,
                     set(self._attributes.keys()) - set(other_node.attributes.keys()),
                     set(other_node.attributes.keys()) - set(self._attributes.keys()),
                 )
             )
             raise KeyError(
-                "Data node {} Attributes are not same:\nself - other = {}]\nother - self = {}"
-                "".format(
+                "Data node {} Attributes are not same:\nself - other = {}]\nother - self = {}" "".format(
                     self.name,
                     set(self._attributes.keys()) - set(other_node.attributes.keys()),
                     set(other_node.attributes.keys()) - set(self._attributes.keys()),

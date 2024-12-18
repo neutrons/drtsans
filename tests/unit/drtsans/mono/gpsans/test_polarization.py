@@ -46,7 +46,9 @@ def test_half_polarization(temp_workspace_name):
 
     # expected results
     SpinUpExp = CreateSingleValuedWorkspace(
-        DataValue=10050.100, ErrorValue=103.2046, OutputWorkspace=temp_workspace_name()  # was 103.205
+        DataValue=10050.100,
+        ErrorValue=103.2046,
+        OutputWorkspace=temp_workspace_name(),  # was 103.205
     )
     SpinDownExp = CreateSingleValuedWorkspace(
         DataValue=8046.0925, ErrorValue=93.2163, OutputWorkspace=temp_workspace_name()

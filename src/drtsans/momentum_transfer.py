@@ -83,8 +83,9 @@ def convert_to_q(ws, mode, resolution_function=None, **kwargs):
     wsh = mtd[str(ws)]
     if wsh.getAxis(0).getUnit().unitID() != "Wavelength":
         raise RuntimeError(
-            "Input workspace {} for calculate Q and resolution must be in unit Wavelength but not {}"
-            "".format(wsh, wsh.getAxis(0).getUnit().unitID())
+            "Input workspace {} for calculate Q and resolution must be in unit Wavelength but not {}" "".format(
+                wsh, wsh.getAxis(0).getUnit().unitID()
+            )
         )
 
     # switch according to mode
@@ -487,14 +488,16 @@ def pixel_info(input_workspace):
     number_spectra = ws.getNumberHistograms()
 
     info = [
-        [np.nan, np.nan, np.nan, False]
-        if _masked_or_monitor(spectrum_info, i)
-        else [
-            spectrum_info.twoTheta(i),
-            spectrum_info.azimuthal(i),
-            spectrum_info.l2(i),
-            True,
-        ]
+        (
+            [np.nan, np.nan, np.nan, False]
+            if _masked_or_monitor(spectrum_info, i)
+            else [
+                spectrum_info.twoTheta(i),
+                spectrum_info.azimuthal(i),
+                spectrum_info.l2(i),
+                True,
+            ]
+        )
         for i in range(number_spectra)
     ]
     info = np.array(info)

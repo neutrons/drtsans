@@ -86,6 +86,9 @@ line-length = 119
 [tool.ruff]
 cache-dir = "/tmp/ruff_cache"
 line-length = 119
+extend-exclude = ["notebooks"]
+
+[tool.ruff.lint]
 # https://beta.ruff.rs/docs/rules/
 # suggestions: BLE blind exceptions, I sorts imports
 # Full pylint PL = PLC, PLE, PLR (~500 issues), PLW. Enable most

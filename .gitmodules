@@ -1,4 +1,4 @@
 [submodule "tests/data/drtsans-data"]
 	path = tests/data/drtsans-data
-	url = ../../infrastructure/test-data/drtsans-data.git
+	url = https://code.ornl.gov/sns-hfir-scse/infrastructure/test-data/drtsans-data.git
 	branch = main

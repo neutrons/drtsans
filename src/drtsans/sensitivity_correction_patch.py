@@ -151,8 +151,9 @@ def calculate_sensitivity_correction(
         # This shall be an option later
         if len(xx) < min_detectors_per_tube:
             logger.error(
-                "Skipping tube with indices {} with {} non-masked value. Too many "
-                "masked or dead pixels.".format(j, len(xx))
+                "Skipping tube with indices {} with {} non-masked value. Too many " "masked or dead pixels.".format(
+                    j, len(xx)
+                )
             )
             continue
 

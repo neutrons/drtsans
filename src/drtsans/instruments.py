@@ -328,7 +328,8 @@ def copy_to_newest_instrument(
     target.getAxis(0).setUnit(origin_unit)
     target.setYUnit(origin.YUnit())
     MergeRuns(
-        InputWorkspaces=[target_workspace, input_workspace], OutputWorkspace=target_workspace  # order is necessary
+        InputWorkspaces=[target_workspace, input_workspace],
+        OutputWorkspace=target_workspace,  # order is necessary
     )
     # Move components to the positions they have in input_workspace by reading their positions
     # in the logs. This is implicitly done when invoking algorithm LoadInstrument.

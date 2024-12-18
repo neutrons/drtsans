@@ -1,4 +1,4 @@
-""" GPSANS API """
+"""GPSANS API"""
 
 # standard imports
 from collections import namedtuple
@@ -321,8 +321,9 @@ def load_all_files(
                 smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE],
             )
             logger.information(
-                "[META] Wavelength range is from {} to {}"
-                "".format(mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1])
+                "[META] Wavelength range is from {} to {}" "".format(
+                    mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1]
+                )
             )
             # Apply mask
             for btp_params in default_mask:

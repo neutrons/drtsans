@@ -35,8 +35,7 @@ def test_load_gpsans(datarepo_dir, clean_workspace):
     print("[TEST INFO] SampleToSi = {} mm".format(logs.find_log_with_units("CG2:CS:SampleToSi", unit="mm")))
     raw_sample_det_distance = sample_detector_distance(ws, unit="m", search_logs=False)
     print(
-        "[TEST INFO] Sample to detector distance = {} /{} meter"
-        "".format(
+        "[TEST INFO] Sample to detector distance = {} /{} meter" "".format(
             raw_sample_det_distance,
             sample_detector_distance(ws, unit="m", log_key="sample_detector_distance", search_logs=True),
         )
@@ -93,8 +92,7 @@ def test_load_biosans(datarepo_dir, clean_workspace):
     print("[TEST INFO] (Raw) sampleToSi = {} mm".format(logs.find_log_with_units("CG3:CS:SampleToSi", unit="mm")))
     raw_sample_det_distance = sample_detector_distance(ws)
     print(
-        "[TEST INFO] (Raw) sample to detector distance = {} /{} meter"
-        "".format(
+        "[TEST INFO] (Raw) sample to detector distance = {} /{} meter" "".format(
             raw_sample_det_distance,
             sample_detector_distance(ws, log_key="sample_detector_distance", search_logs=True),
         )
@@ -270,8 +268,7 @@ def test_load_biosans_overwrite_sdd(datarepo_dir, clean_workspace):
     print("[TEST INFO] SampleToSi = {} mm".format(logs.find_log_with_units("CG3:CS:SampleToSi", unit="mm")))
     raw_sample_det_distance = sample_detector_distance(ws)
     print(
-        "[TEST INFO] Sample to detector distance = {} /{} meter"
-        "".format(
+        "[TEST INFO] Sample to detector distance = {} /{} meter" "".format(
             raw_sample_det_distance,
             sample_detector_distance(ws, log_key="sample_detector_distance", search_logs=True),
         )

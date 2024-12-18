@@ -1,10 +1,10 @@
 """
-    SANS sensitivities preparation script
+SANS sensitivities preparation script
 
-    # goal
-    1. implement a universal mask_beam_center(flood_ws, beam_center_mask=None, beam_center_ws=None)
-       for 3 types of mask
-    2. add option for wing/main detector for BIOSANS:w
+# goal
+1. implement a universal mask_beam_center(flood_ws, beam_center_mask=None, beam_center_ws=None)
+   for 3 types of mask
+2. add option for wing/main detector for BIOSANS:w
 
 
 """

@@ -1,5 +1,5 @@
 """
-    Test EQSANS resolution
+Test EQSANS resolution
 """
 
 import numpy as np

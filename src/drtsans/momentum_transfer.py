@@ -83,8 +83,9 @@ def convert_to_q(ws, mode, resolution_function=None, **kwargs):
     wsh = mtd[str(ws)]
     if wsh.getAxis(0).getUnit().unitID() != "Wavelength":
         raise RuntimeError(
-            "Input workspace {} for calculate Q and resolution must be in unit Wavelength but not {}"
-            "".format(wsh, wsh.getAxis(0).getUnit().unitID())
+            "Input workspace {} for calculate Q and resolution must be in unit Wavelength but not {}" "".format(
+                wsh, wsh.getAxis(0).getUnit().unitID()
+            )
         )
 
     # switch according to mode

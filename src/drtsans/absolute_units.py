@@ -1,4 +1,4 @@
-r""" Links to Mantid algorithms
+r"""Links to Mantid algorithms
 DeleteWorkspace <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspace-v1.html>
 Divide          <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
 Multiply        <https://docs.mantidproject.org/nightly/algorithms/Multiply-v1.html>

@@ -346,8 +346,7 @@ def set_sample_detector_position(
 
     # Check current instrument setup and meta data (sample logs)
     logger.notice(
-        "{} Sample to detector distance = {} (calculated) vs {} (meta) mm"
-        "".format(
+        "{} Sample to detector distance = {} (calculated) vs {} (meta) mm" "".format(
             str(ws),
             sample_detector_distance(ws, search_logs=False),
             sample_detector_distance(ws, search_logs=True),

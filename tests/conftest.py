@@ -434,12 +434,8 @@ def porasil_slice1m(reference_dir):
         dbts=pjoin(reference_dir.eqsans, "EQSANS_92161.nxs.h5"),  # noqa: E501 direct beam transmission sample
         dbte=pjoin(reference_dir.eqsans, "EQSANS_92160.nxs.h5"),  # noqa: E501 direct beam transmission empty
         b=pjoin(reference_dir.eqsans, "EQSANS_92163.nxs.h5"),  # background
-        bdbts=pjoin(
-            reference_dir.eqsans, "EQSANS_92161.nxs.h5"
-        ),  # noqa: E501 background direct beam transmission sample
-        bdbte=pjoin(
-            reference_dir.eqsans, "EQSANS_92160.nxs.h5"
-        ),  # noqa: E501 background_direct_beam_transmission_empty
+        bdbts=pjoin(reference_dir.eqsans, "EQSANS_92161.nxs.h5"),  # noqa: E501 background direct beam transmission sample
+        bdbte=pjoin(reference_dir.eqsans, "EQSANS_92160.nxs.h5"),  # noqa: E501 background_direct_beam_transmission_empty
     )
 
     lds = dict(
@@ -912,9 +908,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
     <component type="pixel">
 {locations_str}
     </component>
-  </type>""".format(
-            locations_str="\n".join(locations)
-        )
+  </type>""".format(locations_str="\n".join(locations))
         #
         # Generate the n-pack type
         x_start = -(number_tubes - 1) * (tube_center_spacing / 2.0)
@@ -928,9 +922,7 @@ def idf_xml_factory(idf_xml_name, request):  # noqa: C901
     <component type="tube">
 {locations_str}
     </component>
-    </type>""".format(
-            locations_str="\n".join(locations)
-        )
+    </type>""".format(locations_str="\n".join(locations))
         #
         # Put everything together
         geometry_params = {

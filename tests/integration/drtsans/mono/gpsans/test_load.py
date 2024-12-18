@@ -72,9 +72,9 @@ def test_load_all_files(datarepo_dir):
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
     for ws in [sample_run, sample_trans_run, bkgd_run, bkgd_trans_run]:
         sample_pos_z = ws.getInstrument().getSample().getPos()[2]
-        assert sample_pos_z == pytest.approx(
-            -0.23456, 0.000004
-        ), "{} has a wrong sample Si-window distance {}" "".format(str(ws), sample_pos_z)
+        assert sample_pos_z == pytest.approx(-0.23456, 0.000004), (
+            "{} has a wrong sample Si-window distance {}" "".format(str(ws), sample_pos_z)
+        )
 
     # Verify sample to detector distance with default setup:
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
@@ -105,10 +105,10 @@ def test_load_all_files(datarepo_dir):
         assert wave_length == pytest.approx(
             1.23, 1.0e-7
         ), "{}-th workspace: wave length {} shall be equal to 1.23 angstrom".format(ws_index, wave_length)
-        assert wave_length_spread == pytest.approx(
-            0.1323529411, 1.0e-7
-        ), "{}-th workspace: wave length spread {} shall be equal to 0.46 angstrom" "".format(
-            ws_index, wave_length_spread
+        assert wave_length_spread == pytest.approx(0.1323529411, 1.0e-7), (
+            "{}-th workspace: wave length spread {} shall be equal to 0.46 angstrom" "".format(
+                ws_index, wave_length_spread
+            )
         )
 
     # Verify that if some meta-data is changed that it gets applied correctly on reload, use thickness as test

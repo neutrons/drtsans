@@ -1,5 +1,5 @@
 """
-    Sensitivities preparation script for GP-SANS (CG2)
+Sensitivities preparation script for GP-SANS (CG2)
 """
 
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection

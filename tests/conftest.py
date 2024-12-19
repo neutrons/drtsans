@@ -424,18 +424,15 @@ def porasil_slice1m(reference_dir):
     # Absolute path to benchmark files
     f = dict(
         s=pjoin(reference_dir.eqsans, "EQSANS_92164.nxs.h5"),  # sample
-        m=pjoin(reference_dir.eqsans, "2017B_mp/beamstop60_mask_4m.nxs"),  # noqa: E501 mask
+        m=pjoin(reference_dir.eqsans, "2017B_mp/beamstop60_mask_4m.nxs"),  # mask
         dc=pjoin(reference_dir.eqsans, "EQSANS_89157.nxs.h5"),  # dark current
-        se=pjoin(
-            reference_dir.eqsans,
-            "Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs",
-        ),  # noqa: E501
-        dbc=pjoin(reference_dir.eqsans, "EQSANS_92160.nxs.h5"),  # noqa: E501 direct_beam_center
-        dbts=pjoin(reference_dir.eqsans, "EQSANS_92161.nxs.h5"),  # noqa: E501 direct beam transmission sample
-        dbte=pjoin(reference_dir.eqsans, "EQSANS_92160.nxs.h5"),  # noqa: E501 direct beam transmission empty
+        se=pjoin(reference_dir.eqsans, "Sensitivity_patched_thinPMMA_1o3m_87680_event.nxs"),  # sensitivity
+        dbc=pjoin(reference_dir.eqsans, "EQSANS_92160.nxs.h5"),  # direct_beam_center
+        dbts=pjoin(reference_dir.eqsans, "EQSANS_92161.nxs.h5"),  # direct beam transmission sample
+        dbte=pjoin(reference_dir.eqsans, "EQSANS_92160.nxs.h5"),  # direct beam transmission empty
         b=pjoin(reference_dir.eqsans, "EQSANS_92163.nxs.h5"),  # background
-        bdbts=pjoin(reference_dir.eqsans, "EQSANS_92161.nxs.h5"),  # noqa: E501 background direct beam transmission sample
-        bdbte=pjoin(reference_dir.eqsans, "EQSANS_92160.nxs.h5"),  # noqa: E501 background_direct_beam_transmission_empty
+        bdbts=pjoin(reference_dir.eqsans, "EQSANS_92161.nxs.h5"),  # background direct beam transmission sample
+        bdbte=pjoin(reference_dir.eqsans, "EQSANS_92160.nxs.h5"),  # background_direct_beam_transmission_empty
     )
 
     lds = dict(

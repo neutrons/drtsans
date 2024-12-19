@@ -86,7 +86,7 @@ line-length = 119
 [tool.ruff]
 cache-dir = "/tmp/ruff_cache"
 line-length = 119
-extend-exclude = ["notebooks"]
+extend-exclude = ["notebooks", "tests/examples"]
 
 [tool.ruff.lint]
 # https://beta.ruff.rs/docs/rules/

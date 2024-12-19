@@ -244,9 +244,9 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
             function_data_set[0] = peak_fit_dict[index]["fit_function"]
 
     # add peak fitting result
-    for param_name in func_param_dict:
+    for param_name, param_value in func_param_dict.items():
         # form data set
-        data_set = np.array(func_param_dict[param_name])
+        data_set = np.array(param_value)
         fit_group.create_dataset(param_name, data=data_set)
 
     # close

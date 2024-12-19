@@ -167,7 +167,7 @@ def mask_pixels_with_nan(sensitivity_workspace):
     )
 
     # mask the "bad" pixels
-    temp_sensitivity = MaskDetectorsIf(
+    temp_sensitivity = MaskDetectorsIf(  # noqa: F841
         InputWorkspace=sensitivity_workspace,
         Operator="GreaterEqual",
         Value=BAD_PIXEL,

@@ -26,6 +26,7 @@ jobs:
           echo "installing additional dependencies if cannot be installed from conda"
       - name: test preparation
         run: |
+          pip install .
           git submodule update --init
           mkdir .coverage.d
       - name: run unit tests

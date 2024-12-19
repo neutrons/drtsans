@@ -1,4 +1,5 @@
-""" BIOSANS API """
+"""BIOSANS API"""
+
 # local imports
 import drtsans
 from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
@@ -2128,9 +2129,7 @@ def file_has_midrange_detector(sample: str, instrument_name: str, ipts: str, dir
         instrument=instrument_name,
         ipts=ipts,
         directory=directory,
-    ).split(
-        ","
-    )[0]
+    ).split(",")[0]
 
     out_ws_name = mtd.unique_hidden_name()
 

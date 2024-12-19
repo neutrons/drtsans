@@ -16,10 +16,10 @@ def test_namedtuplefy():
     y2 = foo(41)
     z2 = goo(21)
 
-    assert type(y1) == type(y2)
-    assert type(z1) == type(z2)
-    assert type(y1) != type(z1)
-    assert type(y2) != type(z2)
+    assert type(y1) is type(y2)
+    assert type(z1) is type(z2)
+    assert type(y1) is not type(z1)
+    assert type(y2) is not type(z2)
 
 
 def test_offline():

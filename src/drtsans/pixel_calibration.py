@@ -5,8 +5,6 @@ import json
 import numpy as np
 import numexpr
 import os
-import stat
-import sys
 import warnings
 
 
@@ -99,6 +97,7 @@ database_file = {
 
 class CalType(enum.Enum):
     r"""Enumerate the possible types of pixel calibrations"""
+
     BARSCAN = "BARSCAN"
     TUBEWIDTH = "TUBEWIDTH"
 
@@ -206,9 +205,9 @@ class BarPositionFormula:
             When the formula fails to contain symbols '{y}' and '{tube}'.
         """
         if "{y}" not in formula:
-            raise ValueError(f'Formula does not contain "{{y}}", e.g. formula = "565-{{y}}+0.008*(191-{{tube}})"')
+            raise ValueError('Formula does not contain "{y}", e.g. formula = "565-{y}+0.008*(191-{tube})"')
         if "{tube}" not in formula:
-            warnings.warn(f'Formula does not contain "{{tube}}", e.g. formula = "565-{{y}}+0.008*(191-{{tube}})"')
+            warnings.warn('Formula does not contain "{tube}", e.g. formula = "565-{y}+0.008*(191-{tube})"')
             formula += " + 0.0 * {tube}"
         return formula
 
@@ -919,10 +918,9 @@ def _consecutive_true_values(values, how_many, reverse=False, raise_message=None
         if truth_array[i : i + how_many] == pattern:
             return len(values) - i - 1 if reverse else i
     # raise an error if the pattern is not found
-    else:
-        if raise_message is not None:
-            raise IndexError(raise_message)
-        return INCORRECT_PIXEL_ASSIGNMENT  # signal for non-identified value
+    if raise_message is not None:
+        raise IndexError(raise_message)
+    return INCORRECT_PIXEL_ASSIGNMENT  # signal for non-identified value
 
 
 @namedtuplefy
@@ -1768,14 +1766,14 @@ def as_intensities(input_workspace, component="detector1", views=["positions", "
     intensities = np.zeros(number_histograms)
 
     returned_views = {}
-    for cal_prop in pixel_props:  # 'positions', 'heights', 'widths', 'positions_mantid'
-        output_workspace = f"{str(input_workspace)}_{cal_prop}"  # Workspace containing the property as  intensity
+    for cal_prop_key, cal_prop_val in pixel_props.items():  # 'positions', 'heights', 'widths', 'positions_mantid'
+        output_workspace = f"{str(input_workspace)}_{cal_prop_key}"  # Workspace containing the property as  intensity
         # intensties will be non-zero only for workpace indexes that have associated pixels of interests
-        intensities[workspace_indexes] = pixel_props[cal_prop]
+        intensities[workspace_indexes] = cal_prop_val
         workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
         for index in range(number_histograms):
             workspace.dataY(index)[:] = intensities[index]
-        returned_views[cal_prop] = mtd[output_workspace]
+        returned_views[cal_prop_key] = mtd[output_workspace]
 
     return returned_views
 

@@ -1,6 +1,7 @@
 """
-    Sensitivities preparation script for Bio-SANS (CG3)
+Sensitivities preparation script for Bio-SANS (CG3)
 """
+
 from drtsans.mono.biosans.prepare_sensitivities_correction import PrepareSensitivityCorrection
 
 import os

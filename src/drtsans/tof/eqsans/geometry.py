@@ -163,9 +163,10 @@ def source_aperture(other, unit="m"):
 
         # Find the appropriate set of slit diameters
         run_number = int(sample_logs.run_number.value)
-        for start, end in index_to_diameters:
+        for key, val in index_to_diameters.items():
+            start, end = key
             if start <= run_number <= end:
-                index_to_diameter = index_to_diameters[(start, end)]
+                index_to_diameter = val
                 break
 
         # entries vBeamSlit, vBeamSlit2, and vBeamSlit3 contain the slit number, identifying the slit diameter

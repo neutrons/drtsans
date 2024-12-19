@@ -1,7 +1,7 @@
 # flake8: noqa
 """
-    The following is a real-life example of an EQSANS reduction script.
-    It uses the current Mantid reduction for EQSANS.
+The following is a real-life example of an EQSANS reduction script.
+It uses the current Mantid reduction for EQSANS.
 """
 # EQSANS reduction script
 # Script automatically generated on Fri Mar  3 12:00:50 2017

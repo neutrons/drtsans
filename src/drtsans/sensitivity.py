@@ -1,5 +1,4 @@
 import os
-import numpy as np
 from drtsans.path import exists as path_exists
 
 r"""
@@ -18,16 +17,12 @@ https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 from mantid.simpleapi import (
     mtd,
     CloneWorkspace,
-    CalculateEfficiency,
     DeleteWorkspace,
     Divide,
     LoadNexusProcessed,
     MaskDetectors,
     MaskDetectorsIf,
     ReplaceSpecialValues,
-    SaveNexusProcessed,
-    Integration,
-    CreateWorkspace,
 )
 
 __all__ = ["load_sensitivity_workspace", "apply_sensitivity_correction"]
@@ -172,7 +167,7 @@ def mask_pixels_with_nan(sensitivity_workspace):
     )
 
     # mask the "bad" pixels
-    temp_sensitivity = MaskDetectorsIf(
+    temp_sensitivity = MaskDetectorsIf(  # noqa: F841
         InputWorkspace=sensitivity_workspace,
         Operator="GreaterEqual",
         Value=BAD_PIXEL,

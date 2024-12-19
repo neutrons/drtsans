@@ -406,9 +406,9 @@ def test_incoherence_correction_elastic_normalization_weighted(
     # Override common configuration values
     configuration["configuration"]["outputDir"] = test_dir
     configuration["dataDirectories"] = os.path.join(datarepo_dir.eqsans, "test_corrections")
-    configuration["configuration"][
-        "darkFileName"
-    ] = "/bin/true"  # so that it will pass the validator, later set to None
+    configuration["configuration"]["darkFileName"] = (
+        "/bin/true"  # so that it will pass the validator, later set to None
+    )
     configuration["configuration"]["sensitivityFileName"] = os.path.join(
         datarepo_dir.eqsans, "test_corrections", "Sensitivity_patched_thinPMMA_4m_129610.nxs"
     )

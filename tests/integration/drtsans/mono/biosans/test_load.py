@@ -65,15 +65,15 @@ def test_load_all_files(has_sns_mount, reference_dir):
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
     for ws in [sample_run, beam_center_run, bkgd_run, empty_trans_run]:
         sample_pos_z = ws.getInstrument().getSample().getPos()[2]
-        assert sample_pos_z == pytest.approx(
-            -0.12952, 0.000004
-        ), "{} has a wrong sample Si-window distance {}" "".format(str(ws), sample_pos_z)
+        assert sample_pos_z == pytest.approx(-0.12952, 0.000004), (
+            "{} has a wrong sample Si-window distance {}" "".format(str(ws), sample_pos_z)
+        )
 
     for ws in [dark_run]:
         sample_pos_z = ws.getInstrument().getSample().getPos()[2]
-        assert sample_pos_z == pytest.approx(
-            0.0000, 0.000004
-        ), "{} has a wrong sample Si-window distance {}" "".format(str(ws), sample_pos_z)
+        assert sample_pos_z == pytest.approx(0.0000, 0.000004), (
+            "{} has a wrong sample Si-window distance {}" "".format(str(ws), sample_pos_z)
+        )
 
     # Verify sample to detector distance with default setup:
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
@@ -109,10 +109,10 @@ def test_load_all_files(has_sns_mount, reference_dir):
         assert wave_length == pytest.approx(
             1.23, 1.0e-7
         ), "{}-th workspace: wave length {} shall be equal to 1.23 angstrom".format(ws_index, wave_length)
-        assert wave_length_spread == pytest.approx(
-            0.46, 1.0e-7
-        ), "{}-th workspace: wave length spread {} shall be equal to 0.46 angstrom" "".format(
-            ws_index, wave_length_spread
+        assert wave_length_spread == pytest.approx(0.46, 1.0e-7), (
+            "{}-th workspace: wave length spread {} shall be equal to 0.46 angstrom" "".format(
+                ws_index, wave_length_spread
+            )
         )
 
     for ws_index, ws in enumerate([dark_run]):
@@ -123,10 +123,10 @@ def test_load_all_files(has_sns_mount, reference_dir):
         assert wave_length == pytest.approx(
             6.00881338, 1.0e-7
         ), "{}-th workspace: wave length {} shall be equal to 6.00881338 angstrom".format(ws_index, wave_length)
-        assert wave_length_spread == pytest.approx(
-            0.1323529411, 1.0e-7
-        ), "{}-th workspace: wave length spread {} shall be equal to 0.13235294 angstrom" "".format(
-            ws_index, wave_length_spread
+        assert wave_length_spread == pytest.approx(0.1323529411, 1.0e-7), (
+            "{}-th workspace: wave length spread {} shall be equal to 0.13235294 angstrom" "".format(
+                ws_index, wave_length_spread
+            )
         )
 
     # Verify that if some meta-data is changed that it gets applied correctly on reload, use thickness as test

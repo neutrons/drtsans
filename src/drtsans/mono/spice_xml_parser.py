@@ -1,6 +1,7 @@
 """
 Module contains class and method to parse SPICE SANS XML file for DAS sample logs.
 """
+
 from xml.etree import ElementTree
 import numpy as np
 

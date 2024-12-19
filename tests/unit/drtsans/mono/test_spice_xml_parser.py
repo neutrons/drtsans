@@ -64,8 +64,8 @@ def test_get_das_logs(datarepo_dir, clean_workspace):
     LoadHFIRSANS(Filename=test_xml, OutputWorkspace=clean_workspace("SpiceXMLTest"))
     spice_ws = mtd["SpiceXMLTest"]
 
-    for das_log_name in das_log_values:
-        log_value, log_unit = das_log_values[das_log_name]
+    for das_log_name, das_log_value in das_log_values.items():
+        log_value, log_unit = das_log_value
         print(f"{das_log_name}: {log_value}, {log_unit}")
         if das_log_name in ["sample_detector_distance", "wavelength_spread"]:
             continue

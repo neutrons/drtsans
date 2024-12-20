@@ -27,6 +27,8 @@ jobs:
       - name: test preparation
         run: |
           git submodule update --init
+          git lfs install
+          git lfs pull
           versioningit -w
           mkdir .coverage.d
       - name: run unit tests

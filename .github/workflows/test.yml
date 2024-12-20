@@ -21,15 +21,14 @@ jobs:
           channels: conda-forge,defaults
           use-mamba: true
           environment-file: environment.yml
+          fetch-tags: true
+          lfs: true
+          submodules: recursive
       - name: install additional dependencies
         run: |
           echo "installing additional dependencies if cannot be installed from conda"
       - name: test preparation
         run: |
-          git submodule update --init
-          git lfs install
-          git lfs pull
-          versioningit -w
           mkdir .coverage.d
       - name: run unit tests
         env:

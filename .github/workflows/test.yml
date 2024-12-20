@@ -29,7 +29,10 @@ jobs:
           echo "installing additional dependencies if cannot be installed from conda"
       - name: test preparation
         run: |
+          versioningit -w
           mkdir .coverage.d
+          git lfs pull
+          git submodule update --init --recursive
       - name: run unit tests
         env:
           COVERAGE_FILE: .coverage.d/unit

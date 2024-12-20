@@ -18,6 +18,8 @@ __all__ = [
     "verify_same_q_bins",
 ]
 
+QBINS_EQUAL_DECIMALS = 8
+
 
 class DataType(Enum):
     WORKSPACE2D = "Workspace2D"
@@ -563,8 +565,8 @@ class IQazimuthal(namedtuple("IQazimuthal", "intensity error qx qy delta_qx delt
 
     if intensity is 2D, and qx and qy are 1D: In this constructor, it is assumed that intensity 2D array
     will match
-    qx = [[qx0, qx1, ...], [qx0, qx1, ...], ...]
-    qy = [[qy0, qy0, ...], [qy1, qy1, ...], ...]
+    qx = [[qx0, qx0, ...], [qx1, qx1, ...], ...]
+    qy = [[qy0, qy1, ...], [qy0, qy1, ...], ...]
     because qx and qy will be created in such style.
     """
 
@@ -711,12 +713,28 @@ class IQazimuthal(namedtuple("IQazimuthal", "intensity error qx qy delta_qx delt
         if name is None:
             name = mtd.unique_hidden_name()
 
+        def flatten_unique_vals(a: np.ndarray):
+            """
+            Helper function to get the unique values with a tolerance
+
+            Steps:
+            1. Flatten the array
+            2. Round the array to QBINS_EQUAL_DECIMALS decimals
+            3. Find the indices of the first location of each unique element in the rounded array
+            4. Use the indices to return the unique elements from the original array
+            """
+            b = a.flatten()
+            return b[np.unique(b.round(QBINS_EQUAL_DECIMALS), return_index=True)[1]]
+
+        qx = flatten_unique_vals(self.qx)
+        qy = flatten_unique_vals(self.qy)
+
         ws = CreateWorkspace(
-            DataX=self.qx,
+            DataX=qx,
             UnitX="MomentumTransfer",
-            VerticalAxisValues=self.qy,
+            VerticalAxisValues=qy,
             VerticalAxisUnit="MomentumTransfer",
-            NSpec=self.qy.size,
+            NSpec=qy.size,
             DataY=self.intensity,
             DataE=self.error,
             OutputWorkspace=name,

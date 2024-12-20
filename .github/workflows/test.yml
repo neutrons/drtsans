@@ -27,6 +27,7 @@ jobs:
       - name: test preparation
         run: |
           git submodule update --init
+          versioningit -w
           mkdir .coverage.d
       - name: run unit tests
         env:

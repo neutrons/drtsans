@@ -30,6 +30,7 @@ jobs:
           echo "installing additional dependencies if cannot be installed from conda"
       - name: test preparation
         run: |
+          git tag -l
           versioningit -w
           mkdir .coverage.d
           git lfs pull

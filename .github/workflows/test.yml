@@ -21,6 +21,7 @@ jobs:
           channels: conda-forge,defaults
           use-mamba: true
           environment-file: environment.yml
+          fetch-depth: 0
           fetch-tags: true
           lfs: true
           submodules: recursive

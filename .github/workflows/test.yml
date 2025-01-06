@@ -30,29 +30,24 @@ jobs:
         run: |
           versioningit -vw
           mkdir .coverage.d
+          mkdir .results.d
           git lfs pull
           git submodule update --init --recursive
       - name: run unit tests
-        env:
-          COVERAGE_FILE: .coverage.d/unit
         run: |
           echo "running unit tests"
-          python -m pytest --cov=src --cov-report=xml --cov-report=term-missing tests/unit/
+          python -m pytest -m "not mount_eqsans" -vv --dist loadscope -n 2 --cov=src --cov-report=xml:.coverage.d/unit.xml --cov-report=term --junitxml=./.results.d/unit.xml tests/unit/
       - name: run integration tests
-        env:
-          COVERAGE_FILE: .coverage.d/integration
         run: |
           echo "running integration tests"
-          python -m pytest --cov=src --cov-report=xml --cov-report=term-missing tests/integration/
-      - name: combine coverage reports
-        run: |
-          coverage combine .coverage.d/ --output=.coverage.d/merged
+          python -m pytest -m "not mount_eqsans" -vv --dist loadscope -n 2 --cov=src --cov-report=xml:.coverage.d/integration.xml --cov-report=term --junitxml=./.results.d/integration.xml tests/integration/
       - name: upload coverage to codecov
         uses: codecov/codecov-action@v5
         if:
           github.actor != 'dependabot[bot]'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: .coverage.d/
       - name: build conda package
         run: |
           # test that the conda package builds

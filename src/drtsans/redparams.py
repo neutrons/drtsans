@@ -584,16 +584,17 @@ class ReductionParameters:
     _validators = {
         "dataSource": "_validate_data_source",
         "evaluateCondition": "_validate_evaluate_condition",
-        "lessThan": "_validate_less_than",
         "exclusiveOr": "_validate_exclusive_or",
         "fluxFileTOF": "_validate_flux_file_tof",
-        "pairedTo": "_validate_is_paired_to",
+        "isIntegerMultiple": "_validate_is_integer_multiple",
+        "lessThan": "_validate_less_than",
         "onlyOneTrue": "_validate_only_one_true",
+        "pairedTo": "_validate_is_paired_to",
+        "pairwiseLessThan": "_validate_pairwise_less_than",
         "sameLen": "_validate_equal_len",
+        "scalableComponents": "_validate_components_to_scale",
         "useEntry": "_validate_use_entry",
         "wedgeSources": "_validate_wedge_sources",
-        "pairwiseLessThan": "_validate_pairwise_less_than",
-        "scalableComponents": "_validate_components_to_scale",
     }
 
     # 2. public class methods and static functions
@@ -885,6 +886,16 @@ class ReductionParameters:
             condition = condition.replace(other_instance_key, str(other_instance))
         if eval(condition) is False:
             yield jsonschema.ValidationError(f"{value} condition has evaluated to False")
+
+    def _validate_is_integer_multiple(self, validator, value, instance, schema):
+        this_value = instance  # period
+        other_value = self.get_parameter_value(value)  # interval
+        if this_value is None:
+            return
+        if other_value is None:
+            yield jsonschema.ValidationError(f"{value.split('/')[-1]} must be assigned, and a multiple of {instance}")
+        if this_value % other_value > 1e-9:
+            yield jsonschema.ValidationError(f"{this_value} is not a multiple of {other_value}")
 
     def _validate_less_than(self, validator, value, instance, schema):
         r"""

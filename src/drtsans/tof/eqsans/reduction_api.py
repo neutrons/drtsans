@@ -340,7 +340,7 @@ def bin_i_with_correction(
     # Elastic correction
     if correction_setup.do_elastic_correction:
         elastic_output_dir = os.path.join(
-            output_dir, "debug", "elastic_norm", output_filename, slice_name, f"frame_{frameskip_frame}"
+            output_dir, "info", "elastic_norm", output_filename, slice_name, f"frame_{frameskip_frame}"
         )
         os.makedirs(elastic_output_dir, exist_ok=True)
 
@@ -392,7 +392,7 @@ def bin_i_with_correction(
     # Inelastic incoherence correction
     if correction_setup.do_inelastic_correction[frameskip_frame]:
         inelastic_output_dir = os.path.join(
-            output_dir, "debug", "inelastic_incoh", output_filename, slice_name, f"frame_{frameskip_frame}"
+            output_dir, "info", "inelastic_incoh", output_filename, slice_name, f"frame_{frameskip_frame}"
         )
         os.makedirs(inelastic_output_dir, exist_ok=True)
 

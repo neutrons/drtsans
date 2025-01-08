@@ -1549,8 +1549,8 @@ def reduce_single_configuration(
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
             logger.notice("found wedge angles:")
             peak_wedge, back_wedge = wedges
-            logger.notice("    peak:      ", peak_wedge)
-            logger.notice("    background:", back_wedge)
+            logger.notice(f"    peak:      {peak_wedge}")
+            logger.notice(f"    background: {back_wedge}")
             del peak_wedge, back_wedge
             logger.notice(f"wedges: {wedges}")
 

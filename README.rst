@@ -20,6 +20,7 @@ power users. For the general user of `drtsans`, https://sans.ornl.gov is availab
 
 The general user documentation is hosted in repository https://code-int.ornl.gov/sites/sans.
 
+Visit the repository at https://github.com/neutrons/drtsans.
 
 ------------------------------
 Usage from provided front-ends

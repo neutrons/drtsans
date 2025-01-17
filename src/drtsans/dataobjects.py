@@ -18,6 +18,8 @@ __all__ = [
     "verify_same_q_bins",
 ]
 
+QBINS_EQUAL_DECIMALS = 8
+
 
 class DataType(Enum):
     WORKSPACE2D = "Workspace2D"
@@ -563,8 +565,8 @@ class IQazimuthal(namedtuple("IQazimuthal", "intensity error qx qy delta_qx delt
 
     if intensity is 2D, and qx and qy are 1D: In this constructor, it is assumed that intensity 2D array
     will match
-    qx = [[qx0, qx1, ...], [qx0, qx1, ...], ...]
-    qy = [[qy0, qy0, ...], [qy1, qy1, ...], ...]
+    qx = [[qx0, qx0, ...], [qx1, qx1, ...], ...]
+    qy = [[qy0, qy1, ...], [qy0, qy1, ...], ...]
     because qx and qy will be created in such style.
     """
 
@@ -711,14 +713,41 @@ class IQazimuthal(namedtuple("IQazimuthal", "intensity error qx qy delta_qx delt
         if name is None:
             name = mtd.unique_hidden_name()
 
+        def flatten_unique_vals(a: np.ndarray):
+            """
+            Helper function to get the unique values with a tolerance preserving order
+
+            Steps:
+            1. Flatten the array
+            2. Round the array to QBINS_EQUAL_DECIMALS decimals
+            3. Find the indices of the first location of each unique element in the rounded array
+            4. Use the indices to return the unique elements from the original array
+            """
+            b = a.flatten()
+            return b[np.unique(b.round(QBINS_EQUAL_DECIMALS), return_index=True)[1]]
+
+        # get the unique qx and qy values
+        qx_ws = flatten_unique_vals(self.qx)
+        qy_ws = flatten_unique_vals(self.qy)
+
+        # reshape intensity and error as needed for CreateWorkspace with qy as vertical axis
+        qx_ws_len = len(qx_ws)
+        qy_ws_len = len(qy_ws)
+        if len(self.intensity.shape) == 1 and len(self.intensity) == len(qx_ws):
+            intensity_ws = self.intensity
+            error_ws = self.error
+        else:
+            intensity_ws = self.intensity.ravel().reshape((qx_ws_len, qy_ws_len)).T
+            error_ws = self.error.ravel().reshape((qx_ws_len, qy_ws_len)).T
+
         ws = CreateWorkspace(
-            DataX=self.qx,
+            DataX=qx_ws,
             UnitX="MomentumTransfer",
-            VerticalAxisValues=self.qy,
+            VerticalAxisValues=qy_ws,
             VerticalAxisUnit="MomentumTransfer",
-            NSpec=self.qy.size,
-            DataY=self.intensity,
-            DataE=self.error,
+            NSpec=qy_ws.size,
+            DataY=intensity_ws,
+            DataE=error_ws,
             OutputWorkspace=name,
             # dx=
             EnableLogging=False,

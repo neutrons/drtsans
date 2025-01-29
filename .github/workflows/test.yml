@@ -21,35 +21,34 @@ jobs:
           channels: conda-forge,defaults
           use-mamba: true
           environment-file: environment.yml
+          lfs: true
+          submodules: recursive
       - name: install additional dependencies
         run: |
           echo "installing additional dependencies if cannot be installed from conda"
       - name: test preparation
         run: |
-          pip install .
-          git submodule update --init
-          mkdir .coverage.d
+          python -m pip install -e .
+          versioningit -vw
+          git lfs pull
+          git submodule update --init --recursive
       - name: run unit tests
-        env:
-          COVERAGE_FILE: .coverage.d/unit
         run: |
           echo "running unit tests"
-          python -m pytest --cov=src --cov-report=xml --cov-report=term-missing tests/unit/
+          python -m pytest -m "not mount_eqsans" -vv --dist loadscope -n 2 --cov=src --cov-report=xml:unit_test_coverage.xml --cov-report=term --junitxml=unit_test_results.xml tests/unit/
       - name: run integration tests
-        env:
-          COVERAGE_FILE: .coverage.d/integration
         run: |
           echo "running integration tests"
-          python -m pytest --cov=src --cov-report=xml --cov-report=term-missing tests/integration/
-      - name: combine coverage reports
-        run: |
-          coverage combine .coverage.d/ --output=.coverage.d/merged
+          python -m pytest -m "not mount_eqsans" -vv --dist loadscope -n 2 --cov=src --cov-report=xml:integration_test_coverage.xml --cov-report=term --junitxml=integration_test_results.xml tests/integration/
       - name: upload coverage to codecov
         uses: codecov/codecov-action@v5
         if:
           github.actor != 'dependabot[bot]'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: |
+            unit_test_coverage.xml
+            integration_test_coverage.xml
       - name: build conda package
         run: |
           # test that the conda package builds

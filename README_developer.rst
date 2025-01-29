@@ -124,7 +124,7 @@ Running the tests
 .. _running_tests:
 
 The tests for this project are all written using `pytest <https://docs.pytest.org/en/latest>`_.
-The `build pipeline <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/.gitlab-ci.yml>`_ currently `runs the unit tests and integration tests <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/test_job.sh>`_ separately using
+The `build pipeline <https://github.com/neutrons/drtsans/blob/next/.github/workflows/test.yml>`_ currently `runs the unit tests and integration tests separately using
 
 .. code-block:: shell
 

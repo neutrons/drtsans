@@ -23,6 +23,7 @@ Release Notes
 
 **Of interest to the User**:
 
+- PR #325: Migrates repository from GitLab to GitHub
 - MR #1185: Rename output directory for coherent and incoherent-inelastic corrections as "info"
 - MR #1184: Document wedge binning
 - MR #1183: Added a script generate_report to generate a summary report from an hdf5 log file

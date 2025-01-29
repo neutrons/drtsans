@@ -535,28 +535,64 @@ class TestIQazimuthal:
         ws = iqaz.to_workspace()
 
         ws_expected = CreateWorkspace(
-            DataX=qx, DataY=I, DataE=E, VerticalAxisValues=qy, VerticalAxisUnit="MomentumTransfer", NSpec=len(qy)
+            DataX=qx,
+            DataY=I,
+            DataE=E,
+            UnitX="MomentumTransfer",
+            VerticalAxisValues=qy,
+            VerticalAxisUnit="MomentumTransfer",
+            NSpec=len(qy),
         )
 
-        assert CompareWorkspaces(ws, ws_expected)
+        assert CompareWorkspaces(ws, ws_expected).Result is True
 
-    def test_to_workspace_2D(self):
-        """test with two-dimensional Qx, Qy, I"""
+    def test_to_workspace_1D_flattened_Q2D(self):
+        """test with one-dimensional Qx, Qy, I where Qx and Qy have been flattened from 2D"""
 
-        i = np.array([[1, 2], [3, 4]])
-        e = np.array([[4, 5], [6, 7]])
-        qx = np.array([[7, 8], [9, 10]])
-        qy = np.array([[11, 12], [12, 13]])
+        i = np.array([1, 2, 3, 4, 5, 6])
+        e = np.array([4, 5, 6, 7, 8, 9])
+        qx = np.array([7, 7, 8, 8, 9, 9])
+        qy = np.array([11, 12, 11, 12, 11, 12])
 
         iqaz = IQazimuthal(i, e, qx, qy)
 
         ws = iqaz.to_workspace()
 
         ws_expected = CreateWorkspace(
-            DataX=qx, DataY=i, DataE=e, NSpec=4, VerticalAxisValues=qy, VerticalAxisUnit="MomentumTransfer"
+            DataX=[7, 8, 9],
+            DataY=[1, 3, 5, 2, 4, 6],
+            DataE=[4, 6, 8, 5, 7, 9],
+            NSpec=2,
+            UnitX="MomentumTransfer",
+            VerticalAxisValues=[11, 12],
+            VerticalAxisUnit="MomentumTransfer",
         )
 
-        assert CompareWorkspaces(ws, ws_expected)
+        assert CompareWorkspaces(ws, ws_expected).Result is True
+
+    def test_to_workspace_2D(self):
+        """test with two-dimensional Qx, Qy, I"""
+
+        i = np.array([[1, 2], [3, 4], [5, 6]])
+        e = np.array([[4, 5], [6, 7], [8, 9]])
+        qx = np.array([[7, 7], [8, 8], [9, 9]])
+        qy = np.array([[11, 12], [11, 12], [11, 12]])
+
+        iqaz = IQazimuthal(i, e, qx, qy)
+
+        ws = iqaz.to_workspace()
+
+        ws_expected = CreateWorkspace(
+            DataX=qx[:, 0],
+            DataY=i.T,
+            DataE=e.T,
+            NSpec=2,
+            UnitX="MomentumTransfer",
+            VerticalAxisValues=qy[0, :],
+            VerticalAxisUnit="MomentumTransfer",
+        )
+
+        assert CompareWorkspaces(ws, ws_expected).Result is True
 
     def test_to_workspace_I2D_Q1D(self):
         """test with two-dimensional I, one-dimensional Qx, Qy"""
@@ -571,10 +607,16 @@ class TestIQazimuthal:
         ws = iqaz.to_workspace()
 
         ws_expected = CreateWorkspace(
-            DataX=qx, DataY=i, DataE=e, Nspec=3, VerticalAxisValues=qy, VerticalAxisUnit="MomentumTransfer"
+            DataX=qx,
+            DataY=i.T,
+            DataE=e.T,
+            Nspec=3,
+            UnitX="MomentumTransfer",
+            VerticalAxisValues=qy,
+            VerticalAxisUnit="MomentumTransfer",
         )
 
-        assert CompareWorkspaces(ws, ws_expected)
+        assert CompareWorkspaces(ws, ws_expected).Result is True
 
 
 class TestTesting:

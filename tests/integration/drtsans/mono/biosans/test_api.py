@@ -320,7 +320,7 @@ REDUCTION_INPUT = {
 @pytest.mark.datarepo
 def test_reduce_single_configuration_slice_transmission_false(datarepo_dir, temp_directory):
     reduction_input = REDUCTION_INPUT.copy()
-
+    reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
     reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_false")
 
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
@@ -359,6 +359,7 @@ def test_reduce_single_configuration_slice_transmission_true(datarepo_dir, temp_
     reduction_input = REDUCTION_INPUT.copy()
     reduction_input["configuration"]["useTimeSlice"] = True
     reduction_input["configuration"]["useTimeSliceTransmission"] = True
+    reduction_input["sample"]["transmission"]["errorTolerance"] = 0.05
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
     reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_true")
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
@@ -366,13 +367,17 @@ def test_reduce_single_configuration_slice_transmission_true(datarepo_dir, temp_
         loaded = load_all_files(reduction_input, prefix)
     assert len(loaded.sample) == 11  # 600.06/60 = 11 rounded up
     output = reduce_single_configuration(loaded, reduction_input)
-    assert len(output) == 11  # expect 11 out since nothing should be skipped
+    assert len(output) == 10  # the 11th slice is skipped due to too high transmission error
 
     # just need a couple components from reduce
     # but the whole thing needs to be run then a few components pulled
+    # The sample transmission workspace is for the last slice, which is skipped due to too large error
     transmission = calculate_transmission(
         mtd["_sample_trans"],  # pull relevant transmission
         mtd["_empty"],  # pull relevant
+        # The sample transmission workspace in the MDS is for the last (skipped) slice, therefore,
+        # tolerate a high transmission error. The transmission value is OK to compare below.
+        transmission_error_tolerance=3.0,
     )
 
     transmission_val = transmission.extractY()[0][0]

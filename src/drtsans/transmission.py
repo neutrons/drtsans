@@ -25,10 +25,29 @@ beam_radius <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drt
 from drtsans.mask_utils import circular_mask_from_beam_center, masked_detectors
 
 # Symbols to be exported
-__all__ = ["apply_transmission_correction", "calculate_transmission"]
+__all__ = [
+    "apply_transmission_correction",
+    "calculate_transmission",
+    "TransmissionErrorToleranceError",
+    "TransmissionNanError",
+]
 
 
-def calculate_transmission(input_sample, input_reference, radius, radius_unit="mm", output_workspace=None):
+class TransmissionErrorToleranceError(Exception):
+    """Exception raised when the transmission error is larger than the transmission error tolerance"""
+
+    pass
+
+
+class TransmissionNanError(Exception):
+    """Exception raised when all transmission values are NaN"""
+
+    pass
+
+
+def calculate_transmission(
+    input_sample, input_reference, radius, radius_unit="mm", transmission_error_tolerance=None, output_workspace=None
+):
     """
     Calculate the raw transmission coefficients at zero scattering angle
     from already prepared sample and reference data.
@@ -49,10 +68,12 @@ def calculate_transmission(input_sample, input_reference, radius, radius_unit="m
     input_reference: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
         Prepared direct beam workspace (possibly obtained with an attenuated beam)
     radius: float
-        Radius around the bean center for pixel integration, in millimeters.
+        Radius around the beam center for pixel integration, in millimeters.
         If None, radius will be obtained or calculated using `input_reference` workspace.
     radius_unit: str
         Either 'mm' or 'm', and only used in conjunction with option `radius`.
+    transmission_error_tolerance: float
+        Maximum relative error for transmission
     output_workspace: str
         Name of the output workspace containing the raw transmission values.
         If None, a hidden random name will be provided.
@@ -61,6 +82,11 @@ def calculate_transmission(input_sample, input_reference, radius, radius_unit="m
     -------
     ~mantid.api.MatrixWorkspace
         Workspace containing the raw transmission values
+
+    Raises
+    ------
+    TransmissionToleranceError
+        If there is insufficient statistics to calculate the transmission correction
     """
     if output_workspace is None:
         output_workspace = mtd.unique_hidden_name()
@@ -124,10 +150,26 @@ def calculate_transmission(input_sample, input_reference, radius, radius_unit="m
     # Notify of incorrect calculation of zero angle transmission
     # Will happen if the beam centers have been totally masked
     if bool(np.all(np.isnan(zero_angle_transmission_workspace.readY(0)))) is True:
-        raise RuntimeError("Transmission at zero-angle is NaN")
+        raise TransmissionNanError("Transmission at zero-angle is NaN")
+
+    non_gap_indexes = np.isfinite(zero_angle_transmission_workspace.readY(0))
+
+    if transmission_error_tolerance:
+        # Verify that errors are below the transmission error tolerance
+        transmission_relative_error = (
+            zero_angle_transmission_workspace.readE(0)[non_gap_indexes]
+            / zero_angle_transmission_workspace.readY(0)[non_gap_indexes]
+        )
+        if not np.all(transmission_relative_error < transmission_error_tolerance):
+            i_max = np.argmax(transmission_relative_error)
+            error_max = transmission_relative_error[i_max]
+            error_max_transmission = zero_angle_transmission_workspace.readY(0)[non_gap_indexes][i_max]
+            raise TransmissionErrorToleranceError(
+                f"Transmission error {error_max} > transmission error tolerance "
+                f"{transmission_error_tolerance} (transmission {error_max_transmission})"
+            )
 
     # Notify of average transmission value
-    non_gap_indexes = np.isfinite(zero_angle_transmission_workspace.readY(0))
     average_zero_angle_transmission = np.mean(zero_angle_transmission_workspace.readY(0)[non_gap_indexes])
     average_zero_angle_transmission_error = np.linalg.norm(zero_angle_transmission_workspace.readE(0)[non_gap_indexes])
     message = "Average zero angle transmission = {0} +/- {1}".format(

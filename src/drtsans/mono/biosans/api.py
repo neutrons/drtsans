@@ -31,6 +31,7 @@ from drtsans.settings import namedtuplefy
 from drtsans.stitch import stitch_binned_profiles
 from drtsans.reductionlog import savereductionlog
 from drtsans.thickness_normalization import normalize_by_thickness
+from drtsans.transmission import TransmissionErrorToleranceError, TransmissionNanError
 
 # third party imports
 from mantid.dataobjects import Workspace2D
@@ -1205,6 +1206,9 @@ def reduce_single_configuration(
     absolute_scale = reduction_config["StandardAbsoluteScale"]
     time_slice = reduction_config["useTimeSlice"]
     time_slice_transmission = reduction_config["useTimeSlice"] and reduction_config["useTimeSliceTransmission"]
+    sample_trans_error_tol = None
+    if time_slice_transmission:
+        sample_trans_error_tol = reduction_input["sample"]["transmission"]["errorTolerance"]
     output_dir = reduction_config["outputDir"]
 
     nxbins_main = reduction_config["numMainQxQyBins"]
@@ -1369,6 +1373,7 @@ def reduce_single_configuration(
             empty_trans_ws,
             radius=transmission_radius,
             radius_unit="mm",
+            transmission_error_tolerance=sample_trans_error_tol,
         )
 
     sample_trans_ws = None
@@ -1488,7 +1493,7 @@ def reduce_single_configuration(
                         "background": None,
                     },
                 )
-        except ZeroMonitorCountsError as e:
+        except (ZeroMonitorCountsError, TransmissionErrorToleranceError, TransmissionNanError) as e:
             if time_slice:
                 logger.warning(f"Skipping slice {sample_name}: {e}.")
                 continue

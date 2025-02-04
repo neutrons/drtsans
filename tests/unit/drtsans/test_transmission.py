@@ -1,5 +1,5 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/215_transmission_test/drtsans/transmission.py
-from drtsans.transmission import calculate_transmission
+from drtsans.transmission import calculate_transmission, TransmissionErrorToleranceError
 import numpy as np
 import pytest
 
@@ -278,6 +278,38 @@ def test_transmission(generic_workspace, clean_workspace):
     # taken from the spreadsheet calculation
     assert result.extractY()[0][0] == pytest.approx(0.555555556)  # expected transmission value
     assert result.extractE()[0][0] == pytest.approx(0.005683898)  # expected transmission uncertainty
+
+
+@pytest.mark.parametrize(
+    "generic_workspace",
+    [
+        {
+            "name": "Isam",
+            "dx": pixel_size,
+            "dy": pixel_size,  # data requires a square pixel
+            "yc": pixel_size / 2.0,  # shift because the "detector" y-direction is even
+            "axis_values": [5.925, 6.075],
+            "intensities": Isam,
+        }
+    ],
+    indirect=True,
+)
+def test_transmission_error_tolerance(generic_workspace, clean_workspace):
+    """Test the transmission error tolerance exception"""
+    Isam = generic_workspace  # convenient name
+    clean_workspace(Isam)
+    assert Isam.extractY().sum() == 50212  # checksum
+
+    # generate the reference data - uncertainties are set separately
+    Iref = 1.8 * Isam
+    clean_workspace(Iref)
+    Iref = SetUncertainties(InputWorkspace=Iref, OutputWorkspace=Iref, SetError="sqrt")
+    assert Iref.extractY().sum() == 1.8 * 50212  # checksum
+    assert 1.8 * Isam.extractE().sum() > Iref.extractE().sum()  # shouldn't match
+
+    # run the algorithm
+    with pytest.raises(TransmissionErrorToleranceError):
+        calculate_transmission(Isam, Iref, 2.5 * pixel_size, "m", transmission_error_tolerance=0.01)
 
 
 if __name__ == "__main__":

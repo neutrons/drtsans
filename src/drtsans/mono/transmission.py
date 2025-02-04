@@ -31,7 +31,7 @@ def calculate_transmission(
     radius_unit: str
         Either 'mm' or 'm', and only used in conjunction with option `radius`.
     transmission_error_tolerance: float | None
-        Maximum relative error for transmission
+        Maximum relative error for transmission. If None, the error will not be checked.
     output_workspace: str
         Name of the output workspace containing the raw transmission values.
         If None, a hidden random name will be provided.

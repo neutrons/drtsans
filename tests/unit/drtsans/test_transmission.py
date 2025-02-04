@@ -2,6 +2,7 @@
 from drtsans.transmission import calculate_transmission, TransmissionErrorToleranceError
 import numpy as np
 import pytest
+import re
 
 # https://docs.mantidproject.org/nightly/algorithms/SetUncertainties-v1.html
 from mantid.simpleapi import SetUncertainties
@@ -308,8 +309,12 @@ def test_transmission_error_tolerance(generic_workspace, clean_workspace):
     assert 1.8 * Isam.extractE().sum() > Iref.extractE().sum()  # shouldn't match
 
     # run the algorithm
-    with pytest.raises(TransmissionErrorToleranceError):
+    with pytest.raises(TransmissionErrorToleranceError) as exc_info:
         calculate_transmission(Isam, Iref, 2.5 * pixel_size, "m", transmission_error_tolerance=0.01)
+
+    assert re.match(
+        "Transmission error 0\.01.* > transmission error tolerance 0.01 \(transmission 0\.55.*\)", str(exc_info.value)
+    )
 
 
 if __name__ == "__main__":

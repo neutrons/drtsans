@@ -72,8 +72,8 @@ def calculate_transmission(
         If None, radius will be obtained or calculated using `input_reference` workspace.
     radius_unit: str
         Either 'mm' or 'm', and only used in conjunction with option `radius`.
-    transmission_error_tolerance: float
-        Maximum relative error for transmission
+    transmission_error_tolerance: float | None
+        Maximum relative error for transmission. If None, the error will not be checked.
     output_workspace: str
         Name of the output workspace containing the raw transmission values.
         If None, a hidden random name will be provided.
@@ -85,8 +85,10 @@ def calculate_transmission(
 
     Raises
     ------
+    TransmissionNanError
+        If all transmission values are NaN.
     TransmissionToleranceError
-        If there is insufficient statistics to calculate the transmission correction
+        If there are insufficient statistics to calculate the transmission correction.
     """
     if output_workspace is None:
         output_workspace = mtd.unique_hidden_name()

@@ -68,6 +68,9 @@ __all__ = [
 SI_WINDOW_NOMINAL_DISTANCE_METER = 0.071
 SAMPLE_SI_META_NAME = "CG3:CS:SampleToSi"
 
+# default transmission error tolerance
+DEFAULT_TRANSMISSION_ERROR_TOLERANCE = 0.01
+
 # setup logger
 # NOTE: If logging information is not showing up, please check the mantid log level.
 #       If problem persists, please visit:
@@ -1206,9 +1209,14 @@ def reduce_single_configuration(
     absolute_scale = reduction_config["StandardAbsoluteScale"]
     time_slice = reduction_config["useTimeSlice"]
     time_slice_transmission = reduction_config["useTimeSlice"] and reduction_config["useTimeSliceTransmission"]
-    sample_trans_error_tol = None
+    # Transmission tolerance errors are only checked when slicing the transmission run,
+    # because this is the only observed use-case of poor statistics for transmission calculations
     if time_slice_transmission:
         sample_trans_error_tol = reduction_input["sample"]["transmission"]["errorTolerance"]
+        if sample_trans_error_tol is None:
+            sample_trans_error_tol = DEFAULT_TRANSMISSION_ERROR_TOLERANCE
+    else:
+        sample_trans_error_tol = None
     output_dir = reduction_config["outputDir"]
 
     nxbins_main = reduction_config["numMainQxQyBins"]
@@ -1396,10 +1404,14 @@ def reduce_single_configuration(
         if len(loaded_ws.sample) > 1:
             output_suffix = f"_{i}"
 
-        try:
-            if time_slice_transmission:
+        if time_slice_transmission:
+            try:
                 _, sample_trans_ws = _prepare_sample_transmission_ws(raw_sample_ws)
+            except (TransmissionErrorToleranceError, TransmissionNanError) as e:
+                logger.warning(f"Skipping slice {sample_name}: {e}.")
+                continue
 
+        try:
             processed_data_main, trans_main = process_single_configuration(
                 raw_sample_ws,
                 sample_trans_ws=sample_trans_ws,
@@ -1493,7 +1505,7 @@ def reduce_single_configuration(
                         "background": None,
                     },
                 )
-        except (ZeroMonitorCountsError, TransmissionErrorToleranceError, TransmissionNanError) as e:
+        except ZeroMonitorCountsError as e:
             if time_slice:
                 logger.warning(f"Skipping slice {sample_name}: {e}.")
                 continue

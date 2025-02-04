@@ -103,8 +103,10 @@ def normalize_by_monitor(input_workspace, output_workspace=None):
 
     Raises
     ------
-    RuntimeError
+    NoMonitorMetadataError
         No monitor metadata found in the sample logs of the input workspace
+    ZeroMonitorCountsError
+        No monitor counts in the input workspace
     """
     metadata_entry_names = [
         "monitor",  # created by load_events

@@ -167,8 +167,8 @@ def calculate_transmission(
             error_max = transmission_relative_error[i_max]
             error_max_transmission = zero_angle_transmission_workspace.readY(0)[non_gap_indexes][i_max]
             raise TransmissionErrorToleranceError(
-                f"Transmission error {error_max} > transmission error tolerance "
-                f"{transmission_error_tolerance} (transmission {error_max_transmission})"
+                f"Transmission error {error_max:.4f} > transmission error tolerance "
+                f"{transmission_error_tolerance:.4f} (transmission {error_max_transmission:.4f})"
             )
 
     # Notify of average transmission value

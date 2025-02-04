@@ -1407,7 +1407,7 @@ def reduce_single_configuration(
         if time_slice_transmission:
             try:
                 _, sample_trans_ws = _prepare_sample_transmission_ws(raw_sample_ws)
-            except (TransmissionErrorToleranceError, TransmissionNanError) as e:
+            except (ZeroMonitorCountsError, TransmissionErrorToleranceError, TransmissionNanError) as e:
                 logger.warning(f"Skipping slice {sample_name}: {e}.")
                 continue
 

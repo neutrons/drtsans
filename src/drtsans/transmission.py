@@ -164,11 +164,13 @@ def calculate_transmission(
         )
         if not np.all(transmission_relative_error < transmission_error_tolerance):
             i_max = np.argmax(transmission_relative_error)
-            error_max = transmission_relative_error[i_max]
-            error_max_transmission = zero_angle_transmission_workspace.readY(0)[non_gap_indexes][i_max]
+            rel_error = transmission_relative_error[i_max]
+            transmission = zero_angle_transmission_workspace.readY(0)[non_gap_indexes][i_max]
+            abs_error = zero_angle_transmission_workspace.readE(0)[non_gap_indexes][i_max]
             raise TransmissionErrorToleranceError(
-                f"Transmission error {error_max:.4f} > transmission error tolerance "
-                f"{transmission_error_tolerance:.4f} (transmission {error_max_transmission:.4f})"
+                f"transmission_error / transmission_value ({abs_error:.4f} / {transmission:.4f} = "
+                f"{rel_error:.4f}) > transmission_relative_error_tolerance "
+                f"({transmission_error_tolerance:.4f})"
             )
 
     # Notify of average transmission value

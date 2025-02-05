@@ -313,7 +313,9 @@ def test_transmission_error_tolerance(generic_workspace, clean_workspace):
         calculate_transmission(Isam, Iref, 2.5 * pixel_size, "m", transmission_error_tolerance=0.01)
 
     assert re.match(
-        "Transmission error 0.0102 > transmission error tolerance 0.0100 \(transmission 0.5556\)", str(exc_info.value)
+        "transmission_error / transmission_value \(0.0057 / 0.5556 = 0.0102\)"
+        " > transmission_relative_error_tolerance \(0.0100\)",
+        str(exc_info.value),
     )
 
 

@@ -7,7 +7,7 @@ The measured intensity must be corrected to account for sample transmission:
 
 .. math::
 
-    I'_{sample}(x,y,\lambda) = \frac{I_{sample}(x,y,\lambda)}{T(\lambda,x,y)}
+    I'_{sample}(x,y,\lambda) = \frac{I_{sample}(x,y,\lambda)}{T(x,y,\lambda)}
 
 The transmission correction is calculated using a transmission run and an empty beam transmission
 run (reference).
@@ -18,44 +18,46 @@ however, this is mostly used for diagnostic purposes.
 
     {
       "sample": {
-        "runNumber": None,
+        "runNumber": 10010,
         "loadOptions": {},
         "thickness": 1.0,
         "transmission": {
-          "runNumber": None,
-          "value": None,
-          "errorTolerance": None
+          "runNumber": null,
+          "value": null,
+          "errorTolerance": null
         }
       },
       "background": {
-        "runNumber": None,
+        "runNumber": null,
         "transmission": {
-          "runNumber": None,
-          "value": None
+          "runNumber": null,
+          "value": null
         }
       },
       "emptyTransmission": {
-        "runNumber": None,
-        "value": None
+        "runNumber": null,
+        "value": null
       },
-      "mmRadiusForTransmission": None,
-      "useTimeSliceTransmission": False,
-      "useThetaDepTransCorrection": True,
+      "mmRadiusForTransmission": null,
+      "useTimeSliceTransmission": false,
+      "useThetaDepTransCorrection": true
     }
 
 Time Slice Transmission (Bio-SANS only)
 ---------------------------------------
 
-When using time slicing (``"useTimeSlice": True``), users can optionally calculate the transmission
+When using time slicing (``"useTimeSlice": true``), users can optionally calculate the transmission
 correction using the time sliced sample run by setting the parameter
-``"useTimeSliceTransmission": True``. The sample transmission run number is ignored when
-``"useTimeSliceTransmission": True``. The time slice transmission option can be used when the sample
+``"useTimeSliceTransmission": true``. The sample transmission run number is ignored when
+``"useTimeSliceTransmission": true``. The time slice transmission option can be used when the sample
 transmission is expected to change over time.
 
 Time slices for which the transmission calculation fails will be skipped. The transmission
 calculation can fail due to all transmission values being NaN or if the transmission error is
 higher than the allowed relative transmission error, which is configurable in the sample
-transmission parameter ``"errorTolerance"`` (default: 0.01).
+transmission parameter ``"errorTolerance"`` (default: 0.01). For example, the last time slice may
+be shorter and, therefore, include fewer counts, resulting in large statistical errors in the
+transmission calculation.
 
 .. code-block:: json
 
@@ -65,18 +67,18 @@ transmission parameter ``"errorTolerance"`` (default: 0.01).
         "loadOptions": {},
         "thickness": 1.0,
         "transmission": {
-          "runNumber": None,
-          "value": None,
+          "runNumber": null,
+          "value": null,
           "errorTolerance": 0.05
         }
       },
       "emptyTransmission": {
         "runNumber": 10005,
-        "value": None
+        "value": null
       },
-      "useTimeSlice": True,
+      "useTimeSlice": true,
       "timeSliceInterval": 100.0,
-      "useTimeSliceTransmission": True,
+      "useTimeSliceTransmission": true
     }
 
 Parameters
@@ -90,20 +92,21 @@ Parameters
      - Description
      - Default
    * - ``"mmRadiusForTransmission"``
-     - Beam radius within which the transmission will be calculated. If ``None``, then the beam
+     - Beam radius within which the transmission will be calculated. If ``null``, then the beam
        radius is calculated from the sample logs.
-     - ``None``
+     - ``null``
    * - ``"useThetaDepTransCorrection"``
-     - If ``True``, a theta dependent transmission correction will be applied, which takes into
+     - If ``true``, a theta dependent transmission correction will be applied, which takes into
        account the effect of the scattering angle on the transmission.
-     - ``True``
+     - ``true``
    * - ``"useTimeSliceTransmission"``
-     - (`Only for Bio-SANS and when` ``"useTimeSlice": True``.) If ``True``, the transmission
+     - (`Only for Bio-SANS and when` ``"useTimeSlice": true``.) If ``true``, the transmission
        correction will be calculated using the time sliced sample run itself instead of a separate
        sample transmission run. This is useful when the sample transmission is expected to change
        over time. Slices with relative transmission error larger than
        ``"transmissionErrorTolerance"`` will be skipped.
-     - ``False``
+     - ``false``
    * - ``"errorTolerance"``
-     - (`Only for Bio-SANS and when` ``"useTimeSlice": True`` `and` ``"useTimeSliceTransmission": True``.) Maximum relative transmission error.
+     - (`Only for Bio-SANS and when` ``"useTimeSlice": true`` `and` ``"useTimeSliceTransmission": true``.)
+       Maximum relative transmission error.
      - 0.01

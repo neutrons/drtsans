@@ -38,6 +38,7 @@ from drtsans.tof.eqsans import (
     find_beam_center,
     center_detector,
 )
+from drtsans.transmission import TransmissionNanError
 
 
 @pytest.fixture(scope="module")
@@ -328,7 +329,7 @@ def test_masked_beam_center(datarepo_dir, transmission_fixture, temp_workspace_n
     with amend_config(data_dir=datarepo_dir.eqsans):
         sample_workspace = prepare_data("EQSANS_88975", mask=mask, output_workspace=temp_workspace_name())
         reference_workspace = prepare_data("EQSANS_88973", mask=mask, output_workspace=temp_workspace_name())
-    with pytest.raises(RuntimeError, match=r"Transmission at zero-angle is NaN"):
+    with pytest.raises(TransmissionNanError, match=r"Transmission at zero-angle is NaN"):
         calculate_transmission(sample_workspace, reference_workspace)
     [workspace.delete() for workspace in (sample_workspace, reference_workspace)]
 

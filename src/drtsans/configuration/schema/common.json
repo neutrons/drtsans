@@ -197,9 +197,13 @@
           },
           "value": {
             "$ref": "common.json#/definitions/transmissionValueTypes"
+          },
+          "errorTolerance": {
+            "$ref": "common.json#/definitions/transmissionValueTypes",
+            "description": "Maximum allowed relative error in the calculated transmission"
           }
         },
-        "maxProperties": 2,
+        "maxProperties": 3,
         "required": ["runNumber", "value"],
         "description": "The transmission for the sample, run number or value (0 < value <=1). Can be empty",
         "examples": ["0.9", 1.0]

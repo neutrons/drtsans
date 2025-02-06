@@ -5,8 +5,8 @@ Reduction Output
 
 
 
-CANSAS
-------
+canSAS format
+-------------
 
 Collective Action for Nomadic Small-Angle Scatterers (canSAS) provides standards and tools for the small-angle scattering user community. See more at https://www.cansas.org
 

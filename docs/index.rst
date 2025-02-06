@@ -13,9 +13,10 @@ User Guide
    :maxdepth: 2
 
    /user/calibration
-   /user/reduction_output
+   /user/corrections/index
    /user/slicing
    /user/binning
+   /user/reduction_output
    /drtsans/reduction_parameters
    /drtsans/reduction_scripts
    release_notes

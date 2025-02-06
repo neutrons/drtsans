@@ -1766,14 +1766,14 @@ def as_intensities(input_workspace, component="detector1", views=["positions", "
     intensities = np.zeros(number_histograms)
 
     returned_views = {}
-    for cal_prop_key, cal_prop_val in pixel_props.items():  # 'positions', 'heights', 'widths', 'positions_mantid'
-        output_workspace = f"{str(input_workspace)}_{cal_prop_key}"  # Workspace containing the property as  intensity
+    for cal_prop, pixel_prop in pixel_props.items():  # 'positions', 'heights', 'widths', 'positions_mantid'
+        output_workspace = f"{str(input_workspace)}_{cal_prop}"  # Workspace containing the property as  intensity
         # intensties will be non-zero only for workpace indexes that have associated pixels of interests
-        intensities[workspace_indexes] = cal_prop_val
+        intensities[workspace_indexes] = pixel_prop
         workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
         for index in range(number_histograms):
             workspace.dataY(index)[:] = intensities[index]
-        returned_views[cal_prop_key] = mtd[output_workspace]
+        returned_views[cal_prop] = mtd[output_workspace]
 
     return returned_views
 

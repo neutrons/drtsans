@@ -488,16 +488,14 @@ def pixel_info(input_workspace):
     number_spectra = ws.getNumberHistograms()
 
     info = [
-        (
-            [np.nan, np.nan, np.nan, False]
-            if _masked_or_monitor(spectrum_info, i)
-            else [
-                spectrum_info.twoTheta(i),
-                spectrum_info.azimuthal(i),
-                spectrum_info.l2(i),
-                True,
-            ]
-        )
+        [np.nan, np.nan, np.nan, False]
+        if _masked_or_monitor(spectrum_info, i)
+        else [
+            spectrum_info.twoTheta(i),
+            spectrum_info.azimuthal(i),
+            spectrum_info.l2(i),
+            True,
+        ]
         for i in range(number_spectra)
     ]
     info = np.array(info)

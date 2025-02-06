@@ -143,7 +143,7 @@ class Wband(object):
             as in the intersection between Wband(0, 1) and Wband(1, 2).
         """
         b = self * other
-        self = b  # noqa: PLW0642 (reassigning self)
+        self = b  # noqa: PLW0642
         return self
 
     def __eq__(self, other):
@@ -288,7 +288,7 @@ class Wbands(object):
             as in the intersection between Wband(0, 1) and Wband(1, 2).
         """
         wb = self * other
-        self = wb  # noqa: PLW0642 (reassigning self)
+        self = wb  # noqa: PLW0642
         return self
 
     def __str__(self):

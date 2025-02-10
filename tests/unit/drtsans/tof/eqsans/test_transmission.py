@@ -82,8 +82,8 @@ def test_fit_raw(trasmission_data, clean_workspace):
     """
     # Non-skip mode
     fitting_results = fit_raw_transmission(trasmission_data.raw, output_workspace=mtd.unique_hidden_name())
-    (clean_workspace(fitting_results.transmission),)
-    (clean_workspace(fitting_results.lead_transmission),)
+    clean_workspace(fitting_results.transmission)
+    clean_workspace(fitting_results.lead_transmission)
     clean_workspace(fitting_results.lead_mantid_fit.OutputWorkspace)
     clean_workspace(fitting_results.lead_mantid_fit.OutputNormalisedCovarianceMatrix)
     clean_workspace(fitting_results.lead_mantid_fit.OutputParameters)
@@ -91,8 +91,8 @@ def test_fit_raw(trasmission_data, clean_workspace):
 
     # Frame-skipping mode
     fitting_results = fit_raw_transmission(trasmission_data.raw_skip, output_workspace=mtd.unique_hidden_name())
-    (clean_workspace(fitting_results.transmission),)
-    (clean_workspace(fitting_results.lead_transmission),)
+    clean_workspace(fitting_results.transmission)
+    clean_workspace(fitting_results.lead_transmission)
     clean_workspace(fitting_results.lead_mantid_fit.OutputWorkspace)
     clean_workspace(fitting_results.lead_mantid_fit.OutputNormalisedCovarianceMatrix)
     clean_workspace(fitting_results.lead_mantid_fit.OutputParameters)

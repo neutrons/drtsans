@@ -324,7 +324,7 @@ class Table:
         str
         """
         m = metadata  # handy shortcut
-        return f'{m["caltype"].lower()}_{m["instrument"]}_{m["component"]}_{str(m["daystamp"])}'
+        return f"{m['caltype'].lower()}_{m['instrument']}_{m['component']}_{str(m['daystamp'])}"
 
     @classmethod
     def load(cls, database, caltype, instrument, component, daystamp, output_workspace=None):
@@ -1106,7 +1106,7 @@ def fit_positions(
         # evaluate the heights. All should be positive
         calculated_heights = np.polynomial.polynomial.polyval(np.arange(tube_pixels), deriv_coefficients)
         if permissive is False and calculated_heights[calculated_heights <= 0.0].size > 0:
-            raise ValueError(f"Some of the calculated heights are negative.\n" f"Heights = {calculated_heights}")
+            raise ValueError(f"Some of the calculated heights are negative.\nHeights = {calculated_heights}")
     except Exception:
         coefficients = np.ones(int(order)) * np.nan
         calculated_positions = np.ones(tube_pixels) * np.nan

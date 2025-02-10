@@ -502,7 +502,7 @@ def _getDataDimensions(req_params):
             Ny = int(Ny)
             if intensity.size % (Nx * Ny) != 0:
                 raise RuntimeError(
-                    "Supplied Nx={}, Ny={} not compatible with " "intensities[{}]".format(Nx, Ny, intensity.shape)
+                    "Supplied Nx={}, Ny={} not compatible with intensities[{}]".format(Nx, Ny, intensity.shape)
                 )
             else:
                 return Nx, Ny, int(intensity.size / (Nx * Ny))

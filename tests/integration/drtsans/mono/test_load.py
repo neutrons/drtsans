@@ -35,7 +35,7 @@ def test_load_gpsans(datarepo_dir, clean_workspace):
     print("[TEST INFO] SampleToSi = {} mm".format(logs.find_log_with_units("CG2:CS:SampleToSi", unit="mm")))
     raw_sample_det_distance = sample_detector_distance(ws, unit="m", search_logs=False)
     print(
-        "[TEST INFO] Sample to detector distance = {} /{} meter" "".format(
+        "[TEST INFO] Sample to detector distance = {} /{} meter".format(
             raw_sample_det_distance,
             sample_detector_distance(ws, unit="m", log_key="sample_detector_distance", search_logs=True),
         )
@@ -92,7 +92,7 @@ def test_load_biosans(datarepo_dir, clean_workspace):
     print("[TEST INFO] (Raw) sampleToSi = {} mm".format(logs.find_log_with_units("CG3:CS:SampleToSi", unit="mm")))
     raw_sample_det_distance = sample_detector_distance(ws)
     print(
-        "[TEST INFO] (Raw) sample to detector distance = {} /{} meter" "".format(
+        "[TEST INFO] (Raw) sample to detector distance = {} /{} meter".format(
             raw_sample_det_distance,
             sample_detector_distance(ws, log_key="sample_detector_distance", search_logs=True),
         )
@@ -102,7 +102,7 @@ def test_load_biosans(datarepo_dir, clean_workspace):
     # sample and detector offsets can only be retrieved from a loaded workspace
     # This is a technical debt
     sample_offset, detector_offset = get_sample_detector_offset(ws, "CG3:CS:SampleToSi", 71.0 * 1e-3)
-    print("[TEST INFO] Sample offset = {}, Detector offset = {}" "".format(sample_offset, detector_offset))
+    print("[TEST INFO] Sample offset = {}, Detector offset = {}".format(sample_offset, detector_offset))
 
     # Verify: No sample offset from nominal position (origin)
     assert sample_offset == pytest.approx(0.0, 1e-12)
@@ -162,7 +162,7 @@ def test_load_biosans_sample_off_nominal(datarepo_dir, clean_workspace):
 
     # Calculate offset without any overwriting
     sample_offset, detector_offset = get_sample_detector_offset(ws, "CG3:CS:SampleToSi", 71.0 * 1e-3)
-    print("[TEST INFO 2] Sample offset = {}, Detector offset = {}" "".format(sample_offset, detector_offset))
+    print("[TEST INFO 2] Sample offset = {}, Detector offset = {}".format(sample_offset, detector_offset))
 
     # Both sample and detector shall move toward souce (-Y direction) with (74.21 - 71.) = 3.21 mm
     assert sample_offset == pytest.approx(-0.00321, 1e-12)
@@ -214,7 +214,7 @@ def test_load_biosans_overwrite_swd(datarepo_dir, clean_workspace):
     sample_offset, detector_offset = get_sample_detector_offset(
         ws, "CG3:CS:SampleToSi", 71.0 * 1e-3, overwrite_sample_si_distance=0.07421
     )
-    print("[TEST INFO] Sample offset = {}, Detector offset = {}" "".format(sample_offset, detector_offset))
+    print("[TEST INFO] Sample offset = {}, Detector offset = {}".format(sample_offset, detector_offset))
 
     # Move sample and detector
     ws = move_instrument(
@@ -268,7 +268,7 @@ def test_load_biosans_overwrite_sdd(datarepo_dir, clean_workspace):
     print("[TEST INFO] SampleToSi = {} mm".format(logs.find_log_with_units("CG3:CS:SampleToSi", unit="mm")))
     raw_sample_det_distance = sample_detector_distance(ws)
     print(
-        "[TEST INFO] Sample to detector distance = {} /{} meter" "".format(
+        "[TEST INFO] Sample to detector distance = {} /{} meter".format(
             raw_sample_det_distance,
             sample_detector_distance(ws, log_key="sample_detector_distance", search_logs=True),
         )
@@ -278,7 +278,7 @@ def test_load_biosans_overwrite_sdd(datarepo_dir, clean_workspace):
     sample_offset, detector_offset = get_sample_detector_offset(
         ws, "CG3:CS:SampleToSi", 71.0 * 1e-3, overwrite_sample_detector_distance=7.1234
     )
-    print("[TEST INFO] Sample offset = {}, Detector offset = {}" "".format(sample_offset, detector_offset))
+    print("[TEST INFO] Sample offset = {}, Detector offset = {}".format(sample_offset, detector_offset))
 
     # Move sample and detector
     ws = move_instrument(

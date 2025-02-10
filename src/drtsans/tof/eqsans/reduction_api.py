@@ -330,9 +330,7 @@ def bin_i_with_correction(
         # Check due to functional limitation
         assert isinstance(iq1d_main_wl, list), f"Output I(Q) must be a list but not a {type(iq1d_main_wl)}"
         if len(iq1d_main_wl) != 1:
-            raise NotImplementedError(
-                f"Not expected that there are more than 1 IQmod main but " f"{len(iq1d_main_wl)}"
-            )
+            raise NotImplementedError(f"Not expected that there are more than 1 IQmod main but {len(iq1d_main_wl)}")
 
     else:
         ...
@@ -421,7 +419,7 @@ def bin_i_with_correction(
         finite_iq2d = iq2d_main_wl.be_finite()
         # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
         assert len(iq1d_main_wl) == 1, (
-            f"It is assumed that output I(Q) list contains 1 I(Q)" f" but not {len(iq1d_main_wl)}"
+            f"It is assumed that output I(Q) list contains 1 I(Q) but not {len(iq1d_main_wl)}"
         )
 
     # Bin output in wavelength space

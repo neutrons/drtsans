@@ -59,7 +59,7 @@ def test_1d_annular_no_wt():
     assert binned_iq.intensity[1] == pytest.approx(63.66666667, abs=1e-8), "Binned intensity is wrong"
     assert binned_iq.error[1] == pytest.approx(3.257470048, abs=1e-8), "Binned sigma I is wrong"
     assert binned_iq.delta_mod_q[1] == pytest.approx(1.154e-02, abs=1e-5), (
-        "Binned Q resolution {} " "is incorrect comparing to {}." "".format(binned_iq.delta_mod_q[1], 0.01154)
+        "Binned Q resolution {} is incorrect comparing to {}.".format(binned_iq.delta_mod_q[1], 0.01154)
     )
     # this is actually theta
     np.testing.assert_almost_equal(binned_iq.mod_q, np.linspace(start=18, stop=theta_max - 18, num=num_bins))

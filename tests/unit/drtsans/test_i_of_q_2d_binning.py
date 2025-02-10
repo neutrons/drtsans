@@ -68,31 +68,31 @@ def test_2d_bin_no_sub_no_wt():
 
     # verify dQx and dQy
     assert binned_iq_2d.delta_qx[1][1] == pytest.approx(0.00816, abs=1e-5), (
-        "dQx {} is incorrect comparing to {}." "".format(binned_iq_2d[2][1][1], 0.00816)
+        "dQx {} is incorrect comparing to {}.".format(binned_iq_2d[2][1][1], 0.00816)
     )
     assert binned_iq_2d.delta_qy[1][1] == pytest.approx(0.00816, abs=1e-5), (
-        "dQy {}is incorrect comparing to {}." "".format(binned_iq_2d[3][1][1], 0.00816)
+        "dQy {}is incorrect comparing to {}.".format(binned_iq_2d[3][1][1], 0.00816)
     )
 
     # verify Qx and Qy on off diagonal values
     # Qx in row 0 shall be all same as qx bin center [1]
-    assert binned_iq_2d.qx[0][1] == pytest.approx(
-        qx_bins.centers[0], abs=1e-5
-    ), "Qx[0, 1] {} shall be same as Qx bin center [1] {}".format(binned_iq_2d.qx[0][1], qx_bins.centers[0])
+    assert binned_iq_2d.qx[0][1] == pytest.approx(qx_bins.centers[0], abs=1e-5), (
+        "Qx[0, 1] {} shall be same as Qx bin center [1] {}".format(binned_iq_2d.qx[0][1], qx_bins.centers[0])
+    )
     # Qx in row 1 shall be all same as qx bin center [0]
-    assert binned_iq_2d.qx[1][0] == pytest.approx(
-        qx_bins.centers[1], abs=1e-5
-    ), "Qx[1, 0] {} shall be same as Qx bin center [1] {}".format(binned_iq_2d.qx[1][0], qx_bins.centers[1])
+    assert binned_iq_2d.qx[1][0] == pytest.approx(qx_bins.centers[1], abs=1e-5), (
+        "Qx[1, 0] {} shall be same as Qx bin center [1] {}".format(binned_iq_2d.qx[1][0], qx_bins.centers[1])
+    )
 
     # Qy in col 0 shall be all same as qy bin center [0]
-    assert binned_iq_2d.qy[1][0] == pytest.approx(
-        qy_bins.centers[0], abs=1e-5
-    ), "Qy[1, 0] {} shall be same as Qy bin center [0] {}".format(binned_iq_2d.qy[1][0], qy_bins.centers[0])
+    assert binned_iq_2d.qy[1][0] == pytest.approx(qy_bins.centers[0], abs=1e-5), (
+        "Qy[1, 0] {} shall be same as Qy bin center [0] {}".format(binned_iq_2d.qy[1][0], qy_bins.centers[0])
+    )
     # Qy in col 1 shall be all same as qy bin center [1]
 
-    assert binned_iq_2d.qy[0][1] == pytest.approx(
-        qy_bins.centers[1], abs=1e-5
-    ), "Qy[0, 1] {} shall be same as Qy bin center [1] {}".format(binned_iq_2d.qx[0][1], qy_bins.centers[1])
+    assert binned_iq_2d.qy[0][1] == pytest.approx(qy_bins.centers[1], abs=1e-5), (
+        "Qy[0, 1] {} shall be same as Qy bin center [1] {}".format(binned_iq_2d.qx[0][1], qy_bins.centers[1])
+    )
 
 
 def test_2d_bin_no_sub_no_wt_wavelength():
@@ -160,30 +160,30 @@ def test_2d_bin_no_sub_no_wt_wavelength():
 
     # verify dQx and dQy
     assert binned_iq_2d.delta_qx[1][1] == pytest.approx(0.00816, abs=1e-5), (
-        "dQx {} is incorrect comparing to {}." "".format(binned_iq_2d[2][1][1], 0.00816)
+        "dQx {} is incorrect comparing to {}.".format(binned_iq_2d[2][1][1], 0.00816)
     )
     assert binned_iq_2d.delta_qy[1][1] == pytest.approx(0.00816, abs=1e-5), (
-        "dQy {}is incorrect comparing to {}." "".format(binned_iq_2d[3][1][1], 0.00816)
+        "dQy {}is incorrect comparing to {}.".format(binned_iq_2d[3][1][1], 0.00816)
     )
 
     # verify Qx and Qy on off diagonal values
     # Qx in row 0 shall be all same as qx bin center [1]
-    assert binned_iq_2d.qx[0][1] == pytest.approx(
-        qx_bins.centers[0], abs=1e-5
-    ), "Qx[0, 1] {} shall be same as Qx bin center [1] {}".format(binned_iq_2d.qx[0][1], qx_bins.centers[0])
+    assert binned_iq_2d.qx[0][1] == pytest.approx(qx_bins.centers[0], abs=1e-5), (
+        "Qx[0, 1] {} shall be same as Qx bin center [1] {}".format(binned_iq_2d.qx[0][1], qx_bins.centers[0])
+    )
     # Qx in row 1 shall be all same as qx bin center [0]
-    assert binned_iq_2d.qx[1][0] == pytest.approx(
-        qx_bins.centers[1], abs=1e-5
-    ), "Qx[1, 0] {} shall be same as Qx bin center [1] {}".format(binned_iq_2d.qx[1][0], qx_bins.centers[1])
+    assert binned_iq_2d.qx[1][0] == pytest.approx(qx_bins.centers[1], abs=1e-5), (
+        "Qx[1, 0] {} shall be same as Qx bin center [1] {}".format(binned_iq_2d.qx[1][0], qx_bins.centers[1])
+    )
 
     # Qy in col 0 shall be all same as qy bin center [0]
-    assert binned_iq_2d.qy[1][0] == pytest.approx(
-        qy_bins.centers[0], abs=1e-5
-    ), "Qy[1, 0] {} shall be same as Qy bin center [0] {}".format(binned_iq_2d.qy[1][0], qy_bins.centers[0])
+    assert binned_iq_2d.qy[1][0] == pytest.approx(qy_bins.centers[0], abs=1e-5), (
+        "Qy[1, 0] {} shall be same as Qy bin center [0] {}".format(binned_iq_2d.qy[1][0], qy_bins.centers[0])
+    )
     # Qy in col 1 shall be all same as qy bin center [1]
-    assert binned_iq_2d.qy[0][1] == pytest.approx(
-        qy_bins.centers[1], abs=1e-5
-    ), "Qy[0, 1] {} shall be same as Qy bin center [1] {}".format(binned_iq_2d.qx[0][1], qy_bins.centers[1])
+    assert binned_iq_2d.qy[0][1] == pytest.approx(qy_bins.centers[1], abs=1e-5), (
+        "Qy[0, 1] {} shall be same as Qy bin center [1] {}".format(binned_iq_2d.qx[0][1], qy_bins.centers[1])
+    )
 
 
 def test_2d_bin_no_sub_wt():
@@ -223,9 +223,9 @@ def test_2d_bin_no_sub_wt():
 
     # verify I(-0.003254,-0.001713) and sigma(-0.003254,-0.001713)
     assert binned_iq_2d.intensity[1][1] == pytest.approx(56.8660, abs=1e-4), "Weighted-binned I(Qx, Qy) is incorrect"
-    assert binned_iq_2d.error[1][1] == pytest.approx(
-        4.353773265, abs=1e-8
-    ), "Weighted-binned sigma I(Qx, Qy) is incorrect"
+    assert binned_iq_2d.error[1][1] == pytest.approx(4.353773265, abs=1e-8), (
+        "Weighted-binned sigma I(Qx, Qy) is incorrect"
+    )
 
     # verify dQx and dQy
     assert binned_iq_2d.delta_qx[1][1] == pytest.approx(0.00815, abs=1e-5), "dQx is incorrect"

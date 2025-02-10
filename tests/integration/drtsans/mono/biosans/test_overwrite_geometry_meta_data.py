@@ -388,7 +388,7 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix)
         try:
             compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
         except AssertionError as unmatched_error:
-            unmatched_errors += "Testing output {} does not match gold result {}:\n{}\n" "".format(
+            unmatched_errors += "Testing output {} does not match gold result {}:\n{}\n".format(
                 output_log_file, gold_log_file, unmatched_error
             )
     # END-FOR

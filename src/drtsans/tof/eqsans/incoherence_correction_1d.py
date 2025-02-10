@@ -471,9 +471,9 @@ def correct_intensity_error(
     assert intensity_array.shape == error_array.shape
     assert wavelength_vec.shape[0] == intensity_array.shape[1]
     assert q_vec.shape[0] == error_array.shape[0]
-    assert (
-        len(b_array2d.shape) == 2 and b_array2d.shape[0] == 2
-    ), f"Expected input B and B error but not of shape {b_array2d.shape}"
+    assert len(b_array2d.shape) == 2 and b_array2d.shape[0] == 2, (
+        f"Expected input B and B error but not of shape {b_array2d.shape}"
+    )
     assert b_array2d.shape[1] == wavelength_vec.shape[0]
 
     # Init data structure

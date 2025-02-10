@@ -321,9 +321,7 @@ def load_all_files(
                 smearing_pixel_size_y=smearing_pixel_size_y_dict[meta_data.SAMPLE],
             )
             logger.information(
-                "[META] Wavelength range is from {} to {}" "".format(
-                    mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1]
-                )
+                "[META] Wavelength range is from {} to {}".format(mtd[ws_name].readX(0)[0], mtd[ws_name].readX(0)[1])
             )
             # Apply mask
             for btp_params in default_mask:
@@ -820,7 +818,7 @@ def prepare_data_workspaces(
         mask_btp = dict()
     if debug:
         # output masking information
-        logger.notice(f"mask panel: {mask_panel}\n" f"mask ws   : {str(mask_ws)}\n" f"mask btp  : {mask_btp}")
+        logger.notice(f"mask panel: {mask_panel}\nmask ws   : {str(mask_ws)}\nmask btp  : {mask_btp}")
         if mask_ws is not None:
             SaveNexusProcessed(
                 InputWorkspace=mask_ws,
@@ -1162,7 +1160,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         }
         # auto-aniso returns all of the wedges
         symmetric_wedges = False
-        logger.debug(f'Wedge peak search window size factor: {autoWedgeOpts["peak_search_window_size_factor"]}')
+        logger.debug(f"Wedge peak search window size factor: {autoWedgeOpts['peak_search_window_size_factor']}")
 
     fbc_options = fbc_options_json(reduction_input)
     xc, yc, fit_results = find_beam_center(loaded_ws.center, **fbc_options)
@@ -1313,9 +1311,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             logger.notice(f"Auto wedge options: {autoWedgeOpts}")
             autoWedgeOpts["debug_dir"] = output_dir
             wedges = getWedgeSelection(iq2d_main_in, **autoWedgeOpts)
-            logger.notice(
-                f"found wedge angles:\n" f"              peak: {wedges[0]}\n" f"        background: {wedges[1]}"
-            )
+            logger.notice(f"found wedge angles:\n              peak: {wedges[0]}\n        background: {wedges[1]}")
             # sanity check
             assert len(wedges) == 2, f"Auto-wedges {wedges} shall have 2 2-tuples"
 

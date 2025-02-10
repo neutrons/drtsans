@@ -396,7 +396,7 @@ def export_iq_comparison(iq1d_tuple_list: List[Tuple[str, IQmod, str]], png_name
     plt.legend()
 
     # save
-    plt.savefig(f'{png_name.split(".")[0]}_error_bar.png')
+    plt.savefig(f"{png_name.split('.')[0]}_error_bar.png")
     # close
     plt.close()
 
@@ -446,9 +446,7 @@ def test_wavelength_step(has_sns_mount, reference_dir):
             "sampleApertureSize": "10",
             "fluxMonitorRatioFile": None,
             "sensitivityFileName": (
-                "/SNS/EQSANS/shared/NeXusFiles/"
-                "EQSANS/2020A_mp/"
-                "Sensitivity_patched_thinPMMA_2o5m_113514_mantid.nxs"
+                "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2020A_mp/Sensitivity_patched_thinPMMA_2o5m_113514_mantid.nxs"
             ),
             "numQBins": 100,
             "WedgeMinAngles": "-30, 60",
@@ -615,15 +613,15 @@ def verify_processed_workspace(
     r = CompareWorkspaces(Workspace1=gold_ws, Workspace2=test_ws)
     print(f"[INT-TEST] Verify reduced workspace {test_ws} match expected/gold {gold_ws}: {r}")
     if r != "Success":
-        assert (
-            gold_ws.getNumberHistograms() == test_ws.getNumberHistograms()
-        ), f"Histograms: {gold_ws.getNumberHistograms()} != {test_ws.getNumberHistograms()}"
-        assert (
-            gold_ws.readY(0).shape == test_ws.readY(0).shape
-        ), f"Number of wavelength: {gold_ws.readY(0).shape} != {test_ws.readY(0).shape}"
-        assert (
-            gold_ws.readX(0).shape == test_ws.readX(0).shape
-        ), f"Histogram or point data: {gold_ws.readX(0).shape} != {test_ws.readX(0).shape}"
+        assert gold_ws.getNumberHistograms() == test_ws.getNumberHistograms(), (
+            f"Histograms: {gold_ws.getNumberHistograms()} != {test_ws.getNumberHistograms()}"
+        )
+        assert gold_ws.readY(0).shape == test_ws.readY(0).shape, (
+            f"Number of wavelength: {gold_ws.readY(0).shape} != {test_ws.readY(0).shape}"
+        )
+        assert gold_ws.readX(0).shape == test_ws.readX(0).shape, (
+            f"Histogram or point data: {gold_ws.readX(0).shape} != {test_ws.readX(0).shape}"
+        )
         gold_x_array = gold_ws.extractX()
         test_x_array = test_ws.extractX()
         assert gold_x_array.shape == test_x_array.shape, "Q bins sizes are different"

@@ -167,8 +167,7 @@ class PrepareSensitivityCorrection(object):
         # Array
         if len(problematic_pixels) > 0:
             raise RuntimeError(
-                f"Impossible case: pixels {problematic_pixels} has local detector mask is on, "
-                f"but total mask is off"
+                f"Impossible case: pixels {problematic_pixels} has local detector mask is on, but total mask is off"
             )
 
         logger.debug(
@@ -726,7 +725,7 @@ class PrepareSensitivityCorrection(object):
         for i in range(num_workspaces_set):
             flood_ws_i = self._prepare_flood_data(self._flood_runs[i], beam_centers[i], self._dark_current_runs[i])
             flood_workspaces.append(flood_ws_i)
-            logger.notice(f"Load {i}-th flood run {self._flood_runs[i]} to " f"{flood_ws_i}")
+            logger.notice(f"Load {i}-th flood run {self._flood_runs[i]} to {flood_ws_i}")
 
         # Retrieve masked detectors before masking the beam center. These are termed "bad pixels"
         if not use_moving_detector_method:

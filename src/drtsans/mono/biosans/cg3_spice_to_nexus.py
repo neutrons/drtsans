@@ -126,7 +126,7 @@ class CG3EventNexusConvert(EventNexusConverter):
 
         # Check input valid
         if bank_id < 1 or bank_id > self.num_banks:
-            raise RuntimeError(f"CG3 (BioSANS) has 88 banks indexed from 1 to 88. " f"Bank {bank_id} is out of range.")
+            raise RuntimeError(f"CG3 (BioSANS) has 88 banks indexed from 1 to 88. Bank {bank_id} is out of range.")
 
         # calculate starting PID
         if bank_id <= 24:
@@ -212,7 +212,7 @@ def convert_spice_to_nexus(
             os.mkdir(output_dir)
         except (OSError, IOError) as dir_err:
             raise RuntimeError(
-                f"Output directory {output_dir} doesn't exist." f"Unable to create {output_dir} due to {dir_err}"
+                f"Output directory {output_dir} doesn't exist.Unable to create {output_dir} due to {dir_err}"
             )
 
     # output file name

@@ -39,7 +39,7 @@ def test_gpsans_find_beam_center(datarepo_dir):
     beam_center_shift = np.sqrt((center_x - det_center[0]) ** 2 + (center_y - det_center[1]) ** 2)
 
     assert beam_center_shift == pytest.approx(0.400, abs=0.007), (
-        "Beam center shift {} to {} is beyond" "0.4 +/- 7E-3".format(beam_center, det_center)
+        "Beam center shift {} to {} is beyond0.4 +/- 7E-3".format(beam_center, det_center)
     )
 
     # cleanup

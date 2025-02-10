@@ -536,7 +536,7 @@ class ReductionParameterError(Exception):
             items = []
             for each in self.schema["anyOf"]:
                 items.append(each["type"])
-            msg += f'\nType: {", ".join(items)}'
+            msg += f"\nType: {', '.join(items)}"
         if "enum" in self.schema.keys():
             msg += f"\nType: enum, values: {self.schema['enum']}"
         if "preferredType" in self.schema.keys():
@@ -783,7 +783,7 @@ class ReductionParameters:
                 available_properties = list(schema.get("properties", {}).keys())
                 available_properties.extend(list(schema.get("additionalProperties", {}).keys()))
                 not_found_message = (
-                    f"Parameter {name} not found in the schema. " f"Available properties are: {available_properties}"
+                    f"Parameter {name} not found in the schema. Available properties are: {available_properties}"
                 )
                 if self._permissible:
                     logger.warning(not_found_message)
@@ -1206,7 +1206,7 @@ class ReductionParameters:
                     source_set_valid_found = True  # all instances in the source set are not empty. It's a valid set
             if source_set_valid_found is False:
                 yield jsonschema.ValidationError(
-                    f"We cannot define the wedge angles given the current" f"values or parameters {value}"
+                    f"We cannot define the wedge angles given the currentvalues or parameters {value}"
                 )
 
     def _validate_flux_file_tof(self, validator, value, instance, schema):

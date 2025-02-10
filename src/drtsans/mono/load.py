@@ -296,7 +296,7 @@ def set_sample_detector_position(
         raise RuntimeError(
             f"Workspace {str(ws)}: after loading and initial setup, DAS SDD ({das_sdd})"
             f"is not equal to calculated/real SDD ({real_sdd}) by proportion as "
-            f"{abs(das_sdd - real_sdd)/das_sdd}"
+            f"{abs(das_sdd - real_sdd) / das_sdd}"
         )
 
     # Get original sample detector distance: find expected SDD for further verification
@@ -318,7 +318,7 @@ def set_sample_detector_position(
         f"Prior to any geometry correction:\n"
         f"Sample to detector distance = {sample_detector_distance(ws, search_logs=False)}"
         f"(calculated)  vs {sample_detector_distance(ws, search_logs=True)} (meta) mm.\n"
-        f' SampleToSi = {logs.find_log_with_units(sample_to_si_window_name, unit="mm")} mm\n'
+        f" SampleToSi = {logs.find_log_with_units(sample_to_si_window_name, unit='mm')} mm\n"
         f"Overwrite Values = {sample_si_window_overwrite_value}, "
         f"{sample_detector_distance_overwrite_value}\n"
     )
@@ -346,7 +346,7 @@ def set_sample_detector_position(
 
     # Check current instrument setup and meta data (sample logs)
     logger.notice(
-        "{} Sample to detector distance = {} (calculated) vs {} (meta) mm" "".format(
+        "{} Sample to detector distance = {} (calculated) vs {} (meta) mm".format(
             str(ws),
             sample_detector_distance(ws, search_logs=False),
             sample_detector_distance(ws, search_logs=True),
@@ -363,7 +363,7 @@ def set_sample_detector_position(
         prior_geom_info += (
             f"Result from geometry operation:\n"
             f"Sample position = {ws.getInstrument().getSample().getPos()}\n"
-            f'SampleToSi = {logs.find_log_with_units(sample_to_si_window_name, unit="mm")}'
+            f"SampleToSi = {logs.find_log_with_units(sample_to_si_window_name, unit='mm')}"
             f"mm (From Log)\n"
         )
         # add detector information

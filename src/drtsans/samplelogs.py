@@ -144,9 +144,9 @@ def periodic_index_log(
     # then truncate to the length of times, then cast to list
     entries = np.tile(values_in_period, period_count)[: len(times)].tolist()
 
-    assert len(times) == len(
-        entries
-    ), f"times and entries must have the same length: len(times) {len(times)} != len(entries) {len(entries)}"
+    assert len(times) == len(entries), (
+        f"times and entries must have the same length: len(times) {len(times)} != len(entries) {len(entries)}"
+    )
 
     return time_series(name, times, entries, run_start, unit="")
 
@@ -307,7 +307,7 @@ class SampleLogs(object):
         if len(finders) == 0:
             # In case no items found
             raise RuntimeError(
-                'Input "other" of value {} is not supported to retrieve Mantid ' '"run" object'.format(other)
+                'Input "other" of value {} is not supported to retrieve Mantid "run" object'.format(other)
             )
         finder = finders[0]
         return finder(other)

@@ -173,7 +173,7 @@ def test_create_instrument_node(datarepo_dir):
 
     # attributes
     # cannot get b'NXinstrument'
-    assert source_instrument.attributes == test_node.attributes, "{} shall be same as {}" "".format(
+    assert source_instrument.attributes == test_node.attributes, "{} shall be same as {}".format(
         source_instrument.attributes, test_node.attributes
     )
 

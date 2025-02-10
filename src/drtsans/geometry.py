@@ -131,7 +131,7 @@ def bank_workspace_index_range(input_workspace, component=""):
     for i in range(input_workspace.getNumberHistograms()):
         ids = input_workspace.getSpectrum(i).getDetectorIDs()
         if len(ids) > 1:
-            raise RuntimeError("do not know how to work with more than one " "detector per spectrum ({})".format(ids))
+            raise RuntimeError("do not know how to work with more than one detector per spectrum ({})".format(ids))
         if ids[0] == detector_id_first:
             first = i
             break
@@ -786,7 +786,7 @@ def translate_sample_by_z(workspace, z):
         )
         workspace = mtd[ws_name]
         logger.debug(
-            "Instrument sample position is moved to {}" "".format(workspace.getInstrument().getSample().getPos())
+            "Instrument sample position is moved to {}".format(workspace.getInstrument().getSample().getPos())
         )
 
     # update the appropriate log
@@ -836,7 +836,7 @@ def translate_detector_by_z(input_workspace, z=None, relative=True):
         update_log = True
         if (not relative) or (z != 0.0):
             logger.debug(
-                "Moving detector along Z = {}  is relative = {} to component {}" "".format(
+                "Moving detector along Z = {}  is relative = {} to component {}".format(
                     z, relative, main_detector_name(input_workspace)
                 )
             )

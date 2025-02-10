@@ -76,7 +76,7 @@ def compare_reduced_iq(test_log_file, gold_log_file, title: str, prefix: str):
 
     # Output error message
     if test_exception:
-        base_name = f'{prefix}{os.path.basename(test_log_file).split(".")[0]}'
+        base_name = f"{prefix}{os.path.basename(test_log_file).split('.')[0]}"
         report_difference(
             (test_q_vec, test_intensity_vec),
             (gold_q_vec, gold_intensity_vec),
@@ -211,7 +211,7 @@ def verify_cg2_reduction_results(sample_names, output_dir, gold_path, title, pre
         try:
             compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix)
         except AssertionError as unmatched_error:
-            unmatched_errors = "Testing output {} is different from gold result {}:\n{}" "".format(
+            unmatched_errors = "Testing output {} is different from gold result {}:\n{}".format(
                 output_log_file, gold_log_file, unmatched_error
             )
     # END-FOR

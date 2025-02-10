@@ -72,7 +72,7 @@ def set_meta_data(
         pass
     else:
         raise RuntimeError(
-            "Pixel size X ({}) and Y ({}) must be set together" "".format(smearing_pixel_size_x, smearing_pixel_size_y)
+            "Pixel size X ({}) and Y ({}) must be set together".format(smearing_pixel_size_x, smearing_pixel_size_y)
         )
 
     # Add log value

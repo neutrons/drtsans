@@ -224,7 +224,7 @@ class EventNexusConverter(ABC):
                 self._spice_detector_counts[pid] = 0
             except IndexError as index_error:
                 raise RuntimeError(
-                    f"Pixel ID {pid} is out of range {self._spice_detector_counts.shape}. " f"FYI: {index_error}"
+                    f"Pixel ID {pid} is out of range {self._spice_detector_counts.shape}. FYI: {index_error}"
                 )
 
     @staticmethod
@@ -293,7 +293,7 @@ class EventNexusConverter(ABC):
                     # check unit
                     if unit != default_unit:
                         raise RuntimeError(
-                            f"SPICE log {spice_log_name} has unit {unit} different from " f"expected {default_unit}"
+                            f"SPICE log {spice_log_name} has unit {unit} different from expected {default_unit}"
                         )
 
                 das_log_values[nexus_log_name] = value, unit

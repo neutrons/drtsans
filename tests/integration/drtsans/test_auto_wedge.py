@@ -537,15 +537,15 @@ def test_integration():
 
     # verify background
     # first background - the extra 360 is to get around the circle
-    assert 0.5 * (back_wedge[0][0] + back_wedge[0][1] + 360) == pytest.approx(
-        272.0, abs=1.2
-    ), "First background center is at 270."
+    assert 0.5 * (back_wedge[0][0] + back_wedge[0][1] + 360) == pytest.approx(272.0, abs=1.2), (
+        "First background center is at 270."
+    )
     assert back_wedge[0][0] == pytest.approx(255.0, abs=0.5)
     assert back_wedge[0][1] == pytest.approx(-69.0, abs=0.5)
     # second background
-    assert 0.5 * (back_wedge[1][0] + back_wedge[1][1]) == pytest.approx(
-        90.0, abs=5.0
-    ), "Second background center is at 90."
+    assert 0.5 * (back_wedge[1][0] + back_wedge[1][1]) == pytest.approx(90.0, abs=5.0), (
+        "Second background center is at 90."
+    )
     assert back_wedge[1][0] == pytest.approx(76.0, abs=0.5)
     assert back_wedge[1][1] == pytest.approx(111.0, abs=0.5)
 

@@ -30,7 +30,7 @@ def verify_images(test_png: str, gold_png):
     np.testing.assert_allclose(
         tested_image,
         gold_image,
-        err_msg=f"Testing result {tested_image} does not match " f"the expected result {gold_image}",
+        err_msg=f"Testing result {tested_image} does not match the expected result {gold_image}",
     )
 
 
@@ -146,7 +146,7 @@ def test_iq2d_data() -> Tuple[Any, Any, Any, Any]:
     intensity[1, 59] = 8.0
 
     assert intensity.shape == (40, 60), (
-        f"Expected intensity is 40 row (Qy) and 60 column (Qx) " f"but not {intensity.shape}"
+        f"Expected intensity is 40 row (Qy) and 60 column (Qx) but not {intensity.shape}"
     )
 
     return mesh_x, mesh_y, intensity, error

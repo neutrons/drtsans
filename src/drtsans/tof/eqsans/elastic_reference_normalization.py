@@ -494,7 +494,7 @@ def determine_reference_wavelength_q1d_mesh(
     """
     # Sanity check
     assert wavelength_vec.shape[0] == intensity_array.shape[1], (
-        f"Wavelength dimension = {wavelength_vec.shape} ," f"Intensity  dimension = {intensity_array.shape}"
+        f"Wavelength dimension = {wavelength_vec.shape} ,Intensity  dimension = {intensity_array.shape}"
     )
 
     # Minimum wavelength bin is the reference wavelength

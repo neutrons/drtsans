@@ -140,14 +140,6 @@ drtsans.tof.eqsans.prepare module
    :undoc-members:
    :show-inheritance:
 
-drtsans.tof.eqsans.reduce module
---------------------------------
-
-.. automodule:: drtsans.tof.eqsans.reduce
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 drtsans.tof.eqsans.reduction\_api module
 ----------------------------------------
 

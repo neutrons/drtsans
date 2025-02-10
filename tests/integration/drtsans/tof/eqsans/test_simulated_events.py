@@ -717,8 +717,8 @@ def test_reduce_ring(ring_pattern: dict, temp_directory: Callable[[Any], str]):
         # log time-of-flight relevant info (needed for dark-current correction)
         low_tof_clip, high_tof_clip = kwargs["low_tof_clip"], kwargs["high_tof_clip"]
         pulse_period = metadata["pulse_period"]
-        (sample_logs.insert("low_tof_clip", low_tof_clip, unit="ms"),)
-        (sample_logs.insert("high_tof_clip", high_tof_clip, unit="ms"),)
+        sample_logs.insert("low_tof_clip", low_tof_clip, unit="ms")
+        sample_logs.insert("high_tof_clip", high_tof_clip, unit="ms")
         sample_logs.insert("tof_frame_width", pulse_period, unit="ms")
         tof_width_clipped = pulse_period - low_tof_clip - high_tof_clip
         sample_logs.insert("tof_frame_width_clipped", tof_width_clipped, unit="ms")
@@ -809,8 +809,8 @@ def test_reduce_three_rings(three_rings_pattern: dict, temp_directory: Callable[
         # log time-of-flight relevant info (needed for dark-current correction)
         low_tof_clip, high_tof_clip = kwargs["low_tof_clip"], kwargs["high_tof_clip"]
         pulse_period = metadata["pulse_period"]
-        (sample_logs.insert("low_tof_clip", low_tof_clip, unit="ms"),)
-        (sample_logs.insert("high_tof_clip", high_tof_clip, unit="ms"),)
+        sample_logs.insert("low_tof_clip", low_tof_clip, unit="ms")
+        sample_logs.insert("high_tof_clip", high_tof_clip, unit="ms")
         sample_logs.insert("tof_frame_width", pulse_period, unit="ms")
         tof_width_clipped = pulse_period - low_tof_clip - high_tof_clip
         sample_logs.insert("tof_frame_width_clipped", tof_width_clipped, unit="ms")
@@ -915,8 +915,8 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
         # log time-of-flight relevant info (needed for dark-current correction)
         low_tof_clip, high_tof_clip = kwargs["low_tof_clip"], kwargs["high_tof_clip"]
         pulse_period = metadata["pulse_period"]
-        (sample_logs.insert("low_tof_clip", low_tof_clip, unit="ms"),)
-        (sample_logs.insert("high_tof_clip", high_tof_clip, unit="ms"),)
+        sample_logs.insert("low_tof_clip", low_tof_clip, unit="ms")
+        sample_logs.insert("high_tof_clip", high_tof_clip, unit="ms")
         sample_logs.insert("tof_frame_width", pulse_period, unit="ms")
         tof_width_clipped = pulse_period - low_tof_clip - high_tof_clip
         sample_logs.insert("tof_frame_width_clipped", tof_width_clipped, unit="ms")

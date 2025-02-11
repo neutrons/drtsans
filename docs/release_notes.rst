@@ -23,6 +23,7 @@ Release Notes
 
 **Of interest to the User**:
 
+- PR #994: Remove unused module `drtsans/tof/eqsans/reduce.py`
 - PR #993: Skip slices with too high transmission error when using time sliced sample transmission run
 - PR #325: Migrates repository from GitLab to GitHub
 - MR #1185: Rename output directory for coherent and incoherent-inelastic corrections as "info"

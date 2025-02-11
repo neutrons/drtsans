@@ -1,23 +1,24 @@
 # https://github.com/neutrons/drtsans/blob/next/src/drtsans/dataobjects.py
+from enum import Enum
+from typing import Any, List, Tuple, Union
+
 import numpy
+import numpy as np
 
 from drtsans.dataobjects import (
     DataType,
-    getDataType,
     IQazimuthal,
     IQmod,
-    q_azimuthal_to_q_modulo,
     concatenate,
+    getDataType,
+    q_azimuthal_to_q_modulo,
 )
-from enum import Enum
-from typing import List, Any, Tuple
-import numpy as np
 
 # https://github.com/neutrons/drtsans/blob/next/src/drtsans/determine_bins.py
 from drtsans.determine_bins import (
-    determine_1d_log_bins,
-    determine_1d_linear_bins,
     BinningParams,
+    determine_1d_linear_bins,
+    determine_1d_log_bins,
 )
 
 # To ignore warning:   invalid value encountered in true_divide
@@ -46,7 +47,7 @@ class BinningMethod(Enum):
     WEIGHTED = 2  # weighted binning
 
 
-def check_iq_for_binning(i_of_q):
+def check_iq_for_binning(i_of_q: Union[IQmod, IQazimuthal]):
     """Check I(Q) for binning.
 
     Binning I(Q) assumes that

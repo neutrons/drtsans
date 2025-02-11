@@ -1,6 +1,6 @@
 from drtsans.dataobjects import IQazimuthal, q_azimuthal_to_q_modulo
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/iq.py
 from drtsans.iq import (
     determine_1d_log_bins,
     BinningMethod,
@@ -67,7 +67,7 @@ def test_1d_bin_log_wedge_no_wt():
     assert binned_iq.intensity[7] == pytest.approx(70.0, abs=1e-10)
     assert binned_iq.error[7] == pytest.approx(3.741657387, abs=1e-5)
     assert binned_iq.delta_mod_q[7] == pytest.approx(0.011460, abs=1e-4), (
-        "Q resolution (Q[7] = {}) is " "incorrect comparing to {}." "".format(binned_iq.delta_mod_q[7], 0.0115)
+        "Q resolution (Q[7] = {}) is incorrect comparing to {}.".format(binned_iq.delta_mod_q[7], 0.0115)
     )
 
 

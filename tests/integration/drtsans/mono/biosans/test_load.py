@@ -65,15 +65,15 @@ def test_load_all_files(has_sns_mount, reference_dir):
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
     for ws in [sample_run, beam_center_run, bkgd_run, empty_trans_run]:
         sample_pos_z = ws.getInstrument().getSample().getPos()[2]
-        assert sample_pos_z == pytest.approx(
-            -0.12952, 0.000004
-        ), "{} has a wrong sample Si-window distance {}" "".format(str(ws), sample_pos_z)
+        assert sample_pos_z == pytest.approx(-0.12952, 0.000004), "{} has a wrong sample Si-window distance {}".format(
+            str(ws), sample_pos_z
+        )
 
     for ws in [dark_run]:
         sample_pos_z = ws.getInstrument().getSample().getPos()[2]
-        assert sample_pos_z == pytest.approx(
-            0.0000, 0.000004
-        ), "{} has a wrong sample Si-window distance {}" "".format(str(ws), sample_pos_z)
+        assert sample_pos_z == pytest.approx(0.0000, 0.000004), "{} has a wrong sample Si-window distance {}".format(
+            str(ws), sample_pos_z
+        )
 
     # Verify sample to detector distance with default setup:
     # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/542#note_156296
@@ -93,12 +93,12 @@ def test_load_all_files(has_sns_mount, reference_dir):
         sample_log_i = SampleLogs(ws)
         pixel_size_x = sample_log_i["smearingPixelSizeX"].value
         pixel_size_y = sample_log_i["smearingPixelSizeY"].value
-        assert pixel_size_x == pytest.approx(
-            1.23456 * 1.0e-3, 1.0e-7
-        ), "{}-th workspace: Pixel size X {} (m) shall be equal to 1.23456 mm".format(ws_index, pixel_size_x)
-        assert pixel_size_y == pytest.approx(
-            2.34567 * 1.0e-3, 1.0e-7
-        ), "{}-th workspace: Pixel size X {} (m) shall be equal to 2.34567 mm".format(ws_index, pixel_size_y)
+        assert pixel_size_x == pytest.approx(1.23456 * 1.0e-3, 1.0e-7), (
+            "{}-th workspace: Pixel size X {} (m) shall be equal to 1.23456 mm".format(ws_index, pixel_size_x)
+        )
+        assert pixel_size_y == pytest.approx(2.34567 * 1.0e-3, 1.0e-7), (
+            "{}-th workspace: Pixel size X {} (m) shall be equal to 2.34567 mm".format(ws_index, pixel_size_y)
+        )
 
     # Check center wave length and spread
     for ws_index, ws in enumerate([sample_run, beam_center_run, bkgd_run, empty_trans_run]):
@@ -106,13 +106,13 @@ def test_load_all_files(has_sns_mount, reference_dir):
         wave_length = sample_log_i["wavelength"].value[0]
         wave_length_spread = sample_log_i["wavelength_spread"].value[0]
         # overwriting value
-        assert wave_length == pytest.approx(
-            1.23, 1.0e-7
-        ), "{}-th workspace: wave length {} shall be equal to 1.23 angstrom".format(ws_index, wave_length)
-        assert wave_length_spread == pytest.approx(
-            0.46, 1.0e-7
-        ), "{}-th workspace: wave length spread {} shall be equal to 0.46 angstrom" "".format(
-            ws_index, wave_length_spread
+        assert wave_length == pytest.approx(1.23, 1.0e-7), (
+            "{}-th workspace: wave length {} shall be equal to 1.23 angstrom".format(ws_index, wave_length)
+        )
+        assert wave_length_spread == pytest.approx(0.46, 1.0e-7), (
+            "{}-th workspace: wave length spread {} shall be equal to 0.46 angstrom".format(
+                ws_index, wave_length_spread
+            )
         )
 
     for ws_index, ws in enumerate([dark_run]):
@@ -120,13 +120,13 @@ def test_load_all_files(has_sns_mount, reference_dir):
         wave_length = sample_log_i["wavelength"].value[0]
         wave_length_spread = sample_log_i["wavelength_spread"].value[0]
         # original value
-        assert wave_length == pytest.approx(
-            6.00881338, 1.0e-7
-        ), "{}-th workspace: wave length {} shall be equal to 6.00881338 angstrom".format(ws_index, wave_length)
-        assert wave_length_spread == pytest.approx(
-            0.1323529411, 1.0e-7
-        ), "{}-th workspace: wave length spread {} shall be equal to 0.13235294 angstrom" "".format(
-            ws_index, wave_length_spread
+        assert wave_length == pytest.approx(6.00881338, 1.0e-7), (
+            "{}-th workspace: wave length {} shall be equal to 6.00881338 angstrom".format(ws_index, wave_length)
+        )
+        assert wave_length_spread == pytest.approx(0.1323529411, 1.0e-7), (
+            "{}-th workspace: wave length spread {} shall be equal to 0.13235294 angstrom".format(
+                ws_index, wave_length_spread
+            )
         )
 
     # Verify that if some meta-data is changed that it gets applied correctly on reload, use thickness as test

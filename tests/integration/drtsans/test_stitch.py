@@ -3,9 +3,9 @@ import pytest
 
 r"""
 Hyperlinks to drtsans functions
-namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
-IQmod, testing <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py>
-stitch_profiles <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/stitch.py>
+namedtuplefy <https://github.com/neutrons/drtsans/blob/next/src/drtsans/settings.py>
+IQmod, testing <https://github.com/neutrons/drtsans/blob/next/src/drtsans/dataobjects.py>
+stitch_profiles <https://github.com/neutrons/drtsans/blob/next/src/drtsans/stitch.py>
 """
 from drtsans.settings import namedtuplefy
 from drtsans.dataobjects import IQmod, testing
@@ -430,7 +430,7 @@ def test_stitch(data_test_16b, overlaps, throws_error):
 
     **drtsans functions used:**
     ~drtsans.stitch.stitch_profiles
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/stitch.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/stitch.py>
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
     SME - Wei-Ren Chen <chenw@ornl.gov>, LiLin He <hel3@ornl.gov>

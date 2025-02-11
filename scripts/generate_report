@@ -3,6 +3,7 @@
 """
 Script to generate a report from an hdf5 log file
 """
+
 import sys
 import os
 import numpy as np

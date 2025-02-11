@@ -1,6 +1,6 @@
 import numpy as np
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/gpsans/prepare_sensitivity.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/gpsans/prepare_sensitivity.py
 from drtsans.sensitivity_correction_moving_detectors import (
     prepare_sensitivity,
     _mask_zero_count_pixel,

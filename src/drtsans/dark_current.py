@@ -11,8 +11,8 @@ from mantid.api import mtd
 
 r"""
 Hyperlinks to drtsans functions
-namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
-SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+namedtuplefy <https://github.com/neutrons/drtsans/blob/next/src/drtsans/settings.py>
+SampleLogs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
 """  # noqa: E501
 from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs

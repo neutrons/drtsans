@@ -8,9 +8,9 @@ config = dict()
 # files
 config["mask"] = "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/beamstop60_mask_4m.nxs"
 config["flux"] = "/SNS/EQSANS/shared/instrument_configuration/bl6_flux_at_sample"
-config[
-    "sensitivity_file_path"
-] = "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017A_mp/Sensitivity_patched_thinPMMA_4m_79165_event.nxs"
+config["sensitivity_file_path"] = (
+    "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017A_mp/Sensitivity_patched_thinPMMA_4m_79165_event.nxs"
+)
 config["dark_current"] = "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2017B_mp/EQSANS_86275.nxs.h5"
 
 # numeric values

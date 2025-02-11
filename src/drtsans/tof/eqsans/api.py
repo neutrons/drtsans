@@ -803,9 +803,7 @@ def reduce_single_configuration(
 
     if correction_setup.do_elastic_correction and correction_setup.elastic_reference:
         # sanity check
-        assert loaded_ws.elastic_reference.data, (
-            f"Reference run is not loaded: " f"{correction_setup.elastic_reference}"
-        )
+        assert loaded_ws.elastic_reference.data, f"Reference run is not loaded: {correction_setup.elastic_reference}"
 
         ##############################################
         # PROCESS SAMPLE AND BACKGROUND TRANSMISSIONS
@@ -1128,7 +1126,7 @@ def process_auto_wedge(
     ]  # this is a parameter from json file
 
     wedges = getWedgeSelection(iq2d_input, **auto_wedge_setup)
-    logger.notice(f"found wedge angles:\n" f"              peak: {wedges[0]}\n" f"        background: {wedges[1]}")
+    logger.notice(f"found wedge angles:\n              peak: {wedges[0]}\n        background: {wedges[1]}")
     # sanity check
     assert len(wedges) == 2, f"Auto-wedges {wedges} shall have 2 2-tuples"
     # set automated wedge to reduction configuration for correct plotting.

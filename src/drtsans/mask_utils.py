@@ -258,9 +258,7 @@ def circular_mask_from_beam_center(input_workspace, radius, unit="mm"):
         <radius val="{}" />
     </infinite-cylinder>
     <algebra val="shape" />
-    """.format(
-        r
-    )
+    """.format(r)
     det_ids = FindDetectorsInShape(Workspace=input_workspace, ShapeXML=cylinder)
     return det_ids
 

@@ -5,8 +5,8 @@ import numpy as np
 from mantid.simpleapi import CreateWorkspace
 from mantid.api import mtd
 
-# SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-# time, monitor within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
+# SampleLogs within <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
+# time, monitor within <https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/normalization.py>
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import (
     load_events,
@@ -105,9 +105,9 @@ def test_normalization_by_time(data_test_16a_by_time, temp_workspace_name):
 
     **drtsans functions used:**
     ~drtsans.samplelogs.SampleLogs
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
     ~drtsans.tof.normalization.normalize_by_time
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalization.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/normalization.py>
     """
     # Create a sample workspace with the input data
     data_workspace = temp_workspace_name()
@@ -265,9 +265,9 @@ def test_normalization_by_monitor(data_test_16a_by_monitor, temp_workspace_name)
 
     **drtsans functions used:**
     ~drtsans.samplelogs.SampleLogs
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
     ~drtsans.tof.normalization.normalize_by_monitor
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalization.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/normalization.py>
     """
     # Input intensities from the test, only one value per detector pixel
     intensities_list = np.array(data_test_16a_by_monitor["I_sam"]).flatten()
@@ -446,9 +446,9 @@ def test_normalize_by_proton_charge_and_flux(data_test_16a_by_proton_charge_and_
 
     **drtsans functions used:**
     ~drtsans.samplelogs.SampleLogs
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
     ~drtsans.tof.normalization.normalize_by_proton_charge_and_flux
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/normalization.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/normalization.py>
     """
     test_data = data_test_16a_by_proton_charge_and_flux  # handy shortcut
     # Input intensities from the test, only one value per detector pixel

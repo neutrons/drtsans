@@ -32,7 +32,7 @@ def test_create_monitor_node(datarepo_dir):
     bank9_entry = nexus_h5["/entry/monitor1"]
     event_indexes = bank9_entry["event_index"][()]
     event_time_offsets = bank9_entry["event_time_offset"][()]
-    event_time_zeros = bank9_entry["event_time_zero"][(())]
+    event_time_zeros = bank9_entry["event_time_zero"][()]
     run_start_time = bank9_entry["event_time_zero"].attrs["offset"].decode()
 
     # check type
@@ -74,7 +74,7 @@ def test_create_events_node(datarepo_dir):
     event_ids = bank9_entry["event_id"][()]
     event_indexes = bank9_entry["event_index"][()]
     event_time_offsets = bank9_entry["event_time_offset"][()]
-    event_time_zeros = bank9_entry["event_time_zero"][(())]
+    event_time_zeros = bank9_entry["event_time_zero"][()]
     run_start_time = bank9_entry["event_time_zero"].attrs["offset"].decode()
 
     # check type
@@ -173,7 +173,7 @@ def test_create_instrument_node(datarepo_dir):
 
     # attributes
     # cannot get b'NXinstrument'
-    assert source_instrument.attributes == test_node.attributes, "{} shall be same as {}" "".format(
+    assert source_instrument.attributes == test_node.attributes, "{} shall be same as {}".format(
         source_instrument.attributes, test_node.attributes
     )
 

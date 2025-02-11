@@ -244,9 +244,9 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
             function_data_set[0] = peak_fit_dict[index]["fit_function"]
 
     # add peak fitting result
-    for param_name in func_param_dict:
+    for param_name, param_value in func_param_dict.items():
         # form data set
-        data_set = np.array(func_param_dict[param_name])
+        data_set = np.array(param_value)
         fit_group.create_dataset(param_name, data=data_set)
 
     # close
@@ -501,8 +501,7 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
             break
     # output
     print(
-        f"[WEDGE FIT] azimuthal: {azimuthal_new}, {azimuthal_last} with "
-        f"left and right as {left_index}, {right_index}"
+        f"[WEDGE FIT] azimuthal: {azimuthal_new}, {azimuthal_last} with left and right as {left_index}, {right_index}"
     )
 
     # now use the first two moments of the data within the window to give an improved center position (first moment)
@@ -837,7 +836,7 @@ def _fitQAndAzimuthal(
                 fit_result_dict[index]["error"] = error_reason
                 continue
             else:
-                fitted_peaks_message += f"spectrum {index-1}: Fitted peaks: {newlyFittedPeaks}\n"
+                fitted_peaks_message += f"spectrum {index - 1}: Fitted peaks: {newlyFittedPeaks}\n"
             for i in range(len(peakResults)):
                 peakResults[i].append(newlyFittedPeaks[i])
             q_centers_used.append(q_center)

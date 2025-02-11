@@ -120,7 +120,7 @@ def _q_label(backend: str, subscript=""):
     if backend == Backend.MATPLOTLIB:
         return "$" + label + r" (\AA^{-1})$"
     else:  # mpld3
-        return label + " (1/{})".format("\u212B")
+        return label + " (1/{})".format("\u212b")
 
 
 def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_kwargs={}, **kwargs):

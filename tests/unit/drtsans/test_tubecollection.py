@@ -8,7 +8,7 @@ from mantid.kernel import V3D
 
 r"""
 Hyperlinks to the tubecollection
-<https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
+<https://github.com/neutrons/drtsans/blob/next/src/drtsans/tubecollection.py>
 """  # noqa: E501
 from drtsans import tubecollection
 

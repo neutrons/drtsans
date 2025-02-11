@@ -5,14 +5,14 @@ import scipy.constants
 from collections import namedtuple
 from mantid.simpleapi import AddSampleLog
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/convert_to_q.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/convert_to_q.py
 from drtsans.mono.momentum_transfer import (
     convert_to_q,
     mono_resolution,
     retrieve_instrument_setup,
 )
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/resolution.py
 import drtsans.resolution
 
 
@@ -53,12 +53,7 @@ def sigma_neutron(wavelength, delta_lambda, Qx, Qy, theta, L1, L2, R1, R2, x3, y
     sigma_y = (2 * np.pi * np.cos(theta) * np.cos(2 * theta) ** 2 / wavelength / L2) ** 2
     sigma_y = (
         sigma_y
-        * (
-            (L2 / L1) ** 2 * R1**2 / 4
-            + (1 + L2 / L1) ** 2 * R2**2 / 4
-            + y3**2 / 12
-            + 2 * B**2 * wavelength**4 * r / 3
-        )
+        * ((L2 / L1) ** 2 * R1**2 / 4 + (1 + L2 / L1) ** 2 * R2**2 / 4 + y3**2 / 12 + 2 * B**2 * wavelength**4 * r / 3)
         + Qy**2 / 6 * r
     )
     sigma_x = np.sqrt(sigma_x)

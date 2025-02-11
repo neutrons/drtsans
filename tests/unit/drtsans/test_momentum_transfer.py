@@ -9,9 +9,9 @@ from mantid.simpleapi import MaskDetectors
 
 r"""
 Hyperlinks to drtsans functions
-pixel_centers <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py>
-convert_to_q, _filter_and_replicate, subpixel_info <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/momentum_transfer.py>
-namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+pixel_centers <https://github.com/neutrons/drtsans/blob/next/src/drtsans/geometry.py>
+convert_to_q, _filter_and_replicate, subpixel_info <https://github.com/neutrons/drtsans/blob/next/src/drtsans/momentum_transfer.py>
+namedtuplefy <https://github.com/neutrons/drtsans/blob/next/src/drtsans/settings.py>
 """  # noqa: E501
 from drtsans.geometry import pixel_centers
 from drtsans.momentum_transfer import convert_to_q, _filter_and_replicate, subpixel_info

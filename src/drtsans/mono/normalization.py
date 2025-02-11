@@ -3,12 +3,13 @@ Links to mantid algorithms
 CreateSingleValuedWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html>
 Divide <https://docs.mantidproject.org/nightly/algorithms/Divide-v1.html>
 """
+
 from mantid.simpleapi import CreateSingleValuedWorkspace, Divide
 from mantid.api import mtd
 
 r"""
 Hyperlinks to drtsans functions
-SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+SampleLogs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
 """  # noqa: E501
 from drtsans.samplelogs import SampleLogs
 

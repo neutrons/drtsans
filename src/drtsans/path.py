@@ -154,7 +154,7 @@ def abspath(path: str, instrument="", ipts="", directory=None, search_archive=Tr
         if os.path.exists(option):
             return option
 
-    raise RuntimeError("None of the locations suggested by ONCat contain " 'existing files for "{}"'.format(path))
+    raise RuntimeError('None of the locations suggested by ONCat contain existing files for "{}"'.format(path))
 
 
 def abspaths(runnumbers, instrument="", ipts="", directory=None, search_archive=True):

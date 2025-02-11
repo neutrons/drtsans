@@ -113,7 +113,7 @@ def parse_json_meta_data(
         except KeyError as key_error:
             # Required value cannot be found
             raise KeyError(
-                "JSON file shall have key as [configuration][{}]. Error message: {}" "".format(meta_name, key_error)
+                "JSON file shall have key as [configuration][{}]. Error message: {}".format(meta_name, key_error)
             )
 
     return overwrite_dict
@@ -149,8 +149,7 @@ def _parse_new_meta_data_json(reduction_input, meta_name, unit_conversion_factor
     except KeyError as key_error:
         # Required value cannot be found
         raise KeyError(
-            "JSON file shall have key as configuration:{}:{}. Error message: {}"
-            "".format(meta_name, run_type, key_error)
+            "JSON file shall have key as configuration:{}:{}. Error message: {}".format(meta_name, run_type, key_error)
         )
     meta_value_dict[SAMPLE] = overwrite_value
 
@@ -179,14 +178,14 @@ def _parse_new_meta_data_json(reduction_input, meta_name, unit_conversion_factor
     except ValueError as value_error:
         # Overwritten value error
         raise RuntimeError(
-            "JSON value of key configuration:{}:{} has a value error.  Error message: {}"
-            "".format(meta_name, run_type, value_error)
+            "JSON value of key configuration:{}:{} has a value error.  Error message: {}".format(
+                meta_name, run_type, value_error
+            )
         )
     except KeyError as key_error:
         # Required value cannot be found
         raise KeyError(
-            "JSON file shall have key as configuration:{}:{}. Error message: {}"
-            "".format(meta_name, run_type, key_error)
+            "JSON file shall have key as configuration:{}:{}. Error message: {}".format(meta_name, run_type, key_error)
         )
 
 
@@ -328,7 +327,7 @@ def set_meta_data(
         pass
     else:
         raise RuntimeError(
-            "Pixel size X ({}) and Y ({}) must be set together" "".format(smearing_pixel_size_x, smearing_pixel_size_y)
+            "Pixel size X ({}) and Y ({}) must be set together".format(smearing_pixel_size_x, smearing_pixel_size_y)
         )
 
     # Add log value
@@ -384,12 +383,11 @@ def get_sample_detector_offset(
     # read sample log for SampleToSi and convert to meter from mm
     sample_to_si = sample_logs.find_log_with_units(sample_si_meta_name, "mm") * 1e-3
     logger.notice(
-        "[META INIT] User SSD = {}, SWD = {},"
-        "".format(overwrite_sample_detector_distance, overwrite_sample_si_distance)
+        "[META INIT] User SSD = {}, SWD = {},".format(overwrite_sample_detector_distance, overwrite_sample_si_distance)
     )
     logger.notice("[META] EPICS Sample to Si = {} meter".format(sample_to_si))
     logger.notice(
-        "[META] Hardcoded Sample to nominal distance = {} meter" "".format(zero_sample_offset_sample_si_distance)
+        "[META] Hardcoded Sample to nominal distance = {} meter".format(zero_sample_offset_sample_si_distance)
     )
 
     # Offsets: shift both sample and detector to conserve sample-detector distance
@@ -413,9 +411,9 @@ def get_sample_detector_offset(
             # Shift the sample position only without moving detector
             overwrite_offset = sample_to_si - overwrite_sample_si_distance
             logger.notice(
-                "[META-Overwrite SSD] SampleToSi = {}, SampleToSiOverwrite = {}, "
-                "Original SampleOffset = {}"
-                "".format(sample_to_si, overwrite_sample_si_distance, sample_offset)
+                "[META-Overwrite SSD] SampleToSi = {}, SampleToSiOverwrite = {}, Original SampleOffset = {}".format(
+                    sample_to_si, overwrite_sample_si_distance, sample_offset
+                )
             )
             sample_offset += overwrite_offset
             real_sample_det_distance -= overwrite_offset

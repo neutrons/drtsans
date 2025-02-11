@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/correct_frame.py
 from drtsans.tof.eqsans.correct_frame import convert_to_wavelength
 
 

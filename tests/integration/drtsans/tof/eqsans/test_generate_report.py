@@ -9,7 +9,7 @@ def test_generate_report(datarepo_dir):
 
     cmd = ["generate_report", TEST_FILE]
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
     pattern = """drtsan version                                                   1.10.2+d20231019
 mantid version                                                              6.8.0

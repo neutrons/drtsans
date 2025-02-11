@@ -78,9 +78,9 @@ def test_pixel_calibration(datarepo_dir, temp_directory):
         datarepo_dir.gpsans,
         f"calibrations/CG2_Pixel_Calibration_Expected_{last_pt - first_pt + 1}.nxs",
     )
-    assert os.path.exists(
-        expected_calibration_table
-    ), f"Gold result (file) {expected_calibration_table} cannot be found."
+    assert os.path.exists(expected_calibration_table), (
+        f"Gold result (file) {expected_calibration_table} cannot be found."
+    )
 
     compare_pixel_calibration_files(calibration_table, expected_calibration_table)
 

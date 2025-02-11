@@ -28,7 +28,7 @@ def test_calculate_theta_dependent_transmission_single_value(workspace_with_inst
 
     drtsans functions employed:
     - apply_transmission_correction:
-          <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py#L172>
+          <https://github.com/neutrons/drtsans/blob/next/src/drtsans/transmission.py#L172>
     """
 
     # Generate a detector with five pixels, and embed the detector in a Mantid workspace

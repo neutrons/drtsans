@@ -1,6 +1,7 @@
 """
 Module for algorithms to prepare sensitivity for instrument with moving detector
 """
+
 import numpy as np
 from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
 import drtsans.mono.gpsans as gp
@@ -99,7 +100,7 @@ def _mask_zero_count_pixel(flood_data_matrix, flood_sigma_matrix):
     """
     # get the zero count elments
     zero_count_elements = flood_data_matrix < 1e-12
-    logger.notice(f"Input flood runs: total {len(np.where(zero_count_elements)[0])} are " f"masked")
+    logger.notice(f"Input flood runs: total {len(np.where(zero_count_elements)[0])} are masked")
 
     # set to NaN
     flood_data_matrix[zero_count_elements] = np.nan

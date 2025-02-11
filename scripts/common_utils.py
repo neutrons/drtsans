@@ -1,4 +1,5 @@
-""" Common utility functions for all SANS """
+"""Common utility functions for all SANS"""
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt

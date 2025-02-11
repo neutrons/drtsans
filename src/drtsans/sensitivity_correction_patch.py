@@ -17,7 +17,7 @@ from mantid.simpleapi import (
     CreateWorkspace,
 )
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fdetector.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans%2Fdetector.py
 from drtsans.detector import Component
 
 
@@ -151,8 +151,9 @@ def calculate_sensitivity_correction(
         # This shall be an option later
         if len(xx) < min_detectors_per_tube:
             logger.error(
-                "Skipping tube with indices {} with {} non-masked value. Too many "
-                "masked or dead pixels.".format(j, len(xx))
+                "Skipping tube with indices {} with {} non-masked value. Too many masked or dead pixels.".format(
+                    j, len(xx)
+                )
             )
             continue
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
 
 # Functions exposed to the general user (public) API
@@ -58,7 +58,7 @@ def attenuation_factor(input_workspace):
     # The fitted attenuator parameters for the equation A * exp(-B * λ) + C
     # Provided by Lisa Debeer-Schmitt, 2020-02-26, original file
     # provided can be found at
-    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/data/attenuator_fitting_parameters.txt
+    # https://github.com/neutrons/drtsans/blob/next/data/attenuator_fitting_parameters.txt
     # In the following format (Amp, Amp Err, exp const, exp const err,  bkgd, bkgd err)
     attenuators = {
         3: (  # x3

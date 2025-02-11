@@ -1,26 +1,26 @@
 import numpy as np
 from collections import namedtuple
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/momentum_transfer.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/momentum_transfer.py
 import drtsans.momentum_transfer
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/resolution.py
 import drtsans.resolution
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/geometry.py
 from drtsans.tof.eqsans.geometry import (
     sample_aperture_diameter,
     source_aperture_diameter,
     source_aperture_sample_distance,
 )
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/geometry.py
 from drtsans import geometry as sans_geometry
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/dataobjects.py
 from drtsans.dataobjects import IQazimuthal, IQcrystal, IQmod, DataType
 from mantid.kernel import logger
 

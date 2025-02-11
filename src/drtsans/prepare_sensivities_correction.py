@@ -47,9 +47,9 @@ PATCHING_DETECTORS = "Patching Detectors"
 # Using dictionary with instrument name as key is solution for it.
 
 # prepare data  in .../api.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmono%2Fgpsans%2Fapi.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmono%2Fbiosans%2Fapi.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Ftof%2Feqsans%2Fapi.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans%2Fmono%2Fgpsans%2Fapi.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans%2Fmono%2Fbiosans%2Fapi.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans%2Ftof%2Feqsans%2Fapi.py
 PREPARE_DATA = {
     CG2: drtsans.mono.gpsans.api.prepare_data,
     CG3: drtsans.mono.biosans.api.prepare_data,
@@ -57,8 +57,8 @@ PREPARE_DATA = {
 }
 
 # Find beam center in .../find_beam_center.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmono%2Fbiosans%2Fbeam_finder.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fbeam_finder.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans%2Fmono%2Fbiosans%2Fbeam_finder.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans%2Fbeam_finder.py
 FIND_BEAM_CENTER = {
     CG2: drtsans.mono.gpsans.find_beam_center,
     CG3: drtsans.mono.biosans.find_beam_center,
@@ -66,23 +66,23 @@ FIND_BEAM_CENTER = {
 }
 
 # Center detector in
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fmono%2Fbiosans%2Fbeam_finder.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fbeam_finder.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans%2Fmono%2Fbiosans%2Fbeam_finder.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans%2Fbeam_finder.py
 CENTER_DETECTOR = {
     CG2: drtsans.mono.gpsans.center_detector,
     CG3: drtsans.mono.biosans.center_detector,
     EQSANS: drtsans.tof.eqsans.center_detector,
 }
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsolid_angle.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans%2Fsolid_angle.py
 SOLID_ANGLE_CORRECTION = {
     CG2: drtsans.mono.gpsans.solid_angle_correction,
     CG3: drtsans.mono.biosans.solid_angle_correction,
     EQSANS: drtsans.solid_angle_correction,
 }
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsensitivity_correction_moving_detectors.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans%2Fsensitivity_correction_patch.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans%2Fsensitivity_correction_moving_detectors.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans%2Fsensitivity_correction_patch.py
 CALCULATE_SENSITIVITY_CORRECTION = {
     MOVING_DETECTORS: calculate_sensitivity_correction_moving,
     PATCHING_DETECTORS: calculate_sensitivity_correction_patch,
@@ -167,8 +167,7 @@ class PrepareSensitivityCorrection(object):
         # Array
         if len(problematic_pixels) > 0:
             raise RuntimeError(
-                f"Impossible case: pixels {problematic_pixels} has local detector mask is on, "
-                f"but total mask is off"
+                f"Impossible case: pixels {problematic_pixels} has local detector mask is on, but total mask is off"
             )
 
         logger.debug(
@@ -726,7 +725,7 @@ class PrepareSensitivityCorrection(object):
         for i in range(num_workspaces_set):
             flood_ws_i = self._prepare_flood_data(self._flood_runs[i], beam_centers[i], self._dark_current_runs[i])
             flood_workspaces.append(flood_ws_i)
-            logger.notice(f"Load {i}-th flood run {self._flood_runs[i]} to " f"{flood_ws_i}")
+            logger.notice(f"Load {i}-th flood run {self._flood_runs[i]} to {flood_ws_i}")
 
         # Retrieve masked detectors before masking the beam center. These are termed "bad pixels"
         if not use_moving_detector_method:

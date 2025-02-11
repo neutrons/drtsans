@@ -19,8 +19,8 @@ from mantid.simpleapi import (
 
 r""" links to drtsans imports
 circular_mask_from_beam_center, masked_detectors available at:
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mask_utils.py>
-beam_radius <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/mask_utils.py>
+beam_radius <https://github.com/neutrons/drtsans/blob/next/src/drtsans/geometry.py>
 """  # noqa: E501
 from drtsans.mask_utils import circular_mask_from_beam_center, masked_detectors
 

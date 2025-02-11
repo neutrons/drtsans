@@ -203,7 +203,7 @@ class ElasticReferenceRunSetup:
         if trans_run_number is None and trans_value is None:
             raise RuntimeError("Either transmission run or transmission value shall be given.")
         elif trans_run_number and trans_value:
-            raise RuntimeError("Either transmission run or transmission value can be given, but " "not both")
+            raise RuntimeError("Either transmission run or transmission value can be given, but not both")
 
         # Background
         self.background_run_number = None
@@ -224,9 +224,7 @@ class ElasticReferenceRunSetup:
         if trans_run_number is None and trans_value is None:
             raise RuntimeError("Either background transmission run or transmission value shall be given.")
         elif trans_run_number and trans_value:
-            raise RuntimeError(
-                "Either background transmission run or transmission value can be given, but " "not both"
-            )
+            raise RuntimeError("Either background transmission run or transmission value can be given, but not both")
 
 
 def parse_correction_config(

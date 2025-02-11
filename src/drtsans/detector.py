@@ -228,7 +228,7 @@ class Component:
                 self.first_index = ws_index
                 break
         else:
-            raise ValueError("Iterared WS and did not find first det id = " "{}".format(first_det_id))
+            raise ValueError("Iterared WS and did not find first det id = {}".format(first_det_id))
 
     def masked_ws_indices(self):
         """
@@ -256,7 +256,7 @@ class Component:
         return np.array([])
 
     def __str__(self):
-        return "Component: {} with {} pixels (dim x={}, dim y={})." " First index = {}.".format(
+        return "Component: {} with {} pixels (dim x={}, dim y={}). First index = {}.".format(
             self._component_name,
             self.dims,
             self.dim_x,

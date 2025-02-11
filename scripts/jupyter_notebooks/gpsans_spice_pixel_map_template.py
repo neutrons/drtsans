@@ -98,7 +98,7 @@ def show_calibration_stage1(raw_flood_ws_name, database_file):
     # Plot flood workspace raw and calibrated
     print("#####\n\nCompare applying the calibration to flood (stage 1)")
 
-    calibrated_flood_ws_name = f'demo_calibrated1_flood_{raw_flood_ws_name.split("flood_")[1]}'
+    calibrated_flood_ws_name = f"demo_calibrated1_flood_{raw_flood_ws_name.split('flood_')[1]}"
     apply_calibrations(
         raw_flood_ws_name,
         output_workspace=calibrated_flood_ws_name,

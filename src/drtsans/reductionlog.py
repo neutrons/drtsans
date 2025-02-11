@@ -400,13 +400,14 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
 
     if type(detectordata) is not dict:
         raise RuntimeError(
-            "detectordata has the wrong type. It should be a dictionary " "and not a {}".format(type(detectordata))
+            "detectordata has the wrong type. It should be a dictionary and not a {}".format(type(detectordata))
         )
     for _slice_name in detectordata.keys():
         if type(detectordata[_slice_name]) is not dict:
             raise RuntimeError(
-                "detectordata value has the wrong type. It should be a dictionary "
-                "and not a {}".format(type(detectordata[_slice_name]))
+                "detectordata value has the wrong type. It should be a dictionary and not a {}".format(
+                    type(detectordata[_slice_name])
+                )
             )
 
         for _detector_name in detectordata[_slice_name].keys():
@@ -427,7 +428,7 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
     if logslicedata:
         if type(logslicedata) is not dict:
             raise RuntimeError(
-                "logslicedata has the wrong type. It should a dictionary " "and not a {}".format(type(logslicedata))
+                "logslicedata has the wrong type. It should a dictionary and not a {}".format(type(logslicedata))
             )
 
         if len(logslicedata.keys()) > len(detectordata.keys()):

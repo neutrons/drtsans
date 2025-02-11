@@ -1,4 +1,4 @@
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/api.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/api.py
 from drtsans import subtract_background
 from drtsans.dataobjects import DataType, IQazimuthal, IQmod
 from tests.conftest import assert_wksp_equal

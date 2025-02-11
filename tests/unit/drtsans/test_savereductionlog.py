@@ -485,8 +485,8 @@ def test_reduction_parameters(cleanfile):
         try:
             assert _strValue(reduction_information_entry["drtsans"], "version") == drtsans_version
         except AttributeError as att_err:
-            info = f'h5py version = {h5py.__version__}: type: {type(reduction_information_entry["drtsans"])}'
-            info += f'\nmethods: {dir(reduction_information_entry["drtsans"])}'
+            info = f"h5py version = {h5py.__version__}: type: {type(reduction_information_entry['drtsans'])}"
+            info += f"\nmethods: {dir(reduction_information_entry['drtsans'])}"
             info += f"\nError: {att_err}"
             raise AttributeError(info)
         assert _strValue(reduction_information_entry["mantid"], "version") == mantid_version

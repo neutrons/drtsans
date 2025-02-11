@@ -282,7 +282,7 @@ def generate_test_data_wavelength(q_dimension, num_wavelengths):
         (intensity, sigma, q, dq, wavelength) or (intensity, sigma, qx, dqx, qy, dqy, wavelength)
 
     """
-    assert isinstance(num_wavelengths, int) and num_wavelengths > 0, "Number of wavelength must be greater" "than 0."
+    assert isinstance(num_wavelengths, int) and num_wavelengths > 0, "Number of wavelength must be greaterthan 0."
 
     if q_dimension == 1:
         # get initial 1D arrays

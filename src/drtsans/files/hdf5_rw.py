@@ -79,7 +79,7 @@ class HDFNode(object):
         # compare class type
         if not isinstance(other_node, type(self)):
             raise TypeError(
-                "Try to match instance of class {} (other) to {} (self)" "".format(type(other_node), type(self))
+                "Try to match instance of class {} (other) to {} (self)".format(type(other_node), type(self))
             )
 
         # compare name
@@ -89,16 +89,14 @@ class HDFNode(object):
         # compare attributes
         if set(self._attributes.keys()) != set(other_node.attributes.keys()):
             print(
-                "Data node {} Attributes are not same:\nself - other = {}]\nother - self = {}"
-                "".format(
+                "Data node {} Attributes are not same:\nself - other = {}]\nother - self = {}".format(
                     self.name,
                     set(self._attributes.keys()) - set(other_node.attributes.keys()),
                     set(other_node.attributes.keys()) - set(self._attributes.keys()),
                 )
             )
             raise KeyError(
-                "Data node {} Attributes are not same:\nself - other = {}]\nother - self = {}"
-                "".format(
+                "Data node {} Attributes are not same:\nself - other = {}]\nother - self = {}".format(
                     self.name,
                     set(self._attributes.keys()) - set(other_node.attributes.keys()),
                     set(other_node.attributes.keys()) - set(self._attributes.keys()),
@@ -109,7 +107,7 @@ class HDFNode(object):
         error_msg = ""
         for attr_name in self._attributes.keys():
             if self._attributes[attr_name] != other_node.attributes[attr_name]:
-                error_msg += "Mismatch attribute {} value: self = {}, other = {}" "".format(
+                error_msg += "Mismatch attribute {} value: self = {}, other = {}".format(
                     attr_name,
                     self._attributes[attr_name],
                     other_node.attributes[attr_name],
@@ -188,7 +186,7 @@ class HDFNode(object):
             except TypeError as type_error:
                 print(f"[ERROR] {self._name}-node attribute {attr_name} is of type {type(attr_name)}")
                 raise TypeError(
-                    f"[ERROR] {self._name}-node attribute {attr_name} is of type " f"{type(attr_name)}: {type_error}"
+                    f"[ERROR] {self._name}-node attribute {attr_name} is of type {type(attr_name)}: {type_error}"
                 )
 
 

@@ -1,4 +1,5 @@
-""" BIOSANS API """
+"""BIOSANS API"""
+
 # local imports
 import drtsans
 from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
@@ -1515,8 +1516,8 @@ def reduce_single_configuration(
         if debug_output:
             from mantid.simpleapi import SaveNexusProcessed
 
-            main_name = f'{form_output_name(processed_data_main).split(".")[0]}.nxs'
-            wing_name = f'{form_output_name(processed_data_wing).split(".")[0]}.nxs'
+            main_name = f"{form_output_name(processed_data_main).split('.')[0]}.nxs"
+            wing_name = f"{form_output_name(processed_data_wing).split('.')[0]}.nxs"
             # remove history to write less data and speed up I/O
             if reduction_config["removeAlgorithmHistory"]:
                 RemoveWorkspaceHistory(processed_data_main)
@@ -1535,7 +1536,7 @@ def reduce_single_configuration(
                 backend="mpl",
             )  # , imshow_kwargs={'norm': LogNorm(vmin=1)})
             if reduction_config["has_midrange_detector"]:
-                midrange_name = f'{form_output_name(processed_data_midrange).split(".")[0]}.nxs'
+                midrange_name = f"{form_output_name(processed_data_midrange).split('.')[0]}.nxs"
                 # remove history to write less data and speed up I/O
                 if reduction_config["removeAlgorithmHistory"]:
                     RemoveWorkspaceHistory(processed_data_midrange)
@@ -2145,9 +2146,7 @@ def file_has_midrange_detector(sample: str, instrument_name: str, ipts: str, dir
         instrument=instrument_name,
         ipts=ipts,
         directory=directory,
-    ).split(
-        ","
-    )[0]
+    ).split(",")[0]
 
     out_ws_name = mtd.unique_hidden_name()
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import pytest
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/gpsans/attenuation.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/gpsans/attenuation.py
 from drtsans.mono.gpsans import attenuation_factor
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
 
 

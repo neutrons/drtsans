@@ -1,6 +1,7 @@
 """
 Integration test to create event nexus file
 """
+
 import pytest
 import numpy as np
 import os
@@ -421,7 +422,7 @@ def verify_reduction_results(sample_names, output_dir, gold_path, title, prefix,
         try:
             compare_reduced_iq(output_log_file, gold_log_file, title_i, prefix, rel_tol=rel_tol)
         except AssertionError as unmatched_error:
-            unmatched_errors = "Testing output {} is different from gold result {}:\n{}" "".format(
+            unmatched_errors = "Testing output {} is different from gold result {}:\n{}".format(
                 output_log_file, gold_log_file, unmatched_error
             )
     # END-FOR

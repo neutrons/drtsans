@@ -5,9 +5,9 @@ from numpy.testing import assert_almost_equal
 # https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html
 from mantid.simpleapi import LoadNexus, mtd
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/transmission.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/settings.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/correct_frame.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/transmission.py
 from drtsans.settings import namedtuplefy  # noqa: E402
 from drtsans.samplelogs import SampleLogs  # noqa: E402
 from drtsans.tof.eqsans.correct_frame import transmitted_bands  # noqa: E402
@@ -82,8 +82,8 @@ def test_fit_raw(trasmission_data, clean_workspace):
     """
     # Non-skip mode
     fitting_results = fit_raw_transmission(trasmission_data.raw, output_workspace=mtd.unique_hidden_name())
-    clean_workspace(fitting_results.transmission),
-    clean_workspace(fitting_results.lead_transmission),
+    clean_workspace(fitting_results.transmission)
+    clean_workspace(fitting_results.lead_transmission)
     clean_workspace(fitting_results.lead_mantid_fit.OutputWorkspace)
     clean_workspace(fitting_results.lead_mantid_fit.OutputNormalisedCovarianceMatrix)
     clean_workspace(fitting_results.lead_mantid_fit.OutputParameters)
@@ -91,8 +91,8 @@ def test_fit_raw(trasmission_data, clean_workspace):
 
     # Frame-skipping mode
     fitting_results = fit_raw_transmission(trasmission_data.raw_skip, output_workspace=mtd.unique_hidden_name())
-    clean_workspace(fitting_results.transmission),
-    clean_workspace(fitting_results.lead_transmission),
+    clean_workspace(fitting_results.transmission)
+    clean_workspace(fitting_results.lead_transmission)
     clean_workspace(fitting_results.lead_mantid_fit.OutputWorkspace)
     clean_workspace(fitting_results.lead_mantid_fit.OutputNormalisedCovarianceMatrix)
     clean_workspace(fitting_results.lead_mantid_fit.OutputParameters)

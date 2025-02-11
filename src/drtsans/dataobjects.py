@@ -619,10 +619,10 @@ class IQazimuthal(namedtuple("IQazimuthal", "intensity error qx qy delta_qx delt
 
             # Sanity check
             assert qx.shape == intensity.shape, (
-                f"qx and intensity must have same shapes.  " f"It is not now: {qx.shape} vs {intensity.shape}"
+                f"qx and intensity must have same shapes.  It is not now: {qx.shape} vs {intensity.shape}"
             )
             assert qy.shape == intensity.shape, (
-                f"qy and intensity must have same shapes.  " f"It is not now: {qy.shape} vs {intensity.shape}"
+                f"qy and intensity must have same shapes.  It is not now: {qy.shape} vs {intensity.shape}"
             )
 
         # pass everything to namedtuple

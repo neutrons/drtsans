@@ -31,7 +31,7 @@ def determine_1d_linear_bins(x_min, x_max, bins):
     # Check input x min and x max
     if x_min is None or x_max is None or x_min >= x_max:
         raise RuntimeError(
-            "x min {} and x max {} must not be None and x min shall be less than x max" "".format(x_min, x_max)
+            "x min {} and x max {} must not be None and x min shall be less than x max".format(x_min, x_max)
         )
     # force the number of bins to be an integer and error check it
     bins = int(bins)
@@ -104,9 +104,7 @@ def determine_1d_log_bins(x_min, x_max, decade_on_center, n_bins_per_decade=None
 
         # case that is not supported
         if decade_on_center:
-            assert n_bins_per_decade is not None, (
-                "For option decade_on_center, number of bins per decade " "is required"
-            )
+            assert n_bins_per_decade is not None, "For option decade_on_center, number of bins per decade is required"
         x_ref = x_min
 
         # calculate bin step size

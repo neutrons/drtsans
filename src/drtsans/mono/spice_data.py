@@ -104,9 +104,7 @@ class SpiceRun(NamedTuple):
         nexus_path = os.path.join(nexus_dir, base_nexus_name)
 
         if raise_if_not_exist and not os.path.exists(nexus_path):
-            raise RuntimeError(
-                f"Spice converted Nexus file {base_nexus_name} does not exist in " f"directory {nexus_dir}"
-            )
+            raise RuntimeError(f"Spice converted Nexus file {base_nexus_name} does not exist in directory {nexus_dir}")
 
         return nexus_path
 

@@ -5,8 +5,6 @@ import json
 import numpy as np
 import numexpr
 import os
-import stat
-import sys
 import warnings
 
 
@@ -51,9 +49,9 @@ from mantid.api import FileLoaderRegistry, mtd
 
 r"""
 Hyperlinks to drtsans functions
-namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
-SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
+namedtuplefy <https://github.com/neutrons/drtsans/blob/next/src/drtsans/settings.py>
+SampleLogs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
+TubeCollection <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tubecollection.py>
 """  # noqa: E501
 from drtsans.instruments import (
     InstrumentEnumName,
@@ -99,6 +97,7 @@ database_file = {
 
 class CalType(enum.Enum):
     r"""Enumerate the possible types of pixel calibrations"""
+
     BARSCAN = "BARSCAN"
     TUBEWIDTH = "TUBEWIDTH"
 
@@ -206,9 +205,9 @@ class BarPositionFormula:
             When the formula fails to contain symbols '{y}' and '{tube}'.
         """
         if "{y}" not in formula:
-            raise ValueError(f'Formula does not contain "{{y}}", e.g. formula = "565-{{y}}+0.008*(191-{{tube}})"')
+            raise ValueError('Formula does not contain "{y}", e.g. formula = "565-{y}+0.008*(191-{tube})"')
         if "{tube}" not in formula:
-            warnings.warn(f'Formula does not contain "{{tube}}", e.g. formula = "565-{{y}}+0.008*(191-{{tube}})"')
+            warnings.warn('Formula does not contain "{tube}", e.g. formula = "565-{y}+0.008*(191-{tube})"')
             formula += " + 0.0 * {tube}"
         return formula
 
@@ -325,7 +324,7 @@ class Table:
         str
         """
         m = metadata  # handy shortcut
-        return f'{m["caltype"].lower()}_{m["instrument"]}_{m["component"]}_{str(m["daystamp"])}'
+        return f"{m['caltype'].lower()}_{m['instrument']}_{m['component']}_{str(m['daystamp'])}"
 
     @classmethod
     def load(cls, database, caltype, instrument, component, daystamp, output_workspace=None):
@@ -919,10 +918,9 @@ def _consecutive_true_values(values, how_many, reverse=False, raise_message=None
         if truth_array[i : i + how_many] == pattern:
             return len(values) - i - 1 if reverse else i
     # raise an error if the pattern is not found
-    else:
-        if raise_message is not None:
-            raise IndexError(raise_message)
-        return INCORRECT_PIXEL_ASSIGNMENT  # signal for non-identified value
+    if raise_message is not None:
+        raise IndexError(raise_message)
+    return INCORRECT_PIXEL_ASSIGNMENT  # signal for non-identified value
 
 
 @namedtuplefy
@@ -1108,7 +1106,7 @@ def fit_positions(
         # evaluate the heights. All should be positive
         calculated_heights = np.polynomial.polynomial.polyval(np.arange(tube_pixels), deriv_coefficients)
         if permissive is False and calculated_heights[calculated_heights <= 0.0].size > 0:
-            raise ValueError(f"Some of the calculated heights are negative.\n" f"Heights = {calculated_heights}")
+            raise ValueError(f"Some of the calculated heights are negative.\nHeights = {calculated_heights}")
     except Exception:
         coefficients = np.ones(int(order)) * np.nan
         calculated_positions = np.ones(tube_pixels) * np.nan
@@ -1768,10 +1766,10 @@ def as_intensities(input_workspace, component="detector1", views=["positions", "
     intensities = np.zeros(number_histograms)
 
     returned_views = {}
-    for cal_prop in pixel_props:  # 'positions', 'heights', 'widths', 'positions_mantid'
+    for cal_prop, pixel_prop in pixel_props.items():  # 'positions', 'heights', 'widths', 'positions_mantid'
         output_workspace = f"{str(input_workspace)}_{cal_prop}"  # Workspace containing the property as  intensity
         # intensties will be non-zero only for workpace indexes that have associated pixels of interests
-        intensities[workspace_indexes] = pixel_props[cal_prop]
+        intensities[workspace_indexes] = pixel_prop
         workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
         for index in range(number_histograms):
             workspace.dataY(index)[:] = intensities[index]

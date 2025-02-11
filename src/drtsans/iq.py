@@ -1,24 +1,24 @@
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/docs/drtsans/dataobjects.rst
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/dataobjects.py
+from enum import Enum
+from typing import Any, List, Tuple, Union
+
 import numpy
+import numpy as np
 
 from drtsans.dataobjects import (
     DataType,
-    getDataType,
     IQazimuthal,
     IQmod,
-    q_azimuthal_to_q_modulo,
     concatenate,
+    getDataType,
+    q_azimuthal_to_q_modulo,
 )
-from enum import Enum
-from typing import List, Any, Tuple
-import numpy as np
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/determine_bins.py
 from drtsans.determine_bins import (
-    determine_1d_log_bins,
-    determine_1d_linear_bins,
     BinningParams,
+    determine_1d_linear_bins,
+    determine_1d_log_bins,
 )
 
 # To ignore warning:   invalid value encountered in true_divide
@@ -47,7 +47,7 @@ class BinningMethod(Enum):
     WEIGHTED = 2  # weighted binning
 
 
-def check_iq_for_binning(i_of_q):
+def check_iq_for_binning(i_of_q: Union[IQmod, IQazimuthal]):
     """Check I(Q) for binning.
 
     Binning I(Q) assumes that
@@ -117,14 +117,16 @@ def valid_wedge(min_angle, max_angle) -> List[Tuple[float, float]]:
         if diff < 180.0:
             return [(min_angle, max_angle)]
         raise ValueError(
-            "wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} < 180"
-            "".format(max_angle, min_angle, diff)
+            "wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} < 180".format(
+                max_angle, min_angle, diff
+            )
         )
     diff = min_angle - max_angle
     if diff <= 180:
         raise ValueError(
-            "wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} <= 180"
-            "".format(min_angle, max_angle, diff)
+            "wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} <= 180".format(
+                min_angle, max_angle, diff
+            )
         )
     return [(min_angle, 270.1), (-90.1, max_angle)]
 

@@ -1,6 +1,7 @@
 """
-    Test top-level API
+Test top-level API
 """
+
 from os.path import join as pj
 import pytest
 from pytest import approx

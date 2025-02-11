@@ -408,7 +408,7 @@ def correct_emission_time(input_workspace):
     SetInstrumentParameter(
         Workspace=input_workspace,
         ParameterName="t0_formula",
-        Value="incidentEnergy=sqrt(81.80420249996277/incidentEnergy), (incidentEnergy < 2.0) ? 0.5*(1280.5-7448.4*incidentEnergy+16509*incidentEnergy^2-17872*incidentEnergy^3+10445*incidentEnergy^4-3169.3*incidentEnergy^5+392.31*incidentEnergy^6) : 0.5*(231.99+6.4797*incidentEnergy-0.5233*incidentEnergy^2+0.0148*incidentEnergy^3)",
+        Value="incidentEnergy=sqrt(81.80420249996277/incidentEnergy), (incidentEnergy < 2.0) ? 0.5*(1280.5-7448.4*incidentEnergy+16509*incidentEnergy^2-17872*incidentEnergy^3+10445*incidentEnergy^4-3169.3*incidentEnergy^5+392.31*incidentEnergy^6) : 0.5*(231.99+6.4797*incidentEnergy-0.5233*incidentEnergy^2+0.0148*incidentEnergy^3)",  # noqa: E501
     )
     ModeratorTzero(
         InputWorkspace=input_workspace,

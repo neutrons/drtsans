@@ -1,5 +1,4 @@
 # https://github.com/neutrons/drtsans/blob/next/src/drtsans/dataobjects.py
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/docs/drtsans/dataobjects.rst
 import numpy
 
 from drtsans.dataobjects import (

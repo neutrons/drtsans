@@ -1,9 +1,9 @@
-# https://github.com/neutrons/drtsans/blob/next/src/drtsans/dataobjects.py
 from enum import Enum
 from typing import Any, List, Tuple, Union
 
 import numpy
 import numpy as np
+from mantid.simpleapi import logger
 
 from drtsans.dataobjects import (
     DataType,
@@ -13,15 +13,11 @@ from drtsans.dataobjects import (
     getDataType,
     q_azimuthal_to_q_modulo,
 )
-
-# https://github.com/neutrons/drtsans/blob/next/src/drtsans/determine_bins.py
 from drtsans.determine_bins import (
     BinningParams,
     determine_1d_linear_bins,
     determine_1d_log_bins,
 )
-
-from mantid.simpleapi import logger
 
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide="ignore", invalid="ignore")
@@ -65,6 +61,7 @@ def check_iq_for_binning(i_of_q: Union[IQmod, IQazimuthal]) -> bool:
     bool
         True if the input I(Q) for binning meets the assumptions
     """
+
     error_message = ""
 
     # Check intensity

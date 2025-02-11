@@ -1,23 +1,20 @@
 import numpy as np
-from drtsans.dataobjects import IQmod
+import pytest
 
-# https://github.com/neutrons/drtsans/blob/next/src/drtsans/iq.py
+from drtsans.dataobjects import IQmod
 from drtsans.determine_bins import Bins
 from drtsans.iq import (
-    determine_1d_linear_bins,
-    determine_1d_log_bins,
     BinningMethod,
     bin_intensity_into_q1d,
+    determine_1d_linear_bins,
+    determine_1d_log_bins,
 )
-
-# https://github.com/neutrons/drtsans/blob/next/tests/unit/drtsans/i_of_q_binning_tests_data.py
 from tests.unit.drtsans.i_of_q_binning_tests_data import (
     generate_test_data,
     generate_test_data_wavelength,
     get_gold_1d_linear_bins,
     get_gold_1d_log_bins,
 )
-import pytest
 
 # This module supports testing data for issue #239.
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/239
@@ -83,10 +80,6 @@ def test_1d_bin_log_no_wt():
     """Test '1D_bin_log_no_sub_no_wt'
 
     Test binning methods for 1D no-weight binning with log bins
-
-    Returns
-    -------
-
     """
     # Define Q range from tab '1D_bin_log_no_sub_no_wt' in r4
     q_min = 0.001  # center
@@ -360,6 +353,36 @@ def test_1d_weighted_binning():
     np.testing.assert_allclose(binned_iq_all_wl.intensity, expected_binned_qie[:, 1])
     np.testing.assert_allclose(binned_iq_all_wl.error, expected_binned_qie[:, 2])
     np.testing.assert_allclose(binned_iq_all_wl.delta_mod_q, expected_binned_qie[:, 3])
+
+
+def test_1d_zero_intensities():
+    # Define Q range from tab '1D_bin_log_no_sub_no_wt' in r4
+    q_min = 0.001  # center
+    q_max = 0.010  # center
+    num_steps_per_10 = 10  # 10 steps per decade
+
+    # Verify bin edges and bin center
+    log_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False, n_bins_per_decade=num_steps_per_10)
+
+    binned_iq = bin_intensity_into_q1d(
+        i_of_q=IQmod(
+            intensity=np.zeros(10),
+            error=np.zeros(10),
+            mod_q=np.linspace(0.0, 0.1, 10),
+            delta_mod_q=np.full(10, 0.001),
+        ),
+        q_bins=log_bins,
+        bin_method=BinningMethod.NOWEIGHT,
+    )
+
+    print(f"""
+        {binned_iq.intensity}
+        {binned_iq.error}
+        {binned_iq.mod_q}
+        {binned_iq.delta_mod_q}
+        """)
+
+    assert 1 == 0
 
 
 if __name__ == "__main__":

@@ -1,11 +1,12 @@
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/215_transmission_test/drtsans/transmission.py
-from drtsans.transmission import calculate_transmission, TransmissionErrorToleranceError
+import re
+
 import numpy as np
 import pytest
-import re
 
 # https://docs.mantidproject.org/nightly/algorithms/SetUncertainties-v1.html
 from mantid.simpleapi import SetUncertainties
+
+from drtsans.transmission import TransmissionErrorToleranceError, calculate_transmission
 
 # uncertainties is plain old sqrt(counts)
 # Nx=15, Ny=22

@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
-from drtsans.iq import determine_1d_linear_bins
-from drtsans.determine_bins import determine_1d_log_bins
-from tests.unit.drtsans.i_of_q_binning_tests_data import (
-    get_gold_2d_linear_bins,
-    get_gold_1d_log_bins,
-)
 
+from drtsans.determine_bins import determine_1d_log_bins
+from drtsans.iq import determine_1d_linear_bins
+from tests.unit.drtsans.i_of_q_binning_tests_data import (
+    get_gold_1d_log_bins,
+    get_gold_2d_linear_bins,
+)
 
 # This module supports testing data for issue #239.
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/263
@@ -22,14 +22,6 @@ def no_more_supported_test_log_bins_backward_compatible():
     Method determine_1d_log_bins() has been refactored from its previous version by adding more
     method parameters.  While by default value, this method shall be backward compatible such that
     with x-min, x-max and step-per-decade defined, it shall generate a set of bins same as before.
-
-    Here by using data '1D_bin_log_wedget_no_sub_no_wt' (from
-    https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-    eqsans_tof_q_binning_tests_R5.xlsx), this method is tested
-
-    Returns
-    -------
-
     """
     # Define Q ran
     q_min = 0.001  # Edge
@@ -42,9 +34,6 @@ def no_more_supported_test_log_bins_backward_compatible():
     np.testing.assert_allclose(log_bins.centers, gold_centers, rtol=5.0e-4)
 
 
-# Test EXCEL can be found at
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-# eqsans_tof_q_binning_tests_R5.xlsx
 def test_linear_bin_determination():
     """Test linear bin determination from '2D_bin_no_sub_no_wt'
 
@@ -80,9 +69,6 @@ def test_linear_bin_determination():
 
 
 # Tests are from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/643
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads
-# /8d01373d4ae5f582e90d22656ce87d7f/log_bin_definition_testsR2.xlsx
-# log_bin_definition_testsR2.xlsx
 # All tests' gold data below have 3 columns as bin's left boundary, center and right boundary,
 # which are exactly same in the test Excel file
 # Example 1:
@@ -132,9 +118,6 @@ def test_example1():
 
 
 # Tests are from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/643
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads
-# /8d01373d4ae5f582e90d22656ce87d7f/log_bin_definition_testsR2.xlsx
-# log_bin_definition_testsR2.xlsx
 # All tests' gold data below have 3 columns as bin's left boundary, center and right boundary,
 # which are exactly same in the test Excel file
 # Example 2
@@ -184,9 +167,6 @@ def test_example2():
 
 
 # Tests are from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/643
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads
-# /8d01373d4ae5f582e90d22656ce87d7f/log_bin_definition_testsR2.xlsx
-# log_bin_definition_testsR2.xlsx
 # All tests' gold data below have 3 columns as bin's left boundary, center and right boundary,
 # which are exactly same in the test Excel file
 # Example 3
@@ -252,9 +232,6 @@ def test_example3():
 
 
 # Tests are from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/643
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads
-# /8d01373d4ae5f582e90d22656ce87d7f/log_bin_definition_testsR2.xlsx
-# log_bin_definition_testsR2.xlsx
 # All tests' gold data below have 3 columns as bin's left boundary, center and right boundary,
 # which are exactly same in the test Excel file
 # Example 4
@@ -320,9 +297,6 @@ def test_example4():
 
 
 # Tests are from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/643
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads
-# /8d01373d4ae5f582e90d22656ce87d7f/log_bin_definition_testsR2.xlsx
-# log_bin_definition_testsR2.xlsx
 # All tests' gold data below have 3 columns as bin's left boundary, center and right boundary,
 # which are exactly same in the test Excel file
 # Example 5
@@ -380,7 +354,7 @@ def test_example5():
     np.testing.assert_allclose(test_bins.edges[1:], expected_log_bin_example5[:, 2], rtol=1e-7, atol=1e-6)
 
 
-# A unit test from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/599
+# A unit test from https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/599
 def test_issue599():
     """
     Use function in issue 599

@@ -10,9 +10,6 @@ import numpy as np
 
 # All tests data is from William's tests in eqsans_tof_q_binning_tests_R5.xlsx
 # Intensities for a Generic 2D detector at 3 wavelengths
-# Test EXCEL can be found at
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-# eqsans_tof_q_binning_tests_R5.xlsx
 
 # The workspace is assumed to have 3 wavelengths
 intensities_matrix = np.array(
@@ -382,7 +379,7 @@ def get_gold_1d_log_bins():
     """Get the gold array for 1D logarithm bins
 
     The gold data is re-generated due to the change in log bins calculation equation required by
-    issue https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/643
+    issue https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/643
 
     This is to test the method to create logarithm bins with the setup as
     for bin centers: q_min = 0.001, q_max = 0.010, points density = 9

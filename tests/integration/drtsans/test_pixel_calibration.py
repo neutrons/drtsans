@@ -831,7 +831,7 @@ def test_generate_barscan_calibration(
 ):
     r"""
     Test to determine pixel position and height from from Appendix 2, Section 1 of the master document.
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/documents/Master_requirements_document.pdf>
+    <https://github.com/neutrons/drtsans/blob/next/documents/Master_requirements_document.pdf>
 
     devs - Andrei Savici <saviciat@ornl.gov>
            Jose Borreguero <borreguerojm@ornl.gov>

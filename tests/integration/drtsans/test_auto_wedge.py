@@ -68,7 +68,7 @@ def _create_2d_data():
     )
 
     # IQazimuthal's constructor is corrected in
-    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/merge_requests/951
+    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/merge_requests/951
     # Thus the test input data shall be tranposed accordingly
     intensities = intensities.T
     errors = errors.T
@@ -408,7 +408,7 @@ def test_calc_qmod_and_azimuthal(cleanfile):
 
     np.testing.assert_allclose(qmod, q_exp.ravel(), atol=0.005)
     # IQazimuthal's constructor is corrected in
-    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/merge_requests/951
+    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/merge_requests/951
     # Thus the expected test result shall be tranposed accordingly
     np.testing.assert_allclose(azimuthal, azimuthal_exp.T.ravel(), atol=0.5)
 

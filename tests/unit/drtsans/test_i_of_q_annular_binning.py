@@ -1,13 +1,9 @@
-from drtsans.dataobjects import IQazimuthal
-
-# https://github.com/neutrons/drtsans/blob/next/src/drtsans/iq.py
-from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
-
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/drtsans/i_of_q_binning_tests_data.py
-from tests.unit.drtsans.i_of_q_binning_tests_data import generate_test_data
 import numpy as np
 import pytest
 
+from drtsans.dataobjects import IQazimuthal
+from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
+from tests.unit.drtsans.i_of_q_binning_tests_data import generate_test_data
 
 # This module supports testing data for issue #246.
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/246
@@ -21,13 +17,9 @@ import pytest
 def test_1d_annular_no_wt():
     """Test annular binning I(Qx, Qy) with no-weight binning method
 
-    The test data comes from example in '1D_annular_no_sub_no_wt' eqsans_tof_q_binning_tests_R5.xlsx
-    File location: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-                   eqsans_tof_q_binning_tests_R5.xlsx
     Returns
     -------
     None
-
     """
     # Initialize range of theta angle and Q
     theta_min = 0
@@ -68,13 +60,9 @@ def test_1d_annular_no_wt():
 def test_1d_annular_out_of_range_angles():
     """Test annular binning I(Qx, Qy) supplying the azimuthal angle outside of 0<azimuthal<360deg
 
-    The test data comes from example in '1D_annular_no_sub_no_wt' eqsans_tof_q_binning_tests_R5.xlsx
-    File location: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-                   eqsans_tof_q_binning_tests_R5.xlsx
     Returns
     -------
     None
-
     """
     # Initialize range of theta angle and Q
     theta_min = -90

@@ -1,15 +1,12 @@
+import numpy as np
+import pytest
+
 from drtsans.dataobjects import IQazimuthal
-
-# https://github.com/neutrons/drtsans/blob/next/src/drtsans/iq.py
-from drtsans.iq import determine_1d_linear_bins, BinningMethod, bin_intensity_into_q2d
-
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/drtsans/i_of_q_binning_tests_data.py
+from drtsans.iq import BinningMethod, bin_intensity_into_q2d, determine_1d_linear_bins
 from tests.unit.drtsans.i_of_q_binning_tests_data import (
     generate_test_data,
     generate_test_data_wavelength,
 )
-import numpy as np
-import pytest
 
 # This module supports testing data for issue #239.
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/245
@@ -18,9 +15,6 @@ import pytest
 # SME - William Heller <hellerwt@ornl.gov>
 
 # All tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
-# Test EXCEL can be found at
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-# eqsans_tof_q_binning_tests_R5.xlsx
 
 
 def test_2d_bin_no_sub_no_wt():

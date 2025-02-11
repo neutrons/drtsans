@@ -108,7 +108,7 @@ Test Driven Development (TDD)
 * Unit test
 
   All methods and modules shall have unit tests implemented.
-  Unit tests are located in `repo/tests/unit/new <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/tree/next/tests/unit/new>`_.
+  Unit tests are located in `repo/tests/unit/ <https://github.com/neutrons/drtsans/blob/next/tests/unit>`_.
   A unit test shall be created in the corresponding directory to the method or module that it tests against.
 
   Examples:

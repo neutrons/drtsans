@@ -23,6 +23,7 @@ Release Notes
 
 **Of interest to the User**:
 
+- PR #996: Iq.dat files are now written even if they fail the assumption check
 - PR #994: Remove unused module `drtsans/tof/eqsans/reduce.py`
 - PR #993: Skip slices with too high transmission error when using time sliced sample transmission run
 - PR #325: Migrates repository from GitLab to GitHub

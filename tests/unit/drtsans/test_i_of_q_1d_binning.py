@@ -1,7 +1,7 @@
 import numpy as np
 from drtsans.dataobjects import IQmod
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/iq.py
 from drtsans.determine_bins import Bins
 from drtsans.iq import (
     determine_1d_linear_bins,

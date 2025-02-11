@@ -1,6 +1,6 @@
 from drtsans.dataobjects import IQazimuthal
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/iq.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/iq.py
 from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
 
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/drtsans/i_of_q_binning_tests_data.py

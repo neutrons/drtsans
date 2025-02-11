@@ -5,8 +5,8 @@ import numpy as np
 # DeleteWorkspaces <https://docs.mantidproject.org/nightly/algorithms/DeleteWorkspaces-v1.html>
 from mantid.simpleapi import mtd, CreateWorkspace
 
-# SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-# subtract_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/dark_current
+# SampleLogs within <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
+# subtract_dark_current <https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/dark_current
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.dark_current import subtract_dark_current
 
@@ -97,9 +97,9 @@ def test_subtract_dark_current(data_test_16a, temp_workspace_name):
 
     **drtsans functions used:**
     ~drtsans.samplelogs.SampleLogs
-        <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+        <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
     ~drtsans.mono.dark_current.subtract_dark_current
-        <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/dark_current.py>
+        <https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/dark_current.py>
     """
     # Create dark current workspace, insert the duration of the dark current run as one of the log entries in the
     # dark current workspace.

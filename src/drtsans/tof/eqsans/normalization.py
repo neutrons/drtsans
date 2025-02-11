@@ -33,9 +33,9 @@ import numpy as np
 
 r"""
 Hyperlinks to drtsans functions
-SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-path <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/path.py>
-duration <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>
+SampleLogs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
+path <https://github.com/neutrons/drtsans/blob/next/src/drtsans/path.py>
+duration <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/dark_current.py>
 """  # noqa: E501
 from drtsans.samplelogs import SampleLogs
 from drtsans import path

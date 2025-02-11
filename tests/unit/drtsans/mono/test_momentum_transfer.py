@@ -5,14 +5,14 @@ import scipy.constants
 from collections import namedtuple
 from mantid.simpleapi import AddSampleLog
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/convert_to_q.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/convert_to_q.py
 from drtsans.mono.momentum_transfer import (
     convert_to_q,
     mono_resolution,
     retrieve_instrument_setup,
 )
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/resolution.py
 import drtsans.resolution
 
 

@@ -8,9 +8,9 @@ from mantid import mtd
 
 r"""
 Hyperlinks to drtsans functions
-SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-time <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
-subtract_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/dark_current.py>
+SampleLogs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
+time <https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/normalization.py>
+subtract_dark_current <https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/dark_current.py>
 """  # noqa: E501
 from drtsans.samplelogs import SampleLogs
 from drtsans.dark_current import duration

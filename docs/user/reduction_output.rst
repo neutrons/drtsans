@@ -20,7 +20,7 @@ Customized reports could be generated form reduction hdf log files. The script `
 
    generate_report  /path/to/hdf/log/file.hdf [/path/to/my/generate_report.yaml]
 
-The last parameter here is a path to a users' YAML file with report parameters. If not provided, the [default parameters](https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/scripts/generate_report.yaml) will be used to create the report.
+The last parameter here is a path to a users' YAML file with report parameters. If not provided, the [default parameters](https://github.com/neutrons/drtsans/blob/next/scripts/generate_report.yaml) will be used to create the report.
 
 The yaml file contains the keys to extract from the hdf log file and short aliases to be used in the report
 

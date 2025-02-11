@@ -4,9 +4,9 @@ from mantid.simpleapi import mtd
 
 r"""
 Hyperlinks to drtsans functions
-IQazimuthal, IQcrystal, IQmod <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py>
-pixel_centers <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/pixel_centers.py>
-namedtuplefy, unpack_v3d <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
+IQazimuthal, IQcrystal, IQmod <https://github.com/neutrons/drtsans/blob/next/src/drtsans/dataobjects.py>
+pixel_centers <https://github.com/neutrons/drtsans/blob/next/src/drtsans/pixel_centers.py>
+namedtuplefy, unpack_v3d <https://github.com/neutrons/drtsans/blob/next/src/drtsans/settings.py>
 """  # noqa: E501
 from drtsans.dataobjects import IQazimuthal, IQcrystal, IQmod
 from drtsans.geometry import pixel_centers

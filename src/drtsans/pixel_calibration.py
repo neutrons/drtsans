@@ -49,9 +49,9 @@ from mantid.api import FileLoaderRegistry, mtd
 
 r"""
 Hyperlinks to drtsans functions
-namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
-SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
+namedtuplefy <https://github.com/neutrons/drtsans/blob/next/src/drtsans/settings.py>
+SampleLogs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
+TubeCollection <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tubecollection.py>
 """  # noqa: E501
 from drtsans.instruments import (
     InstrumentEnumName,

@@ -7,9 +7,9 @@ Reduction Scripts
 The following python scripts can be used as the entry points for reduction of SANS data
 for each instrument
 
-- `scripts/biosans_reduction.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/scripts/biosans_reduction.py>`_
-- `scripts/eqsans_reduction.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/scripts/eqsans_reduction.py>`_
-- `scripts/gpsans_reduction.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/scripts/gpsans_reduction.py>`_
+- `scripts/biosans_reduction.py <https://github.com/neutrons/drtsans/blob/next/scripts/biosans_reduction.py>`_
+- `scripts/eqsans_reduction.py <https://github.com/neutrons/drtsans/blob/next/scripts/eqsans_reduction.py>`_
+- `scripts/gpsans_reduction.py <https://github.com/neutrons/drtsans/blob/next/scripts/gpsans_reduction.py>`_
 
 These scripts receive as argument the path to a `*.json` file containing all necessary reduction parameters. In the
 active `sans` conda environment, and assuming we are at the root of the drtsans repository:

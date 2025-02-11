@@ -200,13 +200,13 @@ Test Driven Development (TDD)
 * Unit test
 
   All methods and modules shall have unit tests implemented.
-  Unit tests are located in `repo/tests/unit/new <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/tree/next/tests/unit/new>`_.
+  Unit tests are located in `repo/tests/unit/new <https://github.com/neutrons/drtsans/blob/next/tests/unit/>`_.
   A unit test shall be created in the corresponding directory to the method or module that it tests against.
 
   Examples:
 
-  * `drtsans/resolution.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/drtsans/resolution.py>`_ and `tests/unit/new/drtsans/test_resolution.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/tests/unit/new/drtsans/test_resolution.py>`_.
-  * `drtsans/tof/eqsans/incoherence_correction_1d.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/drtsans/tof/eqsans/incoherence_correction_1d.py>`_ and `tests/unit/new/drtsans/tof/eqsans/test_incoherence_correction_1d.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/tests/unit/new/drtsans/tof/eqsans/test_incoherence_correction_1d.py>`_.
+  * `drtsans/resolution.py <https://github.com/neutrons/drtsans/blob/next/src/drtsans/resolution.py>`_ and `tests/unit/drtsans/test_resolution.py <https://github.com/neutrons/drtsans/blob/next/tests/unit/drtsans/test_resolution.py>`_.
+  * `drtsans/tof/eqsans/incoherence_correction_1d.py <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/incoherence_correction_1d.py>`_ and `tests/unit/drtsans/tof/eqsans/test_incoherence_correction_1d.py <https://github.com/neutrons/drtsans/blob/next/tests/unit/drtsans/tof/eqsans/test_incoherence_correction_1d.py>`_.
 
 * Integration test
 

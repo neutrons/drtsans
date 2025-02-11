@@ -8,9 +8,9 @@ Scale <https://docs.mantidproject.org/nightly/algorithms/Scale-v1.html>
 from mantid.simpleapi import Minus, mtd, DeleteWorkspace, Scale, Integration
 
 r""" links to drtsans imports
-SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-duration <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dark_current.py>
-set_init_uncertainties <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/process_uncertainties.py>
+SampleLogs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
+duration <https://github.com/neutrons/drtsans/blob/next/src/drtsans/dark_current.py>
+set_init_uncertainties <https://github.com/neutrons/drtsans/blob/next/src/drtsans/process_uncertainties.py>
 """  # noqa: E501
 from drtsans.samplelogs import SampleLogs
 from drtsans.dark_current import duration

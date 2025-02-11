@@ -9,7 +9,7 @@ from mantid.api import mtd
 
 r"""
 Hyperlinks to drtsans functions
-SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+SampleLogs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
 """  # noqa: E501
 from drtsans.samplelogs import SampleLogs
 

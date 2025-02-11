@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-# testing https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/sensitivity.py
+# testing https://github.com/neutrons/drtsans/blob/next/src/drtsans/sensitivity.py
 from drtsans.sensitivity import apply_sensitivity_correction
 import os
 from tests.conftest import sns_data_dir

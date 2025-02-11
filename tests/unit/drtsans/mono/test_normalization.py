@@ -9,8 +9,8 @@ from mantid import mtd
 
 r"""
 Hyperlinks to drtsans functions
-SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-normalize_by_monitor, normalize_by_time <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
+SampleLogs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
+normalize_by_monitor, normalize_by_time <https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/normalization.py>
 """  # noqa: E501
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.gpsans import normalize_by_monitor, normalize_by_time, ZeroMonitorCountsError, NoMonitorMetadataError

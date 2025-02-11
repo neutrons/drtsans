@@ -1,4 +1,4 @@
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/transmission.py
 from drtsans.transmission import apply_transmission_correction
 import numpy as np
 import pytest

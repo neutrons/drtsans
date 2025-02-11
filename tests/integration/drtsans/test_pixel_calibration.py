@@ -283,7 +283,7 @@ def test_apparent_tube_width(data_apparent_tube_width, workspace_with_instrument
 
     **drtsans components used:**
     ~drtsans.tubecollection.TubeCollection
-        <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
+        <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tubecollection.py>
     """
     data = data_apparent_tube_width  # shortcut
 

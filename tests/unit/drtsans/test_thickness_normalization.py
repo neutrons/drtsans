@@ -11,7 +11,7 @@ from mantid.simpleapi import CreateWorkspace, mtd
 
 r"""
 Hyperlinks to drtsans functions
-normalize_by_thickness <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans
+normalize_by_thickness <https://github.com/neutrons/drtsans/blob/next/src/drtsans
 /thickness_normalization.py>
 """  # noqa: E501
 from drtsans.thickness_normalization import normalize_by_thickness

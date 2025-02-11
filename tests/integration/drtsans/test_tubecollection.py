@@ -11,7 +11,7 @@ from mantid.simpleapi import LoadEmptyInstrument
 
 r"""
 Hyperlinks to drtsans functions
-ElementComponentInfo, PixelInfo, TubeInfo, TubeCollection <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tubecollection.py>
+ElementComponentInfo, PixelInfo, TubeInfo, TubeCollection <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tubecollection.py>
 """  # noqa: E501
 from drtsans.instruments import fetch_idf
 from drtsans.settings import namedtuplefy

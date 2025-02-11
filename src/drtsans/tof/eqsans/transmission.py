@@ -12,10 +12,10 @@ from mantid.simpleapi import CloneWorkspace, Fit, Plus
 
 r"""
 Hyperlinks to drtsans functions
-namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
-calculate_transmission <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py>
+namedtuplefy <https://github.com/neutrons/drtsans/blob/next/src/drtsans/settings.py>
+calculate_transmission <https://github.com/neutrons/drtsans/blob/next/src/drtsans/transmission.py>
 clipped_bands_from_logs, transmitted_bands available at:
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/correct_frame.py>
 """  # noqa: E501
 from drtsans.settings import namedtuplefy
 from drtsans.transmission import calculate_transmission as calculate_raw_transmission

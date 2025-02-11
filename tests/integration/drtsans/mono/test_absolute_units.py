@@ -4,9 +4,9 @@ import numpy as np
 from mantid.simpleapi import mtd
 
 r""" Links to drtsans imports
-center_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/beam_finder.py>
-namedtuplefy <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
-empty_beam_scaling <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/absolute_units.py>
+center_detector <https://github.com/neutrons/drtsans/blob/next/src/drtsans/beam_finder.py>
+namedtuplefy <https://github.com/neutrons/drtsans/blob/next/src/drtsans/settings.py>
+empty_beam_scaling <https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/absolute_units.py>
 """
 from drtsans import center_detector
 from drtsans.settings import namedtuplefy
@@ -82,7 +82,7 @@ def test_empty_beam_scaling(workspace_with_instrument, test_data_15b, temp_works
     ~drtsans.tof.eqsans.center_detector,
     <https://scse.ornl.gov/docs/drt/sans/drtsans/tof/eqsans/index.html>
     ~drtsans.absolute_units.empty_beam_scaling,
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/absolute_units.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/absolute_units.py>
     """
 
     # save the intensities  of the empty beam in a numpy.ndarray.

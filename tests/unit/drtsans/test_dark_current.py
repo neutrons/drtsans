@@ -11,7 +11,7 @@ from mantid.kernel import amend_config
 
 r"""
 Hyperlinks to drtsans functions
-duration, counts_in_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dark_current.py>
+duration, counts_in_detector <https://github.com/neutrons/drtsans/blob/next/src/drtsans/dark_current.py>
 """  # noqa: E501
 
 from drtsans.dark_current import duration, counts_in_detector

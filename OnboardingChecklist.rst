@@ -86,7 +86,7 @@ or
 Development procedure
 #####################
 
-How to develop codes in drtSANS shall follow the instruction in `CONTRIBUTION <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/CONTRIBUTING.rst>`_.
+How to develop codes in drtSANS shall follow the instruction in `CONTRIBUTION <https://github.com/neutrons/drtsans/blob/next/CONTRIBUTING.rst>`_.
 
 ..
   1. A developer is assigned with a task during neutron status meeting and changes the task's status to **In Progress**.
@@ -113,8 +113,8 @@ Test Driven Development (TDD)
 
   Examples:
 
-  * `drtsans/resolution.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/drtsans/resolution.py>`_ and `tests/unit/new/drtsans/test_resolution.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/tests/unit/new/drtsans/test_resolution.py>`_.
-  * `drtsans/tof/eqsans/incoherence_correction_1d.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/drtsans/tof/eqsans/incoherence_correction_1d.py>`_ and `tests/unit/new/drtsans/tof/eqsans/test_incoherence_correction_1d.py <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/blob/next/tests/unit/new/drtsans/tof/eqsans/test_incoherence_correction_1d.py>`_.
+  * `drtsans/resolution.py <https://github.com/neutrons/drtsans/blob/next/src/drtsans/resolution.py>`_ and `tests/unit/drtsans/test_resolution.py <https://github.com/neutrons/drtsans/blob/next/tests/unit/drtsans/test_resolution.py>`_.
+  * `drtsans/tof/eqsans/incoherence_correction_1d.py <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/incoherence_correction_1d.py>`_ and `tests/unit/drtsans/tof/eqsans/test_incoherence_correction_1d.py <https://github.com/neutrons/drtsans/blob/next/tests/unit/drtsans/tof/eqsans/test_incoherence_correction_1d.py>`_.
 
 * Integration test
 

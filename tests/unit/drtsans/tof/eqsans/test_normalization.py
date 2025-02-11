@@ -12,10 +12,10 @@ from mantid.kernel import amend_config
 
 r"""
 Hyperlinks to drtsans functions
-SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-load_events <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/load.py>
-prepare_monitors <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/api.py>
-normalize_by_time,...load_flux_to_monitor_ratio_file <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/nomalization.py>
+SampleLogs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
+load_events <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/load.py>
+prepare_monitors <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/api.py>
+normalize_by_time,...load_flux_to_monitor_ratio_file <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/nomalization.py>
 """  # noqa: E501
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import (

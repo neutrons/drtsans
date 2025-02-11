@@ -18,14 +18,14 @@ from mantid.kernel import amend_config
 r"""
 Hyperlinks to drtsans functions
 namedtuplefy available at:
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/settings.py>
-SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-insert_aperture_logs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/geometry.py>
-prepare_data <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/api.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/settings.py>
+SampleLogs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
+insert_aperture_logs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/geometry.py>
+prepare_data <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/api.py>
 calculate_transmission, fit_raw_transmission available at:
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/transmission.py>
-apply_transmission_correction <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/transmission.py>
-find_beam_center, center_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/beam_finder.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/transmission.py>
+apply_transmission_correction <https://github.com/neutrons/drtsans/blob/next/src/drtsans/transmission.py>
+find_beam_center, center_detector <https://github.com/neutrons/drtsans/blob/next/src/drtsans/beam_finder.py>
 """  # noqa: E501
 from drtsans.settings import namedtuplefy
 from drtsans.samplelogs import SampleLogs

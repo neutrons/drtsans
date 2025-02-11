@@ -1,4 +1,4 @@
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/dataobjects.py
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/docs/drtsans/dataobjects.rst
 import numpy
 
@@ -14,7 +14,7 @@ from enum import Enum
 from typing import List, Any, Tuple
 import numpy as np
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/determine_bins.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/determine_bins.py
 from drtsans.determine_bins import (
     determine_1d_log_bins,
     determine_1d_linear_bins,

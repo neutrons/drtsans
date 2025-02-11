@@ -4,8 +4,8 @@ import itertools
 # CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 from mantid.simpleapi import CreateWorkspace
 
-# SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-# time, monitor within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
+# SampleLogs within <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
+# time, monitor within <https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/normalization.py>
 from drtsans.samplelogs import SampleLogs
 from drtsans.mono.normalization import normalize_by_time, normalize_by_monitor
 
@@ -68,9 +68,9 @@ def test_normalization_by_time(data_test_16a, temp_workspace_name):
 
     **drtsans functions used:**
     ~drtsans.samplelogs.SampleLogs
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
     ~drtsans.mono.normalization.time
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/normalization.py>
     """
     # Create a Mantid workspace with the sample intensities
     intensities_list = list(itertools.chain(*data_test_16a["I_sam"]))
@@ -111,9 +111,9 @@ def test_normalization_by_monitor(data_test_16a, temp_workspace_name):
 
     **drtsans functions used:**
     ~drtsans.samplelogs.SampleLogs
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
     ~drtsans.mono.normalization.monitor
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/mono/normalization.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/normalization.py>
     """
     # Create a Mantid workspace with the sample intensities
     intensities_list = list(itertools.chain(*data_test_16a["I_sam"]))

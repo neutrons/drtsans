@@ -19,7 +19,7 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
 
     **drtsans objects used**:
     ~drtsans.dataobjects.IQmod
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dataobjects.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/dataobjects.py>
 
     Parameters
     ----------

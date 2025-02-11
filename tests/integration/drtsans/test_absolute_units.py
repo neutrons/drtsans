@@ -7,7 +7,7 @@ CreateSingleValuedWorkspace <https://docs.mantidproject.org/nightly/algorithms/C
 from mantid.simpleapi import CreateSingleValuedWorkspace
 
 r""" Links to drtsans imports
-standard_sample_scaling <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/absolute_units.py>
+standard_sample_scaling <https://github.com/neutrons/drtsans/blob/next/src/drtsans/absolute_units.py>
 """
 from drtsans.absolute_units import standard_sample_scaling  # noqa: E402
 
@@ -31,7 +31,7 @@ def test_standard_sample_measurement(temp_workspace_name):
 
     **drtsans functions used:**
     ~drtsans.absolute_units.standard_sample_scaling,
-    <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/absolute_units.py>
+    <https://github.com/neutrons/drtsans/blob/next/src/drtsans/absolute_units.py>
     """
     # clean_workspace fixture will delete workspaces when the test finishes
 

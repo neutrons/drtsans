@@ -1,12 +1,12 @@
 import numpy as np
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/momentum_transfer.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/momentum_transfer.py
 import drtsans.momentum_transfer
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/resolution.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/resolution.py
 import drtsans.resolution
 
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/geometry.py
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/geometry.py
 from drtsans.geometry import (
     logged_smearing_pixel_size,
     sample_aperture_diameter,

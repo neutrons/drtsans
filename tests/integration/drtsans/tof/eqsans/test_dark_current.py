@@ -4,8 +4,8 @@ import numpy as np
 # CreateWorkspace <https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html>
 from mantid.simpleapi import mtd, CreateWorkspace
 
-# subtract_dark_current <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>  # noqa: E501
-# SampleLogs within <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+# subtract_dark_current <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/dark_current.py>  # noqa: E501
+# SampleLogs within <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.dark_current import subtract_dark_current
 
@@ -112,9 +112,9 @@ def test_subtract_dark_current(data_test_16a, temp_workspace_name):
 
     **drtsans functions used:**
     ~drtsans.samplelogs.SampleLogs
-        <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
+        <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
     ~drtsans.tof.eqsans.dark_current.normalize_dark_current
-        <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/dark_current.py>
+        <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/dark_current.py>
     """
     wavelength_bin_boundaries = np.arange(
         data_test_16a["l_min"],

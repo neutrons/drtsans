@@ -11,10 +11,10 @@ from mantid.kernel import amend_config
 
 r"""
 Hyperlinks to drtsans functions
-exists, registered_workspace <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/path.py>
-SampleLogs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/samplelogs.py>
-clipped_bands_from_logs <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/tof/eqsans/correct_frame.py>
-duration, counts_in_detector <https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/drtsans/dark_current.py>
+exists, registered_workspace <https://github.com/neutrons/drtsans/blob/next/src/drtsans/path.py>
+SampleLogs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py>
+clipped_bands_from_logs <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/correct_frame.py>
+duration, counts_in_detector <https://github.com/neutrons/drtsans/blob/next/src/drtsans/dark_current.py>
 """  # noqa: E501
 from drtsans.path import exists, registered_workspace
 from drtsans.samplelogs import SampleLogs

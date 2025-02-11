@@ -21,6 +21,8 @@ from drtsans.determine_bins import (
     determine_1d_log_bins,
 )
 
+from mantid.simpleapi import logger
+
 # To ignore warning:   invalid value encountered in true_divide
 np.seterr(divide="ignore", invalid="ignore")
 
@@ -47,19 +49,21 @@ class BinningMethod(Enum):
     WEIGHTED = 2  # weighted binning
 
 
-def check_iq_for_binning(i_of_q: Union[IQmod, IQazimuthal]):
+def check_iq_for_binning(i_of_q: Union[IQmod, IQazimuthal]) -> bool:
     """Check I(Q) for binning.
 
     Binning I(Q) assumes that
     1. there is no NaN or Infinity in intensities
     2. there is no NaN, Infinity or Zero in intensity errors
 
-    :exception : RuntimeError
-        raise exception if input I(Q) does not meet assumption
+    Parameters
+    ----------
+    i_of_q: Union[IQmod, IQazimuthal]
 
-    :param i_of_q:  ~drtsans.dataobjects.IQmod or IQazimuthal
-        I(Q)
-
+    Returns
+    -------
+    bool
+        True if the input I(Q) for binning meets the assumptions
     """
     error_message = ""
 
@@ -87,7 +91,9 @@ def check_iq_for_binning(i_of_q: Union[IQmod, IQazimuthal]):
         error_message += "Intensity error has zero {}\n".format(np.where(np.abs(i_of_q.error) < 1e-20)[0])
 
     if len(error_message) > 0:
-        raise RuntimeError("Input I(Q) for binning does not meet assumption:\n{}".format(error_message))
+        logger.warning(f"Input I(Q) for binning does not meet assumption:\n{error_message}")
+
+    return len(error_message) == 0
 
 
 def valid_wedge(min_angle, max_angle) -> List[Tuple[float, float]]:
@@ -480,7 +486,7 @@ def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.NOWEIGHT, wa
     drtsans.dataobjects.IQmod
         the one dimensional data as a named tuple
     """
-    # Check input I(Q) whether it meets assumptions
+    # Check whether input I(Q) meets assumptions
     check_iq_for_binning(i_of_q)
 
     # bin I(Q)
@@ -640,7 +646,7 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
         )
         raise ValueError(msg)
 
-    # Check input I(Q) whether it meets assumptions
+    # Check whether input I(Q) meets assumptions
     check_iq_for_binning(i_of_q)
 
     # convert the data to q and azimuthal angle
@@ -1036,7 +1042,7 @@ def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIG
     ~drtsans.dataobjects.IQazimuthal
         binned IQazimuthal (important: must read Note 2)
     """
-    # Check input I(Q) whether it meets assumptions
+    # Check whether input I(Q) meets assumptions
     check_iq_for_binning(i_of_q)
 
     # Check whether it needs to bin wavelength

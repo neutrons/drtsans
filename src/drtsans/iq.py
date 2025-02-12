@@ -835,6 +835,7 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
             delta_mod_q=binned_dq_vec,
             wavelength=binned_wl_vec,
         )
+
     else:
         raise RuntimeError(f"Number of wavlength bins = {wavelength_bins} is not supported")
 

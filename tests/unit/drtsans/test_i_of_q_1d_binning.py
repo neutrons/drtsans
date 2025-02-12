@@ -364,25 +364,15 @@ def test_1d_zero_intensities():
     # Verify bin edges and bin center
     log_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False, n_bins_per_decade=num_steps_per_10)
 
+    intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
+
     binned_iq = bin_intensity_into_q1d(
-        i_of_q=IQmod(
-            intensity=np.zeros(10),
-            error=np.zeros(10),
-            mod_q=np.linspace(0.0, 0.1, 10),
-            delta_mod_q=np.full(10, 0.001),
-        ),
+        i_of_q=IQmod(intensity=np.zeros(75), error=sigmas, mod_q=scalar_q_array, delta_mod_q=scalar_dq_array),
         q_bins=log_bins,
         bin_method=BinningMethod.NOWEIGHT,
     )
 
-    print(f"""
-        {binned_iq.intensity}
-        {binned_iq.error}
-        {binned_iq.mod_q}
-        {binned_iq.delta_mod_q}
-        """)
-
-    assert 1 == 0
+    assert binned_iq
 
 
 if __name__ == "__main__":

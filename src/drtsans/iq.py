@@ -786,6 +786,7 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
             binned_vec, _ = np.histogram(q_vec, bins=bin_edges, weights=dq_vec)
             binned_vec = np.delete(binned_vec, zero_indexes)
             bin_dq_vec = binned_vec / num_pt_vec
+            assert len(bin_dq_vec) == len(i_final_vec)
 
         return i_final_vec, sigma_final_vec, bin_dq_vec
 

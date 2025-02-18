@@ -623,6 +623,58 @@ def test_real_data_biosans(datarepo_dir):
 
 
 @pytest.mark.datarepo
+def test_real_data_biosans_autosymmetric_wedges(datarepo_dir):
+    MSamp_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5532_mBSub.h5")
+    MBuff_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5562_mBSub.h5")
+
+    ws_ms = LoadNexusProcessed(Filename=MSamp_fn, OutputWorkspace="sample", LoadHistory=False)
+    ws_mb = LoadNexusProcessed(Filename=MBuff_fn, OutputWorkspace="Main_buffer", LoadHistory=False)
+    ws_ms -= ws_mb  # subtract the buffer
+    ws_mb.delete()
+
+    # convert to I(qx,qy)
+    q1d_data = biosans.convert_to_q(ws_ms, mode="scalar")
+    q2d_data = biosans.convert_to_q(ws_ms, mode="azimuthal")
+    ws_ms.delete()
+
+    # calculate the wedge angles to use
+    wedge_angles = getWedgeSelection(
+        data2d=q2d_data,
+        q_min=0.00,
+        q_delta=0.001,
+        q_max=0.02,
+        azimuthal_delta=0.5,
+        peak_width=0.25,
+        background_width=1.5,
+        signal_to_noise_min=1.2,
+        auto_symmetric_wedges=True,
+    )
+    assert len(wedge_angles) == 2, "Expect 2 separate wedges"
+
+    # use these to integrate the wedges
+    for wedges in wedge_angles:
+        for azi_min, azi_max in wedges:
+            print("integrating from {}deg to {} deg".format(azi_min, azi_max))
+            iq_wedge = select_i_of_q_by_wedge(q2d_data, azi_min, azi_max)
+            assert iq_wedge
+
+    # test bin_all
+    nbins = 100.0
+    iq2d_rebinned, iq1d_rebinned = bin_all(
+        q2d_data,
+        q1d_data,
+        nxbins=nbins,
+        nybins=nbins,
+        n1dbins=nbins,
+        bin1d_type="wedge",
+        wedges=wedge_angles,
+        symmetric_wedges=False,
+        error_weighted=False,
+    )
+    assert len(iq1d_rebinned) == 2, "Expect exactly 2 output 1d spectra"
+
+
+@pytest.mark.datarepo
 def test_real_data_biosans_manual(datarepo_dir):
     """Test asymmetric manual wedge binning on BIOSANS data"""
     MSamp_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5532_mBSub.h5")

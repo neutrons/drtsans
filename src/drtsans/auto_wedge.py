@@ -10,6 +10,7 @@ from mantid.simpleapi import DeleteWorkspace, logger, Gaussian, FlatBackground, 
 
 # https://docs.mantidproject.org/nightly/algorithms/Fit-v1.html
 from mantid.simpleapi import Fit
+from mantid.api import IFunction
 import h5py
 from matplotlib import pyplot as plt
 
@@ -57,8 +58,11 @@ def _create_fit_function(combo_function_str):
             # split in PARAM_NAME=PARAM_VALUE style
             param_list = params[value_index].split("=")
             param_name_i = param_list[0]
-            param_value_i = float(param_list[1])
-            func_i.__setattr__(param_name_i, param_value_i)
+            param_value_i = param_list[1]
+            if param_name_i == "constraints":
+                func_i.constrain(param_value_i)
+            else:
+                func_i.__setattr__(param_name_i, float(param_value_i))
         # END-FOR
         single_functions.append(func_i)
 
@@ -99,7 +103,7 @@ def _calculate_function(fit_functions, vec_x):
 
     Parameters
     ----------
-    fit_functions: ~list
+    fit_functions: ~list[IFunction]
         List of fit function
     vec_x: numpy.ndarray
         1D array for X values
@@ -121,7 +125,7 @@ def _calculate_function(fit_functions, vec_x):
     return vec_y
 
 
-def _plot_fit_results(rings, peak_fit_dict, output_dir):
+def _plot_fit_results(rings, peak_fit_dict, output_dir, auto_symmetric_wedges):
     """Plot original data and fit result
 
     Parameters
@@ -132,11 +136,23 @@ def _plot_fit_results(rings, peak_fit_dict, output_dir):
         dictionary containing all the peak fitting result
     output_dir: str
         full path of the output directory
+    auto_symmetric_wedges: bool
+        if True, label the second peak as mirrored
 
     Returns
     -------
 
     """
+
+    def _set_function_params_and_calculate(fit_functions: list[IFunction], peak_fitted_dict: dict):
+        for param_name in peak_fitted_dict:
+            if param_name not in ["fit_function", "error", "used"]:
+                # parameter value is recorded as tuple as value and error
+                _set_function_param_value(fit_function_set, param_name, peak_fitted_dict[param_name][0])
+        # calculate
+        model_y = _calculate_function(fit_functions, ring.mod_q)
+        return model_y
+
     for index, ring in enumerate(rings):
         # add fitting related information to hdf file
         if peak_fit_dict[index]["error"] is not None:
@@ -149,17 +165,33 @@ def _plot_fit_results(rings, peak_fit_dict, output_dir):
         # calculate estimated peaks
         estimated_y = _calculate_function(fit_function_set, ring.mod_q)
 
-        for param_name in peak_fit_dict[index]:
-            if param_name not in ["fit_function", "error", "used"]:
-                # parameter value is recorded as tuple as value and error
-                _set_function_param_value(fit_function_set, param_name, peak_fit_dict[index][param_name][0])
+        if auto_symmetric_wedges:
+            # separate fitted peak ("f1" params) from mirrored peak (fake "f2" params) to plot them separately
+            # the fit function is a single gaussian with only "f1" entries
+            peak_fitted_dict = {}
+            peak_mirrored_dict = {}
+            for key, val in peak_fit_dict[index].items():
+                if key.startswith("f2"):
+                    new_key = key.replace("f2", "f1")
+                    # shift mirrored peak into plot angle range
+                    new_value = (val[0] - 360.0, val[1]) if "PeakCentre" in key and val[0] > 360.0 else val
+                    peak_mirrored_dict[new_key] = new_value
+                else:
+                    peak_fitted_dict[key] = val
+        else:
+            peak_fitted_dict = peak_fit_dict[index]
 
-        # calculate
-        model_y = _calculate_function(fit_function_set, ring.mod_q)
+        model_y = _set_function_params_and_calculate(fit_function_set, peak_fitted_dict)
+
+        # plot
         plt.cla()
         plt.plot(ring.mod_q, ring.intensity, label="observed", color="black")
-        plt.plot(ring.mod_q, model_y, label="fitted", color="red")
         plt.plot(ring.mod_q, estimated_y, label="estimated", color="blue")
+        plt.plot(ring.mod_q, model_y, label="fitted", color="red")
+        if auto_symmetric_wedges:
+            mirrored_model_y = _set_function_params_and_calculate(fit_function_set, peak_mirrored_dict)
+            plt.plot(ring.mod_q, mirrored_model_y, label="mirrored", color="red", linestyle="dashed")
+        plt.legend(loc="upper left")
         plt.savefig(os.path.join(output_dir, f"ring_{index:01}.png"))
 
 
@@ -342,7 +374,7 @@ def getWedgeSelection(
         peak_fit_dict=fit_dict,
         output_dir=debug_dir,
     )
-    _plot_fit_results(azimuthal_rings, fit_dict, debug_dir)
+    _plot_fit_results(azimuthal_rings, fit_dict, debug_dir, auto_symmetric_wedges)
 
     # verify that the results didn't predict wedges larger than half of the data
     if np.any(np.array(fwhm_vec) > 360.0 / 2):
@@ -500,7 +532,7 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
         if abs(azimuthal_new - azimuthal_last) < 1.0:
             break
     # output
-    print(
+    logger.debug(
         f"[WEDGE FIT] azimuthal: {azimuthal_new}, {azimuthal_last} with left and right as {left_index}, {right_index}"
     )
 
@@ -603,7 +635,7 @@ def _fitSpectrum(
     function = ["name=FlatBackground,A0={}".format(background)]
 
     # template for describing initial peak guess
-    gaussian_str = "name=Gaussian,Height={},PeakCentre={},Sigma={}"
+    gaussian_str = "name=Gaussian,Height={},PeakCentre={},Sigma={},constraints=(0<Height)"
 
     # guess where one peak might be, start with a window of WINDOW_SIZE each side around 110
     intensity_peak, azimuthal_first, sigma = _estimatePeakParameters(
@@ -665,7 +697,7 @@ def _fitSpectrum(
     result = {"fit_function": fit_function}
     for i in range(fitresult.OutputParameters.rowCount()):
         row = fitresult.OutputParameters.row(i)
-        print(f"[DEBUG-TEST] row: {row} of type {type(row)}")
+        logger.debug(f"[DEBUG-TEST] row: {row} of type {type(row)}")
         name = row["Name"]
         if name.startswith("Cost function"):
             name = "chisq"
@@ -682,7 +714,7 @@ def _fitSpectrum(
         result["f2.Sigma"] = result["f1.Sigma"]
 
     if verbose:
-        print(f"Fit result: {result}")
+        logger.notice(f"Fit result: {result}")
 
     return result
 

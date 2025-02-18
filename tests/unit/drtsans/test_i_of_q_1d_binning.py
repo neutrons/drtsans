@@ -1,11 +1,13 @@
 import numpy as np
 import pytest
 
+
 from drtsans.dataobjects import IQmod
 from drtsans.determine_bins import Bins
 from drtsans.iq import (
     BinningMethod,
     bin_intensity_into_q1d,
+    check_iq_for_binning,
     determine_1d_linear_bins,
     determine_1d_log_bins,
 )
@@ -15,6 +17,7 @@ from tests.unit.drtsans.i_of_q_binning_tests_data import (
     get_gold_1d_linear_bins,
     get_gold_1d_log_bins,
 )
+
 
 # This module supports testing data for issue #239.
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/239
@@ -355,24 +358,34 @@ def test_1d_weighted_binning():
     np.testing.assert_allclose(binned_iq_all_wl.delta_mod_q, expected_binned_qie[:, 3])
 
 
-def test_1d_zero_intensities():
+def test_1d_zero_intensities(caplog):
     # Define Q range from tab '1D_bin_log_no_sub_no_wt' in r4
     q_min = 0.001  # center
     q_max = 0.010  # center
     num_steps_per_10 = 10  # 10 steps per decade
 
+    # Generate test data
+    intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
+
+    # Use zero intensities instead
+    i_of_q = IQmod(intensity=np.zeros(75), error=sigmas, mod_q=scalar_q_array, delta_mod_q=scalar_dq_array)
+
     # Verify bin edges and bin center
     log_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False, n_bins_per_decade=num_steps_per_10)
 
-    intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
+    # Test the assumption-checking method
+    is_valid = check_iq_for_binning(i_of_q)
+    assert not is_valid
 
-    binned_iq = bin_intensity_into_q1d(
-        i_of_q=IQmod(intensity=np.zeros(75), error=sigmas, mod_q=scalar_q_array, delta_mod_q=scalar_dq_array),
+    # Test the high level method
+    # with caplog.at_level(logging.WARNING):
+    binned_iq = bin_intensity_into_q1d(  # noqa
+        i_of_q=i_of_q,
         q_bins=log_bins,
         bin_method=BinningMethod.NOWEIGHT,
     )
 
-    assert binned_iq
+    assert 1 == caplog.records
 
 
 if __name__ == "__main__":

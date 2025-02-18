@@ -3,7 +3,12 @@ from typing import Any, List, Tuple, Union
 
 import numpy
 import numpy as np
-from mantid.simpleapi import logger
+
+# from mantid.simpleapi import logger
+from logging import getLogger
+
+logger = getLogger(__name__)
+logger.propagate = True
 
 from drtsans.dataobjects import (
     DataType,
@@ -62,6 +67,15 @@ def check_iq_for_binning(i_of_q: Union[IQmod, IQazimuthal]) -> bool:
         True if the input I(Q) for binning meets the assumptions
     """
 
+    np.printoptions(threshold=np.inf)
+    with open("log.txt", "w") as f:
+        f.write("i_of_q:\n-----------\n")
+        f.write(f"{i_of_q}")
+        # f.write(f"intensities: {i_of_q.intensity}\n")
+        # f.write(f"Intensity zeroes: {np.where(i_of_q.intensity == 0)[0]}\n")
+        # f.write(f"errors: {i_of_q.error}\n")
+        # f.write(f"error zeroes: {np.where(np.abs(i_of_q.error) < 1e-20)[0]}\n")
+
     error_message = ""
 
     # Check intensity
@@ -78,17 +92,17 @@ def check_iq_for_binning(i_of_q: Union[IQmod, IQazimuthal]) -> bool:
 
     # Check error
     if np.where(np.isnan(i_of_q.error))[0].size > 0:
-        error_message += "Intensity error has {} NaNs: {}\n".format(
-            len(np.where(np.isnan(i_of_q.error))[0]),
-            np.where(np.isnan(i_of_q.error))[0],
-        )
+        nan_error = np.where(np.isnan(i_of_q.error))[0]
+        error_message += f"Intensity error has {len(nan_error)} NaNs: {nan_error}\n"
     if np.where(np.isinf(i_of_q.error))[0].size > 0:
-        error_message += "Intensity error has Inf: {}\n".format(np.where(np.isnan(i_of_q.error))[0])
+        inf_error = np.where(np.isinf(i_of_q.error))[0]
+        error_message += f"Intensity error has {len(inf_error)} Infinities: {inf_error}\n"
     if np.where(np.abs(i_of_q.error) < 1e-20)[0].size > 0:
-        error_message += "Intensity error has zero {}\n".format(np.where(np.abs(i_of_q.error) < 1e-20)[0])
+        zero_error = np.where(np.abs(i_of_q.error) < 1e-20)[0]
+        error_message += f"Intensity error has {len(zero_error)} zeros: {zero_error}\n"
 
     if len(error_message) > 0:
-        logger.warning(f"Input I(Q) for binning does not meet assumption:\n{error_message}")
+        logger.warning(f"Input I(Q) for binning does not meet assumption: {error_message}")
 
     return len(error_message) == 0
 
@@ -738,6 +752,7 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
             binned intensity vector, binned intensity error vector, binned q resolution vector
 
         """
+
         # Count number of Q in 'q_array' in each Q-bin when they are binned (histogram) to 'bin_edges'
         num_pt_vec, _ = np.histogram(q_vec, bins=bin_edges)
 
@@ -747,16 +762,29 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
         # Square of summed uncertainties for each bin
         sigma_sqr_vec, _ = np.histogram(q_vec, bins=bin_edges, weights=error_vec**2)
 
-        # Final I(Q):     I_k       = \frac{I_{k, raw}}{N_k}
+        # Remove the bins with no Q from all lists
+        zero_indexes = np.where(num_pt_vec == 0)[0]
+        num_pt_vec = np.delete(num_pt_vec, zero_indexes)
+        i_raw_vec = np.delete(i_raw_vec, zero_indexes)
+        sigma_sqr_vec = np.delete(sigma_sqr_vec, zero_indexes)
+
+        all_lists = iter([num_pt_vec, i_raw_vec, sigma_sqr_vec])
+        assert all(len(lst) == len(num_pt_vec) for lst in all_lists)
+
+        # Final I(Q):     I_k = \frac{I_{k, raw}}{N_k}
         i_final_vec = i_raw_vec / num_pt_vec
-        # Final sigma(Q): sigmaI_k  = \frac{sigmaI_{k, raw}}{N_k}
+
+        # Final sigma(Q): sigmaI_k = \frac{sigmaI_{k, raw}}{N_k}
         sigma_final_vec = np.sqrt(sigma_sqr_vec) / num_pt_vec
+        # Replace 0 error with 1, as uncertainty is not zero in the region of interest
+        sigma_final_vec[sigma_final_vec == 0] = 1.0
 
         # Calculate Q resolution of binned
         if dq_vec is None:
             bin_dq_vec = None
         else:
             binned_vec, _ = np.histogram(q_vec, bins=bin_edges, weights=dq_vec)
+            binned_vec = np.delete(binned_vec, zero_indexes)
             bin_dq_vec = binned_vec / num_pt_vec
 
         return i_final_vec, sigma_final_vec, bin_dq_vec

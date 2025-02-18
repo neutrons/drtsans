@@ -418,25 +418,6 @@ def correct_emission_time(input_workspace):
     )
 
 
-def correct_tof_offset(input_workspace):
-    r"""
-    This corrects the TOF offset when running in 60Hz, non-frameskip. A
-    constant 664.7us needs to be removed, otherwise nothing is changed.
-
-    Parameters
-    ----------
-    input_workspace: ~mantid.api.IEventsWorkspace
-        Data workspace
-    """
-    # If 60Hz (non-frameskip) then subtract 664.7us from all tofs
-    if not _is_frame_skipping(input_workspace):
-        ChangeBinOffset(
-            InputWorkspace=input_workspace,
-            OutputWorkspace=input_workspace,
-            Offset=-664.7,
-        )
-
-
 def smash_monitor_spikes(input_workspace, output_workspace=None):
     r"""
     Detect and remove spikes in monitor data TOF between min and max TOF's.

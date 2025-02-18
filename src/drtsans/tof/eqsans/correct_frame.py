@@ -17,7 +17,6 @@ from mantid.simpleapi import (
     logger,
     SetInstrumentParameter,
     ModeratorTzero,
-    ChangeBinOffset,
 )
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.chopper import EQSANSDiskChopperSet

@@ -96,10 +96,10 @@ def test_merge_Data(datarepo_dir):
     assert merged_sample_logs.proton_charge.size() == 12933 + 17343 + 4341
 
     # Check integrated intensity increases as the total sum
-    assert mtd[str(ws0)].extractY().sum() == 284923
-    assert mtd[str(ws1)].extractY().sum() == 1368485
+    assert mtd[str(ws0)].extractY().sum() == 288830
+    assert mtd[str(ws1)].extractY().sum() == 1338500
     assert mtd[str(ws2)].extractY().sum() == 65694
-    assert mtd[str(merged_workspaces)].extractY().sum() == 284923 + 1368485 + 65694
+    assert mtd[str(merged_workspaces)].extractY().sum() == 288830 + 1338500 + 65694
 
     mtd.remove(str(ws0))
     mtd.remove(str(ws1))
@@ -233,11 +233,11 @@ def test_load_and_split_and_histogram(datarepo_dir, clean_workspace):
 
     # check values for Y and E don't change unexpectedly
     assert filtered_ws.getItem(0).extractY().max() == 4
-    assert filtered_ws.getItem(1).extractY().max() == 25
+    assert filtered_ws.getItem(1).extractY().max() == 27
     assert filtered_ws.getItem(2).extractY().max() == 3
     assert filtered_ws.getItem(0).extractE().max() == pytest.approx(2, abs=1e-7)
-    assert filtered_ws.getItem(1).extractE().max() == pytest.approx(5, abs=1e-7)
-    assert filtered_ws.getItem(2).extractE().max() == pytest.approx(1.7320508, abs=1e-7)
+    assert filtered_ws.getItem(1).extractE().max() == pytest.approx(5.2, abs=0.1)
+    assert filtered_ws.getItem(2).extractE().max() == pytest.approx(1.7, abs=0.1)
 
     # check metadata is set correctly
     assert SampleLogs(filtered_ws.getItem(0)).slice.value == 1

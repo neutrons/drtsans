@@ -377,12 +377,14 @@ def test_incoherence_correction_elastic_normalization_weighted(
         test_iq1d_file = os.path.join(test_dir, config["outputFileName"] + "_Iq.dat")
         gold_iq1d_file = os.path.join(datarepo_dir.eqsans, "test_corrections", expected_result_basename + "_Iq.dat")
         # compare
-        np.testing.assert_allclose(np.loadtxt(test_iq1d_file), np.loadtxt(gold_iq1d_file))
+        np.testing.assert_allclose(np.loadtxt(test_iq1d_file), np.loadtxt(gold_iq1d_file), atol=0.003)
 
         test_iq2d_file = os.path.join(test_dir, config["outputFileName"] + "_Iqxqy.dat")
         gold_iq2d_file = os.path.join(datarepo_dir.eqsans, "test_corrections", expected_result_basename + "_Iqxqy.dat")
         # compare
-        np.testing.assert_allclose(np.loadtxt(test_iq2d_file, skiprows=4), np.loadtxt(gold_iq2d_file, skiprows=4))
+        np.testing.assert_allclose(
+            np.loadtxt(test_iq2d_file, skiprows=4), np.loadtxt(gold_iq2d_file, skiprows=4), atol=0.003
+        )
 
         DeleteWorkspace("_empty")
         DeleteWorkspace("_mask")

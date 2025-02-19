@@ -59,18 +59,16 @@ def test_load_all_files_simple_interval(datarepo_dir):
     assert len(loaded.sample) == 1
     history = loaded.sample[0].data.getHistory()
 
-    assert history.size() == 11
+    assert history.size() == 10
     assert history.getAlgorithm(0).name() == "LoadEventNexus"
     assert history.getAlgorithm(0).getProperty("Filename").value.endswith("sns/eqsans/EQSANS_105428.nxs.h5")
     assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"
-    assert history.getAlgorithm(3).name() == "ChangeBinOffset"
-    assert history.getAlgorithm(4).name() == "SetInstrumentParameter"
-    # assert history.getAlgorithm(4).name() == "ModeratorTZero"
-    assert history.getAlgorithm(6).name() == "MoveInstrumentComponent"
-    assert history.getAlgorithm(7).name() == "ConvertUnits"
-    assert history.getAlgorithm(8).name() == "Rebin"
-    assert history.getAlgorithm(9).name() == "SetUncertainties"
-    assert history.getAlgorithm(10).name() == "AddSampleLogMultiple"
+    assert history.getAlgorithm(3).name() == "SetInstrumentParameter"
+    assert history.getAlgorithm(5).name() == "MoveInstrumentComponent"
+    assert history.getAlgorithm(6).name() == "ConvertUnits"
+    assert history.getAlgorithm(7).name() == "Rebin"
+    assert history.getAlgorithm(8).name() == "SetUncertainties"
+    assert history.getAlgorithm(9).name() == "AddSampleLogMultiple"
 
     assert loaded.background.data is None
     assert loaded.background_transmission.data is None
@@ -86,7 +84,7 @@ def test_load_all_files_simple_interval(datarepo_dir):
 
     # check interval
     w = loaded.sample[0].data
-    assert int(w.extractY().sum()) == 706
+    assert int(w.extractY().sum()) == 773
 
     # Change reduction input and rerun load_all_files
     reduction_input["configuration"]["useDefaultMask"] = True
@@ -132,18 +130,16 @@ def test_load_all_files_simple(datarepo_dir):
     assert len(loaded.sample) == 1
     history = loaded.sample[0].data.getHistory()
 
-    assert history.size() == 11
+    assert history.size() == 10
     assert history.getAlgorithm(0).name() == "LoadEventNexus"
     assert history.getAlgorithm(0).getProperty("Filename").value.endswith("sns/eqsans/EQSANS_105428.nxs.h5")
     assert history.getAlgorithm(2).name() == "MoveInstrumentComponent"
-    assert history.getAlgorithm(3).name() == "ChangeBinOffset"
-    assert history.getAlgorithm(4).name() == "SetInstrumentParameter"
-    # assert history.getAlgorithm(4).name() == "ModeratorTZero"
-    assert history.getAlgorithm(6).name() == "MoveInstrumentComponent"
-    assert history.getAlgorithm(7).name() == "ConvertUnits"
-    assert history.getAlgorithm(8).name() == "Rebin"
-    assert history.getAlgorithm(9).name() == "SetUncertainties"
-    assert history.getAlgorithm(10).name() == "AddSampleLogMultiple"
+    assert history.getAlgorithm(3).name() == "SetInstrumentParameter"
+    assert history.getAlgorithm(5).name() == "MoveInstrumentComponent"
+    assert history.getAlgorithm(6).name() == "ConvertUnits"
+    assert history.getAlgorithm(7).name() == "Rebin"
+    assert history.getAlgorithm(8).name() == "SetUncertainties"
+    assert history.getAlgorithm(9).name() == "AddSampleLogMultiple"
 
     assert loaded.background.data is None
     assert loaded.background_transmission.data is None

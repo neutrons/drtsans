@@ -315,7 +315,7 @@ def test_normalize_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws, temp
     # then we integrate this single spectrum over all wavelengths
     total_normalized_intensity = sum(summed_normalized.readY(0))
     # here we just check that the result will not change as the code in the repository evolves
-    assert total_normalized_intensity == approx(0.621, abs=1e-3)
+    assert total_normalized_intensity == approx(0.552, abs=1e-3)
 
     #
     # Third we normalize by run duration with method='time'

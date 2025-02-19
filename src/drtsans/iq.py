@@ -19,6 +19,7 @@ from drtsans.dataobjects import (
     q_azimuthal_to_q_modulo,
 )
 from drtsans.determine_bins import (
+    Bins,
     BinningParams,
     determine_1d_linear_bins,
     determine_1d_log_bins,
@@ -66,15 +67,6 @@ def check_iq_for_binning(i_of_q: Union[IQmod, IQazimuthal]) -> bool:
     bool
         True if the input I(Q) for binning meets the assumptions
     """
-
-    np.printoptions(threshold=np.inf)
-    with open("log.txt", "w") as f:
-        f.write("i_of_q:\n-----------\n")
-        f.write(f"{i_of_q}")
-        # f.write(f"intensities: {i_of_q.intensity}\n")
-        # f.write(f"Intensity zeroes: {np.where(i_of_q.intensity == 0)[0]}\n")
-        # f.write(f"errors: {i_of_q.error}\n")
-        # f.write(f"error zeroes: {np.where(np.abs(i_of_q.error) < 1e-20)[0]}\n")
 
     error_message = ""
 
@@ -471,7 +463,9 @@ def validate_wedges_groups(wedges, symmetric_wedges) -> List[List[Tuple[float, f
     return validated_wedge_angles_groups
 
 
-def bin_intensity_into_q1d(i_of_q, q_bins, bin_method=BinningMethod.NOWEIGHT, wavelength_bins=1) -> IQmod:
+def bin_intensity_into_q1d(
+    i_of_q: IQmod, q_bins: Bins, bin_method: BinningMethod = BinningMethod.NOWEIGHT, wavelength_bins: int = 1
+) -> IQmod:
     """Binning I(Q) from scalar Q (1D) with linear binning on Q
 
     Replace intensity, intensity_error, scalar_q, scalar_dq by IQmod
@@ -730,13 +724,13 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
 
     """
 
-    def _bin_iq1d(bin_edges, q_vec, dq_vec, i_vec, error_vec):
+    def _bin_iq1d(q_bins, q_vec, dq_vec, i_vec, error_vec):
         """Bin I(Q1D), dI(Q1D) and dQ(Q1D) by no weight binning algorithm
 
         Parameters
         ----------
-        bin_edges: ~numpy.ndarray
-            bin edges
+        q_bins: ~drtsans.determine_bins.Bins
+            bin edges and centers
         q_vec: ~numpy.ndarray
             vector of Q1D
         dq_vec: ~numpy.ndarray, None
@@ -749,26 +743,30 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
         Returns
         -------
         ~tuple
-            binned intensity vector, binned intensity error vector, binned q resolution vector
+            binned intensity vector,
+            binned intensity error vector,
+            binned q resolution vector,
+            binned q center vector
 
         """
 
         # Count number of Q in 'q_array' in each Q-bin when they are binned (histogram) to 'bin_edges'
-        num_pt_vec, _ = np.histogram(q_vec, bins=bin_edges)
+        num_pt_vec, _ = np.histogram(q_vec, bins=q_bins.edges)
 
         # Counts per bin: I_{k, raw} = \sum I(i, j) for each bin
-        i_raw_vec, _ = np.histogram(q_vec, bins=bin_edges, weights=i_vec)
+        i_raw_vec, _ = np.histogram(q_vec, bins=q_bins.edges, weights=i_vec)
 
         # Square of summed uncertainties for each bin
-        sigma_sqr_vec, _ = np.histogram(q_vec, bins=bin_edges, weights=error_vec**2)
+        sigma_sqr_vec, _ = np.histogram(q_vec, bins=q_bins.edges, weights=error_vec**2)
 
         # Remove the bins with no Q from all lists
         zero_indexes = np.where(num_pt_vec == 0)[0]
         num_pt_vec = np.delete(num_pt_vec, zero_indexes)
         i_raw_vec = np.delete(i_raw_vec, zero_indexes)
         sigma_sqr_vec = np.delete(sigma_sqr_vec, zero_indexes)
+        q_bin_centers = np.delete(q_bins.centers, zero_indexes)
 
-        all_lists = iter([num_pt_vec, i_raw_vec, sigma_sqr_vec])
+        all_lists = iter([num_pt_vec, i_raw_vec, sigma_sqr_vec, q_bin_centers])
         assert all(len(lst) == len(num_pt_vec) for lst in all_lists)
 
         # Final I(Q):     I_k = \frac{I_{k, raw}}{N_k}
@@ -783,27 +781,27 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
         if dq_vec is None:
             bin_dq_vec = None
         else:
-            binned_vec, _ = np.histogram(q_vec, bins=bin_edges, weights=dq_vec)
+            binned_vec, _ = np.histogram(q_vec, bins=q_bins.edges, weights=dq_vec)
             binned_vec = np.delete(binned_vec, zero_indexes)
             bin_dq_vec = binned_vec / num_pt_vec
             assert len(bin_dq_vec) == len(i_final_vec)
 
-        return i_final_vec, sigma_final_vec, bin_dq_vec
+        return i_final_vec, sigma_final_vec, bin_dq_vec, q_bin_centers
 
     # check input
     assert q_bins.centers.shape[0] + 1 == q_bins.edges.shape[0]
 
     if wavelength_bins == 1 or wl_array is None:
         # bin I(Q, wl) regardless of wl value
-        i_final_array, sigma_final_array, bin_q_resolution = _bin_iq1d(
-            q_bins.edges, q_array, dq_array, iq_array, sigmaq_array
+        i_final_array, sigma_final_array, bin_q_resolution, q_bin_centers = _bin_iq1d(
+            q_bins, q_array, dq_array, iq_array, sigmaq_array
         )
 
         # construct output without wavelength vector
         binned_iq1d = IQmod(
             intensity=i_final_array,
             error=sigma_final_array,
-            mod_q=q_bins.centers,
+            mod_q=q_bin_centers,
             delta_mod_q=bin_q_resolution,
         )
 
@@ -835,8 +833,8 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
                 dq_array_i = filtered_matrix[:, 4]
 
             # bin by Q1D
-            i_final_array, sigma_final_array, bin_q_resolution = _bin_iq1d(
-                q_bins.edges,
+            i_final_array, sigma_final_array, bin_q_resolution, q_bin_centers = _bin_iq1d(
+                q_bins,
                 filtered_matrix[:, 1],
                 dq_array_i,
                 filtered_matrix[:, 2],
@@ -844,7 +842,7 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
             )
 
             # build up the final output
-            binned_q_vec = np.concatenate((binned_q_vec, q_bins.centers))
+            binned_q_vec = np.concatenate((binned_q_vec, q_bin_centers))
             binned_i_vec = np.concatenate((binned_i_vec, i_final_array))
             binned_sigma_vec = np.concatenate((binned_sigma_vec, sigma_final_array))
             if dq_array is not None:
@@ -915,7 +913,7 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
 
     """
 
-    def _bin_q1d_weighted(mod_q_array, delta_q_array, intensity_array, error_array, bin_edges):
+    def _bin_q1d_weighted(q_bins, mod_q_array, delta_q_array, intensity_array, error_array):
         """Do 1D weighed binning"""
         # bin I(Q, wl) regardless of wl value
         # Calculate 1/sigma^2 for multiple uses
@@ -923,13 +921,23 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
 
         # Histogram on 1/sigma^2, i.e., nominator part in Equation 11.22, 11.23 and 11.24
         # sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
-        w_array, _ = np.histogram(mod_q_array, bins=bin_edges, weights=invert_sigma2_array)
+        w_array, _ = np.histogram(mod_q_array, bins=q_bins.edges, weights=invert_sigma2_array)
 
         # Calculate Equation 11.26: I(Q)
         #  I(Q') = sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2) /
         #              sum_{Q, lambda}^{K} (1 / sigma(Q, lambda)^2)
         # denominator in Equation 11.22: sum_{Q, lambda}^{K} (I(Q, lambda) / sigma(Q, lambda)^2)
-        i_raw_array, _ = np.histogram(mod_q_array, bins=bin_edges, weights=intensity_array * invert_sigma2_array)
+        i_raw_array, _ = np.histogram(mod_q_array, bins=q_bins.edges, weights=intensity_array * invert_sigma2_array)
+
+        # Remove the bins with no Q from all lists
+        zero_indexes = np.where(w_array == 0)[0]
+        w_array = np.delete(w_array, zero_indexes)
+        i_raw_array = np.delete(i_raw_array, zero_indexes)
+        q_bin_centers = np.delete(q_bins.centers, zero_indexes)
+
+        all_lists = iter([w_array, i_raw_array, q_bin_centers])
+        assert all(len(lst) == len(w_array) for lst in all_lists)
+
         # numerator divided by denominator (11.26)
         binned_intensity_array = i_raw_array / w_array
 
@@ -949,25 +957,27 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
         if delta_q_array is None:
             binned_dq_array = None
         else:
-            binned_dq, _ = np.histogram(mod_q_array, bins=bin_edges, weights=delta_q_array * invert_sigma2_array)
+            binned_dq, _ = np.histogram(mod_q_array, bins=q_bins.edges, weights=delta_q_array * invert_sigma2_array)
+            binned_dq = np.delete(binned_dq, zero_indexes)
+            assert len(binned_dq) == len(binned_intensity_array)
             # numerator divided by denominator (11.28)
             binned_dq_array = binned_dq / w_array
 
-        return binned_intensity_array, binned_error_array, binned_dq_array
+        return binned_intensity_array, binned_error_array, binned_dq_array, q_bin_centers
 
     # Check input
     assert q_bins.centers.shape[0] + 1 == q_bins.edges.shape[0]
 
     if wl_array is None or wavelength_bins == 1:
         # bin I(Q, wl) regardless of wl value
-        i_final_array, sigma_final_array, bin_q_resolution = _bin_q1d_weighted(
-            q_array, dq_array, iq_array, sigma_iq_array, q_bins.edges
+        i_final_array, sigma_final_array, bin_q_resolution, q_bin_centers = _bin_q1d_weighted(
+            q_bins, q_array, dq_array, iq_array, sigma_iq_array
         )
 
         binned_i_of_q = IQmod(
             intensity=i_final_array,
             error=sigma_final_array,
-            mod_q=q_bins.centers,
+            mod_q=q_bin_centers,
             delta_mod_q=bin_q_resolution,
         )
 
@@ -999,17 +1009,16 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
                 dq_array_i = filtered_matrix[:, 4]
 
             # bin by Q1D
-            binned = _bin_q1d_weighted(
+            i_final_array, sigma_final_array, bin_q_resolution, q_bin_centers = _bin_q1d_weighted(
+                q_bins=q_bins,
                 mod_q_array=filtered_matrix[:, 1],
                 delta_q_array=dq_array_i,
                 intensity_array=filtered_matrix[:, 2],
                 error_array=filtered_matrix[:, 3],
-                bin_edges=q_bins.edges,
             )
-            i_final_array, sigma_final_array, bin_q_resolution = binned
 
             # build up the final output
-            binned_q_vec = np.concatenate((binned_q_vec, q_bins.centers))
+            binned_q_vec = np.concatenate((binned_q_vec, q_bin_centers))
             binned_i_vec = np.concatenate((binned_i_vec, i_final_array))
             binned_sigma_vec = np.concatenate((binned_sigma_vec, sigma_final_array))
             if dq_array is not None:

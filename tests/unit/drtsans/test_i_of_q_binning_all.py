@@ -1,7 +1,8 @@
 import numpy as np
+import pytest
+
 from drtsans.dataobjects import IQmod, IQazimuthal
 from drtsans.iq import bin_all, determine_1d_log_bins
-import pytest
 
 
 def generate_IQ():
@@ -77,8 +78,8 @@ def test_bin_modq():
     )
     binned1d = binned1d[0]
     stepq = 3.0 / 4
-    expected_q = np.arange(0.5, 4) * stepq + 1
-    expected_intensity = np.array([(1.0 + 16) / 2, np.nan, np.nan, (32 + 17.0) / 2])
+    expected_q = np.arange(0.5, 4, 3) * stepq + 1
+    expected_intensity = np.array([(1.0 + 16) / 2, (32 + 17.0) / 2])
     assert binned1d.mod_q == pytest.approx(expected_q)
     assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)
 
@@ -100,8 +101,7 @@ def test_bin_modq():
     binned1d = binned1d[0]
     assert binned1d.mod_q == pytest.approx(expected_q)
     assert binned1d.intensity[0] < expected_intensity[0]
-    assert np.isnan(binned1d.intensity[1])
-    assert binned1d.intensity[3] < expected_intensity[3]
+    assert binned1d.intensity[1] < expected_intensity[1]
 
     # test external qmin/qmax
     binned2d, binned1d = bin_all(
@@ -119,7 +119,7 @@ def test_bin_modq():
         error_weighted=False,
     )
     binned1d = binned1d[0]
-    assert binned1d.mod_q == pytest.approx([1, 3, 5, 7])
+    assert binned1d.mod_q == pytest.approx([1, 5])
 
     # test log scale, decade on center = False, qmin and qmax are not specified
     binned2d, binned1d = bin_all(
@@ -138,7 +138,7 @@ def test_bin_modq():
         error_weighted=False,
     )
     binned1d = binned1d[0]
-    expected_q = determine_1d_log_bins(1.0, 4.0, decade_on_center=False, n_bins=4).centers
+    expected_q = determine_1d_log_bins(1.0, 4.0, decade_on_center=False, n_bins=2).centers
     assert binned1d.mod_q == pytest.approx(expected_q)
 
     # test log scale: decade on center, qmin and qmax are not given
@@ -160,7 +160,7 @@ def test_bin_modq():
     binned1d = binned1d[0]
     expected_q = determine_1d_log_bins(1.0, 4.0, decade_on_center=True, n_bins_per_decade=4).centers
     assert binned1d.mod_q == pytest.approx(expected_q)
-    expected_intensity = np.array([(1.0 + 16) / 2, np.nan, (32 + 17.0) / 2])
+    expected_intensity = np.array([(1.0 + 16) / 2, (32 + 17.0) / 2])
     assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)
 
     # test log scale: decade on center is False, total bins is given, q_min and q_max are given

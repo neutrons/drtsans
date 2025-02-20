@@ -1,10 +1,11 @@
 # project specific things to ignore
 src/drtsans/_version.py
+/debug/
+/test_output/
 BIOSANS_Definition.xml
 CG3_Definition.xml
 BIOSANS_*_flood.nxs
-/debug/
-/test_output/
+/*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

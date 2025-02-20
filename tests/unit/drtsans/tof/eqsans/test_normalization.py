@@ -207,7 +207,7 @@ def test_normalize_by_monitor(flux_to_monitor, data_ws, monitor_ws, temp_workspa
     data_workspace_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=data_workspace_normalized.name())
     # Second we integrate over all wavelength bins and check the value  will not change as the code in the
     # repository evolves
-    assert sum(data_workspace_normalized.dataY(0)) == approx(0.621, abs=1e-03)
+    assert sum(data_workspace_normalized.dataY(0)) == approx(0.552, abs=1e-03)
 
 
 @pytest.mark.datarepo
@@ -315,7 +315,7 @@ def test_normalize_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws, temp
     # then we integrate this single spectrum over all wavelengths
     total_normalized_intensity = sum(summed_normalized.readY(0))
     # here we just check that the result will not change as the code in the repository evolves
-    assert total_normalized_intensity == approx(0.621, abs=1e-3)
+    assert total_normalized_intensity == approx(0.552, abs=1e-3)
 
     #
     # Third we normalize by run duration with method='time'

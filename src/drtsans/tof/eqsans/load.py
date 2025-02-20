@@ -22,7 +22,6 @@ from drtsans.tof.eqsans.correct_frame import (
     transform_to_wavelength,
     smash_monitor_spikes,
     set_init_uncertainties,
-    correct_tof_offset,
     correct_emission_time,
 )
 from drtsans.tof.eqsans.geometry import source_monitor_distance
@@ -180,8 +179,6 @@ def load_events(
     # EQSANS specific part benefits from converting workspace to a string
     output_workspace = str(output_workspace)
 
-    # Correct TOF offset
-    correct_tof_offset(output_workspace)
     # Correct TOF of detector
     correct_detector_frame(output_workspace, path_to_pixel=path_to_pixel)
     # Correct TOF for emission time
@@ -504,8 +501,6 @@ def load_and_split(
     )
 
     for _w in ws_group:
-        # Correct TOF offset
-        correct_tof_offset(_w)
         # Correct TOF of detector
         correct_detector_frame(_w, path_to_pixel=path_to_pixel)
         # Correct TOF for emission time

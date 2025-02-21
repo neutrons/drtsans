@@ -973,7 +973,7 @@ def reduce_single_configuration(
             assert iq1d_main_in_fr[frameskip_frame] is not None, "Input I(Q)      main input cannot be None."
             assert iq2d_main_in_fr[frameskip_frame] is not None, "Input I(qx, qy) main input cannot be None."
 
-            iq2d_main_out, iq1d_main_out = bin_i_with_correction(
+            iq2d_main_out, i1d_main_out = bin_i_with_correction(
                 iq1d_main_in_fr,
                 iq2d_main_in_fr,
                 frameskip_frame,
@@ -1000,7 +1000,7 @@ def reduce_single_configuration(
             )
 
             _inside_detectordata[fr_log_label] = {
-                "iq": iq1d_main_out,
+                "iq": i1d_main_out,
                 "iqxqy": iq2d_main_out,
             }
 
@@ -1010,15 +1010,15 @@ def reduce_single_configuration(
                 save_ascii_binned_2D(f"{filename}.dat", "I(Qx,Qy)", iq2d_main_out)
                 save_cansas_nx(iq2d_main_out.to_workspace(), f"{filename}.h5")
 
-            for j in range(len(iq1d_main_out)):
+            for j in range(len(i1d_main_out)):
                 add_suffix = ""
-                if len(iq1d_main_out) > 1:
+                if len(i1d_main_out) > 1:
                     add_suffix = f"_wedge_{j}"
                 add_suffix += fr_label
                 ascii_1D_filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq")
-                save_iqmod(iq1d_main_out[j], f"{ascii_1D_filename}.dat", skip_nan=skip_nan)
+                save_iqmod(i1d_main_out[j], f"{ascii_1D_filename}.dat", skip_nan=skip_nan)
 
-            current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=iq1d_main_out)
+            current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)
             output.append(current_output)
         # END binning loop over frame
 

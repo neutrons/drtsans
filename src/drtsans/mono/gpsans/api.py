@@ -1319,7 +1319,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         reduction_config["wedges"] = wedges
         reduction_config["symmetric_wedges"] = symmetric_wedges
 
-        iq2d_main_out, iq1d_main_out = bin_all(
+        iq2d_main_out, i1d_main_out = bin_all(
             iq2d_main_in,
             iq1d_main_in,
             nxbins_main,
@@ -1342,19 +1342,19 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         save_ascii_binned_2D(f"{filename}.dat", "I(Qx,Qy)", iq2d_main_out)
         save_cansas_nx(iq2d_main_out.to_workspace(), f"{filename}.h5")
 
-        for j in range(len(iq1d_main_out)):
+        for j in range(len(i1d_main_out)):
             add_suffix = ""
-            if len(iq1d_main_out) > 1:
+            if len(i1d_main_out) > 1:
                 add_suffix = f"_wedge_{j}"
             ascii_1D_filename = os.path.join(output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}")
 
-            save_iqmod(iq1d_main_out[j], f"{ascii_1D_filename}.txt", skip_nan=skip_nan)
+            save_iqmod(i1d_main_out[j], f"{ascii_1D_filename}.txt", skip_nan=skip_nan)
 
         IofQ_output = namedtuple("IofQ_output", ["I2D_main", "I1D_main"])
-        current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=iq1d_main_out)
+        current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)
         output.append(current_output)
 
-        detectordata[name] = {"main": {"iq": iq1d_main_out, "iqxqy": iq2d_main_out}}
+        detectordata[name] = {"main": {"iq": i1d_main_out, "iqxqy": iq2d_main_out}}
 
     try:
         processed_data_main

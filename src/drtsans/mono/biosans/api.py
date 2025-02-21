@@ -1576,7 +1576,7 @@ def reduce_single_configuration(
         reduction_config["wedges"] = wedges
         reduction_config["symmetric_wedges"] = symmetric_wedges
 
-        iq2d_main_out, iq1d_main_out = bin_all(
+        iq2d_main_out, i1d_main_out = bin_all(
             iq2d_main_in,
             iq1d_main_in,
             nxbins_main,
@@ -1599,7 +1599,7 @@ def reduce_single_configuration(
         )
         iq1d_wing_in = biosans.convert_to_q(processed_data_wing, mode="scalar")
         iq2d_wing_in = biosans.convert_to_q(processed_data_wing, mode="azimuthal")
-        iq2d_wing_out, iq1d_wing_out = bin_all(
+        iq2d_wing_out, i1d_wing_out = bin_all(
             iq2d_wing_in,
             iq1d_wing_in,
             nxbins_wing,
@@ -1623,7 +1623,7 @@ def reduce_single_configuration(
         if reduction_config["has_midrange_detector"]:
             iq1d_midrange_in = biosans.convert_to_q(processed_data_midrange, mode="scalar")
             iq2d_midrange_in = biosans.convert_to_q(processed_data_midrange, mode="azimuthal")
-            iq2d_midrange_out, iq1d_midrange_out = bin_all(
+            iq2d_midrange_out, i1d_midrange_out = bin_all(
                 iq2d_midrange_in,
                 iq1d_midrange_in,
                 nxbins_midrange,
@@ -1645,7 +1645,7 @@ def reduce_single_configuration(
                 error_weighted=weighted_errors,
             )
         else:
-            iq2d_midrange_out, iq1d_midrange_out = (IQazimuthal(intensity=[], error=[], qx=[], qy=[]), [])
+            iq2d_midrange_out, i1d_midrange_out = (IQazimuthal(intensity=[], error=[], qx=[], qy=[]), [])
 
         # create output directories
         create_output_dir(output_dir)
@@ -1662,16 +1662,16 @@ def reduce_single_configuration(
         # intensity profiles in the order of stitching (lower to higher Q)
         if not reduction_config["has_midrange_detector"] or reduction_config["overlapStitchIgnoreMidrange"]:
             iq1d_profiles_in = [iq1d_main_in, iq1d_wing_in]
-            iq1d_profiles_out = [iq1d_main_out, iq1d_wing_out]
+            i1d_profiles_out = [i1d_main_out, i1d_wing_out]
         else:
             iq1d_profiles_in = [iq1d_main_in, iq1d_midrange_in, iq1d_wing_in]
-            iq1d_profiles_out = [iq1d_main_out, iq1d_midrange_out, iq1d_wing_out]
-        iq1d_combined_out = stitch_binned_profiles(iq1d_profiles_in, iq1d_profiles_out, reduction_config)
+            i1d_profiles_out = [i1d_main_out, i1d_midrange_out, i1d_wing_out]
+        iq1d_combined_out = stitch_binned_profiles(iq1d_profiles_in, i1d_profiles_out, reduction_config)
 
         save_iqmod_all(
-            iq1d_main_out,
-            iq1d_midrange_out,
-            iq1d_wing_out,
+            i1d_main_out,
+            i1d_midrange_out,
+            i1d_wing_out,
             iq1d_combined_out,
             outputFilename,
             output_dir,
@@ -1687,17 +1687,17 @@ def reduce_single_configuration(
             I2D_main=iq2d_main_out,
             I2D_midrange=iq2d_midrange_out,
             I2D_wing=iq2d_wing_out,
-            I1D_main=iq1d_main_out,
-            I1D_midrange=iq1d_midrange_out,
-            I1D_wing=iq1d_wing_out,
+            I1D_main=i1d_main_out,
+            I1D_midrange=i1d_midrange_out,
+            I1D_wing=i1d_wing_out,
             I1D_combined=iq1d_combined_out,
         )
         output.append(current_output)
 
         detectordata[sample_name] = get_sample_detectordata(
-            iq1d_main_out,
-            iq1d_midrange_out,
-            iq1d_wing_out,
+            i1d_main_out,
+            i1d_midrange_out,
+            i1d_wing_out,
             iq1d_combined_out,
             iq2d_main_out,
             iq2d_midrange_out,

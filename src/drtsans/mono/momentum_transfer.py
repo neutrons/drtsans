@@ -74,8 +74,8 @@ def convert_to_q(ws, mode, resolution_function=mono_resolution, **kwargs):
     series of arrays: intensity, error, q (or q components),
     delta q (or delta q components), and wavelength
 
-    Using the scattering angle as :math:`2\theta` and azimuthan angle as
-    :math:`\phi`,the calculaion of momentum transfer is:
+    Using the scattering angle as :math:`2\theta` and azimuthal angle as
+    :math:`\phi`,the calculation of momentum transfer is:
 
     - 'scalar' mode:
 

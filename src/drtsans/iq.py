@@ -121,14 +121,17 @@ def valid_wedge(min_angle, max_angle) -> List[Tuple[float, float]]:
                 max_angle, min_angle, diff
             )
         )
-    diff = min_angle - max_angle
-    if diff <= 180:
-        raise ValueError(
-            "wedge angle is greater than 180 degrees: {:.1f} - {:.1f} = {:.1f} <= 180".format(
-                min_angle, max_angle, diff
+    else:
+        # max_angle is smaller than min_angle, meaning that the wedge crosses the 270 -> -90 border
+        # Split the wedge into two parts on either side of the border so that all wedges are in the
+        # range [-90,270).
+        diff = 360.0 - (min_angle - max_angle)
+        if diff >= 180:
+            raise ValueError(
+                f"wedge angle (min {min_angle:.1f} max {max_angle:.1f}) is greater than 180 degrees:"
+                f" (360 + {max_angle:.1f}) - {min_angle:.1f} = {diff:.1f} >= 180"
             )
-        )
-    return [(min_angle, 270.1), (-90.1, max_angle)]
+        return [(min_angle, 270.1), (-90.1, max_angle)]
 
 
 def get_wedges(min_angle: float, max_angle: float, symmetric_wedges=True) -> List[Tuple[float, float]]:

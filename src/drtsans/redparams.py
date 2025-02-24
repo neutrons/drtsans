@@ -586,7 +586,6 @@ class ReductionParameters:
         "evaluateCondition": "_validate_evaluate_condition",
         "exclusiveOr": "_validate_exclusive_or",
         "fluxFileTOF": "_validate_flux_file_tof",
-        "isIntegerMultiple": "_validate_is_integer_multiple",
         "lessThan": "_validate_less_than",
         "onlyOneTrue": "_validate_only_one_true",
         "pairedTo": "_validate_is_paired_to",
@@ -886,16 +885,6 @@ class ReductionParameters:
             condition = condition.replace(other_instance_key, str(other_instance))
         if eval(condition) is False:
             yield jsonschema.ValidationError(f"{value} condition has evaluated to False")
-
-    def _validate_is_integer_multiple(self, validator, value, instance, schema):
-        this_value = instance  # period
-        other_value = self.get_parameter_value(value)  # interval
-        if this_value is None:
-            return
-        if other_value is None:
-            yield jsonschema.ValidationError(f"{value.split('/')[-1]} must be assigned, and a multiple of {instance}")
-        if this_value % other_value > 1e-9:
-            yield jsonschema.ValidationError(f"{this_value} is not a multiple of {other_value}")
 
     def _validate_less_than(self, validator, value, instance, schema):
         r"""

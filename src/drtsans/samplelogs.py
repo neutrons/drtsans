@@ -94,7 +94,7 @@ def periodic_index_log(
     name: str = "periodic_index",
 ) -> FloatTimeSeriesProperty:
     r"""
-    Generate a periodic log whose values are integers ranging from 0 to ``period / interval``
+    Generate a periodic log whose values are integers ranging from 0 to ``ceil(period / interval)``
     using timeSliceXXX values from the reduction configuration.
 
     The first log entry is at ``run_start + offset`` with value 0. The next entry at
@@ -122,23 +122,17 @@ def periodic_index_log(
     -------
     A Mantid timeseries property object which can be attached to a Run object.
 
-    Raises
-    ------
-    ValueError
-        If ``period`` is not a multiple of ``interval``.
     """
-
-    if (SECONDS_TO_NANOSECONDS * period) % interval > 1:  # allow for rounding errors of 1 nanosecond
-        raise ValueError(f"period {period} must be a multiple of interval {interval}")
 
     # times at which we insert a new log entry
     times = np.arange(offset, duration, interval)
 
-    # number of periods in the duration (plus one in case division truncates)
-    period_count = 1 + int((duration - offset) / period)
+    # number of periods in the duration
+    # plus 1 for any remainder (via ceil)
+    period_count = int(np.ceil((duration - offset) / period))
 
     # array of values in each period, scaled by the step
-    values_in_period = step * np.arange(0, int(period / interval))
+    values_in_period = step * np.arange(0, np.ceil(period / interval))
 
     # repeat the values in a period up to the number of periods,
     # then truncate to the length of times, then cast to list

@@ -844,7 +844,14 @@ def _mock_eqsans_load_and_split(*args, **kwargs):
 @mock_patch("drtsans.tof.eqsans.api.load_events", new=_mock_eqsans_load_events)
 @mock_patch("drtsans.tof.eqsans.load.load_events", new=_mock_eqsans_load_events)
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
-def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[Any], str]):
+@pytest.mark.parametrize(
+    "ID, timeSliceInterval",
+    [
+        ("integerNperiods", 1.0 / 60),
+        ("nonIntegerNperiods", 2.0 / 60),
+    ],
+)
+def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[Any], str], ID, timeSliceInterval):
     r"""
     Reduce a single configuration that simulates scattering from a sample which imprints an intensity pattern in the
     shape of three time-resoved rings in the main detector of EQSANS.
@@ -868,7 +875,7 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
         "configuration": {
             "outputDir": temp_directory(prefix="testSplitThreeRings_"),
             "useTimeSlice": True,
-            "timeSliceInterval": 1.0 / 60,
+            "timeSliceInterval": timeSliceInterval,
             "timeSliceOffset": 0.0,
             "timeSlicePeriod": 3.0 / 60,
         },
@@ -930,11 +937,29 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
     # do the actual reduction
     reduction_output = reduce_single_configuration(loaded, config)
 
-    # find the Q-modulus where the scattering intensity is maximum, and compare to what's expected
-    minimum_peak_intensity = 300
-    for peak_index, q_at_max_i in enumerate(metadata["Q_at_max_I"]):
-        i_vs_qmod: IQmod = reduction_output[peak_index].I1D_main[0]  # 1D intensity profile
-        closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - q_at_max_i))
+    minimum_peak_intensity = 300  # all three peaks have a maximum intensity bigger than this number
+
+    # check peaks were detected
+    if ID == "integerNperiods":
+        # find the Q-modulus where the scattering intensity is maximum, and compare to what's expected
+        for peak_index, q_at_max_i in enumerate(metadata["Q_at_max_I"]):
+            i_vs_qmod: IQmod = reduction_output[peak_index].I1D_main[0]  # 1D intensity profile
+            closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - q_at_max_i))
+            assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
+
+    elif ID == "nonIntegerNperiods":
+        # 2 time slices, there will be 2 peaks in the first
+        i_vs_qmod: IQmod = reduction_output[0].I1D_main[0]  # 1D intensity profile
+
+        peak0_closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][0]))
+        peak1_closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][1]))
+
+        assert i_vs_qmod.intensity[peak0_closest_index] > minimum_peak_intensity
+        assert i_vs_qmod.intensity[peak1_closest_index] > minimum_peak_intensity
+
+        # second slice, 3rd peak here
+        i_vs_qmod: IQmod = reduction_output[1].I1D_main[0]  # 1D intensity profile
+        closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][2]))
         assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
 

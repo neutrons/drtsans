@@ -28,6 +28,7 @@ repos:
           notebooks/
           tests/examples/
       - id: ruff-format
+        args: [--no-cache]
         exclude: |
             notebooks/
             tests/examples/

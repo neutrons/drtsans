@@ -257,6 +257,11 @@ def concatenate(iq_objects):
     return _nary_operation(iq_objects, np.concatenate, unpack=False)
 
 
+# separate arguments with and without defaults into separate base classes to allow
+# child classes to have non-default arguments
+# see https://stackoverflow.com/a/53085935/23095774
+
+
 @dataclass(frozen=True)
 class _I1DBase:
     intensity: np.ndarray | list

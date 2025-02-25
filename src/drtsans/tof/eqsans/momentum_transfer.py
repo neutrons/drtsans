@@ -1,5 +1,6 @@
 import numpy as np
 from collections import namedtuple
+from dataclasses import asdict
 
 # https://github.com/neutrons/drtsans/blob/next/src/drtsans/momentum_transfer.py
 import drtsans.momentum_transfer
@@ -275,12 +276,11 @@ def split_by_frame(input_workspace, *args, **kwargs):
     except AttributeError:
         input_type = None
     # transform args to dictionary
-    # FIXME - It is better to use a different variable name for kwargs as it may shadow method input
     try:
-        kwargs = args[0]._asdict()
+        i_of_q = asdict(args[0])
     except AttributeError:
         pass
-    keys = kwargs.keys()
+    keys = i_of_q.keys()
     info += f"Argument keys = {list(keys)}\n"
 
     # get the wavelengths for each frame
@@ -309,12 +309,12 @@ def split_by_frame(input_workspace, *args, **kwargs):
     output_list = []
     for wl_min, wl_max in frames:
         output = dict()
-        wavelength = kwargs["wavelength"]
+        wavelength = i_of_q["wavelength"]
         # use only data between the given wavelengths
         kept_data_indexes = np.logical_and(np.greater_equal(wavelength, wl_min), np.less_equal(wavelength, wl_max))
         # filter each data/key
         for k in keys:
-            output[k] = kwargs[k][kept_data_indexes]
+            output[k] = i_of_q[k][kept_data_indexes]
         # create the namedtuple from a dictionary
         if input_type is not None:
             output_list.append(input_type(**output))

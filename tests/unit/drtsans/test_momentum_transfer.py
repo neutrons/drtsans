@@ -81,13 +81,15 @@ def test_convert_to_mod_q(generic_workspace, clean_workspace):
     MaskDetectors(ws, WorkspaceIndexList=[2])
     # For every detector pixel, calculate the intensity, intensity error, Q-value, it's error, and the associated
     # vawelength.
-    intensity, error, modq, dq, lam = convert_to_q(ws, mode="scalar")
-    assert intensity == pytest.approx([10, 20, 40], abs=1e-5)
-    assert error == pytest.approx([1, 2, 4], abs=1e-5)
+    result = convert_to_q(ws, mode="scalar")
+    assert result.intensity == pytest.approx([10, 20, 40], abs=1e-5)
+    assert result.error == pytest.approx([1, 2, 4], abs=1e-5)
     # we are not passing any resolution function as argument 'resolution_function' in function
     # 'convert_to_q'. Thus, we assume infinite precision and the error in Q is therefore zero.
-    assert dq == pytest.approx([0, 0, 0], abs=1e-5)
-    assert lam == pytest.approx([6, 6, 6], abs=1e-5)  # 6 Angstroms is the middle point of the bin [5.9, 6.1]
+    assert result.delta_mod_q == pytest.approx([0, 0, 0], abs=1e-5)
+    assert result.wavelength == pytest.approx(
+        [6, 6, 6], abs=1e-5
+    )  # 6 Angstroms is the middle point of the bin [5.9, 6.1]
 
     # All detector pixels subtend the same scattering angle. Detectors are located at coordinates
     # (x, y, z) = (+-0.5, +-0.5, 5.0)
@@ -97,7 +99,7 @@ def test_convert_to_mod_q(generic_workspace, clean_workspace):
     # assert the Q value for each detector pixel. Again, all Q-values are the same because all two_theta values
     # are the same for all three unmasked detector pixels
     q = 4.0 * np.pi * np.sin(two_theta * 0.5) / 6.0
-    assert modq == pytest.approx([q, q, q], abs=1e-5)
+    assert result.mod_q == pytest.approx([q, q, q], abs=1e-5)
 
     # test namedtuple result and resolution
     # Function fake_resolution1 returns the workspace index of the pixel detector as the error of

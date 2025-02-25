@@ -1,5 +1,6 @@
 # standard imports
 import os
+from dataclasses import asdict
 
 # local imports
 from drtsans.dataobjects import IQazimuthal
@@ -27,7 +28,7 @@ def save_ascii_binned_1D(filename: str, title, *args, **kwargs):
         intensity, error, mod_q, delta_mod_q - 1D numpy arrays of the same length, output from 1D binning
     """
     try:
-        kwargs.update(args[0]._asdict())
+        kwargs.update(asdict(args[0]))
     except AttributeError:
         pass
     # Read the value of skip_nan from kwargs or True as default
@@ -98,7 +99,7 @@ def save_ascii_binned_2D(filename: str, title, *args, **kwargs):
         intensity, error, qx, qy, delta_qx, delta_qy - 1D numpy arrays of the same length, output from 1D binning
     """
     try:
-        kwargs = args[0]._asdict()
+        kwargs = asdict(args[0])
     except AttributeError:
         pass
     # make everything a 1d array

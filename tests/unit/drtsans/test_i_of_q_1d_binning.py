@@ -1,23 +1,23 @@
 import numpy as np
-from drtsans.dataobjects import IQmod
+import pytest
 
-# https://github.com/neutrons/drtsans/blob/next/src/drtsans/iq.py
+
+from drtsans.dataobjects import IQmod
 from drtsans.determine_bins import Bins
 from drtsans.iq import (
-    determine_1d_linear_bins,
-    determine_1d_log_bins,
     BinningMethod,
     bin_intensity_into_q1d,
+    check_iq_for_binning,
+    determine_1d_linear_bins,
+    determine_1d_log_bins,
 )
-
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/drtsans/i_of_q_binning_tests_data.py
 from tests.unit.drtsans.i_of_q_binning_tests_data import (
     generate_test_data,
     generate_test_data_wavelength,
     get_gold_1d_linear_bins,
     get_gold_1d_log_bins,
 )
-import pytest
+
 
 # This module supports testing data for issue #239.
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/239
@@ -26,6 +26,16 @@ import pytest
 # SME - William Heller <hellerwt@ornl.gov>
 
 # All tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
+
+
+@pytest.fixture(autouse=True)
+def _capture_logging(monkeypatch):
+    """Monkeypatch mantid logger for drtsans.iq to make caplog work"""
+    import logging
+
+    logger = logging.getLogger("drtsans.iq")
+    logger.propagate = True
+    monkeypatch.setattr("drtsans.iq.logger", logger)
 
 
 def test_1d_bin_linear_no_wt():
@@ -83,10 +93,6 @@ def test_1d_bin_log_no_wt():
     """Test '1D_bin_log_no_sub_no_wt'
 
     Test binning methods for 1D no-weight binning with log bins
-
-    Returns
-    -------
-
     """
     # Define Q range from tab '1D_bin_log_no_sub_no_wt' in r4
     q_min = 0.001  # center
@@ -223,7 +229,7 @@ def test_1d_bin_wavelength():
     # Check NaN
     nan_intensities = np.where(np.isnan(binned_iq_wl.intensity))[0]
     nan_errors = np.where(np.isnan(binned_iq_wl.error))[0]
-    assert len(nan_intensities) == 6, f"Expected {6} NaN but got {len(nan_errors)} instead"
+    assert len(nan_intensities) == 6, f"Expected 0 NaNs but got {len(nan_errors)} instead"
     np.testing.assert_allclose(nan_intensities, nan_errors)
 
     print(f"Number of  intensities = {binned_iq_wl.intensity.shape}")
@@ -360,6 +366,22 @@ def test_1d_weighted_binning():
     np.testing.assert_allclose(binned_iq_all_wl.intensity, expected_binned_qie[:, 1])
     np.testing.assert_allclose(binned_iq_all_wl.error, expected_binned_qie[:, 2])
     np.testing.assert_allclose(binned_iq_all_wl.delta_mod_q, expected_binned_qie[:, 3])
+
+
+def test_1d_failed_iq_binning(caplog):
+    """Test the assumption-checking method for binning"""
+    # Generate test data
+    intensities, _, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
+
+    # Use zero intensities instead
+    i_of_q = IQmod(intensity=intensities, error=np.zeros(75), mod_q=scalar_q_array, delta_mod_q=scalar_dq_array)
+
+    # Test the assumption-checking method
+    is_valid = check_iq_for_binning(i_of_q)
+    assert is_valid is False
+
+    # Assert that the log contains a warning about zero intensities
+    assert "Input I(Q) for binning does not meet assumption:" in caplog.text
 
 
 if __name__ == "__main__":

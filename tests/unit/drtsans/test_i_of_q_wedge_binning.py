@@ -1,16 +1,13 @@
-from drtsans.dataobjects import IQazimuthal, q_azimuthal_to_q_modulo
+import pytest
 
-# https://github.com/neutrons/drtsans/blob/next/src/drtsans/iq.py
+from drtsans.dataobjects import IQazimuthal, q_azimuthal_to_q_modulo
 from drtsans.iq import (
-    determine_1d_log_bins,
     BinningMethod,
     bin_intensity_into_q1d,
+    determine_1d_log_bins,
     select_i_of_q_by_wedge,
 )
-
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/drtsans/i_of_q_binning_tests_data.py
 from tests.unit.drtsans.i_of_q_binning_tests_data import generate_test_data
-import pytest
 
 # This module supports testing data for issue #239.
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/247
@@ -22,16 +19,7 @@ import pytest
 
 
 def test_1d_bin_log_wedge_no_wt():
-    """Test the methods to select I(Qx, Qy) by wedge angles and do the binning
-
-    The test data comes from example in '1D_bin_log_wedge_no_sub_no_wt' from eqsans_tof_q_binning_tests_R5.xlsx.
-    File location: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-                   eqsans_tof_q_binning_tests_R5.xlsx
-
-    Returns
-    -------
-
-    """
+    """Test the methods to select I(Qx, Qy) by wedge angles and do the binning"""
     # Define Q range
     q_min = 0.001  # center min
     q_max = 0.007890  # center max

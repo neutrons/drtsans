@@ -1,11 +1,8 @@
-from drtsans.dataobjects import IQazimuthal, q_azimuthal_to_q_modulo
-
-# https://github.com/neutrons/drtsans/blob/next/src/drtsans/iq.py
-from drtsans.iq import select_i_of_q_by_wedge
-
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/drtsans/test_q_azimuthal_to_q_modulo.py
-from tests.unit.drtsans.i_of_q_binning_tests_data import generate_test_data
 import pytest
+
+from drtsans.dataobjects import IQazimuthal, q_azimuthal_to_q_modulo
+from drtsans.iq import select_i_of_q_by_wedge
+from tests.unit.drtsans.i_of_q_binning_tests_data import generate_test_data
 
 # This module supports testing data for issue #373
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/373

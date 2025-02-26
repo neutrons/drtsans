@@ -51,7 +51,7 @@ def determine_1d_linear_bins(x_min, x_max, bins):
     return linear_bins
 
 
-def determine_1d_log_bins(x_min, x_max, decade_on_center, n_bins_per_decade=None, n_bins=None):
+def determine_1d_log_bins(x_min, x_max, decade_on_center, n_bins_per_decade=None, n_bins=None) -> Bins:
     """
 
     Parameters
@@ -69,7 +69,8 @@ def determine_1d_log_bins(x_min, x_max, decade_on_center, n_bins_per_decade=None
 
     Returns
     -------
-
+    ~drtsans.iq.Bins
+        Bins including bin centers and bin edges
     """
     # Check inputs
     if n_bins_per_decade is None and n_bins is None:

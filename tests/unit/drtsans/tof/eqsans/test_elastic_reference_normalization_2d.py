@@ -7,11 +7,8 @@ import numpy as np
 
 
 def create_testing_iq2d():
-    """Create a test data I(Q, wavelength) as the attached EXCEL spreadsheet attached in gitlab story SANS 834
-    https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/d268b5ddc440becf9c677e5e0e69e9b8/test_elastic_1_.xlsx
-    Returns
-    -------
-
+    """
+    Create a test data I(Q, wavelength) as the attached EXCEL spreadsheet attached in gitlab story SANS 834
     """
     # Elastic reference normalization vector
     k_vec = [1.0, 0.75, 1.4]

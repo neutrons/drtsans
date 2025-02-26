@@ -1,23 +1,23 @@
+from typing import Tuple
+
 import numpy as np
 import pytest
-from drtsans.sensitivity_correction_patch import calculate_sensitivity_correction
 from numpy.testing import assert_allclose
 
+from drtsans.sensitivity_correction_patch import calculate_sensitivity_correction
 
-def create_gold_result():
+
+def create_gold_result() -> Tuple[np.ndarray, np.ndarray]:
     """Create gold sensitivities and uncertainties from instrument scientist's verified result.
 
-    Refer to https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/
-             992d682cd7f5e8da62a83fcd64ea67e6/calculate_sensitivity_patch_testR3.xlsx
-
-             Uncertainties of sensitivities are changed because original result is calculated from numpy 1.5,
-             while the covariance matrix from polyfit differs starting from numpy version 1.6
+    Uncertainties of sensitivities are changed because original result is calculated from numpy 1.5,
+    while the covariance matrix from polyfit differs starting from numpy version 1.6
     Refer to https://numpy.org/devdocs/release/
              1.16.0-notes.html#the-scaling-of-the-covariance-matrix-in-np-polyfit-is-different
 
     Returns
     -------
-    ~np.ndarray, ~np.ndaray
+    ~np.ndarray, ~np.ndarray
         sensitivities (2D matrix), sensitivity uncertainties (2D matrix)
 
     """

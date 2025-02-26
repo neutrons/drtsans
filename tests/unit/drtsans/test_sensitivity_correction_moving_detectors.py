@@ -1,22 +1,15 @@
 import numpy as np
-
-# https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/gpsans/prepare_sensitivity.py
-from drtsans.sensitivity_correction_moving_detectors import (
-    prepare_sensitivity,
-    _mask_zero_count_pixel,
-)
 import pytest
+
+from drtsans.sensitivity_correction_moving_detectors import (
+    _mask_zero_count_pixel,
+    prepare_sensitivity,
+)
 
 # This test implements issue #205 to verify
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/205
 # DEV - Wenduo Zhou <petersonpf@ornl.gov> and Joe Osborn <osbornjd@ornl.gov>
 # SME - William Heller <hellerwt@ornl.gov>, Lisa
-
-
-# All testing data are from
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/906bfc358e1d6eb12a78439aef615f03/sensitivity_math.xlsx
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/fccd9ac3b9611acda0e4d9efe52ff4f4/
-# Test_for_Preparing_Sensitivity_file_for_GP-SANS.pdf
 
 
 def generate_test_data():

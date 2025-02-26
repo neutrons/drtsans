@@ -94,7 +94,7 @@ def periodic_index_log(
     name: str = "periodic_index",
 ) -> FloatTimeSeriesProperty:
     r"""
-    Generate a periodic log whose values are integers ranging from 0 to ``ceil(period / interval)``
+    Generate a periodic log whose values are integers ranging from 0 to ``period // interval``
     using timeSliceXXX values from the reduction configuration.
 
     The first log entry is at ``run_start + offset`` with value 0. The next entry at

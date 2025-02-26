@@ -847,8 +847,8 @@ def _mock_eqsans_load_and_split(*args, **kwargs):
 @pytest.mark.parametrize(
     "ID, timeSliceInterval",
     [
-        ("integerNperiods", 1.0 / 60),
-        ("nonIntegerNperiods", 2.0 / 60),
+        ("integerNslices", 1.0 / 60),  # period is a multiple of time slice interval
+        ("nonIntegerNslices", 2.0 / 60),  # ... or it is not
     ],
 )
 def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[Any], str], ID, timeSliceInterval):
@@ -937,17 +937,18 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
     # do the actual reduction
     reduction_output = reduce_single_configuration(loaded, config)
 
-    minimum_peak_intensity = 300  # all three peaks have a maximum intensity bigger than this number
-
     # check peaks were detected
-    if ID == "integerNperiods":
+
+    if ID == "integerNslices":
+        minimum_peak_intensity = 300  # all three peaks have a maximum intensity bigger than this number
         # find the Q-modulus where the scattering intensity is maximum, and compare to what's expected
         for peak_index, q_at_max_i in enumerate(metadata["Q_at_max_I"]):
             i_vs_qmod: IQmod = reduction_output[peak_index].I1D_main[0]  # 1D intensity profile
             closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - q_at_max_i))
             assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
-    elif ID == "nonIntegerNperiods":
+    elif ID == "nonIntegerNslices":
+        minimum_peak_intensity = 199
         # 2 time slices, there will be 2 peaks in the first
         i_vs_qmod: IQmod = reduction_output[0].I1D_main[0]  # 1D intensity profile
 

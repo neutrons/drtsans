@@ -132,12 +132,13 @@ def periodic_index_log(
     interval_count = np.floor(period / interval).astype(int)
 
     # generate period/interval blocks
+    # this creates intervals per period, of the range [period start, period end)
+    # ``- 1e-15`` makes the end range exclusive for integers
     times = [
-        np.arange(i * period + offset, min(duration, (i + 1) * period - period % interval + 1e-15 + offset), interval)
-        for i in range(period_count)
-    ]
+        np.arange(i * period + offset, min(duration, (i + 1) * period + offset - 1e-15),
+                  interval) for
+        i in range(period_count)]
     times = np.concatenate(times)
-    times = np.unique(np.round(times / 1e-15) * 1e-15)  # interval multiples of periods cause repeats, remove them
 
     # array of values in each period, scaled by the step
     values_in_period = step * np.arange(0, np.ceil(period / interval))

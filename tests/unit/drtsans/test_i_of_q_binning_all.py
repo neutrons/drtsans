@@ -78,8 +78,8 @@ def test_bin_modq():
     )
     binned1d = binned1d[0]
     stepq = 3.0 / 4
-    expected_q = np.arange(0.5, 4, 3) * stepq + 1
-    expected_intensity = np.array([(1.0 + 16) / 2, (32 + 17.0) / 2])
+    expected_q = np.arange(0.5, 4) * stepq + 1
+    expected_intensity = np.array([(1.0 + 16) / 2, np.nan, np.nan, (32 + 17.0) / 2])
     assert binned1d.mod_q == pytest.approx(expected_q)
     assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)
 
@@ -101,7 +101,8 @@ def test_bin_modq():
     binned1d = binned1d[0]
     assert binned1d.mod_q == pytest.approx(expected_q)
     assert binned1d.intensity[0] < expected_intensity[0]
-    assert binned1d.intensity[1] < expected_intensity[1]
+    assert np.isnan(binned1d.intensity[1])
+    assert binned1d.intensity[3] < expected_intensity[3]
 
     ### test external qmin/qmax
     binned2d, binned1d = bin_all(
@@ -119,7 +120,7 @@ def test_bin_modq():
         error_weighted=False,
     )
     binned1d = binned1d[0]
-    assert binned1d.mod_q == pytest.approx([1, 5])
+    assert binned1d.mod_q == pytest.approx([1, 3, 5, 7])
 
     ### test log scale, decade on center = False, qmin and qmax are not specified
     binned2d, binned1d = bin_all(
@@ -138,7 +139,7 @@ def test_bin_modq():
         error_weighted=False,
     )
     binned1d = binned1d[0]
-    expected_q = determine_1d_log_bins(1.0, 4.0, decade_on_center=False, n_bins=2).centers
+    expected_q = determine_1d_log_bins(1.0, 4.0, decade_on_center=False, n_bins=4).centers
     assert binned1d.mod_q == pytest.approx(expected_q)
 
     ### test log scale: decade on center, qmin and qmax are not given
@@ -158,14 +159,8 @@ def test_bin_modq():
         error_weighted=False,
     )
     binned1d = binned1d[0]
-
-    # get expected q values
-    q_bins = determine_1d_log_bins(1.0, 4.0, decade_on_center=True, n_bins_per_decade=4)
-    num_pt_vec, _ = np.histogram(iq1d.mod_q, bins=q_bins.edges)
-    zero_indexes = np.where(num_pt_vec == 0)[0]
-    expected_q = np.delete(q_bins.centers, zero_indexes)
-    expected_intensity = np.array([(1.0 + 16) / 2, (32 + 17.0) / 2])
-
+    expected_q = determine_1d_log_bins(1.0, 4.0, decade_on_center=True, n_bins_per_decade=4).centers
+    expected_intensity = np.array([(1.0 + 16) / 2, np.nan, (32 + 17.0) / 2])
     assert binned1d.mod_q == pytest.approx(expected_q)
     assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)
 
@@ -186,16 +181,10 @@ def test_bin_modq():
         error_weighted=False,
     )
     binned1d = binned1d[0]
-
-    # get expected q values
-    q_bins = determine_1d_log_bins(2.0, 10.0, decade_on_center=False, n_bins=4)
-    num_pt_vec, _ = np.histogram(iq1d.mod_q, bins=q_bins.edges)
-    zero_indexes = np.where(num_pt_vec == 0)[0]
-    expected_q = np.delete(q_bins.centers, zero_indexes)
-    expected_intensity = np.array([(32 + 17.0) / 2])
-
+    expected_q = determine_1d_log_bins(2.0, 10.0, decade_on_center=False, n_bins=4).centers
+    expected_intensity = np.array([np.nan, (32 + 17.0) / 2, np.nan, np.nan])
     assert binned1d.mod_q == pytest.approx(expected_q)
-    assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=False)
+    assert binned1d.intensity == pytest.approx(expected_intensity, nan_ok=True)
 
 
 def test_annular():
@@ -238,11 +227,11 @@ def test_wedges():
     # in wedge 0, at low q 1, 2, 16, 8, 9, 10
     # in wedge 1, at low q 4, 5, 6, 12, 13, 14
     # at high q add 16
-    expected_intensity_wedge0 = np.array([7.66666, 23.66666])
-    expected_intensity_wedge1 = np.array([9, 25])
+    expected_intensity_wedge0 = np.array([7.66666, np.nan, np.nan, 23.66666])
+    expected_intensity_wedge1 = np.array([9, np.nan, np.nan, 25])
     assert len(binned1d) == 2
-    assert binned1d[0].intensity == pytest.approx(expected_intensity_wedge0, nan_ok=False, abs=1e-5)
-    assert binned1d[1].intensity == pytest.approx(expected_intensity_wedge1, nan_ok=False, abs=1e-5)
+    assert binned1d[0].intensity == pytest.approx(expected_intensity_wedge0, nan_ok=True, abs=1e-5)
+    assert binned1d[1].intensity == pytest.approx(expected_intensity_wedge1, nan_ok=True, abs=1e-5)
 
 
 def test_wedge_qmin_qmax():
@@ -263,11 +252,11 @@ def test_wedge_qmin_qmax():
         wedges=[(-30, 30), (60, 120)],
         error_weighted=False,
     )
-    expected_intensity_wedge0 = np.array([7.66666])
-    expected_intensity_wedge1 = np.array([25])
+    expected_intensity_wedge0 = np.array([np.nan, np.nan, 7.66666, np.nan, np.nan])
+    expected_intensity_wedge1 = np.array([np.nan, np.nan, 25, np.nan, np.nan])
     assert len(binned1d) == 2
-    assert binned1d[0].intensity == pytest.approx(expected_intensity_wedge0, nan_ok=False, abs=1e-5)
-    assert binned1d[1].intensity == pytest.approx(expected_intensity_wedge1, nan_ok=False, abs=1e-5)
+    assert binned1d[0].intensity == pytest.approx(expected_intensity_wedge0, nan_ok=True, abs=1e-5)
+    assert binned1d[1].intensity == pytest.approx(expected_intensity_wedge1, nan_ok=True, abs=1e-5)
 
 
 if __name__ == "__main__":

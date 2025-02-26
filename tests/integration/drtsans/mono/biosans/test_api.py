@@ -522,7 +522,7 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
     loaded = load_all_files(reduction_input, prefix, path=data["data_dir"])
     output = reduce_single_configuration(loaded, reduction_input)
     iq1d_combined = output[0].I1D_combined[0].intensity
-    assert len(iq1d_combined) == 76
+    assert len(iq1d_combined) == 91
 
     # the data should create at least two bell curves
     # we check tha values at their peaks
@@ -619,8 +619,8 @@ def test_reduce_single_configuration_with_wedges_synthetic_dataset(
     output = reduce_single_configuration(loaded, reduction_input)
     iq1d_combined_wedge1 = output[0].I1D_combined[0].intensity
     iq1d_combined_wedge2 = output[0].I1D_combined[1].intensity
-    assert len(iq1d_combined_wedge1) == 76
-    assert len(iq1d_combined_wedge2) == 69
+    assert len(iq1d_combined_wedge1) == 91
+    assert len(iq1d_combined_wedge2) == 91
 
     # the data should create at least two bell curves
     # we check tha values at their peaks
@@ -711,12 +711,12 @@ def test_reduce_single_configuration_ignore_midrange(mock_monitor_counts, biosan
     loaded = load_all_files(reduction_input, prefix, path=data["data_dir"])
     output = reduce_single_configuration(loaded, reduction_input)
     iq1d_combined = output[0].I1D_combined[0].intensity
-    assert len(iq1d_combined) == 62
+    assert len(iq1d_combined) == 82
 
     # the combined curve has original data from the main detector and scaled data
     # from the wing detector, we check values in the two different regions
-    main_region = iq1d_combined[0:40]
-    wing_region = iq1d_combined[40:62]
+    main_region = iq1d_combined[0:46]
+    wing_region = iq1d_combined[46:82]
     assert np.nanmax(main_region) == pytest.approx(24192, rel=1e-3)
     assert np.nanmax(wing_region) == pytest.approx(17888, rel=1e-3)
 

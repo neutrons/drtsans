@@ -71,7 +71,6 @@ def determine_1d_log_bins(x_min, x_max, decade_on_center, n_bins_per_decade=None
     -------
     ~drtsans.iq.Bins
         Bins including bin centers and bin edges
-
     """
     # Check inputs
     if n_bins_per_decade is None and n_bins is None:

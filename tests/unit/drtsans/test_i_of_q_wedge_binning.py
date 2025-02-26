@@ -51,11 +51,11 @@ def test_1d_bin_log_wedge_no_wt():
     binned_iq = bin_intensity_into_q1d(test_i_q1d, log_bins, bin_method=BinningMethod.NOWEIGHT)
 
     # Verification
-    # bin index = 2, bin center = 0.005586, bin edges = (0.00631, 0.007033)
-    assert binned_iq.intensity[2] == pytest.approx(70.0, abs=1e-10)
-    assert binned_iq.error[2] == pytest.approx(3.741657387, abs=1e-5)
-    assert binned_iq.delta_mod_q[2] == pytest.approx(0.011460, abs=1e-4), (
-        "Q resolution (Q[2] = {}) is incorrect comparing to {}.".format(binned_iq.delta_mod_q[2], 0.0115)
+    # bin index = 7, bin center = 0.005586, bin edges = (0.00631, 0.007033)
+    assert binned_iq.intensity[7] == pytest.approx(70.0, abs=1e-10)
+    assert binned_iq.error[7] == pytest.approx(3.741657387, abs=1e-5)
+    assert binned_iq.delta_mod_q[7] == pytest.approx(0.011460, abs=1e-4), (
+        "Q resolution (Q[7] = {}) is incorrect comparing to {}.".format(binned_iq.delta_mod_q[7], 0.0115)
     )
 
 

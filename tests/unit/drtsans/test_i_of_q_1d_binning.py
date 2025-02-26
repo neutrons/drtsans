@@ -28,6 +28,16 @@ from tests.unit.drtsans.i_of_q_binning_tests_data import (
 # All tests data are generated in tests.unit.new.drtsans.i_of_q_binning_tests_data
 
 
+@pytest.fixture(autouse=True)
+def _capture_logging(monkeypatch):
+    """Monkeypatch mantid logger for drtsans.iq to make caplog work"""
+    import logging
+
+    logger = logging.getLogger("drtsans.iq")
+    logger.propagate = True
+    monkeypatch.setattr("drtsans.iq.logger", logger)
+
+
 def test_1d_bin_linear_no_wt():
     """Test case: '1D_bin_linear_no_sub_wt'
 
@@ -106,11 +116,11 @@ def test_1d_bin_log_no_wt():
     # Verify: 2 I(Q) in bin: Q(3, 2, 3.1), Q(3, 2, 3.2)
     # I(0.0025) between (0.00222397, 0.00279981)
     # (previously) I(0.0022) = 70.00000
-    assert binned_iq.intensity[1] == pytest.approx(74.333333333333333, abs=1.0e-12), "intensity"
+    assert binned_iq.intensity[4] == pytest.approx(74.333333333333333, abs=1.0e-12), "intensity"
     # dI(0.0022) = 5.9160797831
-    assert binned_iq.error[1] == pytest.approx(3.51978534699048, abs=1.0e-12), "error"
+    assert binned_iq.error[4] == pytest.approx(3.51978534699048, abs=1.0e-12), "error"
     # sigma_Q(0.0022) = 1.135E-02
-    assert binned_iq.delta_mod_q[1] == pytest.approx(1.154e-2, abs=2.0e-5), (
+    assert binned_iq.delta_mod_q[4] == pytest.approx(1.154e-2, abs=2.0e-5), (
         "Log binning: Q resolution {} does not match expected {}".format(binned_iq.delta_mod_q[3], 1.135e-02)
     )
 
@@ -219,7 +229,7 @@ def test_1d_bin_wavelength():
     # Check NaN
     nan_intensities = np.where(np.isnan(binned_iq_wl.intensity))[0]
     nan_errors = np.where(np.isnan(binned_iq_wl.error))[0]
-    assert len(nan_intensities) == 0, f"Expected 0 NaNs but got {len(nan_errors)} instead"
+    assert len(nan_intensities) == 6, f"Expected 0 NaNs but got {len(nan_errors)} instead"
     np.testing.assert_allclose(nan_intensities, nan_errors)
 
     print(f"Number of  intensities = {binned_iq_wl.intensity.shape}")
@@ -358,36 +368,17 @@ def test_1d_weighted_binning():
     np.testing.assert_allclose(binned_iq_all_wl.delta_mod_q, expected_binned_qie[:, 3])
 
 
-def test_1d_zero_intensity_errors(caplog):
-    # Define Q range from tab '1D_bin_log_no_sub_no_wt' in r4
-    q_min = 0.001  # center
-    q_max = 0.010  # center
-    num_steps_per_10 = 10  # 10 steps per decade
-
+def test_1d_failed_iq_binning(caplog):
+    """Test the assumption-checking method for binning"""
     # Generate test data
-    intensities, sigmas, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
+    intensities, _, scalar_q_array, scalar_dq_array = generate_test_data(1, True)
 
     # Use zero intensities instead
     i_of_q = IQmod(intensity=intensities, error=np.zeros(75), mod_q=scalar_q_array, delta_mod_q=scalar_dq_array)
 
-    # Verify bin edges and bin center
-    log_bins = determine_1d_log_bins(q_min, q_max, decade_on_center=False, n_bins_per_decade=num_steps_per_10)
-
     # Test the assumption-checking method
     is_valid = check_iq_for_binning(i_of_q)
     assert is_valid is False
-
-    binned_iq = bin_intensity_into_q1d(  # noqa
-        i_of_q=i_of_q,
-        q_bins=log_bins,
-        bin_method=BinningMethod.NOWEIGHT,
-    )
-
-    # Assert no NaNs in any of the binned data arrays
-    assert not np.isnan(binned_iq.intensity).any()
-    assert not np.isnan(binned_iq.error).any()
-    assert not np.isnan(binned_iq.mod_q).any()
-    assert not np.isnan(binned_iq.delta_mod_q).any()
 
     # Assert that the log contains a warning about zero intensities
     assert "Input I(Q) for binning does not meet assumption:" in caplog.text

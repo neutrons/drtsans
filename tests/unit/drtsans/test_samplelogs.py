@@ -29,7 +29,6 @@ def test_periodic_index_log():
     [
         # integer number of intervals in period
         (2, 1, 10, 0, 1, 10),
-
         # non-integer number of intervals in period
         (0.9901076314875992, 0.01, 8371.0458984375, 0.6694618359281799, 1.0, 845401),
         (9.0914642068604, 1.0, 382.9853210449219, 1.1055757465580345, 1.0, 421),
@@ -47,7 +46,6 @@ def test_periodic_index_log():
     ids=[
         # integer number of intervals in period
         "period_count-exact-integer",
-
         # non-integer number of intervals in period
         "reduce_slice_157044",
         "reduce_slice_157054",

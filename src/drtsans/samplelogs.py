@@ -124,19 +124,28 @@ def periodic_index_log(
 
     """
 
-    # times at which we insert a new log entry
-    times = np.arange(offset, duration, interval)
-
     # number of periods in the duration
     # plus 1 for any remainder (via ceil)
-    period_count = int(np.ceil((duration - offset) / period))
+    period_count = np.ceil((duration - offset) / period).astype(int)
+
+    # number of full intervals in a period
+    interval_count = np.floor(period / interval).astype(int)
+
+    # generate period/interval blocks
+    times = [
+        np.arange(i * period + offset, min(duration, (i + 1) * period - period % interval + 1e-15 + offset), interval)
+        for i in range(period_count)
+    ]
+    times = np.concatenate(times)
+    times = np.unique(np.round(times / 1e-15) * 1e-15)  # interval multiples of periods cause repeats, remove them
 
     # array of values in each period, scaled by the step
     values_in_period = step * np.arange(0, np.ceil(period / interval))
 
     # repeat the values in a period up to the number of periods,
+    # plus one
     # then truncate to the length of times, then cast to list
-    entries = np.tile(values_in_period, period_count)[: len(times)].tolist()
+    entries = np.tile(values_in_period, period_count + interval_count)[: len(times)].tolist()
 
     assert len(times) == len(entries), (
         f"times and entries must have the same length: len(times) {len(times)} != len(entries) {len(entries)}"

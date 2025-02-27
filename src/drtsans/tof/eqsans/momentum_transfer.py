@@ -232,7 +232,7 @@ def moderator_time_uncertainty(wl):
 
     # convert from zero-dimensional nparray to float
     if original_float:
-        time_error = float(time_error)
+        time_error = float(time_error[0])
 
     return time_error
 

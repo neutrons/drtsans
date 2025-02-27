@@ -122,6 +122,7 @@ markers = [
     "mount_eqsans: mark a test as using /SNS/EQSANS/shared/sans-backend/data/ data mount",
 ]
 addopts = "--verbose -n 8"
+# filterwarnings = ["error", "ignore::UserWarning"]
 
 # [aliases]
 # test = "pytest"

@@ -8,6 +8,7 @@ from unittest import mock
 # third party imports
 from mantid.kernel import FloatTimeSeriesProperty
 from mantid.simpleapi import CreateWorkspace, LoadEmptyInstrument, mtd
+import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 # package imports
@@ -37,7 +38,14 @@ def test_monitor_counts():
     os.remove(filename)
 
 
-def test_periodic_timeslice_log(temp_workspace_name):
+@pytest.mark.parametrize(
+    "ID, timeSliceInterval",
+    [
+        ("integerNslices", 1.5),  # period is a multiple of time slice interval
+        ("nonIntegerNslices", 8.0),  # ... or it is not
+    ],
+)
+def test_periodic_timeslice_log(temp_workspace_name, ID, timeSliceInterval):
     # prepare the input workspace
     workspace = CreateWorkspace(dataX=[1.0], dataY=[42.0], OutputWorkspace=temp_workspace_name())
     sample_logs = SampleLogs(workspace)
@@ -50,16 +58,31 @@ def test_periodic_timeslice_log(temp_workspace_name):
     )
 
     sample_logs = SampleLogs(workspace)
-    assert "periodic_log" in sample_logs
     log = sample_logs["periodic_log"]
+
+    # common asserts
+    assert "periodic_log" in sample_logs
     assert isinstance(log, FloatTimeSeriesProperty)
-    assert log.size() == (3600.0 - 42) / 1.5
     assert log.firstTime().toISO8601String() == "2000-01-01T00:00:42"
-    assert "2000-01-01T00:59:58.5" in log.lastTime().toISO8601String()
     assert log.firstValue() == 0
-    # the last period starts 42 seconds before the end of the run, thus (60 - 42) / 1.5 -1 = 11
-    assert log.lastValue() == 11
-    assert max(log.value) == 39
+
+    # case-wise asserts
+    if ID == "integerNslices":
+        # there are (duration - offset) / timesliceInterval entries
+        assert log.size() == (3600.0 - 42) / 1.5
+        assert "2000-01-01T00:59:58.5" in log.lastTime().toISO8601String()
+        # the last period starts 42 seconds before the end of the run, thus
+        assert log.lastValue() == (60 - 42) / 1.5 - 1
+        # indices range [0 : 60 / 1.5 = 40 : 1]
+        assert max(log.value) == 39
+
+    elif ID == "nonintegerNslices":
+        # similarly, but plus one because there is a partial slice
+        assert log.size() == np.ceil((3600.0 - 42) / 8.0)
+        assert "2000-01-01T00:59:56" in log.lastTime().toISO8601String()
+        # and again, [0 : 60 / 8 = 7.5 : 1]
+        assert log.lastValue() == np.ceil((60 - 42) / 8)
+        assert max(log.value) == np.ceil(60 / 8)
 
 
 def test_resolve_slicing():

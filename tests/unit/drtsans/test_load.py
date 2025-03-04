@@ -39,22 +39,27 @@ def test_monitor_counts():
 
 
 @pytest.mark.parametrize(
-    "ID, timeSliceInterval",
+    "ID, time_interval",
     [
         ("integerNslices", 1.5),  # period is a multiple of time slice interval
         ("nonIntegerNslices", 8.0),  # ... or it is not
     ],
 )
-def test_periodic_timeslice_log(temp_workspace_name, ID, timeSliceInterval):
+def test_periodic_timeslice_log(temp_workspace_name, ID, time_interval):
     # prepare the input workspace
+
+    duration = 3600.0
+    time_period = 60.0
+    time_offset = 42.0
+
     workspace = CreateWorkspace(dataX=[1.0], dataY=[42.0], OutputWorkspace=temp_workspace_name())
     sample_logs = SampleLogs(workspace)
-    sample_logs.insert("duration", value=3600.0, unit="second")
+    sample_logs.insert("duration", value=duration, unit="second")
     sample_logs.insert("run_start", value="2000-01-01T00:00:00", unit="")
 
-    # insert the periodic log starting 42 seconds after run_start and having values from zero up to 60/1.5 -1 = 39
+    # insert the periodic log starting 42 seconds after run_start and having values from zero up to period / time_interval - 1
     _insert_periodic_timeslice_log(
-        workspace, name="periodic_log", time_interval=1.5, time_period=60.0, time_offset=42.0
+        workspace, name="periodic_log", time_interval=time_interval, time_period=time_period, time_offset=time_offset
     )
 
     sample_logs = SampleLogs(workspace)
@@ -69,20 +74,23 @@ def test_periodic_timeslice_log(temp_workspace_name, ID, timeSliceInterval):
     # case-wise asserts
     if ID == "integerNslices":
         # there are (duration - offset) / timesliceInterval entries
-        assert log.size() == (3600.0 - 42) / 1.5
+        assert log.size() == (duration - time_offset) / time_interval
         assert "2000-01-01T00:59:58.5" in log.lastTime().toISO8601String()
         # the last period starts 42 seconds before the end of the run, thus
-        assert log.lastValue() == (60 - 42) / 1.5 - 1
+        assert log.lastValue() == (time_period - time_offset) / time_interval - 1
         # indices range [0 : 60 / 1.5 = 40 : 1]
-        assert max(log.value) == 39
+        assert max(log.value) == (time_period / time_interval) - 1
 
-    elif ID == "nonintegerNslices":
-        # similarly, but plus one because there is a partial slice
-        assert log.size() == np.ceil((3600.0 - 42) / 8.0)
-        assert "2000-01-01T00:59:56" in log.lastTime().toISO8601String()
+    elif ID == "nonIntegerNslices":
+        n_periods = np.floor((duration - time_offset) / time_period)
+        n_intervals_period = np.ceil(time_period / time_interval)
+        n_intervals_remainder = np.ceil(((duration - time_offset) % time_period) / time_interval)
+
+        assert log.size() == n_periods * n_intervals_period + n_intervals_remainder
+        assert "2000-01-01T00:59:58" in log.lastTime().toISO8601String()
         # and again, [0 : 60 / 8 = 7.5 : 1]
-        assert log.lastValue() == np.ceil((60 - 42) / 8)
-        assert max(log.value) == np.ceil(60 / 8)
+        assert log.lastValue() == np.floor((60 - 42) / 8)
+        assert max(log.value) == np.floor(60 / 8)
 
 
 def test_resolve_slicing():

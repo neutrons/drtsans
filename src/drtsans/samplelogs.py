@@ -124,6 +124,8 @@ def periodic_index_log(
 
     """
 
+    assert interval <= period, f"interval must be less than or equal to period {interval} !<= {period}"
+
     # number of periods in the duration
     # plus 1 for any remainder (via ceil)
     period_count = np.ceil((duration - offset) / period).astype(int)
@@ -135,7 +137,7 @@ def periodic_index_log(
     # this creates intervals per period, of the range [period start, period end)
     # ``- 1e-15`` makes the end range exclusive for integers
     times = [
-        np.arange(i * period + offset, min(duration, (i + 1) * period + offset - 1e-15), interval)
+        np.arange(period * i + offset, min(duration, period * (i + 1) + offset - 1e-15), interval)
         for i in range(period_count)
     ]
     times = np.concatenate(times)

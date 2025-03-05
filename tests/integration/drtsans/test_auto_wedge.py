@@ -9,7 +9,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from drtsans.auto_wedge import _binInQAndAzimuthal, _fitQAndAzimuthal
-from drtsans.dataobjects import IQazimuthal, IQmod
+from drtsans.dataobjects import IQazimuthal, I1DAnnular
 from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans import getWedgeSelection
 from drtsans.mono import biosans
@@ -349,7 +349,7 @@ def _create_2d_histogram_data():
 
     azimuthal_rings = []
     for i in range(intensity.shape[1]):
-        azimuthal_rings.append(IQmod(intensity=intensity.T[i], error=error.T[i], mod_q=azimuthal_bins))
+        azimuthal_rings.append(I1DAnnular(intensity=intensity.T[i], error=error.T[i], phi=azimuthal_bins))
 
     return q_bins, azimuthal_rings
 
@@ -442,8 +442,7 @@ def test_bin_into_q_and_azimuthal():
 
     for spectrum, spectrum_exp in zip(azimuthal_rings, azimuthal_rings_exp):
         assert spectrum.intensity.shape == spectrum_exp.intensity.shape
-        np.testing.assert_allclose(spectrum.mod_q, spectrum_exp.mod_q, atol=0.05, equal_nan=True)
-        assert spectrum.delta_mod_q is None
+        np.testing.assert_allclose(spectrum.phi, spectrum_exp.phi, atol=0.05, equal_nan=True)
 
         np.testing.assert_allclose(spectrum.intensity, spectrum_exp.intensity, atol=0.05, equal_nan=True)
         np.testing.assert_allclose(spectrum.error, spectrum_exp.error, atol=0.05, equal_nan=True)

@@ -9,6 +9,7 @@ from drtsans.dataobjects import (
     DataType,
     IQazimuthal,
     IQmod,
+    I1DAnnular,
     concatenate,
     getDataType,
     q_azimuthal_to_q_modulo,
@@ -642,7 +643,7 @@ def bin_annular_into_q1d(
 
     Returns
     -------
-    drtsans.dataobjects.IQmod
+    I1DAnnular
         Annular-binned I(azimuthal) in 1D
     """
     # Determine azimuthal angle bins (i.e., phi bins)
@@ -679,7 +680,7 @@ def bin_annular_into_q1d(
 
     # apply the selected binning method by either using or skipping the dq_array
     if dq_array is None:
-        binned_i_of_azimuthal = do_1d_binning(
+        binned_i_annular = do_1d_binning(
             phi_array[allowed_q_index],
             None,
             intensity[allowed_q_index],
@@ -687,9 +688,10 @@ def bin_annular_into_q1d(
             phi_bins,
             wl_array,
             wavelength_bins,
+            annular=True,
         )
     else:
-        binned_i_of_azimuthal = do_1d_binning(
+        binned_i_annular = do_1d_binning(
             phi_array[allowed_q_index],
             dq_array[allowed_q_index],
             intensity[allowed_q_index],
@@ -697,12 +699,15 @@ def bin_annular_into_q1d(
             phi_bins,
             wl_array,
             wavelength_bins,
+            annular=True,
         )
 
-    return binned_i_of_azimuthal
+    return binned_i_annular
 
 
-def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, wl_array, wavelength_bins):
+def _do_1d_no_weight_binning(
+    q_array, dq_array, iq_array, sigmaq_array, q_bins, wl_array, wavelength_bins, annular=False
+):
     """Bin I(Q) by given bin edges and do no-weight binning
 
     This method implements equation 11.34, 11.35 and 11.36 in master document.
@@ -721,11 +726,13 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
         sigma I(Q) in 1D array flattened from 2D detector
     q_bins: ~drtsans.determine_bins.Bins
         Bin centers and edges
+    annular: bool
+        If True, returns an I1DAnnular object rather than an IQmod object. Default is False.
 
     Returns
     -------
-    ~drtsans.dataobjects.IQmod
-        IQmod is a class for holding 1D binned data.
+    IQmod | I1DAnnular
+        IQmod and I1DAnnular are classes for holding 1D binned data.
 
     """
 
@@ -790,17 +797,10 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
 
     if wavelength_bins == 1 or wl_array is None:
         # bin I(Q, wl) regardless of wl value
-        i_final_array, sigma_final_array, bin_q_resolution = _bin_iq1d(
-            q_bins, q_array, dq_array, iq_array, sigmaq_array
-        )
-
+        binned_i_vec, binned_sigma_vec, binned_dq_vec = _bin_iq1d(q_bins, q_array, dq_array, iq_array, sigmaq_array)
+        binned_q_vec = q_bins.centers
         # construct output without wavelength vector
-        binned_iq1d = IQmod(
-            intensity=i_final_array,
-            error=sigma_final_array,
-            mod_q=q_bins.centers,
-            delta_mod_q=bin_q_resolution,
-        )
+        binned_wl_vec = None
 
     elif wavelength_bins is None:
         # bin I(Q) with same value of wavelength
@@ -847,12 +847,22 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
             binned_wl_vec = np.concatenate((binned_wl_vec, np.zeros_like(i_final_array) + wl_i))
         # END-FOR (wl_i)
 
-        # Construct output
-        # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
-        # IQmod is a class for holding 1D binned data.
         if dq_array is None:
             binned_dq_vec = None
-        binned_iq1d = IQmod(
+    else:
+        raise RuntimeError(f"Number of wavlength bins = {wavelength_bins} is not supported")
+
+    # Get the final result by constructing an IQmod or I1DAnnular object defined in ~drtsans.dataobjects.
+    # IQmod and I1DAnnular are classes for holding 1D binned data.
+    if annular:
+        binned_i1d = I1DAnnular(
+            intensity=binned_i_vec,
+            error=binned_sigma_vec,
+            phi=binned_q_vec,
+            wavelength=binned_wl_vec,
+        )
+    else:
+        binned_i1d = IQmod(
             intensity=binned_i_vec,
             error=binned_sigma_vec,
             mod_q=binned_q_vec,
@@ -860,13 +870,12 @@ def _do_1d_no_weight_binning(q_array, dq_array, iq_array, sigmaq_array, q_bins, 
             wavelength=binned_wl_vec,
         )
 
-    else:
-        raise RuntimeError(f"Number of wavlength bins = {wavelength_bins} is not supported")
-
-    return binned_iq1d
+    return binned_i1d
 
 
-def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins, wl_array, wavelength_bins):
+def _do_1d_weighted_binning(
+    q_array, dq_array, iq_array, sigma_iq_array, q_bins, wl_array, wavelength_bins, annular=False
+):
     """Bin I(Q) by given bin edges and do weighted binning
 
     This method implements equation 11.22, 11.23 and 11.24 in master document for 1-dimensional Q
@@ -902,11 +911,13 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
         sigma I(Q) in 1D array flattened from 2D detector
     q_bins: ~drtsans.determine_bins.Bins
         Bin centers and edges
+    annular: bool
+        If True, returns an I1DAnnular object rather than an IQmod object. Default is False.
 
     Returns
     -------
-    ~drtsans.dataobjects.IQmod
-        IQmod is a class for holding 1D binned data.
+    IQmod | I1DAnnular
+        IQmod and I1DAnnular are classes for holding 1D binned data.
 
     """
 
@@ -959,16 +970,12 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
 
     if wl_array is None or wavelength_bins == 1:
         # bin I(Q, wl) regardless of wl value
-        i_final_array, sigma_final_array, bin_q_resolution = _bin_q1d_weighted(
+        binned_i_vec, binned_sigma_vec, binned_dq_vec = _bin_q1d_weighted(
             q_bins, q_array, dq_array, iq_array, sigma_iq_array
         )
-
-        binned_i_of_q = IQmod(
-            intensity=i_final_array,
-            error=sigma_final_array,
-            mod_q=q_bins.centers,
-            delta_mod_q=bin_q_resolution,
-        )
+        binned_q_vec = q_bins.centers
+        # construct output without wavelength vector
+        binned_wl_vec = None
 
     elif wavelength_bins is None:
         # bin I(Q, wl) per wavelength
@@ -1015,13 +1022,23 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
             binned_wl_vec = np.concatenate((binned_wl_vec, np.zeros_like(i_final_array) + wl_i))
         # END-FOR (wl_i)
 
-        # Construct output
-        # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
-        # IQmod is a class for holding 1D binned data.
         if dq_array is None:
             binned_dq_vec = None
 
-        binned_i_of_q = IQmod(
+    else:
+        raise RuntimeError(f"Binning with wavelength bins = {wavelength_bins} is not supported")
+
+    # Get the final result by constructing an IQmod or I1DAnnular object defined in ~drtsans.dataobjects.
+    # IQmod and I1DAnnular are classes for holding 1D binned data.
+    if annular:
+        binned_i1d = I1DAnnular(
+            intensity=binned_i_vec,
+            error=binned_sigma_vec,
+            phi=binned_q_vec,
+            wavelength=binned_wl_vec,
+        )
+    else:
+        binned_i1d = IQmod(
             intensity=binned_i_vec,
             error=binned_sigma_vec,
             mod_q=binned_q_vec,
@@ -1029,12 +1046,7 @@ def _do_1d_weighted_binning(q_array, dq_array, iq_array, sigma_iq_array, q_bins,
             wavelength=binned_wl_vec,
         )
 
-    else:
-        raise RuntimeError(f"Binning with wavelength bins = {wavelength_bins} is not supported")
-
-    # Get the final result by constructing an IQmod object defined in ~drtsans.dataobjects.
-    # IQmod is a class for holding 1D binned data.
-    return binned_i_of_q
+    return binned_i1d
 
 
 def bin_intensity_into_q2d(i_of_q, qx_bins, qy_bins, method=BinningMethod.NOWEIGHT, wavelength_bins=1):

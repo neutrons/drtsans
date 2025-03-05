@@ -937,10 +937,11 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
     # do the actual reduction
     reduction_output = reduce_single_configuration(loaded, config)
 
-    # check peaks were detected
+    # all three peaks have a maximum intensity bigger than this number
+    minimum_peak_intensity = 300.0
 
+    # check peaks were detected
     if ID == "integerNslices":
-        minimum_peak_intensity = 300  # all three peaks have a maximum intensity bigger than this number
         # find the Q-modulus where the scattering intensity is maximum, and compare to what's expected
         for peak_index, q_at_max_i in enumerate(metadata["Q_at_max_I"]):
             i_vs_qmod: IQmod = reduction_output[peak_index].I1D_main[0]  # 1D intensity profile
@@ -948,15 +949,16 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
             assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
     elif ID == "nonIntegerNslices":
-        minimum_peak_intensity = 199
         # 2 time slices, there will be 2 peaks in the first
         i_vs_qmod: IQmod = reduction_output[0].I1D_main[0]  # 1D intensity profile
 
         peak0_closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][0]))
         peak1_closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][1]))
 
-        assert i_vs_qmod.intensity[peak0_closest_index] > minimum_peak_intensity
-        assert i_vs_qmod.intensity[peak1_closest_index] > minimum_peak_intensity
+        # the first slice is now twice as long as the integer case
+        # so intensity decreases half
+        assert i_vs_qmod.intensity[peak0_closest_index] > minimum_peak_intensity / 2
+        assert i_vs_qmod.intensity[peak1_closest_index] > minimum_peak_intensity / 2
 
         # second slice, 3rd peak here
         i_vs_qmod: IQmod = reduction_output[1].I1D_main[0]  # 1D intensity profile

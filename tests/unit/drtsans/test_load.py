@@ -57,7 +57,8 @@ def test_periodic_timeslice_log(temp_workspace_name, ID, time_interval):
     sample_logs.insert("duration", value=duration, unit="second")
     sample_logs.insert("run_start", value="2000-01-01T00:00:00", unit="")
 
-    # insert the periodic log starting 42 seconds after run_start and having values from zero up to period / time_interval - 1
+    # insert the periodic log starting 42 seconds after run_start
+    # and having values from zero up to period / time_interval - 1
     _insert_periodic_timeslice_log(
         workspace, name="periodic_log", time_interval=time_interval, time_period=time_period, time_offset=time_offset
     )

@@ -527,9 +527,9 @@ def select_i_of_q_by_wedge(i_of_q, min_wedge_angle, max_wedge_angle):
     i_of_q : ~drtsans.dataobjects.IQazimuthal
          "intensity": intensity, "error": sigma(I), "qx": qx, "qy": qy, "delta_qx": dqx, "delta_qy", dqy
     min_wedge_angle : float
-        minimum value of theta/azimuthal angle for wedge
+        minimum value of phi/azimuthal angle for wedge
     max_wedge_angle : float
-        maximum value of theta/azimuthal angle for wedge
+        maximum value of phi/azimuthal angle for wedge
 
     Returns
     -------
@@ -601,7 +601,7 @@ def _toQmodAndAzimuthal(
     return data.intensity.ravel(), data.error.ravel(), q, dq, azimuthal
 
 
-def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, method=BinningMethod.NOWEIGHT):
+def bin_annular_into_q1d(i_of_q, phi_bin_params, q_min=0.001, q_max=0.4, method=BinningMethod.NOWEIGHT):
     """Annular 1D binning
 
     Calculates: I(azimuthal), sigma I and dazmuthal by assigning pixels to proper azimuthal angle bins
@@ -612,13 +612,13 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
     ----------
     i_of_q :  ~drtsans.dataobjects.IQazimuthal
         I(Qx, Qy), sigma I(Qx, Qy), Qx, Qy, dQx and dQy
-    theta_bin_params : ~drtsans.BinningParams
-        binning parameters on annular angle 'theta'
+    phi_bin_params : ~drtsans.BinningParams
+        binning parameters on annular angle 'phi'
 
-        theta_min : float
-            minimum value of theta/azimuthal angle
-        theta_max : float
-            maximum value of theta/azimuthal angle
+        phi_min : float
+            minimum value of phi/azimuthal angle
+        phi_max : float
+            maximum value of phi/azimuthal angle
         bins : int or sequence of scalars, optional
             See `scipy.stats.binned_statistic`.
             If `bins` is an int, it defines the number of equal-width bins in
@@ -641,19 +641,17 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
     drtsans.dataobjects.IQmod
         Annular-binned I(azimuthal) in 1D
     """
-    # Determine azimuthal angle bins (i.e., theta bins)
-    theta_bins = determine_1d_linear_bins(theta_bin_params.min, theta_bin_params.max, theta_bin_params.bins)
-    if theta_bins.centers.min() < 0.0 or theta_bins.centers.max() > 360.0:
-        msg = "must specify range 0<=theta<=360deg found {}<=theta<={}deg".format(
-            theta_bin_params.min, theta_bin_params.max
-        )
+    # Determine azimuthal angle bins (i.e., phi bins)
+    phi_bins = determine_1d_linear_bins(phi_bin_params.min, phi_bin_params.max, phi_bin_params.bins)
+    if phi_bins.centers.min() < 0.0 or phi_bins.centers.max() > 360.0:
+        msg = "must specify range 0<=phi<=360deg found {}<=phi<={}deg".format(phi_bin_params.min, phi_bin_params.max)
         raise ValueError(msg)
 
     # Check whether input I(Q) meets assumptions
     check_iq_for_binning(i_of_q)
 
     # convert the data to q and azimuthal angle
-    intensity, error, q_array, dq_array, theta_array = _toQmodAndAzimuthal(i_of_q)
+    intensity, error, q_array, dq_array, phi_array = _toQmodAndAzimuthal(i_of_q)
 
     # Filter by q_min and q_max
     allowed_q_index = np.logical_and((q_array > q_min), (q_array < q_max))
@@ -673,21 +671,21 @@ def bin_annular_into_q1d(i_of_q, theta_bin_params, q_min=0.001, q_max=0.4, metho
     # apply the selected binning method by either using or skipping the dq_array
     if dq_array is None:
         binned_i_of_azimuthal = do_1d_binning(
-            theta_array[allowed_q_index],
+            phi_array[allowed_q_index],
             None,
             intensity[allowed_q_index],
             error[allowed_q_index],
-            theta_bins,
+            phi_bins,
             None,
             1,
         )
     else:
         binned_i_of_azimuthal = do_1d_binning(
-            theta_array[allowed_q_index],
+            phi_array[allowed_q_index],
             dq_array[allowed_q_index],
             intensity[allowed_q_index],
             error[allowed_q_index],
-            theta_bins,
+            phi_bins,
             None,
             1,
         )

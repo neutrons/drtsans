@@ -21,9 +21,9 @@ def test_1d_annular_no_wt():
     -------
     None
     """
-    # Initialize range of theta angle and Q
-    theta_min = 0
-    theta_max = 360.0
+    # Initialize range of phi angle and Q
+    phi_min = 0
+    phi_max = 360.0
     num_bins = 10
 
     q_min = 0.003
@@ -44,8 +44,8 @@ def test_1d_annular_no_wt():
     )
 
     # Annular binning
-    theta_binning = BinningParams(theta_min, theta_max, num_bins)
-    binned_iq = bin_annular_into_q1d(test_i_q, theta_binning, q_min, q_max, BinningMethod.NOWEIGHT)
+    phi_binning = BinningParams(phi_min, phi_max, num_bins)
+    binned_iq = bin_annular_into_q1d(test_i_q, phi_binning, q_min, q_max, BinningMethod.NOWEIGHT)
 
     # Verify I(Q), sigma I(Q) and dQ
     assert binned_iq.intensity[1] == pytest.approx(63.66666667, abs=1e-8), "Binned intensity is wrong"
@@ -53,8 +53,8 @@ def test_1d_annular_no_wt():
     assert binned_iq.delta_mod_q[1] == pytest.approx(1.154e-02, abs=1e-5), (
         "Binned Q resolution {} is incorrect comparing to {}.".format(binned_iq.delta_mod_q[1], 0.01154)
     )
-    # this is actually theta
-    np.testing.assert_almost_equal(binned_iq.mod_q, np.linspace(start=18, stop=theta_max - 18, num=num_bins))
+    # this is actually phi
+    np.testing.assert_almost_equal(binned_iq.mod_q, np.linspace(start=18, stop=phi_max - 18, num=num_bins))
 
 
 def test_1d_annular_out_of_range_angles():
@@ -64,9 +64,9 @@ def test_1d_annular_out_of_range_angles():
     -------
     None
     """
-    # Initialize range of theta angle and Q
-    theta_min = -90
-    theta_max = 270.0
+    # Initialize range of phi angle and Q
+    phi_min = -90
+    phi_max = 270.0
     num_bins = 10
 
     q_min = 0.003
@@ -87,9 +87,9 @@ def test_1d_annular_out_of_range_angles():
     )
 
     # Annular binning
-    theta_binning = BinningParams(theta_min, theta_max, num_bins)
+    phi_binning = BinningParams(phi_min, phi_max, num_bins)
     with pytest.raises(ValueError):
-        bin_annular_into_q1d(test_i_q, theta_binning, q_min, q_max, BinningMethod.NOWEIGHT)
+        bin_annular_into_q1d(test_i_q, phi_binning, q_min, q_max, BinningMethod.NOWEIGHT)
 
 
 def test_1d_flat_data():
@@ -102,8 +102,8 @@ def test_1d_flat_data():
     )
 
     # perform the annular binning
-    theta_binning = BinningParams(0, 360, 18)  # 20 deg bins
-    binned_iq = bin_annular_into_q1d(data2d, theta_binning, q_min=9.0, q_max=10.0, method=BinningMethod.NOWEIGHT)
+    phi_binning = BinningParams(0, 360, 18)  # 20 deg bins
+    binned_iq = bin_annular_into_q1d(data2d, phi_binning, q_min=9.0, q_max=10.0, method=BinningMethod.NOWEIGHT)
 
     # verify the results
     assert binned_iq.intensity.size == 18

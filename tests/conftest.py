@@ -1734,6 +1734,28 @@ def assert_wksp_equal(left, right, rtol=0, atol=0, err_msg=""):  # noqa: C901
             **kwargs,
         )
         assert_func(left.error, right.extractE().ravel(), err_msg=err_msg + "error", **kwargs)
+    elif id_left == DataType.WORKSPACE2D and id_right == DataType.I_ANNULAR:
+        units = left.getAxis(0).getUnit().caption()
+        assert units == "azimuthalAngle", '{}: Found units="{}" rather than "azimuthalAngle"'.format(err_msg, units)
+        assert_func(left.extractX().ravel(), right.phi, err_msg=err_msg + "phi", **kwargs)
+        assert_func(
+            left.extractY().ravel(),
+            right.intensity,
+            err_msg=err_msg + "intensity",
+            **kwargs,
+        )
+        assert_func(left.extractE().ravel(), right.error, err_msg=err_msg + "error", **kwargs)
+    elif id_left == DataType.I_ANNULAR and id_right == DataType.WORKSPACE2D:
+        units = right.getAxis(0).getUnit().caption()
+        assert units == "azimuthalAngle", '{}: Found units="{}" rather than "azimuthalAngle"'.format(err_msg, units)
+        assert_func(left.phi, right.extractX().ravel(), err_msg=err_msg + "phi", **kwargs)
+        assert_func(
+            left.intensity,
+            right.extractY().ravel(),
+            err_msg=err_msg + "intensity",
+            **kwargs,
+        )
+        assert_func(left.error, right.extractE().ravel(), err_msg=err_msg + "error", **kwargs)
     elif id_left == id_right:  # compare things that are the same type
         if id_left == DataType.WORKSPACE2D:
             # let mantid do all the work

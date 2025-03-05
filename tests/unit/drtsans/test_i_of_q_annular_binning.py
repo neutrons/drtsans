@@ -51,11 +51,7 @@ def test_1d_annular_no_wt():
     # Verify I(Q), sigma I(Q) and dQ
     assert binned_iq.intensity[1] == pytest.approx(63.66666667, abs=1e-8), "Binned intensity is wrong"
     assert binned_iq.error[1] == pytest.approx(3.257470048, abs=1e-8), "Binned sigma I is wrong"
-    assert binned_iq.delta_mod_q[1] == pytest.approx(1.154e-02, abs=1e-5), (
-        "Binned Q resolution {} is incorrect comparing to {}.".format(binned_iq.delta_mod_q[1], 0.01154)
-    )
-    # this is actually phi
-    np.testing.assert_almost_equal(binned_iq.mod_q, np.linspace(start=18, stop=phi_max - 18, num=num_bins))
+    np.testing.assert_almost_equal(binned_iq.phi, np.linspace(start=18, stop=phi_max - 18, num=num_bins))
 
 
 def test_1d_annular_out_of_range_angles():
@@ -112,7 +108,7 @@ def test_1d_flat_data():
     # uncertainties are proportional to the number of input bins contributing to the annular wedge
     np.testing.assert_allclose(binned_iq.error, 0.6, atol=0.11)
     # actually the azimuthal angle
-    np.testing.assert_equal(binned_iq.mod_q, np.arange(10.0, 360.0, 20.0))
+    np.testing.assert_equal(binned_iq.phi, np.arange(10.0, 360.0, 20.0))
 
 
 def test_1d_flat_data_wl():

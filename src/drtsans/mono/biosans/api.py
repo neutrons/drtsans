@@ -3,7 +3,7 @@
 # local imports
 import drtsans
 from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
-from drtsans.dataobjects import save_iqmod, IQazimuthal
+from drtsans.dataobjects import save_i1d, IQazimuthal
 from drtsans.instruments import extract_run_number
 from drtsans.iq import bin_all
 from drtsans.load import move_instrument
@@ -1668,7 +1668,7 @@ def reduce_single_configuration(
             i1d_profiles_out = [i1d_main_out, i1d_midrange_out, i1d_wing_out]
         iq1d_combined_out = stitch_binned_profiles(iq1d_profiles_in, i1d_profiles_out, reduction_config)
 
-        save_iqmod_all(
+        save_i1d_all(
             i1d_main_out,
             i1d_midrange_out,
             i1d_wing_out,
@@ -1761,7 +1761,7 @@ def reduce_single_configuration(
     return output
 
 
-def save_iqmod_all(
+def save_i1d_all(
     iq1d_main, iq1d_midrange, iq1d_wing, iq1d_combined, output_filename, output_dir, output_suffix, skip_nan
 ):
     """Save to file the intensity profiles for the individual detectors, as well as the combined (stitched) profile
@@ -1794,14 +1794,14 @@ def save_iqmod_all(
             "1D",
             f"{output_filename}{output_suffix}_1D_main{add_suffix}.txt",
         )
-        save_iqmod(iq1d_main[j], main_1D_filename, skip_nan=skip_nan)
+        save_i1d(iq1d_main[j], main_1D_filename, skip_nan=skip_nan)
 
         wing_1D_filename = os.path.join(
             output_dir,
             "1D",
             f"{output_filename}{output_suffix}_1D_wing{add_suffix}.txt",
         )
-        save_iqmod(iq1d_wing[j], wing_1D_filename, skip_nan=skip_nan)
+        save_i1d(iq1d_wing[j], wing_1D_filename, skip_nan=skip_nan)
 
         if iq1d_midrange:
             midrange_1D_filename = os.path.join(
@@ -1809,14 +1809,14 @@ def save_iqmod_all(
                 "1D",
                 f"{output_filename}{output_suffix}_1D_midrange{add_suffix}.txt",
             )
-            save_iqmod(iq1d_midrange[j], midrange_1D_filename, skip_nan=skip_nan)
+            save_i1d(iq1d_midrange[j], midrange_1D_filename, skip_nan=skip_nan)
 
         combined_1D_filename = os.path.join(
             output_dir,
             "1D",
             f"{output_filename}{output_suffix}_1D_combined{add_suffix}.txt",
         )
-        save_iqmod(iq1d_combined[j], combined_1D_filename, skip_nan=skip_nan)
+        save_i1d(iq1d_combined[j], combined_1D_filename, skip_nan=skip_nan)
 
 
 def get_sample_detectordata(

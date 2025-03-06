@@ -58,6 +58,49 @@ def save_ascii_binned_1D(filename: str, title, *args, **kwargs):
             f.write("{:.6E}\n".format(dq[i]))
 
 
+def save_ascii_binned_1D_annular(filename: str, title, *args, **kwargs):
+    """Save I(phi) data in Ascii format
+
+    Parameters
+    ----------
+    filename
+        absolute path to output filename for the 1D I(phi) profile
+    title: str
+        title to be added on the first line
+    args: drtsans.dataobjects.I1DAnnular
+        output from 1D binning
+    kwargs:
+        intensity, error, phi - 1D numpy arrays of the same length, output from 1D binning
+    """
+    try:
+        kwargs.update(args[0]._asdict())
+    except AttributeError:
+        pass
+    # Read the value of skip_nan from kwargs or True as default
+    skip_nan = kwargs.get("skip_nan", True)
+    # Delete NaNs if requested
+    if skip_nan:
+        finites = np.isfinite(kwargs["intensity"])
+        phi = kwargs["phi"][finites]
+        intensity = kwargs["intensity"][finites]
+        error = kwargs["error"][finites]
+    else:
+        phi = kwargs["phi"]
+        intensity = kwargs["intensity"]
+        error = kwargs["error"]
+
+    # create directory if non-existent
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+    with open(filename, "w+") as f:
+        f.write("# " + title + "\n")
+        f.write("#phi (degrees)        I (1/cm)        dI (1/cm)\n")
+        for i in range(len(intensity)):
+            f.write("{:.6E}\t".format(phi[i]))
+            f.write("{:.6E}\t".format(intensity[i]))
+            f.write("{:.6E}\n".format(error[i]))
+
+
 def save_ascii_1D(wksp, title, filename):
     """Save the I(q) workspace in Ascii format
 

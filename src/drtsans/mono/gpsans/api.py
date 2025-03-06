@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 # local imports
 from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
 from drtsans.beam_finder import center_detector, fbc_options_json, find_beam_center
-from drtsans.dataobjects import save_iqmod
+from drtsans.dataobjects import save_i1d
 from drtsans.instruments import extract_run_number, instrument_filesystem_name
 from drtsans.iq import bin_all
 from drtsans.load import move_instrument, resolve_slicing
@@ -1348,7 +1348,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
                 add_suffix = f"_wedge_{j}"
             ascii_1D_filename = os.path.join(output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}")
 
-            save_iqmod(i1d_main_out[j], f"{ascii_1D_filename}.txt", skip_nan=skip_nan)
+            save_i1d(i1d_main_out[j], f"{ascii_1D_filename}.txt", skip_nan=skip_nan)
 
         IofQ_output = namedtuple("IofQ_output", ["I2D_main", "I1D_main"])
         current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)

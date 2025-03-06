@@ -1350,8 +1350,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
 
             save_i1d(i1d_main_out[j], f"{ascii_1D_filename}.txt", skip_nan=skip_nan)
 
-        IofQ_output = namedtuple("IofQ_output", ["I2D_main", "I1D_main"])
-        current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)
+        I_output = namedtuple("I_output", ["I2D_main", "I1D_main"])
+        current_output = I_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)
         output.append(current_output)
 
         detectordata[name] = {"main": {"iq": i1d_main_out, "iqxqy": iq2d_main_out}}

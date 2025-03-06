@@ -82,7 +82,7 @@ __all__ = [
     "plot_reduction_output",
 ]
 
-IofQ_output = namedtuple("IofQ_output", ["I2D_main", "I1D_main"])
+I_output = namedtuple("I_output", ["I2D_main", "I1D_main"])
 
 
 def _get_configuration_file_parameters(sample_run, directory=None):
@@ -663,7 +663,7 @@ def reduce_single_configuration(
     Returns
     -------
     ~list
-        list of IofQ_output: ['I2D_main', 'I1D_main']
+        list of I_output: ['I2D_main', 'I1D_main']
 
     """
     # Process reduction input: configuration and etc.
@@ -1018,7 +1018,7 @@ def reduce_single_configuration(
                 ascii_1D_filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq")
                 save_i1d(i1d_main_out[j], f"{ascii_1D_filename}.dat", skip_nan=skip_nan)
 
-            current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)
+            current_output = I_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)
             output.append(current_output)
         # END binning loop over frame
 

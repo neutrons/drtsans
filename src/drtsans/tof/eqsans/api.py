@@ -22,7 +22,7 @@ from drtsans import (
     subtract_background,  # noqa E402
 )  # noqa E402
 from drtsans.beam_finder import fbc_options_json, find_beam_center  # noqa E402
-from drtsans.dataobjects import save_iqmod  # noqa E402
+from drtsans.dataobjects import save_i1d  # noqa E402
 from drtsans.instruments import extract_run_number  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.load import resolve_slicing
@@ -1016,7 +1016,7 @@ def reduce_single_configuration(
                     add_suffix = f"_wedge_{j}"
                 add_suffix += fr_label
                 ascii_1D_filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq")
-                save_iqmod(i1d_main_out[j], f"{ascii_1D_filename}.dat", skip_nan=skip_nan)
+                save_i1d(i1d_main_out[j], f"{ascii_1D_filename}.dat", skip_nan=skip_nan)
 
             current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)
             output.append(current_output)

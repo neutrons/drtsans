@@ -16,6 +16,7 @@ __all__ = [
     "IQazimuthal",
     "IQcrystal",
     "I1DAnnular",
+    "save_i1d",
     "verify_same_q_bins",
 ]
 
@@ -276,7 +277,7 @@ class I1DWorker:
         elif isinstance(self, I1DAnnular):
             i_q_mod_cols = ["phi", "intensity", "error"]  # 3 mandatory columns
         else:
-            raise NotImplementedError("Only IQmod and I1DAnnular supported")
+            raise NotImplementedError("Only IQmod and I1DAnnular are supported")
 
         if "delta_mod_q" in frame.keys():
             i_q_mod_cols.append("delta_mod_q")
@@ -688,6 +689,43 @@ def load_iqmod(file, sep=" ", header_type=HeaderType.PANDAS.value):
         return IQmod.read_csv(file, sep=sep)
 
 
+def save_i1d(
+    iq,
+    file,
+    sep=" ",
+    float_format="%.6E",
+    skip_nan=True,
+    header_type=HeaderType.MANTID_ASCII.value,
+):
+    r"""
+    Write the 1D intensity profile object into an ASCII file.
+
+    Parameters
+    ----------
+    iq: IQmod | I1DAnnular
+        Profile to be saved
+    file: str
+        Path to output file
+    sep: str
+        String of length 1. Field delimiter for the output file.
+    float_format: str
+        Format string for floating point numbers.
+    skip_nan: bool
+        If true, any data point where intensity is NAN will not be written to file
+    header_type: str
+        Determine the header type to make 1D data compatible with panda or Mantid
+        possible values:
+        HeaderType.MANTID_ASCII.value
+        HeaderType.PANDAS.value
+    """
+    if isinstance(iq, IQmod):
+        save_iqmod(iq, file, sep, float_format, skip_nan, header_type)
+    elif isinstance(iq, I1DAnnular):
+        save_i1d_annular(iq, file, sep, float_format, skip_nan, header_type)
+    else:
+        raise NotImplementedError("Only IQmod and I1DAnnular are supported")
+
+
 def save_iqmod(
     iq,
     file,
@@ -699,9 +737,7 @@ def save_iqmod(
     r"""
     Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
 
-    Current output columns
-    (Line 0: ) intensity error mod_q
-    Expected
+    Output columns
     (Line 0: ) mod_q intensity error mod_q_error
 
     Parameters
@@ -716,7 +752,7 @@ def save_iqmod(
         Format string for floating point numbers.
     skip_nan: bool
         If true, any data point where intensity is NAN will not be written to file
-    header: text
+    header_type: str
         Determine the header type to make 1D data compatible with panda or Mantid
         possible values:
         HeaderType.MANTID_ASCII.value
@@ -726,6 +762,46 @@ def save_iqmod(
         from drtsans.save_ascii import save_ascii_binned_1D
 
         save_ascii_binned_1D(file, "I(Q)", iq)
+    else:
+        iq.to_csv(file, sep=sep, float_format=float_format, skip_nan=skip_nan)
+
+
+def save_i1d_annular(
+    iq,
+    file,
+    sep=" ",
+    float_format="%.6E",
+    skip_nan=True,
+    header_type=HeaderType.MANTID_ASCII.value,
+):
+    r"""
+    Write the ~drtsans.dataobjects.I1DAnnular object into an ASCII file.
+
+    Output columns
+    (Line 0: ) phi intensity error
+
+    Parameters
+    ----------
+    iq: ~drtsans.dataobjects.I1DAnnular
+        Profile to be saved
+    file: str
+        Path to output file
+    sep: str
+        String of length 1. Field delimiter for the output file.
+    float_format: str
+        Format string for floating point numbers.
+    skip_nan: bool
+        If true, any data point where intensity is NAN will not be written to file
+    header_type: str
+        Determine the header type to make 1D data compatible with panda or Mantid
+        possible values:
+        HeaderType.MANTID_ASCII.value
+        HeaderType.PANDAS.value
+    """
+    if header_type == HeaderType.MANTID_ASCII.value:
+        from drtsans.save_ascii import save_ascii_binned_1D_annular
+
+        save_ascii_binned_1D_annular(file, "I(phi)", iq)
     else:
         iq.to_csv(file, sep=sep, float_format=float_format, skip_nan=skip_nan)
 

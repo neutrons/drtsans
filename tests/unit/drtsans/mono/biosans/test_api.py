@@ -13,14 +13,14 @@ import drtsans.plots.api
 from drtsans.samplelogs import SampleLogs
 from os.path import join as path_join
 
-from drtsans.dataobjects import IQazimuthal, IQmod, testing
+from drtsans.dataobjects import IQazimuthal, IQmod, testing, I1DAnnular
 from drtsans.mono.biosans.api import (
     load_all_files,
     prepare_data_workspaces,
     prepare_data,
     process_single_configuration,
     file_has_midrange_detector,
-    save_iqmod_all,
+    save_i1d_all,
     plot_reduction_output,
     check_overlap_stitch_configuration,
     get_sample_detectordata,
@@ -667,14 +667,19 @@ def test_has_midrange_detector(has_sns_mount):
                 "output_1D_combined_wedge_1.txt",
             ],
         ),
+        # case with I1DAnnular
+        (
+            [I1DAnnular(intensity=[], error=[], phi=[])],
+            ["output_1D_main.txt", "output_1D_midrange.txt", "output_1D_wing.txt", "output_1D_combined.txt"],
+        ),
     ],
 )
-def test_save_iqmod_all(tmp_path, iqmod_dummy, output_files):
+def test_save_i1d_all(tmp_path, iqmod_dummy, output_files):
     output_dir = path_join(tmp_path, "1D")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
-    save_iqmod_all(iqmod_dummy, iqmod_dummy, iqmod_dummy, iqmod_dummy, "output", tmp_path, "", True)
+    save_i1d_all(iqmod_dummy, iqmod_dummy, iqmod_dummy, iqmod_dummy, "output", tmp_path, "", True)
 
     for filename in output_files:
         filepath = path_join(output_dir, filename)

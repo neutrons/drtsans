@@ -607,9 +607,9 @@ def bin_annular_into_q1d(
 ):
     """Annular 1D binning
 
-    Calculates: I(azimuthal), sigma I and dazmuthal by assigning pixels to proper azimuthal angle bins
-    Given I(Qx, Qy) and will convert to :py:obj:`~drtsans.IQmod` in the code. The independent axis is
-    actually the azimuthal angle around the ring.
+    Calculates: I(azimuthal) and sigma I by assigning pixels to proper azimuthal angle bins
+    Input is I(Qx, Qy) and output is :py:obj:`~drtsans.dataobjects.I1DAnnular`.
+    The independent axis is the azimuthal angle around the beam center.
 
     Parameters
     ----------

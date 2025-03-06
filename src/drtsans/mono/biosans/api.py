@@ -1679,11 +1679,11 @@ def reduce_single_configuration(
             skip_nan,
         )
 
-        IofQ_output = namedtuple(
-            "IofQ_output",
+        I_output = namedtuple(
+            "I_output",
             ["I2D_main", "I2D_midrange", "I2D_wing", "I1D_main", "I1D_midrange", "I1D_wing", "I1D_combined"],
         )
-        current_output = IofQ_output(
+        current_output = I_output(
             I2D_main=iq2d_main_out,
             I2D_midrange=iq2d_midrange_out,
             I2D_wing=iq2d_wing_out,

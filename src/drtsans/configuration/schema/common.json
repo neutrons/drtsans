@@ -6,8 +6,8 @@
       "type": "object",
       "default": {},
       "description": "Options that can be passed to Mantid algorithms LoadEventNexus or LoadEvenAsWorkspace2D. Consult the documentation of these algorithms to find the available options. These options will take effect when loading the sample run(s), but not other runs",
-	"examples": ["{'FilterByTofMin': 1000.0, 'FilterByTofMax': 16000.0}"],
-	"additionalProperties": true
+      "examples": ["{'FilterByTofMin': 1000.0, 'FilterByTofMax': 16000.0}"],
+      "additionalProperties": true
     },
     "runNumberTypes": {
       "anyOf": [

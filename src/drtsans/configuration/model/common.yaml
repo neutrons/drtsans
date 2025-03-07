@@ -1,0 +1,31 @@
+id: https://github.com/neutrons/drtsans/tree/next/src/drtsans/configuration/model/common.yaml
+name: drtsans-common
+description: Common configuration models for DRTSANS
+imports:
+  - linkml:types
+
+enums:
+  InstrumentName:
+    description: >-
+      The name of the instrument used to collect the data.
+    permissible_values:
+      BIOSANS:
+      EQSANS:
+      GPSANS:
+
+classes:
+  Sample:
+    description: A sample that is measured by the instrument.
+    slots:
+      - runNumber
+      - loadOptions
+      - thickness
+      - transmission
+
+slots:
+  runNumber:
+    description: >-
+      The run number of the sample.
+    union_of:
+      - string
+      - float

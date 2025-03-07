@@ -250,11 +250,6 @@ def calculate_b_vector_prototype(wl_vec, i_array, error_array, qmin_index, qmax_
 
 
 def generate_test_data():
-    # Generate test data given in
-    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/
-    # /b3b4038f44443385afe4252bb2316be3/inelastic_incoherent_avg_example.xlsx
-    # Denoted as TEST1
-
     # Intensity vector
     intensity_vec = np.array(
         [
@@ -382,11 +377,6 @@ def generate_test_data():
 
 
 def generate_expected_b_factors(weighted_intensity=False, limited_range=False):
-    # Generate test data given in
-    # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/
-    # /b3b4038f44443385afe4252bb2316be3/inelastic_incoherent_avg_example.xlsx
-    # Denoted as TEST1
-
     # Expected B vectors
     if weighted_intensity:
         if limited_range:

@@ -22,7 +22,8 @@ clean: ## Delete some cruft from builds/testing/etc.
 	rm -rf `find . -name __pycache__ -o -name "*.egg-info"` \
 	`find . -type f -name '*.py[co]'` \
 	`find . -maxdepth 1 -type f -name 'BIOSANS_*.nxs' -o -name '*_Definition.xml'` \
+		.pytest_cache .ruff_cache \
+		.coverage build dist \
 		docs/_build \
 		debug/ test_output/ \
-		.coverage build dist \
-		.pytest_cache .ruff_cache
+		*.png

@@ -31,8 +31,8 @@ license = { file = "LICENSE" }
 
 [project.urls]
 Documentation = "https://drtsans.readthedocs.io/"
-Source = "https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/"
-BugTracker = "https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues"
+Source = "https://github.com/neutrons/drtsans/"
+BugTracker = "https://github.com/neutrons/drtsans/issues"
 
 [build-system]
 requires = ["setuptools >= 42", "toml", "wheel", "versioningit"]

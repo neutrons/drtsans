@@ -1,13 +1,9 @@
-from drtsans.dataobjects import IQazimuthal
-
-# https://github.com/neutrons/drtsans/blob/next/src/drtsans/iq.py
-from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
-
-# https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/blob/next/tests/unit/drtsans/i_of_q_binning_tests_data.py
-from tests.unit.drtsans.i_of_q_binning_tests_data import generate_test_data
 import numpy as np
 import pytest
 
+from drtsans.dataobjects import IQazimuthal
+from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
+from tests.unit.drtsans.i_of_q_binning_tests_data import generate_test_data
 
 # This module supports testing data for issue #246.
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/issues/246
@@ -21,17 +17,13 @@ import pytest
 def test_1d_annular_no_wt():
     """Test annular binning I(Qx, Qy) with no-weight binning method
 
-    The test data comes from example in '1D_annular_no_sub_no_wt' eqsans_tof_q_binning_tests_R5.xlsx
-    File location: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-                   eqsans_tof_q_binning_tests_R5.xlsx
     Returns
     -------
     None
-
     """
-    # Initialize range of theta angle and Q
-    theta_min = 0
-    theta_max = 360.0
+    # Initialize range of phi angle and Q
+    phi_min = 0
+    phi_max = 360.0
     num_bins = 10
 
     q_min = 0.003
@@ -52,8 +44,8 @@ def test_1d_annular_no_wt():
     )
 
     # Annular binning
-    theta_binning = BinningParams(theta_min, theta_max, num_bins)
-    binned_iq = bin_annular_into_q1d(test_i_q, theta_binning, q_min, q_max, BinningMethod.NOWEIGHT)
+    phi_binning = BinningParams(phi_min, phi_max, num_bins)
+    binned_iq = bin_annular_into_q1d(test_i_q, phi_binning, q_min, q_max, BinningMethod.NOWEIGHT)
 
     # Verify I(Q), sigma I(Q) and dQ
     assert binned_iq.intensity[1] == pytest.approx(63.66666667, abs=1e-8), "Binned intensity is wrong"
@@ -61,24 +53,20 @@ def test_1d_annular_no_wt():
     assert binned_iq.delta_mod_q[1] == pytest.approx(1.154e-02, abs=1e-5), (
         "Binned Q resolution {} is incorrect comparing to {}.".format(binned_iq.delta_mod_q[1], 0.01154)
     )
-    # this is actually theta
-    np.testing.assert_almost_equal(binned_iq.mod_q, np.linspace(start=18, stop=theta_max - 18, num=num_bins))
+    # this is actually phi
+    np.testing.assert_almost_equal(binned_iq.mod_q, np.linspace(start=18, stop=phi_max - 18, num=num_bins))
 
 
 def test_1d_annular_out_of_range_angles():
     """Test annular binning I(Qx, Qy) supplying the azimuthal angle outside of 0<azimuthal<360deg
 
-    The test data comes from example in '1D_annular_no_sub_no_wt' eqsans_tof_q_binning_tests_R5.xlsx
-    File location: https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/uploads/5423db9b77dfd4911bf799c247530865/
-                   eqsans_tof_q_binning_tests_R5.xlsx
     Returns
     -------
     None
-
     """
-    # Initialize range of theta angle and Q
-    theta_min = -90
-    theta_max = 270.0
+    # Initialize range of phi angle and Q
+    phi_min = -90
+    phi_max = 270.0
     num_bins = 10
 
     q_min = 0.003
@@ -99,9 +87,9 @@ def test_1d_annular_out_of_range_angles():
     )
 
     # Annular binning
-    theta_binning = BinningParams(theta_min, theta_max, num_bins)
+    phi_binning = BinningParams(phi_min, phi_max, num_bins)
     with pytest.raises(ValueError):
-        bin_annular_into_q1d(test_i_q, theta_binning, q_min, q_max, BinningMethod.NOWEIGHT)
+        bin_annular_into_q1d(test_i_q, phi_binning, q_min, q_max, BinningMethod.NOWEIGHT)
 
 
 def test_1d_flat_data():
@@ -114,8 +102,8 @@ def test_1d_flat_data():
     )
 
     # perform the annular binning
-    theta_binning = BinningParams(0, 360, 18)  # 20 deg bins
-    binned_iq = bin_annular_into_q1d(data2d, theta_binning, q_min=9.0, q_max=10.0, method=BinningMethod.NOWEIGHT)
+    phi_binning = BinningParams(0, 360, 18)  # 20 deg bins
+    binned_iq = bin_annular_into_q1d(data2d, phi_binning, q_min=9.0, q_max=10.0, method=BinningMethod.NOWEIGHT)
 
     # verify the results
     assert binned_iq.intensity.size == 18

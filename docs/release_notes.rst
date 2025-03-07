@@ -21,9 +21,21 @@ Release Notes
 ------
 ????-??-??
 
+1.12.0
+------
+2025-03-04
+
+Notable changes in this release include migrating the repository from GitLab to GitHub,
+fixing a bug in the auto wedge finding function, and saving I(Qx, Qy) in NXCANSAS format.
+Additionally, several improvements were made to the JSON schema, documentation,
+and configuration options.
+
 **Of interest to the User**:
 
 - PR #999: Adds support for flexible time slicing.
+- PR #997: Fix bug causing symmetric auto wedge finding to fail. Add mirrored wedge to auto wedge fit function plot.
+- PR #998: remove the TOF offset that is done by the data aquisition system
+- PR #996: Iq.dat files are now written even if they fail the assumption check
 - PR #994: Remove unused module `drtsans/tof/eqsans/reduce.py`
 - PR #993: Skip slices with too high transmission error when using time sliced sample transmission run
 - PR #325: Migrates repository from GitLab to GitHub

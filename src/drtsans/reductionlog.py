@@ -16,6 +16,8 @@ from os import environ, path
 
 __all__ = ["savereductionlog"]
 
+from drtsans.dataobjects import IQmod, I1DAnnular
+
 
 def _createnxgroup(parent, name, klass):
     child = parent.create_group(name)
@@ -273,7 +275,40 @@ def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
         _create_groupe(entry=entry, name="Wavelength", data=wavelength, units="A")
 
 
+def __save_individual_i1d_to_log(i1d=None, topEntry=None, entryNameExt=""):
+    """
+    Saves the 1d intensity profile to the given HDF5 group
+
+    Parameters
+    ----------
+    i1d: IQmod | I1DAnnular | list[IQmod] | list[I1DAnnular]
+        Intensity profile
+    topEntry: h5py.Group
+        HDF5 group object to save the intensity profile to
+    entryNameExt: str
+        Extension to add to the HDF5 entry name
+    """
+    if isinstance(i1d, IQmod):
+        __save_individual_iq_to_log(i1d, topEntry, entryNameExt)
+    elif isinstance(i1d, I1DAnnular):
+        __save_individual_i1d_annular_to_log(i1d, topEntry, entryNameExt)
+    else:
+        raise NotImplementedError("Only IQmod and I1DAnnular are supported")
+
+
 def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=""):
+    """
+    Saves the 1d intensity profile I(Q) to the given HDF5 group
+
+    Parameters
+    ----------
+    i1d: IQmod | I1DAnnular | list[IQmod] | list[I1DAnnular]
+        Intensity profile
+    topEntry: h5py.Group
+        HDF5 group object to save the intensity profile to
+    entryNameExt: str
+        Extension to add to the HDF5 entry name
+    """
     entry_name = "I(Q)"
     if entryNameExt:
         entry_name += "_" + entryNameExt
@@ -301,12 +336,58 @@ def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=""):
         _create_groupe(entry=entry, name="Wavelength", data=wavelength, units="A")
 
 
-def _save_iq_to_log(iq=None, topEntry=None):
-    if (type(iq) is list) and len(iq) > 1:
-        for _index, _iq in enumerate(iq):
-            __save_individual_iq_to_log(iq=_iq, topEntry=topEntry, entryNameExt="wedge{}".format(_index))
+def __save_individual_i1d_annular_to_log(i1d=None, topEntry=None, entryNameExt=""):
+    """
+    Saves the 1d annular intensity profile to the given HDF5 group
+
+    Parameters
+    ----------
+    i1d: I1DAnnular
+        Intensity profile I(phi)
+    topEntry: h5py.Group
+        HDF5 group object to save the intensity profile to
+    entryNameExt: str
+        Extension to add to the HDF5 entry name
+    """
+    entry_name = "I(phi)"
+    if entryNameExt:
+        entry_name += "_" + entryNameExt
+    entry = topEntry.create_group(entry_name)
+    entry.attrs["NX_class"] = "NXdata"
+    entry.attrs["signal"] = "I"
+    entry.attrs["axes"] = "phi"
+
+    # intensity
+    _create_groupe(entry=entry, name="I", data=i1d.intensity, units="1/cm")
+
+    # errors
+    _create_groupe(entry=entry, name="Idev", data=i1d.error, units="1/cm")
+
+    # phi
+    _create_groupe(entry=entry, name="phi", data=i1d.mod_q, units="degrees")
+
+    # wavelength
+    if i1d.wavelength:
+        wavelength = "{}".format(i1d.wavelength)
+        _create_groupe(entry=entry, name="Wavelength", data=wavelength, units="A")
+
+
+def _save_i1d_to_log(i1d=None, topEntry=None):
+    """
+    Saves the 1d intensity profile or list of profiles to the given HDF5 group
+
+    Parameters
+    ----------
+    i1d: IQmod | I1DAnnular | list[IQmod] | list[I1DAnnular]
+        Intensity profile
+    topEntry: h5py.Group
+        HDF5 group object to save the intensity profile to
+    """
+    if (type(i1d) is list) and len(i1d) > 1:
+        for _index, _iq in enumerate(i1d):
+            __save_individual_i1d_to_log(i1d=_iq, topEntry=topEntry, entryNameExt="wedge{}".format(_index))
     else:
-        __save_individual_iq_to_log(iq=iq[0], topEntry=topEntry, entryNameExt="")
+        __save_individual_i1d_to_log(i1d=i1d[0], topEntry=topEntry, entryNameExt="")
 
 
 def _retrieve_beam_radius_from_out_file(outfolder=""):
@@ -362,9 +443,10 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
     Parameters
     ----------
     detectordata: dict
-        for each key (name of detector), will have iq: Iqmod and iqxqy: IQazimuthal
-        where Iqmod is a tuple with the following informations: intensity, error, mod_q, delta_mode_q
-        and IQazimuthal is a tuple with the following informations: intensity, error, qx, delta_qx, qy, delta_y
+        for each key (name of detector), will have i1d: IQmod or I1DAnnular and iqxqy: IQazimuthal
+        where IQmod is a tuple with the following information: intensity, error, mod_q, delta_mod_q,
+        alternatively, I1DAnnular is a tuple with: intensity, error, phi,
+        and IQazimuthal is a tuple with the following information: intensity, error, qx, delta_qx, qy, delta_y
     python: string
         The script used to create everything (optional)
     pythonfile: string
@@ -419,10 +501,10 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
                 )
 
             if (
-                "iq" not in detectordata[_slice_name][_detector_name].keys()
+                "i1d" not in detectordata[_slice_name][_detector_name].keys()
                 and "iqxqy" not in detectordata[_slice_name][_detector_name].keys()
             ):
-                raise KeyError("Provide at least a iq and/or iqxqy keys to {}".format(filename))
+                raise KeyError("Provide at least a i1d and/or iqxqy keys to {}".format(filename))
 
     logslicedata = kwargs.get("logslicedata", {})
     if logslicedata:
@@ -457,13 +539,13 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
                 cfkeys = list(_current_frame.keys())
                 logger.debug(f"current frame keys: {cfkeys}")
 
-                if "iq" in _current_frame.keys() and "iqxqy" in _current_frame.keys():
-                    logger.debug(str(_current_frame["iq"]))
-                    _save_iq_to_log(iq=_current_frame["iq"], topEntry=midEntry)
+                if "i1d" in _current_frame.keys() and "iqxqy" in _current_frame.keys():
+                    logger.debug(str(_current_frame["i1d"]))
+                    _save_i1d_to_log(i1d=_current_frame["i1d"], topEntry=midEntry)
                     logger.debug(str(_current_frame["iqxqy"]))
                     _save_iqxqy_to_log(iqxqy=_current_frame["iqxqy"], topEntry=midEntry)
-                elif "iq" in _current_frame.keys():
-                    _save_iq_to_log(iq=_current_frame["iq"], topEntry=midEntry)
+                elif "i1d" in _current_frame.keys():
+                    _save_i1d_to_log(i1d=_current_frame["i1d"], topEntry=midEntry)
                 else:
                     _save_iqxqy_to_log(iqxqy=_current_frame["iqxqy"], topEntry=midEntry)
 

@@ -883,22 +883,22 @@ def test_get_sample_detectordata(has_midrange, iqmod1d, iqmod2d):
     )
 
     # test the contents of detector data
-    testing.assert_allclose(detector_data["combined"]["iq"][0], iqmod1d[-1])
-    testing.assert_allclose(detector_data["main_0"]["iq"][0], iqmod1d[0])
-    testing.assert_allclose(detector_data["wing_0"]["iq"][0], iqmod1d[0])
+    testing.assert_allclose(detector_data["combined"]["i1d"][0], iqmod1d[-1])
+    testing.assert_allclose(detector_data["main_0"]["i1d"][0], iqmod1d[0])
+    testing.assert_allclose(detector_data["wing_0"]["i1d"][0], iqmod1d[0])
     testing.assert_allclose(detector_data["main_0"]["iqxqy"], iqmod2d)
     testing.assert_allclose(detector_data["wing_0"]["iqxqy"], iqmod2d)
     if has_midrange:
-        testing.assert_allclose(detector_data["midrange_0"]["iq"][0], iqmod1d[0])
+        testing.assert_allclose(detector_data["midrange_0"]["i1d"][0], iqmod1d[0])
         testing.assert_allclose(detector_data["midrange_0"]["iqxqy"], iqmod2d)
     else:
         assert "midrange_0" not in detector_data
 
     if len(iqmod1d) == 2:  # case when "1DQbinType" is "wedge"
-        testing.assert_allclose(detector_data["main_1"]["iq"][0], iqmod1d[1])
-        testing.assert_allclose(detector_data["wing_1"]["iq"][0], iqmod1d[1])
+        testing.assert_allclose(detector_data["main_1"]["i1d"][0], iqmod1d[1])
+        testing.assert_allclose(detector_data["wing_1"]["i1d"][0], iqmod1d[1])
         if has_midrange:
-            testing.assert_allclose(detector_data["midrange_1"]["iq"][0], iqmod1d[1])
+            testing.assert_allclose(detector_data["midrange_1"]["i1d"][0], iqmod1d[1])
         else:
             assert "midrange_1" not in detector_data
 

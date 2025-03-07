@@ -62,8 +62,6 @@ Example 3: Slicing using time slice period
 When using a time slice period, slices for a given time interval are reduced together.
 In the figure, red slices are reduced together, and blue slices are reduced together.
 
-Note: the time slice period must be a multiple of the time slice interval.
-
 .. code-block:: json
 
     {
@@ -76,6 +74,17 @@ Note: the time slice period must be a multiple of the time slice interval.
 .. figure:: media/time_slicing_period.png
    :alt: Diagram of time slicing using an interval and a period
    :width: 800px
+
+Note: if the time slice interval is a non-integer multiple of the period, then the remainder will be the last of the slices. In the example below, there will be two 3 second slices, then one 2 second slice.
+
+.. code-block:: json
+
+    {
+        "useTimeSlice": true,
+        "timeSliceInterval": 3.0,
+        "timeSliceOffset": 0.0,
+        "timeSlicePeriod": 8.0,
+    }
 
 Log Slicing
 -----------

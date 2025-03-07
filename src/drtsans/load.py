@@ -82,6 +82,7 @@ def _insert_periodic_timeslice_log(
     r"""
     Insert a log into the input workspace that emulates the periodicity of the time intervals. Within a given
     period, the log value is incremented by one every ``time_interval`` seconds, starting from zero.
+    If a non-integer number of partitions, the remainder is the last of the slices.
 
     Parameters
     ----------
@@ -91,7 +92,7 @@ def _insert_periodic_timeslice_log(
     time_interval
         Interval between consecutive log entries, in seconds.
     time_period
-        The time in between equal log values, in seconds. Must be a multiple integer of ``time_interval``.
+        The time in between equal log values.
     time_offset
     """
     sample_logs = SampleLogs(input_workspace)

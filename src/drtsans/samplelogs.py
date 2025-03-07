@@ -94,7 +94,7 @@ def periodic_index_log(
     name: str = "periodic_index",
 ) -> FloatTimeSeriesProperty:
     r"""
-    Generate a periodic log whose values are integers ranging from 0 to ``period / interval``
+    Generate a periodic log whose values are integers ranging from 0 to ``period // interval``
     using timeSliceXXX values from the reduction configuration.
 
     The first log entry is at ``run_start + offset`` with value 0. The next entry at
@@ -122,27 +122,33 @@ def periodic_index_log(
     -------
     A Mantid timeseries property object which can be attached to a Run object.
 
-    Raises
-    ------
-    ValueError
-        If ``period`` is not a multiple of ``interval``.
     """
 
-    if (SECONDS_TO_NANOSECONDS * period) % interval > 1:  # allow for rounding errors of 1 nanosecond
-        raise ValueError(f"period {period} must be a multiple of interval {interval}")
+    assert interval <= period, f"interval must be less than or equal to period {interval} !<= {period}"
 
-    # times at which we insert a new log entry
-    times = np.arange(offset, duration, interval)
+    # number of periods in the duration
+    # plus 1 for any remainder (via ceil)
+    period_count = np.ceil((duration - offset) / period).astype(int)
 
-    # number of periods in the duration (plus one in case division truncates)
-    period_count = 1 + int((duration - offset) / period)
+    # number of full intervals in a period
+    interval_count = np.floor(period / interval).astype(int)
+
+    # generate period/interval blocks
+    # this creates intervals per period, of the range [period start, period end)
+    # ``- 1e-15`` makes the end range exclusive for integers
+    times = [
+        np.arange(period * i + offset, min(duration, period * (i + 1) + offset - 1e-15), interval)
+        for i in range(period_count)
+    ]
+    times = np.concatenate(times)
 
     # array of values in each period, scaled by the step
-    values_in_period = step * np.arange(0, int(period / interval))
+    values_in_period = step * np.arange(0, np.ceil(period / interval))
 
     # repeat the values in a period up to the number of periods,
+    # plus one
     # then truncate to the length of times, then cast to list
-    entries = np.tile(values_in_period, period_count)[: len(times)].tolist()
+    entries = np.tile(values_in_period, period_count + interval_count)[: len(times)].tolist()
 
     assert len(times) == len(entries), (
         f"times and entries must have the same length: len(times) {len(times)} != len(entries) {len(entries)}"

@@ -983,7 +983,7 @@ class TestReductionParametersEQSANS:
             (10, 100, False),  # exact integer multiple
             (0.001, 1.00000000001, False),  # nearly exact integer ratio
             (-45, -100, True),  # negative values
-            (1, 100.1, True),  # not an integer multiple
+            (1, 100.1, False),  # not an integer multiple
         ],
         ids=["exact integer multiple", "nearly exact integer ratio", "negative values", "not an integer multiple"],
     )

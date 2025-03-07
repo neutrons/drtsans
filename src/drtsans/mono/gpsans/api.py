@@ -1354,7 +1354,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         current_output = I_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)
         output.append(current_output)
 
-        detectordata[name] = {"main": {"iq": i1d_main_out, "iqxqy": iq2d_main_out}}
+        detectordata[name] = {"main": {"i1d": i1d_main_out, "iqxqy": iq2d_main_out}}
 
     try:
         processed_data_main

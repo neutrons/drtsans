@@ -1000,7 +1000,7 @@ def reduce_single_configuration(
             )
 
             _inside_detectordata[fr_log_label] = {
-                "iq": i1d_main_out,
+                "i1d": i1d_main_out,
                 "iqxqy": iq2d_main_out,
             }
 

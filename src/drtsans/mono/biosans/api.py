@@ -1826,13 +1826,13 @@ def get_sample_detectordata(
 
     Parameters
     ----------
-    iq1d_main: ~drtsans.dataobjects.IQmod
+    iq1d_main: ~drtsans.dataobjects.IQmod | ~drtsans.dataobjects.I1DAnnular
         Intensity profile for the main detector
-    iq1d_midrange: ~drtsans.dataobjects.IQmod
+    iq1d_midrange: ~drtsans.dataobjects.IQmod | ~drtsans.dataobjects.I1DAnnular
         Intensity profile for the midrange detector
-    iq1d_wing: ~drtsans.dataobjects.IQmod
+    iq1d_wing: ~drtsans.dataobjects.IQmod | ~drtsans.dataobjects.I1DAnnular
         Intensity profile for the wing detector
-    iq1d_combined: ~drtsans.dataobjects.IQmod
+    iq1d_combined: ~drtsans.dataobjects.IQmod | ~drtsans.dataobjects.I1DAnnular
         Combined (stitched) intensity profile from different detectors
     iq2d_main: ~drtsans.dataobjects.IQazimuthal
         I(Qx, Qy) for the main detector
@@ -1846,15 +1846,15 @@ def get_sample_detectordata(
     detector_data = {}
     # TODO: fix this bug - only one combined profile is saved in the reduction log, but for wedges there are two
     if iq1d_combined[-1].intensity.size > 0:
-        detector_data["combined"] = {"iq": [iq1d_combined[-1]]}
+        detector_data["combined"] = {"i1d": [iq1d_combined[-1]]}
 
     # one 1D I(Q) per detector for scalar and annular binning and two 1D I(Q) per detector for wedge binning
     for index, (_iq1d_main, _iq1d_wing) in enumerate(zip(iq1d_main, iq1d_wing)):
-        detector_data[f"main_{index}"] = {"iq": [_iq1d_main]}
-        detector_data[f"wing_{index}"] = {"iq": [_iq1d_wing]}
+        detector_data[f"main_{index}"] = {"i1d": [_iq1d_main]}
+        detector_data[f"wing_{index}"] = {"i1d": [_iq1d_wing]}
     if has_midrange:
         for index, (_iq1d_midrange) in enumerate(iq1d_midrange):
-            detector_data[f"midrange_{index}"] = {"iq": [_iq1d_midrange]}
+            detector_data[f"midrange_{index}"] = {"i1d": [_iq1d_midrange]}
 
     # one 2D I(Q) per detector, assign to index 0
     index = 0

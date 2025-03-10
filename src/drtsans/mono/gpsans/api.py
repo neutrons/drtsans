@@ -49,7 +49,7 @@ from drtsans.mono.normalization import (
 from drtsans.path import allow_overwrite
 from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
 from drtsans.path import abspath, abspaths, registered_workspace
-from drtsans.plots import plot_detector, plot_IQazimuthal, plot_IQmod
+from drtsans.plots import plot_detector, plot_IQazimuthal, plot_i1d
 from drtsans.reductionlog import savereductionlog
 from drtsans.samplelogs import SampleLogs
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
@@ -1460,10 +1460,10 @@ def plot_reduction_output(
             if len(out.I1D_main) > 1:
                 add_suffix = f"_wedge_{j}"
             filename = os.path.join(output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}.png")
-            plot_IQmod(
+            plot_i1d(
                 [out.I1D_main[j]],
                 filename,
-                loglog=loglog,
+                log_scale=loglog,
                 backend="mpl",
                 errorbar_kwargs={"label": "main"},
             )

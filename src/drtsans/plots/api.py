@@ -19,7 +19,7 @@ from drtsans.geometry import panel_names  # noqa E402
 from drtsans.iq import get_wedges  # noqa E402
 from drtsans.iq import validate_wedges_groups  # noqa E402
 
-__all__ = ["plot_IQmod", "plot_IQazimuthal", "plot_detector"]
+__all__ = ["plot_IQmod", "plot_IQazimuthal", "plot_detector", "plot_I1DAnnular", "plot_i1d"]
 
 
 # mpld3 taken from hack from https://github.com/mpld3/mpld3/issues/434#issuecomment-381964119
@@ -123,7 +123,7 @@ def _q_label(backend: str, subscript=""):
         return label + " (1/{})".format("\u212b")
 
 
-def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_kwargs={}, **kwargs):
+def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_kwargs=None, **kwargs):
     """Save a plot representative of the supplied workspaces
 
     Parameters
@@ -147,6 +147,8 @@ def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_
         Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
 
     """
+    if errorbar_kwargs is None:
+        errorbar_kwargs = {}
     backend = Backend.getMode(backend)
     for workspace in workspaces:
         datatype = getDataType(workspace)
@@ -173,6 +175,101 @@ def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_
         plt.setp(ax, **kwargs)
 
     _save_file(fig, filename, backend)
+
+
+def plot_I1DAnnular(workspaces, filename, logy=True, backend: str = "d3", errorbar_kwargs=None, **kwargs):
+    """Save a plot representative of the supplied I(phi) workspaces
+
+    Parameters
+    ----------
+    workspaces: list, tuple
+        A collection of :py:obj:`~drtsans.dataobjects.I1DAnnular` workspaces to
+        plot. If only one is desired, it must still be supplied in a
+        :py:obj:`list` or :py:obj:`tuple`.
+    filename: str
+        The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
+        backend, the type of file is determined from the file extension
+    logy: bool
+        If true will set the intensity axis to logarithmic, otherwise leave it as linear
+    backend
+        Which backend to save the file using
+    errorbar_kwargs: dict
+        Optional arguments to :py:obj:`matplotlib.axes.Axes.errorbar`
+        Can be a comma separated list for each workspace
+        e.g. ``{'label':'main,wing,both', 'color':'r,b,g', 'marker':'o,v,.'}``
+    kwargs: dict
+        Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
+
+    """
+    if errorbar_kwargs is None:
+        errorbar_kwargs = {}
+
+    backend = Backend.getMode(backend)
+    for workspace in workspaces:
+        datatype = getDataType(workspace)
+        if datatype != DataType.I_ANNULAR:
+            raise RuntimeError('Do not know how to plot type="{}"'.format(datatype))
+
+    fig, ax = plt.subplots()
+    for n, workspace in enumerate(workspaces):
+        eb, _, _ = ax.errorbar(workspace.phi, workspace.intensity, yerr=workspace.error)
+        for key in errorbar_kwargs:
+            value = [v.strip() for v in errorbar_kwargs[key].split(",")]
+            plt.setp(eb, key, value[min(n, len(value) - 1)])
+    ax.set_xlabel("Azimuthal angle (degrees)")
+    ax.set_ylabel("Intensity")
+    if logy:
+        # only setting log for y scale, since log scale for the x axis (annular angle) doesn't make sense
+        ax.set_yscale("log")
+
+    handles, labels = ax.get_legend_handles_labels()
+    if handles:
+        ax.legend(handles, labels)
+
+    if kwargs:
+        plt.setp(ax, **kwargs)
+
+    _save_file(fig, filename, backend)
+
+
+def plot_i1d(workspaces, filename, log_scale=True, backend: str = "d3", errorbar_kwargs=None, **kwargs):
+    """Save a plot representative of the supplied workspaces
+
+    Parameters
+    ----------
+    workspaces: list, tuple
+        A collection of :py:obj:`~drtsans.dataobjects.IQmod` or
+        :py:obj:`~drtsans.dataobjects.I1DAnnular` workspaces to plot. If only one is desired, it
+        must still be supplied in a :py:obj:`list` or :py:obj:`tuple`.
+    filename: str
+        The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
+        backend, the type of file is determined from the file extension
+    log_scale: bool
+        If true will set the pertinent axes to logarithmic, otherwise leave them as linear
+    backend
+        Which backend to save the file using
+    errorbar_kwargs: dict
+        Optional arguments to :py:obj:`matplotlib.axes.Axes.errorbar`
+        Can be a comma separated list for each workspace
+        e.g. ``{'label':'main,wing,both', 'color':'r,b,g', 'marker':'o,v,.'}``
+    kwargs: dict
+        Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
+
+    """
+    datatypes = []
+    for workspace in workspaces:
+        datatype = getDataType(workspace)
+        if datatype not in [DataType.IQ_MOD, DataType.I_ANNULAR]:
+            raise RuntimeError(f'Do not know how to plot type="{datatype}"')
+        datatypes.append(datatype)
+
+    if len(set(datatypes)) > 1:
+        raise RuntimeError(f"Cannot plot different data types in the same plot={datatypes}")
+
+    if datatypes[0] == DataType.IQ_MOD:
+        plot_IQmod(workspaces, filename, log_scale, backend, errorbar_kwargs, **kwargs)
+    else:
+        plot_I1DAnnular(workspaces, filename, log_scale, backend, errorbar_kwargs, **kwargs)
 
 
 def _create_ring_roi(iq2d, q_min, q_max, input_roi) -> np.ndarray:

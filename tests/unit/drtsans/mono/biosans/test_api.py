@@ -688,15 +688,15 @@ def test_save_i1d_all(tmp_path, iqmod_dummy, output_files):
 
 def test_plot_reduction_output(monkeypatch):
     """Unit test for helper function plot_reduction_output."""
-    # Mock the plot_IQmod function
-    plot_IQmod_counter = 0
+    # Mock the plot_i1d function
+    plot_i1d_counter = 0
 
-    def mock_plot_IQmod(*args, **kwargs):
-        nonlocal plot_IQmod_counter
-        plot_IQmod_counter += 1
-        return "mock_plot_IQmod"
+    def mock_plot_i1d(*args, **kwargs):
+        nonlocal plot_i1d_counter
+        plot_i1d_counter += 1
+        return "mock_plot_i1d"
 
-    monkeypatch.setattr("drtsans.plots.api.plot_IQmod", mock_plot_IQmod)
+    monkeypatch.setattr("drtsans.plots.api.plot_i1d", mock_plot_i1d)
 
     # Mock the plot_IQ function
     plot_IQazimuthal_counter = 0
@@ -768,7 +768,7 @@ def test_plot_reduction_output(monkeypatch):
     plot_reduction_output(reduction_output, reduction_input)
 
     assert plot_IQazimuthal_counter == 3
-    assert plot_IQmod_counter == 3
+    assert plot_i1d_counter == 3
     assert allow_overwrite_counter == 2
 
 

@@ -33,7 +33,7 @@ from drtsans.path import (  # noqa E402
     allow_overwrite,  # noqa E402
     registered_workspace,
 )
-from drtsans.plots import plot_IQazimuthal, plot_IQmod  # noqa E402
+from drtsans.plots import plot_IQazimuthal, plot_i1d  # noqa E402
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa E402
 from drtsans.samplelogs import SampleLogs  # noqa E402
 from drtsans.save_2d import save_nexus, save_nist_dat  # noqa E402
@@ -1196,10 +1196,10 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
             if len(out.I1D_main) > 1:
                 add_suffix = f"_wedge_{j}"
             filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq.png")
-            plot_IQmod(
+            plot_i1d(
                 [out.I1D_main[j]],
                 filename,
-                loglog=True,
+                log_scale=True,
                 backend="mpl",
                 errorbar_kwargs={"label": "main"},
             )

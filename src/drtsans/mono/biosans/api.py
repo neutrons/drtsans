@@ -1084,7 +1084,7 @@ def plot_reduction_output(
         #       not work with the standard import, therefore we need to use
         #       full path import here to make unit test work.
         plot_IQazimuthal = drtsans.plots.api.plot_IQazimuthal
-        plot_IQmod = drtsans.plots.api.plot_IQmod
+        plot_i1d = drtsans.plots.api.plot_i1d
         allow_overwrite = drtsans.path.allow_overwrite
 
         # main detector
@@ -1139,18 +1139,18 @@ def plot_reduction_output(
                 add_suffix = f"_wedge_{j}"
             filename = os.path.join(output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}.png")
             if has_midrange_detector:
-                plot_IQmod(
+                plot_i1d(
                     [out.I1D_main[j], out.I1D_wing[j], out.I1D_midrange[j], out.I1D_combined[j]],
                     filename,
-                    loglog=loglog,
+                    log_scale=loglog,
                     backend="mpl",
                     errorbar_kwargs={"label": "main,wing,midrange,both"},
                 )
             else:
-                plot_IQmod(
+                plot_i1d(
                     [out.I1D_main[j], out.I1D_wing[j], out.I1D_combined[j]],
                     filename,
-                    loglog=loglog,
+                    log_scale=loglog,
                     backend="mpl",
                     errorbar_kwargs={"label": "main,wing,both"},
                 )

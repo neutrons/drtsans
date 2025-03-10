@@ -364,7 +364,7 @@ def __save_individual_i1d_annular_to_log(i1d=None, topEntry=None, entryNameExt="
     _create_groupe(entry=entry, name="Idev", data=i1d.error, units="1/cm")
 
     # phi
-    _create_groupe(entry=entry, name="phi", data=i1d.mod_q, units="degrees")
+    _create_groupe(entry=entry, name="phi", data=i1d.phi, units="degrees")
 
     # wavelength
     if i1d.wavelength:

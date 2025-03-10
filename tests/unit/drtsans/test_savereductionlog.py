@@ -12,6 +12,7 @@ from tests.unit.drtsans.i_of_q_binning_tests_data import (
 )
 from drtsans.dataobjects import IQmod
 from drtsans.dataobjects import IQazimuthal
+from drtsans.dataobjects import I1DAnnular
 from tempfile import NamedTemporaryFile
 from drtsans import __version__ as drtsans_version
 from mantid import __version__ as mantid_version
@@ -68,6 +69,17 @@ def _create_iq():
     test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array)
 
     return test_iq
+
+
+def _create_i1d_annular():
+    # Get data
+    intensities, sigmas, phi, _ = generate_test_data(1, True)
+    test_i1d_annular = I1DAnnular(
+        intensity=intensities,
+        error=sigmas,
+        phi=phi,
+    )
+    return test_i1d_annular
 
 
 def _create_iqxqy():
@@ -269,6 +281,29 @@ def test_writing_iq_scalar_mode(cleanfile):
 
         data = iq_nxdata["Qdev"][:]
         _test_data(tested_data=data, ref_data=np.array([0.011912, 0.11912]), abs=1e-6)
+
+
+def test_writing_iq1d_annular(cleanfile):
+    test_i1d = [_create_i1d_annular()]
+    tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
+    savereductionlog(tmp_log_filename, detectordata={"slice_1": {"main_detector": {"i1d": test_i1d}}})
+
+    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, "r") as handle:
+        top_group = _getGroup(handle, "slice_1", "NXdata")
+        mid_group = _getGroup(top_group, "main_detector", "NXdata")
+        i1d_nxdata = _getGroup(mid_group, "I(phi)", "NXdata")
+
+        data = i1d_nxdata["I"][:]
+        _test_data(tested_data=data, ref_data=np.array([93, 60]))
+
+        data = i1d_nxdata["Idev"][:]
+        _test_data(tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-7)
+
+        data = i1d_nxdata["phi"][:]
+        _test_data(tested_data=data, ref_data=np.array([0.0078897, 0.0059338]), abs=1e-7)
 
 
 def test_slicelogdata_is_a_dict(cleanfile):

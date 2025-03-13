@@ -264,10 +264,10 @@ def test_get_curvature_radius(temp_workspace_name):
 def test_pixel_masks(temp_workspace_name):
     workspace = empty_instrument_workspace(temp_workspace_name(), filename="BIOSANS_Definition.xml")
     apply_mask(workspace, Components="wing_detector")
-    assert np.alltrue(geo.get_pixel_masks(workspace, "wing_detector"))
+    assert np.all(geo.get_pixel_masks(workspace, "wing_detector"))
     apply_mask(workspace, mask=list(range(10)))
     mask_in_detector1 = geo.get_pixel_masks(workspace, "wing_detector")[:10]
-    assert np.alltrue(mask_in_detector1)
+    assert np.all(mask_in_detector1)
 
 
 def test_get_pixel_distances(temp_workspace_name, fetch_idf):

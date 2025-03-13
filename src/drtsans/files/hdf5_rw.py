@@ -481,7 +481,7 @@ class DataSetNode(HDFNode):
         """
         # it is possible that input string is of type as unicode.  so it is better
         # to enforce it to be a string (encoded string) that can be accepted by h5py
-        self._value = np.array([np.string_(str_value)])
+        self._value = np.array([np.bytes_(str_value)])
 
     def write(self, parent_entry):
         """Write buffer node to an HDF entry

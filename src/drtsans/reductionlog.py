@@ -40,9 +40,9 @@ def _savenxnote(nxentry, name, mimetype, file_name, data):
     """
     nxnote = _createnxgroup(nxentry, name, "NXnote")
 
-    nxnote.create_dataset(name="file_name", data=[np.string_(file_name)])
-    nxnote.create_dataset(name="type", data=[np.string_(mimetype)])
-    nxnote.create_dataset(name="data", data=[np.string_(data)])
+    nxnote.create_dataset(name="file_name", data=[np.bytes_(file_name)])
+    nxnote.create_dataset(name="type", data=[np.bytes_(mimetype)])
+    nxnote.create_dataset(name="data", data=[np.bytes_(data)])
 
     return nxnote
 
@@ -126,8 +126,8 @@ def _savenxprocess(nxentry, program, version):
         program's version string
     """
     nxprocess = _createnxgroup(nxentry, program, "NXprocess")
-    nxprocess.create_dataset(name="program", data=[np.string_(program)])
-    nxprocess.create_dataset(name="version", data=[np.string_(version)])
+    nxprocess.create_dataset(name="program", data=[np.bytes_(program)])
+    nxprocess.create_dataset(name="version", data=[np.bytes_(version)])
 
 
 def _savenxlog(nxcollection, property):
@@ -144,7 +144,7 @@ def _savenxlog(nxcollection, property):
 
     try:
         if isinstance(property.value, str):
-            value = nxlog.create_dataset(name="value", data=[np.string_(property.value)])
+            value = nxlog.create_dataset(name="value", data=[np.bytes_(property.value)])
         elif len(property.value) > 1:
             value = nxlog.create_dataset(name="value", data=property.value)
         else:
@@ -164,7 +164,7 @@ def _savenxlog(nxcollection, property):
             epoch = times[0].toISO8601String()
             times = (times - times[0]) / np.timedelta64(1, "s")
             times = nxlog.create_dataset(name="time", data=times)
-            times.attrs["offset"] = np.string_(epoch)
+            times.attrs["offset"] = np.bytes_(epoch)
             times.attrs["units"] = "second"
     except AttributeError:
         pass  # doesn't have times
@@ -493,14 +493,14 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
 
         # timestamp of when it happened - default to now
         starttime = kwargs.get("starttime", datetime.now().isoformat())
-        entry.create_dataset(name="start_time", data=[np.string_(starttime)])
+        entry.create_dataset(name="start_time", data=[np.bytes_(starttime)])
 
         # computer it was on
         hostname = kwargs.get("hostname", None)
         if not hostname:
             hostname = socket.gethostname()
         if hostname:
-            entry.create_dataset(name="hostname", data=[np.string_(hostname)])
+            entry.create_dataset(name="hostname", data=[np.bytes_(hostname)])
 
         # software involved
         _savenxprocess(entry, "mantid", mantid_version)
@@ -510,11 +510,11 @@ def savereductionlog(filename="", detectordata=None, **kwargs):
         user = kwargs.get("user", environ.get("USER", ""))
         if user:
             nxuser = _createnxgroup(entry, "user", "NXuser")
-            nxuser.create_dataset(name="facility_user_id", data=[np.string_(user)])
+            nxuser.create_dataset(name="facility_user_id", data=[np.bytes_(user)])
 
             username = kwargs.get("username", environ.get("USERNAME", ""))
             if username:
-                nxuser.create_dataset(name="name", data=[np.string_(username)])
+                nxuser.create_dataset(name="name", data=[np.bytes_(username)])
 
         specialparameters = kwargs.get("specialparameters", None)
         if specialparameters:

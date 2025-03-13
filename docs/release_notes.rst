@@ -32,6 +32,7 @@ and configuration options.
 
 **Of interest to the User**:
 
+- PR #1007: Upgrades to Mantid 6.12 and numpy 2
 - PR #999: Adds support for flexible time slicing.
 - PR #997: Fix bug causing symmetric auto wedge finding to fail. Add mirrored wedge to auto wedge fit function plot.
 - PR #998: remove the TOF offset that is done by the data aquisition system

@@ -116,7 +116,7 @@ def test_1d_flat_data():
 
 
 def test_1d_flat_data_wl():
-    """Test annular binning with and without wavelength bins"""
+    """Test with and without wavelength binning with constant intensity"""
     # Q2D data for one wavelength
     data2d = IQazimuthal(
         intensity=np.full((21, 21), 1.0, dtype=float),
@@ -159,7 +159,8 @@ def test_1d_flat_data_wl():
     np.testing.assert_equal(binned_i1d_wl.mod_q, np.tile(np.arange(10.0, 360.0, 20.0), num_wl))
 
 
-def test_1d_wavelength():
+def test_1d_wavelengths():
+    """Test no wavelength binning with more realistic intensity data"""
     # Define input Q2D data
     num_wl = 3
     intensities, sigmas, qx_array, dqx_array, qy_array, dqy_array, wl_array = generate_test_data_wavelength(2, num_wl)

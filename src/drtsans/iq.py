@@ -662,7 +662,7 @@ def bin_annular_into_q1d(
 
     # Construct the wavelength array
     wl_array = None
-    if i_of_q.wavelength is not None:
+    if wavelength_bins is None and i_of_q.wavelength is not None:
         wl_array = i_of_q.wavelength[allowed_q_index]
 
     # select binning method

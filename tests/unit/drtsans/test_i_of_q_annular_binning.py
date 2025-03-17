@@ -152,7 +152,7 @@ def test_1d_flat_data_wl():
     np.testing.assert_allclose(binned_i1d_wl.error, 0.6, atol=0.11)
     np.testing.assert_allclose(binned_i1d_no_wl.error, 0.4, atol=0.12)
     # actually the azimuthal angle
-    np.testing.assert_equal(binned_i1d_wl.mod_q, np.tile(np.arange(10.0, 360.0, 20.0), num_wl))
+    np.testing.assert_equal(binned_i1d_wl.phi, np.tile(np.arange(10.0, 360.0, 20.0), num_wl))
 
 
 def test_1d_wavelengths():
@@ -183,10 +183,10 @@ def test_1d_wavelengths():
     assert np.nanmin(binned_i1d_wl.error) == pytest.approx(2.9155, rel=1e-4)
     assert np.nanmax(binned_i1d_wl.error) == pytest.approx(5.0662, rel=1e-4)
     # actually the azimuthal angle
-    np.testing.assert_equal(binned_i1d_wl.mod_q, np.tile(np.arange(10.0, 360.0, 20.0), num_wl))
+    np.testing.assert_equal(binned_i1d_wl.phi, np.tile(np.arange(10.0, 360.0, 20.0), num_wl))
 
     # verify one bin
-    assert binned_i1d_wl.mod_q[3] == pytest.approx(70.0, rel=1e-4)
+    assert binned_i1d_wl.phi[3] == pytest.approx(70.0, rel=1e-4)
     assert binned_i1d_wl.intensity[3] == pytest.approx(59.0, rel=1e-4)
     assert binned_i1d_wl.error[3] == pytest.approx(4.4347, rel=1e-4)
     assert binned_i1d_wl.wavelength[3] == pytest.approx(1.5, rel=1e-4)

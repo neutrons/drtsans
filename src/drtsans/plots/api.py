@@ -216,7 +216,7 @@ def plot_I1DAnnular(workspaces, filename, logy=True, backend: str = "d3", errorb
         for key in errorbar_kwargs:
             value = [v.strip() for v in errorbar_kwargs[key].split(",")]
             plt.setp(eb, key, value[min(n, len(value) - 1)])
-    ax.set_xlabel("Azimuthal angle (degrees)")
+    ax.set_xlabel("$\\phi$ (degrees)")
     ax.set_ylabel("Intensity")
     if logy:
         # only setting log for y scale, since log scale for the x axis (annular angle) doesn't make sense

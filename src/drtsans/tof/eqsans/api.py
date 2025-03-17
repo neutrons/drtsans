@@ -22,7 +22,7 @@ from drtsans import (
     subtract_background,  # noqa E402
 )  # noqa E402
 from drtsans.beam_finder import fbc_options_json, find_beam_center  # noqa E402
-from drtsans.dataobjects import save_i1d  # noqa E402
+from drtsans.dataobjects import save_i1d, I1DAnnular  # noqa E402
 from drtsans.instruments import extract_run_number  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.load import resolve_slicing
@@ -1010,12 +1010,17 @@ def reduce_single_configuration(
                 save_ascii_binned_2D(f"{filename}.dat", "I(Qx,Qy)", iq2d_main_out)
                 save_cansas_nx(iq2d_main_out.to_workspace(), f"{filename}.h5")
 
+            binning_suffix = "Iq"
+            if isinstance(i1d_main_out[0], I1DAnnular):
+                binning_suffix = "Iphi"
             for j in range(len(i1d_main_out)):
                 add_suffix = ""
                 if len(i1d_main_out) > 1:
                     add_suffix = f"_wedge_{j}"
                 add_suffix += fr_label
-                ascii_1D_filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq")
+                ascii_1D_filename = os.path.join(
+                    output_dir, f"{outputFilename}{output_suffix}{add_suffix}_{binning_suffix}"
+                )
                 save_i1d(i1d_main_out[j], f"{ascii_1D_filename}.dat", skip_nan=skip_nan)
 
             current_output = I_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)
@@ -1191,11 +1196,14 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
             qmax=qmax,
         )
         plt.clf()
+        binning_suffix = "Iq"
+        if isinstance(out.I1D_main[0], I1DAnnular):
+            binning_suffix = "Iphi"
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
                 add_suffix = f"_wedge_{j}"
-            filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq.png")
+            filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_{binning_suffix}.png")
             plot_i1d(
                 [out.I1D_main[j]],
                 filename,

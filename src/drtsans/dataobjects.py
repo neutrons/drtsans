@@ -183,6 +183,16 @@ def verify_same_q_bins(iq0, iq1, raise_exception_if_diffrent=False, tolerance=No
         else:
             q0vec = np.array([iq0.qx, iq0.qy, iq0.wavelength])
             q1vec = np.array([iq1.qx, iq1.qy, iq0.wavelength])
+    elif isinstance(iq0, I1DAnnular):
+        # Q1D
+        if iq0.wavelength is None or iq1.wavelength is None:
+            # no wavelength
+            q0vec = iq0.phi
+            q1vec = iq1.phi
+        else:
+            # also comparing the wavelength bins if they do exist
+            q0vec = np.array([iq0.phi, iq0.wavelength])
+            q1vec = np.array([iq1.phi, iq1.wavelength])
     else:
         raise RuntimeError(f"I(Q) of type {type(iq0)} is not supported by verify same binning")
 
@@ -390,6 +400,14 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"),
         r"""Divide intensities and their uncertainties by a number"""
         return self.__mul__(1.0 / divisor)
 
+    @property
+    def x(self):
+        return self.mod_q
+
+    @property
+    def delta_x(self):
+        return self.delta_mod_q
+
     def extract(self, selection):
         r"""
         Extract a subset of data points onto a new ~drtsans.dataobjects.IQmod object.
@@ -518,6 +536,14 @@ class I1DAnnular(namedtuple("I1DAnnular", "intensity error phi wavelength"), I1D
     def __truediv__(self, divisor):
         r"""Divide intensities and their uncertainties by a number"""
         return self.__mul__(1.0 / divisor)
+
+    @property
+    def x(self):
+        return self.phi
+
+    @property
+    def delta_x(self):
+        return None
 
     def extract(self, selection):
         r"""

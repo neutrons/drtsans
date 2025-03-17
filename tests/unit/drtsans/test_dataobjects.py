@@ -281,6 +281,44 @@ def test_verify_same_bins():
         verify_same_q_bins(iq1d0, iq2d0)
 
 
+def test_verify_same_phi_bins():
+    """Test method verify_same_q_bins for I1DAnnular objects"""
+    # Test I1DAnnular without wavelength
+    iphi1d0 = I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9])
+    iphi1d1 = I1DAnnular([4, 9, 3], [4, 5, 6], [7, 8, 9])
+    assert verify_same_q_bins(iphi1d0, iphi1d1)
+
+    # Test I1DAnnular with wavelength
+    iphi1d0 = I1DAnnular(
+        [1, 2, 3, 4, 6, 6],
+        [4, 5, 6, 4, 5, 6],
+        [7, 8, 9, 7, 8, 9],
+        wavelength=[10, 10, 10, 11, 11, 11],
+    )
+    iphi1d1 = I1DAnnular(
+        [4, 9, 3, 8, 7, 6],
+        [4, 5, 6, 4, 5, 6],
+        [7, 8, 9, 7, 8, 9],
+        wavelength=[10, 10, 10, 11, 11, 11],
+    )
+    assert verify_same_q_bins(iphi1d0, iphi1d1)
+
+    # Test I1DAnnular with wavelength
+    iphi1d0 = I1DAnnular(
+        [1, 2, 3, 4, 6, 6],
+        [4, 5, 6, 4, 5, 6],
+        [7, 8, 9, 7, 8, 9],
+        wavelength=[10.1, 10.1, 10.1, 11, 11, 11],
+    )
+    iphi1d1 = I1DAnnular(
+        [4, 9, 3, 8, 7, 6],
+        [4, 5, 6, 4, 5, 6],
+        [7, 8, 9, 7, 8, 9],
+        wavelength=[10, 10, 10, 11, 11, 11],
+    )
+    assert verify_same_q_bins(iphi1d0, iphi1d1) is False
+
+
 def test_save_load_iqmod_dq():
     """Test save and load I(Q) to and from ASCII with Q, I(Q), dI(Q) and delta Q
 

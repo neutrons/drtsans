@@ -599,18 +599,6 @@ class I1DAnnular(namedtuple("I1DAnnular", "intensity error phi wavelength"), I1D
     def id(self):
         return DataType.I_ANNULAR
 
-    def be_finite(self):
-        #  Remove NaN
-        finite_locations = np.isfinite(self.intensity)
-        finite_binned_i_wl = I1DAnnular(
-            intensity=self.intensity[finite_locations],
-            error=self.error[finite_locations],
-            phi=self.phi[finite_locations],
-            wavelength=self.wavelength[finite_locations],
-        )
-
-        return finite_binned_i_wl
-
     def to_workspace(self, name=None):
         # create a name if one isn't provided
         if name is None:

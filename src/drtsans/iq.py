@@ -313,7 +313,7 @@ def bin_all(
             kwargs["q_min"] = qmin
         if qmax is not None:
             kwargs["q_max"] = qmax
-        binned_q1d_list.append(bin_annular_into_q1d(i_qxqy, bin_params, **kwargs))
+        binned_q1d_list.append(bin_annular_into_q1d(i_qxqy, bin_params, wavelength_bins=n_wavelength_bin, **kwargs))
     else:
         # regular binning including 'scalar' and 'wedge'
         if bin1d_type == "scalar":
@@ -601,7 +601,9 @@ def _toQmodAndAzimuthal(
     return data.intensity.ravel(), data.error.ravel(), q, dq, azimuthal
 
 
-def bin_annular_into_q1d(i_of_q, phi_bin_params, q_min=0.001, q_max=0.4, method=BinningMethod.NOWEIGHT):
+def bin_annular_into_q1d(
+    i_of_q, phi_bin_params, q_min=0.001, q_max=0.4, method=BinningMethod.NOWEIGHT, wavelength_bins: int | None = 1
+):
     """Annular 1D binning
 
     Calculates: I(azimuthal), sigma I and dazmuthal by assigning pixels to proper azimuthal angle bins
@@ -635,6 +637,8 @@ def bin_annular_into_q1d(i_of_q, phi_bin_params, q_min=0.001, q_max=0.4, method=
         , by default
     method : ~drtsans.BinningMethod
         binning method, no-weight or weighed
+    wavelength_bins: None, int
+        number of binned wavelength. If None, do not bin. If equal to 1, bin all wavelength together
 
     Returns
     -------
@@ -656,6 +660,11 @@ def bin_annular_into_q1d(i_of_q, phi_bin_params, q_min=0.001, q_max=0.4, method=
     # Filter by q_min and q_max
     allowed_q_index = np.logical_and((q_array > q_min), (q_array < q_max))
 
+    # Construct the wavelength array
+    wl_array = None
+    if wavelength_bins is None and i_of_q.wavelength is not None:
+        wl_array = i_of_q.wavelength[allowed_q_index]
+
     # select binning method
     # the methods call the independent axis "Q", but are generic to whatever values are passed in
     if method == BinningMethod.NOWEIGHT:
@@ -676,8 +685,8 @@ def bin_annular_into_q1d(i_of_q, phi_bin_params, q_min=0.001, q_max=0.4, method=
             intensity[allowed_q_index],
             error[allowed_q_index],
             phi_bins,
-            None,
-            1,
+            wl_array,
+            wavelength_bins,
         )
     else:
         binned_i_of_azimuthal = do_1d_binning(
@@ -686,8 +695,8 @@ def bin_annular_into_q1d(i_of_q, phi_bin_params, q_min=0.001, q_max=0.4, method=
             intensity[allowed_q_index],
             error[allowed_q_index],
             phi_bins,
-            None,
-            1,
+            wl_array,
+            wavelength_bins,
         )
 
     return binned_i_of_azimuthal

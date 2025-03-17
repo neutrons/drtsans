@@ -32,6 +32,7 @@ and configuration options.
 
 **Of interest to the User**:
 
+- PR #1008: Add support for annular binning with no wavelength binning.
 - PR #1007: Upgrades to Mantid 6.12 and numpy 2
 - PR #999: Adds support for flexible time slicing.
 - PR #997: Fix bug causing symmetric auto wedge finding to fail. Add mirrored wedge to auto wedge fit function plot.

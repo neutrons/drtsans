@@ -459,7 +459,7 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     # debugging output file
     for qmin_ring, qmax_ring in zip(q_bins[:-1], q_bins[1:]):
         # bin into I(azimuthal)
-        I_annular = bin_annular_into_q1d(data, azimuthal_binning, qmin_ring, qmax_ring, BinningMethod.NOWEIGHT)
+        i1d_annular = bin_annular_into_q1d(data, azimuthal_binning, qmin_ring, qmax_ring, BinningMethod.NOWEIGHT)
 
         # Create a copy of the arrays with the 360->540deg region repeated
         # ignore - delta_mod_q wavelength
@@ -468,21 +468,21 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
             x_max=540.0 + azimuthal_delta,
             bins=1 + int(540.0 / azimuthal_delta),
         ).centers
-        num_orig_bins = I_annular.phi.size
+        num_orig_bins = i1d_annular.phi.size
         num_repeated_bins = phi_new.size - num_orig_bins
 
         intensity_new = np.zeros(phi_new.size)
-        intensity_new[:num_orig_bins] = I_annular.intensity
-        intensity_new[-1 * num_repeated_bins :] = I_annular.intensity[:num_repeated_bins]
+        intensity_new[:num_orig_bins] = i1d_annular.intensity
+        intensity_new[-1 * num_repeated_bins :] = i1d_annular.intensity[:num_repeated_bins]
 
         error_new = np.zeros(phi_new.size)
-        error_new[:num_orig_bins] = I_annular.error
-        error_new[-1 * num_repeated_bins :] = I_annular.error[:num_repeated_bins]
+        error_new[:num_orig_bins] = i1d_annular.error
+        error_new[-1 * num_repeated_bins :] = i1d_annular.error[:num_repeated_bins]
 
-        I_annular = I1DAnnular(intensity=intensity_new, error=error_new, phi=phi_new)
+        i1d_annular = I1DAnnular(intensity=intensity_new, error=error_new, phi=phi_new)
 
         # append to the list of spectra
-        data_of_q_rings.append(I_annular)
+        data_of_q_rings.append(i1d_annular)
 
     return q_bins, data_of_q_rings
 

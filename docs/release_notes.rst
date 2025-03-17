@@ -23,7 +23,7 @@ Release Notes
 
 1.12.0
 ------
-2025-03-04
+2025-03-17
 
 Notable changes in this release include migrating the repository from GitLab to GitHub,
 fixing a bug in the auto wedge finding function, and saving I(Qx, Qy) in NXCANSAS format.

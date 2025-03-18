@@ -163,9 +163,9 @@ class EventNeXusWriter(object):
         )
         self._instrument_node.set_instrument_info(
             target_station_number=1,
-            beam_line=np.string_(self._instrument_name),
-            name=np.string_(self._instrument_name),
-            short_name=np.string_(self._instrument_name),
+            beam_line=np.bytes_(self._instrument_name),
+            name=np.bytes_(self._instrument_name),
+            short_name=np.bytes_(self._instrument_name),
         )
 
     def _set_log_node(self, log_name, relative_log_times, log_values, log_unit, device):
@@ -198,16 +198,16 @@ class EventNeXusWriter(object):
         if device is not None:
             # about device target
             if device.target is None:
-                device_target = np.string_(device.name).decode()
+                device_target = np.bytes_(device.name).decode()
             else:
-                device_target = np.string_(device.target).decode()
+                device_target = np.bytes_(device.target).decode()
             # add full path if device.target is only a short name
             if not device_target.startswith("/entry"):
                 device_target = f"/entry/DASlogs/{device_target}"
 
             das_log_node.set_device_info(
                 device_id=device.id,
-                device_name=np.string_(device.name),
+                device_name=np.bytes_(device.name),
                 target=device_target.encode(),
             )
 
@@ -252,8 +252,8 @@ class EventNeXusWriter(object):
 
         # Set up the list
         entry_value_tuples = [
-            ("/entry/start_time", np.array([np.string_(start_time)])),
-            ("/entry/end_time", np.array([np.string_(stop_time)])),
+            ("/entry/start_time", np.array([np.bytes_(start_time)])),
+            ("/entry/end_time", np.array([np.bytes_(stop_time)])),
             ("/entry/duration", np.array([duration_s]).astype("float32")),
         ]
 
@@ -350,7 +350,7 @@ class EventNeXusWriter(object):
         # Init regular DataSetNode and set value
         child_node = DataSetNode(entry_value_tuple[0])
         # need to convert to
-        child_node.set_value(np.array([np.string_(f"{entry_value_tuple[1]}")]))
+        child_node.set_value(np.array([np.bytes_(f"{entry_value_tuple[1]}")]))
         # Link as the child of entry
         self._entry_node.set_child(child_node)
 

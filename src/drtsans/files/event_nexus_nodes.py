@@ -199,7 +199,7 @@ def generate_event_time_zero_node(node_name, event_time_zero_array, run_start_ti
     pulse_attr_dict = {
         "units": b"second",
         "target": b"/entry/DASlogs/frequency/time",
-        "offset": np.string_(run_start_time),
+        "offset": np.bytes_(run_start_time),
         "offset_nanoseconds": offset_ns,
         "offset_seconds": offset_second,
     }
@@ -405,8 +405,8 @@ class DasLogNode(drtsans.files.hdf5_rw.GroupNode):
         # Need to make sure all strings are Bytes
         for node_name, info_value in [
             ("device_id", [device_id]),
-            ("device_name", [np.string_(device_name)]),
-            ("target", [np.string_(target)]),
+            ("device_name", [np.bytes_(device_name)]),
+            ("target", [np.bytes_(target)]),
         ]:
             child_node = DataSetNode(name=self._create_child_name(node_name))
             child_node.set_value(np.array(info_value))

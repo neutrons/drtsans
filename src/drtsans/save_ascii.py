@@ -21,7 +21,7 @@ def save_ascii_binned_1D(filename: str, title, *args, **kwargs):
         absolute path to output filename for the 1D I(Q) profile
     title: str
         title to be added on the first line
-    args: drtsans.dataobjects.IQmod
+    args: ~drtsans.dataobjects.IQmod
         output from 1D binning
     kwargs:
         intensity, error, mod_q, delta_mod_q - 1D numpy arrays of the same length, output from 1D binning
@@ -67,7 +67,7 @@ def save_ascii_binned_1D_annular(filename: str, title, *args, **kwargs):
         absolute path to output filename for the 1D I(phi) profile
     title: str
         title to be added on the first line
-    args: drtsans.dataobjects.I1DAnnular
+    args: ~drtsans.dataobjects.I1DAnnular
         output from 1D binning
     kwargs:
         intensity, error, phi - 1D numpy arrays of the same length, output from 1D binning

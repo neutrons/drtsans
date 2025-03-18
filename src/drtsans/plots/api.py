@@ -268,7 +268,7 @@ def plot_i1d(workspaces, filename, log_scale=True, backend: str = "d3", errorbar
 
     if datatypes[0] == DataType.IQ_MOD:
         plot_IQmod(workspaces, filename, log_scale, backend, errorbar_kwargs, **kwargs)
-    else:
+    else:  # can only be DataType.I_ANNULAR
         plot_I1DAnnular(workspaces, filename, log_scale, backend, errorbar_kwargs, **kwargs)
 
 

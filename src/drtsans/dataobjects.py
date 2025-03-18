@@ -66,8 +66,8 @@ def _nary_operation(iq_objects, operation, unpack=True, **kwargs):
     Parameters
     ----------
     iq_objects: list
-        A list of ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or ~drtsans.dataobjects.IQcrystal
-        objects.
+        A list of ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+        or ~drtsans.dataobjects.I1DAnnular objects.
     operation: function
         A function operating on a list of :ref:`~numpy.ndarray` objects, e.g. numpy.concatenate((array1, array2))
     unpack: bool
@@ -79,7 +79,8 @@ def _nary_operation(iq_objects, operation, unpack=True, **kwargs):
 
     Returns
     -------
-    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or ~drtsans.dataobjects.IQcrystal
+    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal or
+    ~drtsans.dataobjects.I1DAnnular
     """
     reference_object = iq_objects[0]
     assert len(set([type(iq_object) for iq_object in iq_objects])) == 1  # check all objects of same type
@@ -106,7 +107,8 @@ def _extract(iq_object, selection):
 
     Parameters
     ----------
-    iq_object: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    iq_object: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal,
+               or ~drtsans.dataobjects.I1DAnnular
     selection: int, slice, :ref:`~numpy.ndarray`
         Any selection that can be passed onto a :ref:`~numpy.ndarray`
 
@@ -134,12 +136,14 @@ def scale_intensity(iq_object, scaling):
 
     Parameters
     ----------
-    iq_object: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    iq_object: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal,
+               or ~drtsans.dataobjects.I1DAnnular
     scaling: float
 
     Returns
     -------
-    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal,
+    ~drtsans.dataobjects.I1DAnnular
     """
     intensity = scaling * iq_object.intensity
     error = scaling * iq_object.error
@@ -151,29 +155,29 @@ def verify_same_q_bins(iq0, iq1, raise_exception_if_diffrent=False, tolerance=No
 
     Parameters
     ----------
-    iq0: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
-    iq1: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    iq0: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal, ~drtsans.dataobjects.I1DAnnular
+    iq1: ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal, ~drtsans.dataobjects.I1DAnnular
 
     Returns
     -------
     bool
         True if they are same
-    """
+    """  # noqa: E501
     # Same class
     if iq0.__class__ != iq1.__class__:
         raise RuntimeError(f"Input I(Q)s are of different type: {type(iq0)} and {type(iq1)}")
 
     # IQmod
-    if isinstance(iq0, IQmod):
+    if isinstance(iq0, IQmod) or isinstance(iq0, I1DAnnular):
         # Q1D
         if iq0.wavelength is None or iq1.wavelength is None:
             # no wave length
-            q0vec = iq0.mod_q
-            q1vec = iq1.mod_q
+            q0vec = iq0.x
+            q1vec = iq1.x
         else:
             # also comparing the wavelength bins if they do exist
-            q0vec = np.array([iq0.mod_q, iq0.wavelength])
-            q1vec = np.array([iq1.mod_q, iq1.wavelength])
+            q0vec = np.array([iq0.x, iq0.wavelength])
+            q1vec = np.array([iq1.x, iq1.wavelength])
     elif isinstance(iq0, IQazimuthal) or isinstance(iq0, IQcrystal):
         # Q2D
         if iq0.wavelength is None or iq1.wavelength is None:
@@ -183,16 +187,6 @@ def verify_same_q_bins(iq0, iq1, raise_exception_if_diffrent=False, tolerance=No
         else:
             q0vec = np.array([iq0.qx, iq0.qy, iq0.wavelength])
             q1vec = np.array([iq1.qx, iq1.qy, iq0.wavelength])
-    elif isinstance(iq0, I1DAnnular):
-        # Q1D
-        if iq0.wavelength is None or iq1.wavelength is None:
-            # no wavelength
-            q0vec = iq0.phi
-            q1vec = iq1.phi
-        else:
-            # also comparing the wavelength bins if they do exist
-            q0vec = np.array([iq0.phi, iq0.wavelength])
-            q1vec = np.array([iq1.phi, iq1.wavelength])
     else:
         raise RuntimeError(f"I(Q) of type {type(iq0)} is not supported by verify same binning")
 
@@ -248,12 +242,14 @@ def concatenate(iq_objects):
     Parameters
     ----------
     iq_objects: list
-        A sequence of ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, or
-        ~drtsans.dataobjects.IQcrystal objects. All objects must be of the same type
+        A sequence of ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal,
+        ~drtsans.dataobjects.IQcrystal, or ~drtsans.dataobjects.I1DAnnular objects.
+        All objects must be of the same type
 
     Returns
     -------
-    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal
+    ~drtsans.dataobjects.IQmod, ~drtsans.dataobjects.IQazimuthal, ~drtsans.dataobjects.IQcrystal,
+    ~drtsans.dataobjects.I1DAnnular
     """
     return _nary_operation(iq_objects, np.concatenate, unpack=False)
 
@@ -322,28 +318,30 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"),
     @staticmethod
     def read_csv(file, sep=" "):
         r"""
-        Load an intensity profile into a ~drtsans.dataobjects.IQmod object.
+        Load an intensity profile into a :py:obj:`~drtsans.dataobjects.IQmod` object.
 
         Required file format:
+
         The first row must include the names for the file columns. The order of the columns is irrelevant and
         the names of the columns must be:
+
         - 'intensity' for profile intensities. This column is required.
         - 'error' for uncertainties in the profile intensities. This column is required.
         - 'mod_q' for values of Q. This column is required.
         - 'delta_mod_q' for uncertainties in the Q values. This column is optional.
         - 'wavelength' This column is optional.
 
-        Example of file contents:
+        Example of file contents::
+
             intensity error mod_q
             1000.0 89.0 0.001
             90.0 8.0 0.01
             4.7 0.9 0.1
 
-        Usage example:
-        ```
-        from drtsans.mono.gpsans import IQmod
-        iq = IQmod.read_csv(file_name)
-        ```
+        Usage example::
+
+            from drtsans.mono.gpsans import IQmod
+            iq = IQmod.read_csv(file_name)
 
         Parameters
         ----------
@@ -410,17 +408,18 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"),
 
     def extract(self, selection):
         r"""
-        Extract a subset of data points onto a new ~drtsans.dataobjects.IQmod object.
+        Extract a subset of data points onto a new :py:obj:`~drtsans.dataobjects.IQmod` object.
 
-        Examples:
-        - IQmod().extract(42)  # extract data point number 42
-        - IQmod().extract(slice(None, None, 2))  # extract every other data point
-        - IQmod().extract(IQmod().mod_q < 0.1)  # extract points with Q < 0.1
+        Examples::
+
+            IQmod().extract(42)  # extract data point number 42
+            IQmod().extract(slice(None, None, 2))  # extract every other data point
+            IQmod().extract(IQmod().mod_q < 0.1)  # extract points with Q < 0.1
 
         Parameters
         ----------
         selection: int, slice, ~numpy.ndarray
-            Any selection that can be passed onto a ~numpy.ndarray
+            Any selection that can be passed onto a :py:obj:`~numpy.ndarray`
 
         Returns
         -------
@@ -430,8 +429,8 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"),
 
     def concatenate(self, other):
         r"""
-        Append additional data points from another ~drtsans.dataobjects.IQmod object and return the composite as a
-        new ~drtsans.dataobjects.IQmod object.
+        Append additional data points from another :py:obj:`~drtsans.dataobjects.IQmod` object and
+        return the composite as a new :py:obj:`~drtsans.dataobjects.IQmod` object.
 
         Parameters
         ----------
@@ -446,7 +445,7 @@ class IQmod(namedtuple("IQmod", "intensity error mod_q delta_mod_q wavelength"),
 
     def sort(self, key="mod_q"):
         r"""
-        Sort the data points according to one of the components of the ~drtsans.dataobjects.IQmod object.
+        Sort the data points according to one of the components of the :py:obj:`~drtsans.dataobjects.IQmod` object.
 
         Parameters
         ----------
@@ -547,12 +546,13 @@ class I1DAnnular(namedtuple("I1DAnnular", "intensity error phi wavelength"), I1D
 
     def extract(self, selection):
         r"""
-        Extract a subset of data points onto a new ~drtsans.dataobjects.I1DAnnular object.
+        Extract a subset of data points onto a new :py:obj:`~drtsans.dataobjects.I1DAnnular` object.
 
-        Examples:
-        - I1DAnnular().extract(42)  # extract data point number 42
-        - I1DAnnular().extract(slice(None, None, 2))  # extract every other data point
-        - I1DAnnular().extract(I1DAnnular().phi < 10.0)  # extract points with phi < 10.0
+        Examples::
+
+            I1DAnnular().extract(42)  # extract data point number 42
+            I1DAnnular().extract(slice(None, None, 2))  # extract every other data point
+            I1DAnnular().extract(I1DAnnular().phi < 10.0)  # extract points with phi < 10.0
 
         Parameters
         ----------
@@ -567,8 +567,8 @@ class I1DAnnular(namedtuple("I1DAnnular", "intensity error phi wavelength"), I1D
 
     def concatenate(self, other):
         r"""
-        Append additional data points from another ~drtsans.dataobjects.I1DAnnular object and return the composite as a
-        new ~drtsans.dataobjects.I1DAnnular object.
+        Append additional data points from another :py:obj:`~drtsans.dataobjects.I1DAnnular` object
+        and return the composite as a new :py:obj:`~drtsans.dataobjects.I1DAnnular` object.
 
         Parameters
         ----------
@@ -583,7 +583,8 @@ class I1DAnnular(namedtuple("I1DAnnular", "intensity error phi wavelength"), I1D
 
     def sort(self, key="phi"):
         r"""
-        Sort the data points according to one of the components of the ~drtsans.dataobjects.I1DAnnular object.
+        Sort the data points according to one of the components of the
+        :py:obj:`~drtsans.dataobjects.I1DAnnular` object.
 
         Parameters
         ----------
@@ -616,27 +617,29 @@ class I1DAnnular(namedtuple("I1DAnnular", "intensity error phi wavelength"), I1D
     @staticmethod
     def read_csv(file, sep=" "):
         r"""
-        Load an intensity profile into a ~drtsans.dataobjects.I1DAnnular object.
+        Load an intensity profile into a :py:obj:`~drtsans.dataobjects.I1DAnnular` object.
 
         Required file format:
-        The first row must include the names for the file columns. The order of the columns is irrelevant and
-        the names of the columns must be:
+
+        The first row must include the names for the file columns. The order of the columns is
+        irrelevant and the names of the columns must be:
+
         - 'intensity' for profile intensities. This column is required.
         - 'error' for uncertainties in the profile intensities. This column is required.
         - 'phi' for values of annular angle. This column is required.
         - 'wavelength' This column is optional.
 
-        Example of file contents:
-            intensity error phi
-            1000.0 89.0 10.0
-            90.0 8.0 20.0
-            4.7 0.9 30.0
+        Example of file contents::
 
-        Usage example:
-        ```
-        from drtsans.mono.gpsans import I1DAnnular
-        iq = I1DAnnular.read_csv(file_name)
-        ```
+          intensity error phi
+          1000.0 89.0 10.0
+          90.0 8.0 20.0
+          4.7 0.9 30.0
+
+        Example::
+
+          from drtsans.mono.gpsans import I1DAnnular
+          iq = I1DAnnular.read_csv(file_name)
 
         Parameters
         ----------
@@ -659,28 +662,30 @@ class I1DAnnular(namedtuple("I1DAnnular", "intensity error phi wavelength"), I1D
 
 def load_iqmod(file, sep=" ", header_type=HeaderType.PANDAS.value):
     r"""
-    Load an intensity profile into a ~drtsans.dataobjects.IQmod object.
+    Load an intensity profile into a :py:obj:`~drtsans.dataobjects.I1DAnnular` object.
 
     Required file format:
+
     The first row must include the names for the file columns. The order of the columns is irrelevant and
     the names of the columns must be:
+
     - 'intensity' for profile intensities. This column is required.
     - 'error' for uncertainties in the profile intensities. This column is required.
     - 'mod_q' for values of Q. This column is required.
     - 'delta_mod_q' for uncertainties in the Q values. This column is optional.
     - 'wavelength' This column is optional.
 
-    Example of file contents:
+    Example of file contents::
+
         intensity error mod_q
         1000.0 89.0 0.001
         90.0 8.0 0.01
         4.7 0.9 0.1
 
-    Usage example:
-    ```
-    from drtsans.mono.gpsans import load_iqmod
-    iq = load_iqmod(file_name)
-    ```
+    Usage example::
+
+        from drtsans.mono.gpsans import load_iqmod
+        iq = load_iqmod(file_name)
 
     Parameters
     ----------
@@ -749,7 +754,7 @@ def save_iqmod(
     header_type=HeaderType.MANTID_ASCII.value,
 ):
     r"""
-    Write the ~drtsans.dataobjects.IQmod object into an ASCII file.
+    Write the :py:obj:`~drtsans.dataobjects.IQmod` object into an ASCII file.
 
     Output columns
     (Line 0: ) mod_q intensity error mod_q_error
@@ -789,7 +794,7 @@ def save_i1d_annular(
     header_type=HeaderType.MANTID_ASCII.value,
 ):
     r"""
-    Write the ~drtsans.dataobjects.I1DAnnular object into an ASCII file.
+    Write the :py:obj`~drtsans.dataobjects.I1DAnnular` object into an ASCII file.
 
     Output columns
     (Line 0: ) phi intensity error

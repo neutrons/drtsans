@@ -58,16 +58,16 @@ def reshape_q_wavelength_matrix(i_of_q: IQmod) -> tuple:
 
     """
     # Create a matrix for q, wavelength, intensity and error
-    if i_of_q.delta_mod_q is None:
-        i_q_wl_matrix = np.array([i_of_q.mod_q, i_of_q.wavelength, i_of_q.intensity, i_of_q.error])
+    if i_of_q.delta_x is None:
+        i_q_wl_matrix = np.array([i_of_q.x, i_of_q.wavelength, i_of_q.intensity, i_of_q.error])
     else:
         i_q_wl_matrix = np.array(
             [
-                i_of_q.mod_q,
+                i_of_q.x,
                 i_of_q.wavelength,
                 i_of_q.intensity,
                 i_of_q.error,
-                i_of_q.delta_mod_q,
+                i_of_q.delta_x,
             ]
         )
     i_q_wl_matrix = i_q_wl_matrix.transpose()
@@ -77,14 +77,14 @@ def reshape_q_wavelength_matrix(i_of_q: IQmod) -> tuple:
 
     # Unique wavelength and unique momentum transfer
     wl_vector = np.unique(i_of_q.wavelength)
-    q_vector = np.unique(i_of_q.mod_q)
+    q_vector = np.unique(i_of_q.x)
     # verify whether (q, wl) are on mesh grid by checking unique Q and wavelength
     assert wl_vector.shape[0] * q_vector.shape[0] == i_of_q.intensity.shape[0]
 
     # Reformat
     intensity_array = i_q_wl_matrix[:, 2].reshape((q_vector.shape[0], wl_vector.shape[0]))
     error_array = i_q_wl_matrix[:, 3].reshape((q_vector.shape[0], wl_vector.shape[0]))
-    if i_of_q.delta_mod_q is not None:
+    if i_of_q.delta_x is not None:
         dq_array = i_q_wl_matrix[:, 4].reshape((q_vector.shape[0], wl_vector.shape[0]))
     else:
         dq_array = None
@@ -93,7 +93,7 @@ def reshape_q_wavelength_matrix(i_of_q: IQmod) -> tuple:
 
 
 def normalize_by_elastic_reference_all(
-    i_of_q_2d, i_of_q_1d, ref_i_of_q_1d, output_wavelength_dependent_profile=False, output_dir=None
+    i_of_q_2d, i_1d, ref_i_1d, output_wavelength_dependent_profile=False, output_dir=None
 ):
     """Normalize I(Q2D) and I(Q1D) by elastic reference run
 
@@ -101,9 +101,9 @@ def normalize_by_elastic_reference_all(
     ----------
     i_of_q_2d: ~drtsans.dataobjects.IQazimuthal
         Input I(Q2D, wavelength) to normalize
-    i_of_q_1d: ~drtsans.dataobjects.IQmod
+    i_1d: ~drtsans.dataobjects.IQmod | ~drtsans.dataobjects.I1DAnnular
         Input I(Q1D, wavelength) to normalize
-    ref_i_of_q_1d: ~drtsans.dataobjects.IQmod
+    ref_i_1d: ~drtsans.dataobjects.IQmod | ~drtsans.dataobjects.I1DAnnular
         Input I(Q1D, wavelength) as elastic reference run
     output_wavelength_dependent_profile: bool
         If True then output Iq for each wavelength before and after k correction
@@ -116,18 +116,18 @@ def normalize_by_elastic_reference_all(
         normalized I(Q2D), normalized I(Q1D), K vector and delta K vector
     """
     # check i_of_q and ref_i_of_q shall have same binning
-    if not verify_same_q_bins(i_of_q_1d, ref_i_of_q_1d, False, tolerance=1e-3):
+    if not verify_same_q_bins(i_1d, ref_i_1d, False, tolerance=1e-3):
         raise RuntimeError("Input I(Q) and elastic reference I(Q) have different Q and wavelength binning")
 
-    wl_vec = np.unique(i_of_q_1d.wavelength)
-    q_vec = np.unique(i_of_q_1d.mod_q)
+    wl_vec = np.unique(i_1d.wavelength)
+    x_vec = np.unique(i_1d.x)
 
     # Calculate the normalization factor for each wavelength
-    k_vec, k_error_vec = calculate_elastic_reference_normalization(wl_vec, q_vec, ref_i_of_q_1d)
+    k_vec, k_error_vec = calculate_elastic_reference_normalization(wl_vec, x_vec, ref_i_1d)
 
     # 1D normalization
-    iq1d_wl = normalize_by_elastic_reference_1d(
-        i_of_q_1d,
+    i1d_wl = normalize_by_elastic_reference_1d(
+        i_1d,
         k_vec,
         k_error_vec,
         output_wavelength_dependent_profile,
@@ -137,10 +137,10 @@ def normalize_by_elastic_reference_all(
     # 2D normalization
     iq2d_wl = normalize_by_elastic_reference_2d(i_of_q_2d, k_vec, k_error_vec)
 
-    return iq2d_wl, iq1d_wl, k_vec, k_error_vec
+    return iq2d_wl, i1d_wl, k_vec, k_error_vec
 
 
-def calculate_elastic_reference_normalization(wl_vec, q_vec, ref_i_of_q):
+def calculate_elastic_reference_normalization(wl_vec, q_vec, ref_i_1d):
     """Calculate the elastic reference normalization factor (K) for each wavelength
 
     Parameters
@@ -149,7 +149,7 @@ def calculate_elastic_reference_normalization(wl_vec, q_vec, ref_i_of_q):
         Vector of wavelengths in I(Q) to normalize
     q_vec: ~numpy.ndarray
         Vector of Q:s in I(Q) to normalize
-    ref_i_of_q: ~drtsans.dataobjects.IQmod
+    ref_i_1d: ~drtsans.dataobjects.IQmod | ~drtsans.dataobjects.I1DAnnular
         Elastic reference run I(Q, wavelength)
 
     Returns
@@ -159,7 +159,7 @@ def calculate_elastic_reference_normalization(wl_vec, q_vec, ref_i_of_q):
 
     """
     # Reshape Q, wavelength, intensities and errors to unique 1D array or 2D array
-    _, _, ref_i_array, ref_error_array, _ = reshape_q_wavelength_matrix(ref_i_of_q)
+    _, _, ref_i_array, ref_error_array, _ = reshape_q_wavelength_matrix(ref_i_1d)
 
     # Calculate Qmin and Qmax
     qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, ref_i_array)

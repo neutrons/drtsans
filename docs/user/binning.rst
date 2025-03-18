@@ -4,6 +4,22 @@
 Binning
 =======
 
+Scalar Binning
+--------------
+
+Scalar or azimuthal binning produces a one dimensional intensity profile :math:`I(Q)` from
+:math:`I(x,y,\lambda)`.
+
+.. code-block:: json
+
+    {
+      "1DQbinType": "scalar",
+      "QbinType": "linear",
+      "numQBins": 200,
+      "Qmin": 0.003,
+      "Qmax": 0.005,
+    }
+
 
 Wedge Binning
 -------------
@@ -132,3 +148,19 @@ interpreted as background signal for the wedges.
 .. figure:: media/wedge_binning_7.png
    :alt: wedges for a real BIOSANS example
    :width: 900px
+
+Annular Binning
+---------------
+
+Annular binning produces a one dimensional intensity profile, :math:`I(\phi)`, which gives intensity
+as a function of the angle around the beam center, :math:`\phi`, over a limited range of scalar
+:math:`Q`. Annular binning uses linear spacing in :math:`\phi` with a default bin size of 1 degree.
+
+.. code-block:: json
+
+    {
+      "1DQbinType": "annular",
+      "AnnularAngleBin": 1.0,
+      "Qmin": 0.003,
+      "Qmax": 0.005,
+    }

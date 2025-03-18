@@ -7,6 +7,7 @@ from drtsans.dataobjects import (
     concatenate,
     IQazimuthal,
     IQmod,
+    I1DAnnular,
     load_iqmod,
     save_iqmod,
     testing,
@@ -42,6 +43,14 @@ def test_concatenate():
     assert iq.qy == pytest.approx([10, 11, 12, 13, 14, 15, 16, 17, 18])
     assert iq.delta_qx is None
     assert iq.delta_qy is None
+    assert iq.wavelength is None
+    # test with I1DAnnular objects
+    iq1 = I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9])
+    iq2 = I1DAnnular([4, 5, 6], [4, 5, 6], [7, 8, 9], wavelength=[10, 11, 12])
+    iq3 = I1DAnnular([7, 8, 9], [4, 5, 6], [7, 8, 9])
+    iq = concatenate((iq1, iq2, iq3))
+    assert iq.intensity == pytest.approx([1, 2, 3, 4, 5, 6, 7, 8, 9])
+    assert iq.phi == pytest.approx([7, 8, 9, 7, 8, 9, 7, 8, 9])
     assert iq.wavelength is None
 
 
@@ -270,6 +279,44 @@ def test_verify_same_bins():
     # Expect failure
     with pytest.raises(RuntimeError):
         verify_same_q_bins(iq1d0, iq2d0)
+
+
+def test_verify_same_phi_bins():
+    """Test method verify_same_q_bins for I1DAnnular objects"""
+    # Test I1DAnnular without wavelength
+    iphi1d0 = I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9])
+    iphi1d1 = I1DAnnular([4, 9, 3], [4, 5, 6], [7, 8, 9])
+    assert verify_same_q_bins(iphi1d0, iphi1d1)
+
+    # Test I1DAnnular with wavelength
+    iphi1d0 = I1DAnnular(
+        [1, 2, 3, 4, 6, 6],
+        [4, 5, 6, 4, 5, 6],
+        [7, 8, 9, 7, 8, 9],
+        wavelength=[10, 10, 10, 11, 11, 11],
+    )
+    iphi1d1 = I1DAnnular(
+        [4, 9, 3, 8, 7, 6],
+        [4, 5, 6, 4, 5, 6],
+        [7, 8, 9, 7, 8, 9],
+        wavelength=[10, 10, 10, 11, 11, 11],
+    )
+    assert verify_same_q_bins(iphi1d0, iphi1d1)
+
+    # Test I1DAnnular with wavelength
+    iphi1d0 = I1DAnnular(
+        [1, 2, 3, 4, 6, 6],
+        [4, 5, 6, 4, 5, 6],
+        [7, 8, 9, 7, 8, 9],
+        wavelength=[10.1, 10.1, 10.1, 11, 11, 11],
+    )
+    iphi1d1 = I1DAnnular(
+        [4, 9, 3, 8, 7, 6],
+        [4, 5, 6, 4, 5, 6],
+        [7, 8, 9, 7, 8, 9],
+        wavelength=[10, 10, 10, 11, 11, 11],
+    )
+    assert verify_same_q_bins(iphi1d0, iphi1d1) is False
 
 
 def test_save_load_iqmod_dq():
@@ -617,6 +664,80 @@ class TestIQazimuthal:
         )
 
         assert CompareWorkspaces(ws, ws_expected).Result is True
+
+
+class TestI1DAnnular:
+    def test_to_from_csv(self):
+        i1d = I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        filename = tempfile.NamedTemporaryFile("wb", suffix=".dat").name
+        i1d.to_csv(filename)
+        i1d_other = I1DAnnular.read_csv(filename)
+        testing.assert_allclose(i1d, i1d_other)
+        os.remove(filename)
+
+    def test_I1DAnnular_creation(self):
+        # these are expected to work
+        I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12])
+        I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9], wavelength=[13, 14, 15])
+
+        # intensity isn't 1d
+        with pytest.raises(TypeError):
+            I1DAnnular([[1, 2], [3, 4]], [4, 5, 6], [7, 8, 9])
+
+        # arrays are not parallel
+        with pytest.raises(TypeError):
+            I1DAnnular([1, 3], [4, 5, 6], [7, 8, 9])
+        with pytest.raises(TypeError):
+            I1DAnnular([1, 2, 3], [4, 6], [7, 8, 9])
+        with pytest.raises(TypeError):
+            I1DAnnular([1, 2, 3], [4, 5, 6], [7, 9])
+
+        # not enough arguments
+        with pytest.raises(TypeError):
+            I1DAnnular([1, 2, 3], [4, 5, 6])
+
+    def test_mul(self):
+        i1d = I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        i1d = 2.5 * i1d
+        assert i1d.intensity == pytest.approx([2.5, 5, 7.5])
+        i1d = i1d * 2
+        assert i1d.intensity == pytest.approx([5, 10, 15])
+
+    def test_truediv(self):
+        i1d = I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        i1d = i1d / 2
+        assert i1d.error == pytest.approx([2, 2.5, 3])
+
+    def test_extract(self):
+        i1d = I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        i1d_2 = i1d.extract(2)
+        assert i1d_2.phi == pytest.approx(9)
+        i1d_2 = i1d.extract(slice(None, None, 2))
+        assert i1d_2.intensity == pytest.approx([1, 3])
+        i1d_2 = i1d.extract(i1d.phi < 9)
+        assert i1d_2.error == pytest.approx([4, 5])
+
+    def test_concatenate(self):
+        i1d = I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        i1d_2 = i1d.concatenate(I1DAnnular([4, 5], [7, 8], [10, 11]))
+        assert i1d_2.phi == pytest.approx([7, 8, 9, 10, 11])
+
+    def test_sort(self):
+        i1d = I1DAnnular([1, 2, 3], [4, 5, 6], [7, 9, 8])
+        i1d = i1d.sort()
+        assert i1d.phi == pytest.approx([7, 8, 9])
+        assert i1d.intensity == pytest.approx([1, 3, 2])
+
+    def test_I1DAnnular_to_mtd(self, clean_workspace):
+        # create the data object
+        i1d = I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9])
+        # convert to mantid workspace
+        wksp = i1d.to_workspace()
+        clean_workspace(wksp)
+
+        # verify results
+        assert_wksp_equal(wksp, i1d)
 
 
 class TestTesting:

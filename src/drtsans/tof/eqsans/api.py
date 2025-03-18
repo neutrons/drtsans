@@ -22,7 +22,7 @@ from drtsans import (
     subtract_background,  # noqa E402
 )  # noqa E402
 from drtsans.beam_finder import fbc_options_json, find_beam_center  # noqa E402
-from drtsans.dataobjects import save_iqmod  # noqa E402
+from drtsans.dataobjects import save_i1d, I1DAnnular  # noqa E402
 from drtsans.instruments import extract_run_number  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.load import resolve_slicing
@@ -33,7 +33,7 @@ from drtsans.path import (  # noqa E402
     allow_overwrite,  # noqa E402
     registered_workspace,
 )
-from drtsans.plots import plot_IQazimuthal, plot_IQmod  # noqa E402
+from drtsans.plots import plot_IQazimuthal, plot_i1d  # noqa E402
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa E402
 from drtsans.samplelogs import SampleLogs  # noqa E402
 from drtsans.save_2d import save_nexus, save_nist_dat  # noqa E402
@@ -82,7 +82,7 @@ __all__ = [
     "plot_reduction_output",
 ]
 
-IofQ_output = namedtuple("IofQ_output", ["I2D_main", "I1D_main"])
+I_output = namedtuple("I_output", ["I2D_main", "I1D_main"])
 
 
 def _get_configuration_file_parameters(sample_run, directory=None):
@@ -663,7 +663,7 @@ def reduce_single_configuration(
     Returns
     -------
     ~list
-        list of IofQ_output: ['I2D_main', 'I1D_main']
+        list of I_output: ['I2D_main', 'I1D_main']
 
     """
     # Process reduction input: configuration and etc.
@@ -973,7 +973,7 @@ def reduce_single_configuration(
             assert iq1d_main_in_fr[frameskip_frame] is not None, "Input I(Q)      main input cannot be None."
             assert iq2d_main_in_fr[frameskip_frame] is not None, "Input I(qx, qy) main input cannot be None."
 
-            iq2d_main_out, iq1d_main_out = bin_i_with_correction(
+            iq2d_main_out, i1d_main_out = bin_i_with_correction(
                 iq1d_main_in_fr,
                 iq2d_main_in_fr,
                 frameskip_frame,
@@ -1000,7 +1000,7 @@ def reduce_single_configuration(
             )
 
             _inside_detectordata[fr_log_label] = {
-                "iq": iq1d_main_out,
+                "i1d": i1d_main_out,
                 "iqxqy": iq2d_main_out,
             }
 
@@ -1010,15 +1010,20 @@ def reduce_single_configuration(
                 save_ascii_binned_2D(f"{filename}.dat", "I(Qx,Qy)", iq2d_main_out)
                 save_cansas_nx(iq2d_main_out.to_workspace(), f"{filename}.h5")
 
-            for j in range(len(iq1d_main_out)):
+            binning_suffix = "Iq"
+            if isinstance(i1d_main_out[0], I1DAnnular):
+                binning_suffix = "Iphi"
+            for j in range(len(i1d_main_out)):
                 add_suffix = ""
-                if len(iq1d_main_out) > 1:
+                if len(i1d_main_out) > 1:
                     add_suffix = f"_wedge_{j}"
                 add_suffix += fr_label
-                ascii_1D_filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq")
-                save_iqmod(iq1d_main_out[j], f"{ascii_1D_filename}.dat", skip_nan=skip_nan)
+                ascii_1D_filename = os.path.join(
+                    output_dir, f"{outputFilename}{output_suffix}{add_suffix}_{binning_suffix}"
+                )
+                save_i1d(i1d_main_out[j], f"{ascii_1D_filename}.dat", skip_nan=skip_nan)
 
-            current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=iq1d_main_out)
+            current_output = I_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)
             output.append(current_output)
         # END binning loop over frame
 
@@ -1191,15 +1196,18 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
             qmax=qmax,
         )
         plt.clf()
+        binning_suffix = "Iq"
+        if isinstance(out.I1D_main[0], I1DAnnular):
+            binning_suffix = "Iphi"
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
                 add_suffix = f"_wedge_{j}"
-            filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_Iq.png")
-            plot_IQmod(
+            filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_{binning_suffix}.png")
+            plot_i1d(
                 [out.I1D_main[j]],
                 filename,
-                loglog=True,
+                log_scale=True,
                 backend="mpl",
                 errorbar_kwargs={"label": "main"},
             )

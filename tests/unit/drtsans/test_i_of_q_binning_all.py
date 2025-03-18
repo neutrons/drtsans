@@ -205,7 +205,7 @@ def test_annular():
     )
     binned1d = binned1d[0]
     assert binned1d.intensity == pytest.approx([10.5, 14.5, 18.5, 22.5])
-    assert binned1d.mod_q == pytest.approx(np.arange(45, 360, 90))
+    assert binned1d.phi == pytest.approx(np.arange(45, 360, 90))
 
 
 def test_wedges():

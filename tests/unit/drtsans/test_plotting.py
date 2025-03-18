@@ -7,9 +7,10 @@ import numpy as np
 import pytest
 from mantid.simpleapi import LoadEmptyInstrument, LoadNexus
 from matplotlib.pyplot import imread
+from unittest import mock
 
-from drtsans.dataobjects import IQazimuthal, IQmod
-from drtsans.plots import plot_detector, plot_IQazimuthal, plot_IQmod
+from drtsans.dataobjects import IQazimuthal, IQmod, I1DAnnular
+from drtsans.plots import plot_detector, plot_IQazimuthal, plot_IQmod, plot_I1DAnnular, plot_i1d
 from drtsans.plots.api import Backend, _save_file
 
 
@@ -388,6 +389,68 @@ def test_xaxis_direction(datarepo_dir, clean_workspace):
     )
     plt.close()
     fileCheckAndRemove(filename, remove=True)
+
+
+@pytest.mark.parametrize(
+    "backend, filename",
+    [("mpl", "test_I1DAnnular.png"), ("d3", "test_I1DAnnular.json")],
+    ids=["mpl", "d3"],
+)
+def test_I1DAnnular(backend, filename):
+    """Test plotting a single I1DAnnular dataset"""
+    x = np.linspace(0.0, 360.0, 50)
+    e = np.zeros(50) + 0.1
+    data = I1DAnnular(intensity=np.sin(x), error=e, phi=x)
+    plot_I1DAnnular([data], filename=filename, logy=False, backend=backend)
+    plt.close()
+    fileCheckAndRemove(filename)
+
+
+@pytest.mark.parametrize(
+    "backend, filename",
+    [("mpl", "test_I1DAnnular_multi.png"), ("d3", "test_I1DAnnular_multi.json")],
+    ids=["mpl", "d3"],
+)
+def test_I1DAnnular_multiple(backend, filename):
+    """Test over-plotting multiple I1DAnnular datasets"""
+    x = np.linspace(0.0, 360.0, 50)
+    e = np.zeros(50) + 0.1
+    data1 = I1DAnnular(intensity=np.sin(x), error=e, phi=x)
+    data2 = I1DAnnular(intensity=np.cos(x), error=e, phi=x)
+
+    plot_I1DAnnular([data1, data2], filename=filename, logy=False, backend=backend)
+    plt.close()
+    fileCheckAndRemove(filename)
+
+
+def test_ploti1d_errors():
+    data_1d_qmod = IQmod(intensity=[], error=[], mod_q=[])
+    data_1d_annul = I1DAnnular(intensity=[], error=[], phi=[])
+    data_2d = IQazimuthal(intensity=[], error=[], qx=[], qy=[])
+
+    # cannot mix data types
+    with pytest.raises(RuntimeError):
+        plot_i1d(workspaces=[data_1d_qmod, data_1d_annul], filename="testfile")
+
+    # cannot plot IQazimuthal
+    with pytest.raises(RuntimeError):
+        plot_i1d(workspaces=[data_2d], filename="testfile")
+
+
+def test_ploti1d_iqmod():
+    iq1 = IQmod([1, 2, 3], [4, 5, 6], [7, 8, 9], delta_mod_q=[10, 11, 12])
+    iq2 = IQmod([4, 5, 6], [4, 5, 6], [7, 8, 9], wavelength=[10, 11, 12])
+    with mock.patch("drtsans.plots.api.plot_IQmod") as mock_plot_iqmod:
+        plot_i1d(workspaces=[iq1, iq2], filename="test_plot_i1d.json")
+        mock_plot_iqmod.assert_called_once()
+
+
+def test_ploti1d_annular():
+    iq1 = I1DAnnular([1, 2, 3], [4, 5, 6], [7, 8, 9])
+    iq2 = I1DAnnular([4, 5, 6], [4, 5, 6], [7, 8, 9])
+    with mock.patch("drtsans.plots.api.plot_I1DAnnular") as mock_plot_i1dannular:
+        plot_i1d(workspaces=[iq1, iq2], filename="test_plot_i1d.json")
+        mock_plot_i1dannular.assert_called_once()
 
 
 if __name__ == "__main__":

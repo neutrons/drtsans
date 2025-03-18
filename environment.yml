@@ -18,7 +18,7 @@ dependencies:
   - mantid>=6.12
   - numexpr
   - pandas
-  - lmfit
+  - lmfit<1.2
   - jinja2
   - graphviz
   - jsonschema>=3.0.2

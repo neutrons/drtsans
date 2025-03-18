@@ -538,7 +538,6 @@ def test_wavelength_step(has_sns_mount, reference_dir):
         # E   Max absolute difference among violations: 0.0005357
         # E   Max relative difference among violations: 0.05480488
         gold_file = os.path.join(gold_dir, "test_integration_api/EQSANS_88980_wl_reduced_gauss_m6.nxs")
-        # This tolerance: 3E-7 comes from the different result between Ubuntu and REL7
         verify_processed_workspace(
             output_file_name,
             gold_file,
@@ -547,7 +546,6 @@ def test_wavelength_step(has_sns_mount, reference_dir):
             y_rel_tol=0.06,
             e_rel_tol=0.02,
         )
-
     # clean up
     # _empty:	11.331733 MB
     # _EQSANS_113569_raw_histo:	72.325189 MB

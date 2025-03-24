@@ -1,4 +1,6 @@
-========
+.. image:: https://www.bestpractices.dev/projects/6400/badge
+   :target: https://www.bestpractices.dev/projects/6400
+
 drt-sans
 ========
 
@@ -12,9 +14,9 @@ and GPSANS. As appropriate, this work is an abstraction layer on top of the mant
 
 **This is a python3 only package.**
 
---------------------------
 General User documentation
 --------------------------
+
 Most of the current documentation here refers to `drtsans` python programming application interface (API), suitable for
 power users. For the general user of `drtsans`, https://sans.ornl.gov is available.
 
@@ -22,7 +24,6 @@ The general user documentation is hosted in repository https://code-int.ornl.gov
 
 Visit the repository at https://github.com/neutrons/drtsans.
 
-------------------------------
 Usage from provided front-ends
 ------------------------------
 

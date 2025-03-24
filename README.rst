@@ -1,5 +1,20 @@
+.. image:: https://img.shields.io/readthedocs/drtsans.svg?logo=read-the-docs
+   :target: https://drtsans.readthedocs.io/en/latest
+   :alt: Documentation Status
+
+.. image:: https://github.com/neutrons/drtsans/actions/workflows/package.yml/badge.svg?branch=main
+   :alt: CI
+   :target: https://github.com/neutrons/drtsans/actions/workflows/package.yml?query=branch:main
+
+.. image:: https://codecov.io/gh/neutrons/drtsans/branch/next/graph/badge.svg?token=q1f07RUI88
+   :alt: codecov
+   :target: https://codecov.io/gh/neutrons/drtsans
+
 .. image:: https://www.bestpractices.dev/projects/6400/badge
+   :alt: CII Best Practices
    :target: https://www.bestpractices.dev/projects/6400
+
+
 
 ===========
 drt-sans
@@ -21,7 +36,7 @@ General User Documentation
 --------------------------
 
 Most of the current documentation here refers to the `drtsans` Python programming application interface (API), suitable for
-power users. For the general user of `drtsans`, https://sans.ornl.gov is available.
+power users. For the general user of `drtsans`, https://sans.ornl.gov is available. For developers and users wanting to have a more in depth knowledge about certain subjects, visit https://drtsans.readthedocs.io/latest/index.html.
 
 The general user documentation is hosted in repository `https://code-int.ornl.gov/sites/sans`.
 

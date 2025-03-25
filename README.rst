@@ -2,9 +2,13 @@
    :target: https://drtsans.readthedocs.io/en/latest
    :alt: Documentation Status
 
-.. image:: https://github.com/neutrons/drtsans/actions/workflows/package.yml/badge.svg?branch=main
-   :alt: CI
-   :target: https://github.com/neutrons/drtsans/actions/workflows/package.yml?query=branch:main
+.. image:: https://github.com/neutrons/drtsans/actions/workflows/package.yml/badge.svg?branch=qa
+   :alt: CI - Package
+   :target: https://github.com/neutrons/drtsans/actions/workflows/package.yml?query=branch:qa
+
+.. image:: https://github.com/neutrons/drtsans/actions/workflows/test.yml/badge.svg?branch=next
+   :alt: CI - Test
+   :target: https://github.com/neutrons/drtsans/actions/workflows/test.yml?query=branch:next
 
 .. image:: https://codecov.io/gh/neutrons/drtsans/branch/next/graph/badge.svg?token=q1f07RUI88
    :alt: codecov

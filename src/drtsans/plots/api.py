@@ -128,10 +128,8 @@ def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_
 
     Parameters
     ----------
-    workspaces: list, tuple
-        A collection of :py:obj:`~drtsans.dataobjects.IQmod` workspaces to
-        plot. If only one is desired, it must still be supplied in a
-        :py:obj:`list` or :py:obj:`tuple`.
+    workspaces: list, tuple, :py:obj:`~drtsans.dataobjects.IQmod`
+        A collection of :py:obj:`~drtsans.dataobjects.IQmod` workspaces to plot.
     filename: str
         The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
         backend, the type of file is determined from the file extension
@@ -147,6 +145,9 @@ def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_
         Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
 
     """
+    if not isinstance(workspaces, (list, tuple)):
+        workspaces = [workspaces]
+
     if errorbar_kwargs is None:
         errorbar_kwargs = {}
     backend = Backend.getMode(backend)
@@ -182,10 +183,8 @@ def plot_I1DAnnular(workspaces, filename, logy=True, backend: str = "d3", errorb
 
     Parameters
     ----------
-    workspaces: list, tuple
-        A collection of :py:obj:`~drtsans.dataobjects.I1DAnnular` workspaces to
-        plot. If only one is desired, it must still be supplied in a
-        :py:obj:`list` or :py:obj:`tuple`.
+    workspaces: list, tuple, :py:obj:`~drtsans.dataobjects.I1DAnnular`
+        A collection of :py:obj:`~drtsans.dataobjects.I1DAnnular` workspaces to plot.
     filename: str
         The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
         backend, the type of file is determined from the file extension
@@ -201,6 +200,9 @@ def plot_I1DAnnular(workspaces, filename, logy=True, backend: str = "d3", errorb
         Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
 
     """
+    if not isinstance(workspaces, (list, tuple)):
+        workspaces = [workspaces]
+
     if errorbar_kwargs is None:
         errorbar_kwargs = {}
 
@@ -237,10 +239,9 @@ def plot_i1d(workspaces, filename, log_scale=True, backend: str = "d3", errorbar
 
     Parameters
     ----------
-    workspaces: list, tuple
+    workspaces: list, tuple, :py:obj:`~drtsans.dataobjects.IQmod`, :py:obj:`~drtsans.dataobjects.I1DAnnular`
         A collection of :py:obj:`~drtsans.dataobjects.IQmod` or
-        :py:obj:`~drtsans.dataobjects.I1DAnnular` workspaces to plot. If only one is desired, it
-        must still be supplied in a :py:obj:`list` or :py:obj:`tuple`.
+        :py:obj:`~drtsans.dataobjects.I1DAnnular` workspaces to plot.
     filename: str
         The name of the file to save to. For the :py:obj:`~Backend.MATPLOTLIB`
         backend, the type of file is determined from the file extension
@@ -256,6 +257,9 @@ def plot_i1d(workspaces, filename, log_scale=True, backend: str = "d3", errorbar
         Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
 
     """
+    if not isinstance(workspaces, (list, tuple)):
+        workspaces = [workspaces]
+
     datatypes = []
     for workspace in workspaces:
         datatype = getDataType(workspace)

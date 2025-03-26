@@ -13,14 +13,14 @@ import drtsans.plots.api
 from drtsans.samplelogs import SampleLogs
 from os.path import join as path_join
 
-from drtsans.dataobjects import IQazimuthal, IQmod, testing
+from drtsans.dataobjects import IQazimuthal, IQmod, testing, I1DAnnular
 from drtsans.mono.biosans.api import (
     load_all_files,
     prepare_data_workspaces,
     prepare_data,
     process_single_configuration,
     file_has_midrange_detector,
-    save_iqmod_all,
+    save_i1d_all,
     plot_reduction_output,
     check_overlap_stitch_configuration,
     get_sample_detectordata,
@@ -667,14 +667,19 @@ def test_has_midrange_detector(has_sns_mount):
                 "output_1D_combined_wedge_1.txt",
             ],
         ),
+        # case with I1DAnnular
+        (
+            [I1DAnnular(intensity=[], error=[], phi=[])],
+            ["output_1D_main.txt", "output_1D_midrange.txt", "output_1D_wing.txt", "output_1D_combined.txt"],
+        ),
     ],
 )
-def test_save_iqmod_all(tmp_path, iqmod_dummy, output_files):
+def test_save_i1d_all(tmp_path, iqmod_dummy, output_files):
     output_dir = path_join(tmp_path, "1D")
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
-    save_iqmod_all(iqmod_dummy, iqmod_dummy, iqmod_dummy, iqmod_dummy, "output", tmp_path, "", True)
+    save_i1d_all(iqmod_dummy, iqmod_dummy, iqmod_dummy, iqmod_dummy, "output", tmp_path, "", True)
 
     for filename in output_files:
         filepath = path_join(output_dir, filename)
@@ -683,15 +688,15 @@ def test_save_iqmod_all(tmp_path, iqmod_dummy, output_files):
 
 def test_plot_reduction_output(monkeypatch):
     """Unit test for helper function plot_reduction_output."""
-    # Mock the plot_IQmod function
-    plot_IQmod_counter = 0
+    # Mock the plot_i1d function
+    plot_i1d_counter = 0
 
-    def mock_plot_IQmod(*args, **kwargs):
-        nonlocal plot_IQmod_counter
-        plot_IQmod_counter += 1
-        return "mock_plot_IQmod"
+    def mock_plot_i1d(*args, **kwargs):
+        nonlocal plot_i1d_counter
+        plot_i1d_counter += 1
+        return "mock_plot_i1d"
 
-    monkeypatch.setattr("drtsans.plots.api.plot_IQmod", mock_plot_IQmod)
+    monkeypatch.setattr("drtsans.plots.api.plot_i1d", mock_plot_i1d)
 
     # Mock the plot_IQ function
     plot_IQazimuthal_counter = 0
@@ -763,7 +768,7 @@ def test_plot_reduction_output(monkeypatch):
     plot_reduction_output(reduction_output, reduction_input)
 
     assert plot_IQazimuthal_counter == 3
-    assert plot_IQmod_counter == 3
+    assert plot_i1d_counter == 3
     assert allow_overwrite_counter == 2
 
 
@@ -878,22 +883,22 @@ def test_get_sample_detectordata(has_midrange, iqmod1d, iqmod2d):
     )
 
     # test the contents of detector data
-    testing.assert_allclose(detector_data["combined"]["iq"][0], iqmod1d[-1])
-    testing.assert_allclose(detector_data["main_0"]["iq"][0], iqmod1d[0])
-    testing.assert_allclose(detector_data["wing_0"]["iq"][0], iqmod1d[0])
+    testing.assert_allclose(detector_data["combined"]["i1d"][0], iqmod1d[-1])
+    testing.assert_allclose(detector_data["main_0"]["i1d"][0], iqmod1d[0])
+    testing.assert_allclose(detector_data["wing_0"]["i1d"][0], iqmod1d[0])
     testing.assert_allclose(detector_data["main_0"]["iqxqy"], iqmod2d)
     testing.assert_allclose(detector_data["wing_0"]["iqxqy"], iqmod2d)
     if has_midrange:
-        testing.assert_allclose(detector_data["midrange_0"]["iq"][0], iqmod1d[0])
+        testing.assert_allclose(detector_data["midrange_0"]["i1d"][0], iqmod1d[0])
         testing.assert_allclose(detector_data["midrange_0"]["iqxqy"], iqmod2d)
     else:
         assert "midrange_0" not in detector_data
 
     if len(iqmod1d) == 2:  # case when "1DQbinType" is "wedge"
-        testing.assert_allclose(detector_data["main_1"]["iq"][0], iqmod1d[1])
-        testing.assert_allclose(detector_data["wing_1"]["iq"][0], iqmod1d[1])
+        testing.assert_allclose(detector_data["main_1"]["i1d"][0], iqmod1d[1])
+        testing.assert_allclose(detector_data["wing_1"]["i1d"][0], iqmod1d[1])
         if has_midrange:
-            testing.assert_allclose(detector_data["midrange_1"]["iq"][0], iqmod1d[1])
+            testing.assert_allclose(detector_data["midrange_1"]["i1d"][0], iqmod1d[1])
         else:
             assert "midrange_1" not in detector_data
 

@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 # local imports
 from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
 from drtsans.beam_finder import center_detector, fbc_options_json, find_beam_center
-from drtsans.dataobjects import save_iqmod
+from drtsans.dataobjects import save_i1d
 from drtsans.instruments import extract_run_number, instrument_filesystem_name
 from drtsans.iq import bin_all
 from drtsans.load import move_instrument, resolve_slicing
@@ -49,7 +49,7 @@ from drtsans.mono.normalization import (
 from drtsans.path import allow_overwrite
 from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
 from drtsans.path import abspath, abspaths, registered_workspace
-from drtsans.plots import plot_detector, plot_IQazimuthal, plot_IQmod
+from drtsans.plots import plot_detector, plot_IQazimuthal, plot_i1d
 from drtsans.reductionlog import savereductionlog
 from drtsans.samplelogs import SampleLogs
 from drtsans.sensitivity import apply_sensitivity_correction, load_sensitivity_workspace
@@ -1319,7 +1319,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         reduction_config["wedges"] = wedges
         reduction_config["symmetric_wedges"] = symmetric_wedges
 
-        iq2d_main_out, iq1d_main_out = bin_all(
+        iq2d_main_out, i1d_main_out = bin_all(
             iq2d_main_in,
             iq1d_main_in,
             nxbins_main,
@@ -1342,19 +1342,19 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         save_ascii_binned_2D(f"{filename}.dat", "I(Qx,Qy)", iq2d_main_out)
         save_cansas_nx(iq2d_main_out.to_workspace(), f"{filename}.h5")
 
-        for j in range(len(iq1d_main_out)):
+        for j in range(len(i1d_main_out)):
             add_suffix = ""
-            if len(iq1d_main_out) > 1:
+            if len(i1d_main_out) > 1:
                 add_suffix = f"_wedge_{j}"
             ascii_1D_filename = os.path.join(output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}")
 
-            save_iqmod(iq1d_main_out[j], f"{ascii_1D_filename}.txt", skip_nan=skip_nan)
+            save_i1d(i1d_main_out[j], f"{ascii_1D_filename}.txt", skip_nan=skip_nan)
 
-        IofQ_output = namedtuple("IofQ_output", ["I2D_main", "I1D_main"])
-        current_output = IofQ_output(I2D_main=iq2d_main_out, I1D_main=iq1d_main_out)
+        I_output = namedtuple("I_output", ["I2D_main", "I1D_main"])
+        current_output = I_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)
         output.append(current_output)
 
-        detectordata[name] = {"main": {"iq": iq1d_main_out, "iqxqy": iq2d_main_out}}
+        detectordata[name] = {"main": {"i1d": i1d_main_out, "iqxqy": iq2d_main_out}}
 
     try:
         processed_data_main
@@ -1460,10 +1460,10 @@ def plot_reduction_output(
             if len(out.I1D_main) > 1:
                 add_suffix = f"_wedge_{j}"
             filename = os.path.join(output_dir, "1D", f"{outputFilename}{output_suffix}_1D{add_suffix}.png")
-            plot_IQmod(
+            plot_i1d(
                 [out.I1D_main[j]],
                 filename,
-                loglog=loglog,
+                log_scale=loglog,
                 backend="mpl",
                 errorbar_kwargs={"label": "main"},
             )

@@ -11,10 +11,10 @@ Release Notes
   (date of release)
 
   **Of interest to the User**:
-  - MR #XYZ: one-liner description
+  - PR #XYZ: one-liner description
 
   **Of interest to the Developer:**
-  - MR #XYZ: one-liner description
+  - PR #XYZ: one-liner description
 ..
 
 ?.??.?
@@ -34,9 +34,10 @@ and configuration options.
 
 - PR #1010: Fixes rendering of README.rst and adds some badges
 - PR #1008: Add support for annular binning with no wavelength binning.
+- PR #1005: Annular binning output is now annotated with phi rather than Q and plotted with a linear x axis
 - PR #999: Adds support for flexible time slicing.
 - PR #997: Fix bug causing symmetric auto wedge finding to fail. Add mirrored wedge to auto wedge fit function plot.
-- PR #998: remove the TOF offset that is done by the data aquisition system
+- PR #998: remove the TOF offset that is done by the data acquisition system
 - PR #996: Iq.dat files are now written even if they fail the assumption check
 - PR #994: Remove unused module `drtsans/tof/eqsans/reduce.py`
 - PR #993: Skip slices with too high transmission error when using time sliced sample transmission run

@@ -3,19 +3,19 @@ import pytest
 from drtsans.dataobjects import IQmod
 
 from drtsans.tof.eqsans.elastic_reference_normalization import (
-    determine_common_mod_q_range_mesh,
+    determine_common_domain_range_mesh,
     normalize_by_elastic_reference_1d,
 )
 from drtsans.tof.eqsans.elastic_reference_normalization import (
     calculate_scale_factor_mesh_grid,
 )
 from drtsans.tof.eqsans.elastic_reference_normalization import (
-    reshape_q_wavelength_matrix,
+    reshape_intensity_domain_meshgrid,
 )
 from drtsans.tof.eqsans.elastic_reference_normalization import (
-    determine_reference_wavelength_q1d_mesh,
+    determine_reference_wavelength_intensity_mesh,
 )
-from drtsans.tof.eqsans.elastic_reference_normalization import normalize_intensity_q1d
+from drtsans.tof.eqsans.elastic_reference_normalization import normalize_intensity_1d
 import numpy as np
 
 
@@ -26,7 +26,7 @@ def test_reshaped_imodq_2d():
     i_of_q = test_data[0]
 
     # Reshape
-    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_intensity_domain_meshgrid(i_of_q)
 
     # Verify shape
     assert wl_vec.shape == (4,)
@@ -86,10 +86,10 @@ def test_determine_common_q_range():
     i_of_q = test_data[0]
 
     # Reshape
-    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_intensity_domain_meshgrid(i_of_q)
 
     # Call the mesh-grid algorithm
-    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+    qmin_index, qmax_index = determine_common_domain_range_mesh(q_vec, i_array)
 
     # Verify by comparing results from 2 algorithms
     assert q_vec[qmin_index] == 0.07
@@ -105,11 +105,11 @@ def test_determine_reference_wavelength():
     i_of_q = test_data[0]
 
     # Reshape
-    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(i_of_q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_intensity_domain_meshgrid(i_of_q)
 
     # Calculate reference wavelength and the related intensities and errors
-    ref_wl_intensities = determine_reference_wavelength_q1d_mesh(
-        wl_vec, q_vec, i_array, error_array, qmin_index=6, qmax_index=10
+    ref_wl_intensities = determine_reference_wavelength_intensity_mesh(
+        wl_vec, q_vec, i_array, error_array, xmin_index=6, xmax_index=10
     )
 
     # Verify
@@ -126,13 +126,15 @@ def test_calculate_scale_factor():
     # Get testing data and gold data
     test_i_of_q, gold_k_vec, gold_k_error_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
     # Reshape
-    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(test_i_of_q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_intensity_domain_meshgrid(test_i_of_q)
 
     # Calculate Qmin and Qmax
-    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+    qmin_index, qmax_index = determine_common_domain_range_mesh(q_vec, i_array)
 
     # Calculate reference
-    ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index)
+    ref_wl_ie = determine_reference_wavelength_intensity_mesh(
+        wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index
+    )
 
     # Calculate scale factor
     k_vec, k_error_vec = calculate_scale_factor_mesh_grid(
@@ -185,13 +187,15 @@ def test_normalize_i_of_q1d():
     # Get testing data and gold data
     test_i_of_q, gold_k_vec, gold_k_error_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
     # Reshape
-    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(test_i_of_q)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_intensity_domain_meshgrid(test_i_of_q)
 
     # Calculate Qmin and Qmax
-    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+    qmin_index, qmax_index = determine_common_domain_range_mesh(q_vec, i_array)
 
     # Calculate reference
-    ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index)
+    ref_wl_ie = determine_reference_wavelength_intensity_mesh(
+        wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index
+    )
 
     # Calculate scale factor
     k_vec, k_error_vec = calculate_scale_factor_mesh_grid(
@@ -199,7 +203,7 @@ def test_normalize_i_of_q1d():
     )
 
     # Normalize
-    normalized = normalize_intensity_q1d(
+    normalized = normalize_intensity_1d(
         wl_vec,
         q_vec,
         i_array,

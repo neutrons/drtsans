@@ -12,6 +12,7 @@ from tests.unit.drtsans.i_of_q_binning_tests_data import (
 )
 from drtsans.dataobjects import IQmod
 from drtsans.dataobjects import IQazimuthal
+from drtsans.dataobjects import I1DAnnular
 from tempfile import NamedTemporaryFile
 from drtsans import __version__ as drtsans_version
 from mantid import __version__ as mantid_version
@@ -68,6 +69,17 @@ def _create_iq():
     test_iq = IQmod(intensities, sigmas, scalar_q_array, scalar_dq_array)
 
     return test_iq
+
+
+def _create_i1d_annular():
+    # Get data
+    intensities, sigmas, phi, _ = generate_test_data(1, True)
+    test_i1d_annular = I1DAnnular(
+        intensity=intensities,
+        error=sigmas,
+        phi=phi,
+    )
+    return test_i1d_annular
 
 
 def _create_iqxqy():
@@ -148,7 +160,7 @@ def test_writing_metadata_with_no_reductionparams(cleanfile):
     cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename,
-        detectordata={"slice_1": {"main_detector": {"iq": test_iq}}},
+        detectordata={"slice_1": {"main_detector": {"i1d": test_iq}}},
         python=pythonscript,
         starttime=starttime,
         pythonfile=pythonfile,
@@ -191,7 +203,7 @@ def test_writing_metadata(cleanfile):
     cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename,
-        detectordata={"slice_1": {"main_detector": {"iq": test_iq}}},
+        detectordata={"slice_1": {"main_detector": {"i1d": test_iq}}},
         python=pythonscript,
         starttime=starttime,
         pythonfile=pythonfile,
@@ -223,7 +235,7 @@ def test_writing_iq_wedge_mode(cleanfile):
     test_iq = list([test_iq_1, test_iq_1])
     tmp_log_filename = _create_tmp_log_filename()
     cleanfile(tmp_log_filename)
-    savereductionlog(tmp_log_filename, detectordata={"slice_1": {"main_detector": {"iq": test_iq}}})
+    savereductionlog(tmp_log_filename, detectordata={"slice_1": {"main_detector": {"i1d": test_iq}}})
 
     assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
 
@@ -249,7 +261,7 @@ def test_writing_iq_scalar_mode(cleanfile):
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
     cleanfile(tmp_log_filename)
-    savereductionlog(tmp_log_filename, detectordata={"slice_1": {"main_detector": {"iq": test_iq}}})
+    savereductionlog(tmp_log_filename, detectordata={"slice_1": {"main_detector": {"i1d": test_iq}}})
 
     assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
 
@@ -271,12 +283,35 @@ def test_writing_iq_scalar_mode(cleanfile):
         _test_data(tested_data=data, ref_data=np.array([0.011912, 0.11912]), abs=1e-6)
 
 
+def test_writing_iq1d_annular(cleanfile):
+    test_i1d = [_create_i1d_annular()]
+    tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
+    savereductionlog(tmp_log_filename, detectordata={"slice_1": {"main_detector": {"i1d": test_i1d}}})
+
+    assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
+
+    with h5py.File(tmp_log_filename, "r") as handle:
+        top_group = _getGroup(handle, "slice_1", "NXdata")
+        mid_group = _getGroup(top_group, "main_detector", "NXdata")
+        i1d_nxdata = _getGroup(mid_group, "I(phi)", "NXdata")
+
+        data = i1d_nxdata["I"][:]
+        _test_data(tested_data=data, ref_data=np.array([93, 60]))
+
+        data = i1d_nxdata["Idev"][:]
+        _test_data(tested_data=data, ref_data=np.array([9.64365076, 7.74596669]), abs=1e-7)
+
+        data = i1d_nxdata["phi"][:]
+        _test_data(tested_data=data, ref_data=np.array([0.0078897, 0.0059338]), abs=1e-7)
+
+
 def test_slicelogdata_is_a_dict(cleanfile):
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
     cleanfile(tmp_log_filename)
     logslice_data_dict = "I'm a string"
-    detectordata = {"slice_1": {"main_detector": {"iq": test_iq}}}
+    detectordata = {"slice_1": {"main_detector": {"i1d": test_iq}}}
 
     with pytest.raises(RuntimeError):
         savereductionlog(tmp_log_filename, detectordata=detectordata, logslicedata=logslice_data_dict)
@@ -286,7 +321,7 @@ def test_not_using_slicelogdata_if_empty(cleanfile):
     test_iq = [_create_iq()]
     tmp_log_filename = _create_tmp_log_filename()
     cleanfile(tmp_log_filename)
-    detectordata = {"slice_1": {"main_detector": {"iq": test_iq}}}
+    detectordata = {"slice_1": {"main_detector": {"i1d": test_iq}}}
     logslice_data_dict = {}
 
     savereductionlog(tmp_log_filename, detectordata=detectordata, logslicedata=logslice_data_dict)
@@ -300,7 +335,7 @@ def test_slicelogdata_not_bigger_than_detectordata(cleanfile):
         "0": {"data": list([1, 2, 3]), "units": "m"},
         "1": {"data": list([1, 2, 3]), "units": "m"},
     }
-    detectordata = {"slice_1": {"main_detector": {"iq": test_iq}}}
+    detectordata = {"slice_1": {"main_detector": {"i1d": test_iq}}}
 
     with pytest.raises(ValueError):
         savereductionlog(tmp_log_filename, detectordata=detectordata, logslicedata=logslice_data_dict)
@@ -317,7 +352,7 @@ def test_writing_slicelogdata(cleanfile):
             "name": "my_slice_variable",
         }
     }
-    detectordata = {"slice_1": {"main_detector": {"iq": test_iq}}}
+    detectordata = {"slice_1": {"main_detector": {"i1d": test_iq}}}
     savereductionlog(tmp_log_filename, detectordata=detectordata, logslicedata=logslice_data_dict)
 
     assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
@@ -372,7 +407,7 @@ def test_writing_iq_and_iqxqy_scalar_mode(cleanfile):
     cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename,
-        detectordata={"slice_1": {"main_detector": {"iq": test_iq, "iqxqy": test_iqxqy}}},
+        detectordata={"slice_1": {"main_detector": {"i1d": test_iq, "iqxqy": test_iqxqy}}},
     )
 
     assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
@@ -423,7 +458,7 @@ def test_writing_iq_and_iqxqy_wedge_mode(cleanfile):
     cleanfile(tmp_log_filename)
     savereductionlog(
         tmp_log_filename,
-        detectordata={"slice_1": {"main_detector": {"iq": test_iq, "iqxqy": test_iqxqy}}},
+        detectordata={"slice_1": {"main_detector": {"i1d": test_iq, "iqxqy": test_iqxqy}}},
     )
 
     assert os.path.exists(tmp_log_filename), "log file {} does not exist".format(tmp_log_filename)
@@ -514,7 +549,7 @@ def test_wrong_detectordata_format():
     with pytest.raises(RuntimeError):
         savereductionlog(
             "tmp_file_name",
-            detectordata={"main_detector": {"iq": [1, 2, 3], "iqxqy": [1, 3, 5]}},
+            detectordata={"main_detector": {"i1d": [1, 2, 3], "iqxqy": [1, 3, 5]}},
         )
 
 

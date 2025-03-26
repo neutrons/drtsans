@@ -1,7 +1,7 @@
 import numpy as np
 import os
 from typing import List, Tuple
-from drtsans.dataobjects import IQmod
+from drtsans.dataobjects import I1DAnnular
 from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
 
@@ -150,7 +150,7 @@ def _plot_fit_results(rings, peak_fit_dict, output_dir, auto_symmetric_wedges):
                 # parameter value is recorded as tuple as value and error
                 _set_function_param_value(fit_function_set, param_name, peak_fitted_dict[param_name][0])
         # calculate
-        model_y = _calculate_function(fit_functions, ring.mod_q)
+        model_y = _calculate_function(fit_functions, ring.phi)
         return model_y
 
     for index, ring in enumerate(rings):
@@ -163,7 +163,7 @@ def _plot_fit_results(rings, peak_fit_dict, output_dir, auto_symmetric_wedges):
         fit_function_str = peak_fit_dict[index]["fit_function"]
         fit_function_set = _create_fit_function(fit_function_str)
         # calculate estimated peaks
-        estimated_y = _calculate_function(fit_function_set, ring.mod_q)
+        estimated_y = _calculate_function(fit_function_set, ring.phi)
 
         if auto_symmetric_wedges:
             # separate fitted peak ("f1" params) from mirrored peak (fake "f2" params) to plot them separately
@@ -185,12 +185,12 @@ def _plot_fit_results(rings, peak_fit_dict, output_dir, auto_symmetric_wedges):
 
         # plot
         plt.cla()
-        plt.plot(ring.mod_q, ring.intensity, label="observed", color="black")
-        plt.plot(ring.mod_q, estimated_y, label="estimated", color="blue")
-        plt.plot(ring.mod_q, model_y, label="fitted", color="red")
+        plt.plot(ring.phi, ring.intensity, label="observed", color="black")
+        plt.plot(ring.phi, estimated_y, label="estimated", color="blue")
+        plt.plot(ring.phi, model_y, label="fitted", color="red")
         if auto_symmetric_wedges:
             mirrored_model_y = _set_function_params_and_calculate(fit_function_set, peak_mirrored_dict)
-            plt.plot(ring.mod_q, mirrored_model_y, label="mirrored", color="red", linestyle="dashed")
+            plt.plot(ring.phi, mirrored_model_y, label="mirrored", color="red", linestyle="dashed")
         plt.legend(loc="upper left")
         plt.savefig(os.path.join(output_dir, f"ring_{index:01}.png"))
 
@@ -235,7 +235,7 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
 
     # write full range
     group = ring_group.create_group("full range")
-    group.create_dataset("q", data=full_range_annular.mod_q)
+    group.create_dataset("phi", data=full_range_annular.phi)
     group.create_dataset("intensity", data=full_range_annular.intensity)
 
     # write out for each ring
@@ -244,7 +244,7 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
     for index, ring in enumerate(rings):
         # add data to hdf file
         group = ring_group.create_group(f"ring {index}")
-        group.create_dataset("q", data=ring.mod_q)
+        group.create_dataset("phi", data=ring.phi)
         group.create_dataset("intensity", data=ring.intensity)
 
         # add fitting related information to hdf file
@@ -459,30 +459,30 @@ def _binInQAndAzimuthal(data, q_min, q_delta, q_max, azimuthal_delta):
     # debugging output file
     for qmin_ring, qmax_ring in zip(q_bins[:-1], q_bins[1:]):
         # bin into I(azimuthal)
-        I_azimuthal = bin_annular_into_q1d(data, azimuthal_binning, qmin_ring, qmax_ring, BinningMethod.NOWEIGHT)
+        i1d_annular = bin_annular_into_q1d(data, azimuthal_binning, qmin_ring, qmax_ring, BinningMethod.NOWEIGHT)
 
         # Create a copy of the arrays with the 360->540deg region repeated
         # ignore - delta_mod_q wavelength
-        mod_q_new = determine_1d_linear_bins(
+        phi_new = determine_1d_linear_bins(
             x_min=0.0,
             x_max=540.0 + azimuthal_delta,
             bins=1 + int(540.0 / azimuthal_delta),
         ).centers
-        num_orig_bins = I_azimuthal.mod_q.size
-        num_repeated_bins = mod_q_new.size - num_orig_bins
+        num_orig_bins = i1d_annular.phi.size
+        num_repeated_bins = phi_new.size - num_orig_bins
 
-        intensity_new = np.zeros(mod_q_new.size)
-        intensity_new[:num_orig_bins] = I_azimuthal.intensity
-        intensity_new[-1 * num_repeated_bins :] = I_azimuthal.intensity[:num_repeated_bins]
+        intensity_new = np.zeros(phi_new.size)
+        intensity_new[:num_orig_bins] = i1d_annular.intensity
+        intensity_new[-1 * num_repeated_bins :] = i1d_annular.intensity[:num_repeated_bins]
 
-        error_new = np.zeros(mod_q_new.size)
-        error_new[:num_orig_bins] = I_azimuthal.error
-        error_new[-1 * num_repeated_bins :] = I_azimuthal.error[:num_repeated_bins]
+        error_new = np.zeros(phi_new.size)
+        error_new[:num_orig_bins] = i1d_annular.error
+        error_new[-1 * num_repeated_bins :] = i1d_annular.error[:num_repeated_bins]
 
-        I_azimuthal = IQmod(intensity=intensity_new, error=error_new, mod_q=mod_q_new)
+        i1d_annular = I1DAnnular(intensity=intensity_new, error=error_new, phi=phi_new)
 
         # append to the list of spectra
-        data_of_q_rings.append(I_azimuthal)
+        data_of_q_rings.append(i1d_annular)
 
     return q_bins, data_of_q_rings
 
@@ -640,7 +640,7 @@ def _fitSpectrum(
     # guess where one peak might be, start with a window of WINDOW_SIZE each side around 110
     intensity_peak, azimuthal_first, sigma = _estimatePeakParameters(
         spectrum.intensity[mask],
-        spectrum.mod_q[mask],
+        spectrum.phi[mask],
         azimuthal_start=azimuthal_start,
         window_half_width=peak_search_window_size,
     )
@@ -651,7 +651,7 @@ def _fitSpectrum(
         azimuthal_start = azimuthal_first + 180.0
         intensity_peak, azimuthal_second, sigma = _estimatePeakParameters(
             spectrum.intensity[mask],
-            spectrum.mod_q[mask],
+            spectrum.phi[mask],
             azimuthal_start=azimuthal_start,
             window_half_width=peak_search_window_size,
         )
@@ -670,8 +670,8 @@ def _fitSpectrum(
                 Function=fit_function,
                 InputWorkspace=q_azimuthal_workspace,
                 Output=fit_workspace_prefix,
-                StartX=spectrum.mod_q.min() + auto_wedge_phi_min,
-                EndX=spectrum.mod_q.min() + auto_wedge_phi_max,
+                StartX=spectrum.phi.min() + auto_wedge_phi_min,
+                EndX=spectrum.phi.min() + auto_wedge_phi_max,
                 OutputParametersOnly=True,
                 IgnoreInvalidData=True,
             )
@@ -680,8 +680,8 @@ def _fitSpectrum(
                 Function=fit_function,
                 InputWorkspace=q_azimuthal_workspace,
                 Output=fit_workspace_prefix,
-                StartX=spectrum.mod_q.min() + 90.0,
-                EndX=spectrum.mod_q.min() + 90.0 + 360.0,
+                StartX=spectrum.phi.min() + 90.0,
+                EndX=spectrum.phi.min() + 90.0 + 360.0,
                 OutputParametersOnly=True,
                 IgnoreInvalidData=True,
             )

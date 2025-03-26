@@ -1,5 +1,5 @@
 # local imports
-from drtsans.dataobjects import IQmod
+from drtsans.dataobjects import IQmod, I1DAnnular
 
 # third party imports
 from mantid.simpleapi import logger
@@ -231,6 +231,15 @@ def stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config):
         one per wedge.
     """
     iq1d_combined_out = []
+
+    if isinstance(iq1d_binned[0][0], I1DAnnular):
+        # stitching of annular profiles is not supported, return empty combined profile(s)
+        iq1d_binned_main = iq1d_binned[0]
+        for ibinning in range(len(iq1d_binned_main)):
+            iq1d_combined = I1DAnnular(intensity=[], error=[], phi=[])
+            iq1d_combined_out.append(iq1d_combined)
+        logger.notice("Skipping stitching. Stitching of annular profiles is not supported.")
+        return iq1d_combined_out
 
     boundaries = get_stitch_boundaries(reduction_config, iq1d_unbinned, anisotropic=len(iq1d_binned[0]) > 1)
 

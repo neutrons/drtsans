@@ -21,6 +21,13 @@ Release Notes
 ------
 ????-??-??
 
+**Of interest to the User**:
+
+- PR #1005: Annular binning output is now annotated with phi rather than Q and plotted with a linear x axis
+
+**Of interest to the Developer:**
+
+
 1.12.0
 ------
 2025-03-17
@@ -34,7 +41,6 @@ and configuration options.
 
 - PR #1010: Fixes rendering of README.rst and adds some badges
 - PR #1008: Add support for annular binning with no wavelength binning.
-- PR #1005: Annular binning output is now annotated with phi rather than Q and plotted with a linear x axis
 - PR #999: Adds support for flexible time slicing.
 - PR #997: Fix bug causing symmetric auto wedge finding to fail. Add mirrored wedge to auto wedge fit function plot.
 - PR #998: remove the TOF offset that is done by the data acquisition system

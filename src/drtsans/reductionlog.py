@@ -226,7 +226,7 @@ def _savesamplelogs(nxentry, dict_sample_logs, name_of_entry):
             _new_entry.attrs["units"] = _units
 
 
-def _create_groupe(entry=None, name="Default", data=[], units=""):
+def _create_group(entry=None, name="Default", data=[], units=""):
     if data is not None:
         _entry_group = entry.create_dataset(name=name, data=data)
         _entry_group.attrs["units"] = units
@@ -240,7 +240,7 @@ def _save_logslicedata(logslicedata={}, index=0, topEntry=None):
     entry = topEntry.create_group(nameGroup)
     entry.attrs["NX_class"] = "NXdata"
 
-    _create_groupe(
+    _create_group(
         entry=entry,
         name="data",
         data=logslicedata[str(index)]["data"],
@@ -253,26 +253,26 @@ def _save_iqxqy_to_log(iqxqy=None, topEntry=None):
     entry.attrs["NX_class"] = "NXdata"
 
     # intensity
-    _create_groupe(entry=entry, name="I", data=iqxqy.intensity, units="1/A")
+    _create_group(entry=entry, name="I", data=iqxqy.intensity, units="1/A")
 
     # errors
-    _create_groupe(entry=entry, name="Idev", data=iqxqy.error, units="1/cm")
+    _create_group(entry=entry, name="Idev", data=iqxqy.error, units="1/cm")
 
     # qx
     if iqxqy.qx is not None:
-        _create_groupe(entry=entry, name="Qx", data=iqxqy.qx, units="1/A")
+        _create_group(entry=entry, name="Qx", data=iqxqy.qx, units="1/A")
 
-        _create_groupe(entry=entry, name="Qxdev", data=iqxqy.delta_qx, units="1/A")
+        _create_group(entry=entry, name="Qxdev", data=iqxqy.delta_qx, units="1/A")
 
     # qy
     if iqxqy.qy is not None:
-        _create_groupe(entry=entry, name="Qy", data=iqxqy.qy, units="1/A")
+        _create_group(entry=entry, name="Qy", data=iqxqy.qy, units="1/A")
 
-        _create_groupe(entry=entry, name="Qydev", data=iqxqy.delta_qy, units="1/A")
+        _create_group(entry=entry, name="Qydev", data=iqxqy.delta_qy, units="1/A")
     # wavelength
     if iqxqy.wavelength is not None:
         wavelength = "{}".format(iqxqy.wavelength)
-        _create_groupe(entry=entry, name="Wavelength", data=wavelength, units="A")
+        _create_group(entry=entry, name="Wavelength", data=wavelength, units="A")
 
 
 def __save_individual_i1d_to_log(i1d=None, topEntry=None, entryNameExt=""):
@@ -318,22 +318,22 @@ def __save_individual_iq_to_log(iq=None, topEntry=None, entryNameExt=""):
     entry.attrs["axes"] = "Q"
 
     # intensity
-    _create_groupe(entry=entry, name="I", data=iq.intensity, units="1/cm")
+    _create_group(entry=entry, name="I", data=iq.intensity, units="1/cm")
 
     # errors
-    _create_groupe(entry=entry, name="Idev", data=iq.error, units="1/cm")
+    _create_group(entry=entry, name="Idev", data=iq.error, units="1/cm")
 
     # mod_q
     if iq.mod_q is not None:
-        _create_groupe(entry=entry, name="Q", data=iq.mod_q, units="1/A")
+        _create_group(entry=entry, name="Q", data=iq.mod_q, units="1/A")
 
         logger.debug(f"delta mod q: {iq.delta_mod_q}")
-        _create_groupe(entry=entry, name="Qdev", data=iq.delta_mod_q, units="1/A")
+        _create_group(entry=entry, name="Qdev", data=iq.delta_mod_q, units="1/A")
 
     # wavelength
     if iq.wavelength:
         wavelength = "{}".format(iq.wavelength)
-        _create_groupe(entry=entry, name="Wavelength", data=wavelength, units="A")
+        _create_group(entry=entry, name="Wavelength", data=wavelength, units="A")
 
 
 def __save_individual_i1d_annular_to_log(i1d=None, topEntry=None, entryNameExt=""):
@@ -358,18 +358,18 @@ def __save_individual_i1d_annular_to_log(i1d=None, topEntry=None, entryNameExt="
     entry.attrs["axes"] = "phi"
 
     # intensity
-    _create_groupe(entry=entry, name="I", data=i1d.intensity, units="1/cm")
+    _create_group(entry=entry, name="I", data=i1d.intensity, units="1/cm")
 
     # errors
-    _create_groupe(entry=entry, name="Idev", data=i1d.error, units="1/cm")
+    _create_group(entry=entry, name="Idev", data=i1d.error, units="1/cm")
 
     # phi
-    _create_groupe(entry=entry, name="phi", data=i1d.phi, units="degrees")
+    _create_group(entry=entry, name="phi", data=i1d.phi, units="degrees")
 
     # wavelength
     if i1d.wavelength:
         wavelength = "{}".format(i1d.wavelength)
-        _create_groupe(entry=entry, name="Wavelength", data=wavelength, units="A")
+        _create_group(entry=entry, name="Wavelength", data=wavelength, units="A")
 
 
 def _save_i1d_to_log(i1d=None, topEntry=None):

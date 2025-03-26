@@ -2,16 +2,16 @@
 import pytest
 from drtsans.dataobjects import IQmod
 from drtsans.tof.eqsans.elastic_reference_normalization import (
-    reshape_q_wavelength_matrix,
-    determine_common_mod_q_range_mesh,
-    determine_reference_wavelength_q1d_mesh,
+    reshape_intensity_domain_meshgrid,
+    determine_common_domain_range_mesh,
+    determine_reference_wavelength_intensity_mesh,
 )
 from drtsans.tof.eqsans.incoherence_correction_1d import (
     calculate_b_error_b,
     calculate_b_factors,
     correct_intensity_error,
     correct_incoherence_inelastic_all,
-    tuneqmin,
+    tune_xmin,
 )
 import numpy as np
 import os
@@ -25,13 +25,15 @@ def test_calculate_b_factor():
     test_iq1d = generate_test_data()
 
     # convert to mesh grid I(Q) and delta I(Q)
-    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(test_iq1d)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_intensity_domain_meshgrid(test_iq1d)
 
     # determine q min and q ma that exists in all I(q, wl) ...
-    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+    qmin_index, qmax_index = determine_common_domain_range_mesh(q_vec, i_array)
 
     # test unit method
-    ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index, 0)
+    ref_wl_ie = determine_reference_wavelength_intensity_mesh(
+        wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index, 0
+    )
     test_b_array = calculate_b_error_b(wl_vec, i_array, error_array, qmin_index, qmax_index, ref_wl_ie, True)
     # verify
     np.testing.assert_allclose(test_b_array[0], generate_expected_b_factors())
@@ -63,10 +65,10 @@ def test_calculate_b_factor():
 
 def test_tuneqmin():
     i_array = np.array([[100], [90], [80], [50], [40], [30], [20], [10], [5]])
-    qmin_idx, qmax_idx = tuneqmin(0, 8, i_array, 100)
+    qmin_idx, qmax_idx = tune_xmin(0, 8, i_array, 100)
     assert qmin_idx == 0
     assert qmax_idx == 8
-    qmin_idx, qmax_idx = tuneqmin(0, 8, i_array, 10)
+    qmin_idx, qmax_idx = tune_xmin(0, 8, i_array, 10)
     assert qmin_idx == 3
     assert qmax_idx == 8
 
@@ -79,10 +81,10 @@ def test_calculate_b_factor_select_min_incoherence():
     test_iq1d = generate_data_select_min_incoherence()
 
     # convert to mesh grid I(Q) and delta I(Q)
-    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(test_iq1d)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_intensity_domain_meshgrid(test_iq1d)
 
     # determine q min and q ma that exists in all I(q, wl) ...
-    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+    qmin_index, qmax_index = determine_common_domain_range_mesh(q_vec, i_array)
 
     # calculate B factor and error with select minimum incoherence flag on
     b_array, ref_wl_ie, ref_wl_index = calculate_b_factors(
@@ -110,10 +112,10 @@ def test_incoherence_inelastic_correction(temp_directory):
     test_iq1d = generate_test_data()
 
     # convert to mesh grid I(Q) and delta I(Q)
-    wl_vec, q_vec, i_array, error_array, dq_array = reshape_q_wavelength_matrix(test_iq1d)
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_intensity_domain_meshgrid(test_iq1d)
 
     # determine q min and q ma that exists in all I(q, wl) ...
-    qmin_index, qmax_index = determine_common_mod_q_range_mesh(q_vec, i_array)
+    qmin_index, qmax_index = determine_common_domain_range_mesh(q_vec, i_array)
 
     # calculate B factors and errors
     b_array, ref_wl_ie, ref_wl_index = calculate_b_factors(
@@ -161,7 +163,7 @@ def test_incoherence_inelastic_correction(temp_directory):
     _, corrected_i_of_q = correct_incoherence_inelastic_all(
         None, test_iq1d, False, output_wavelength_dependent_profile=True, output_dir=output_dir
     )
-    np.testing.assert_allclose(corrected_i_of_q.iq1d.intensity, generate_expected_corrected_intensities())
+    np.testing.assert_allclose(corrected_i_of_q.i1d.intensity, generate_expected_corrected_intensities())
 
     # Check the wavelength dependent profile outputs
     before_intensity = [0.1, 0.13, 0.15, 0.14, 0.11]
@@ -179,7 +181,7 @@ def test_incoherence_inelastic_correction(temp_directory):
 
     # Test with weighted intensity
     _, corrected_i_of_q_w = correct_incoherence_inelastic_all(None, test_iq1d, False, True)
-    np.testing.assert_allclose(corrected_i_of_q_w.iq1d.intensity, generate_expected_corrected_intensities(True))
+    np.testing.assert_allclose(corrected_i_of_q_w.i1d.intensity, generate_expected_corrected_intensities(True))
 
 
 def correct_intensity_error_prototype(
@@ -533,7 +535,9 @@ def calculate_b_factors_prototype(wl_vec, q_vec, i_array, error_array, select_mi
     # determine reference wavelength and calculate b vectors
 
     # determine the reference wavelength
-    ref_wl_ie = determine_reference_wavelength_q1d_mesh(wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index, 0)
+    ref_wl_ie = determine_reference_wavelength_intensity_mesh(
+        wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index, 0
+    )
 
     # calculate b(lambda_i) and delta b(lambda_i) if it is final
     b_array = calculate_b_vector_prototype(
@@ -551,7 +555,7 @@ def calculate_b_factors_prototype(wl_vec, q_vec, i_array, error_array, select_mi
         # reselect reference wavelength to the wavelength bin with minimum b
         ref_wl_index = np.argmin(b_array[0])
         # (re)determine the reference wavelengths' intensities and errors
-        ref_wl_ie = determine_reference_wavelength_q1d_mesh(
+        ref_wl_ie = determine_reference_wavelength_intensity_mesh(
             wl_vec, q_vec, i_array, error_array, qmin_index, qmax_index, ref_wl_index
         )
         # (re)calculate b array

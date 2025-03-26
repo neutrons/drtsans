@@ -38,6 +38,7 @@ REDUCTION_INPUT = {
             "transmission": {"runNumber": "", "value": "1.0"},
         },
         "elasticReferenceBkgd": {"runNumber": "", "transmission": {"runNumber": "", "value": "0.9"}},
+        "outputWavelengthDependentProfile": True,
         "fluxMonitorRatioFile": "",
         "maskFileName": "/SNS/EQSANS/shared/NeXusFiles/EQSANS/2021B_mp/beamstop_mask_4m_ext.nxs",
         "mmRadiusForTransmission": 25,

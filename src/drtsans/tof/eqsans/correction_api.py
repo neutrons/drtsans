@@ -5,10 +5,10 @@ import os.path
 from collections import namedtuple
 from typing import List, Union
 
-from drtsans.dataobjects import IQazimuthal, IQmod
+from drtsans.dataobjects import IQazimuthal, IQmod, I1DAnnular
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.tof.eqsans.incoherence_correction_1d import (
-    CorrectedIQ1D,
+    CorrectedI1D,
     correct_incoherence_inelastic_all,
 )
 from drtsans.tof.eqsans.incoherence_correction_2d import (
@@ -342,21 +342,21 @@ NormFactor = namedtuple("NormFactor", "k k_error p s")
 
 def do_inelastic_incoherence_correction(
     iq2d: IQazimuthal,
-    iq1d: IQmod,
+    i1d: IQmod | I1DAnnular,
     frameskip_frame: int,
     correction_setup: CorrectionConfiguration,
     prefix: str,
     output_dir: str,
     output_filename: str = "",
-) -> tuple[IQazimuthal, IQmod]:
-    """Do inelastic incoherence correction on 2D and 1D I(Q)
+) -> tuple[IQazimuthal, IQmod | I1DAnnular]:
+    """Do inelastic incoherence correction on 2D and 1D intensity profiles
 
     Parameters
     ----------
     iq2d: IQazimuthal
-        I(Q2D)
-    iq1d: IQmod
-        I(Q1D)
+        2D intensity profile to correct
+    i1d: IQmod | I1DAnnular
+        1D intensity profile to correct
     frameskip_frame: int
         frame skip index (0 or 1)
     correction_setup: CorrectionConfiguration
@@ -370,17 +370,19 @@ def do_inelastic_incoherence_correction(
 
     Returns
     -------
-    tuple[IQazimuthal, IQmod]
-        The corrected I(Q2D) and I(Q1D)
+    tuple[IQazimuthal, IQmod | I1DAnnular]
+        The corrected I(Q2D) and I(1D)
     """
     # type check
-    assert isinstance(iq1d, IQmod), f"Assuming each element in input is IQmod but not {type(iq1d)}"
+    assert isinstance(i1d, (IQmod, I1DAnnular)), (
+        f"Assuming each element in input is IQmod or I1DAnnular but not {type(i1d)}"
+    )
     assert isinstance(iq2d, IQazimuthal), f"iq2d must be IQazimuthal but not {type(iq2d)}"
 
     # do inelastic/incoherent correction
     corrected_2d, corrected_1d = correct_incoherence_inelastic_all(
         iq2d,
-        iq1d,
+        i1d,
         correction_setup.select_min_incoherence,
         correction_setup.select_intensityweighted[frameskip_frame],
         correction_setup.qmin[frameskip_frame],
@@ -396,10 +398,10 @@ def do_inelastic_incoherence_correction(
         os.path.join(output_dir, f"{output_filename}_inelastic_b1d_{prefix}.dat"),
     )
 
-    return corrected_2d.iq2d, corrected_1d.iq1d
+    return corrected_2d.iq2d, corrected_1d.i1d
 
 
-def save_b_factor(i_of_q: Union[CorrectedIQ1D, CorrectedIQ2D], path: str) -> None:
+def save_b_factor(i_of_q: Union[CorrectedI1D, CorrectedIQ2D], path: str) -> None:
     header = "lambda,b,delta_b\n"
     # grab the IQmod or IQazimuthal wavelength
     wavelength = i_of_q[0].wavelength

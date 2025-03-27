@@ -24,15 +24,10 @@ Release Notes
 
   **Of interest to the User**:
 
+  - PR #1005: Annular binning output is now annotated with phi rather than Q and plotted with a linear x axis
+
   **Of interest to the Developer:**
 ..
-
-**Of interest to the User**:
-
-- PR #1005: Annular binning output is now annotated with phi rather than Q and plotted with a linear x axis
-
-**Of interest to the Developer:**
-
 
 1.12.0
 ------

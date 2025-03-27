@@ -8,7 +8,7 @@ Release Notes
 
   <Next Release>
   --------------
-  (date of release)
+  (date of release, format YYYY-MM-DD)
 
   **Of interest to the User**:
   - PR #XYZ: one-liner description
@@ -17,9 +17,15 @@ Release Notes
   - PR #XYZ: one-liner description
 ..
 
-?.??.?
-------
-????-??-??
+..
+  1.13.0
+  ------
+  2025-04-01
+
+  **Of interest to the User**:
+
+  **Of interest to the Developer:**
+..
 
 **Of interest to the User**:
 

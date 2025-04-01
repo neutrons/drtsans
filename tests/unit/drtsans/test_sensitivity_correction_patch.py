@@ -478,10 +478,10 @@ def test_prepare_sensitivity(workspace_with_instrument, clean_workspace):
 
     # Next, we apply a mask to the beamstop and the upper/lower edges.
     mask = np.ones((20, 8))
-    mask[0, :] = np.NINF
-    mask[8, 3] = np.NINF
-    mask[9, 3] = np.NINF
-    mask[19, :] = np.NINF
+    mask[0, :] = -np.inf
+    mask[8, 3] = -np.inf
+    mask[9, 3] = -np.inf
+    mask[19, :] = -np.inf
 
     # The first cut of the sensitivity S1(m,n) is given by II
     # The uncertainties in the first cut of sensitivity dS1(m,n) is given by dI.

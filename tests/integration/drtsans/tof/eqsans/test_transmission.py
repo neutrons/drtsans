@@ -297,7 +297,7 @@ def transmission_fixture(datarepo_dir):
     def quick_compare(tentative, asset):
         r"""asset: str, name of golden standard nexus file"""
         ws = LoadNexus(pjn(cmp_dir, asset), OutputWorkspace=mtd.unique_hidden_name())
-        return CompareWorkspaces(tentative, ws, Tolerance=1.0e-4).Result
+        return CompareWorkspaces(tentative, ws, Tolerance=1.0e-4, NaNsEqual=True).Result
 
     a = LoadNexus(pjn(data_dir, "sample.nxs"), OutputWorkspace=mtd.unique_hidden_name())
     insert_aperture_logs(a)  # source and sample aperture diameters

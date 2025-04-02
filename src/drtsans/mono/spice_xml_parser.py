@@ -101,8 +101,8 @@ class SpiceXMLParser(object):
             value_type
             if type(value_type) is type
             else {
-                "str": np.string_,
-                "string": np.string_,
+                "str": np.bytes_,
+                "string": np.bytes_,
                 "float": float,
                 "double": float,
                 "int": int,

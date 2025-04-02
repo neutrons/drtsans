@@ -259,7 +259,7 @@ def verify_results(test_sensitivities_file: str, gold_sens_file: str, clean_work
     test_sens_ws = LoadNexusProcessed(Filename=test_sensitivities_file)
     clean_workspace(gold_sens_ws)
     clean_workspace(test_sens_ws)
-    result, _ = CompareWorkspaces(gold_sens_ws, test_sens_ws)
+    result, _ = CompareWorkspaces(gold_sens_ws, test_sens_ws, NaNsEqual=True)
     assert result
     clean_all_ws()
 

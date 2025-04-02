@@ -157,8 +157,8 @@ class PrepareSensitivityCorrection(object):
                 # Patch detector method: Pixels that have not been masked as bad pixels, but have been
                 # identified as needing to have values set by the patch applied. To identify them, the
                 # value is set to -INF.
-                flood_workspace.dataY(i)[0] = np.NINF
-                flood_workspace.dataE(i)[0] = np.NINF
+                flood_workspace.dataY(i)[0] = -np.inf
+                flood_workspace.dataE(i)[0] = -np.inf
             elif not total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
                 # Logic error: impossible case
                 problematic_pixels.append(i)

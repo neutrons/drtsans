@@ -100,10 +100,10 @@ def test_gaussian_fit(datarepo_dir, temp_directory):
     )
     assert x0 == pytest.approx(results.params["x0"].value)
     assert y0 == pytest.approx(results.params["y0"].value)
-    # update ref val after upgrading mantid (v5 -> v6)
-    assert fit_results["amp"]["value"] == pytest.approx(720509313)
-    assert fit_results["sigma_x"]["value"] == pytest.approx(0.0133174845899)
-    assert fit_results["sigma_y"]["value"] == pytest.approx(0.0075641655658)
+    # update ref val after upgrading mantid (v6.11 -> v6.12)
+    assert fit_results["amp"]["value"] == pytest.approx(720510910)
+    assert fit_results["sigma_x"]["value"] == pytest.approx(0.0133174719397)
+    assert fit_results["sigma_y"]["value"] == pytest.approx(0.0075641382315)
     assert fit_results["theta"]["value"] == pytest.approx(np.pi / 2.0)
 
     params["theta"].value = 0.0
@@ -116,10 +116,10 @@ def test_gaussian_fit(datarepo_dir, temp_directory):
     )
     assert x0 == pytest.approx(results.params["x0"].value)
     assert y0 == pytest.approx(results.params["y0"].value)
-    # update ref val after upgrading mantid (v5 -> v6)
-    assert fit_results["amp"]["value"] == pytest.approx(720509313)
-    assert fit_results["sigma_x"]["value"] == pytest.approx(0.0075641655592)
-    assert fit_results["sigma_y"]["value"] == pytest.approx(0.0133174845892)
+    # update ref val after upgrading mantid (v6.11 -> v6.12)
+    assert fit_results["amp"]["value"] == pytest.approx(720510910)
+    assert fit_results["sigma_x"]["value"] == pytest.approx(0.0075641382315)
+    assert fit_results["sigma_y"]["value"] == pytest.approx(0.0133174719397)
     assert fit_results["theta"]["value"] == pytest.approx(0.0)
 
     # cleanup

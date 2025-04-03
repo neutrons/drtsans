@@ -133,9 +133,9 @@ def _find_beam_center_gaussian(ws, parameters={}):
     if "theta" not in params:
         params.add("theta", value=0.0, min=-np.pi / 2.0, max=np.pi / 2.0)
     if "CenterX" not in params:
-        params.add("CenterX", value=0.0)
+        params.add("CenterX", value=np.mean(x))
     if "CenterY" not in params:
-        params.add("CenterY", value=0.0)
+        params.add("CenterY", value=np.mean(y))
     results = model.fit(intes, x1=x, y1=y, weights=1.0 / intes_err, params=params, nan_policy="omit")
     fit_params = results.params
     return (

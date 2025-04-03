@@ -17,17 +17,16 @@ Release Notes
   - PR #XYZ: one-liner description
 ..
 
-..
-  1.14.0
-  --------------
-  (date of release, format YYYY-MM-DD)
 
-  **Of interest to the User**:
-  - PR #XYZ: one-liner description
+1.14.0
+--------------
+????-??-??
 
-  **Of interest to the Developer:**
-  - PR #XYZ: one-liner description
-..
+**Of interest to the User**:
+- PR #1015: Upgrades to Mantid 6.12 and numpy 2
+
+**Of interest to the Developer:**
+
 
 1.13.0
 ------

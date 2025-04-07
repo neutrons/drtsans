@@ -135,6 +135,7 @@ def periodic_index_log(
 
     # generate period/interval blocks
     # this creates intervals per period, of the range [period start, period end)
+    # where `period end` may be truncated due to the duration being reached
     # ``- 1e-15`` makes the end range exclusive for integers
     times = [
         np.arange(period * i + offset, min(duration, period * (i + 1) + offset - 1e-15), interval)
@@ -145,10 +146,11 @@ def periodic_index_log(
     # array of values in each period, scaled by the step
     values_in_period = step * np.arange(0, np.ceil(period / interval))
 
-    # repeat the values in a period up to the number of periods,
-    # plus one
+    # repeat the values for all slices
+    # plus 1 because there may be a remainder, so this guarantees the tiling is large enough
+    #  to cover all slices
     # then truncate to the length of times, then cast to list
-    entries = np.tile(values_in_period, period_count + interval_count)[: len(times)].tolist()
+    entries = np.tile(values_in_period, period_count * (interval_count + 1))[: len(times)].tolist()
 
     assert len(times) == len(entries), (
         f"times and entries must have the same length: len(times) {len(times)} != len(entries) {len(entries)}"

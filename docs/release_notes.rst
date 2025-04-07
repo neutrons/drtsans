@@ -26,7 +26,7 @@ Release Notes
 - PR #1015: Upgrades to Mantid 6.12 and numpy 2
 
 **Of interest to the Developer:**
-
+- PR #1019: Fixes an edge case bug in creating the sample logs periodic index log where the number of entries is less than the number of times
 
 1.13.0
 ------

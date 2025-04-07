@@ -67,6 +67,8 @@ def test_periodic_index_log():
         (30, 40, 60, 0, 1, 3),
         # offset tests
         (60, 60, 60, 1, 1, 1),
+        # edge case where entries must overtile, or there won't be enough to match times
+        (0.31416253927, 3.1416253927, 11063.2470703125, 1.19011221899, 1, 38639),
     ],
     ids=[
         # integer number of intervals in period
@@ -94,6 +96,7 @@ def test_periodic_index_log():
         "i!|p!|d",
         "i|d",
         "offset-duration",
+        "require-overtiling",
     ],
 )
 def test_periodic_index_log_cases(interval, period, duration, offset, step, expected):

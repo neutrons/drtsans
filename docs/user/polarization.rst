@@ -13,10 +13,9 @@ The use of half or full polarization in a SANS experiment requires
 parsing the data into states corresponding to the states of the flipper, and the analyzer that is
 located between the sample and the detector.
 
-..
-    Measurements employing half
-    or full polarization require dividing the data file into either two or
-    four data structures corresponding to the states of the flipper and the analyzer.
+.. figure:: media/polarization_1.png
+   :alt: Diagram of a polarization experiment
+   :width: 400px
 
 Beam polarization and polarization ratio
 ----------------------------------------

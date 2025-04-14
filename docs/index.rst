@@ -16,6 +16,7 @@ User Guide
    /user/corrections/index
    /user/slicing
    /user/binning
+   /user/polarization
    /user/reduction_output
    /drtsans/reduction_parameters
    /drtsans/reduction_scripts

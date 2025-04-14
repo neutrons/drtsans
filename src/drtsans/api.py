@@ -6,14 +6,7 @@ from drtsans.dataobjects import getDataType, DataType, IQazimuthal
 # https://docs.mantidproject.org/nightly/algorithms/RebinToWorkspace-v1.html
 # https://docs.mantidproject.org/nightly/algorithms/RenameWorkspace-v1.html
 # mtd is https://docs.mantidproject.org/nightly/api/python/mantid/api/AnalysisDataServiceImpl.html
-from mantid.simpleapi import (
-    CloneWorkspace,
-    CreateSingleValuedWorkspace,
-    DeleteWorkspace,
-    Minus,
-    mtd,
-    RebinToWorkspace
-)
+from mantid.simpleapi import CloneWorkspace, CreateSingleValuedWorkspace, Minus, mtd, RebinToWorkspace
 import numpy as np
 
 __all__ = ["subtract_background", "NoDataProcessedError"]

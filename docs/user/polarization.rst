@@ -266,7 +266,7 @@ The associated uncertainties are provided in Equations :eq:`full-s-off-zero-unce
     \left( \delta S^{0\pi}(\lambda) \right)^2 =
     \left[ \frac{R(\lambda)}{1+R(\lambda)} \frac{1}{1+A^{\pi}(\lambda)} \right]^2
     \left( \delta S^{\uparrow\uparrow}(\lambda) \right)^2 +
-    \left[ \frac{R(\lambda)}{1+R(\lambda)} \frac{A^{pi}}{1+A^{pi}(\lambda)} \right]^2
+    \left[ \frac{R(\lambda)}{1+R(\lambda)} \frac{A^{pi}}{1+A^{\pi}(\lambda)} \right]^2
     \left( \delta S^{\uparrow\downarrow}(\lambda) \right)^2 + \\
     \left[ \frac{1}{1+R(\lambda)} \frac{1}{1+A^{pi}(\lambda)} \right]^2
     \left( \delta S^{\downarrow\uparrow}(\lambda) \right)^2 +

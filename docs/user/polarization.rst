@@ -17,6 +17,9 @@ located between the sample and the detector.
    :alt: Diagram of a polarization experiment
    :width: 400px
 
+.. contents:: Contents
+   :local:
+
 Beam polarization and polarization ratio
 ----------------------------------------
 
@@ -345,51 +348,39 @@ streams.
 Process Variables
 -----------------
 
-Process variables (PV) indicate the spin selector or flipper used and its state. Given a
-particular Polarizer, PV PolarizerState indicates whether the selected state is "up" or "down".
-PVs FlipperState and AnalyzerState play analogous roles for the flipper and analyzer, respectively.
+Process variables (PV) indicate the spin selector used and its state. Given a
+particular Polarizer, PV PolarizerFlipper indicates whether the selected state is "up" or "down".
+The PV AnalyzerFlipper plays an analogous role for the analyzer.
 The following tables summarize the possible values of the polarization PVs.
 
-+-----------------------+-------------------+
-| PV Polarizer          | PV PolarizerState |
-+=======================+===================+
-| 0 - No Polarizer      |                   |
-+-----------------------+-------------------+
-| 1 - Reflection        | 1 - ON            |
-+-----------------------+-------------------+
-| 1 - Reflection        | 0 - OFF           |
-+-----------------------+-------------------+
-| 2 - Transmission      | 1 - ON            |
-+-----------------------+-------------------+
-| 2 - Transmission      | 0 - OFF           |
-+-----------------------+-------------------+
-| 3 - Undefined         |                   |
-+-----------------------+-------------------+
++-----------------------+---------------------+
+| PV Polarizer          | PV PolarizerFlipper |
++=======================+=====================+
+| 0 - No Polarizer      |                     |
++-----------------------+---------------------+
+| 1 - Reflection        | 1 - ON              |
++-----------------------+---------------------+
+| 1 - Reflection        | 0 - OFF             |
++-----------------------+---------------------+
+| 2 - Transmission      | 1 - ON              |
++-----------------------+---------------------+
+| 2 - Transmission      | 0 - OFF             |
++-----------------------+---------------------+
+| 3 - Undefined         |                     |
++-----------------------+---------------------+
 
-+-----------------------+-------------------+
-| PV Flipper            | PV FlipperState   |
-+=======================+===================+
-| 0 - No Flipper        |                   |
-+-----------------------+-------------------+
-| 1 - Flipper           | 1 - ON            |
-+-----------------------+-------------------+
-| 1 - Flipper           | 0 - OFF           |
-+-----------------------+-------------------+
-| 2 - Undefined         |                   |
-+-----------------------+-------------------+
-
-+-----------------------+-------------------+
-| PV Analyzer           | PV AnalyzerState  |
-+=======================+===================+
-| 0 - No Analyzer       |                   |
-+-----------------------+-------------------+
-| 1 - Fan & SF2         | 1 - ON            |
-+-----------------------+-------------------+
-| 1 - Fan & SF2         | 0 - OFF           |
-+-----------------------+-------------------+
-| 2 - 3He               | 1 - ON            |
-+-----------------------+-------------------+
-| 2 - 3He               | 0 - OFF           |
-+-----------------------+-------------------+
-| 3 - Undefined         |                   |
-+-----------------------+-------------------+
++-----------------------+--------------------+
+| PV Analyzer           | PV AnalyzerFlipper |
++=======================+====================+
+| 0 - No Analyzer       |                    |
++-----------------------+--------------------+
+| 1 - Fan & SF2         | 1 - ON             |
++-----------------------+--------------------+
+| 1 - Fan & SF2         | 0 - OFF            |
++-----------------------+--------------------+
+| 2 - 3He               | 1 - ON             |
++-----------------------+--------------------+
+| 2 - 3He               | 0 - OFF            |
++-----------------------+--------------------+
+| 3 - Undefined         |                    |
++-----------------------+--------------------+

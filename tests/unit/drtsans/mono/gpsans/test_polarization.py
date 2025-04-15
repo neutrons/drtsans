@@ -1,9 +1,10 @@
-import pytest
-from drtsans import half_polarization
-from drtsans.api import _calc_flipping_ratio  # private function
-
-# https://docs.mantidproject.org/nightly/algorithms/CreateSingleValuedWorkspace-v1.html
+# third-party imports
 from mantid.simpleapi import CreateSingleValuedWorkspace
+import pytest
+
+# drtsans imports
+from drtsans import half_polarization
+from drtsans.polarization import _calc_flipping_ratio  # private function
 
 
 def test_flipping_ratio(temp_workspace_name, clean_workspace):

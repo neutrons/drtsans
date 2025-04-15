@@ -1,6 +1,9 @@
 # standard library imports
+from dataclasses import dataclass
+from typing import ClassVar, Generator, List, Optional, Union
 
 # third party imports
+from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import CreateSingleValuedWorkspace, DeleteWorkspace, mtd, RenameWorkspace
 import numpy as np
 
@@ -175,3 +178,46 @@ def half_polarization(
     DeleteWorkspace(flipping_ratio)
 
     return (spin_up_workspace, spin_down_workspace)
+
+
+@dataclass
+class SimulatedLogs:
+    """A simulated log for testing purposes."""
+    polarizer: int = 0
+    polarizer_flipper: Optional[str] = None
+    polarizer_veto: Optional[str] = None
+    analyzer: int = 0
+    analyzer_flipper: Optional[str] = None
+    analyzer_veto: Optional[str] = None
+
+    # Class variables
+    flipper_generators: ClassVar[List[str]] = ["heartbeat"]
+    veto_generators: ClassVar[List[str]] = ["binary_pulse"]
+
+    def __post_init__(self):
+        # Validate input polarizer and analyzer flipper generators
+        for flipper, device in zip([self.polarizer_flipper, self.analyzer_flipper], ["polarizer", "analyzer"]):
+            if flipper and flipper not in self.flipper_generators:
+                raise ValueError(
+                    f"The {device} flipper generator must be one of {self.flipper_generators}, got '{flipper}'"
+                )
+        # Validate input polarizer and analyzer veto generators
+        for veto, device in zip([self.polarizer_veto, self.analyzer_veto], ["polarizer", "analyzer"]):
+            if veto and veto not in self.veto_generators:
+                raise ValueError(
+                    f"The {device} flipper generator must be one of {self.veto_generators}, got '{veto}'"
+                )
+
+    def heartbeat(self, interval: float) -> Generator[float, None, None]:
+        elapsed = 0
+        while True:
+            yield elapsed
+            elapsed += interval
+
+    def binary_pulse(self, interval: float, duration: float) -> Generator[float, None, None]:
+        elapsed = 0
+        yield elapsed
+        while True:
+            elapsed += interval
+            yield elapsed - duration / 2
+            yield elapsed + duration / 2

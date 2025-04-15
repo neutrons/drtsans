@@ -4,7 +4,7 @@ import pytest
 
 # drtsans imports
 from drtsans import half_polarization
-from drtsans.polarization import _calc_flipping_ratio  # private function
+from drtsans.polarization import _calc_flipping_ratio, SimulatedLogs
 
 
 def test_flipping_ratio(temp_workspace_name, clean_workspace):
@@ -63,6 +63,50 @@ def test_half_polarization(temp_workspace_name):
     assert SpinUp.extractE()[0][0] == pytest.approx(SpinUpExp.extractE()[0][0])
     assert SpinDown.extractY()[0][0] == pytest.approx(SpinDownExp.extractY()[0][0])
     assert SpinDown.extractE()[0][0] == pytest.approx(SpinDownExp.extractE()[0][0])
+
+
+class TestSimulatedLogs:
+    def test_valid_flipper_generators(self):
+        log = SimulatedLogs(polarizer_flipper="heartbeat", analyzer_flipper="heartbeat")
+        assert log.polarizer_flipper == "heartbeat"
+        assert log.analyzer_flipper == "heartbeat"
+
+    def test_invalid_flipper_generators(self):
+        with pytest.raises(ValueError) as excinfo:
+            SimulatedLogs(polarizer_flipper="invalid_generator")
+        assert "The polarizer flipper generator must be one of ['heartbeat']" in str(excinfo.value)
+        with pytest.raises(ValueError) as excinfo:
+            SimulatedLogs(analyzer_flipper="invalid_generator")
+        assert "The analyzer flipper generator must be one of ['heartbeat']" in str(excinfo.value)
+
+
+
+
+    def test_valid_veto_generators(self):
+        log = SimulatedLogs(polarizer_veto="binary_pulse", analyzer_veto="binary_pulse")
+        assert log.polarizer_veto == "binary_pulse"
+        assert log.analyzer_veto == "binary_pulse"
+
+    def test_invalid_veto_generators(self):
+        with pytest.raises(ValueError, match="polarizer veto generator must be one of ['binary_pulse']"):
+            SimulatedLogs(polarizer_veto="invalid_veto")
+        with pytest.raises(ValueError, match="analyzer veto generator must be one of ['binary_pulse']"):
+            SimulatedLogs(analyzer_veto="invalid_veto")
+
+    def test_heartbeat_generator(self):
+        log = SimulatedLogs()
+        generator = log.heartbeat(interval=1.0)
+        assert next(generator) == 0
+        assert next(generator) == 1.0
+        assert next(generator) == 2.0
+
+    def test_binary_pulse_generator(self):
+        log = SimulatedLogs()
+        generator = log.binary_pulse(interval=2.0, duration=1.0)
+        assert next(generator) == 0
+        assert next(generator) == 1.5
+        assert next(generator) == 2.5
+        assert next(generator) == 3.5
 
 
 if __name__ == "__main__":

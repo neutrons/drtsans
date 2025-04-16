@@ -205,19 +205,76 @@ class SimulatedLogs:
         for veto, device in zip([self.polarizer_veto, self.analyzer_veto], ["polarizer", "analyzer"]):
             if veto and veto not in self.veto_generators:
                 raise ValueError(
-                    f"The {device} flipper generator must be one of {self.veto_generators}, got '{veto}'"
+                    f"The {device} veto generator must be one of {self.veto_generators}, got '{veto}'"
                 )
 
-    def heartbeat(self, interval: float) -> Generator[float, None, None]:
+    def heartbeat(self, interval: float, dead_time: Optional[float] = 0.0, upper_bound: Optional[float] = None) -> Generator[float, None, None]:
+        """
+        Generate a sequence of timestamps at regular intervals, starting at or later than dead_time.
+
+        Parameters
+        ----------
+        interval : float
+            The time interval between consecutive timestamps, in seconds.
+        dead_time: float
+            The initial time period, in seconds, during which no times are generated. Defaults to 0.0.
+        upper_bound : float, optional
+            The maximum time value to generate, in seconds. If None, the generator will continue indefinitely.
+
+        Yields
+        ------
+        float
+            The next timestamp in the sequence.
+
+        Examples
+        --------
+        >>> log = SimulatedLogs()
+        >>> list(log.heartbeat(interval=1.0, upper_bound=5.0))
+        [0, 1.0, 2.0, 3.0, 4.0, 5.0]
+        """
         elapsed = 0
-        while True:
-            yield elapsed
+        while elapsed <= upper_bound if upper_bound is not None else True:
+            if elapsed >= dead_time:
+                yield elapsed
             elapsed += interval
 
-    def binary_pulse(self, interval: float, duration: float) -> Generator[float, None, None]:
-        elapsed = 0
+    def binary_pulse(self, interval: float, veto_duration: float, dead_time: Optional[float] = 0.0, upper_bound: Optional[float] = None) -> Generator[float, None, None]:
+        """
+        Generate a sequence of timestamps with a binary pulse pattern, starting at or later than dead_time.
+
+        The timestamps alternate between the start and end of a veto period, which is centered within each interval.
+
+        Parameters
+        ----------
+        interval : float
+            The time interval between consecutive pulses, in seconds.
+        veto_duration : float
+            The duration of the veto period, in seconds. Must be less than the interval.
+        dead_time: float
+            The initial time period, in seconds, during which no times are generated. Defaults to 0.0.
+        upper_bound : float, optional
+            The maximum time value to generate, in seconds. If None, the generator will continue indefinitely.
+
+        Yields
+        ------
+        float
+            The next timestamp in the binary pulse sequence.
+
+        Examples
+        --------
+        >>> log = SimulatedLogs()
+        >>> list(log.binary_pulse(interval=3.0, veto_duration=1.0, upper_bound=10))
+        [0, 2.5, 3.5, 5.5, 6.5, 8.5, 9.5]
+        """
+        assert veto_duration < interval, "Veto duration must be less than the interval"
+        elapsed, intervals, veto_half, continue_while = 0.0, interval, veto_duration / 2, True
         yield elapsed
-        while True:
-            elapsed += interval
-            yield elapsed - duration / 2
-            yield elapsed + duration / 2
+        while continue_while:
+            for elapsed in [intervals - veto_half, intervals + veto_half]:
+                if (upper_bound is None) or (elapsed <= upper_bound):
+                    if elapsed >= dead_time:
+                        yield elapsed
+                else:
+                    continue_while = False  # exit the outer while loop
+                    break  # exit the inmediate `for` loop
+            intervals += interval

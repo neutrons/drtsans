@@ -1,5 +1,6 @@
 # third-party imports
 from mantid.simpleapi import CreateSingleValuedWorkspace
+from numpy.testing import assert_array_almost_equal
 import pytest
 
 # drtsans imports
@@ -79,35 +80,30 @@ class TestSimulatedLogs:
             SimulatedLogs(analyzer_flipper="invalid_generator")
         assert "The analyzer flipper generator must be one of ['heartbeat']" in str(excinfo.value)
 
-
-
-
     def test_valid_veto_generators(self):
         log = SimulatedLogs(polarizer_veto="binary_pulse", analyzer_veto="binary_pulse")
         assert log.polarizer_veto == "binary_pulse"
         assert log.analyzer_veto == "binary_pulse"
 
     def test_invalid_veto_generators(self):
-        with pytest.raises(ValueError, match="polarizer veto generator must be one of ['binary_pulse']"):
+        with pytest.raises(ValueError) as excinfo:
             SimulatedLogs(polarizer_veto="invalid_veto")
-        with pytest.raises(ValueError, match="analyzer veto generator must be one of ['binary_pulse']"):
+        assert "polarizer veto generator must be one of ['binary_pulse']" in str(excinfo.value)
+        with pytest.raises(ValueError) as excinfo:
             SimulatedLogs(analyzer_veto="invalid_veto")
+        assert "analyzer veto generator must be one of ['binary_pulse']" in str(excinfo.value)
 
     def test_heartbeat_generator(self):
-        log = SimulatedLogs()
-        generator = log.heartbeat(interval=1.0)
-        assert next(generator) == 0
-        assert next(generator) == 1.0
-        assert next(generator) == 2.0
+        times = SimulatedLogs().heartbeat(interval=1.0, upper_bound=10)
+        assert_array_almost_equal(list(times), [0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
+        times = SimulatedLogs().heartbeat(interval=1.0, dead_time=3.5, upper_bound=10)
+        assert_array_almost_equal(list(times), [4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
 
     def test_binary_pulse_generator(self):
-        log = SimulatedLogs()
-        generator = log.binary_pulse(interval=2.0, duration=1.0)
-        assert next(generator) == 0
-        assert next(generator) == 1.5
-        assert next(generator) == 2.5
-        assert next(generator) == 3.5
-
+        times = SimulatedLogs().binary_pulse(interval=3.0, veto_duration=1.0, upper_bound=10)
+        assert_array_almost_equal(list(times), [0, 2.5, 3.5, 5.5, 6.5, 8.5, 9.5], decimal=2)
+        times = SimulatedLogs().binary_pulse(interval=3.0, veto_duration=1.0, dead_time=2.7, upper_bound=10)
+        assert_array_almost_equal(list(times), [3.5, 5.5, 6.5, 8.5, 9.5], decimal=2)
 
 if __name__ == "__main__":
     pytest.main([__file__])

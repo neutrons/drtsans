@@ -1,10 +1,9 @@
 # standard library imports
 from collections import namedtuple
 from dataclasses import dataclass
-from typing import ClassVar, Generator, List, Optional, Union
+from typing import ClassVar, Generator, List, Optional
 
 # third party imports
-from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import CreateSingleValuedWorkspace, DeleteWorkspace, mtd, RenameWorkspace
 import numpy as np
 
@@ -14,8 +13,15 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.type_hints import MantidWorkspace
 
 
-__all__ = ["PV_POLARIZER", "PV_POLARIZER_FLIPPER", "PV_POLARIZER_VETO", "PV_ANALYZER", "PV_ANALYZER_FLIPPER",
-           "half_polarization", "SimulatedPolarizationLogs"]
+__all__ = [
+    "PV_POLARIZER",
+    "PV_POLARIZER_FLIPPER",
+    "PV_POLARIZER_VETO",
+    "PV_ANALYZER",
+    "PV_ANALYZER_FLIPPER",
+    "half_polarization",
+    "SimulatedPolarizationLogs",
+]
 
 # Names of processing variables related to polarization, stored in the sample logs of the Nexus Event file
 PV_POLARIZER = "Polarizer"
@@ -195,12 +201,13 @@ def half_polarization(
 
 # A simple way to encode the name and specifications for one of the time generators methods of class SimulatedLogs
 # Example: polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 1.0, "veto_duration": 0.2})
-TimesGeneratorSpecs = namedtuple('TimesGeneratorSpecs', ['name', 'kwargs'])
+TimesGeneratorSpecs = namedtuple("TimesGeneratorSpecs", ["name", "kwargs"])
 
 
 @dataclass
 class SimulatedPolarizationLogs:
     """A simulated log for testing purposes."""
+
     polarizer: int = 0
     polarizer_flipper: Optional[TimesGeneratorSpecs] = None
     polarizer_veto: Optional[TimesGeneratorSpecs] = None
@@ -226,7 +233,9 @@ class SimulatedPolarizationLogs:
                     f"The {device} veto generator must be one of {self.veto_generators}, got '{veto.name}'"
                 )
 
-    def heartbeat(self, interval: float, dead_time: Optional[float] = 0.0, upper_bound: Optional[float] = None) -> Generator[float, None, None]:
+    def heartbeat(
+        self, interval: float, dead_time: Optional[float] = 0.0, upper_bound: Optional[float] = None
+    ) -> Generator[float, None, None]:
         """
         Generate a sequence of timestamps at regular intervals, starting at or later than dead_time.
 
@@ -256,7 +265,13 @@ class SimulatedPolarizationLogs:
                 yield elapsed
             elapsed += interval
 
-    def binary_pulse(self, interval: float, veto_duration: float, dead_time: Optional[float] = 0.0, upper_bound: Optional[float] = None) -> Generator[float, None, None]:
+    def binary_pulse(
+        self,
+        interval: float,
+        veto_duration: float,
+        dead_time: Optional[float] = 0.0,
+        upper_bound: Optional[float] = None,
+    ) -> Generator[float, None, None]:
         """
         Generate a sequence of timestamps with a binary pulse pattern, starting at or later than dead_time.
 
@@ -339,7 +354,7 @@ class SimulatedPolarizationLogs:
             PV_POLARIZER_FLIPPER: self.polarizer_flipper,
             PV_POLARIZER_VETO: self.polarizer_veto,
             PV_ANALYZER_FLIPPER: self.analyzer_flipper,
-            PV_ANALYZER_VETO: self.analyzer_veto
+            PV_ANALYZER_VETO: self.analyzer_veto,
         }
         specs_field = converter[pv_name]
         if specs_field is None:

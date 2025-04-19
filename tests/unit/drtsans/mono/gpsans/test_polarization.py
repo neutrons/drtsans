@@ -1,13 +1,20 @@
 # third-party imports
-from mantid.simpleapi import CreateSampleWorkspace, CreateSingleValuedWorkspace, mtd
+from mantid.simpleapi import CreateSingleValuedWorkspace, mtd
 from numpy.testing import assert_equal, assert_array_almost_equal
 import pytest
 
 # drtsans imports
 from drtsans import half_polarization
 from drtsans.polarization import (
-    _calc_flipping_ratio, SimulatedPolarizationLogs, TimesGeneratorSpecs, PV_ANALYZER, PV_ANALYZER_FLIPPER, PV_ANALYZER_VETO,
-    PV_POLARIZER, PV_POLARIZER_FLIPPER, PV_POLARIZER_VETO
+    _calc_flipping_ratio,
+    SimulatedPolarizationLogs,
+    TimesGeneratorSpecs,
+    PV_ANALYZER,
+    PV_ANALYZER_FLIPPER,
+    PV_ANALYZER_VETO,
+    PV_POLARIZER,
+    PV_POLARIZER_FLIPPER,
+    PV_POLARIZER_VETO,
 )
 from drtsans.samplelogs import SampleLogs
 
@@ -72,8 +79,10 @@ def test_half_polarization(temp_workspace_name):
 
 class TestSimulatedLogs:
     def test_valid_flipper_generators(self):
-        log = SimulatedPolarizationLogs(polarizer_flipper=TimesGeneratorSpecs("heartbeat", {}),
-                                        analyzer_flipper=TimesGeneratorSpecs("heartbeat", {}))
+        log = SimulatedPolarizationLogs(
+            polarizer_flipper=TimesGeneratorSpecs("heartbeat", {}),
+            analyzer_flipper=TimesGeneratorSpecs("heartbeat", {}),
+        )
         assert log.polarizer_flipper.name == "heartbeat"
         assert log.analyzer_flipper.name == "heartbeat"
 
@@ -86,8 +95,10 @@ class TestSimulatedLogs:
         assert "The analyzer flipper generator must be one of ['heartbeat']" in str(excinfo.value)
 
     def test_valid_veto_generators(self):
-        log = SimulatedPolarizationLogs(polarizer_veto=TimesGeneratorSpecs("binary_pulse", {}),
-                                        analyzer_veto=TimesGeneratorSpecs("binary_pulse", {}))
+        log = SimulatedPolarizationLogs(
+            polarizer_veto=TimesGeneratorSpecs("binary_pulse", {}),
+            analyzer_veto=TimesGeneratorSpecs("binary_pulse", {}),
+        )
         assert log.polarizer_veto.name == "binary_pulse"
         assert log.analyzer_veto.name == "binary_pulse"
 
@@ -108,17 +119,20 @@ class TestSimulatedLogs:
     def test_binary_pulse_generator(self):
         times = SimulatedPolarizationLogs().binary_pulse(interval=3.0, veto_duration=1.0, upper_bound=10)
         assert_array_almost_equal(list(times), [0, 2.5, 3.5, 5.5, 6.5, 8.5, 9.5], decimal=2)
-        times = SimulatedPolarizationLogs().binary_pulse(interval=3.0, veto_duration=1.0, dead_time=2.7, upper_bound=10)
+        times = SimulatedPolarizationLogs().binary_pulse(
+            interval=3.0, veto_duration=1.0, dead_time=2.7, upper_bound=10
+        )
         assert_array_almost_equal(list(times), [3.5, 5.5, 6.5, 8.5, 9.5], decimal=2)
 
     def test_times_generator(self):
-        logs = SimulatedPolarizationLogs(polarizer=1,
-                                         polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 1.0}),
-                                         polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 1.0, "veto_duration": 0.2}),
-                                         analyzer=2,
-                                         analyzer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 2.0}),
-                                         analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 2.0, "veto_duration": 0.4})
-                                         )
+        logs = SimulatedPolarizationLogs(
+            polarizer=1,
+            polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 1.0}),
+            polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 1.0, "veto_duration": 0.2}),
+            analyzer=2,
+            analyzer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 2.0}),
+            analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 2.0, "veto_duration": 0.4}),
+        )
         times = logs.times_generator(PV_POLARIZER_FLIPPER, upper_bound=6.0)
         assert_array_almost_equal(list(times), [0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0], decimal=2)
         times = logs.times_generator(PV_POLARIZER_VETO, upper_bound=6.0)
@@ -135,13 +149,14 @@ class TestSimulatedLogs:
         sample_logs.insert("start_time", "2023-10-01T00:00:00")
         sample_logs.insert("duration", 300)  # 5 minutes
         # inject the simulated logs. Notice there are no longs for the analyzer veto
-        logs = SimulatedPolarizationLogs(polarizer=1,
-                                         polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 60.0}),
-                                         polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "veto_duration": 1.0}),
-                                         analyzer=2,
-                                         analyzer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 120}),
-                                         analyzer_veto=None
-                                         )
+        logs = SimulatedPolarizationLogs(
+            polarizer=1,
+            polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 60.0}),
+            polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "veto_duration": 1.0}),
+            analyzer=2,
+            analyzer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 120}),
+            analyzer_veto=None,
+        )
         logs.inject(workspace)
         # check polaryzer and analyzer values
         assert sample_logs[PV_POLARIZER].value == 1
@@ -155,6 +170,7 @@ class TestSimulatedLogs:
         assert "T00:04:59.5" in str(sample_logs[PV_POLARIZER_VETO].times[-1])
         assert "T00:04:00.0" in str(sample_logs[PV_ANALYZER_FLIPPER].times[-1])
         assert (PV_ANALYZER_VETO in sample_logs) is False
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

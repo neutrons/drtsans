@@ -275,7 +275,7 @@ class SimulatedPolarizationLogs:
         """
         Generate a sequence of timestamps with a binary pulse pattern, starting at or later than dead_time.
 
-        The timestamps alternate between the start and end of a veto period, which is centered within each interval.
+        The timestamps alternate between the start and end of a veto period,which is centered within each interval.
 
         Parameters
         ----------
@@ -301,7 +301,8 @@ class SimulatedPolarizationLogs:
         """
         assert veto_duration < interval, "Veto duration must be less than the interval"
         elapsed, intervals, veto_half, continue_while = 0.0, interval, veto_duration / 2, True
-        yield elapsed
+        if dead_time == 0.0:
+            yield elapsed
         while continue_while:
             for elapsed in [intervals - veto_half, intervals + veto_half]:
                 if (upper_bound is None) or (elapsed <= upper_bound):
@@ -309,7 +310,7 @@ class SimulatedPolarizationLogs:
                         yield elapsed
                 else:
                     continue_while = False  # exit the outer while loop
-                    break  # exit the inmediate `for` loop
+                    break  # exit the immediate `for` loop
             intervals += interval
 
     def times_generator(self, pv_name: str, **options: dict) -> Optional[Generator[float, None, None]]:
@@ -414,4 +415,4 @@ class SimulatedPolarizationLogs:
                 continue
             times = list(times)  # run the generator to get all times
             values = [i % 2 for i in range(len(times))]  # Alternating zeros and ones
-            sample_logs.insert_time_series(name=pv, elapsed_times=times, values=values)
+            sample_logs.insert_time_series(name=pv, start_time=run_start, elapsed_times=times, values=values)

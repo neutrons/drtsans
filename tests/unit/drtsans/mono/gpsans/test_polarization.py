@@ -158,7 +158,7 @@ class TestSimulatedLogs:
             analyzer_veto=None,
         )
         logs.inject(workspace)
-        # check polaryzer and analyzer values
+        # check polarizer and analyzer values
         assert sample_logs[PV_POLARIZER].value == 1
         assert sample_logs[PV_ANALYZER].value == 2
         # check time-series values

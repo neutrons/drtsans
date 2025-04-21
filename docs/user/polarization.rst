@@ -348,39 +348,63 @@ streams.
 Process Variables
 -----------------
 
-Process variables (PV) indicate the spin selector used and its state. Given a
-particular Polarizer, PV PolarizerFlipper indicates whether the selected state is "up" or "down".
-The PV AnalyzerFlipper plays an analogous role for the analyzer.
-The following tables summarize the possible values of the polarization PVs.
+Process variables (PV) indicate the spin selectors used and their state.
 
-+-----------------------+---------------------+
-| PV Polarizer          | PV PolarizerFlipper |
-+=======================+=====================+
-| 0 - No Polarizer      |                     |
-+-----------------------+---------------------+
-| 1 - Reflection        | 1 - ON              |
-+-----------------------+---------------------+
-| 1 - Reflection        | 0 - OFF             |
-+-----------------------+---------------------+
-| 2 - Transmission      | 1 - ON              |
-+-----------------------+---------------------+
-| 2 - Transmission      | 0 - OFF             |
-+-----------------------+---------------------+
-| 3 - Undefined         |                     |
-+-----------------------+---------------------+
+- **Polarizer**: (int single-value) type of device to polarize the upstream neutron beam
+- **PolarizerFlipper**: (int time-series) the device placed between the Polarizer and the sample can flip the Sz state.
+  In the course of an experiment, the flipper may change state between its two possible states "ON" and "OFF" (1 and 0),
+  hence the associated sample log is a time-series.
 
-+-----------------------+--------------------+
-| PV Analyzer           | PV AnalyzerFlipper |
-+=======================+====================+
-| 0 - No Analyzer       |                    |
-+-----------------------+--------------------+
-| 1 - Fan & SF2         | 1 - ON             |
-+-----------------------+--------------------+
-| 1 - Fan & SF2         | 0 - OFF            |
-+-----------------------+--------------------+
-| 2 - 3He               | 1 - ON             |
-+-----------------------+--------------------+
-| 2 - 3He               | 0 - OFF            |
-+-----------------------+--------------------+
-| 3 - Undefined         |                    |
-+-----------------------+--------------------+
+
+- **Analyzer**: (int single-value) type of device to polarize the downstream neutron beam
+- **AnalyzerFlipper**: (int time-series) the device placed between the Analyzer and the detectors can flip the Sz state.
+  As in the case of PV `PolarizerFlipper`, the analyzer flipper may change state
+  and thus the sample logs is a time-series.
+
+The following tables summarize the possible PVs values and the corresponding Sz states.
+
++-----------------------+---------------------+-------------+
+| PV Polarizer          | PV PolarizerFlipper |  Sz State   |
++=======================+=====================+=============+
+| 0 - No Polarizer      |                     | unpolarized |
++-----------------------+---------------------+-------------+
+| 1 - Reflection        | 1 - ON              | up          |
++-----------------------+---------------------+-------------+
+| 1 - Reflection        | 0 - OFF             | down        |
++-----------------------+---------------------+-------------+
+| 2 - Transmission      | 1 - ON              | down        |
++-----------------------+---------------------+-------------+
+| 2 - Transmission      | 0 - OFF             | up          |
++-----------------------+---------------------+-------------+
+| 3 - Undefined         |                     | unpolarized |
++-----------------------+---------------------+-------------+
+
++-----------------------+--------------------+--------------+
+| PV Analyzer           | PV AnalyzerFlipper | Sz State     |
++=======================+====================+==============+
+| 0 - No Analyzer       |                    | unpolarized  |
++-----------------------+--------------------+--------------+
+| 1 - Fan & SF2         | 1 - ON             | up           |
++-----------------------+--------------------+--------------+
+| 1 - Fan & SF2         | 0 - OFF            | down         |
++-----------------------+--------------------+--------------+
+| 2 - 3He               | 1 - ON             | down         |
++-----------------------+--------------------+--------------+
+| 2 - 3He               | 0 - OFF            | up           |
++-----------------------+--------------------+--------------+
+| 3 - Undefined         |                    | unpolarized  |
++-----------------------+--------------------+--------------+
+
+There is a adjustment time period when a flipper changes value during which the state of the flipper is uncertain.
+Events collected during this time period cannot be assigned to either of the "ON" or "OFF" states,
+hence they should be discarded in the reduction.
+The set of time periods for the polarizer flipper are collected in PV `PolarizerVeto`
+and for the analyzer flipper in PV `AnalyzerVeto`.
+
+The image below shows the relation between the flipper and veto logs. Whenever the flipper changes state,
+there's a time period during which the veto log becomes 1.
+During reduction, we'll use Mantid's filtering capabilities to discount events collected during these time periods.
+
+.. figure:: media/polarization_2.png
+   :alt: Relation between flipper and veto logs
+   :width: 400px

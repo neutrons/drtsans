@@ -299,7 +299,8 @@ class SimulatedPolarizationLogs:
         >>> list(log.binary_pulse(interval=3.0, veto_duration=1.0, upper_bound=10))
         [0, 2.5, 3.5, 5.5, 6.5, 8.5, 9.5]
         """
-        assert veto_duration < interval, "Veto duration must be less than the interval"
+        if not veto_duration < interval:
+            raise ValueError("Veto duration must be less than the interval")
         elapsed, intervals, veto_half, continue_while = 0.0, interval, veto_duration / 2, True
         if dead_time == 0.0:
             yield elapsed

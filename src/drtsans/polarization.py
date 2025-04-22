@@ -301,18 +301,18 @@ class SimulatedPolarizationLogs:
         """
         if not veto_duration < interval:
             raise ValueError("Veto duration must be less than the interval")
-        elapsed, intervals, veto_half, continue_while = 0.0, interval, veto_duration / 2, True
+        elapsed, latest_pulse_time, veto_half, continue_while = 0.0, interval, veto_duration / 2, True
         if dead_time == 0.0:
             yield elapsed
         while continue_while:
-            for elapsed in [intervals - veto_half, intervals + veto_half]:
+            for elapsed in [latest_pulse_time - veto_half, latest_pulse_time + veto_half]:
                 if (upper_bound is None) or (elapsed <= upper_bound):
                     if elapsed >= dead_time:
                         yield elapsed
                 else:
                     continue_while = False  # exit the outer while loop
                     break  # exit the immediate `for` loop
-            intervals += interval
+            latest_pulse_time += interval
 
     def times_generator(self, pv_name: str, **options: dict) -> Optional[Generator[float, None, None]]:
         """

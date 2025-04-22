@@ -361,7 +361,8 @@ Process variables (PV) indicate the spin selectors used and their state.
   As in the case of PV `PolarizerFlipper`, the analyzer flipper may change state
   and thus the sample logs is a time-series.
 
-The following tables summarize the possible PVs values and the corresponding Sz states.
+The following tables summarize the possible PVs values and the corresponding `Sz` states,
+where `Sz` is the component of the neutron spin along the polarizing (or analyzing) direction.
 
 +-----------------------+---------------------+-------------+
 | PV Polarizer          | PV PolarizerFlipper |  Sz State   |
@@ -407,4 +408,4 @@ During reduction, we'll use Mantid's filtering capabilities to discount events c
 
 .. figure:: media/polarization_2.png
    :alt: Relation between flipper and veto logs
-   :width: 400px
+   :width: 800px

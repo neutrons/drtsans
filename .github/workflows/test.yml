@@ -76,7 +76,7 @@ jobs:
       - name: Build Wheel
         run: |
           python -m build --wheel --no-isolation
-          check-wheel-contents dist/drtsans*.tar.bz2
+          check-wheel-contents dist/drtsans*.whl
       - name: Build Conda package
         run: |
           cd conda.recipe

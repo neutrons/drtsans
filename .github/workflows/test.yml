@@ -8,7 +8,7 @@ on:
     tags: ['v*']
 
 jobs:
-  linux:
+  tests:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -50,13 +50,35 @@ jobs:
       - name: Build the docs
         run: |
           cd docs && make html
-      - name: Build conda package
+
+  package:
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+          fetch-tags: true
+          ref: ${{ github.ref }}
+      - name: Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          channels: mantid/label/main,conda-forge,defaults
+          python-version: '3.10'
+          miniconda-version: latest
+          mamba-version: "*"
+          environment-file: environment.yml
+          lfs: true
+          submodules: recursive
+      - name: Build Wheel
         run: |
-          # test that the conda package builds
+          python -m build --wheel --no-isolation
+          check-wheel-contents dist/quicknxs-*.whl
+      - name: Build Conda package
+        run: |
           cd conda.recipe
-          echo "versioningit $(versioningit ../)"
-          # conda channels could have been defined in the conda-incubator, but you can copy/paste the lines
-          # below to build the conda package in your local machine
-          CHANNELS="--channel mantid/label/main --channel conda-forge"
-          VERSION=$(versioningit ../) conda mambabuild $CHANNELS --output-folder . .
-          conda verify noarch/drtsans*.tar.bz2
+          VERSION=$(versioningit ../) conda mambabuild --output-folder . . -c mantid
+          conda verify noarch/quicknxs-*.tar.bz2

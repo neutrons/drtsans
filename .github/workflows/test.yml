@@ -79,6 +79,11 @@ jobs:
           check-wheel-contents dist/drtsans*.whl
       - name: Build Conda package
         run: |
+          # test that the conda package builds
           cd conda.recipe
-          VERSION=$(versioningit ../) conda mambabuild --output-folder . . -c mantid
+          echo "versioningit $(versioningit ../)"
+          # conda channels could have been defined in the conda-incubator, but you can copy/paste the lines
+          # below to build the conda package in your local machine
+          CHANNELS="--channel mantid/label/main --channel conda-forge"
+          VERSION=$(versioningit ../) conda mambabuild $CHANNELS --output-folder . .
           conda verify noarch/drtsans*.tar.bz2

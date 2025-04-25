@@ -31,6 +31,7 @@ Release Notes
   - PR #1022: Generator of simulated runs for testing
   - PR #1021: stub for the polarization module
   - PR #1019: Fixes an edge case bug in creating the sample logs periodic index log where the number of entries is less than the number of times
+  - PR #1023: Github actions - conda build in tests workflow and versiongit information from tags
 ..
 
 1.13.0

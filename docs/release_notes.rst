@@ -25,7 +25,7 @@ Release Notes
   ????-??-??
 
   **Of interest to the User**:
-  - PR #???:
+  - PR #1025: Includes v1.14.0 release notes.
 
   **Of interest to the Developer:**
   - PR #???:

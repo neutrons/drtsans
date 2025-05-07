@@ -17,8 +17,14 @@ particular concern for time-of-flight (TOF) pulsed neutron instruments like EQ-S
 broad spectrum of neutron wavelengths. The data reduction for EQ-SANS, therefore, includes optional
 wavelength dependent corrections for inelastic incoherent scattering.
 
-Elastic reference normalization procedure
------------------------------------------
+Elastic reference normalization
+-------------------------------
+
+Elastic reference normalization introduces a wavelength-dependent scale factor to account for
+differences in the intensity scale due to e.g. inexact neutron flux wavelength normalization.
+
+Procedure
+.........
 
 The following steps describe the elastic reference normalization available in `drtsans`:
 
@@ -55,9 +61,19 @@ The following steps describe the elastic reference normalization available in `d
    The above scaling is applied for :math:`I(q,\lambda_i)` except for the reference wavelength,
    :math:`I(q, \lambda_{ref})`.
 
+#. Update the 2D :math:`I(q_x,q_y,\lambda_i)` and :math:`\delta I(q_x,q_y,\lambda_i)` using
+   :math:`K(\lambda_i)` calculated from 1D :math:`I(q,\lambda_i)`.
 
-Inelastic incoherent correction procedure
------------------------------------------
+Example
+.......
+
+TODO
+
+Inelastic incoherent correction
+-------------------------------
+
+Procedure
+.........
 
 The following steps describe the inelastic incoherent correction available in `drtsans`:
 
@@ -111,8 +127,18 @@ The following steps describe the inelastic incoherent correction available in `d
       \left(\delta I_k^{\lambda_i}\right)^2
       \right]
 
+#. Use :math:`b(\lambda)` calculated from 1D :math:`I(q,\lambda_i)` to update 2D
+   :math:`I(q_x,q_y,\lambda_i)` according to:
 
+   .. math::
+      I'(q_x,q_y,\lambda_i) &= I(q_x,q_y,\lambda_i) - b_{1D}(\lambda_i) \\
+      \left( \delta I'(q_x,q_y,\lambda_i) \right)^2 &= \left( \delta I'(q_x,q_y,\lambda_i) \right)^2
+      + \left( \delta b_{1D}(\lambda_i) \right)^2
 
+Example
+.......
+
+TODO
 
 Parameters
 ----------
@@ -133,6 +159,11 @@ Parameters
      - ``false``
    * - ``"incohfit_intensityweighted"``
      - If ``"true"``, the intensity weighted method is used in the inelastic incoherent correction.
+       In the intensity weighted method, the q bins are weighed inversely proportional to their
+       intensity, giving bins in the high Q range more weight.
+     - ``false``
+   * - ``"selectMinIncoh"``
+     - If ``"true"``, use the smallest wavelength as reference wavelength.
      - ``false``
    * - ``"incohfit_qmin"``
      - :math:`q_{\min}` for the inelastic incoherent correction. If ``null``, the minimum valid
@@ -155,9 +186,6 @@ Parameters
    * - ``"elasticReferenceBkgd"``
      - Background run for the elastic reference run.
      -
-   * - ``"selectMinIncoh"``
-     - If ``"true"``, use the smallest wavelength as reference wavelength.
-     - ``false``
 
 
 Example
@@ -171,6 +199,7 @@ disabled by default).
     {
         "fitInelasticIncoh": false,
         "incohfit_intensityweighted": false,
+        "selectMinIncoh": false
         "incohfit_qmin": null,
         "incohfit_qmax": null,
         "incohfit_factor": null,
@@ -189,8 +218,7 @@ disabled by default).
             "runNumber": null,
             "value": null
           }
-        },
-        "selectMinIncoh": false
+        }
     }
 
 References

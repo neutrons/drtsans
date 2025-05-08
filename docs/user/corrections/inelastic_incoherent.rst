@@ -67,7 +67,17 @@ The following steps describe the elastic reference normalization available in `d
 Example
 .......
 
-TODO
+.. figure:: /user/media/elastic_norm_before.png
+   :alt: before elastic reference normalization
+   :width: 800px
+
+   Figure 1: I(Q) per wavelength before elastic reference normalization.
+
+.. figure:: /user/media/elastic_norm_after.png
+   :alt: after elastic reference normalization
+   :width: 800px
+
+   Figure 2: I(Q) per wavelength after elastic reference normalization.
 
 Inelastic incoherent correction
 -------------------------------
@@ -138,7 +148,19 @@ The following steps describe the inelastic incoherent correction available in `d
 Example
 .......
 
-TODO
+.. figure:: /user/media/incoh_fit_before.png
+   :alt: before inelastic incoherent correction
+   :width: 800px
+
+   Figure 3: I(Q) per wavelength after elastic reference normalization but before inelastic
+   incoherent correction.
+
+.. figure:: /user/media/incoh_fit_after.png
+   :alt: after inelastic incoherent correction
+   :width: 800px
+
+   Figure 4: I(Q) per wavelengths after elastic reference normalization and inelastic incoherent
+   correction.
 
 Parameters
 ----------

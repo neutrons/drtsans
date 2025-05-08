@@ -120,7 +120,7 @@ def correct_incoherence_inelastic_all(
 
     # Correct 2D
     if i_of_q_2d:
-        corrected_2d = correct_incoherence_inelastic_2d(i_of_q_2d, b_array, ref_wl_index)
+        corrected_2d = correct_incoherence_inelastic_2d(i_of_q_2d, b_array)
     else:
         corrected_2d = None
 

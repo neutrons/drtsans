@@ -71,13 +71,13 @@ To show the effect of the elastic reference normalization, Figure 1 shows I(Q) t
 wavelength without the normalization and Figure 2 shows I(Q) total and per wavelength with the
 normalization applied.
 
-.. figure:: /user/media/elastic_norm_before.png
+.. figure:: /user/media/eqsans_elastic_norm_before.png
    :alt: before elastic reference normalization
    :width: 800px
 
    Figure 1: I(Q) total and per wavelength without elastic reference normalization.
 
-.. figure:: /user/media/elastic_norm_after.png
+.. figure:: /user/media/eqsans_elastic_norm_after.png
    :alt: after elastic reference normalization
    :width: 800px
 
@@ -160,13 +160,13 @@ correction applied. The comparison shows that the correction eliminates the bump
 is an artifact created when averaging I(Q) for different wavelengths with different Q range and
 incoherence levels.
 
-.. figure:: /user/media/incoh_fit_before.png
+.. figure:: /user/media/eqsans_incoh_fit_before.png
    :alt: before inelastic incoherent correction
    :width: 800px
 
    Figure 3: I(Q) total and per wavelength without inelastic incoherent correction.
 
-.. figure:: /user/media/incoh_fit_after.png
+.. figure:: /user/media/eqsans_incoh_fit_after.png
    :alt: after inelastic incoherent correction
    :width: 800px
 

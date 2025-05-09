@@ -645,19 +645,15 @@ def generate_test_data():
     finite_mask = ~np.isnan(expected_intensity_vec)
     expected_intensity_vec[finite_mask] = 0.1
 
-    # the errors depend on the wavelength-dependent b factor value and whether the bin
-    # was inside or outside the q subset for valid intensity at all wavelengths
+    # the errors depend on the wavelength-dependent b factor value
     expected_error_vec = np.copy(error_vec)
-    error_q_subset_wl = [0.0, 0.3452067, 0.37081127, 0.35823782, 0.31754422]
-    error_non_q_subset_wl = [0.0, 0.36055651, 0.38729963, 0.37416707, 0.33166399]
+    expected_error_wl = [0.0, 0.36055651, 0.38729963, 0.37416707, 0.33166399]
     # massage the errors into the right shape for comparison with the IQazimuthal data structure
-    q_subset_mask = ic2d.gen_q_subset_mask(i_of_q, 11, 11, 5)
     num_wl = np.unique(i_of_q.wavelength).shape[0]
     for i_wl in range(1, num_wl):  # skip reference wavelength = 0
         error_wl = expected_error_vec[i_wl::num_wl]
         finite_mask = ~np.isnan(error_wl)
-        error_wl[q_subset_mask & finite_mask] = error_q_subset_wl[i_wl]
-        error_wl[~q_subset_mask & finite_mask] = error_non_q_subset_wl[i_wl]
+        error_wl[finite_mask] = expected_error_wl[i_wl]
 
     return i_of_q, b_array, expected_intensity_vec, expected_error_vec
 
@@ -685,42 +681,11 @@ def test_reshape_q_azimuthal():
     assert np.array_equal(i_of_q.wavelength, test_i_of_q.wavelength)
 
 
-def test_gen_q_subset_mask():
-    # q_subset of 2d case is each qx, qy where all lambda(qx, qy) is finite
-    # in original test data, this can be represented as the ndarray ranges
-    # 2:-2, 2, :
-    # 2:-2, 8, :
-    # 2, 2:-2, :
-    # 8, 2:-2, :
-    i_of_q, *_ = generate_test_data()
-    qx_len = np.unique(i_of_q.qx).shape[0]
-    qy_len = np.unique(i_of_q.qy).shape[0]
-    wavelength_len = np.unique(i_of_q.wavelength).shape[0]
-    q_subset_mask = ic2d.gen_q_subset_mask(i_of_q, qx_len, qy_len, wavelength_len)
-    # return mask to test data arrangement for testing
-    test_q_subset_mask = q_subset_mask.repeat(wavelength_len).reshape((11, 11, 5))
-    # Positive assertions
-    assert test_q_subset_mask[2:-2, 2, :].all()
-    assert test_q_subset_mask[2:-2, 8, :].all()
-    assert test_q_subset_mask[2, 2:-2, :].all()
-    assert test_q_subset_mask[8, 2:-2, :].all()
-    # Negative assertions
-    assert not test_q_subset_mask[:2, :, :].any()
-    assert not test_q_subset_mask[-2:, :, :].any()
-    assert not test_q_subset_mask[:, :2, :].any()
-    assert not test_q_subset_mask[:, -2:, :].any()
-    assert not test_q_subset_mask[3:8, 3:8, :].any()
-    # Test filtering
-    q_subset_filter = q_subset_mask.repeat(wavelength_len)
-    assert np.all(np.isfinite(i_of_q.intensity[q_subset_filter]))
-    assert np.any(np.isnan(i_of_q.intensity[~q_subset_filter]))
-
-
 def test_correct_incoherence_inelastic_2d():
     """test of the function correct_incoherence_inelastic_2d"""
     i_of_q, b_array, expected_intensity_vec, expected_error_vec = generate_test_data()
 
-    corrected_i_of_q = ic2d.correct_incoherence_inelastic_2d(i_of_q, b_array, ref_wl_index=0)
+    corrected_i_of_q = ic2d.correct_incoherence_inelastic_2d(i_of_q, b_array)
 
     assert isinstance(corrected_i_of_q, ic2d.CorrectedIQ2D)
     assert_allclose(corrected_i_of_q.iq2d.intensity, expected_intensity_vec)

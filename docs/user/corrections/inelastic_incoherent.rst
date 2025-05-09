@@ -20,8 +20,8 @@ wavelength dependent corrections for inelastic incoherent scattering.
 Elastic reference normalization
 -------------------------------
 
-Elastic reference normalization introduces a wavelength-dependent scale factor to account for
-differences in the intensity scale due to e.g. inexact neutron flux wavelength normalization.
+Elastic reference normalization introduces a wavelength-dependent scale factor `K` to compensate
+for differences in the intensity scale due to e.g. inexact neutron flux wavelength normalization.
 
 Procedure
 .........
@@ -41,7 +41,7 @@ The following steps describe the elastic reference normalization available in `d
       I_{\text{elastic}}(q_k,\lambda_i) \rvert^2
 
    Here, :math:`\lambda_{ref}` is the shortest wavelength bin of :math:`\lambda_{i}`.
-   The resulting K, with the subscript "elastic" is omitted for convenience, is
+   The resulting K, with the subscript "elastic" omitted for convenience, is
 
    .. math::
       K(\lambda_i) = \frac{\sum_{q_k} I(q_k, \lambda_{ref})
@@ -67,20 +67,27 @@ The following steps describe the elastic reference normalization available in `d
 Example
 .......
 
+To show the effect of the elastic reference normalization, Figure 1 shows I(Q) total and per
+wavelength without the normalization and Figure 2 shows I(Q) total and per wavelength with the
+normalization applied.
+
 .. figure:: /user/media/elastic_norm_before.png
    :alt: before elastic reference normalization
    :width: 800px
 
-   Figure 1: I(Q) per wavelength before elastic reference normalization.
+   Figure 1: I(Q) total and per wavelength without elastic reference normalization.
 
 .. figure:: /user/media/elastic_norm_after.png
    :alt: after elastic reference normalization
    :width: 800px
 
-   Figure 2: I(Q) per wavelength after elastic reference normalization.
+   Figure 2: I(Q) total and per wavelength with elastic reference normalization.
 
 Inelastic incoherent correction
 -------------------------------
+
+The inelastic incoherent correction introduces a wavelength-dependent compensation term `b` to
+compensate for the wavelength dependence of inelastic incoherent scattering effects.
 
 Procedure
 .........
@@ -90,8 +97,7 @@ The following steps describe the inelastic incoherent correction available in `d
 #. Get :math:`I(q,\lambda_i)` of the sample run, making sure q-bins are same for all :math:`\lambda`
    bins.
 
-#. Determine :math:`q_{\min}` and :math:`q_{\max}` that exist in all :math:`I(q,\lambda_i)` for the
-   fitting (minimization) process.
+#. Determine :math:`q_{\min}` and :math:`q_{\max}` that exist in all :math:`I(q,\lambda_i)`.
 
 #. Calculate the inelastic incoherent correction factor, :math:`b(\lambda)`. Here,
    :math:`\lambda_{ref}` is the shortest wavelength bin and :math:`N` is the number of :math:`q`
@@ -148,19 +154,23 @@ The following steps describe the inelastic incoherent correction available in `d
 Example
 .......
 
+To show the effect of the inelastic incoherent correction, Figure 3 shows I(Q) total and per
+wavelength without the correction and Figure 4 shows I(Q) total and per wavelength with the
+correction applied. The comparison shows that the correction eliminates the bump at high Q, which
+is an artifact created when averaging I(Q) for different wavelengths with different Q range and
+incoherence levels.
+
 .. figure:: /user/media/incoh_fit_before.png
    :alt: before inelastic incoherent correction
    :width: 800px
 
-   Figure 3: I(Q) per wavelength after elastic reference normalization but before inelastic
-   incoherent correction.
+   Figure 3: I(Q) total and per wavelength without inelastic incoherent correction.
 
 .. figure:: /user/media/incoh_fit_after.png
    :alt: after inelastic incoherent correction
    :width: 800px
 
-   Figure 4: I(Q) per wavelengths after elastic reference normalization and inelastic incoherent
-   correction.
+   Figure 4: I(Q) total and per wavelength with inelastic incoherent correction.
 
 Parameters
 ----------

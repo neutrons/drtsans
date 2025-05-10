@@ -73,6 +73,9 @@ script-files = [
     "scripts/generate_report.yaml",
 ]
 
+[project.scripts]
+grasp_cg2 = "drtsans.mono.gpsans.grasp:grasp_cg2"
+
 [tool.setuptools.package-data]
 "*" = ["configuration/schema/*.json", "mono/biosans/cg3_to_nexus_mapping.yml"]
 

@@ -52,3 +52,24 @@ This yaml file generates the following output:
         beam center y                                               -0.019878669581987165
         sample transmission                                            0.8939763002876431
         sample transmission error                                    0.002889993726769822
+
+GRASP
+-----
+The command ``grasp_cg2`` can be used to save the pixel intensities from a gpsans reduction run into a GRASP-formatted ASCII file which can be loaded with the GRASP software package.
+
+.. code-block:: bash
+
+    >>> conda activate drtsans
+    >>> grasp_cg2 -h
+
+    usage: grasp_cg2 [-h] datafile output_directory
+
+    drtsans GRASP
+
+    positional arguments:
+        datafile          The datafile to be processed.
+        output_directory  The output directory that the GRASP file will be saved to.
+
+    options:
+        -h, --help        show this help message and exit
+

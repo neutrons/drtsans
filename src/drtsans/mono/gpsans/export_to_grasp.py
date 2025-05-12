@@ -13,7 +13,7 @@ import re
 import time
 
 
-def grasp_cg2():
+def main():
     parser = argparse.ArgumentParser(description="drtsans GRASP")
 
     # Add positional arguments
@@ -145,7 +145,7 @@ def grasp_cg2():
         print("No numeric part found in the string.")
     # print(filename)
     # filename=output_dir+'/2D/GPSANS_'+samples[idx].zfill(7)+'.dat'
-    output_filename = output_dir + "grasp/" + f"GPSANS_{run_number.zfill(7)}.dat"
+    output_filename = output_dir + "/" + f"GPSANS_{run_number.zfill(7)}.dat"
     print(output_filename)
     # formatting the output file with the headers of metadata and then data.
     os.makedirs(os.path.dirname(output_filename), exist_ok=True)

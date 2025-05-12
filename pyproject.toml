@@ -74,7 +74,7 @@ script-files = [
 ]
 
 [project.scripts]
-grasp_cg2 = "drtsans.mono.gpsans.grasp:grasp_cg2"
+grasp_cg2 = "drtsans.mono.gpsans.export_to_grasp:main"
 
 [tool.setuptools.package-data]
 "*" = ["configuration/schema/*.json", "mono/biosans/cg3_to_nexus_mapping.yml"]

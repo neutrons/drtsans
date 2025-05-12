@@ -15,10 +15,10 @@ dependencies:
   - python-build
   - versioningit
   # runtime
-  - mantid>=6.11
+  - mantid==6.12
   - numexpr
   - pandas
-  - lmfit<1.2.0
+  - lmfit==1.3.3
   - jinja2
   - graphviz
   - jsonschema>=3.0.2
@@ -39,7 +39,7 @@ dependencies:
   - sphinx_rtd_theme
   # utliities
   - black
-  - libmambapy=1.4.2  # auto-selected libarchive=3.6.2 depends on this version
+  - libmambapy
   - docutils
   - git-lfs
   - pre-commit

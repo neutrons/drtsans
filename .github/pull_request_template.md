@@ -2,7 +2,7 @@
 
 Check all that apply:
 - [ ] added [release notes](https://github.com/neutrons/drtsans/blob/next/docs/release_notes.rst) (if not, provide an explanation in the work description)
-- [ ] updated documentation
+- [ ] updated documentation and checked that it looks correct in the [pull request preview](https://docs.readthedocs.com/platform/stable/pull-requests.html)
 - [ ] Source added/refactored
 - [ ] Added unit tests
 - [ ] Added integration tests
@@ -12,7 +12,7 @@ Check all that apply:
 - Links to IBM EWM items:
 - Links to related issues or pull requests:
 
-## Manual test for the reviewer
+## :warning: Manual test for the reviewer
 <!-- Instructions for testing here. -->
 
 ## Check list for the reviewer
@@ -21,7 +21,7 @@ Check all that apply:
     + [ ] clearly named variables (better to be verbose in variable names)
     + [ ] code comments explaining the intent of code blocks
 - [ ] All the tests are passing
-- [ ] The documentation is up to date
+- [ ] The documentation is up to date and looks correct in the [pull request preview](https://docs.readthedocs.com/platform/stable/pull-requests.html)
 - [ ] code comments added when explaining intent
 
 ### Execution of tests requiring the /SNS and /HFIR filesystems

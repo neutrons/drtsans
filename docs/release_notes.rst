@@ -17,17 +17,35 @@ Release Notes
   - PR #XYZ: one-liner description
 ..
 
+
+
 ..
-  1.14.0
-  --------------
-  (date of release, format YYYY-MM-DD)
+  1.15.0
+  -------
+  ????-??-??
 
   **Of interest to the User**:
-  - PR #XYZ: one-liner description
+  - PR #1025: Includes v1.14.0 release notes.
+  - PR #1029: Calculation of the I(Q2D) error is simplified for the incoherent inelastic correction
 
   **Of interest to the Developer:**
-  - PR #XYZ: one-liner description
+  - PR #???:
 ..
+
+
+1.14.0
+-------
+2025-04-29
+
+**Of interest to the User**:
+- PR #1018: Add initial user documentation on polarization
+- PR #1015: Upgrades to Mantid 6.12 and numpy 2
+
+**Of interest to the Developer:**
+- PR #1023: Github actions - conda build versiongit information from tags
+- PR #1022: Generator of simulated runs for testing
+- PR #1021: stub for the polarization module
+- PR #1019: Fixes an edge case bug in creating the sample logs periodic index log where the number of entries is less than the number of times
 
 1.13.0
 ------

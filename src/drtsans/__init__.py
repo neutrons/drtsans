@@ -14,6 +14,7 @@ from .auto_wedge import *
 from .beam_finder import *
 from .instruments import *
 from .momentum_transfer import *
+from .polarization import *
 from .reductionlog import *
 from .resolution import *
 from .sensitivity import *
@@ -27,6 +28,7 @@ __all__ = (
     + beam_finder.__all__
     + auto_wedge.__all__
     + instruments.__all__
+    + polarization.__all__
     + reductionlog.__all__
     + thickness_normalization.__all__
     + resolution.__all__

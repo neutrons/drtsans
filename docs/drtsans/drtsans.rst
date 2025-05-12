@@ -137,6 +137,14 @@ drtsans.load module
    :undoc-members:
    :show-inheritance:
 
+drtsans.polarization module
+---------------------------
+
+.. automodule:: drtsans.polarization
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 drtsans.mask\_utils module
 --------------------------
 

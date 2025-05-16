@@ -28,13 +28,14 @@ def test_grasp_cg2(datarepo_dir):
         for line in f:
             # assert first line is correct
             if line_count == 0:
-                assert line.startwith("# Panel Scan 13 of 60")
+                assert line.startswith("# Panel Scan 13 of 60")
             line_count += 1
 
     # assert number of lines is correct
     assert line_count == 201
 
     # cleanup
+    os.remove(output_path)
     os.rmdir(output_dir)
 
 

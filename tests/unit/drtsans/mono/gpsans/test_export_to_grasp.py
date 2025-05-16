@@ -8,7 +8,7 @@ import subprocess
 def test_grasp_cg2(datarepo_dir):
     #
     input_filename = "CG2_9177.nxs.h5"
-    input_path = str(Path(datarepo_dir.gpsans) / short_filename)
+    input_path = str(Path(datarepo_dir.gpsans) / input_filename)
 
     output_dir = "test_grasp"
     output_filename = "GPSANS_0009177.dat"

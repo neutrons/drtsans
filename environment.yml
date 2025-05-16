@@ -1,8 +1,7 @@
 name: drtsans-dev
 channels:
-  - mantid/label/main
+  - mantid-ornl/label/rc
   - conda-forge
-  - defaults
 dependencies:
   # base
   - pip
@@ -15,7 +14,7 @@ dependencies:
   - python-build
   - versioningit
   # runtime
-  - mantid==6.12
+  - mantid=6.12
   - numexpr
   - pandas
   - lmfit==1.3.3

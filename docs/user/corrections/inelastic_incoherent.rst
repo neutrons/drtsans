@@ -15,13 +15,22 @@ contribution from inelastic scattering [Do2013]_.
 Due to the wavelength dependence of inelastic scattering effects, correcting for them is of
 particular concern for time-of-flight (TOF) pulsed neutron instruments like EQ-SANS, which use a
 broad spectrum of neutron wavelengths. The data reduction for EQ-SANS, therefore, includes optional
-wavelength dependent corrections for inelastic incoherent scattering.
+wavelength-dependent corrections for inelastic incoherent scattering.
 
 Elastic reference normalization
 -------------------------------
 
-Elastic reference normalization introduces a wavelength-dependent scale factor `K` to compensate
-for differences in the intensity scale due to e.g. inexact neutron flux wavelength normalization.
+Before data reduction, the various data sets must be normalized to equivalent beam exposure.
+The normalization method typically used at EQ-SANS is proton charge on target and measured flux
+spectrum, which requires a pre-measured flux spectrum :math:`\phi(\lambda)`.
+However, the wavelength distribution of scattered neutrons can be blurred due to
+wavelength-dependent coherent-inelastic processes, as illustrated in the diagram below.
+Elastic reference normalization introduces a wavelength-dependent scale factor, `K`,
+to compensate for differences in the intensity scale resulting from these effects.
+
+.. figure:: /user/media/blurring_wavelength_distribution.jpg
+   :alt: blurring wavelength distribution
+   :width: 800px
 
 Procedure
 .........

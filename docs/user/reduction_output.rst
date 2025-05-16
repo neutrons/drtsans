@@ -72,4 +72,3 @@ The command ``grasp_cg2`` can be used to save the pixel intensities from a gpsan
 
     options:
         -h, --help        show this help message and exit
-

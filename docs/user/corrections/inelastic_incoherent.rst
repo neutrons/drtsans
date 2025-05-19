@@ -15,7 +15,7 @@ contribution from inelastic scattering [Do2013]_.
 Due to the wavelength dependence of inelastic scattering effects, correcting for them is of
 particular concern for time-of-flight (TOF) pulsed neutron instruments like EQ-SANS, which use a
 broad spectrum of neutron wavelengths. The data reduction for EQ-SANS, therefore, includes optional
-wavelength-dependent corrections for inelastic incoherent scattering.
+wavelength-dependent corrections for inelastic scattering.
 
 Elastic reference normalization
 -------------------------------

@@ -1,7 +1,7 @@
 .. _user.corrections.inelastic_incoherent:
 
-Corrections due to inelastic scattering
-===============================
+Wavelength-dependent corrections
+================================
 
 Background
 ----------
@@ -23,14 +23,13 @@ Elastic reference normalization
 Before data reduction, the various data sets must be normalized to equivalent beam exposure.
 The normalization method typically used at EQ-SANS is proton charge on target and measured flux
 spectrum, which requires a pre-measured flux spectrum :math:`\phi(\lambda)`.
-However, the wavelength distribution of scattered neutrons can be blurred due to
-wavelength-dependent coherent-inelastic processes, as illustrated in the diagram below.
+The flux spectrum is measured using a purely elastic sample (carbon black or graphite), however, the
+actual spectrum may change over time and may be affected by the energy dependence of the scattering
+cross section.
 Elastic reference normalization introduces a wavelength-dependent scale factor, `K`,
-to compensate for differences in the intensity scale resulting from these effects.
-
-.. figure:: /user/media/blurring_wavelength_distribution.jpg
-   :alt: blurring wavelength distribution
-   :width: 800px
+to compensate for discrepancies in the intensity scale resulting from inaccuracies in the
+normalization. The scale factor, `K`, is calculated using an elastic reference run, for which
+the user can use, for example, a separate elastic sample run or the sample run itself.
 
 Procedure
 .........
@@ -49,7 +48,7 @@ The following steps describe the elastic reference normalization available in `d
       \sum_{q_k=q_{\min}}^{q_{\max}} \lvert I_{\text{elastic}}(q_k,\lambda_{ref})-K(\lambda_i)
       I_{\text{elastic}}(q_k,\lambda_i) \rvert^2
 
-   Here, :math:`\lambda_{ref}` is the shortest wavelength bin of :math:`\lambda_{i}`.
+   Here, :math:`\lambda_{ref}` is the first wavelength bin of :math:`\lambda_{i}`.
    The resulting K, with the subscript "elastic" omitted for convenience, is
 
    .. math::
@@ -92,23 +91,23 @@ normalization applied.
 
    Figure 2: I(Q) total and per wavelength with elastic reference normalization.
 
-Inelastic incoherent correction
--------------------------------
+Inelastic incoherent compensation
+---------------------------------
 
-The inelastic incoherent correction introduces a wavelength-dependent compensation term `b` to
+The inelastic incoherent compensation introduces a wavelength-dependent compensation term `b` to
 compensate for the wavelength dependence of inelastic incoherent scattering effects.
 
 Procedure
 .........
 
-The following steps describe the inelastic incoherent correction available in `drtsans`:
+The following steps describe the inelastic incoherent compensation available in `drtsans`:
 
 #. Get :math:`I(q,\lambda_i)` of the sample run, making sure q-bins are same for all :math:`\lambda`
    bins.
 
 #. Determine :math:`q_{\min}` and :math:`q_{\max}` that exist in all :math:`I(q,\lambda_i)`.
 
-#. Calculate the inelastic incoherent correction factor, :math:`b(\lambda)`. Here,
+#. Calculate the inelastic incoherent compensation factor, :math:`b(\lambda)`. Here,
    :math:`\lambda_{ref}` is the shortest wavelength bin and :math:`N` is the number of :math:`q`
    points between :math:`q_{\min}` and :math:`q_{\max}` inclusive.
 
@@ -121,7 +120,7 @@ The following steps describe the inelastic incoherent correction available in `d
    #. If ``"incohfit_intensityweighted"`` is ``False``:
 
       .. math::
-         b(\lambda_i)=-{\frac{1}{N}}{\sum_{q_k=q_{\min}}^{q_{\max}} (I(q_k,\lambda_{ref})-( I(q_k,\lambda_i) )}
+         b(\lambda_i)=-{\frac{1}{N}}{\sum_{q_k=q_{\min}}^{q_{\max}} (I(q_k,\lambda_{ref}) - I(q_k,\lambda_i) )}
 
 #. If JSON parameter ``"selectMinIncoh"`` is true, find :math:`\lambda_i` that has smallest :math:`b`,
    and choose that :math:`\lambda_i` as the new :math:`\lambda_{ref}`. :math:`b(\lambda)` is then
@@ -163,23 +162,23 @@ The following steps describe the inelastic incoherent correction available in `d
 Example
 .......
 
-To show the effect of the inelastic incoherent correction, Figure 3 shows I(Q) total and per
-wavelength without the correction and Figure 4 shows I(Q) total and per wavelength with the
-correction applied. The comparison shows that the correction eliminates the bump at high Q, which
+To show the effect of the inelastic incoherent compensation, Figure 3 shows I(Q) total and per
+wavelength without the compensation and Figure 4 shows I(Q) total and per wavelength with the
+compensation applied. The comparison shows that the compensation eliminates the bump at high Q, which
 is an artifact created when averaging I(Q) for different wavelengths with different Q range and
 incoherence levels.
 
 .. figure:: /user/media/eqsans_incoh_fit_before.png
-   :alt: before inelastic incoherent correction
+   :alt: before inelastic incoherent compensation
    :width: 800px
 
-   Figure 3: I(Q) total and per wavelength without inelastic incoherent correction.
+   Figure 3: I(Q) total and per wavelength without inelastic incoherent compensation.
 
 .. figure:: /user/media/eqsans_incoh_fit_after.png
-   :alt: after inelastic incoherent correction
+   :alt: after inelastic incoherent compensation
    :width: 800px
 
-   Figure 4: I(Q) total and per wavelength with inelastic incoherent correction.
+   Figure 4: I(Q) total and per wavelength with inelastic incoherent compensation.
 
 Parameters
 ----------
@@ -196,10 +195,10 @@ Parameters
      - Description
      - Default
    * - ``"fitInelasticIncoh"``
-     - If ``"true"``, inelastic incoherent correction will be applied.
+     - If ``"true"``, inelastic incoherent compensation will be applied.
      - ``false``
    * - ``"incohfit_intensityweighted"``
-     - If ``"true"``, the intensity weighted method is used in the inelastic incoherent correction.
+     - If ``"true"``, the intensity weighted method is used in the inelastic incoherent compensation.
        In the intensity weighted method, the q bins are weighed inversely proportional to their
        intensity, giving bins in the high Q range more weight.
      - ``false``
@@ -207,11 +206,11 @@ Parameters
      - If ``"true"``, use the smallest wavelength as reference wavelength.
      - ``false``
    * - ``"incohfit_qmin"``
-     - :math:`q_{\min}` for the inelastic incoherent correction. If ``null``, the minimum valid
+     - :math:`q_{\min}` for the inelastic incoherent compensation. If ``null``, the minimum valid
        :math:`q_{\min}` will be used.
      - ``null``
    * - ``"incohfit_qmax"``
-     - :math:`q_{\max}` for the inelastic incoherent correction. If ``null``, the maximum valid
+     - :math:`q_{\max}` for the inelastic incoherent compensation. If ``null``, the maximum valid
        :math:`q_{\max}` will be used.
      - ``null``
    * - ``"incohfit_factor"``
@@ -219,7 +218,7 @@ Parameters
      - ``null``
    * - ``"outputWavelengthDependentProfile"``
      - If ``"true"``, output intensity profiles for each wavelength before and after elastic
-       reference normalization and inelastic incoherent correction.
+       reference normalization and inelastic incoherent compensation.
      - ``false``
    * - ``"elasticReference"``
      - Elastic reference run. If empty, the elastic reference normalization will be skipped.
@@ -240,7 +239,7 @@ disabled by default).
     {
         "fitInelasticIncoh": false,
         "incohfit_intensityweighted": false,
-        "selectMinIncoh": false
+        "selectMinIncoh": false,
         "incohfit_qmin": null,
         "incohfit_qmax": null,
         "incohfit_factor": null,

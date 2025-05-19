@@ -25,7 +25,12 @@ The normalization method typically used at EQ-SANS is proton charge on target an
 spectrum, which requires a pre-measured flux spectrum :math:`\phi(\lambda)`.
 The flux spectrum is measured using a purely elastic sample (carbon black or graphite), however, the
 actual spectrum may change over time and may be affected by the energy dependence of the scattering
-cross section.
+cross section, as shown in the diagram below.
+
+.. figure:: /user/media/blurring_wavelength_distribution.jpg
+   :alt: blurring wavelength distribution
+   :width: 800px
+
 Elastic reference normalization introduces a wavelength-dependent scale factor, `K`,
 to compensate for discrepancies in the intensity scale resulting from inaccuracies in the
 normalization. The scale factor, `K`, is calculated using an elastic reference run, for which

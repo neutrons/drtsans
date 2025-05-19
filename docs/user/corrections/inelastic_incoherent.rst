@@ -1,6 +1,6 @@
 .. _user.corrections.inelastic_incoherent:
 
-Inelastic incoherent correction
+Corrections due to inelastic scattering
 ===============================
 
 Background

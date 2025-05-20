@@ -15,7 +15,7 @@ contribution from inelastic scattering [Do2013]_.
 Due to the wavelength dependence of inelastic scattering effects, correcting for them is of
 particular concern for time-of-flight (TOF) pulsed neutron instruments like EQ-SANS, which use a
 broad spectrum of neutron wavelengths. The data reduction for EQ-SANS, therefore, includes optional
-wavelength-dependent corrections for inelastic scattering.
+wavelength-dependent corrections for inelastic scattering. $Ecc = R_polar/R_eq$
 
 Elastic reference normalization
 -------------------------------
@@ -24,12 +24,8 @@ Before data reduction, the various data sets must be normalized to equivalent be
 The normalization method typically used at EQ-SANS is proton charge on target and measured flux
 spectrum, which requires a pre-measured flux spectrum :math:`\phi(\lambda)`.
 The flux spectrum is measured using a purely elastic sample (carbon black or graphite), however, the
-actual spectrum may change over time and may be affected by the energy dependence of the scattering
-cross section, as shown in the diagram below.
-
-.. figure:: /user/media/blurring_wavelength_distribution.jpg
-   :alt: blurring wavelength distribution
-   :width: 800px
+actual spectrum may change over time and may be affected by the (weakly) energy-dependent
+scattering cross section.
 
 Elastic reference normalization introduces a wavelength-dependent scale factor, `K`,
 to compensate for discrepancies in the intensity scale resulting from inaccuracies in the
@@ -99,8 +95,28 @@ normalization applied.
 Inelastic incoherent compensation
 ---------------------------------
 
-The inelastic incoherent compensation introduces a wavelength-dependent compensation term `b` to
+The strength of inelastic incoherent scattering processes is wavelength-dependent and will have
+the effect of distorting the wavelength distribution compared to the incoming distribution, as
+illustrated in the plots below. After scattering (green curve), the spectrum has a shoulder on the
+left-hand side of the pulse compared to the incoming pulse (red curve). This change in the shape
+is due to neutrons gaining energy, i.e. scattering inelastically.
+
+The lower plot shows the spectra for the scattered neutrons summed at different ring-shaped regions
+about the detector center. The spectrum shapes are almost identical, which indicates that the
+scattering is incoherent.
+
+The inelastic incoherent compensation introduces a wavelength-dependent term `b` to
 compensate for the wavelength dependence of inelastic incoherent scattering effects.
+
+.. figure:: /user/media/inelastic_incoherent_scattering_wavelength_distribution.png
+   :alt: wavelength distribution distortion from inelastic incoherent scattering
+   :width: 600px
+
+   (top) TOF spectrum of the scattered beam from a water + quartz cell (green) compared to the
+   empty beam spectrum (red).
+   (bottom) TOF spectrum from water with different scattering angles, where each spectrum has been
+   normalized to 1 for comparison.
+   From [Do2013]_.
 
 Procedure
 .........

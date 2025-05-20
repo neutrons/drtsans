@@ -39,7 +39,7 @@ requirements:
     - ipywidgets
     - jsonschema>=3.0.2
     - lmfit==1.3.3
-    - mantid==6.12
+    - mantid=6.12
     - mpld3
     - numexpr
     - pandas

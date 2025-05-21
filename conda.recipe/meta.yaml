@@ -40,6 +40,7 @@ requirements:
     - jsonschema>=3.0.2
     - lmfit==1.3.3
     - mantid==6.12
+    - muparser<2.3.5
     - mpld3
     - numexpr
     - pandas

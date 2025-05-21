@@ -29,8 +29,10 @@ scattering cross section.
 
 Elastic reference normalization introduces a wavelength-dependent scale factor, `K`,
 to compensate for discrepancies in the intensity scale resulting from inaccuracies in the
-normalization. The scale factor, `K`, is calculated using an elastic reference run, for which
-the user can use, for example, a separate elastic sample run or the sample run itself.
+normalization. The scale factor, `K`, is calculated using scattering from a material with no
+collective excitations in the wavelength range of the experiment (no coherent inelastic scattering)
+and with little hydrogen content (no incoherent inelastic scattering). In some experiments, that
+material can be the sample itself.
 
 Procedure
 .........
@@ -95,18 +97,29 @@ normalization applied.
 Inelastic incoherent compensation
 ---------------------------------
 
-The strength of inelastic incoherent scattering processes is wavelength-dependent and will have
-the effect of distorting the wavelength distribution compared to the incoming distribution, as
-illustrated in the plots below. After scattering (green curve), the spectrum has a shoulder on the
-left-hand side of the pulse compared to the incoming pulse (red curve). This change in the shape
+Samples with significant amount of hydrogen, which are common in SANS experiments, show strong
+inelastic incoherent scattering, which must be extricated from the coherent elastic signal.
+The strength of inelastic incoherent scattering processes is also wavelength-dependent. The
+inelastic incoherent effect is highlighted by comparing the scattered flux from a strong incoherent
+scatterer such as water against the flux transmitted through an empty sample container.
+After scattering from water (green markers), the spectrum has a shoulder on the
+left-hand side of the pulse compared to the transmitted beam (red markers). This change in the shape
 is due to neutrons gaining energy, i.e. scattering inelastically.
 
-The lower plot shows the spectra for the scattered neutrons summed at different ring-shaped regions
-about the detector center. The spectrum shapes are almost identical, which indicates that the
-scattering is incoherent.
+The lower plot shows the scattered spectra from a nearly monochromatic neutron beam (1
+Angstrom variation), summed at different ring-shaped regions about the detector center.
+The spectrum shapes are almost identical, which indicates that the scattering is independent of the
+scattering angle :math:`2\theta`.
 
-The inelastic incoherent compensation introduces a wavelength-dependent term `b` to
-compensate for the wavelength dependence of inelastic incoherent scattering effects.
+We can think of our sample as composed of two types of scatterers: the elastic scatterer is
+:math:`2\theta` dependent and wavelength independent, while the inelastic incoherent scatterer is
+:math:`2\theta` independent and wavelength dependent. Thus, if we calculate the intensities
+scattered from two nearly monochromatic sources,
+:math:`I(q,\lambda_1)=I_{elastic}(q)+I_{inelastic}(\lambda_1)` and
+:math:`I(q,\lambda_2)=I_{elastic}(q)+I_{inelastic}(\lambda_2)`, differences in the intensities
+integrated over all values of :math:`q` (i.e. over all values of :math:`2\theta`) must be due solely
+to the incoherent inelastic scatter. This property suggest a procedure to extricate the incoherent
+inelastic contribution.
 
 .. figure:: /user/media/inelastic_incoherent_scattering_wavelength_distribution.png
    :alt: wavelength distribution distortion from inelastic incoherent scattering
@@ -121,7 +134,9 @@ compensate for the wavelength dependence of inelastic incoherent scattering effe
 Procedure
 .........
 
-The following steps describe the inelastic incoherent compensation available in `drtsans`:
+The inelastic incoherent compensation introduces a wavelength-dependent term :math:`b` to
+compensate for the wavelength dependence of inelastic incoherent scattering effects.
+The following steps describe the calculation procedure for :math:`b` used in `drtsans`:
 
 #. Get :math:`I(q,\lambda_i)` of the sample run, making sure q-bins are same for all :math:`\lambda`
    bins.

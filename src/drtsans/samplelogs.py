@@ -6,7 +6,7 @@ from mantid.kernel import (
     BoolTimeSeriesProperty,
     DateAndTime,
     FloatTimeSeriesProperty,
-    Int64TimeSeriesProperty,
+    Int32TimeSeriesProperty,
     StringTimeSeriesProperty,
 )
 from mantid.simpleapi import mtd
@@ -16,7 +16,7 @@ import numpy as np
 from typing import List, Union
 
 TimeSeriesProperty = Union[
-    BoolTimeSeriesProperty, FloatTimeSeriesProperty, Int64TimeSeriesProperty, StringTimeSeriesProperty
+    BoolTimeSeriesProperty, FloatTimeSeriesProperty, Int32TimeSeriesProperty, StringTimeSeriesProperty
 ]
 SECONDS_TO_NANOSECONDS = 1.0e09  # from seconds to nanoseconds
 
@@ -60,7 +60,7 @@ def time_series(
     mantid_types = (
         BoolTimeSeriesProperty,
         FloatTimeSeriesProperty,
-        Int64TimeSeriesProperty,
+        Int32TimeSeriesProperty,
         StringTimeSeriesProperty,
         FloatTimeSeriesProperty,
     )
@@ -213,7 +213,7 @@ class SampleLogs(object):
         if isinstance(value, list):
             value = value[0]  # copies AddSampleLog behavior
         if isinstance(
-            value, (BoolTimeSeriesProperty, FloatTimeSeriesProperty, Int64TimeSeriesProperty, StringTimeSeriesProperty)
+            value, (BoolTimeSeriesProperty, FloatTimeSeriesProperty, Int32TimeSeriesProperty, StringTimeSeriesProperty)
         ):
             assert name == value.name
             assert unit == value.units

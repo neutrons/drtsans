@@ -147,7 +147,7 @@ The following steps describe the calculation procedure for :math:`b` used in `dr
    :math:`\lambda_{ref}` is the shortest wavelength bin and :math:`N` is the number of :math:`q`
    points between :math:`q_{\min}` and :math:`q_{\max}` inclusive.
 
-   #. If ``"incohfit_intensityweighted"`` is ``True``:
+   #. If ``"incohfit_intensityweighted"`` is ``True``, the compensation will be most accurate in the high-Q range. This is most appropriate when plotting the intensities in a log scale.
 
       .. math::
          b(\lambda_i) = -\frac{1}{N \sum_{q_k=q_{\min}}^{q_{\max}} \frac{1}{I(q_k,\lambda_{ref})}}

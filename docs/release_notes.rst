@@ -29,7 +29,7 @@ Release Notes
   - PR #1029: Calculation of the I(Q2D) error is simplified for the incoherent inelastic correction
 
   **Of interest to the Developer:**
-  - PR #???:
+  - PR #1031: Pins muparser to get around an issue in mantid
 ..
 
 

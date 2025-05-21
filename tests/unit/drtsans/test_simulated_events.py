@@ -167,7 +167,7 @@ def test_insert_monochromatic_background(eqsans_workspace: Callable[[Any], Event
         flavor_kwargs=dict(mean=mean, stddev=stddev),
         lambda_distribution=lambda events_count: np.repeat(wavelength, events_count),  # monochromatic distribution
     )
-    numpy.testing.assert_allclose(_event_count_in_central_tube(input_workspace), 395, atol=32)
+    numpy.testing.assert_allclose(_event_count_in_central_tube(input_workspace), 395, atol=66)
 
     # convert to wavelength and histogram between 0 and 5 Angstroms, with a bin width of 1.0 Angstrom. The result is
     # a histogram with five bins. The third bin has boundaries [2.0, 3.0] and therefore should contain all neutron

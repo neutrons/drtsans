@@ -14,7 +14,7 @@ dependencies:
   - python-build
   - versioningit
   # runtime
-  - mantid==6.12
+  - mantid=6.12
   - muparser<2.3.5 # temporary while mantid 6.12.0 has bug
   - numexpr
   - pandas

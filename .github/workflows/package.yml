@@ -35,7 +35,7 @@ jobs:
           cd conda.recipe
           echo "versioningit $(versioningit ../)"
           # build the package
-          CHANNELS="--channel mantid/label/main --channel conda-forge"
+          CHANNELS="--channel mantid-ornl/label/rc --channel conda-forge"
           VERSION=$(versioningit ../) conda mambabuild $CHANNELS --output-folder . .
           conda verify noarch/drtsans*.tar.bz2
       - name: upload conda package to anaconda

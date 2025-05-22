@@ -27,6 +27,7 @@ Release Notes
   **Of interest to the User**:
   - PR #1025: Includes v1.14.0 release notes.
   - PR #1029: Calculation of the I(Q2D) error is simplified for the incoherent inelastic correction
+  - PR #1016: User documentation for inelastic incoherent correction and elastic reference normalization
 
   **Of interest to the Developer:**
   - PR #1031: Pins muparser to get around an issue in mantid

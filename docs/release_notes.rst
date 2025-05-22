@@ -26,7 +26,7 @@ Release Notes
   - PR #XYZ: one-liner description
 
   **Of interest to the Developer:**
-  - PR #XYZ: one-liner description
+  - PR #1032: Add splitter of polarized runs
 ..
 
 1.15.0

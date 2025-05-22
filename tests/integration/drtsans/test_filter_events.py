@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from mantid.simpleapi import mtd, LoadEventNexus
+from mantid.simpleapi import mtd, LoadEventNexus, DeleteWorkspace
 
 from drtsans.filter_events import split_events
 from drtsans.polarization import (
@@ -37,10 +37,12 @@ class TestFilterEvents:
         logs.inject(workspace)
         ws_group = split_events("workspace_split", input_workspace=workspace)
         assert len(ws_group) == 4
-        assert ws_group[0].getNumberEvents() == 908952
+        assert ws_group[0].getNumberEvents() == 912779
         assert ws_group[1].getNumberEvents() == 452402
-        assert ws_group[2].getNumberEvents() == 451236
+        assert ws_group[2].getNumberEvents() == 455174
         assert ws_group[3].getNumberEvents() == 450732
+        if mtd.doesExist(str(ws_group)):
+            DeleteWorkspace(ws_group)
 
     @pytest.mark.datarepo
     def test_polarizer(self, gpsans_workspace):
@@ -56,6 +58,8 @@ class TestFilterEvents:
         assert len(ws_group) == 2
         assert ws_group[0].getNumberEvents() == 1367953
         assert ws_group[1].getNumberEvents() == 910789
+        if mtd.doesExist(str(ws_group)):
+            DeleteWorkspace(ws_group)
 
     @pytest.mark.datarepo
     def test_analyzer(self, gpsans_workspace):
@@ -71,6 +75,8 @@ class TestFilterEvents:
         assert len(ws_group) == 2
         assert ws_group[0].getNumberEvents() == 1373177
         assert ws_group[1].getNumberEvents() == 909718
+        if mtd.doesExist(str(ws_group)):
+            DeleteWorkspace(ws_group)
 
     @pytest.mark.datarepo
     def test_no_filtering(self, gpsans_workspace):
@@ -82,3 +88,5 @@ class TestFilterEvents:
         ws_group = split_events("workspace_split", input_workspace=workspace)
         assert len(ws_group) == 1
         assert ws_group[0].getNumberEvents() == num_events
+        if mtd.doesExist(str(ws_group)):
+            DeleteWorkspace(ws_group)

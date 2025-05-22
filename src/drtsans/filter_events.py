@@ -122,6 +122,7 @@ def create_table(
                 continue  # don't consider time-windows before the start time
             if start < 0 < stop:
                 start = 0.0  # keep only the fragment of the time-window after the start time
+            # mantid's FilterEvents expects times in seconds when splitting with a TableWorkspace
             split_table_ws.addRow([start * 1e-9, stop * 1e-9, xs])
 
         # Now update the current state
@@ -180,8 +181,8 @@ def filter_cross_sections(
     """
     sample_logs = SampleLogs(events_workspace)
     if check_devices is True:
-        polarizer = sample_logs[PV_POLARIZER].value if pv_polarizer_state in sample_logs else 0
-        analyzer = sample_logs[PV_ANALYZER].value if pv_analyzer_state in sample_logs else 0
+        polarizer = sample_logs[PV_POLARIZER].value if PV_POLARIZER in sample_logs else 0
+        analyzer = sample_logs[PV_ANALYZER].value if PV_ANALYZER in sample_logs else 0
     else:
         polarizer = 1  # assume a polarizer of type "1" is enabled in the experiment
         analyzer = 1  # assume an analyzer of type "1" is enabled in the experiment
@@ -199,7 +200,7 @@ def filter_cross_sections(
             OutputWorkspace="filter",
             InformationWorkspace="filter_info",
             LogBoundary="Left",
-            UnitOfTime="Seconds",
+            UnitOfTime="Nanoseconds",
         )
         time_dict = splitws.toDict()
         change_list.extend(extract_times(time_dict["start"], is_start=True, is_polarizer=True))
@@ -215,7 +216,7 @@ def filter_cross_sections(
             OutputWorkspace="filter",
             InformationWorkspace="filter_info",
             LogBoundary="Left",
-            UnitOfTime="Seconds",
+            UnitOfTime="Nanoseconds",
         )
         time_dict = splitws.toDict()
         change_list.extend(extract_times(time_dict["start"], is_start=False, is_polarizer=True))
@@ -232,7 +233,7 @@ def filter_cross_sections(
                 OutputWorkspace="filter",
                 InformationWorkspace="filter_info",
                 LogBoundary="Left",
-                UnitOfTime="Seconds",
+                UnitOfTime="Nanoseconds",
             )
             time_dict = splitws.toDict()
             change_list.extend(extract_times(time_dict["start"], is_start=True, is_analyzer_veto=True))
@@ -249,7 +250,7 @@ def filter_cross_sections(
             OutputWorkspace="filter",
             InformationWorkspace="filter_info",
             LogBoundary="Left",
-            UnitOfTime="Seconds",
+            UnitOfTime="Nanoseconds",
         )
         time_dict = splitws.toDict()
         change_list.extend(extract_times(time_dict["start"], is_start=True, is_analyzer=True))
@@ -265,7 +266,7 @@ def filter_cross_sections(
             OutputWorkspace="filter",
             InformationWorkspace="filter_info",
             LogBoundary="Left",
-            UnitOfTime="Seconds",
+            UnitOfTime="Nanoseconds",
         )
         time_dict = splitws.toDict()
         change_list.extend(extract_times(time_dict["start"], is_start=False, is_analyzer=True))
@@ -282,7 +283,7 @@ def filter_cross_sections(
                 OutputWorkspace="filter",
                 InformationWorkspace="filter_info",
                 LogBoundary="Left",
-                UnitOfTime="Seconds",
+                UnitOfTime="Nanoseconds",
             )
             time_dict = splitws.toDict()
             change_list.extend(extract_times(time_dict["start"], is_start=True, is_analyzer_veto=True))

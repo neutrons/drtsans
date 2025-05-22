@@ -12,7 +12,7 @@ def test_save_cansas_nx():
     ws = ConvertUnits(ws, Target="MomentumTransfer")
     LoadInstrument(ws, False, InstrumentName="SANS2D")
 
-    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tf:
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".h5") as tf:
         save_cansas_nx(ws, tf.name)
 
         assert os.path.exists(tf.name)
@@ -31,13 +31,9 @@ def test_save_cansas_nx_ValueError_uncommonBinBoundaries():
         NSpec=3,
     )
 
-    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tf:
-        save_cansas_nx(ws, tf.name)
-
-        assert os.path.exists(tf.name)
-        assert os.path.getsize(tf.name) == 0
-
-        os.remove(tf.name)
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".h5") as tf:
+        with pytest.raises(ValueError):
+            save_cansas_nx(ws, tf.name)
 
 
 if __name__ == "__main__":

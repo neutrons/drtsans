@@ -1,4 +1,5 @@
 import os
+from unittest import mock
 
 import pytest
 from mantid.simpleapi import mtd, LoadEventNexus, DeleteWorkspace
@@ -75,6 +76,25 @@ class TestFilterEvents:
         assert len(ws_group) == 2
         assert ws_group[0].getNumberEvents() == 1373177
         assert ws_group[1].getNumberEvents() == 909718
+        if mtd.doesExist(str(ws_group)):
+            DeleteWorkspace(ws_group)
+
+    @pytest.mark.datarepo
+    def test_split_with_input_file(self, gpsans_workspace):
+        """Test splitting events using an input Nexus file."""
+        workspace = gpsans_workspace
+        logs = SimulatedPolarizationLogs(
+            polarizer=1,
+            polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 60.0}),
+            polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "veto_duration": 1.0}),
+        )
+        logs.inject(workspace)
+        with mock.patch("drtsans.filter_events.LoadEventNexus") as mock_loadeventnexus:
+            mock_loadeventnexus.return_value = workspace
+            ws_group = split_events("workspace_split", file_path="/path/to/file")
+        assert len(ws_group) == 2
+        assert ws_group[0].getNumberEvents() == 1367953
+        assert ws_group[1].getNumberEvents() == 910789
         if mtd.doesExist(str(ws_group)):
             DeleteWorkspace(ws_group)
 

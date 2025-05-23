@@ -55,7 +55,7 @@ This yaml file generates the following output:
 
 GRASP
 -----
-The command ``grasp_cg2`` can be used to save the pixel intensities from a gpsans reduction run into a GRASP-formatted ASCII file which can be loaded with the GRASP software package.
+The command ``grasp_cg2`` can be used to save the pixel intensities from a gpsans reduction run into a GRASP-formatted ASCII file which can be loaded with the GRASP software package. Must be connected to analysis.sns.gov.
 
 .. code-block:: bash
 
@@ -64,7 +64,7 @@ The command ``grasp_cg2`` can be used to save the pixel intensities from a gpsan
 
     usage: grasp_cg2 [-h] datafile output_directory
 
-    drtsans GRASP
+    drtsans GRASP. Must be connected to analysis.sns.gov
 
     positional arguments:
         datafile          The datafile to be processed.

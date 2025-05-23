@@ -14,7 +14,7 @@ import time
 
 
 def main():
-    parser = argparse.ArgumentParser(description="drtsans GRASP")
+    parser = argparse.ArgumentParser(description="drtsans GRASP. Must be connected to analysis.sns.gov")
 
     # Add positional arguments
     parser.add_argument("datafile", type=str, help="The datafile to be processed.")

@@ -4,9 +4,13 @@ import os
 import subprocess
 
 
+@pytest.mark.mount_eqsans
 @pytest.mark.datarepo
-def test_grasp_cg2(datarepo_dir):
-    #
+def test_grasp_cg2(reference_dir, has_sns_mount, datarepo_dir):
+    if not has_sns_mount:
+        pytest.skip("Do not have /SNS properly mounted on this system")
+
+    # arguments
     input_filename = "CG2_9177.nxs.h5"
     input_path = str(Path(datarepo_dir.gpsans) / input_filename)
 

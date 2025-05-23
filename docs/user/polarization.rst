@@ -75,6 +75,10 @@ states.
 Half polarization - polarized beam without polarization analysis
 ----------------------------------------------------------------
 
+.. figure:: media/polarization_3.png
+   :alt: Diagram of a polarization experiment
+   :width: 900px
+
 Half polarization experiments use a spin flipper with a wavelength-dependent efficiency
 :math:`e(\lambda)` between the polarizer and the sample to rotate the spins from up to down, or vice
 versa depending on the polarizer in use. Consider the case that the flipper is off. The fractions of

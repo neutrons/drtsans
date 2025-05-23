@@ -76,7 +76,7 @@ Half polarization - polarized beam without polarization analysis
 ----------------------------------------------------------------
 
 .. figure:: media/polarization_3.png
-   :alt: Diagram of a polarization experiment
+   :alt: Diagram of a half-polarization experiment
    :width: 900px
 
 Half polarization experiments use a spin flipper with a wavelength-dependent efficiency

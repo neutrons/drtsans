@@ -30,7 +30,7 @@ Release Notes
   - PR #1016: User documentation for inelastic incoherent correction and elastic reference normalization
 
   **Of interest to the Developer:**
-  - PR #???:
+  - PR #1031: Pins muparser to get around an issue in mantid
 ..
 
 

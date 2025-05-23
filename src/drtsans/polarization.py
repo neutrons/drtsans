@@ -19,6 +19,7 @@ __all__ = [
     "PV_POLARIZER_VETO",
     "PV_ANALYZER",
     "PV_ANALYZER_FLIPPER",
+    "PV_ANALYZER_VETO",
     "half_polarization",
     "SimulatedPolarizationLogs",
 ]

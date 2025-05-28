@@ -1418,7 +1418,7 @@ def reduce_single_configuration(
     processed_data_main_use = None
     trans_main_use = None
 
-    processed_data_wedge_use = None
+    processed_data_wing_use = None
     trans_wing_use = None
 
     processed_data_midrange_use = None

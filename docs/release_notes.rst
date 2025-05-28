@@ -27,7 +27,6 @@ Release Notes
   **Of interest to the User**:
   - PR #1030: Introduces command grasp_cg2 to export gpsans reduction runs to GRASP format
   - PR #1029: Calculation of the I(Q2D) error is simplified for the incoherent inelastic correction
-  - PR #1026: Introduces command grasp_cg2 to export gpsans reduction runs to GRASP format
   - PR #1025: Includes v1.14.0 release notes
   - PR #1016: User documentation for inelastic incoherent correction and elastic reference normalization
 

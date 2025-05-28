@@ -236,11 +236,8 @@ def get_target_profile_index(iq1d_binned, reduction_config):
         },
     }
 
-    try:
-        detector_key = reduction_config["overlapStitchReferenceDetector"]
-        return detector_index_map[len(iq1d_binned)][detector_key]
-    except KeyError:
-        raise ValueError("'midrange' is an invalid reference detector for this configuration")
+    detector_key = reduction_config["overlapStitchReferenceDetector"]
+    return detector_index_map[len(iq1d_binned)][detector_key]
 
 
 def stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config):

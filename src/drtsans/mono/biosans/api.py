@@ -566,9 +566,12 @@ def load_all_files(
 def check_overlap_stitch_configuration(reduction_input: dict) -> None:
     """Validate the overlap stitch configuration depending on whether the midrange detector is present
 
-    If the midrange detector is absent, there are two detectors and one overlap region, i.e. one Qmin/Qmax.
-    If the midrange detector is present, there are three detectors and two overlap regions, i.e. two Qmin/Qmax.
-
+    If the midrange detector is absent,
+        1) there are two detectors and one overlap region, i.e. one Qmin/Qmax.
+        2) overlapStitchQmax must be one of ["main", "wedge"]
+    If the midrange detector is present,
+        1) there are three detectors and two overlap regions, i.e. two Qmin/Qmax.
+        2) overlapStitchQmax must be one of ["main", "midrange", "wedge"]
     Parameters
     ----------
     reduction_input
@@ -578,11 +581,22 @@ def check_overlap_stitch_configuration(reduction_input: dict) -> None:
     -------
     ValueError
         If one of the overlap stitch boundary parameters has the wrong number of values.
+    ValueError
+        If the overlap stitch reference detector is invalid for the configuration.
     """
     reduction_config = reduction_input["configuration"]
     num_params_overlap_stitch = 1
     if reduction_input["has_midrange_detector"] and not reduction_config["overlapStitchIgnoreMidrange"]:
         num_params_overlap_stitch = 2
+        if reduction_config["overlapStitchReferenceDetector"] not in ["main", "midrange", "wedge"]:
+            raise ValueError(
+                f"Stitch reference detector {reduction_config['overlapStitchReferenceDetector']} is invalid for this configuration"
+            )
+    elif reduction_config["overlapStitchReferenceDetector"] not in ["main", "wedge"]:
+        raise ValueError(
+            f"Stitch reference detector {reduction_config['overlapStitchReferenceDetector']} is invalid for this configuration"
+        )
+
     params_overlap_stitch = ["overlapStitchQmin", "overlapStitchQmax"]
     if reduction_config["1DQbinType"] == "wedge":
         wedge_names = ["wedge1", "wedge2"]
@@ -1400,6 +1414,16 @@ def reduce_single_configuration(
 
     output = []
     detectordata = {}
+
+    processed_data_main_use = None
+    trans_main_use = None
+
+    processed_data_wedge_use = None
+    trans_wing_use = None
+
+    processed_data_midrange_use = None
+    trans_midrange_use = None
+
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         sample_name = "_slice_{}".format(i + 1)
         if len(loaded_ws.sample) > 1:
@@ -1441,6 +1465,10 @@ def reduce_single_configuration(
                 absolute_scale=absolute_scale,
                 keep_processed_workspaces=False,
             )
+            if not processed_data_main_use:
+                processed_data_main_use = processed_data_main
+                trans_main_use = trans_main
+
             processed_data_wing, trans_wing = process_single_configuration(
                 raw_sample_ws,
                 sample_trans_ws=sample_trans_ws,
@@ -1469,6 +1497,10 @@ def reduce_single_configuration(
                 absolute_scale=absolute_scale,
                 keep_processed_workspaces=False,
             )
+            if not processed_data_wing_use:
+                processed_data_wing_use = processed_data_wing
+                trans_wing_use = trans_wing
+
             if reduction_config["has_midrange_detector"]:
                 processed_data_midrange, trans_midrange = process_single_configuration(
                     raw_sample_ws,
@@ -1498,6 +1530,11 @@ def reduce_single_configuration(
                     absolute_scale=absolute_scale,
                     keep_processed_workspaces=False,
                 )
+
+                if not processed_data_midrange_use:
+                    processed_data_midrange_use = processed_data_midrange
+                    trans_midrange_use = trans_midrange
+
             else:
                 processed_data_midrange, trans_midrange = (
                     None,
@@ -1706,7 +1743,7 @@ def reduce_single_configuration(
         )
 
     try:
-        processed_data_main
+        processed_data_main_use
     except NameError:
         raise NoDataProcessedError
 
@@ -1723,23 +1760,23 @@ def reduce_single_configuration(
         "beam_center": {"x": xc, "y": yc, "y_midrange": ym, "y_wing": yw},
         "fit results": fit_results,
         "sample_transmission": {
-            "main": trans_main["sample"],
-            "midrange": trans_midrange["sample"],
-            "wing": trans_wing["sample"],
+            "main": trans_main_use["sample"],
+            "midrange": trans_midrange_use["sample"],
+            "wing": trans_wing_use["sample"],
         },
         "background_transmission": {
-            "main": trans_main["background"],
-            "midrange": trans_midrange["background"],
-            "wing": trans_wing["background"],
+            "main": trans_main_use["background"],
+            "midrange": trans_midrange_use["background"],
+            "wing": trans_wing_use["background"],
         },
     }
 
     samplelogs = {
-        "main": SampleLogs(processed_data_main),
-        "wing": SampleLogs(processed_data_wing),
+        "main": SampleLogs(processed_data_main_use),
+        "wing": SampleLogs(processed_data_wing_use),
     }
     if reduction_config["has_midrange_detector"]:
-        samplelogs["midrange"] = SampleLogs(processed_data_midrange)
+        samplelogs["midrange"] = SampleLogs(processed_data_midrange_use)
     logslice_data_dict = reduction_input["logslice_data"]
 
     savereductionlog(

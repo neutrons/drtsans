@@ -5,7 +5,7 @@ from drtsans.filter_events import create_table, extract_times
 def test_extract_times_multiple_time_values():
     """Test extract_times with a list of times"""
     times = [100, 200, 300]
-    result = extract_times(times, is_start=True, is_polarizer=True)
+    result = extract_times(times, device_on=True, is_polarizer=True)
     assert result == [
         (100, True, [True, False, False, False]),
         (200, True, [True, False, False, False]),
@@ -16,20 +16,20 @@ def test_extract_times_multiple_time_values():
 def test_extract_times_different_device_states():
     """Test extract_times with different device states"""
     times = [100]
-    is_start = True
+    device_on = True
     is_polarizer = True
     is_analyzer = True
     is_polarizer_veto = True
     is_analyzer_veto = True
-    result = extract_times(times, is_start, is_polarizer, is_analyzer, is_polarizer_veto, is_analyzer_veto)
+    result = extract_times(times, device_on, is_polarizer, is_analyzer, is_polarizer_veto, is_analyzer_veto)
     assert result == [(100, True, [True, True, True, True])]
 
 
 def test_extract_times_empty_list_of_times():
     """Test extract_times with an empty list of times"""
     times = []
-    is_start = True
-    result = extract_times(times, is_start)
+    device_on = True
+    result = extract_times(times, device_on)
     assert result == []
 
 

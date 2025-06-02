@@ -27,7 +27,7 @@ def workspace_handle(input_workspace: MantidWorkspace):
 
 def extract_times(
     times: List[int],
-    is_start: bool,
+    device_on: bool,
     is_polarizer: Optional[bool] = False,
     is_analyzer: Optional[bool] = False,
     is_polarizer_veto: Optional[bool] = False,
@@ -40,7 +40,7 @@ def extract_times(
     ----------
     times : list
         A list of time values (in nanoseconds) representing state changes.
-    is_start : bool
+    device_on : bool
         Indicates whether the times correspond to the start of a state (True) or the end (False).
     is_polarizer : Optional[bool]
         Indicates whether the state change is related to the polarizer. Default is False.
@@ -62,11 +62,11 @@ def extract_times(
 
     Examples
     --------
-    >>> extract_times([100, 200], is_start=True, is_polarizer=True)
+    >>> extract_times([100, 200], device_on=True, is_polarizer=True)
     [(100, True, [True, False, False, False]), (200, True, [True, False, False, False])]
     """
     return [
-        (times[i], is_start, [is_polarizer, is_analyzer, is_polarizer_veto, is_analyzer_veto])
+        (times[i], device_on, [is_polarizer, is_analyzer, is_polarizer_veto, is_analyzer_veto])
         for i in range(len(times))
     ]
 
@@ -203,8 +203,8 @@ def filter_cross_sections(
             UnitOfTime="Nanoseconds",
         )
         time_dict = splitws.toDict()
-        change_list.extend(extract_times(time_dict["start"], is_start=True, is_polarizer=True))
-        change_list.extend(extract_times(time_dict["stop"], is_start=False, is_polarizer=True))
+        change_list.extend(extract_times(time_dict["start"], device_on=True, is_polarizer=True))
+        change_list.extend(extract_times(time_dict["stop"], device_on=False, is_polarizer=True))
 
         # Polarizer Flipper OFF
         splitws, _ = GenerateEventsFilter(
@@ -219,8 +219,8 @@ def filter_cross_sections(
             UnitOfTime="Nanoseconds",
         )
         time_dict = splitws.toDict()
-        change_list.extend(extract_times(time_dict["start"], is_start=False, is_polarizer=True))
-        change_list.extend(extract_times(time_dict["stop"], is_start=True, is_polarizer=True))
+        change_list.extend(extract_times(time_dict["start"], device_on=False, is_polarizer=True))
+        change_list.extend(extract_times(time_dict["stop"], device_on=True, is_polarizer=True))
 
         # Polarizer Flipper VETO
         if pv_polarizer_veto != "":
@@ -236,8 +236,8 @@ def filter_cross_sections(
                 UnitOfTime="Nanoseconds",
             )
             time_dict = splitws.toDict()
-            change_list.extend(extract_times(time_dict["start"], is_start=True, is_analyzer_veto=True))
-            change_list.extend(extract_times(time_dict["stop"], is_start=False, is_analyzer_veto=True))
+            change_list.extend(extract_times(time_dict["start"], device_on=True, is_polarizer_veto=True))
+            change_list.extend(extract_times(time_dict["stop"], device_on=False, is_polarizer_veto=True))
 
     if analyzer > 0:
         # Analyzer Flipper ON
@@ -253,8 +253,8 @@ def filter_cross_sections(
             UnitOfTime="Nanoseconds",
         )
         time_dict = splitws.toDict()
-        change_list.extend(extract_times(time_dict["start"], is_start=True, is_analyzer=True))
-        change_list.extend(extract_times(time_dict["stop"], is_start=False, is_analyzer=True))
+        change_list.extend(extract_times(time_dict["start"], device_on=True, is_analyzer=True))
+        change_list.extend(extract_times(time_dict["stop"], device_on=False, is_analyzer=True))
 
         # Analyzer Flipper OFF
         splitws, _ = GenerateEventsFilter(
@@ -269,8 +269,8 @@ def filter_cross_sections(
             UnitOfTime="Nanoseconds",
         )
         time_dict = splitws.toDict()
-        change_list.extend(extract_times(time_dict["start"], is_start=False, is_analyzer=True))
-        change_list.extend(extract_times(time_dict["stop"], is_start=True, is_analyzer=True))
+        change_list.extend(extract_times(time_dict["start"], device_on=False, is_analyzer=True))
+        change_list.extend(extract_times(time_dict["stop"], device_on=True, is_analyzer=True))
 
         # Analyzer Flipper VETO
         if not pv_analyzer_veto == "":
@@ -286,8 +286,8 @@ def filter_cross_sections(
                 UnitOfTime="Nanoseconds",
             )
             time_dict = splitws.toDict()
-            change_list.extend(extract_times(time_dict["start"], is_start=True, is_analyzer_veto=True))
-            change_list.extend(extract_times(time_dict["stop"], is_start=False, is_analyzer_veto=True))
+            change_list.extend(extract_times(time_dict["start"], device_on=True, is_analyzer_veto=True))
+            change_list.extend(extract_times(time_dict["stop"], device_on=False, is_analyzer_veto=True))
 
     start_time = events_workspace.run().startTime().totalNanoseconds()
 

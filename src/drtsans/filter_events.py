@@ -106,32 +106,47 @@ def create_table(
     split_table_ws.addColumn("float", "stop")
     split_table_ws.addColumn("str", "target")
 
-    current_state = [False, False, False, False]
+    POLARIZER, ANALYZER, POL_VETO, ANA_VETO = 0, 1, 2, 3
+
+    current_state = [False] * 4
     current_state_t0 = 0
 
     # Keep track of when we have a fully specified state
     specified = [not has_polarizer, not has_analyzer]
 
-    for item in change_list:
+    def _add_cross_section_row(start_ns: int, stop_ns: int):
+        """Add a row to the table workspace for the current state."""
+        xs_label = "%s_%s" % ("On" if current_state[POLARIZER] else "Off", "On" if current_state[ANALYZER] else "Off")
+        start = int(start_ns - start_time)
+        stop = stop_ns - start_time
+
+        if start < 0 and stop <= 0:
+            return  # discard time interval before start_time
+        if start < 0 < stop:
+            start = 0.0  # keep only the fragment of the time-window after the start time
+
+        # Mantid expects times in seconds
+        split_table_ws.addRow([start * 1e-9, stop * 1e-9, xs_label])
+
+    for change_time, device_on, device_mask in change_list:
         # We have a change of state, add an entry for the state that just ended
-        if specified[0] and specified[1] and not current_state[2] and not current_state[3]:
-            xs = "%s_%s" % ("On" if current_state[0] else "Off", "On" if current_state[1] else "Off")
-            start = int(current_state_t0 - start_time)
-            stop = item[0] - start_time
-            if start < 0 and stop <= 0:
-                continue  # don't consider time-windows before the start time
-            if start < 0 < stop:
-                start = 0.0  # keep only the fragment of the time-window after the start time
-            # mantid's FilterEvents expects times in seconds when splitting with a TableWorkspace
-            split_table_ws.addRow([start * 1e-9, stop * 1e-9, xs])
+        if (
+            specified[POLARIZER]
+            and specified[ANALYZER]
+            and not current_state[POL_VETO]
+            and not current_state[ANA_VETO]
+        ):
+            _add_cross_section_row(current_state_t0, change_time)
 
         # Now update the current state
-        for i in range(len(current_state)):
-            if item[2][i]:
-                if i < 2:
+        for i, changed in enumerate(device_mask):
+            if changed:
+                if i in (POLARIZER, ANALYZER):
                     specified[i] = True
-                current_state[i] = item[1]
-        current_state_t0 = item[0]
+                current_state[i] = device_on
+
+        current_state_t0 = change_time
+
     return split_table_ws
 
 

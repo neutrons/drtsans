@@ -101,7 +101,7 @@ def create_table(
     - The table includes columns for start time, stop time, and the target cross-section label.
     - Time intervals before the start time are ignored, and only valid intervals are added.
     """
-    split_table_ws = CreateEmptyTableWorkspace()
+    split_table_ws = CreateEmptyTableWorkspace(OutputWorkspace=mtd.unique_hidden_name())
     split_table_ws.addColumn("float", "start")
     split_table_ws.addColumn("float", "stop")
     split_table_ws.addColumn("str", "target")

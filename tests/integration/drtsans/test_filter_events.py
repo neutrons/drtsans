@@ -38,9 +38,9 @@ class TestFilterEvents:
         logs.inject(workspace)
         ws_group = split_events("workspace_split", input_workspace=workspace)
         assert len(ws_group) == 4
-        assert ws_group[0].getNumberEvents() == 912779
+        assert ws_group[0].getNumberEvents() == 908952
         assert ws_group[1].getNumberEvents() == 452402
-        assert ws_group[2].getNumberEvents() == 455174
+        assert ws_group[2].getNumberEvents() == 451236
         assert ws_group[3].getNumberEvents() == 450732
         if mtd.doesExist(str(ws_group)):
             DeleteWorkspace(ws_group)

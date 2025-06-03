@@ -1,5 +1,5 @@
 .. image:: https://img.shields.io/readthedocs/drtsans.svg?logo=read-the-docs
-   :target: https://drtsans.readthedocs.io/en/latest
+   :target: https://drtsans.readthedocs.io/latest
    :alt: Documentation Status
 
 .. image:: https://github.com/neutrons/drtsans/actions/workflows/package.yml/badge.svg?branch=qa

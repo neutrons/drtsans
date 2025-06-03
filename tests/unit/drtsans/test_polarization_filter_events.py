@@ -1,5 +1,5 @@
 import pytest
-from drtsans.filter_events import create_table, extract_times
+from drtsans.polarization_filter_events import create_table, extract_times
 
 
 def test_extract_times_multiple_time_values():

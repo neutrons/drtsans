@@ -8,6 +8,8 @@ from typing import Union
 # https://docs.mantidproject.org/nightly/algorithms/CreateWorkspace-v1.html
 from mantid.simpleapi import mtd, CreateWorkspace
 
+from drtsans.type_hints import MantidWorkspace
+
 
 __all__ = [
     "getDataType",
@@ -21,6 +23,11 @@ __all__ = [
 ]
 
 QBINS_EQUAL_DECIMALS = 8
+
+
+def workspace_handle(input_workspace: MantidWorkspace):
+    """Syntactic sugar for a more descriptive operation"""
+    return mtd[str(input_workspace)]
 
 
 class DataType(Enum):

@@ -15,14 +15,10 @@ from mantid.simpleapi import (
 )
 
 from drtsans import PV_POLARIZER_FLIPPER, PV_ANALYZER_FLIPPER
+from drtsans.dataobjects import workspace_handle
 from drtsans.polarization import PV_POLARIZER, PV_POLARIZER_VETO, PV_ANALYZER, PV_ANALYZER_VETO
 from drtsans.samplelogs import SampleLogs
 from drtsans.type_hints import MantidWorkspace
-
-
-def workspace_handle(input_workspace: MantidWorkspace):
-    """Syntactic sugar for a more descriptive operation"""
-    return mtd[str(input_workspace)]
 
 
 def extract_times(

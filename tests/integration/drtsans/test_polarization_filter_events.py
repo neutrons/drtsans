@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 from mantid.simpleapi import mtd, LoadEventNexus, DeleteWorkspace
 
-from drtsans.filter_events import split_events
+from drtsans.polarization_filter_events import split_events
 from drtsans.polarization import (
     SimulatedPolarizationLogs,
     TimesGeneratorSpecs,
@@ -89,7 +89,7 @@ class TestFilterEvents:
             polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "veto_duration": 1.0}),
         )
         logs.inject(workspace)
-        with mock.patch("drtsans.filter_events.LoadEventNexus") as mock_loadeventnexus:
+        with mock.patch("drtsans.polarization_filter_events.LoadEventNexus") as mock_loadeventnexus:
             mock_loadeventnexus.return_value = workspace
             ws_group = split_events("workspace_split", file_path="/path/to/file")
         assert len(ws_group) == 2

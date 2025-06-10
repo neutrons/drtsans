@@ -15,7 +15,7 @@ contribution from inelastic scattering [Do2013]_.
 Due to the wavelength dependence of inelastic scattering effects, correcting for them is of
 particular concern for time-of-flight (TOF) pulsed neutron instruments like EQ-SANS, which use a
 broad spectrum of neutron wavelengths. The data reduction for EQ-SANS, therefore, includes optional
-wavelength-dependent corrections for inelastic scattering. $Ecc = R_polar/R_eq$
+wavelength-dependent corrections for inelastic scattering.
 
 Elastic reference normalization
 -------------------------------
@@ -23,7 +23,7 @@ Elastic reference normalization
 Before data reduction, the various data sets must be normalized to equivalent beam exposure.
 The normalization method typically used at EQ-SANS is proton charge on target and measured flux
 spectrum, which requires a pre-measured flux spectrum :math:`\phi(\lambda)`.
-The flux spectrum is measured using a purely elastic sample (carbon black or graphite), however, the
+The flux spectrum is measured with a direct beam impinging on an attenuator, however, the
 actual spectrum may change over time and may be affected by the (weakly) energy-dependent
 scattering cross section.
 
@@ -147,7 +147,8 @@ The following steps describe the calculation procedure for :math:`b` used in `dr
    :math:`\lambda_{ref}` is the shortest wavelength bin and :math:`N` is the number of :math:`q`
    points between :math:`q_{\min}` and :math:`q_{\max}` inclusive.
 
-   #. If ``"incohfit_intensityweighted"`` is ``True``, the compensation will be most accurate in the high-Q range. This is most appropriate when plotting the intensities in a log scale.
+   #. If ``"incohfit_intensityweighted"`` is ``True``, the compensation will be most accurate in the high-Q range.
+      This is most appropriate when large intensity differences are present in the q-range of interest.
 
       .. math::
          b(\lambda_i) = -\frac{1}{N \sum_{q_k=q_{\min}}^{q_{\max}} \frac{1}{I(q_k,\lambda_{ref})}}

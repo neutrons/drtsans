@@ -18,7 +18,7 @@ Release Notes
 ..
 
 ..
-  1.16.0
+  1.17.0
   --------------
   XXXX-XX-XX
 
@@ -26,8 +26,18 @@ Release Notes
   - PR #XYZ: one-liner description
 
   **Of interest to the Developer:**
-  - PR #1032: Add splitter of polarized runs
+  - PR #XYZ: one-liner description
 ..
+
+1.16.0
+--------------
+2025-06-24
+
+**Of interest to the User**:
+- No changes
+
+**Of interest to the Developer:**
+- PR #1032: Add splitter of polarized runs
 
 1.15.0
 -------

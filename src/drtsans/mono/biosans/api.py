@@ -590,11 +590,13 @@ def check_overlap_stitch_configuration(reduction_input: dict) -> None:
         num_params_overlap_stitch = 2
         if reduction_config["overlapStitchReferenceDetector"] not in ["main", "midrange", "wedge"]:
             raise ValueError(
-                f"Stitch reference detector {reduction_config['overlapStitchReferenceDetector']} is invalid for this configuration"
+                f"Stitch reference detector {reduction_config['overlapStitchReferenceDetector']}"
+                "is invalid for this configuration"
             )
     elif reduction_config["overlapStitchReferenceDetector"] not in ["main", "wedge"]:
         raise ValueError(
-            f"Stitch reference detector {reduction_config['overlapStitchReferenceDetector']} is invalid for this configuration"
+            f"Stitch reference detector {reduction_config['overlapStitchReferenceDetector']}"
+            "is invalid for this configuration"
         )
 
     params_overlap_stitch = ["overlapStitchQmin", "overlapStitchQmax"]
@@ -1415,15 +1417,6 @@ def reduce_single_configuration(
     output = []
     detectordata = {}
 
-    processed_data_main_use = None
-    trans_main_use = None
-
-    processed_data_wing_use = None
-    trans_wing_use = None
-
-    processed_data_midrange_use = None
-    trans_midrange_use = None
-
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         sample_name = "_slice_{}".format(i + 1)
         if len(loaded_ws.sample) > 1:
@@ -1465,10 +1458,6 @@ def reduce_single_configuration(
                 absolute_scale=absolute_scale,
                 keep_processed_workspaces=False,
             )
-            if not processed_data_main_use:
-                processed_data_main_use = processed_data_main
-                trans_main_use = trans_main
-
             processed_data_wing, trans_wing = process_single_configuration(
                 raw_sample_ws,
                 sample_trans_ws=sample_trans_ws,
@@ -1497,9 +1486,6 @@ def reduce_single_configuration(
                 absolute_scale=absolute_scale,
                 keep_processed_workspaces=False,
             )
-            if not processed_data_wing_use:
-                processed_data_wing_use = processed_data_wing
-                trans_wing_use = trans_wing
 
             if reduction_config["has_midrange_detector"]:
                 processed_data_midrange, trans_midrange = process_single_configuration(
@@ -1530,10 +1516,6 @@ def reduce_single_configuration(
                     absolute_scale=absolute_scale,
                     keep_processed_workspaces=False,
                 )
-
-                if not processed_data_midrange_use:
-                    processed_data_midrange_use = processed_data_midrange
-                    trans_midrange_use = trans_midrange
 
             else:
                 processed_data_midrange, trans_midrange = (
@@ -1743,7 +1725,7 @@ def reduce_single_configuration(
         )
 
     try:
-        processed_data_main_use
+        processed_data_main
     except NameError:
         raise NoDataProcessedError
 
@@ -1760,23 +1742,23 @@ def reduce_single_configuration(
         "beam_center": {"x": xc, "y": yc, "y_midrange": ym, "y_wing": yw},
         "fit results": fit_results,
         "sample_transmission": {
-            "main": trans_main_use["sample"],
-            "midrange": trans_midrange_use["sample"],
-            "wing": trans_wing_use["sample"],
+            "main": trans_main["sample"],
+            "midrange": trans_midrange["sample"],
+            "wing": trans_wing["sample"],
         },
         "background_transmission": {
-            "main": trans_main_use["background"],
-            "midrange": trans_midrange_use["background"],
-            "wing": trans_wing_use["background"],
+            "main": trans_main["background"],
+            "midrange": trans_midrange["background"],
+            "wing": trans_wing["background"],
         },
     }
 
     samplelogs = {
-        "main": SampleLogs(processed_data_main_use),
-        "wing": SampleLogs(processed_data_wing_use),
+        "main": SampleLogs(processed_data_main),
+        "wing": SampleLogs(processed_data_wing),
     }
     if reduction_config["has_midrange_detector"]:
-        samplelogs["midrange"] = SampleLogs(processed_data_midrange_use)
+        samplelogs["midrange"] = SampleLogs(processed_data_midrange)
     logslice_data_dict = reduction_input["logslice_data"]
 
     savereductionlog(

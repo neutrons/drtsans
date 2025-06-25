@@ -781,29 +781,57 @@ def test_plot_reduction_output(monkeypatch):
     ],
 )
 @pytest.mark.parametrize(
-    "throws_error, has_midrange, ignore_midrange, qmin_value, qmax_value",
+    "throws_error, has_midrange, ignore_midrange, reference_detector, qmin_value, qmax_value",
     [
-        (True, True, False, [0.01], [0.015]),  # too few Qmin/Qmax for run with midrange detector
-        (True, True, True, [0.01, 0.02], [0.015, 0.025]),  # too many Qmin/Qmax for overlapStitchIgnoreMidrange = True
-        (True, False, False, [0.01, 0.02], [0.015, 0.025]),  # too many Qmin/Qmax for run without midrange detector
-        (True, False, False, [0.01, 0.02, 0.03], [0.015, 0.025, 0.035]),  # lists too long
+        (True, True, False, "main", [0.01], [0.015]),  # too few Qmin/Qmax for run with midrange detector
+        (
+            True,
+            True,
+            True,
+            "main",
+            [0.01, 0.02],
+            [0.015, 0.025],
+        ),  # too many Qmin/Qmax for overlapStitchIgnoreMidrange = True
+        (
+            True,
+            False,
+            False,
+            "main",
+            [0.01, 0.02],
+            [0.015, 0.025],
+        ),  # too many Qmin/Qmax for run without midrange detector
+        (True, False, False, "main", [0.01, 0.02, 0.03], [0.015, 0.025, 0.035]),  # lists too long
+        (True, False, False, "invalid", None, None),  # reference detector is invalid
+        (True, False, False, "midrange", None, None),  # midrange selected but not run with
         # valid inputs:
-        (False, False, False, None, None),
-        (False, True, False, None, None),
-        (False, False, False, [], []),
-        (False, True, False, [], []),
-        (False, False, False, [0.01], [0.015]),  # run without midrange detector
-        (False, True, False, [0.01, 0.02], [0.015, 0.025]),  # run with midrange detector
-        (False, True, True, [0.01], [0.015]),  # run with midrange detector, but it is excluded from stitching
+        (False, False, False, "main", None, None),
+        (False, False, False, "wing", None, None),
+        (False, True, False, "main", None, None),
+        (False, False, False, "main", [], []),
+        (False, True, False, "midrange", None, None),
+        (False, True, False, "main", [], []),
+        (False, False, False, "main", [0.01], [0.015]),  # run without midrange detector
+        (False, True, False, "main", [0.01, 0.02], [0.015, 0.025]),  # run with midrange detector
+        (False, True, True, "main", [0.01], [0.015]),  # run with midrange detector, but it is excluded from stitching
     ],
 )
 def test_check_overlap_stitch_configuration(
-    qbintype1d, qmin_name, qmax_name, throws_error, has_midrange, ignore_midrange, qmin_value, qmax_value
+    qbintype1d,
+    qmin_name,
+    qmax_name,
+    throws_error,
+    has_midrange,
+    ignore_midrange,
+    reference_detector,
+    qmin_value,
+    qmax_value,
 ):
     """Unit test for helper function check_overlap_stitch_configuration."""
     reduction_config = {}
     reduction_config["1DQbinType"] = qbintype1d
     reduction_config["overlapStitchIgnoreMidrange"] = ignore_midrange
+    reduction_config["overlapStitchReferenceDetector"] = reference_detector
+
     # first, set all overlap stitch parameters to None to only test the ones given by qmin_name and qmax_name
     reduction_config["overlapStitchQmin"] = None
     reduction_config["overlapStitchQmax"] = None
@@ -811,6 +839,7 @@ def test_check_overlap_stitch_configuration(
     reduction_config["wedge1overlapStitchQmax"] = None
     reduction_config["wedge2overlapStitchQmin"] = None
     reduction_config["wedge2overlapStitchQmax"] = None
+
     # set the overlap stitch parameters given by qmin_name and qmax_name
     reduction_config[qmin_name] = qmin_value
     reduction_config[qmax_name] = qmax_value

@@ -182,6 +182,7 @@
         "overlapStitchReferenceDetector": {
           "type": "string",
           "description": "If provided, this will be the reference detector used for stitching. Must be one of ['main', 'midrange', 'wing']",
+	  "enum": ["main", "midrange", "wing"],
           "default": "main"
         },
 

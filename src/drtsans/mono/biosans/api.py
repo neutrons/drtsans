@@ -568,10 +568,10 @@ def check_overlap_stitch_configuration(reduction_input: dict) -> None:
 
     If the midrange detector is absent,
         1) there are two detectors and one overlap region, i.e. one Qmin/Qmax.
-        2) overlapStitchQmax must be one of ["main", "wedge"]
+        2) overlapStitchQmax must be one of ["main", "wing"]
     If the midrange detector is present,
         1) there are three detectors and two overlap regions, i.e. two Qmin/Qmax.
-        2) overlapStitchQmax must be one of ["main", "midrange", "wedge"]
+        2) overlapStitchQmax must be one of ["main", "midrange", "wing"]
     Parameters
     ----------
     reduction_input
@@ -588,15 +588,15 @@ def check_overlap_stitch_configuration(reduction_input: dict) -> None:
     num_params_overlap_stitch = 1
     if reduction_input["has_midrange_detector"] and not reduction_config["overlapStitchIgnoreMidrange"]:
         num_params_overlap_stitch = 2
-        if reduction_config["overlapStitchReferenceDetector"] not in ["main", "midrange", "wedge"]:
+        if reduction_config["overlapStitchReferenceDetector"] not in ["main", "midrange", "wing"]:
             raise ValueError(
-                f"Stitch reference detector {reduction_config['overlapStitchReferenceDetector']}"
-                "is invalid for this configuration"
+                f"Configuration 'overlapStitchReferenceDetector': {reduction_config['overlapStitchReferenceDetector']}"
+                " is invalid for this configuration"
             )
-    elif reduction_config["overlapStitchReferenceDetector"] not in ["main", "wedge"]:
+    elif reduction_config["overlapStitchReferenceDetector"] not in ["main", "wing"]:
         raise ValueError(
-            f"Stitch reference detector {reduction_config['overlapStitchReferenceDetector']}"
-            "is invalid for this configuration"
+            f"Configuration 'overlapStitchReferenceDetector': {reduction_config['overlapStitchReferenceDetector']}"
+            " is invalid for this configuration"
         )
 
     params_overlap_stitch = ["overlapStitchQmin", "overlapStitchQmax"]

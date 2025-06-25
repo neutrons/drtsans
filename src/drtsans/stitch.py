@@ -280,7 +280,6 @@ def stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config):
         return iq1d_combined_out
 
     boundaries = get_stitch_boundaries(reduction_config, iq1d_unbinned, anisotropic=len(iq1d_binned[0]) > 1)
-    target_profile_index = get_target_profile_index(iq1d_binned, reduction_config)
 
     iq1d_binned_main = iq1d_binned[0]
     for ibinning in range(len(iq1d_binned_main)):
@@ -291,7 +290,7 @@ def stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config):
             iq1d_combined = stitch_profiles(
                 profiles=profiles,
                 overlaps=overlaps,
-                target_profile_index=target_profile_index,
+                target_profile_index=get_target_profile_index(iq1d_binned, reduction_config),
             )
         except ValueError:
             iq1d_combined = IQmod(intensity=[], error=[], mod_q=[], delta_mod_q=[])

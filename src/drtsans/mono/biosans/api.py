@@ -586,18 +586,15 @@ def check_overlap_stitch_configuration(reduction_input: dict) -> None:
     """
     reduction_config = reduction_input["configuration"]
     num_params_overlap_stitch = 1
+
+    # midrange detector cannot be used for reference if it's not used
+    if (reduction_config["overlapStitchReferenceDetector"] == "midrange") and (
+        reduction_input["has_midrange_detector"] is False
+    ):
+        raise ValueError("Midrange detector cannot be reference for stitching")
+
     if reduction_input["has_midrange_detector"] and not reduction_config["overlapStitchIgnoreMidrange"]:
         num_params_overlap_stitch = 2
-        if reduction_config["overlapStitchReferenceDetector"] not in ["main", "midrange", "wing"]:
-            raise ValueError(
-                f"Configuration 'overlapStitchReferenceDetector': {reduction_config['overlapStitchReferenceDetector']}"
-                " is invalid for this configuration"
-            )
-    elif reduction_config["overlapStitchReferenceDetector"] not in ["main", "wing"]:
-        raise ValueError(
-            f"Configuration 'overlapStitchReferenceDetector': {reduction_config['overlapStitchReferenceDetector']}"
-            " is invalid for this configuration"
-        )
 
     params_overlap_stitch = ["overlapStitchQmin", "overlapStitchQmax"]
     if reduction_config["1DQbinType"] == "wedge":

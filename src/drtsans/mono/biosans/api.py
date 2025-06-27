@@ -591,7 +591,7 @@ def check_overlap_stitch_configuration(reduction_input: dict) -> None:
     if (reduction_config["overlapStitchReferenceDetector"] == "midrange") and (
         reduction_input["has_midrange_detector"] is False
     ):
-        raise ValueError("Midrange detector cannot be reference for stitching")
+        raise ValueError("'overlapStitchReferenceDetector: midrange' is invalid for this configuration")
 
     if reduction_input["has_midrange_detector"] and not reduction_config["overlapStitchIgnoreMidrange"]:
         num_params_overlap_stitch = 2

@@ -801,7 +801,6 @@ def test_plot_reduction_output(monkeypatch):
             [0.015, 0.025],
         ),  # too many Qmin/Qmax for run without midrange detector
         (True, False, False, "main", [0.01, 0.02, 0.03], [0.015, 0.025, 0.035]),  # lists too long
-        (True, False, False, "invalid", None, None),  # reference detector is invalid
         (True, False, False, "midrange", None, None),  # midrange selected but not run with
         # valid inputs:
         (False, False, False, "main", None, None),

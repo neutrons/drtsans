@@ -568,10 +568,10 @@ def check_overlap_stitch_configuration(reduction_input: dict) -> None:
 
     If the midrange detector is absent,
         1) there are two detectors and one overlap region, i.e. one Qmin/Qmax.
-        2) overlapStitchQmax must be one of ["main", "wing"]
+        2) overlapStitchReferenceDetector must be one of ["main", "wing"]
     If the midrange detector is present,
         1) there are three detectors and two overlap regions, i.e. two Qmin/Qmax.
-        2) overlapStitchQmax must be one of ["main", "midrange", "wing"]
+        2) overlapStitchReferenceDetector must be one of ["main", "midrange", "wing"]
     Parameters
     ----------
     reduction_input

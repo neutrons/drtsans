@@ -456,10 +456,7 @@ def test_stitch_binned_profiles_isotropic(data_test_16b):
     data = data_test_16b  # handy shortcut
     qmin = [x[0] for x in data.overlaps]
     qmax = [x[1] for x in data.overlaps]
-    reduction_config = {
-        "overlapStitchQmin": qmin,
-        "overlapStitchQmax": qmax,
-    }
+    reduction_config = {"overlapStitchQmin": qmin, "overlapStitchQmax": qmax, "overlapStitchReferenceDetector": "main"}
     iq1d_unbinned = data.profiles
     # simulate isotropic binning: list of 1 profile per detector
     iq1d_binned = [[profile] for profile in data.profiles]
@@ -476,6 +473,7 @@ def test_stitch_binned_profiles_wedges(data_test_16b):
         "wedge1overlapStitchQmax": qmax,
         "wedge2overlapStitchQmin": qmin,
         "wedge2overlapStitchQmax": qmax,
+        "overlapStitchReferenceDetector": "main",
     }
     iq1d_unbinned = data.profiles
     # simulate anisotropic binning: list of 2 profiles per detector (2 wedges)

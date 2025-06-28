@@ -23,7 +23,7 @@ Release Notes
   XXXX-XX-XX
 
   **Of interest to the User**:
-  - PR #XYZ: one-liner description
+  - PR #1034: Now able to select reference detector for stitching
 
   **Of interest to the Developer:**
   - PR #XYZ: one-liner description

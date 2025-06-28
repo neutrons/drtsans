@@ -202,6 +202,44 @@ def get_stitch_boundaries(reduction_config, iq1d_unbinned, anisotropic=False):
     return bounds
 
 
+def get_target_profile_index(iq1d_binned, reduction_config):
+    """Get the target profile index using the binned IQ1D data and reduction configuration.
+
+    The reduction configuration field ``overlapStitchReferenceDetector`` defines the name of the detector to use.
+    The size of ``iq1d_binned`` determines the ordering of the data, and hence can be used to return the index.
+    If ``len(iq1d_binned)`` == 2, its order is [main, wing]
+    If ``len(iq1d_binned)`` == 3, its order is [main, midrange, wing]
+
+    Parameters
+    ----------
+    iq1d_binned: list of lists of ~drtsans.dataobjects.IQmod
+        A list of lists of ~drtsans.dataobjects.IQmod objects. The outer list is the list of detectors ordered by
+        increasing Q-values. The inner lists are for different binnings of the original data from the detector.
+        Example: [[IQ_main_wedge1, IQ_main_wedge2], [IQ_wing_wedge1, IQ_wing_wedge2]]
+    reduction_config: dict
+        The dictionary of reduction parameters.
+
+    Returns
+    -------
+    int
+        The index of the target profile
+    """
+    detector_index_map = {
+        2: {
+            "main": 0,
+            "wing": 1,
+        },
+        3: {
+            "main": 0,
+            "midrange": 1,
+            "wing": 2,
+        },
+    }
+
+    detector_key = reduction_config["overlapStitchReferenceDetector"]
+    return detector_index_map[len(iq1d_binned)][detector_key]
+
+
 def stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config):
     """Stitch together sequences of intensity profiles from different detector panels (main, wing and midrange),
     that cover a different range of Q-values, returning a single encompassing profile per sequence.
@@ -252,7 +290,7 @@ def stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config):
             iq1d_combined = stitch_profiles(
                 profiles=profiles,
                 overlaps=overlaps,
-                target_profile_index=0,
+                target_profile_index=get_target_profile_index(iq1d_binned, reduction_config),
             )
         except ValueError:
             iq1d_combined = IQmod(intensity=[], error=[], mod_q=[], delta_mod_q=[])

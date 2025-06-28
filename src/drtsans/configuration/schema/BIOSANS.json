@@ -179,6 +179,12 @@
           "$ref":  "common.json#/definitions/safeStitchQboundsSpecs",
           "description": "The maximum |Q| value in the region(s) where intensities for detectors overlap. Allowed overlaps are main with wing, main with midrange, and midrange with wing detector."
         },
+        "overlapStitchReferenceDetector": {
+          "type": "string",
+          "description": "If provided, this will be the reference detector used for stitching. Must be one of ['main', 'midrange', 'wing']",
+	  "enum": ["main", "midrange", "wing"],
+          "default": "main"
+        },
 
         "wedge1QminMain": {
           "$ref":  "common.json#/definitions/safeStringPositiveFloat",

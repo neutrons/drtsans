@@ -566,9 +566,12 @@ def load_all_files(
 def check_overlap_stitch_configuration(reduction_input: dict) -> None:
     """Validate the overlap stitch configuration depending on whether the midrange detector is present
 
-    If the midrange detector is absent, there are two detectors and one overlap region, i.e. one Qmin/Qmax.
-    If the midrange detector is present, there are three detectors and two overlap regions, i.e. two Qmin/Qmax.
-
+    If the midrange detector is absent,
+        1) there are two detectors and one overlap region, i.e. one Qmin/Qmax.
+        2) overlapStitchReferenceDetector must be one of ["main", "wing"]
+    If the midrange detector is present,
+        1) there are three detectors and two overlap regions, i.e. two Qmin/Qmax.
+        2) overlapStitchReferenceDetector must be one of ["main", "midrange", "wing"]
     Parameters
     ----------
     reduction_input
@@ -578,11 +581,21 @@ def check_overlap_stitch_configuration(reduction_input: dict) -> None:
     -------
     ValueError
         If one of the overlap stitch boundary parameters has the wrong number of values.
+    ValueError
+        If the overlap stitch reference detector is invalid for the configuration.
     """
     reduction_config = reduction_input["configuration"]
     num_params_overlap_stitch = 1
+
+    # midrange detector cannot be used for reference if it's not used
+    if (reduction_config["overlapStitchReferenceDetector"] == "midrange") and (
+        reduction_input["has_midrange_detector"] is False
+    ):
+        raise ValueError("'overlapStitchReferenceDetector: midrange' is invalid for this configuration")
+
     if reduction_input["has_midrange_detector"] and not reduction_config["overlapStitchIgnoreMidrange"]:
         num_params_overlap_stitch = 2
+
     params_overlap_stitch = ["overlapStitchQmin", "overlapStitchQmax"]
     if reduction_config["1DQbinType"] == "wedge":
         wedge_names = ["wedge1", "wedge2"]
@@ -1400,6 +1413,7 @@ def reduce_single_configuration(
 
     output = []
     detectordata = {}
+
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         sample_name = "_slice_{}".format(i + 1)
         if len(loaded_ws.sample) > 1:
@@ -1469,6 +1483,7 @@ def reduce_single_configuration(
                 absolute_scale=absolute_scale,
                 keep_processed_workspaces=False,
             )
+
             if reduction_config["has_midrange_detector"]:
                 processed_data_midrange, trans_midrange = process_single_configuration(
                     raw_sample_ws,
@@ -1498,6 +1513,7 @@ def reduce_single_configuration(
                     absolute_scale=absolute_scale,
                     keep_processed_workspaces=False,
                 )
+
             else:
                 processed_data_midrange, trans_midrange = (
                     None,

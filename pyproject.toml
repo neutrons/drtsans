@@ -232,4 +232,3 @@ ignore = [
     "E712",   # comparison to false
     "E741",   # ambiguous variable name
 ]
-

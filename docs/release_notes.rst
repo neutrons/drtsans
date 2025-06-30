@@ -23,7 +23,7 @@ Release Notes
   XXXX-XX-XX
 
   **Of interest to the User**:
-  - PR #1034: Now able to select reference detector for stitching
+  - PR #XYZ: one-liner description
 
   **Of interest to the Developer:**
   - PR #XYZ: one-liner description
@@ -31,10 +31,10 @@ Release Notes
 
 1.16.0
 --------------
-2025-06-24
+2025-07-08
 
 **Of interest to the User**:
-- No changes
+- PR #1034: Now able to select reference detector for stitching
 
 **Of interest to the Developer:**
 - PR #1032: Add splitter of polarized runs

@@ -10,10 +10,6 @@ repos:
       - id: check-added-large-files
         args: ["--maxkb=2048"]
       - id: check-yaml
-        exclude: |
-          (?x)^(
-          ^conda.recipe/meta.yaml
-          )$
       - id: debug-statements
       - id: requirements-txt-fixer
       - id: check-merge-conflict

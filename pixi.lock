@@ -1217,8 +1217,8 @@ packages:
   timestamp: 1733217860944
 - pypi: ./
   name: drtsans
-  version: 1.16.0rc2+d20250630
-  sha256: dbf23d04730b12a51b0b0d602209d17d84b116eb0fcd153fd11ebd0ed03dd0e4
+  version: 1.17.0.dev2
+  sha256: 65086d10922169f1ebd5ba8a53ea5b15d52a1ce21a3a05342599fb2ebfed8537
   requires_dist:
   - docutils
   - ipywidgets

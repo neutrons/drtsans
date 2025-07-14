@@ -1,6 +1,6 @@
 name: drtsans-dev
 channels:
-  - mantid-ornl/label/rc
+  - mantid-ornl
   - conda-forge
 dependencies:
   # base

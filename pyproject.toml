@@ -68,8 +68,8 @@ method = "minor"
 
 [tool.versioningit.format]
 distance = "{next_version}.dev{distance}"
-dirty = "{version}+d{build_date:%Y%m%d}"
-distance-dirty = "{next_version}.dev{distance}+d{build_date:%Y%m%d%H%M}"
+dirty = "{version}"
+distance-dirty = "{next_version}.dev{distance}"
 
 [tool.versioningit.write]
 file = "src/drtsans/_version.py"
@@ -156,6 +156,7 @@ pytest-qt = ">=4.4.0"
 pytest-cov = ">=6.2.1"
 pytest-mock = ">=3.14.1"
 pytest-xvfb = ">=3.1.1"
+pytest-xdist = "*"
 
 [tool.pixi.tasks]
 # Scripts
@@ -164,7 +165,7 @@ generate_report = "python scripts/generate_report"
 build-docs = { cmd = 'sphinx-build -b html docs docs/_build/html', description = "Build documentation" }
 test-docs = { cmd = "sphinx-build -M doctest docs docs/_build/html", description = "Test building the documentation" }
 # Testing
-test = { description = "Run the test suite", cmd = "pytest -m 'not mount_eqsans'" }
+test = { description = "Run the test suite", cmd = "pytest" }
 # Packaging
 conda-build-command = { cmd = "pixi build", description = "Wrapper for building the conda package - used by `conda-build`" }
 conda-build = { description = "Build the conda package", depends-on = [

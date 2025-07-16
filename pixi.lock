@@ -1219,10 +1219,11 @@ packages:
   timestamp: 1733217860944
 - pypi: ./
   name: drtsans
-  version: 1.17.0.dev4
-  sha256: 3e4ebdba7e2081aa98ef58146cdd8491f976c6c566c3c99b828c6d76dfd5a460
+  version: 1.17.0.dev5
+  sha256: 48fa6349595da3cb40e7885e540fe6dab2eda929b37b35963070ce656ccd9869
   requires_dist:
   - docutils
+  - h5py
   - ipywidgets
   - jsonschema>=3.0.2
   - lmfit

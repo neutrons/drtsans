@@ -17,6 +17,7 @@ dependencies = [
     "docutils",
     "ipywidgets",
     "jsonschema>=3.0.2",
+    "h5py",
     "lmfit",
     # mantid is not here b/c it doesn't exist in pypi
     "matplotlib",       # is this necessary

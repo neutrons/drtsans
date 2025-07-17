@@ -61,7 +61,7 @@ packages = ["src/drtsans"]
 
 [tool.versioningit.vcs]
 method = "git"
-default-tag = "0.1.0"
+default-tag = "0.0.1"
 
 [tool.versioningit.next-version]
 method = "minor"

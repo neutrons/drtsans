@@ -116,6 +116,14 @@ qtpy = ">=2.4.3"
 drtsans = { path = ".", editable = true }
 toml-cli = "*"
 
+[tool.pixi.package.run-dependencies]
+lmfit = "*"
+h5py = "*"
+mantid = ">=6.12.0"
+muparser = "<2.3.5"
+pyqt = ">=5,<6"
+qtpy = ">=2.4.3"
+
 # Environments and features
 
 [tool.pixi.environments]

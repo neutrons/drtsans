@@ -17,13 +17,13 @@ dependencies = [
     "docutils",
     "ipywidgets",
     "jsonschema>=3.0.2",
-    "h5py",
-    "lmfit",
+    "h5py==3.13.0",
+    "lmfit==1.3.3",
     # mantid is not here b/c it doesn't exist in pypi
     "matplotlib",       # is this necessary
     "mpld3",
-    "numexpr",
-    "pandas",
+    "numexpr==2.10.2",
+    "pandas==2.2.3",
     "sortedcontainers",
     "tinydb",
 ]
@@ -84,9 +84,7 @@ platforms = ["linux-64"]
 channels = [
     "conda-forge",
     "neutrons",
-    "oncat",
-    "mantid-ornl",
-    "mantid",
+    "mantid-ornl/label/rc",
     "https://prefix.dev/pixi-build-backends",
 ]
 # Required until the build feature becomes stable
@@ -104,21 +102,25 @@ hatchling = "*"
 versioningit = "*"
 
 [tool.pixi.dependencies]
-lmfit = "*"
-h5py = "*"
-mantid = ">=6.12.0"
+lmfit = "==1.3.3"
+h5py = "==3.13.0"
+mantid = "6.12.*"
+mpld3 = "==0.5.10"
 muparser = "<2.3.5"
+numexpr = "==2.10.2"
+pandas = "==2.2.3"
 pyqt = ">=5,<6"
 qtpy = ">=2.4.3"
+matplotlib = "*"
 
 [tool.pixi.pypi-dependencies]
 drtsans = { path = ".", editable = true }
 toml-cli = "*"
 
 [tool.pixi.package.run-dependencies]
-lmfit = "*"
-h5py = "*"
-mantid = ">=6.12.0"
+lmfit = "==1.3.3"
+h5py = "==3.13.0"
+mantid = "6.12.*"
 muparser = "<2.3.5"
 pyqt = ">=5,<6"
 qtpy = ">=2.4.3"

@@ -39,6 +39,7 @@ jobs:
         run: |
           git submodule update --init
           pixi run test -vv -m "not mount_eqsans" --cov=src --cov-report=xml:unit_test_coverage.xml --cov-report=term-missing --junitxml=unit_test_results.xml tests/unit/
+          echo $?
           mv .coverage .coverage.unit
 
       - name: Run integration tests

@@ -33,14 +33,12 @@ jobs:
           sudo apt-get install --yes chromium-browser
 
       - name: Run unit tests
-        continue-on-error: false
         run: |
           git submodule update --init
           pixi run test -vv -m "not mount_eqsans" --cov=src --cov-report=xml:unit_test_coverage.xml --cov-report=term-missing --junitxml=unit_test_results.xml tests/unit/
           mv .coverage .coverage.unit
 
       - name: Run integration tests
-        continue-on-error: false
         run: |
           pixi run test -vv -m "not mount_eqsans" --dist loadscope -n 2 --cov=src --cov-report=xml:integration_test_coverage.xml --cov-report=term-missing --junitxml=integration_test_results.xml tests/integration/
           mv .coverage .coverage.integration

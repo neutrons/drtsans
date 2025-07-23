@@ -203,7 +203,7 @@ To show the effect of the inelastic incoherent compensation, Figure 3 shows I(Q)
 wavelength without the compensation and Figure 4 shows I(Q) total and per wavelength with the
 compensation applied. The comparison shows that the compensation eliminates the bump at high Q, which
 is an artifact created when averaging I(Q) for different wavelengths with different Q range and
-incoherence levels.
+incoherence levels. This example uses a sample rich in Hydrogen and therefore a strong inelastic-incoherent scatterer.
 
 .. figure:: /user/media/eqsans_incoh_fit_before.png
    :alt: before inelastic incoherent compensation

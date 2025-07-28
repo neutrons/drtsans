@@ -7,7 +7,7 @@ import subprocess
 def test_generate_report(datarepo_dir):
     TEST_FILE = os.path.join(datarepo_dir.eqsans, "MC-IL-CO2q_2_reduction_log.hdf")
 
-    cmd = ["generate_report", TEST_FILE]
+    cmd = ["pixi", "run", "-q", "generate_report", TEST_FILE]
 
     result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 

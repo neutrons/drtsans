@@ -1,0 +1,118 @@
+name: Tests, Package, and Deployment
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [next, qa, main]
+    tags: ["v*"]
+
+env:
+  PKG_NAME: drtsans
+
+jobs:
+  #################
+  ### Run Tests ###
+  #################
+
+  tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.8.13
+
+      - name: Install chromium
+        run: |
+          echo "chromium enables testing HTML reports"
+          sudo apt-get install --yes chromium-browser
+
+      - name: Run unit tests
+        run: |
+          git submodule update --init
+          pixi run test -vv -m "not mount_eqsans" --cov=src --cov-report=xml:unit_test_coverage.xml --cov-report=term-missing --junitxml=unit_test_results.xml tests/unit/
+          mv .coverage .coverage.unit
+
+      - name: Run integration tests
+        run: |
+          pixi run test -vv -m "not mount_eqsans" --dist loadscope -n 2 --cov=src --cov-report=xml:integration_test_coverage.xml --cov-report=term-missing --junitxml=integration_test_results.xml tests/integration/
+          mv .coverage .coverage.integration
+
+      - name: Upload coverage to codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  ##############################
+  ### Package and Deployment ###
+  ##############################
+
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+          fetch-tags: true
+          ref: ${{ github.ref }}
+
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.8.13
+
+      - name: Build Conda package
+        run: |
+          pixi run conda-build
+          mkdir -p /tmp/local-channel/linux-64
+          cp *.conda /tmp/local-channel/linux-64
+
+      - name: Verify conda package
+        uses: neutrons/conda-verify@main
+        with:
+          package-name: drtsans
+          local-channel: /tmp/local-channel
+          python-version: "3.10"
+          extra-channels: mantid neutrons
+
+      - name: Upload conda package as artifact
+        uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: artifact-conda-package
+          path: ${{ env.PKG_NAME }}-*.conda
+
+  publish:
+    runs-on: ubuntu-24.04
+    needs: [tests, build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+          fetch-tags: true
+          ref: ${{ github.ref }}
+
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.8.13
+
+      - name: Download conda package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: artifact-conda-package
+
+      - name: Upload package to anaconda
+        env:
+          ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+          IS_RC: ${{ contains(github.ref, 'rc') }}
+        run: |
+          # label is main or rc depending on the tag-name
+          CONDA_LABEL="main"
+          if [ "${IS_RC}" = "true" ]; then CONDA_LABEL="rc"; fi
+          echo pushing ${{ github.ref }} with label $CONDA_LABEL
+          pixi run anaconda upload --label $CONDA_LABEL --user neutrons ${{ env.PKG_NAME }}-*.conda

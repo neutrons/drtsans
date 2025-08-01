@@ -32,3 +32,10 @@ repos:
     rev: 0.8.1
     hooks:
     - id: nbstripout
+  - repo: local
+    hooks:
+      - id: pixi-lock-check
+        name: pixi-lock-check
+        entry: bash -c "PATH=$HOME/.pixi/bin:$PATH pixi lock --check"
+        stage: pre-push
+        language: system

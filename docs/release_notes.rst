@@ -3,34 +3,12 @@
 =============
 Release Notes
 =============
-..
-  Use the following template to add a new release note.
 
-  <Next Release>
-  --------------
-  (date of release, format YYYY-MM-DD)
 
-  **Of interest to the User**:
-  - PR #XYZ: one-liner description
-
-  **Of interest to the Developer:**
-  - PR #XYZ: one-liner description
-..
-
-..
-  1.17.0
-  --------------
-  XXXX-XX-XX
-
-  **Of interest to the User**:
-  - PR #XYZ: one-liner description
-
-  **Of interest to the Developer:**
-  - PR #1036: Migrate from conda to pixi
-..
+Releases 1.17.0 onwards at `GitHub <https://github.com/neutrons/drtsans/releases>`_
 
 1.16.0
---------------
+------
 2025-07-08
 
 **Of interest to the User**:

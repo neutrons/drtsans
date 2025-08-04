@@ -78,7 +78,7 @@ jobs:
           local-channel: /tmp/local-channel
           python-version: "3.10"
           extra-channels: mantid neutrons
-          extra-commands: pixi run python -c "import mantid; import h5py; import lmfit; import mpld3; import numexpr; import pandas; import matplotlib; import pyqt"
+          extra-commands: pixi run python -c "import mantid; import h5py; import lmfit; import mpld3; import numexpr; import pandas; import matplotlib; import qtpy"
 
       - name: Upload conda package as artifact
         uses: actions/upload-artifact@v4

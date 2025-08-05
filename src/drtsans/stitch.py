@@ -90,7 +90,7 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
             logger.notice(message)
             raise ValueError(message)
 
-        scale = sum(target_profile.intensity[indexes_in_overlap]) / sum(to_target_interpolated)
+        scale = sum(target.intensity[indexes_in_overlap]) / sum(to_target_interpolated)
         if scale <= 0:
             raise ValueError(
                 f"Scale number: {scale}. The scaling number for stitching cannot be negative. "

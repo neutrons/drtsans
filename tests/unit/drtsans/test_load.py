@@ -124,13 +124,12 @@ class TestLoadEvents:
         scalings = {"detector1": [1.1, 1.2, 1.3]}
 
         # mock various functions used in load_events that are not relevant to this test
-        with mock.patch("drtsans.load.LoadEventNexus") as mock_load_event_nexus, mock.patch(
-            "drtsans.load.LoadEventAsWorkspace2D"
-        ) as mock_load_event_as_workspace2d, mock.patch(
-            "drtsans.load.__monitor_counts"
-        ) as mock_monitor_counts, mock.patch(
-            "drtsans.geometry.sample_detector_distance"
-        ) as mock_sample_detector_distance:
+        with (
+            mock.patch("drtsans.load.LoadEventNexus") as mock_load_event_nexus,
+            mock.patch("drtsans.load.LoadEventAsWorkspace2D") as mock_load_event_as_workspace2d,
+            mock.patch("drtsans.load.__monitor_counts") as mock_monitor_counts,
+            mock.patch("drtsans.geometry.sample_detector_distance") as mock_sample_detector_distance,
+        ):
             mock_monitor_counts.return_value = 42
             mock_sample_detector_distance.return_value = 0.42
 

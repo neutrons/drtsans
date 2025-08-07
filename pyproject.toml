@@ -246,4 +246,6 @@ ignore = [
     "E402",   # import not at the top of the file
     "E712",   # comparison to false
     "E741",   # ambiguous variable name
+    "PLC0415",# import should be at top
+    "PLW1641" # object does not implement __hash__
 ]

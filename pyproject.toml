@@ -103,7 +103,7 @@ versioningit = "*"
 [tool.pixi.dependencies]
 lmfit = "==1.3.3"
 h5py = "*"
-mantid = "6.13.*"
+mantid = ">=6.13.0,<6.14.0"
 mpld3 = "*"
 numexpr = "*"
 pandas = "*"
@@ -118,7 +118,7 @@ toml-cli = "*"
 [tool.pixi.package.run-dependencies]
 lmfit = "==1.3.3"
 h5py = "*"
-mantid = "6.13.*"
+mantid = ">=6.13.0,<6.14.0"
 mpld3 = "*"
 numexpr = "*"
 pandas = "*"
@@ -247,4 +247,6 @@ ignore = [
     "E402",   # import not at the top of the file
     "E712",   # comparison to false
     "E741",   # ambiguous variable name
+    "PLC0415",# import should be at top
+    "PLW1641" # object does not implement __hash__
 ]

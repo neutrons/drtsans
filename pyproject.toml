@@ -152,6 +152,7 @@ pip-audit = ">=2.9.0"
 pre-commit = ">=4.2.0"
 ruff = "*"
 versioningit = ">=3.2.0"
+argcomplete = "*"
 
 [tool.pixi.feature.docs.dependencies]
 sphinx = ">=8"

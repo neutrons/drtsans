@@ -1279,8 +1279,8 @@ packages:
   timestamp: 1739569648873
 - pypi: ./
   name: drtsans
-  version: 1.17.0.dev9
-  sha256: 2e8a2993583d75bae1c7108ad8c0b13c8b3a6090d4069c77dad074fe3b64a166
+  version: 1.17.0.dev13
+  sha256: 0cd9cd08991e7d7737ae334d7da749a10dda9e48a56775fa66dca66c82356b08
   requires_dist:
   - docutils
   - h5py

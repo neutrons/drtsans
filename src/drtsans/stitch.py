@@ -65,6 +65,15 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
         # Find the data points of the "target" profile in the overlap region
         indexes_in_overlap = (target.mod_q > starting_q) & (target.mod_q < ending_q) & np.isfinite(target.intensity)
         q_values_in_overlap = target.mod_q[indexes_in_overlap]
+
+        if len(q_values_in_overlap) < 2:
+            message = (
+                "Insufficient number of Q values for interpolation to find scale number. "
+                + "Skipping this combined region."
+            )
+            logger.notice(message)
+            raise ValueError(message)
+
         # Interpolate the "to_target" profile intensities at the previously found Q values
         good_values = np.isfinite(to_target.intensity)
         to_target_interpolated = np.interp(
@@ -72,7 +81,16 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
             to_target.mod_q[good_values],
             to_target.intensity[good_values],
         )
-        scale = sum(target_profile.intensity[indexes_in_overlap]) / sum(to_target_interpolated)
+
+        if sum(to_target_interpolated) == 0.0:
+            message = (
+                "Stitching interpolation for scale number would result in divide by zero error. "
+                + "Skipping this combined region."
+            )
+            logger.notice(message)
+            raise ValueError(message)
+
+        scale = sum(target.intensity[indexes_in_overlap]) / sum(to_target_interpolated)
         if scale <= 0:
             raise ValueError(
                 f"Scale number: {scale}. The scaling number for stitching cannot be negative. "

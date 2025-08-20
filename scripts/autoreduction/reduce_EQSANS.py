@@ -145,7 +145,7 @@ def parse_command_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--report_file",
         type=str,
-        help="Save the HTML report to file. If only the file name is given,the file is saved in the output directory",
+        help="Save the HTML report to file. If only the file name is given, the file is saved in the output directory",
     )
     parser.add_argument("--no_publish", action="store_true", help="Do not upload HTML report to the livedata server.")
     return parser.parse_args()

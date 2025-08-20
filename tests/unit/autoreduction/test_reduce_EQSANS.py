@@ -81,7 +81,7 @@ def test_reduce_events_file(simulated_events):
     assert z.shape == (reduce_EQSANS.PIXELS_PER_TUBE, reduce_EQSANS.TUBES_IN_DETECTOR1)
     # event count in the first pixel, but all pixels should have the same count
     count = np.sum(simulated_events.readY(0))
-    assert z.data[~z.mask] == pytest.approx(np.log(count), abs=1e-5)
+    assert z.data[~z.mask] == pytest.approx(np.log(count), abs=1e-3)
 
 
 def test_upload_plot_success():

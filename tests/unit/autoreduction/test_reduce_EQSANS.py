@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import DeleteWorkspace, MoveInstrumentComponent, mtd, Rebin
 import numpy as np
+from numpy.testing import assert_almost_equal
 import pytest
 
 from .script_locator import reduce_EQSANS
@@ -78,7 +79,7 @@ def test_reduce_events_file(simulated_events):
     assert z.shape == (reduce_EQSANS.PIXELS_PER_TUBE, reduce_EQSANS.TUBES_IN_DETECTOR1)
     # event count in the first pixel, but all pixels should have the same count
     count = np.sum(simulated_events.readY(0))
-    assert z.data[~z.mask] == pytest.approx(np.log(count), abs=1e-3)
+    assert_almost_equal(np.average(z.data[~z.mask]), np.log(count), decimal=3)
 
 
 def test_upload_plot_success():

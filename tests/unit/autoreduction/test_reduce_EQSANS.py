@@ -6,9 +6,6 @@ from unittest.mock import Mock, patch
 from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import DeleteWorkspace, MoveInstrumentComponent, mtd, Rebin
 import numpy as np
-
-# DEBUG: remove after testing
-
 import pytest
 
 from .script_locator import reduce_EQSANS

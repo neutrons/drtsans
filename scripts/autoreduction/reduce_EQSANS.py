@@ -10,9 +10,6 @@ import warnings
 from finddata.publish_plot import plot_heatmap, publish_plot
 from mantid.simpleapi import Integration, LoadEventNexus, mtd
 
-# DEBUG: remove after testing
-from mantid.simpleapi import SaveNexusProcessed
-
 import numpy as np
 
 # silently ignore all types of numerical errors (like divide by zero, overflow, etc.)
@@ -52,10 +49,6 @@ def reduce_events_file(events_file: str) -> tuple:
         raise FileNotFoundError(f"data file {events_file} not found")
 
     events = LoadEventNexus(Filename=events_file, outputWorkspace=mtd.unique_hidden_name())
-
-    # DEBUG: remove after testing
-    SaveNexusProcessed(InputWorkspace=events, Filename="/tmp/junk.nxs")
-
     intensities = Integration(InputWorkspace=events, outputWorkspace=mtd.unique_hidden_name())
     data = intensities.extractY().reshape(-1, TUBES_PER_EIGHTPACK, PIXELS_PER_TUBE).T
     data2 = data[:, [0, 4, 1, 5, 2, 6, 3, 7], :]  # tube indexes within an eightpack

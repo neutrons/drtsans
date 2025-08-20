@@ -25,6 +25,7 @@ dependencies = [
     "numexpr",
     "pandas",
     "tinydb",
+    # "finddata>=0.10.1",  there's no pypi package for this. Install it from conda-forge in the "-dev" deploy repo
 ]
 
 license = { file = "LICENSE" }

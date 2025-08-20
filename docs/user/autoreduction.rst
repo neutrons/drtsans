@@ -4,7 +4,7 @@
 Autoreduction
 =============
 
-Python scripts for automatic reduction of SANS data are provided in the `scripts/autoreduction` directory.
+Python scripts for automatic reduction of SANS data are provided in the `scripts/autoreduction/` directory.
 These scripts are designed to be run from the command line and can be used to process data without manual intervention.
 
 Required arguments for the scripts include:
@@ -15,7 +15,7 @@ Required arguments for the scripts include:
 
 Example of the autoreduction service running the script:
 
-code-block:: bash
+.. code-block:: bash
 
     python reduce_EQSANS.py \
         /SNS/EQSANS/IPTS-20196/nexus/EQSANS_89157.nxs.h5 \
@@ -23,11 +23,12 @@ code-block:: bash
 
 User can also run the script manually, for instance:
 
-code-block:: bash
+.. code-block:: bash
 
     python reduce_EQSANS.py \
         /SNS/EQSANS/IPTS-20196/nexus/EQSANS_89157.nxs.h5 \
-        /tmp --no_publish --report_file EQSANS_89157.html
+        /tmp \
+        --no_publish --report_file EQSANS_89157.html
 
 This call will generate the report file `EQSANS_89157.html` in the `/tmp` directory,
 and will not publish the results to the live data server.

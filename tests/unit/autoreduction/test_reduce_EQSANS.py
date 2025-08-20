@@ -60,7 +60,7 @@ def simulated_events() -> EventWorkspace:
     DeleteWorkspace(workspace_name)
 
 
-def test_constants_values(self):
+def test_constants_values():
     """Test that constants have expected values"""
     assert reduce_EQSANS.TUBES_PER_EIGHTPACK == 8
     assert reduce_EQSANS.TUBES_IN_DETECTOR1 == 192

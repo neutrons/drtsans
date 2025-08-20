@@ -110,6 +110,7 @@ pandas = "*"
 pyqt = ">=5,<6"
 qtpy = ">=2.4.3"
 matplotlib = "*"
+finddata = ">=0.10.1"
 
 [tool.pixi.pypi-dependencies]
 drtsans = { path = ".", editable = true }
@@ -125,6 +126,7 @@ pandas = "*"
 pyqt = ">=5,<6"
 qtpy = ">=2.4.3"
 matplotlib = "*"
+finddata = ">=0.10.1"
 
 # Environments and features
 

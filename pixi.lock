@@ -173,6 +173,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/exceptiongroup-1.3.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/execnet-2.1.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/filelock-3.18.0-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/neutrons/noarch/finddata-0.10.1-py311.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/noarch/flexcache-0.3-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/flexparser-0.4-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/font-ttf-dejavu-sans-mono-2.37-hab24e00_0.tar.bz2
@@ -342,6 +343,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/pip-requirements-parser-32.0.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pixman-0.46.4-h537e5f6_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/platformdirs-4.3.8-pyhe01879c_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/plotly-5.24.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pluggy-1.6.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/ply-3.11-pyhd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/poco-1.14.2-h0a6e815_0.conda
@@ -411,6 +413,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-qthelp-2.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-serializinghtml-1.1.10-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tbb-2022.2.0-hb60516a_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/tenacity-9.1.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/threadpoolctl-3.6.0-pyhecae5ae_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tk-8.6.13-noxft_hd72426e_102.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/toml-0.10.2-pyhd8ed1ab_1.conda
@@ -1274,8 +1277,8 @@ packages:
   timestamp: 1739569648873
 - pypi: ./
   name: drtsans
-  version: 1.17.0.dev14
-  sha256: e26a8174e29ce0174021f8ae844fcdd95092d33216e1b250508f740f2a993257
+  version: 1.17.0.dev7
+  sha256: b753279d45e45f3824a5b10341b1d8123044cae24ec7d492b857ffdf065577d0
   requires_dist:
   - docutils
   - h5py
@@ -1358,6 +1361,18 @@ packages:
   - pkg:pypi/filelock?source=hash-mapping
   size: 17887
   timestamp: 1741969612334
+- conda: https://conda.anaconda.org/neutrons/noarch/finddata-0.10.1-py311.tar.bz2
+  build_number: 0
+  sha256: 7cd1477a724cc1c00d2160ee6ed2078fed787d891c135f6cdf01ebc448e681ba
+  md5: 3b64e67695266fc822ef624a411f637e
+  depends:
+  - plotly <6
+  - python
+  - urllib3
+  license: MIT
+  license_family: MIT
+  size: 16277
+  timestamp: 1738870200288
 - conda: https://conda.anaconda.org/conda-forge/noarch/flexcache-0.3-pyhd8ed1ab_1.conda
   sha256: acdb7b73d84268773fcc8192965994554411edc488ec3447925a62154e9d3baa
   md5: f1e618f2f783427019071b14a111b30d
@@ -3881,6 +3896,21 @@ packages:
   - pkg:pypi/platformdirs?source=hash-mapping
   size: 23531
   timestamp: 1746710438805
+- conda: https://conda.anaconda.org/conda-forge/noarch/plotly-5.24.1-pyhd8ed1ab_1.conda
+  sha256: d1bbf2d80105bfc8a7ed9817888f4a1686ed393d6435572921add09cc9347c1c
+  md5: 71ac632876630091c81c50a05ec5e030
+  depends:
+  - packaging
+  - python >=3.9
+  - tenacity >=6.2.0
+  constrains:
+  - ipywidgets >=7.6
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/plotly?source=hash-mapping
+  size: 8022748
+  timestamp: 1733733328161
 - conda: https://conda.anaconda.org/conda-forge/noarch/pluggy-1.6.0-pyhd8ed1ab_0.conda
   sha256: a8eb555eef5063bbb7ba06a379fa7ea714f57d9741fe0efdb9442dbbc2cccbcc
   md5: 7da7ccd349dbf6487a7778579d2bb971
@@ -5160,6 +5190,17 @@ packages:
   purls: []
   size: 182946
   timestamp: 1753179082550
+- conda: https://conda.anaconda.org/conda-forge/noarch/tenacity-9.1.2-pyhd8ed1ab_0.conda
+  sha256: fd9ab8829947a6a405d1204904776a3b206323d78b29d99ae8b60532c43d6844
+  md5: 5d99943f2ae3cc69e1ada12ce9d4d701
+  depends:
+  - python >=3.9
+  license: Apache-2.0
+  license_family: APACHE
+  purls:
+  - pkg:pypi/tenacity?source=hash-mapping
+  size: 25364
+  timestamp: 1743640859268
 - conda: https://conda.anaconda.org/conda-forge/noarch/threadpoolctl-3.6.0-pyhecae5ae_0.conda
   sha256: 6016672e0e72c4cf23c0cf7b1986283bd86a9c17e8d319212d78d8e9ae42fdfd
   md5: 9d64911b31d57ca443e9f1e36b04385f

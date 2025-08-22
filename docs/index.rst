@@ -18,6 +18,7 @@ User Guide
    /user/binning
    /user/polarization
    /user/reduction_output
+   /user/autoreduction
    /drtsans/reduction_parameters
    /drtsans/reduction_scripts
    release_notes

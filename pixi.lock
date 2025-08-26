@@ -1277,8 +1277,8 @@ packages:
   timestamp: 1739569648873
 - pypi: ./
   name: drtsans
-  version: 1.17.0.dev8
-  sha256: 6d24d9f3162beb333187a752fc9f413c53fe853d1e1012a576de8ddf4a99740e
+  version: 1.17.0.dev1
+  sha256: a19e356c027998f19350cd5af9912f4e487f503ee63af365b8d5224454ba85dc
   requires_dist:
   - docutils
   - h5py
@@ -1289,6 +1289,7 @@ packages:
   - mpld3==0.5.10
   - numexpr
   - pandas
+  - requests
   - tinydb
   requires_python: '>=3.11'
   editable: true

@@ -3,12 +3,14 @@
 
 import argparse
 import logging
-import requests
 import os
+import requests
+from typing import Union
 import warnings
 
 from finddata.publish_plot import plot_heatmap, publish_plot
-from mantid.simpleapi import Integration, LoadEventNexus, mtd
+import plotly.offline as pyo
+from mantid.simpleapi import Integration, LoadEventNexus, logger, mtd
 
 import numpy as np
 
@@ -83,30 +85,38 @@ def upload_plot(run_number: str, plot_div: str):
         logging.exception(f"Publish plot failed with error {e}")
 
 
-def save_plot(plot_div: str, report_file: str):
-    """
-    Save an HTML plot to a file with the necessary JavaScript engine for rendering.
+def html_wrapper(report: Union[str, None]) -> str:
+    """Wraps a report (set of <dvi> elements) in a complete HTML document
+
+    Adds the javascript engine (PlotLy.js) address, HTML head, and body tags.
 
     Parameters
     ----------
-    plot_div
-        The HTML div containing the plot to be saved.
-    report_file
-        The path to the file where the HTML report will be saved.
+    report : str
+        The HTML content to be wrapped. This should contain on or more <div> elements and possibly
+        summary <table> elements.
 
-    Notes
-    -----
-    - The saved file includes the Plotly JavaScript library to ensure the plot can be displayed in a web browser.
-    - The function wraps the provided `plot_div` with the required HTML structure.
+    Returns
+    -------
+    str
+        A complete HTML document as a string, with the provided report content embedded within the body.
     """
-    # add the javascript engine so that the report can be displayed in a web browser
-    prefix = """<!DOCTYPE html>
+    js_version = pyo.get_plotlyjs_version()
+    url = f"https://cdn.plot.ly/plotly-{js_version}.js"
+    try:
+        response = requests.head(url, timeout=5)
+        assert response.status_code == 200
+    except (requests.RequestException, AssertionError):
+        logger.error(f"Plotly.js version {js_version} not found, using version 3.0.0 instead")
+        url = "https://cdn.plot.ly/plotly-3.0.0.js"
+
+    prefix = f"""<!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Plotly Chart</title>
-        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script src="{url}"></script>
     </head>
     <body>
 
@@ -116,8 +126,28 @@ def save_plot(plot_div: str, report_file: str):
     </body>
     </html>
     """
+    report = "" if report is None else report
+    return prefix + report + suffix  # allow for report being `None`
+
+
+def save_plot(report: str, report_file: str):
+    """
+    Save an HTML plot to a file with the necessary JavaScript engine for rendering.
+
+    Parameters
+    ----------
+    report
+        The <div> containing the plot to be saved.
+    report_file
+        The path to the file where the HTML report will be saved.
+
+    Notes
+    -----
+    - The saved file includes the Plotly JavaScript library to ensure the plot can be displayed in a web browser.
+    - The function wraps the provided `plot_div` with the required HTML structure.
+    """
     with open(report_file, "w") as f:
-        f.write(prefix + plot_div + suffix)
+        f.write(html_wrapper(report))
 
 
 def parse_command_arguments() -> argparse.Namespace:
@@ -130,23 +160,15 @@ def parse_command_arguments() -> argparse.Namespace:
         An object containing the parsed command-line arguments:
         - events_file (str): Path to the Nexus events file.
         - outdir (str): Output directory path.
-        - report_file (str, optional): Path to save the HTML report file.
         - no_publish (bool): Flag to disable uploading the HTML report to the livedata server.
 
     Notes
     -----
-    - The `--report_file` argument allows specifying a file name or a full path.
-      If only a file name is provided, the file is saved in the output directory.
     - The `--no_publish` flag prevents the report from being uploaded to the server.
     """
     parser = argparse.ArgumentParser(description="Autoreduction script for EQSANS")
     parser.add_argument("events_file", type=str, help="Path to the Nexus events file.")
     parser.add_argument("outdir", type=str, help="Output directory path.")
-    parser.add_argument(
-        "--report_file",
-        type=str,
-        help="Save the HTML report to file. If only the file name is given, the file is saved in the output directory",
-    )
     parser.add_argument("--no_publish", action="store_true", help="Do not upload HTML report to the livedata server.")
     return parser.parse_args()
 
@@ -171,17 +193,11 @@ def main():
         publish=False,
     )
 
-    # Upload the plot to the livedata server if requested
+    #  Save the plot to disk and upload the plot to the livedata server if requested
+    os.makedirs(args.outdir, exist_ok=True)
+    save_plot(plot_div, os.path.join(args.outdir, f"EQSANS_{run_number}.html"))
     if not args.no_publish:
         upload_plot(run_number, plot_div)
-
-    # Save the plot to a file if requested
-    if args.report_file:
-        # Find if we should save to the output directory
-        file_path = args.report_file
-        if file_path and os.path.basename(file_path) == file_path:
-            file_path = os.path.join(args.outdir, file_path)
-        save_plot(plot_div, file_path)
 
 
 if __name__ == "__main__":

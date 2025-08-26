@@ -144,7 +144,7 @@ def save_plot(report: str, report_file: str):
     Notes
     -----
     - The saved file includes the Plotly JavaScript library to ensure the plot can be displayed in a web browser.
-    - The function wraps the provided `plot_div` with the required HTML structure.
+    - The function wraps the provided `report` with the required HTML structure.
     """
     with open(report_file, "w") as f:
         f.write(html_wrapper(report))

@@ -93,7 +93,7 @@ def html_wrapper(report: Union[str, None]) -> str:
     Parameters
     ----------
     report : str
-        The HTML content to be wrapped. This should contain on or more <div> elements and possibly
+        The HTML content to be wrapped. This should contain one or more <div> elements and possibly
         summary <table> elements.
 
     Returns

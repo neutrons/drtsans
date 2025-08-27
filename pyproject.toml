@@ -24,6 +24,7 @@ dependencies = [
     "mpld3==0.5.10",
     "numexpr",
     "pandas",
+    "requests",
     "tinydb",
     # "finddata>=0.10.1",  there's no pypi package for this. Install it from conda-forge in the "-dev" deploy repo
 ]
@@ -112,6 +113,7 @@ pyqt = ">=5,<6"
 qtpy = ">=2.4.3"
 matplotlib = "*"
 finddata = ">=0.10.1"
+requests = "*"
 
 [tool.pixi.pypi-dependencies]
 drtsans = { path = ".", editable = true }
@@ -128,6 +130,7 @@ pyqt = ">=5,<6"
 qtpy = ">=2.4.3"
 matplotlib = "*"
 finddata = ">=0.10.1"
+requests = "*"
 
 # Environments and features
 

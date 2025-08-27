@@ -110,7 +110,6 @@ def test_save_plot():
             content = f.read()
         assert "<!DOCTYPE html>" in content
         assert plot_div in content
-        assert "plotly-latest.min.js" in content
         assert "</html>" in content
     finally:
         os.unlink(temp_filename)
@@ -144,20 +143,18 @@ def test_parse_required_arguments():
 
     assert args.events_file == "test_events.nxs"
     assert args.outdir == "/output/dir"
-    assert args.report_file is None
     assert args.no_publish is False
 
 
 def test_parse_all_arguments():
     """Test parsing of all arguments"""
-    test_args = ["test_events.nxs", "/output/dir", "--report_file", "report.html", "--no_publish"]
+    test_args = ["test_events.nxs", "/output/dir", "--no_publish"]
 
     with patch("sys.argv", ["script_name"] + test_args):
         args = reduce_EQSANS.parse_command_arguments()
 
     assert args.events_file == "test_events.nxs"
     assert args.outdir == "/output/dir"
-    assert args.report_file == "report.html"
     assert args.no_publish is True
 
 
@@ -173,8 +170,7 @@ def test_main_with_publish_and_save(
     # Setup mocks
     mock_args = Mock()
     mock_args.events_file = "test.nxs"
-    mock_args.outdir = "/output"
-    mock_args.report_file = "report.html"
+    mock_args.outdir = "/tmp/output"
     mock_args.no_publish = False
     mock_parse_args.return_value = mock_args
 
@@ -205,8 +201,7 @@ def test_main_no_publish_no_save(
     """Test main function with publish and save disabled"""
     mock_args = Mock()
     mock_args.events_file = "test.nxs"
-    mock_args.outdir = "/output"
-    mock_args.report_file = None
+    mock_args.outdir = "/tmp/output"
     mock_args.no_publish = True
     mock_parse_args.return_value = mock_args
 
@@ -223,7 +218,7 @@ def test_main_no_publish_no_save(
     mock_reduce_events.assert_called_once_with("test.nxs")
     mock_plot_heatmap.assert_called_once()
     mock_upload_plot.assert_not_called()
-    mock_save_plot.assert_not_called()
+    mock_save_plot.assert_called()
 
 
 @patch.object(reduce_EQSANS, "parse_command_arguments")
@@ -234,8 +229,7 @@ def test_main_report_file_path_handling(mock_save_plot, mock_plot_heatmap, mock_
     """Test main function handles report file path correctly"""
     mock_args = Mock()
     mock_args.events_file = "test.nxs"
-    mock_args.outdir = "/output"
-    mock_args.report_file = "report.html"  # Just filename
+    mock_args.outdir = "/tmp/output"
     mock_args.no_publish = True
     mock_parse_args.return_value = mock_args
 
@@ -250,7 +244,7 @@ def test_main_report_file_path_handling(mock_save_plot, mock_plot_heatmap, mock_
     reduce_EQSANS.main()
 
     # Check that save_plot was called with the joined path
-    mock_save_plot.assert_called_once_with("<div>plot content</div>", "/output/report.html")
+    mock_save_plot.assert_called_once_with("<div>plot content</div>", "/tmp/output/EQSANS_12345.html")
 
 
 if __name__ == "__main__":

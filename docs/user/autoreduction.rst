@@ -5,7 +5,7 @@ Autoreduction
 =============
 
 Python scripts for automatic reduction of SANS data are provided in the `scripts/autoreduction/` directory.
-These scripts are designed to be run from the command line and can be used to process data without manual intervention.
+These scripts are designed to be run by the SNS web monitor but also from the command line.
 
 Required arguments for the scripts include:
 
@@ -27,9 +27,8 @@ User can also run the script manually, for instance:
 
     python reduce_EQSANS.py \
         /SNS/EQSANS/IPTS-20196/nexus/EQSANS_89157.nxs.h5 \
-        /tmp \
-        --no_publish --report_file EQSANS_89157.html
+        /tmp --no_publish
 
-This call will generate the report file `EQSANS_89157.html` in the `/tmp` directory,
-and will not publish the results to the live data server.
+This call will not publish the results to the live data server,
+but will save report file `EQSANS_89157.html` in the `/tmp` directory.
 User can point the web browser to the generated report file file:///tmp/EQSANS_89157.html.

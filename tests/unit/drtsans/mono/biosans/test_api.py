@@ -826,18 +826,14 @@ def test_check_overlap_stitch_configuration(
     qmax_value,
 ):
     """Unit test for helper function check_overlap_stitch_configuration."""
-    reduction_config = {}
+
+    # load the default parameters
+    reduction_config = reduction_parameters({}, "BIOSANS", validate=False)["configuration"]
+
+    # override with test parameters
     reduction_config["1DQbinType"] = qbintype1d
     reduction_config["overlapStitchIgnoreMidrange"] = ignore_midrange
     reduction_config["overlapStitchReferenceDetector"] = reference_detector
-
-    # first, set all overlap stitch parameters to None to only test the ones given by qmin_name and qmax_name
-    reduction_config["overlapStitchQmin"] = None
-    reduction_config["overlapStitchQmax"] = None
-    reduction_config["wedge1overlapStitchQmin"] = None
-    reduction_config["wedge1overlapStitchQmax"] = None
-    reduction_config["wedge2overlapStitchQmin"] = None
-    reduction_config["wedge2overlapStitchQmax"] = None
 
     # set the overlap stitch parameters given by qmin_name and qmax_name
     reduction_config[qmin_name] = qmin_value

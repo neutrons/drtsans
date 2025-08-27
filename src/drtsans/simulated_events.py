@@ -285,20 +285,35 @@ def insert_background(
                 Minimum number of neutrons counts (bigger or equal to 0)
             max_counts: float
                 Maximum number of neutrons counts
+        For "fix count", the following argument is supported:
+            count: int
+                The number of events to insert in each pixel. Must be a positive integer.
     """
 
     def _gaussian_noise(x, y, _):
+        # x and y are pixel coordinates
         assert len(x) == len(y)
         noise = np.random.normal(loc=flavor_kwargs["mean"], scale=flavor_kwargs["stddev"], size=len(x))
         noise[noise < 0] = 0.0
         return noise
 
     def _flat_noise(x, y, _):
+        # x and y are pixel coordinates
         assert len(x) == len(y)
         assert 0 <= flavor_kwargs["min_counts"] < flavor_kwargs["max_counts"]
         return np.random.randint(flavor_kwargs["min_counts"], flavor_kwargs["max_counts"] + 1, len(x)).astype(float)
 
-    event_generator = {"gaussian noise": _gaussian_noise, "flat noise": _flat_noise}[flavor]
+    def _fix_count(x, y, _):
+        # x and y are pixel coordinates
+        assert len(x) == len(y)
+        assert 0 < flavor_kwargs["count"] and isinstance(flavor_kwargs["count"], int)
+        return np.full(len(x), flavor_kwargs["count"], dtype=float)
+
+    event_generator = {
+        "gaussian noise": _gaussian_noise,
+        "flat noise": _flat_noise,
+        "fix count": _fix_count,
+    }[flavor]
 
     insert_events(
         input_workspace,

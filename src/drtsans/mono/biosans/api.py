@@ -593,8 +593,47 @@ def check_overlap_stitch_configuration(reduction_input: dict) -> None:
     ):
         raise ValueError("'overlapStitchReferenceDetector: midrange' is invalid for this configuration")
 
+    if reduction_config["overlapStitchQmax"] and reduction_config["overlapStitchQmin"]:
+        if not reduction_config["overlapStitchQmax"] > reduction_config["overlapStitchQmin"]:
+            raise ValueError("'overlapStitchQmax' does not overlap with 'overlapStitchQmin'")
+    if reduction_config["1DQbinType"] == "wedge":
+        if reduction_config["wedge1overlapStitchQmax"] and reduction_config["wedge1overlapStitchQmin"]:
+            if not reduction_config["wedge1overlapStitchQmax"] > reduction_config["wedge1overlapStitchQmin"]:
+                raise ValueError("'wedge1overlapStitchQmax' does not overlap with 'wedge1overlapStitchQmin'")
+        if reduction_config["wedge2overlapStitchQmax"] and reduction_config["wedge2overlapStitchQmin"]:
+            if not reduction_config["wedge2overlapStitchQmax"] > reduction_config["wedge2overlapStitchQmin"]:
+                raise ValueError("'wedge2overlapStitchQmax' does not overlap with 'wedge2overlapStitchQmin'")
+
     if reduction_input["has_midrange_detector"] and not reduction_config["overlapStitchIgnoreMidrange"]:
         num_params_overlap_stitch = 2
+
+        # validate the stitching regions when using midrange detector
+        if not reduction_config["QmaxMain"] > reduction_config["QminMidrange"]:
+            raise ValueError("'QmaxMain' does not overlap with 'QminMidrange'")
+        if not reduction_config["QmaxMidrange"] > reduction_config["QminWing"]:
+            raise ValueError("'QmaxMidrange' does not overlap with 'QminWing'")
+
+        if reduction_config["1DQbinType"] == "wedge":
+            # these checks only apply for wedge reductions
+            if not reduction_config["wedge1QmaxMain"] > reduction_config["wedge1QminMidrange"]:
+                raise ValueError("'wedge1QmaxMain' does not overlap with 'wedge1QminMidrange'")
+            if not reduction_config["wedge1QmaxMidrange"] > reduction_config["wedge1QminWing"]:
+                raise ValueError("'wedge1QmaxMidrange' does not overlap with 'wedge1QminWing'")
+            if not reduction_config["wedge2QmaxMain"] > reduction_config["wedge2QminMidrange"]:
+                raise ValueError("'wedge2QmaxMain' does not overlap with 'wedge2QminMidrange'")
+            if not reduction_config["wedge2QmaxMidrange"] > reduction_config["wedge2QminWing"]:
+                raise ValueError("'wedge2QmaxMidrange' does not overlap with 'wedge2QminWing'")
+    else:
+        # validate the stitching regions when not using midrange detector
+        if not reduction_config["QmaxMain"] > reduction_config["QminWing"]:
+            raise ValueError("'QmaxMain' does not overlap with 'QminWing'")
+
+        if reduction_config["1DQbinType"] == "wedge":
+            # the checks only apply for wedge reductions
+            if not reduction_config["wedge1QmaxMain"] > reduction_config["wedge1QminWing"]:
+                raise ValueError("'wedge1QmaxMain' does not overlap with 'wedge1QminMidrange'")
+            if not reduction_config["wedge2QmaxMain"] > reduction_config["wedge2QminWing"]:
+                raise ValueError("'wedge2QmaxMain' does not overlap with 'wedge2QminMidrange'")
 
     params_overlap_stitch = ["overlapStitchQmin", "overlapStitchQmax"]
     if reduction_config["1DQbinType"] == "wedge":

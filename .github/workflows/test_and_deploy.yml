@@ -34,6 +34,7 @@ jobs:
 
       - name: Run unit tests
         run: |
+          pixi run versioningit -w
           git submodule update --init
           pixi run test -vv -m "not mount_eqsans" --cov=src --cov-report=xml:unit_test_coverage.xml --cov-report=term-missing --junitxml=unit_test_results.xml tests/unit/
           mv .coverage .coverage.unit
@@ -76,7 +77,7 @@ jobs:
         with:
           package-name: drtsans
           local-channel: /tmp/local-channel
-          python-version: "3.10"
+          python-version: "3.11"
           extra-channels: mantid neutrons
           extra-commands: pixi run python -c "import mantid; import h5py; import lmfit; import mpld3; import numexpr; import pandas; import matplotlib; import qtpy"
 

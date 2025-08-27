@@ -5,6 +5,7 @@ Check all that apply:
 - [ ] Source added/refactored
 - [ ] Added unit tests
 - [ ] Added integration tests
+- [ ] Included a manual test for the reviewer
 - [ ] Verified that tests requiring the /SNS and /HFIR filesystems pass without fail
 
 **References:**

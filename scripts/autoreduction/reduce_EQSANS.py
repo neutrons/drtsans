@@ -137,7 +137,8 @@ def save_plot(report: str, report_file: str):
     Parameters
     ----------
     report
-        The HTML content to be saved. This may contain one or more <div> elements and possibly summary <table> elements.
+        The HTML content to be saved. This may contain one or more <div> elements
+        and possibly summary <table> elements.
     report_file
         The path to the file where the HTML report will be saved.
 

@@ -103,6 +103,7 @@ matplotlib = "*"
 finddata = ">=0.10.1"
 requests = "*"
 tinydb = "*"
+sortedcontainers = "*"
 
 [tool.pixi.pypi-dependencies]
 drtsans = { path = ".", editable = true }
@@ -124,6 +125,7 @@ matplotlib = "*"
 finddata = ">=0.10.1"
 requests = "*"
 tinydb = "*"
+sortedcontainers = "*"
 
 # Environments and features
 

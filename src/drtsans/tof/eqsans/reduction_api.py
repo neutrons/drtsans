@@ -315,8 +315,8 @@ def bin_i_with_correction(
             n1dbins=num_q1d_bins,
             n1dbins_per_decade=num_q1d_bins_per_decade,
             decade_on_center=decade_on_center,
+            # Override bin1d_type for compatibility with inelastic corrections 
             bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
-            # bin1d_type=bin1d_type,
             log_scale=log_binning,
             qmin=qmin,
             qmax=qmax,
@@ -330,11 +330,8 @@ def bin_i_with_correction(
         )
         # Check due to functional limitation
         assert isinstance(iq1d_main_wl, list), f"Output I(Q) must be a list but not a {type(iq1d_main_wl)}"
-        if len(iq1d_main_wl) != 1 and bin1d_type in ("scalar", "annular"):
+        if len(iq1d_main_wl) != 1:
             raise NotImplementedError(f"Not expected that there are more than 1 IQmod main but {len(iq1d_main_wl)}")
-
-    else:
-        ...
 
     # Elastic correction
     if correction_setup.do_elastic_correction:
@@ -356,7 +353,8 @@ def bin_i_with_correction(
                 n1dbins=num_q1d_bins,
                 n1dbins_per_decade=num_q1d_bins_per_decade,
                 decade_on_center=decade_on_center,
-                bin1d_type=bin1d_type,
+                # Override bin1d_type for compatibility with inelastic corrections 
+                bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
                 log_scale=log_binning,
                 qmin=qmin,
                 qmax=qmax,

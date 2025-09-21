@@ -315,7 +315,7 @@ def bin_i_with_correction(
             n1dbins=num_q1d_bins,
             n1dbins_per_decade=num_q1d_bins_per_decade,
             decade_on_center=decade_on_center,
-            # Override bin1d_type for compatibility with inelastic corrections 
+            # Override bin1d_type for compatibility with inelastic corrections
             bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
             log_scale=log_binning,
             qmin=qmin,
@@ -353,7 +353,7 @@ def bin_i_with_correction(
                 n1dbins=num_q1d_bins,
                 n1dbins_per_decade=num_q1d_bins_per_decade,
                 decade_on_center=decade_on_center,
-                # Override bin1d_type for compatibility with inelastic corrections 
+                # Override bin1d_type for compatibility with inelastic corrections
                 bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
                 log_scale=log_binning,
                 qmin=qmin,

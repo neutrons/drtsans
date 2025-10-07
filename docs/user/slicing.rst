@@ -87,7 +87,7 @@ Note: if the time slice interval is a non-integer multiple of the period, then t
     }
 
 Example 4: Time slicing and event filtering during loading
-----------------------------------------------------------
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 The time slicing parameters are applied relative to the whole data, independent of any event
 filtering during loading (i.e. using the parameter ``"loadOptions"``).

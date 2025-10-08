@@ -110,7 +110,7 @@ def _insert_periodic_timeslice_log(
 
     # get duration between run start and run end
     # Note: the duration is calculated from run start and end, since the log "duration" is changed
-    # by LoadEventNexus when using parameters FilterByTimeStart and FilterByTimeEnd, and since the
+    # by LoadEventNexus when using parameters FilterByTimeStart and FilterByTimeStop, and since the
     # periodic time slicing should be independent of any filtering during loading.
     duration_start = run_start
     if isinstance(run_start, str):

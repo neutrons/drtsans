@@ -43,7 +43,9 @@ def test_monitor_counts():
     [
         ("integerNslices", 1.5, 3600.0),  # period is a multiple of time slice interval
         ("nonIntegerNslices", 8.0, 3600.0),  # ... or it is not
-        # duration smaller than (run_end - run_start) due to FilterByTimeStart and/or FilterByTimeStop
+        # duration smaller than (run_end - run_start) due to FilterByTimeStart and/or FilterByTimeStop.
+        # This tests the fix for ensuring time slicing uses the actual run duration (run_end - run_start)
+        # rather than the filtered duration, which is important for correct log slicing.
         ("filteredDuration", 8.0, 2000.0),
     ],
 )

@@ -89,14 +89,15 @@ Note: if the time slice interval is a non-integer multiple of the period, then t
 Example 4: Time slicing and event filtering during loading
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-The time slicing parameters are applied relative to the whole data, independent of any event
-filtering during loading (i.e. using the parameter ``"loadOptions"``).
+The time slicing parameters are applied relative to the whole data from the beginning to the end of
+the run, independent of any event filtering during loading (i.e. using the parameter
+``"loadOptions"``).
 
 .. code-block:: json
 
     {
         "sample": {
-            "loadOptions": {"FilterByTimeStart": 2.0, "FilterByTimeStop": 8.0}
+            "loadOptions": {"FilterByTimeStart": 2.0, "FilterByTimeStop": 8.71}
         },
         "configuration": {
             "useTimeSlice": true,

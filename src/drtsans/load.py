@@ -6,7 +6,6 @@ from typing import List, Tuple, Union
 # third party modules
 import mantid
 from mantid.dataobjects import Workspace2D, EventWorkspace
-from mantid.kernel import DateAndTime
 from mantid.simpleapi import mtd
 from mantid.simpleapi import (
     DeleteWorkspace,
@@ -103,27 +102,10 @@ def _insert_periodic_timeslice_log(
     except AttributeError:
         run_start = sample_logs.start_time.value
 
-    try:
-        run_end = sample_logs.run_end.value
-    except AttributeError:
-        run_end = sample_logs.end_time.value
-
-    # get duration between run start and run end
-    # Note: the duration is calculated from run start and end, since the log "duration" is changed
-    # by LoadEventNexus when using parameters FilterByTimeStart and FilterByTimeStop, and since the
-    # periodic time slicing should be independent of any filtering during loading.
-    duration_start = run_start
-    if isinstance(run_start, str):
-        duration_start = DateAndTime(run_start)
-    duration_end = run_end
-    if isinstance(run_end, str):
-        duration_end = DateAndTime(run_end)
-    duration = duration_end - duration_start
-
     log = periodic_index_log(
         period=time_period,
         interval=time_interval,
-        duration=duration.total_seconds(),
+        duration=sample_logs.full_duration,
         run_start=run_start,
         offset=time_offset,
         step=1.0,

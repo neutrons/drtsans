@@ -105,7 +105,7 @@ def _insert_periodic_timeslice_log(
     log = periodic_index_log(
         period=time_period,
         interval=time_interval,
-        duration=sample_logs.full_duration,
+        duration=sample_logs.run_duration,
         run_start=run_start,
         offset=time_offset,
         step=1.0,

@@ -249,7 +249,7 @@ class SampleLogs(object):
         return self._ws
 
     @property
-    def full_duration(self):
+    def run_duration(self):
         """Returns duration in seconds from run start to run end
 
         Note:
@@ -277,7 +277,7 @@ class SampleLogs(object):
         duration = duration_end - duration_start
 
         # use total nanoseconds and convert to seconds to retain the decimal places
-        return duration.total_nanoseconds() * 1e-9
+        return duration.total_nanoseconds() / SECONDS_TO_NANOSECONDS
 
     def single_value(self, log_key, operation=np.mean):
         r"""Cast the log entry to a single value

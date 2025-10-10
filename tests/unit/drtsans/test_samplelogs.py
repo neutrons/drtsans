@@ -186,19 +186,19 @@ class TestSampleLogs:
         assert sl.periodic.lastValue() == 14
 
     @pytest.mark.datarepo
-    def test_full_duration_equals_duration(self, datarepo_dir, clean_workspace):
+    def test_run_duration_equals_duration(self, datarepo_dir, clean_workspace):
         test_file = pjn(datarepo_dir.sans, "test_samplelogs", "EQSANS_92353_no_events.nxs")
         ws = LoadNexusProcessed(Filename=test_file)
         clean_workspace(ws)
         sl = SampleLogs(ws)
-        assert_almost_equal(sl.full_duration, sl.duration.value, decimal=5)
+        assert_almost_equal(sl.run_duration, sl.duration.value, decimal=5)
 
-    def test_full_duration_missing_log(self, clean_workspace):
+    def test_run_duration_missing_log(self, clean_workspace):
         ws = CreateWorkspace(dataX=[1.0], dataY=[42.0])
         clean_workspace(ws)
         sl = SampleLogs(ws)
         with pytest.raises(RuntimeError) as e:
-            _ = sl.full_duration
+            _ = sl.run_duration
         assert "Unknown property search object 'start_time'" in str(e.value)
 
     @pytest.mark.datarepo

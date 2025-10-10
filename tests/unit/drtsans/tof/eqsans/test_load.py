@@ -205,51 +205,55 @@ def test_generic_load_and_split(datarepo_dir, clean_workspace):
 
 
 @pytest.mark.datarepo
-def test_load_and_split_periodic_timeslice_loadoptions(datarepo_dir, clean_workspace):
+@pytest.mark.parametrize(
+    "kwargs_load_options, expected_duration_slices, expected_number_events_slices",
+    [
+        ({}, [100.0, 99.045935, 90.0], [473643, 468791, 426051]),
+        ({"FilterByTimeStart": 60.0, "FilterByTimeStop": 180.0}, [40.0, 40.0, 40.0], [188944, 188753, 189455]),
+    ],
+)
+def test_load_and_split_periodic_timeslice_loadoptions(
+    kwargs_load_options, expected_duration_slices, expected_number_events_slices, datarepo_dir, clean_workspace
+):
     """Test the interaction between periodic time slicing and the loadOptions FilterByTimeStart and FilterByTimeStop"""
-    # load the run
-    unfiltered_ws = generic_load_and_split(
+    # load the run without splitting
+    ws = load_events("EQSANS_104088.nxs.h5", data_dir=datarepo_dir.eqsans, **kwargs_load_options)
+    clean_workspace(ws)
+    number_events_before_splitting = ws.getNumberEvents()
+
+    # load and split the run
+    ws_split = generic_load_and_split(
         "EQSANS_104088.nxs.h5",
         data_dir=datarepo_dir.eqsans,
         time_interval=10.0,
         time_period=30.0,
+        **kwargs_load_options,
     )
-    [clean_workspace(_ws) for _ws in list(unfiltered_ws)]
-
-    assert unfiltered_ws.size() == 3
-
-    assert SampleLogs(unfiltered_ws.getItem(0)).duration.value == pytest.approx(100.0)
-    assert SampleLogs(unfiltered_ws.getItem(1)).duration.value == pytest.approx(99.0459)
-    assert SampleLogs(unfiltered_ws.getItem(2)).duration.value == pytest.approx(90.0)
-
-    assert unfiltered_ws.getItem(0).getNumberEvents() == 473643
-    assert unfiltered_ws.getItem(1).getNumberEvents() == 468791
-    assert unfiltered_ws.getItem(2).getNumberEvents() == 426051
-
-    # load the run while filtering out events outside the defined time range
-    kwargs = {"FilterByTimeStart": 60.0, "FilterByTimeStop": 180.0}
-    filtered_ws = generic_load_and_split(
-        "EQSANS_104088.nxs.h5",
-        data_dir=datarepo_dir.eqsans,
-        time_interval=10.0,
-        time_period=30.0,
-        **kwargs,
-    )
-    [clean_workspace(_ws) for _ws in list(filtered_ws)]
+    [clean_workspace(_ws) for _ws in list(ws_split)]
     clean_workspace("_filter")
     clean_workspace("_info")
     clean_workspace("_load_tmp")
     clean_workspace("TOFCorrectWS")
 
-    assert filtered_ws.size() == 3
+    assert ws_split.size() == 3
 
-    assert SampleLogs(filtered_ws.getItem(0)).duration.value == pytest.approx(40.0)
-    assert SampleLogs(filtered_ws.getItem(1)).duration.value == pytest.approx(40.0)
-    assert SampleLogs(filtered_ws.getItem(2)).duration.value == pytest.approx(40.0)
+    # check duration for slices
+    duration_slice_0 = SampleLogs(ws_split.getItem(0)).duration.value
+    duration_slice_1 = SampleLogs(ws_split.getItem(1)).duration.value
+    duration_slice_2 = SampleLogs(ws_split.getItem(2)).duration.value
+    actual_duration_slices = [duration_slice_0, duration_slice_1, duration_slice_2]
+    np.testing.assert_allclose(actual_duration_slices, expected_duration_slices, atol=0.0001)
 
-    assert filtered_ws.getItem(0).getNumberEvents() == 188944
-    assert filtered_ws.getItem(1).getNumberEvents() == 188753
-    assert filtered_ws.getItem(2).getNumberEvents() == 189455
+    # check number of events for slices
+    events_slice_0 = ws_split.getItem(0).getNumberEvents()
+    events_slice_1 = ws_split.getItem(1).getNumberEvents()
+    events_slice_2 = ws_split.getItem(2).getNumberEvents()
+    actual_number_events_slices = [events_slice_0, events_slice_1, events_slice_2]
+    assert actual_number_events_slices == expected_number_events_slices
+
+    # verify that the total number of events has not changed by splitting
+    sum_number_events_slices = sum(actual_number_events_slices)
+    assert sum_number_events_slices == number_events_before_splitting
 
 
 @pytest.mark.datarepo

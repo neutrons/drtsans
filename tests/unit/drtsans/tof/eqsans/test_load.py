@@ -205,6 +205,58 @@ def test_generic_load_and_split(datarepo_dir, clean_workspace):
 
 
 @pytest.mark.datarepo
+@pytest.mark.parametrize(
+    "kwargs_load_options, expected_duration_slices, expected_number_events_slices",
+    [
+        ({}, [100.0, 99.045935, 90.0], [473643, 468791, 426051]),
+        ({"FilterByTimeStart": 60.0, "FilterByTimeStop": 180.0}, [40.0, 40.0, 40.0], [188944, 188753, 189455]),
+    ],
+)
+def test_load_and_split_periodic_timeslice_loadoptions(
+    kwargs_load_options, expected_duration_slices, expected_number_events_slices, datarepo_dir, clean_workspace
+):
+    """Test the interaction between periodic time slicing and the loadOptions FilterByTimeStart and FilterByTimeStop"""
+    # load the run without splitting
+    ws = load_events("EQSANS_104088.nxs.h5", data_dir=datarepo_dir.eqsans, **kwargs_load_options)
+    clean_workspace(ws)
+    number_events_before_splitting = ws.getNumberEvents()
+
+    # load and split the run
+    ws_split = generic_load_and_split(
+        "EQSANS_104088.nxs.h5",
+        data_dir=datarepo_dir.eqsans,
+        time_interval=10.0,
+        time_period=30.0,
+        **kwargs_load_options,
+    )
+    [clean_workspace(_ws) for _ws in list(ws_split)]
+    clean_workspace("_filter")
+    clean_workspace("_info")
+    clean_workspace("_load_tmp")
+    clean_workspace("TOFCorrectWS")
+
+    assert ws_split.size() == 3
+
+    # check duration for slices
+    duration_slice_0 = SampleLogs(ws_split.getItem(0)).duration.value
+    duration_slice_1 = SampleLogs(ws_split.getItem(1)).duration.value
+    duration_slice_2 = SampleLogs(ws_split.getItem(2)).duration.value
+    actual_duration_slices = [duration_slice_0, duration_slice_1, duration_slice_2]
+    np.testing.assert_allclose(actual_duration_slices, expected_duration_slices, atol=0.0001)
+
+    # check number of events for slices
+    events_slice_0 = ws_split.getItem(0).getNumberEvents()
+    events_slice_1 = ws_split.getItem(1).getNumberEvents()
+    events_slice_2 = ws_split.getItem(2).getNumberEvents()
+    actual_number_events_slices = [events_slice_0, events_slice_1, events_slice_2]
+    assert actual_number_events_slices == expected_number_events_slices
+
+    # verify that the total number of events has not changed by splitting
+    sum_number_events_slices = sum(actual_number_events_slices)
+    assert sum_number_events_slices == number_events_before_splitting
+
+
+@pytest.mark.datarepo
 def test_load_and_split_and_histogram(datarepo_dir, clean_workspace):
     # split by the SampleTemp log
     filtered_ws, bands = load_and_split_and_histogram(

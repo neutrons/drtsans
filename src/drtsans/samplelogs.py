@@ -248,6 +248,37 @@ class SampleLogs(object):
     def workspace(self):
         return self._ws
 
+    @property
+    def run_duration(self):
+        """Returns duration in seconds from run start to run end
+
+        Note:
+            This duration may differ from the log "duration" since that log
+            can be modified e.g. when using LoadEventNexus with the parameters
+            FilterByTimeStart and FilterByTimeEnd.
+
+        Raises
+        ------
+        RuntimeError
+            When one of the expected logs for start time or end time is not found in the sample logs
+        """
+        _run = self.__dict__["_run"]
+        if "run_start" in _run.keys():
+            run_start = _run["run_start"].value
+        else:
+            run_start = _run["start_time"].value
+        if "run_end" in _run.keys():
+            run_end = _run["run_end"].value
+        else:
+            run_end = _run["end_time"].value
+
+        duration_start = DateAndTime(run_start) if isinstance(run_start, str) else run_start
+        duration_end = DateAndTime(run_end) if isinstance(run_end, str) else run_end
+        duration = duration_end - duration_start
+
+        # use total nanoseconds and convert to seconds to retain the decimal places
+        return duration.total_nanoseconds() / SECONDS_TO_NANOSECONDS
+
     def single_value(self, log_key, operation=np.mean):
         r"""Cast the log entry to a single value
 

@@ -39,23 +39,28 @@ def test_monitor_counts():
 
 
 @pytest.mark.parametrize(
-    "ID, time_interval",
+    "ID, time_interval, duration_log",
     [
-        ("integerNslices", 1.5),  # period is a multiple of time slice interval
-        ("nonIntegerNslices", 8.0),  # ... or it is not
+        ("integerNslices", 1.5, 3600.0),  # period is a multiple of time slice interval
+        ("nonIntegerNslices", 8.0, 3600.0),  # ... or it is not
+        # duration smaller than (run_end - run_start) due to FilterByTimeStart and/or FilterByTimeStop.
+        # This tests the fix for ensuring time slicing uses the actual run duration (run_end - run_start)
+        # rather than the filtered duration, which is important for correct log slicing.
+        ("filteredDuration", 8.0, 2000.0),
     ],
 )
-def test_periodic_timeslice_log(temp_workspace_name, ID, time_interval):
+def test_periodic_timeslice_log(temp_workspace_name, ID, time_interval, duration_log):
     # prepare the input workspace
 
-    duration = 3600.0
+    duration = 3600.0  # actual duration between "run_start" and "run_end"
     time_period = 60.0
     time_offset = 42.0
 
     workspace = CreateWorkspace(dataX=[1.0], dataY=[42.0], OutputWorkspace=temp_workspace_name())
     sample_logs = SampleLogs(workspace)
-    sample_logs.insert("duration", value=duration, unit="second")
+    sample_logs.insert("duration", value=duration_log, unit="second")
     sample_logs.insert("run_start", value="2000-01-01T00:00:00", unit="")
+    sample_logs.insert("run_end", value="2000-01-01T01:00:00", unit="")
 
     # insert the periodic log starting 42 seconds after run_start
     # and having values from zero up to period / time_interval - 1
@@ -82,7 +87,7 @@ def test_periodic_timeslice_log(temp_workspace_name, ID, time_interval):
         # indices range [0 : 60 / 1.5 = 40 : 1]
         assert max(log.value) == (time_period / time_interval) - 1
 
-    elif ID == "nonIntegerNslices":
+    elif ID == "nonIntegerNslices" or ID == "filteredDuration":  # filtering should have no effect on time slicing
         n_periods = np.floor((duration - time_offset) / time_period)
         n_intervals_period = np.ceil(time_period / time_interval)
         n_intervals_remainder = np.ceil(((duration - time_offset) % time_period) / time_interval)

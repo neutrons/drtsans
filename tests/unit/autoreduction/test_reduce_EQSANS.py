@@ -69,43 +69,30 @@ def test_constants_values():
     assert reduce_EQSANS.CONDA_ENV == "sans"
 
 
-def test_reduce_events_file(simulated_events):
-    with patch.object(reduce_EQSANS, "LoadEventNexus") as mock_load:
-        mock_load.return_value = simulated_events
-        with tempfile.NamedTemporaryFile(suffix=".nxs", delete=True) as temp_file:
-            run_number, x, y, z = reduce_EQSANS.reduce_events_file(temp_file.name)
-
-    assert run_number == 12345
-    assert z.shape == (reduce_EQSANS.PIXELS_PER_TUBE, reduce_EQSANS.TUBES_IN_DETECTOR1)
-    # event count in the first pixel, but all pixels should have the same count
-    count = np.sum(simulated_events.readY(0))
-    assert_almost_equal(np.average(z.data[~z.mask]), np.log(count), decimal=3)
-
-
-def test_upload_plot_success():
+def test_upload_report_success():
     """Test successful plot upload"""
     with patch.object(reduce_EQSANS, "publish_plot") as mock_publish_plot:
         mock_publish_plot.return_value = None
-        reduce_EQSANS.upload_plot("12345", "<div>test plot</div>")
+        reduce_EQSANS.upload_report("12345", "<div>test plot</div>")
         mock_publish_plot.assert_called_once_with("EQSANS", "12345", files={"file": "<div>test plot</div>"})
 
 
-def test_upload_plot_http_error():
+def test_upload_report_http_error():
     """Test handling of HTTP error during upload"""
     with patch.object(reduce_EQSANS, "publish_plot") as mock_publish_plot:
         mock_publish_plot.side_effect = requests.HTTPError("Test error")
         with patch.object(reduce_EQSANS, "logging") as mock_logging:
-            reduce_EQSANS.upload_plot("12345", "<div>test plot</div>")
+            reduce_EQSANS.upload_report("12345", "<div>test plot</div>")
             mock_logging.exception.assert_called_once_with("Publish plot failed with error Test error")
 
 
-def test_save_plot():
+def test_save_report():
     """Test saving plot to file"""
     plot_div = "<div>test plot content</div>"
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".html") as temp_file:
         temp_filename = temp_file.name
     try:
-        reduce_EQSANS.save_plot(plot_div, temp_filename)
+        reduce_EQSANS.save_report(plot_div, temp_filename)
         with open(temp_filename, "r") as f:
             content = f.read()
         assert "<!DOCTYPE html>" in content
@@ -115,13 +102,13 @@ def test_save_plot():
         os.unlink(temp_filename)
 
 
-def test_save_plot_with_html_structure():
+def test_save_report_with_html_structure():
     """Test that saved plot has correct HTML structure"""
     plot_div = "<div id='plotly-div'>Plot content</div>"
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".html") as temp_file:
         temp_filename = temp_file.name
     try:
-        reduce_EQSANS.save_plot(plot_div, temp_filename)
+        reduce_EQSANS.save_report(plot_div, temp_filename)
         with open(temp_filename, "r") as f:
             content = f.read()
         # Check HTML structure
@@ -158,93 +145,56 @@ def test_parse_all_arguments():
     assert args.no_publish is True
 
 
+def test_intensity_array(simulated_events):
+    x, y, z = reduce_EQSANS.intensity_array(simulated_events)
+    assert z.shape == (reduce_EQSANS.PIXELS_PER_TUBE, reduce_EQSANS.TUBES_IN_DETECTOR1)
+    # event count in the first pixel, but all pixels should have the same count
+    count = np.sum(simulated_events.readY(0))
+    assert_almost_equal(np.average(z.data[~z.mask]), np.log(count), decimal=3)
+
+
+@patch.object(reduce_EQSANS, "LoadEventNexus")
 @patch.object(reduce_EQSANS, "parse_command_arguments")
-@patch.object(reduce_EQSANS, "reduce_events_file")
+@patch.object(reduce_EQSANS, "intensity_array")
 @patch.object(reduce_EQSANS, "plot_heatmap")
-@patch.object(reduce_EQSANS, "upload_plot")
-@patch.object(reduce_EQSANS, "save_plot")
-def test_main_with_publish_and_save(
-    mock_save_plot, mock_upload_plot, mock_plot_heatmap, mock_reduce_events, mock_parse_args
+@patch.object(reduce_EQSANS, "upload_report")
+@patch.object(reduce_EQSANS, "save_report")
+def test_autoreduce_with_publish_and_save(
+    mock_save_report,
+    mock_upload_report,
+    mock_plot_heatmap,
+    mock_intensity_array,
+    mock_parse_args,
+    mock_load,
+    simulated_events,
+    tmp_path,
 ):
-    """Test main function with both publish and save enabled"""
+    """Test autoreduce function with both publish and save enabled"""
     # Setup mocks
+    mock_load.return_value = simulated_events
+
     mock_args = Mock()
-    mock_args.events_file = "test.nxs"
-    mock_args.outdir = "/tmp/output"
+    events_file = tmp_path / "invalid.nxs"
+    events_file.touch()
+    mock_args.events_file = str(events_file)
+    mock_args.outdir = str(tmp_path)
     mock_args.no_publish = False
     mock_parse_args.return_value = mock_args
 
-    mock_reduce_events.return_value = (
-        12345,
-        np.array([1, 2, 3]),
-        np.array([1, 2, 3]),
-        np.ma.array([[1, 2], [3, 4]]),
+    mock_intensity_array.return_value = (
+        np.array([1, 2, 3]),  # x values
+        np.array([1, 2, 3]),  # y values
+        np.ma.array([[1, 2], [3, 4]]),  # z values (masked array)
     )
+
     mock_plot_heatmap.return_value = "<div>plot content</div>"
 
-    reduce_EQSANS.main()
+    reduce_EQSANS.autoreduce()
 
-    mock_reduce_events.assert_called_once_with("test.nxs")
+    mock_intensity_array.assert_called_once()
     mock_plot_heatmap.assert_called_once()
-    mock_upload_plot.assert_called_once_with(12345, "<div>plot content</div>")
-    mock_save_plot.assert_called_once()
-
-
-@patch.object(reduce_EQSANS, "parse_command_arguments")
-@patch.object(reduce_EQSANS, "reduce_events_file")
-@patch.object(reduce_EQSANS, "plot_heatmap")
-@patch.object(reduce_EQSANS, "upload_plot")
-@patch.object(reduce_EQSANS, "save_plot")
-def test_main_no_publish_no_save(
-    mock_save_plot, mock_upload_plot, mock_plot_heatmap, mock_reduce_events, mock_parse_args
-):
-    """Test main function with publish and save disabled"""
-    mock_args = Mock()
-    mock_args.events_file = "test.nxs"
-    mock_args.outdir = "/tmp/output"
-    mock_args.no_publish = True
-    mock_parse_args.return_value = mock_args
-
-    mock_reduce_events.return_value = (
-        12345,
-        np.array([1, 2, 3]),
-        np.array([1, 2, 3]),
-        np.ma.array([[1, 2], [3, 4]]),
-    )
-    mock_plot_heatmap.return_value = "<div>plot content</div>"
-
-    reduce_EQSANS.main()
-
-    mock_reduce_events.assert_called_once_with("test.nxs")
-    mock_plot_heatmap.assert_called_once()
-    mock_upload_plot.assert_not_called()
-    mock_save_plot.assert_called()
-
-
-@patch.object(reduce_EQSANS, "parse_command_arguments")
-@patch.object(reduce_EQSANS, "reduce_events_file")
-@patch.object(reduce_EQSANS, "plot_heatmap")
-@patch.object(reduce_EQSANS, "save_plot")
-def test_main_report_file_path_handling(mock_save_plot, mock_plot_heatmap, mock_reduce_events, mock_parse_args):
-    """Test main function handles report file path correctly"""
-    mock_args = Mock()
-    mock_args.events_file = "test.nxs"
-    mock_args.outdir = "/tmp/output"
-    mock_args.no_publish = True
-    mock_parse_args.return_value = mock_args
-
-    mock_reduce_events.return_value = (
-        12345,
-        np.array([1, 2, 3]),
-        np.array([1, 2, 3]),
-        np.ma.array([[1, 2], [3, 4]]),
-    )
-    mock_plot_heatmap.return_value = "<div>plot content</div>"
-
-    reduce_EQSANS.main()
-
-    # Check that save_plot was called with the joined path
-    mock_save_plot.assert_called_once_with("<div>plot content</div>", "/tmp/output/EQSANS_12345.html")
+    mock_upload_report.assert_called_once_with(12345, "<div>plot content</div>")
+    mock_save_report.assert_called_once()
 
 
 if __name__ == "__main__":

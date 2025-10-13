@@ -9,10 +9,12 @@ from typing import Union
 import warnings
 
 from finddata.publish_plot import plot_heatmap, publish_plot
-import plotly.offline as pyo
+from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import Integration, LoadEventNexus, logger, mtd
-
 import numpy as np
+import plotly.offline as pyo
+
+from drtsans.tof.eqsans.meta_data import is_sample_run
 
 # silently ignore all types of numerical errors (like divide by zero, overflow, etc.)
 np.seterr(all="ignore")
@@ -24,33 +26,28 @@ TUBES_IN_DETECTOR1 = 192
 PIXELS_PER_TUBE = 256
 
 
-def reduce_events_file(events_file: str) -> tuple:
+def intensity_array(events: EventWorkspace) -> tuple:
     """
-    Process a Nexus events file to extract and transform detector data.
+    Process evenyts extract and transform detector data.
 
     Parameters
     ----------
-    events_file
-        Path to the Nexus events file to be processed.
+    events
+        Raw events to be processed.
 
     Returns
     -------
     tuple
         A tuple containing:
-        - run_number (int): The run number extracted from the events file.
         - x (numpy.ndarray): Array of tube indices.
         - y (numpy.ndarray): Array of pixel indices.
         - z (numpy.ma.MaskedArray): Log-transformed and masked intensity data.
 
     Notes
     -----
-    - If the specified file does not exist, the function will terminate the program.
-    - The function uses Mantid's `LoadEventNexus` and `Integration` to process the data.
+    - The function uses Mantid's `Integration` to process the data.
     """
-    if not os.path.isfile(events_file):
-        raise FileNotFoundError(f"data file {events_file} not found")
 
-    events = LoadEventNexus(Filename=events_file, outputWorkspace=mtd.unique_hidden_name())
     intensities = Integration(InputWorkspace=events, outputWorkspace=mtd.unique_hidden_name())
     data = intensities.extractY().reshape(-1, TUBES_PER_EIGHTPACK, PIXELS_PER_TUBE).T
     data2 = data[:, [0, 4, 1, 5, 2, 6, 3, 7], :]  # tube indexes within an eightpack
@@ -60,10 +57,10 @@ def reduce_events_file(events_file: str) -> tuple:
     x = np.arange(TUBES_IN_DETECTOR1) + 1
     y = np.arange(PIXELS_PER_TUBE) + 1
     z = np.log(np.transpose(z))
-    return events.getRunNumber(), x, y, z
+    return x, y, z
 
 
-def upload_plot(run_number: str, plot_div: str):
+def upload_report(run_number: str, plot_div: str):
     """
     Upload a plot to the livedata server for the EQSANS instrument.
 
@@ -130,7 +127,7 @@ def html_wrapper(report: Union[str, None]) -> str:
     return prefix + report + suffix  # allow for report being `None`
 
 
-def save_plot(report: str, report_file: str):
+def save_report(report: str, report_file: str):
     """
     Save an HTML plot to a file with the necessary JavaScript engine for rendering.
 
@@ -174,15 +171,26 @@ def parse_command_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main():
-    args = parse_command_arguments()
+def reduce_non_sample(events: EventWorkspace):
+    """
+    Reduce events from a non-sample run by generating a heatmap plot of pixel intensities
 
-    # Load and process the events file to extract data
-    run_number, x, y, z = reduce_events_file(args.events_file)
+    Parameters
+    ----------
+    events : EventWorkspace
+        The Mantid EventWorkspace containing the raw events to be processed.
+
+    Returns
+    -------
+    report (str): An HTML div containing the generated heatmap plot of pixel intensities
+    """
+
+    # Aggregate the events within each pixel as an intensity value
+    x, y, z = intensity_array(events)
 
     # Generate the plot as an HTML div
-    plot_div = plot_heatmap(
-        run_number,
+    report = plot_heatmap(
+        events.getRunNumber(),
         x.tolist(),
         y.tolist(),
         z.tolist(),
@@ -193,13 +201,33 @@ def main():
         instrument="EQSANS",
         publish=False,
     )
+    return report
 
-    #  Save the plot to disk and upload the plot to the livedata server if requested
+
+def reduce_sample(events: EventWorkspace):
+    return reduce_non_sample(events)  # placeholder for now
+
+
+def autoreduce():
+    args = parse_command_arguments()
+
+    # Load events file
+    if not os.path.isfile(args.events_file):
+        raise FileNotFoundError(f"data file {args.events_file} not found")
+    events = LoadEventNexus(Filename=args.events_file, outputWorkspace=mtd.unique_hidden_name())
+    run_number = events.getRunNumber()
+
+    # reduce events
+    report = reduce_sample(events) if is_sample_run(events) else reduce_non_sample(events)
+
+    #  Save report to disk
     os.makedirs(args.outdir, exist_ok=True)
-    save_plot(plot_div, os.path.join(args.outdir, f"EQSANS_{run_number}.html"))
+    save_report(report, os.path.join(args.outdir, f"EQSANS_{run_number}.html"))
+
+    #  Upload report to the livedata server if requested
     if not args.no_publish:
-        upload_plot(run_number, plot_div)
+        upload_report(run_number, report)
 
 
 if __name__ == "__main__":
-    main()
+    autoreduce()

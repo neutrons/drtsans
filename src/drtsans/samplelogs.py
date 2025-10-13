@@ -272,6 +272,8 @@ class SampleLogs(object):
         value = _run[log_key].value
         if isinstance(value, str):
             return value
+        elif isinstance(value, list) and isinstance(value[0], str):
+            return value[0]
         else:
             return float(operation(value))
 

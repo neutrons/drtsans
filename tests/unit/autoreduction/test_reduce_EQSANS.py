@@ -189,7 +189,8 @@ def test_autoreduce_with_publish_and_save(
 
     mock_plot_heatmap.return_value = "<div>plot content</div>"
 
-    reduce_EQSANS.autoreduce()ample
+
+    reduce_EQSANS.autoreduce()
 
     mock_intensity_array.assert_called_once()
     mock_plot_heatmap.assert_called_once()

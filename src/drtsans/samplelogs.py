@@ -270,12 +270,16 @@ class SampleLogs(object):
         """
         _run = self.__dict__["_run"]
         value = _run[log_key].value
+
+        # Special treament for string values and check time-series are non-empty
         if isinstance(value, str):
             return value
-        elif isinstance(value, list) and isinstance(value[0], str):
-            return value[0]
-        else:
-            return float(operation(value))
+        if isinstance(value, list):
+            assert len(value) > 0, "time series {} has no values".format(log_key)
+            if isinstance(value[0], str):
+                return value[0]
+
+        return float(operation(value))  # works for int, float, and lists
 
     def find_run(self, other):
         r"""

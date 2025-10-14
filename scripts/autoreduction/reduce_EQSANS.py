@@ -10,7 +10,7 @@ import warnings
 
 from finddata.publish_plot import plot_heatmap, publish_plot
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import Integration, LoadEventNexus, logger, mtd
+from mantid.simpleapi import DeleteWorkspace, Integration, LoadEventNexus, logger, mtd
 import numpy as np
 import plotly.offline as pyo
 
@@ -28,7 +28,7 @@ PIXELS_PER_TUBE = 256
 
 def intensity_array(events: EventWorkspace) -> tuple:
     """
-    Process evenyts extract and transform detector data.
+    Integrate intensities of each detector pixel.
 
     Parameters
     ----------
@@ -47,16 +47,16 @@ def intensity_array(events: EventWorkspace) -> tuple:
     -----
     - The function uses Mantid's `Integration` to process the data.
     """
-
-    intensities = Integration(InputWorkspace=events, outputWorkspace=mtd.unique_hidden_name())
+    workspace_name = mtd.unique_hidden_name()
+    intensities = Integration(InputWorkspace=events, OutputWorkspace=workspace_name)
     data = intensities.extractY().reshape(-1, TUBES_PER_EIGHTPACK, PIXELS_PER_TUBE).T
     data2 = data[:, [0, 4, 1, 5, 2, 6, 3, 7], :]  # tube indexes within an eightpack
     data2 = data2.transpose().reshape(-1, PIXELS_PER_TUBE)
     z = np.ma.masked_where(data2 < 1, data2)
-
     x = np.arange(TUBES_IN_DETECTOR1) + 1
     y = np.arange(PIXELS_PER_TUBE) + 1
     z = np.log(np.transpose(z))
+    DeleteWorkspace(workspace_name)
     return x, y, z
 
 
@@ -205,7 +205,7 @@ def reduce_non_sample(events: EventWorkspace):
 
 
 def reduce_sample(events: EventWorkspace):
-    return reduce_non_sample(events)  # placeholder for now
+    return reduce_non_sample(events)  # placeholder for now, to be implemented later
 
 
 def autoreduce():
@@ -214,7 +214,7 @@ def autoreduce():
     # Load events file
     if not os.path.isfile(args.events_file):
         raise FileNotFoundError(f"data file {args.events_file} not found")
-    events = LoadEventNexus(Filename=args.events_file, outputWorkspace=mtd.unique_hidden_name())
+    events = LoadEventNexus(Filename=args.events_file, OutputWorkspace=mtd.unique_hidden_name())
     run_number = events.getRunNumber()
 
     # reduce events

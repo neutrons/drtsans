@@ -32,8 +32,9 @@ remotely mounted in their machine.
 cd /path/to/my/local/drtsans/repo/
 git fetch origin merge-requests/<MERGE_REQUEST_NUMBER>/head:mr<MERGE_REQUEST_NUMBER>
 git switch mr<MERGE_REQUEST_NUMBER>
-conda activate <my_drtsans_dev_environment>
+pixi shell  # activate the environment
 pytest -m mount_eqsans ./tests/unit/ ./tests/integration/
+exit  # exit the environment
 ```
 In the above code snippet, substitute `<MERGE_REQUEST_NUMBER>` for the actual merge request number. Also substitute
 `<my_drtsans_dev_environment>` with the name of the conda environment you use for development. It is critical that

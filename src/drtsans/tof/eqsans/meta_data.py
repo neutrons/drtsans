@@ -1,5 +1,8 @@
-# Method in this module is to set meta data to EQSANS Mantid Workspaces
 from mantid.simpleapi import AddSampleLogMultiple
+
+from drtsans.samplelogs import SampleLogs
+from drtsans.type_hints import MantidWorkspace
+
 
 __all__ = ["set_meta_data"]
 
@@ -86,3 +89,26 @@ def set_meta_data(
             LogValues=log_values,
             LogUnits=log_units,
         )
+
+
+def is_sample_run(input_workspace: MantidWorkspace) -> bool:
+    """Check if the given Mantid workspace corresponds to a sample run.
+
+    Parameters
+    ----------
+    input_workspace: str, MantidWorkspace
+        The Mantid workspace to check.
+
+    Returns
+    -------
+    bool
+        True if the workspace contains non-empty sample logs with both "SampleName" and "SampleFormula" entries.
+        False otherwise.
+    """
+    sample_logs = SampleLogs(input_workspace)
+    try:
+        if bool(sample_logs.single_value("SampleName")) and bool(sample_logs.single_value("SampleFormula")):
+            return True
+    except RuntimeError:
+        pass
+    return False

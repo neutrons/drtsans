@@ -154,7 +154,6 @@ def test_intensity_array(simulated_events):
 
 
 @patch.object(reduce_EQSANS, "LoadEventNexus")
-@patch.object(reduce_EQSANS, "parse_command_arguments")
 @patch.object(reduce_EQSANS, "intensity_array")
 @patch.object(reduce_EQSANS, "plot_heatmap")
 @patch.object(reduce_EQSANS, "upload_report")
@@ -164,7 +163,6 @@ def test_autoreduce_with_publish_and_save(
     mock_upload_report,
     mock_plot_heatmap,
     mock_intensity_array,
-    mock_parse_args,
     mock_load,
     simulated_events,
     tmp_path,
@@ -179,7 +177,6 @@ def test_autoreduce_with_publish_and_save(
     mock_args.events_file = str(events_file)
     mock_args.outdir = str(tmp_path)
     mock_args.no_publish = False
-    mock_parse_args.return_value = mock_args
 
     mock_intensity_array.return_value = (
         np.array([1, 2, 3]),  # x values
@@ -189,13 +186,34 @@ def test_autoreduce_with_publish_and_save(
 
     mock_plot_heatmap.return_value = "<div>plot content</div>"
 
-
-    reduce_EQSANS.autoreduce()
+    reduce_EQSANS.autoreduce(mock_args)
 
     mock_intensity_array.assert_called_once()
     mock_plot_heatmap.assert_called_once()
     mock_upload_report.assert_called_once_with(12345, "<div>plot content</div>")
     mock_save_report.assert_called_once()
+
+
+@pytest.mark.mount_eqsans
+def test_autoreduce_sample(simulated_events, tmp_path):
+    mock_args = Mock()
+    mock_args.events_file = "/SNS/EQSANS/IPTS-34577/nexus/EQSANS_162568.nxs.h5"
+    mock_args.outdir = str(tmp_path)
+    mock_args.no_publish = True  # Disable publishing to the live data server
+    reduce_EQSANS.autoreduce(mock_args)
+    filenames = [
+        "EQSANS_162568.html",
+        "EQSANS_162568_Iq.dat",
+        "EQSANS_162568_Iq.png",
+        "EQSANS_162568_Iqxqy.dat",
+        "EQSANS_162568_Iqxqy.h5",
+        "EQSANS_162568_Iqxqy.png",
+        "EQSANS_162568_processed.nxs",
+        "EQSANS_162568_reduction_log.hdf",
+        "reduction_options_162568.json",
+    ]
+    for expected in filenames:
+        assert os.path.isfile(os.path.join(mock_args.outdir, expected))
 
 
 if __name__ == "__main__":

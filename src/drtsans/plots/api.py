@@ -1,25 +1,34 @@
 import json
-import numpy as np
-from typing import List, Any, Dict
 import matplotlib
+import numpy as np
+from typing import Any, Dict, List, Union
 import warnings
 
-warnings.simplefilter("ignore", UserWarning)
-
+from mantid.api import mtd  # noqa E402
+from mantid.simpleapi import logger  # noqa E402
 import matplotlib.pyplot as plt  # noqa E402
 from matplotlib.colors import LogNorm  # noqa E402
 import mpld3  # noqa E402
 from mpld3 import plugins  # noqa E402
+import plot_publisher
+from plot_publisher import plot_heatmap
 
-from mantid.api import mtd  # noqa E402
-from mantid.simpleapi import logger  # noqa E402
-from drtsans.tubecollection import TubeCollection  # noqa E402
-from drtsans.dataobjects import DataType, getDataType  # noqa E402
+from drtsans.dataobjects import DataType, getDataType, IQmod, IQazimuthal  # noqa E402
 from drtsans.geometry import panel_names  # noqa E402
-from drtsans.iq import get_wedges  # noqa E402
-from drtsans.iq import validate_wedges_groups  # noqa E402
+from drtsans.iq import get_wedges, validate_wedges_groups  # noqa E402
+from drtsans.tubecollection import TubeCollection  # noqa E402
 
-__all__ = ["plot_IQmod", "plot_IQazimuthal", "plot_detector", "plot_I1DAnnular", "plot_i1d"]
+warnings.simplefilter("ignore", UserWarning)
+
+__all__ = [
+    "plot_IQmod",
+    "plot_I1DAnnular",
+    "plot_i1d",
+    "plotly_i1d",
+    "plot_IQazimuthal",
+    "plotly_IQazimuthal",
+    "plot_detector",
+]
 
 
 # mpld3 taken from hack from https://github.com/mpld3/mpld3/issues/434#issuecomment-381964119
@@ -176,6 +185,38 @@ def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_
         plt.setp(ax, **kwargs)
 
     _save_file(fig, filename, backend)
+
+
+def plotly_IQmod(
+    profiles: Union[IQmod, List[IQmod]], labels: Union[str, List[str]] = None, title: str = "", loglog: bool = True
+) -> str:
+    # cast profile and label to lists
+    if isinstance(profiles, list) is False:
+        profiles = [profiles]
+    if labels is not None:
+        if isinstance(labels, (list, tuple)) is False:
+            labels = [labels]
+
+    if all(getDataType(p) == DataType.IQ_MOD for p in profiles) is False:
+        raise ValueError("All profiles must be of type IQ_MOD")
+
+    return plot_publisher.plot1d(
+        run_number=None,
+        data_list=[[p.mod_q, p.intensity, p.error] for p in profiles],
+        data_names=labels,
+        x_title="Q (1/Å)",
+        y_title="Intensity",
+        title=title,
+        x_log=loglog,
+        y_log=loglog,
+        publish=False,
+    )
+
+
+def plotly_i1d(
+    profiles: Union[IQmod, List[IQmod]], labels: Union[str, List[str]] = None, title: str = "", loglog: bool = True
+) -> str:
+    return plotly_IQmod(profiles, labels, title=title, loglog=loglog)
 
 
 def plot_I1DAnnular(workspaces, filename, logy=True, backend: str = "d3", errorbar_kwargs=None, **kwargs):
@@ -379,6 +420,41 @@ def _require_transpose_intensity(iq2d) -> bool:
         transpose_flag = True
 
     return transpose_flag
+
+
+def plotly_IQazimuthal(
+    profile: IQazimuthal,
+    title: str = "",
+    q_min: float = None,
+    q_max: float = None,
+    wedges: List[Any] = None,
+    symmetric_wedges: bool = True,
+) -> str:
+    if getDataType(profile) != DataType.IQ_AZIMUTHAL:
+        raise ValueError("All profiles must be of type IQazimuthal")
+
+    qx = profile.qx[:, 0] if profile.qx.ndim == 2 else profile.qx
+    qy = profile.qy[0] if profile.qy.ndim == 2 else profile.qy
+    intensity = np.ma.masked_invalid(np.log(profile.intensity))  # mask NaN or inf values
+
+    # Set up ROI/mask
+    roi = np.ones(profile.intensity.shape, dtype=bool)
+    roi = _create_ring_roi(profile, q_min, q_max, roi)  # ROI as a ring (qmin, qmax)
+    roi = _create_wedge_roi(profile, wedges, symmetric_wedges, roi)  # add wedge mask
+    intensity = np.ma.masked_where(roi, intensity)  # additionally mask where roi is True
+
+    return plot_heatmap(
+        run_number=None,
+        x=qx,
+        y=qy,
+        z=intensity,
+        x_title="Qx (1/Å)",
+        y_title="Qy (1/Å)",
+        x_log=False,
+        y_log=False,
+        title=title,
+        publish=False,
+    )
 
 
 def plot_IQazimuthal(

@@ -1248,8 +1248,6 @@ def plotly_reduction_output(reduction_output: List[I_output], reduction_input: d
         for j, profile in enumerate(profile_set.I1D_main):
             report += plotly_i1d(profile, title=title.format(i=i, j=j), loglog=True) + "\n"
         report += "</tr>\n" + "</div>" + "</table>\n"
-    report += "<hr>\n"
-
     return report
 
 

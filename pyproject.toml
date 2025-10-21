@@ -14,7 +14,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
 ]
 
-license = { file = "LICENSE" }
+license = { text = "GPL-3.0-only" }
 
 [project.urls]
 Documentation = "https://drtsans.readthedocs.io/"

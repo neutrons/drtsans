@@ -216,6 +216,16 @@ def plotly_IQmod(
 def plotly_i1d(
     profiles: Union[IQmod, List[IQmod]], labels: Union[str, List[str]] = None, title: str = "", loglog: bool = True
 ) -> str:
+    if isinstance(profiles, list) is False:
+        profiles = [profiles]
+
+    for profile in profiles:
+        datatype = getDataType(profile)
+        if datatype == DataType.I_ANNULAR:
+            raise NotImplementedError(f"Plotting {DataType.I_ANNULAR.value} with Plotly is not yet implemented")
+        if datatype != DataType.IQ_MOD:
+            raise ValueError(f"Profile of type {datatype.value} cannot be plotted with plotly_i1d")
+
     return plotly_IQmod(profiles, labels, title=title, loglog=loglog)
 
 
@@ -429,13 +439,19 @@ def plotly_IQazimuthal(
     q_max: float = None,
     wedges: List[Any] = None,
     symmetric_wedges: bool = True,
+    log_scale: bool = True,
 ) -> str:
     if getDataType(profile) != DataType.IQ_AZIMUTHAL:
         raise ValueError("All profiles must be of type IQazimuthal")
 
     qx = profile.qx[:, 0] if profile.qx.ndim == 2 else profile.qx
     qy = profile.qy[0] if profile.qy.ndim == 2 else profile.qy
-    intensity = np.ma.masked_invalid(np.log(profile.intensity))  # mask NaN or inf values
+    if log_scale:
+        intensity = np.ma.masked_invalid(np.log(profile.intensity))  # mask NaN or inf values
+        title_suffix = " (log scale)"
+    else:
+        intensity = np.ma.masked_invalid(profile.intensity)  # mask NaN or inf values
+        title_suffix = ""
 
     # Set up ROI/mask
     roi = np.ones(profile.intensity.shape, dtype=bool)
@@ -452,7 +468,7 @@ def plotly_IQazimuthal(
         y_title="Qy (1/Å)",
         x_log=False,
         y_log=False,
-        title=title,
+        title=title + title_suffix,
         publish=False,
     )
 

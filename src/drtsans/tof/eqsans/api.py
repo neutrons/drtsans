@@ -1237,7 +1237,7 @@ def plotly_reduction_output(reduction_output: List[I_output], reduction_input: d
         report += (
             plotly_IQazimuthal(
                 profile_set.I2D_main,
-                title="I(Qx,Qy), log scale",
+                title="I(Qx,Qy)",
                 q_min=conf["Qmin"],
                 q_max=conf["Qmax"],
                 wedges=conf["wedges"] if conf["1DQbinType"] == "wedge" else None,

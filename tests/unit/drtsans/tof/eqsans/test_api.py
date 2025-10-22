@@ -1,14 +1,17 @@
-import os
-import pytest
 from collections import namedtuple
+import os
+from unittest import mock
+
+from mantid.simpleapi import CreateWorkspace, mtd
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal
-from mantid.simpleapi import CreateWorkspace, mtd
+import pytest
 
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (
     load_all_files,
     prepare_data_workspaces,
+    plotly_reduction_output,
     pre_process_single_configuration,
 )
 from drtsans.samplelogs import SampleLogs
@@ -352,6 +355,45 @@ def test_process_single_configuration_thickness_absolute_scale(generic_workspace
         thickness=0.1,
     )
     assert_equal(output.extractY(), [[15], [30], [45], [60]])
+
+
+@mock.patch("drtsans.tof.eqsans.api.plotly_IQazimuthal")
+@mock.patch("drtsans.tof.eqsans.api.plotly_i1d")
+def test_plotly_reduction_output(mock_plotly_i1d, mock_plotly_IQazimuthal):
+    profile_set = mock.MagicMock()
+    profile_set.I2D_main = None
+    profile_set.I1D_main = [None, None]  # imitates two profiles, for the "wedge" case
+    reduction_output = [profile_set, profile_set]
+
+    reduction_input = {"configuration": {"Qmin": None, "Qmax": None, "1DQbinType": "wedge", "wedges": None}}
+
+    def _get_title(*args, **kwargs):
+        return f"title = {kwargs['title']}"
+
+    mock_plotly_i1d.side_effect = _get_title
+    mock_plotly_IQazimuthal.side_effect = _get_title
+
+    report = plotly_reduction_output(reduction_output, reduction_input)
+    assert (
+        report
+        == """<table style='width:100%'>
+<tr>
+<div style='display: flex; justify-content: flex-start; align-items: flex-start; gap: 20px;'>
+title = I(Qx,Qy)
+title = I_1D_0_wedge_0
+title = I_1D_0_wedge_1
+</tr>
+</div></table>
+<table style='width:100%'>
+<tr>
+<div style='display: flex; justify-content: flex-start; align-items: flex-start; gap: 20px;'>
+title = I(Qx,Qy)
+title = I_1D_1_wedge_0
+title = I_1D_1_wedge_1
+</tr>
+</div></table>
+"""
+    )
 
 
 if __name__ == "__main__":

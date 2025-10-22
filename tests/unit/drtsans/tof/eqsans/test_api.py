@@ -360,6 +360,7 @@ def test_process_single_configuration_thickness_absolute_scale(generic_workspace
 @mock.patch("drtsans.tof.eqsans.api.plotly_IQazimuthal")
 @mock.patch("drtsans.tof.eqsans.api.plotly_i1d")
 def test_plotly_reduction_output(mock_plotly_i1d, mock_plotly_IQazimuthal):
+    """Test that plotly_reduction_output generates correct HTML structure with proper titles"""
     profile_set = mock.MagicMock()
     profile_set.I2D_main = None
     profile_set.I1D_main = [None, None]  # imitates two profiles, for the "wedge" case

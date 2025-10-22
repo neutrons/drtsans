@@ -190,6 +190,29 @@ def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_
 def plotly_IQmod(
     profiles: Union[IQmod, List[IQmod]], labels: Union[str, List[str]] = None, title: str = "", loglog: bool = True
 ) -> str:
+    """Generate a 1D Plotly figure containing one line per I(Q) profile.
+
+    Parameters
+    ----------
+    profiles : IQmod or list of IQmod
+        Single I(Q) profile or list of profiles to plot
+    labels : str or list of str, optional
+        Label(s) for the profile(s). If not provided, no labels will be displayed
+    title : str, optional
+        Plot title
+    loglog : bool, optional
+        If True, use logarithmic scale for both axes. Default is True
+
+    Returns
+    -------
+    str
+        HTML div string containing the Plotly figure
+
+    Raises
+    ------
+    ValueError
+        If any profile is not of type IQ_MOD
+    """
     # cast profile and label to lists
     if isinstance(profiles, list) is False:
         profiles = [profiles]
@@ -216,6 +239,34 @@ def plotly_IQmod(
 def plotly_i1d(
     profiles: Union[IQmod, List[IQmod]], labels: Union[str, List[str]] = None, title: str = "", loglog: bool = True
 ) -> str:
+    """Generate a Plotly figure per 1D I(Q) profile.
+
+    This function serves as a dispatcher that validates the profile type and delegates
+    to the appropriate plotting function. Currently only supports IQmod profiles.
+
+    Parameters
+    ----------
+    profiles : IQmod or list of IQmod
+        Single I(Q) profile or list of profiles to plot
+    labels : str or list of str, optional
+        Label(s) for the profile(s). If not provided, no labels will be displayed
+    title : str, optional
+        Plot title
+    loglog : bool, optional
+        If True, use logarithmic scale for both axes. Default is True
+
+    Returns
+    -------
+    str
+        HTML div string containing the Plotly figure
+
+    Raises
+    ------
+    NotImplementedError
+        If profile is of type I_ANNULAR (not yet supported)
+    ValueError
+        If profile is not of type IQ_MOD or I_ANNULAR
+    """
     if isinstance(profiles, list) is False:
         profiles = [profiles]
 
@@ -441,6 +492,35 @@ def plotly_IQazimuthal(
     symmetric_wedges: bool = True,
     log_scale: bool = True,
 ) -> str:
+    """Generate a Plotly heatmap plot for for an I(Qx, Qy) profile.
+
+    Parameters
+    ----------
+    profile
+        The I(Qx, Qy) profile data to plot
+    title : str, optional
+        Plot title. Will append suffix '(log scale)' if log_scale is True
+    q_min : float, optional
+        Minimum Q value for ring selection. If specified, all I(Q) with Q < q_min will be masked
+    q_max : float, optional
+        Maximum Q value for ring selection. If specified, all I(Q) with Q > q_max will be masked
+    wedges : list of tuple, optional
+        List of (angle_min, angle_max) tuples defining wedge regions in degrees.
+        Both angles must be in the [-90, 270) range
+    symmetric_wedges : bool, optional
+        If True, add wedges offset by 180 degrees for symmetry
+    log_scale : bool, optional
+        If True, plot intensity on a logarithmic scale
+
+    Returns
+    -------
+    HTML div string containing the Plotly heatmap figure
+
+    Raises
+    ------
+    ValueError
+        If profile is not of type IQazimuthal
+    """
     if getDataType(profile) != DataType.IQ_AZIMUTHAL:
         raise ValueError("All profiles must be of type IQazimuthal")
 

@@ -162,7 +162,7 @@ def upload_report(run_number: str, plot_div: str):
     try:
         publish_plot("EQSANS", run_number, files={"file": plot_div})
     except requests.HTTPError as e:
-        logging.getLogger(LOG_NAME).error(f"Publish plot failed with error {e}")
+        logging.getLogger(LOG_NAME).exception(f"Publish plot failed with error {e}")
 
 
 def html_wrapper(report: Union[str, None]) -> str:
@@ -323,9 +323,9 @@ def reduce_sample(events: EventWorkspace, output_dir: str):
     # We add run number as subdir, otherwise there will be too many files under AUTOREDUCE_IPTS_DIR
     run_number = str(events.getRunNumber())  # e.g. "105584"
     ipts = SampleLogs(events).experiment_identifier.value[5:]  # e.g. "12345" when having IPTS-12345
-    reduded_files_dir = output_dir
+    reduced_files_dir = output_dir
     if output_dir == AUTOREDUCE_IPTS_DIR.format(ipts=ipts):
-        reduded_files_dir = os.path.join(output_dir, run_number)
+        reduced_files_dir = os.path.join(output_dir, run_number)
 
     # find most appropriate reduction options and amend if necessary
     amendment = {}
@@ -337,7 +337,7 @@ def reduce_sample(events: EventWorkspace, output_dir: str):
             "iptsNumber": ipts,
             "sample": {"runNumber": run_number},
             "outputFileName": f"EQSANS_{run_number}",  # prefix for all output files
-            "configuration": {"outputDir": reduded_files_dir},
+            "configuration": {"outputDir": reduced_files_dir},
         }
         reduction_options_path = os.path.join(AUTOREDUCE_IPTS_DIR.format(ipts=ipts), "reduction_options.json")
         if os.path.exists(reduction_options_path) is False:
@@ -412,22 +412,22 @@ def footer(events: EventWorkspace, output_dir: str) -> str:
     """
     run_number = str(events.getRunNumber())
     ipts = SampleLogs(events).experiment_identifier.value[5:]  # e.g. "12345" when having IPTS-12345
-    reduded_files_dir = output_dir
+    reduced_files_dir = output_dir
     if output_dir == AUTOREDUCE_IPTS_DIR.format(ipts=ipts):
-        reduded_files_dir = os.path.join(output_dir, run_number)
+        reduced_files_dir = os.path.join(output_dir, run_number)
     reduction_options_path = os.path.join(output_dir, f"reduction_options_{run_number}.json")
     docs = "<a href='https://drtsans.readthedocs.io/latest/index.html' target='_blank'>drtsans</a>"
     version = drtsans.__version__
     release = f"<a href='https://github.com/neutrons/drtsans/releases/tag/v{version}' target='_blank'>{version}</a>"
     footer = "<table border='0'>\n"
     footer += f"<tr><td>Reduced with </td><td>{docs} version {release}</td></tr>\n"
-    log_file = os.path.join(reduded_files_dir, "autoreduce.log")
+    log_file = os.path.join(reduced_files_dir, "autoreduce.log")
     footer += f"<tr><td>Reduction log</td><td>{filelink(log_file)}</td></tr>\n"
     proton_charge = SampleLogs(events).proton_charge
     footer += f"<tr><td>Duration from proton charge</td><td>{proton_charge.getStatistics().duration} sec</td></tr>\n"
     footer += "<tr><td>Comprehensive input reduction options saved to</td><td>"
     footer += f"{filelink(reduction_options_path)}</td></tr>\n"
-    footer += f"<tr><td>Output reduction files saved to</td><td>{filelink(reduded_files_dir)}</td></tr>\n"
+    footer += f"<tr><td>Output reduction files saved to</td><td>{filelink(reduced_files_dir)}</td></tr>\n"
     footer += f"<tr><td>Date </td><td>{datetime.datetime.now().strftime('%Y-%m-%d %I:%M %p')}</td></tr>\n"
     footer += "</table>\n<hr>\n"
     return footer
@@ -474,10 +474,10 @@ def autoreduce(args: argparse.Namespace):
     run_number = str(events.getRunNumber())
 
     # Output directory for reduced files, logs, and report
-    reduded_files_dir = args.outdir
+    reduced_files_dir = args.outdir
     ipts = SampleLogs(events).experiment_identifier.value[5:]  # e.g. "12345" when having IPTS-12345
     if args.outdir == AUTOREDUCE_IPTS_DIR.format(ipts=ipts):  # e.g. /SNS/EQSANS/IPTS-12345/shared/autoreduce/
-        reduded_files_dir = os.path.join(args.outdir, run_number)  # /SNS/EQSANS/IPTS-12345/shared/autoreduce/105584
+        reduced_files_dir = os.path.join(args.outdir, run_number)  # /SNS/EQSANS/IPTS-12345/shared/autoreduce/105584
 
     # reduce events
     report = ""
@@ -495,7 +495,7 @@ def autoreduce(args: argparse.Namespace):
         report += f"<div><h3>Error Messages</h3><pre>{error_messages}</pre></div></hr>\n"
 
     # Save report to disk as an HTML file
-    save_report(report, os.path.join(reduded_files_dir, f"EQSANS_{run_number}.html"))
+    save_report(report, os.path.join(reduced_files_dir, f"EQSANS_{run_number}.html"))
 
     #  Upload report to the livedata server if requested
     if not args.no_publish:

@@ -1223,6 +1223,7 @@ def plotly_reduction_output(reduction_output: List[I_output], reduction_input: d
     # One 1D profile when the bin type is "scalar" or "anular, and two 1D profiles when the bin type is "wedge".
     conf = reduction_input["configuration"]  # a shorthand
     title = "I_1D"
+    # variables `i` and `j` used in the title formatting are instantiated in the loop below
     title += "" if len(reduction_output) == 1 else "_{i}"
     title += "_wedge_{j}" if conf["1DQbinType"] == "wedge" else ""
 

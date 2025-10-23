@@ -1442,8 +1442,8 @@ packages:
   timestamp: 1739569648873
 - pypi: ./
   name: drtsans
-  version: 1.19.0.dev8
-  sha256: fd35da87153e33bfe72d19168a92e2780d6c9aec4c20931c2aa7421925fae3dc
+  version: 1.19.0.dev10
+  sha256: b8aea3fa435638109294d74399480618487745f0dfc9321445c95cf3e9d8ff0f
   requires_python: '>=3.11'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/editdistance-s-1.0.0-py314h9891dd4_7.conda

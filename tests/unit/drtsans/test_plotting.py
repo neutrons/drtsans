@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import re
@@ -474,10 +475,19 @@ def sample_iqmod() -> IQmod:
 
 def plotly_extract_datasets(html_div: str) -> Iterator[dict]:
     """Iterator serving (mod_q, intensity, error) for each IQmod encoded in a Plotly data from HTML div string."""
-    pattern = r"Plotly\.newPlot\([^,]+,\s*(\[.*?\]),\s*(\{.*?\})"
+
+    def decode_array(d):
+        """Decode a Plotly base64 array dict like {'dtype':'f8','bdata':'...'}"""
+        b = base64.b64decode(d["bdata"])
+        return np.frombuffer(b, dtype=d["dtype"])
+
+    pattern = r"Plotly\.newPlot\([^,]+,\s*(\[.*?\]),"
     match = re.search(pattern, html_div, re.DOTALL)
-    for dataset in json.loads(match.group(1)):
-        yield dict(mod_q=dataset["x"], intensity=dataset["y"], error=dataset["error_y"]["array"])
+    for i, trace in enumerate(json.loads(match.group(1))):
+        x = decode_array(trace["x"])
+        y = decode_array(trace["y"])
+        err = decode_array(trace["error_y"]["array"])
+        yield dict(mod_q=x, intensity=y, error=err)
 
 
 def test_plotly_IQmod(sample_iqmod):
@@ -507,10 +517,23 @@ def test_plotly_i1d(mock_getdatatype, mock_plotly_IQmod, sample_iqmod):
 
 def plotly_extract_iqazimuthal(html_div: str) -> dict:
     """Extract IQazimuthal data from Plotly HTML div string."""
-    pattern = r"Plotly\.newPlot\([^,]+,\s*(\[.*?\]),\s*(\{.*?\})"
+
+    def decode_array(d):
+        """Decode Plotly binary array dict like {'dtype': 'f8', 'bdata': '...'}"""
+        b = base64.b64decode(d["bdata"])
+        arr = np.frombuffer(b, dtype=d["dtype"])
+        if "shape" in d:
+            shape = tuple(map(int, d["shape"].replace(",", " ").split()))
+            arr = arr.reshape(shape)
+        return arr
+
+    pattern = r"Plotly\.newPlot\([^,]+,\s*(\[.*?\]),"
     match = re.search(pattern, html_div, re.DOTALL)
     trace = json.loads(match.group(1))[0]
-    return dict(qx=trace["x"], qy=trace["y"], intensity=trace["z"])
+    x = decode_array(trace["x"])
+    y = decode_array(trace["y"])
+    z = decode_array(trace["z"])
+    return dict(qx=x, qy=y, intensity=z)
 
 
 def test_plotly_IQazimuthal():

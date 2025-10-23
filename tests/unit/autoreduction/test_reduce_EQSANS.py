@@ -202,6 +202,7 @@ def test_autoreduce_sample(simulated_events, tmp_path):
     mock_args.no_publish = True  # Disable publishing to the live data server
     reduce_EQSANS.autoreduce(mock_args)
     filenames = [
+        "autoreduce_162568.log",
         "EQSANS_162568.html",
         "EQSANS_162568_Iq.dat",
         "EQSANS_162568_Iq.png",

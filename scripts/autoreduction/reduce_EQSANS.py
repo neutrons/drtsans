@@ -8,6 +8,7 @@ import io
 import json
 import logging
 import os
+import re
 import requests
 import time
 from typing import Union
@@ -61,7 +62,7 @@ def filelink(filepath: str) -> str:
     return f"<a href='file://{filepath}' target='_blank'>{filepath}</a>"
 
 
-def configure_logger(output_dir: str):
+def configure_logger(output_dir: str, run_number: str) -> tuple[io.StringIO, str]:
     """Configure logging for the autoreduction process.
 
     Sets up file and error logging handlers for the autoreduction workflow. Redirects Mantid
@@ -77,6 +78,8 @@ def configure_logger(output_dir: str):
     io.StringIO
         A StringIO buffer containing error-level log messages. This buffer can be used to
         display errors in the final HTML report.
+    str
+        The path to the log file created in the specified output directory.
 
     Notes
     -----
@@ -90,11 +93,18 @@ def configure_logger(output_dir: str):
     logging.getLogger("Mantid").setLevel(logging.INFO)
 
     # create a file handler
-    fileHandler = logging.FileHandler(os.path.join(output_dir, f"{LOG_NAME}.log"))
+    logfile = os.path.join(output_dir, f"{LOG_NAME}_{run_number}.log")
+    fileHandler = logging.FileHandler(logfile)
     fileHandler.setLevel(logging.INFO)
     logformat = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     fileHandler.setFormatter(logging.Formatter(logformat))
     logging.getLogger().addHandler(fileHandler)
+
+    # create a stream handler for console output from loggers "Mantid" and "autoreduce" only
+    streamHandler = logging.StreamHandler()
+    streamHandler.setLevel(logging.INFO)
+    streamHandler.addFilter(lambda record: "Mantid" in record.name or LOG_NAME in record.name)
+    logging.getLogger().addHandler(streamHandler)
 
     # Create a StringIO buffer and handler for error messages
     error_log_buffer = io.StringIO()
@@ -106,7 +116,7 @@ def configure_logger(output_dir: str):
     # add the handlers to the python root logger
 
     logging.getLogger(LOG_NAME).setLevel(logging.INFO)
-    return error_log_buffer
+    return error_log_buffer, logfile
 
 
 def intensity_array(events: EventWorkspace) -> tuple:
@@ -377,7 +387,7 @@ def reduce_sample(events: EventWorkspace, output_dir: str):
     return report + footer
 
 
-def footer(events: EventWorkspace, output_dir: str) -> str:
+def footer(events: EventWorkspace, output_dir: str, log_file: str) -> str:
     """Generate an HTML footer with reduction metadata and file locations.
 
     Creates an HTML table containing information about the reduction process, including
@@ -421,7 +431,6 @@ def footer(events: EventWorkspace, output_dir: str) -> str:
     release = f"<a href='https://github.com/neutrons/drtsans/releases/tag/v{version}' target='_blank'>{version}</a>"
     footer = "<table border='0'>\n"
     footer += f"<tr><td>Reduced with </td><td>{docs} version {release}</td></tr>\n"
-    log_file = os.path.join(reduced_files_dir, "autoreduce.log")
     footer += f"<tr><td>Reduction log</td><td>{filelink(log_file)}</td></tr>\n"
     proton_charge = SampleLogs(events).proton_charge
     footer += f"<tr><td>Duration from proton charge</td><td>{proton_charge.getStatistics().duration} sec</td></tr>\n"
@@ -431,6 +440,28 @@ def footer(events: EventWorkspace, output_dir: str) -> str:
     footer += f"<tr><td>Date </td><td>{datetime.datetime.now().strftime('%Y-%m-%d %I:%M %p')}</td></tr>\n"
     footer += "</table>\n<hr>\n"
     return footer
+
+
+def match_run_number(path: str) -> str:
+    """Extract the run number from a given file path.
+
+    Parameters
+    ----------
+    path : str
+        The file path from which to extract the run number.
+
+    Returns
+    -------
+    str
+        The extracted run number as a string. If no run number is found, returns "unknown".
+
+    Notes
+    -----
+    - The function searches for a pattern matching 'EQSANS_<run_number>' in the provided path.
+    - The run number is expected to be a sequence of digits following 'EQSANS_'.
+    """
+    match = re.search(r"EQSANS_(\d+)", path)
+    return match.group(1) if match else ""
 
 
 def autoreduce(args: argparse.Namespace):
@@ -465,13 +496,22 @@ def autoreduce(args: argparse.Namespace):
     - Optionally uploads the report to the livedata server (default: enabled)
     """
     start_time = time.time()
-    error_log_buffer = configure_logger(args.outdir)  # save error messages to this buffer
+
+    # configure logging
+    os.makedirs(args.outdir, exist_ok=True)
+    run_number = match_run_number(args.events_file)
+    if not run_number:
+        raise ValueError("Run number could not be determined from the events file path")
+    error_log_buffer, logfile = configure_logger(args.outdir, run_number)
+    logger = logging.getLogger(LOG_NAME)
 
     # Load events file
     if not os.path.isfile(args.events_file):
         raise FileNotFoundError(f"data file {args.events_file} not found")
     events = LoadEventNexus(Filename=args.events_file, OutputWorkspace=mtd.unique_hidden_name())
-    run_number = str(events.getRunNumber())
+    if run_number != str(events.getRunNumber()):
+        logger.error("Run number extracted from events filepath doesn't match")
+        raise ValueError("Run number extracted from events filepath doesn't match")
 
     # Output directory for reduced files, logs, and report
     reduced_files_dir = args.outdir
@@ -483,13 +523,13 @@ def autoreduce(args: argparse.Namespace):
     report = ""
     try:
         report += reduce_sample(events, args.outdir) if is_sample_run(events) else reduce_non_sample(events)
-        report += footer(events, args.outdir)
+        report += footer(events, args.outdir, logfile)
         minutes, seconds = divmod(time.time() - start_time, 60)
         report += f"<div>Reduction completed in: <b>{int(minutes)} min {int(seconds)} sec.</b><br></div>\n"
     except Exception:
-        logging.getLogger(LOG_NAME).exception("Autoreduction failed")
+        logger.error("Autoreduction failed")
 
-    # possibly add error log messages
+    # If autoreduction failed, include error log messages and traceback in the HTML report
     error_messages = error_log_buffer.getvalue()
     if error_messages:
         report += f"<div><h3>Error Messages</h3><pre>{error_messages}</pre></div></hr>\n"
@@ -500,6 +540,10 @@ def autoreduce(args: argparse.Namespace):
     #  Upload report to the livedata server if requested
     if not args.no_publish:
         upload_report(run_number, report)
+
+    # Exit ungracefully if there were errors
+    if error_messages:
+        raise RuntimeError(f"Autoreduction completed with errors, see {logfile} for details\n{error_messages}")
 
 
 if __name__ == "__main__":

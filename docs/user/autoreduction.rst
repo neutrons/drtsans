@@ -51,18 +51,19 @@ For IPTS-20196 and run number 89157, all reduction files are saved under directo
 `/SNS/EQSANS/IPTS-20196/shared/autoreduction/89157/`. Among them:
 
 1. `EQSANS_89157.html` - the same report that shows up in the web monitor.
-2. `autoreduce.log` - log file with detailed information about the reduction steps at level `INFO` and above.
 3. `EQSANS_89157_Iq.dat` and `EQSANS_89157_Iq.png` - 1D reduced data file and plot.
 4. `EQSANS_89157_Iqxqy.dat`, `EQSANS_89157_Iqxqy.h5`, `EQSANS_89157_Iqxqy.png` - 2D reduced data files and plot.
 5. `EQSANS_89157_processed.nxs` - I(lambda) per detector pixel.
 6. `EQSANS_162568_reduction_log.hdf` - HDF5 file with reduction-derived parameters, such as transmission, center, etc.
 
-The input configuration options, completed with any missing default values, are saved as
-`/SNS/EQSANS/IPTS-20196/shared/autoreduction/reduction_options_89157.json`.
-If User requests to autoreduce the same run again, this file will be used as input configuration.
+The following additional files are saved under directory `/SNS/EQSANS/IPTS-20196/shared/autoreduction/`:
+
+1. `autoreduce_89157.log` - log file with detailed information about the reduction steps at level `INFO` and above.
+2. `reduction_options_89157.json` - input configuration options, completed with any missing default values.
+   If User requests to autoreduce the same run again, this file will be used as input configuration.
 
 
-TrobleShooting
---------------
+TroubleShooting
+---------------
 If autoreduction fails, any log error messages as well as the traceback will be saved in the HTML report file
 as well as published to the live data server (if option `--no_publish` is not used).

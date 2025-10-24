@@ -33,7 +33,7 @@ from drtsans.path import (  # noqa E402
     allow_overwrite,  # noqa E402
     registered_workspace,
 )
-from drtsans.plots import plot_IQazimuthal, plot_i1d  # noqa E402
+from drtsans.plots import plot_IQazimuthal, plotly_IQazimuthal, plot_i1d, plotly_i1d  # noqa E402
 from drtsans.process_uncertainties import set_init_uncertainties  # noqa E402
 from drtsans.samplelogs import SampleLogs  # noqa E402
 from drtsans.save_2d import save_nexus, save_nist_dat  # noqa E402
@@ -1215,6 +1215,41 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
     plt.close()
     # change permissions to all files to allow overwrite
     allow_overwrite(output_dir)
+
+
+def plotly_reduction_output(reduction_output: List[I_output], reduction_input: dict) -> str:
+    # `reduction_output` can have one or more profile sets. More than one when slicing by time or sample log
+    # Each profile set contains one 2D profile and one or more 1D profiles.
+    # One 1D profile when the bin type is "scalar" or "anular, and two 1D profiles when the bin type is "wedge".
+    conf = reduction_input["configuration"]  # a shorthand
+    title = "I_1D"
+    # variables `i` and `j` used in the title formatting are instantiated in the loop below
+    title += "" if len(reduction_output) == 1 else "_{i}"
+    title += "_wedge_{j}" if conf["1DQbinType"] == "wedge" else ""
+
+    # One <table>..</table> element per profile set
+    report = ""
+    for i, profile_set in enumerate(reduction_output):
+        report += "<table style='width:100%'>\n" + "<tr>\n"
+        # arrange the figures side by side
+        report += (
+            "<div style='display: flex; justify-content: flex-start; align-items: flex-start; gap: 20px;'>" + "\n"
+        )
+        report += (
+            plotly_IQazimuthal(
+                profile_set.I2D_main,
+                title="I(Qx,Qy)",
+                q_min=conf["Qmin"],
+                q_max=conf["Qmax"],
+                wedges=conf["wedges"] if conf["1DQbinType"] == "wedge" else None,
+                symmetric_wedges=conf.get("symmetric_wedges", True),
+            )
+            + "\n"
+        )
+        for j, profile in enumerate(profile_set.I1D_main):
+            report += plotly_i1d(profile, title=title.format(i=i, j=j), loglog=True) + "\n"
+        report += "</tr>\n" + "</div>" + "</table>\n"
+    return report
 
 
 def apply_solid_angle_correction(input_workspace):

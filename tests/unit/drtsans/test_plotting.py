@@ -1,5 +1,8 @@
+import base64
+import json
 import os
-from typing import Any, Tuple
+import re
+from typing import Any, Iterator, Tuple
 
 import matplotlib.pyplot as plt
 import mpld3  # noqa E402
@@ -9,9 +12,17 @@ from mantid.simpleapi import LoadEmptyInstrument, LoadNexus
 from matplotlib.pyplot import imread
 from unittest import mock
 
-from drtsans.dataobjects import IQazimuthal, IQmod, I1DAnnular
-from drtsans.plots import plot_detector, plot_IQazimuthal, plot_IQmod, plot_I1DAnnular, plot_i1d
-from drtsans.plots.api import Backend, _save_file
+from drtsans.dataobjects import DataType, IQazimuthal, IQmod, I1DAnnular
+from drtsans.plots import (
+    plot_detector,
+    plot_IQazimuthal,
+    plot_IQmod,
+    plot_I1DAnnular,
+    plotly_IQazimuthal,
+    plot_i1d,
+    plotly_i1d,
+)
+from drtsans.plots.api import Backend, plotly_IQmod, _save_file
 
 
 def verify_images(test_png: str, gold_png):
@@ -451,6 +462,93 @@ def test_ploti1d_annular():
     with mock.patch("drtsans.plots.api.plot_I1DAnnular") as mock_plot_i1dannular:
         plot_i1d(workspaces=[iq1, iq2], filename="test_plot_i1d.json")
         mock_plot_i1dannular.assert_called_once()
+
+
+@pytest.fixture
+def sample_iqmod() -> IQmod:
+    """Create a sample IQmod object for testing."""
+    mod_q = np.array([0.01, 0.02, 0.03, 0.04, 0.05])
+    intensity = np.array([100.0, 80.0, 60.0, 40.0, 20.0])
+    error = np.array([10.0, 8.0, 6.0, 4.0, 2.0])
+    return IQmod(intensity=intensity, error=error, mod_q=mod_q)
+
+
+def plotly_extract_datasets(html_div: str) -> Iterator[dict]:
+    """Iterator serving (mod_q, intensity, error) for each IQmod encoded in a Plotly data from HTML div string."""
+
+    def decode_array(d):
+        """Decode a Plotly base64 array dict like {'dtype':'f8','bdata':'...'}"""
+        b = base64.b64decode(d["bdata"])
+        return np.frombuffer(b, dtype=d["dtype"])
+
+    pattern = r"Plotly\.newPlot\([^,]+,\s*(\[.*?\]),"
+    match = re.search(pattern, html_div, re.DOTALL)
+    for i, trace in enumerate(json.loads(match.group(1))):
+        x = decode_array(trace["x"])
+        y = decode_array(trace["y"])
+        err = decode_array(trace["error_y"]["array"])
+        yield dict(mod_q=x, intensity=y, error=err)
+
+
+def test_plotly_IQmod(sample_iqmod):
+    """Test that data of IQmod instances are encoded in the Plotly HTML dvi string"""
+    result = plotly_IQmod([sample_iqmod, sample_iqmod])  # the Plotly figure as a HTML <div> string
+    for dataset in plotly_extract_datasets(result):
+        assert dataset["mod_q"] == pytest.approx(sample_iqmod.mod_q)
+        assert dataset["intensity"] == pytest.approx(sample_iqmod.intensity)
+        assert dataset["error"] == pytest.approx(sample_iqmod.error)
+
+
+@mock.patch("drtsans.plots.api.plotly_IQmod")
+@mock.patch("drtsans.plots.api.getDataType")
+def test_plotly_i1d(mock_getdatatype, mock_plotly_IQmod, sample_iqmod):
+    mock_getdatatype.return_value = DataType.I_ANNULAR
+    with pytest.raises(NotImplementedError, match="Plotting I1DAnnular with Plotly is not yet implemented"):
+        plotly_i1d(sample_iqmod)
+
+    mock_getdatatype.return_value = DataType.WORKSPACE2D
+    with pytest.raises(ValueError, match="Profile of type Workspace2D cannot be plotted with plotly_i1d"):
+        plotly_i1d(sample_iqmod)
+
+    mock_getdatatype.return_value = DataType.IQ_MOD
+    plotly_i1d(sample_iqmod)
+    mock_plotly_IQmod.assert_called_once()
+
+
+def plotly_extract_iqazimuthal(html_div: str) -> dict:
+    """Extract IQazimuthal data from Plotly HTML div string."""
+
+    def decode_array(d):
+        """Decode Plotly binary array dict like {'dtype': 'f8', 'bdata': '...'}"""
+        b = base64.b64decode(d["bdata"])
+        arr = np.frombuffer(b, dtype=d["dtype"])
+        if "shape" in d:
+            shape = tuple(map(int, d["shape"].replace(",", " ").split()))
+            arr = arr.reshape(shape)
+        return arr
+
+    pattern = r"Plotly\.newPlot\([^,]+,\s*(\[.*?\]),"
+    match = re.search(pattern, html_div, re.DOTALL)
+    trace = json.loads(match.group(1))[0]
+    x = decode_array(trace["x"])
+    y = decode_array(trace["y"])
+    z = decode_array(trace["z"])
+    return dict(qx=x, qy=y, intensity=z)
+
+
+def test_plotly_IQazimuthal():
+    # Sample IQazimuthal data
+    qx = np.array([-0.04, 0.0, 0.04])
+    qy = np.array([-0.08, 0.0, 0.08])
+    intensity = np.array([[16, 8, 4], [8, 4, 2], [4, 2, 1]], dtype=float)
+    error = np.array([[4, 2, 1], [2, 1, 1], [1, 1, 1]], dtype=float)
+    profile = IQazimuthal(intensity=intensity, error=error, qx=qx, qy=qy)
+
+    result = plotly_IQazimuthal(profile, log_scale=False)
+    dataset = plotly_extract_iqazimuthal(result)
+    assert dataset["qx"] == pytest.approx(qx)
+    assert dataset["qy"] == pytest.approx(qy)
+    assert dataset["intensity"] == pytest.approx(intensity)
 
 
 if __name__ == "__main__":

@@ -1,25 +1,34 @@
 import json
-import numpy as np
-from typing import List, Any, Dict
 import matplotlib
+import numpy as np
+from typing import Any, Dict, List, Union
 import warnings
 
-warnings.simplefilter("ignore", UserWarning)
-
+from mantid.api import mtd  # noqa E402
+from mantid.simpleapi import logger  # noqa E402
 import matplotlib.pyplot as plt  # noqa E402
 from matplotlib.colors import LogNorm  # noqa E402
 import mpld3  # noqa E402
 from mpld3 import plugins  # noqa E402
+import plot_publisher
+from plot_publisher import plot_heatmap
 
-from mantid.api import mtd  # noqa E402
-from mantid.simpleapi import logger  # noqa E402
-from drtsans.tubecollection import TubeCollection  # noqa E402
-from drtsans.dataobjects import DataType, getDataType  # noqa E402
+from drtsans.dataobjects import DataType, getDataType, IQmod, IQazimuthal  # noqa E402
 from drtsans.geometry import panel_names  # noqa E402
-from drtsans.iq import get_wedges  # noqa E402
-from drtsans.iq import validate_wedges_groups  # noqa E402
+from drtsans.iq import get_wedges, validate_wedges_groups  # noqa E402
+from drtsans.tubecollection import TubeCollection  # noqa E402
 
-__all__ = ["plot_IQmod", "plot_IQazimuthal", "plot_detector", "plot_I1DAnnular", "plot_i1d"]
+warnings.simplefilter("ignore", UserWarning)
+
+__all__ = [
+    "plot_IQmod",
+    "plot_I1DAnnular",
+    "plot_i1d",
+    "plotly_i1d",
+    "plot_IQazimuthal",
+    "plotly_IQazimuthal",
+    "plot_detector",
+]
 
 
 # mpld3 taken from hack from https://github.com/mpld3/mpld3/issues/434#issuecomment-381964119
@@ -176,6 +185,99 @@ def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_
         plt.setp(ax, **kwargs)
 
     _save_file(fig, filename, backend)
+
+
+def plotly_IQmod(
+    profiles: Union[IQmod, List[IQmod]], labels: Union[str, List[str]] = None, title: str = "", loglog: bool = True
+) -> str:
+    """Generate a 1D Plotly figure containing one line per I(Q) profile.
+
+    Parameters
+    ----------
+    profiles : IQmod or list of IQmod
+        Single I(Q) profile or list of profiles to plot
+    labels : str or list of str, optional
+        Label(s) for the profile(s). If not provided, no labels will be displayed
+    title : str, optional
+        Plot title
+    loglog : bool, optional
+        If True, use logarithmic scale for both axes. Default is True
+
+    Returns
+    -------
+    str
+        HTML div string containing the Plotly figure
+
+    Raises
+    ------
+    ValueError
+        If any profile is not of type IQ_MOD
+    """
+    # cast profile and label to lists
+    if isinstance(profiles, list) is False:
+        profiles = [profiles]
+    if labels is not None:
+        if isinstance(labels, (list, tuple)) is False:
+            labels = [labels]
+
+    if all(getDataType(p) == DataType.IQ_MOD for p in profiles) is False:
+        raise ValueError("All profiles must be of type IQ_MOD")
+
+    return plot_publisher.plot1d(
+        run_number=None,
+        data_list=[[p.mod_q, p.intensity, p.error] for p in profiles],
+        data_names=labels,
+        x_title="Q (1/Å)",
+        y_title="Intensity",
+        title=title,
+        x_log=loglog,
+        y_log=loglog,
+        publish=False,
+    )
+
+
+def plotly_i1d(
+    profiles: Union[IQmod, List[IQmod]], labels: Union[str, List[str]] = None, title: str = "", loglog: bool = True
+) -> str:
+    """Generate a Plotly figure per 1D I(Q) profile.
+
+    This function serves as a dispatcher that validates the profile type and delegates
+    to the appropriate plotting function. Currently only supports IQmod profiles.
+
+    Parameters
+    ----------
+    profiles : IQmod or list of IQmod
+        Single I(Q) profile or list of profiles to plot
+    labels : str or list of str, optional
+        Label(s) for the profile(s). If not provided, no labels will be displayed
+    title : str, optional
+        Plot title
+    loglog : bool, optional
+        If True, use logarithmic scale for both axes. Default is True
+
+    Returns
+    -------
+    str
+        HTML div string containing the Plotly figure
+
+    Raises
+    ------
+    NotImplementedError
+        If profile is of type I_ANNULAR (not yet supported)
+    ValueError
+        If profile is not of type IQ_MOD or I_ANNULAR
+    """
+    if isinstance(profiles, list) is False:
+        profiles = [profiles]
+
+    for profile in profiles:
+        datatype = getDataType(profile)
+        if datatype == DataType.I_ANNULAR:
+            raise NotImplementedError(f"Plotting {DataType.I_ANNULAR.value} with Plotly is not yet implemented")
+        if datatype != DataType.IQ_MOD:
+            raise ValueError(f"Profile of type {datatype.value} cannot be plotted with plotly_i1d")
+
+    return plotly_IQmod(profiles, labels, title=title, loglog=loglog)
 
 
 def plot_I1DAnnular(workspaces, filename, logy=True, backend: str = "d3", errorbar_kwargs=None, **kwargs):
@@ -379,6 +481,76 @@ def _require_transpose_intensity(iq2d) -> bool:
         transpose_flag = True
 
     return transpose_flag
+
+
+def plotly_IQazimuthal(
+    profile: IQazimuthal,
+    title: str = "",
+    q_min: float = None,
+    q_max: float = None,
+    wedges: List[Any] = None,
+    symmetric_wedges: bool = True,
+    log_scale: bool = True,
+) -> str:
+    """Generate a Plotly heatmap plot for for an I(Qx, Qy) profile.
+
+    Parameters
+    ----------
+    profile
+        The I(Qx, Qy) profile data to plot
+    title : str, optional
+        Plot title. Will append suffix '(log scale)' if log_scale is True
+    q_min : float, optional
+        Minimum Q value for ring selection. If specified, all I(Q) with Q < q_min will be masked
+    q_max : float, optional
+        Maximum Q value for ring selection. If specified, all I(Q) with Q > q_max will be masked
+    wedges : list of tuple, optional
+        List of (angle_min, angle_max) tuples defining wedge regions in degrees.
+        Both angles must be in the [-90, 270) range
+    symmetric_wedges : bool, optional
+        If True, add wedges offset by 180 degrees for symmetry
+    log_scale : bool, optional
+        If True, plot intensity on a logarithmic scale
+
+    Returns
+    -------
+    HTML div string containing the Plotly heatmap figure
+
+    Raises
+    ------
+    ValueError
+        If profile is not of type IQazimuthal
+    """
+    if getDataType(profile) != DataType.IQ_AZIMUTHAL:
+        raise ValueError("All profiles must be of type IQazimuthal")
+
+    qx = profile.qx[:, 0] if profile.qx.ndim == 2 else profile.qx
+    qy = profile.qy[0] if profile.qy.ndim == 2 else profile.qy
+    if log_scale:
+        intensity = np.ma.masked_invalid(np.log(profile.intensity))  # mask NaN or inf values
+        title_suffix = " (log scale)"
+    else:
+        intensity = np.ma.masked_invalid(profile.intensity)  # mask NaN or inf values
+        title_suffix = ""
+
+    # Set up ROI/mask
+    roi = np.ones(profile.intensity.shape, dtype=bool)
+    roi = _create_ring_roi(profile, q_min, q_max, roi)  # ROI as a ring (qmin, qmax)
+    roi = _create_wedge_roi(profile, wedges, symmetric_wedges, roi)  # add wedge mask
+    intensity = np.ma.masked_where(roi, intensity)  # additionally mask where roi is True
+
+    return plot_heatmap(
+        run_number=None,
+        x=qx,
+        y=qy,
+        z=intensity,
+        x_title="Qx (1/Å)",
+        y_title="Qy (1/Å)",
+        x_log=False,
+        y_log=False,
+        title=title + title_suffix,
+        publish=False,
+    )
 
 
 def plot_IQazimuthal(

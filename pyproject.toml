@@ -81,7 +81,7 @@ name = "drtsans"
 version = "0.0.0"
 
 [tool.pixi.package.build]
-backend = { name = "pixi-build-python", version = "0.4.*" }
+backend = { name = "pixi-build-python", version = "0.4.*"}
 
 [tool.pixi.package.host-dependencies]
 hatchling = "*"
@@ -100,7 +100,7 @@ pandas = "*"
 pyqt = ">=5,<6"
 qtpy = ">=2.4.3"
 matplotlib = "*"
-finddata = ">=0.10.1"
+plot-publisher = "*"
 requests = "*"
 tinydb = "*"
 sortedcontainers = "*"
@@ -122,7 +122,7 @@ pandas = "*"
 pyqt = ">=5,<6"
 qtpy = ">=2.4.3"
 matplotlib = "*"
-finddata = ">=0.10.1"
+plot-publisher = "*"
 requests = "*"
 tinydb = "*"
 sortedcontainers = "*"

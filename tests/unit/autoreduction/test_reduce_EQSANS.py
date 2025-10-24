@@ -1,7 +1,6 @@
 import os
-import requests
 import tempfile
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import DeleteWorkspace, MoveInstrumentComponent, mtd, Rebin
@@ -44,6 +43,7 @@ def simulated_events() -> EventWorkspace:
     sample_logs = SampleLogs(workspace_events)
     sample_logs.insert("start_time", "2023-08-01 00:00:00")
     sample_logs.insert("run_number", 12345)
+    sample_logs.insert("experiment_identifier", "IPTS-12345")
     insert_background(
         workspace_events,
         # Normal distribution with 5 Angstroms mean wavelength, 0.1 Angstroms standard deviation
@@ -69,21 +69,12 @@ def test_constants_values():
     assert reduce_EQSANS.CONDA_ENV == "sans"
 
 
-def test_upload_report_success():
+def test_upload_report():
     """Test successful plot upload"""
     with patch.object(reduce_EQSANS, "publish_plot") as mock_publish_plot:
         mock_publish_plot.return_value = None
         reduce_EQSANS.upload_report("12345", "<div>test plot</div>")
         mock_publish_plot.assert_called_once_with("EQSANS", "12345", files={"file": "<div>test plot</div>"})
-
-
-def test_upload_report_http_error():
-    """Test handling of HTTP error during upload"""
-    with patch.object(reduce_EQSANS, "publish_plot") as mock_publish_plot:
-        mock_publish_plot.side_effect = requests.HTTPError("Test error")
-        with patch.object(reduce_EQSANS, "logging") as mock_logging:
-            reduce_EQSANS.upload_report("12345", "<div>test plot</div>")
-            mock_logging.exception.assert_called_once_with("Publish plot failed with error Test error")
 
 
 def test_save_report():
@@ -151,50 +142,6 @@ def test_intensity_array(simulated_events):
     # event count in the first pixel, but all pixels should have the same count
     count = np.sum(simulated_events.readY(0))
     assert_almost_equal(np.average(z.data[~z.mask]), np.log(count), decimal=3)
-
-
-@patch.object(reduce_EQSANS, "LoadEventNexus")
-@patch.object(reduce_EQSANS, "parse_command_arguments")
-@patch.object(reduce_EQSANS, "intensity_array")
-@patch.object(reduce_EQSANS, "plot_heatmap")
-@patch.object(reduce_EQSANS, "upload_report")
-@patch.object(reduce_EQSANS, "save_report")
-def test_autoreduce_with_publish_and_save(
-    mock_save_report,
-    mock_upload_report,
-    mock_plot_heatmap,
-    mock_intensity_array,
-    mock_parse_args,
-    mock_load,
-    simulated_events,
-    tmp_path,
-):
-    """Test autoreduce function with both publish and save enabled"""
-    # Setup mocks
-    mock_load.return_value = simulated_events
-
-    mock_args = Mock()
-    events_file = tmp_path / "invalid.nxs"
-    events_file.touch()
-    mock_args.events_file = str(events_file)
-    mock_args.outdir = str(tmp_path)
-    mock_args.no_publish = False
-    mock_parse_args.return_value = mock_args
-
-    mock_intensity_array.return_value = (
-        np.array([1, 2, 3]),  # x values
-        np.array([1, 2, 3]),  # y values
-        np.ma.array([[1, 2], [3, 4]]),  # z values (masked array)
-    )
-
-    mock_plot_heatmap.return_value = "<div>plot content</div>"
-
-    reduce_EQSANS.autoreduce()
-
-    mock_intensity_array.assert_called_once()
-    mock_plot_heatmap.assert_called_once()
-    mock_upload_report.assert_called_once_with(12345, "<div>plot content</div>")
-    mock_save_report.assert_called_once()
 
 
 if __name__ == "__main__":

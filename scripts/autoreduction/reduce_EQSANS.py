@@ -171,8 +171,8 @@ def upload_report(run_number: str, plot_div: str):
     """
     try:
         publish_plot("EQSANS", run_number, files={"file": plot_div})
-    except requests.HTTPError as e:
-        logging.getLogger(LOG_NAME).exception(f"Publish plot failed with error {e}")
+    except requests.HTTPError:
+        logging.getLogger(LOG_NAME).exception("Publish plot failed")
 
 
 def html_wrapper(report: Union[str, None]) -> str:
@@ -490,7 +490,6 @@ def autoreduce(args: argparse.Namespace):
     - Automatically determines if the run is a sample or non-sample run
     - For IPTS autoreduce directories, creates a run-specific subdirectory
     - Saves an HTML report containing plots, metadata, and any error messages
-    - Reports total reduction time upon completion
     - Reports total reduction time upon completion
     - If reduction fails, captures the exception in the error log
     - Optionally uploads the report to the livedata server (default: enabled)

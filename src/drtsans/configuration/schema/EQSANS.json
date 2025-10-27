@@ -144,6 +144,7 @@
           "examples": ["Monitor", "Total charge", "Time"],
           "default": "Total charge"
         },
+        "blockedBeamRunNumber": { "$ref": "common.json#/configuration/blockedBeamRunNumber" },
         "fluxMonitorRatioFile": {
           "type": ["string", "null"],
           "datasource": "file",
@@ -314,6 +315,10 @@
           "description": "use smallest wavelength as reference wavelength"
         }
       },
+      "oneOf": [
+        { "required": ["darkFileName"] },
+        { "required": ["blockedBeamRunNumber"] }
+      ],
       "required": [
         "outputDir",
         "instrumentConfigurationDir",
@@ -335,7 +340,6 @@
         "useDefaultMask",
         "defaultMask",
         "useMaskBackTubes",
-        "darkFileName",
         "sensitivityFileName",
         "useSolidAngleCorrection",
         "useThetaDepTransCorrection",

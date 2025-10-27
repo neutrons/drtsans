@@ -51,6 +51,7 @@ def prepare_data_workspaces(
     solid_angle=True,
     sensitivity_workspace=None,
     output_workspace=None,
+    has_blocked_beam=False,
 ):
     r"""
     Given a " raw"data workspace, this function provides the following:
@@ -110,7 +111,7 @@ def prepare_data_workspaces(
 
     # Normalization
     if flux_method is not None:
-        kw = dict(method=flux_method, output_workspace=output_workspace)
+        kw = dict(method=flux_method, output_workspace=output_workspace, has_blocked_beam=has_blocked_beam)
         if flux_method == "monitor":
             kw["monitor_workspace"] = data.monitor
         normalize_by_flux(output_workspace, flux, **kw)
@@ -465,8 +466,11 @@ def remove_workspaces(
     ws_to_remove.append(f"{prefix}_{instrument_name}_{center_run_number}_raw_events")
     ws_to_remove.append(f"{prefix}_sensitivity")
     ws_to_remove.append(f"{prefix}_mask")
-    if reduction_config["darkFileName"]:
+    if "darkFileName" in reduction_config and reduction_config["darkFileName"]:
         run_number = extract_run_number(reduction_config["darkFileName"])
+        ws_to_remove.append(f"{prefix}_{instrument_name}_{run_number}_raw_histo")
+    if "blockedBeamRunNumber" in reduction_config and reduction_config["blockedBeamRunNumber"]:
+        run_number = extract_run_number(reduction_config["blockedBeamRunNumber"])
         ws_to_remove.append(f"{prefix}_{instrument_name}_{run_number}_raw_histo")
     for ws_name in ws_to_remove:
         # Remove existing workspaces, this is to guarantee that all the data is loaded correctly

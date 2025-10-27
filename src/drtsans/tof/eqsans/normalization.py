@@ -27,6 +27,7 @@ from mantid.simpleapi import (
     RemoveSpectra,
     Scale,
     SplineInterpolation,
+    logger,
 )
 from mantid.api import mtd
 import numpy as np
@@ -293,7 +294,7 @@ def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
     return mtd[output_workspace]
 
 
-def normalize_by_time(input_workspace, log_key=None, output_workspace=None):
+def normalize_by_time(input_workspace, log_key=None, output_workspace=None, has_blocked_beam=False):
     r"""
     Divide the counts by the duration of the run
 
@@ -318,6 +319,11 @@ def normalize_by_time(input_workspace, log_key=None, output_workspace=None):
     if output_workspace is None:
         output_workspace = str(input_workspace)
     duration = run_duration(input_workspace, log_key=log_key)
+    if has_blocked_beam:
+        if duration.log_key == "proton_charge":
+            logger.notice("Workspace normalized by Time using proton charge duration.")
+        else:
+            logger.warning(f"Workspace normalized by Time using {duration.log_key}.")
     Scale(
         input_workspace,
         Factor=1.0 / duration.value,
@@ -334,6 +340,7 @@ def normalize_by_flux(
     method="proton charge",
     monitor_workspace=None,
     output_workspace=None,
+    has_blocked_beam=False,
 ):
     r"""
     Normalize counts by several methods to estimate the neutron flux.
@@ -389,7 +396,7 @@ def normalize_by_flux(
     # Arguments specific to the normalizer
     args = {"proton charge": [w_flux], "monitor": [w_flux, monitor_workspace]}
     args = args.get(method, list())
-    kwargs = {"time": dict(log_key=flux)}
+    kwargs = {"time": dict(log_key=flux, has_blocked_beam=has_blocked_beam)}
     kwargs = kwargs.get(method, dict())
 
     normalizer[method](input_workspace, *args, output_workspace=output_workspace, **kwargs)

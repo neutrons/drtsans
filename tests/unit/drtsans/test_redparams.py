@@ -888,6 +888,7 @@ class TestReductionParametersEQSANS:
     @pytest.mark.datarepo
     def test_incohfit_parameters(self, datarepo_dir):
         parameters = deepcopy(self.parameters_all)
+        del parameters["configuration"]["blockedBeamRunNumber"]
         with amend_config(data_dir=datarepo_dir.eqsans):
             validate_reduction_parameters(parameters)
 
@@ -923,7 +924,7 @@ class TestReductionParametersEQSANS:
         r"""Test the validation of the scaleComponents parameter"""
 
         parameters = deepcopy(self.parameters_all)
-
+        del parameters["configuration"]["blockedBeamRunNumber"]
         # default value
         # (we need to tell pytest where to find file EQSANS_89157.nxs.h5)
         with amend_config(data_dir=datarepo_dir.eqsans):
@@ -989,7 +990,7 @@ class TestReductionParametersEQSANS:
     )
     def test_timeslice_parameters(self, datarepo_dir, timeSliceInterval, timeSlicePeriod, throws_error):
         parameters = deepcopy(self.parameters_all)
-
+        del parameters["configuration"]["blockedBeamRunNumber"]
         # default values
         with amend_config(data_dir=datarepo_dir.eqsans):
             validate_reduction_parameters(parameters)
@@ -1017,11 +1018,13 @@ class TestReductionParametersEQSANS:
             validate=False,
             permissible=True,
         )
+        del parameters_new["configuration"]["blockedBeamRunNumber"]
         reduction_parameters(parameters_new, permissible=True)
 
     @pytest.mark.datarepo
     def test_loadOptions_additionalProperties_true(self, datarepo_dir):
         parameters = deepcopy(self.parameters_all)
+        del parameters["configuration"]["blockedBeamRunNumber"]
         with amend_config(data_dir=datarepo_dir.eqsans):
             parameters["sample"]["loadOptions"]["additionalProperties"] = True
             validate_reduction_parameters(parameters)
@@ -1074,6 +1077,7 @@ class TestReductionParameterError:
             "incohfit_qmax": None,
             "QbinType": "log",
             "numQBins": 100,
+            "darkFileName": None,
         },
     }
 

@@ -7,7 +7,7 @@ from .script_locator import reduce_EQSANS
 
 
 @pytest.mark.mount_eqsans
-def test_autoreduce_sample(simulated_events, tmp_path):
+def test_autoreduce_sample(tmp_path):
     mock_args = Mock()
     mock_args.events_file = "/SNS/EQSANS/IPTS-34577/nexus/EQSANS_162568.nxs.h5"
     mock_args.outdir = str(tmp_path)

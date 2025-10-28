@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import requests
+import sys
 import time
 from typing import Union
 import warnings
@@ -35,7 +36,7 @@ from drtsans.tof.eqsans.meta_data import is_sample_run
 # silently ignore all types of numerical errors (like divide by zero, overflow, etc.)
 np.seterr(all="ignore")
 warnings.filterwarnings("ignore", module="numpy")
-CONDA_ENV = "sans"
+CONDA_ENV = "sans-qa"
 
 LOG_NAME = "autoreduce"
 AUTOREDUCE_DIR = "/SNS/EQSANS/shared/autoreduce"
@@ -72,6 +73,8 @@ def configure_logger(output_dir: str, run_number: str) -> tuple[io.StringIO, str
     ----------
     output_dir : str
         Directory path where the log file will be saved. The log file will be named 'autoreduce.log'.
+    run_number: str
+        The run number associated with the current reduction process. This is used to name the log file
 
     Returns
     -------
@@ -94,14 +97,14 @@ def configure_logger(output_dir: str, run_number: str) -> tuple[io.StringIO, str
 
     # create a file handler
     logfile = os.path.join(output_dir, f"{LOG_NAME}_{run_number}.log")
-    fileHandler = logging.FileHandler(logfile)
+    fileHandler = logging.FileHandler(logfile, mode="w")  # overwrite existing log file
     fileHandler.setLevel(logging.INFO)
     logformat = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     fileHandler.setFormatter(logging.Formatter(logformat))
     logging.getLogger().addHandler(fileHandler)
 
     # create a stream handler for console output from loggers "Mantid" and "autoreduce" only
-    streamHandler = logging.StreamHandler()
+    streamHandler = logging.StreamHandler(sys.stdout)  # console output
     streamHandler.setLevel(logging.INFO)
     streamHandler.addFilter(lambda record: "Mantid" in record.name or LOG_NAME in record.name)
     logging.getLogger().addHandler(streamHandler)
@@ -329,13 +332,14 @@ def reduce_sample(events: EventWorkspace, output_dir: str):
     - Saves reduced data files, HDF5 log, and plots (*.png) to the output directory
     - Saves the final comprehensive reduction options to `reduction_options_{run_number}.json`
     """
+    logger = logging.getLogger(LOG_NAME)
     # The autoreduction service will pass AUTOREDUCE_IPTS_DIR as output directory.
     # We add run number as subdir, otherwise there will be too many files under AUTOREDUCE_IPTS_DIR
     run_number = str(events.getRunNumber())  # e.g. "105584"
     ipts = SampleLogs(events).experiment_identifier.value[5:]  # e.g. "12345" when having IPTS-12345
     reduced_files_dir = output_dir
-    if output_dir == AUTOREDUCE_IPTS_DIR.format(ipts=ipts):
-        reduced_files_dir = os.path.join(output_dir, run_number)
+    if reduced_files_dir == AUTOREDUCE_IPTS_DIR.format(ipts=ipts):
+        reduced_files_dir = os.path.join(reduced_files_dir, run_number)
 
     # find most appropriate reduction options and amend if necessary
     amendment = {}
@@ -354,6 +358,8 @@ def reduce_sample(events: EventWorkspace, output_dir: str):
             #  Fallback: /SNS/EQSANS/shared/autoreduce/reduction_options.json
             reduction_options_path = os.path.join(AUTOREDUCE_DIR, "reduction_options.json")
             amendment["beamCenter"] = {"runNumber": run_number}
+    logger.info(f"reduce_sample: Loading reduction options from {reduction_options_path}")
+
     footer = (
         "<b>Note:</b> the links below can't be open directly. Instead, copy the link address "
         "and paste it in a new browser tab.<br>\n"
@@ -370,16 +376,26 @@ def reduce_sample(events: EventWorkspace, output_dir: str):
     final_input_config = deepcopy(input_config)  # input_config will be modified during reduction
 
     # load files and reduce
+    logger.info("reduce_sample: loading input files with load_all_files()")
+    os.chdir(AUTOREDUCE_DIR)  # required for load_all_files() to work
     loaded = load_all_files(input_config)
+    logger.info("reduce_sample: reducing with reduce_single_configuration()")
     output = reduce_single_configuration(loaded, input_config)
 
-    # create plot images for all intensity profiles
+    # create PNG images for all intensity profiles
+    logger.info("reduce_sample: saving intensity profiles to PNG images with plot_reduction_output()")
     plot_reduction_output(output, input_config)  # save as *.PNG files
 
-    # collect all HTML elements into a single report
-    report = reduce_non_sample(events) + "<hr>\n" + plotly_reduction_output(output, input_config) + "<hr>\n"
+    # create a detector-pixel counts intensity plot, save as HTML report
+    logger.info("reduce_sample: create detector pixel intensity plot with reduce_non_sample()")
+    report = reduce_non_sample(events) + "<hr>\n"
+
+    # create plotly images for all intensity profiles, save as HTML report
+    logger.info("reduce_sample: creating Plotly output with plotly_reduction_output()")
+    report += plotly_reduction_output(output, input_config) + "<hr>\n"
 
     # Save the input reduction options
+    logger.info("reduce_sample: saving final input reduction options to JSON file")
     reduction_options_path = os.path.join(output_dir, f"reduction_options_{run_number}.json")
     with open(reduction_options_path, "w") as config_file:
         json.dump(final_input_config, config_file, indent=4, sort_keys=True)
@@ -420,12 +436,14 @@ def footer(events: EventWorkspace, output_dir: str, log_file: str) -> str:
     - If output_dir matches the IPTS autoreduce pattern, files are saved to a run-specific subdirectory
     - The footer includes horizontal rules (<hr>) for visual separation in the HTML report
     """
+    logger = logging.getLogger(LOG_NAME)
     run_number = str(events.getRunNumber())
     ipts = SampleLogs(events).experiment_identifier.value[5:]  # e.g. "12345" when having IPTS-12345
     reduced_files_dir = output_dir
-    if output_dir == AUTOREDUCE_IPTS_DIR.format(ipts=ipts):
-        reduced_files_dir = os.path.join(output_dir, run_number)
+    if reduced_files_dir == AUTOREDUCE_IPTS_DIR.format(ipts=ipts):
+        reduced_files_dir = os.path.join(reduced_files_dir, run_number)
     reduction_options_path = os.path.join(output_dir, f"reduction_options_{run_number}.json")
+    logger.info("footer: generating reduction footer information")
     docs = "<a href='https://drtsans.readthedocs.io/latest/index.html' target='_blank'>drtsans</a>"
     version = drtsans.__version__
     release = f"<a href='https://github.com/neutrons/drtsans/releases/tag/v{version}' target='_blank'>{version}</a>"
@@ -501,28 +519,30 @@ def autoreduce(args: argparse.Namespace):
     run_number = match_run_number(args.events_file)
     if not run_number:
         raise ValueError("Run number could not be determined from the events file path")
-    error_log_buffer, logfile = configure_logger(args.outdir, run_number)
+    output_dir = args.outdir.rstrip("/")  # remove trailing slash if any
+    error_log_buffer, logfile = configure_logger(output_dir, run_number)
     logger = logging.getLogger(LOG_NAME)
 
     # Load events file
     if not os.path.isfile(args.events_file):
         raise FileNotFoundError(f"data file {args.events_file} not found")
+    logger.info(f"autoreduce: Loading events from {args.events_file}")
     events = LoadEventNexus(Filename=args.events_file, OutputWorkspace=mtd.unique_hidden_name())
     if run_number != str(events.getRunNumber()):
         logger.error("Run number extracted from events filepath doesn't match")
         raise ValueError("Run number extracted from events filepath doesn't match")
 
     # Output directory for reduced files, logs, and report
-    reduced_files_dir = args.outdir
+    reduced_files_dir = output_dir
     ipts = SampleLogs(events).experiment_identifier.value[5:]  # e.g. "12345" when having IPTS-12345
-    if args.outdir == AUTOREDUCE_IPTS_DIR.format(ipts=ipts):  # e.g. /SNS/EQSANS/IPTS-12345/shared/autoreduce/
-        reduced_files_dir = os.path.join(args.outdir, run_number)  # /SNS/EQSANS/IPTS-12345/shared/autoreduce/105584
+    if reduced_files_dir == AUTOREDUCE_IPTS_DIR.format(ipts=ipts):  # e.g. /SNS/EQSANS/IPTS-12345/shared/autoreduce/
+        reduced_files_dir = os.path.join(reduced_files_dir, run_number)
 
     # reduce events
     report = ""
     try:
-        report += reduce_sample(events, args.outdir) if is_sample_run(events) else reduce_non_sample(events)
-        report += footer(events, args.outdir, logfile)
+        report += reduce_sample(events, output_dir) if is_sample_run(events) else reduce_non_sample(events)
+        report += footer(events, output_dir, logfile)
         minutes, seconds = divmod(time.time() - start_time, 60)
         report += f"<div>Reduction completed in: <b>{int(minutes)} min {int(seconds)} sec.</b><br></div>\n"
     except Exception:
@@ -534,15 +554,20 @@ def autoreduce(args: argparse.Namespace):
         report += f"<div><h3>Error Messages</h3><pre>{error_messages}</pre></div></hr>\n"
 
     # Save report to disk as an HTML file
+    logger.info("autoreduce: Saving HTML report to disk")
     save_report(report, os.path.join(reduced_files_dir, f"EQSANS_{run_number}.html"))
 
     #  Upload report to the livedata server if requested
     if not args.no_publish:
+        logger.info("autoreduce: Uploading HTML report to livedata server")
         upload_report(run_number, report)
 
     # Exit ungracefully if there were errors
     if error_messages:
         raise RuntimeError(f"Autoreduction completed with errors, see {logfile} for details\n{error_messages}")
+    else:
+        logger.info("Autoreduction completed successfully")
+        sys.exit(0)  # Explicit successful exit
 
 
 if __name__ == "__main__":

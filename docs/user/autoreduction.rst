@@ -62,6 +62,17 @@ The following additional files are saved under directory ``/SNS/EQSANS/IPTS-2019
 2. ``reduction_options_89157.json`` - input configuration options, completed with any missing default values.
    If User requests to autoreduce the same run again, this file will be used as input configuration.
 
+Resubmitting Autoreduction
+--------------------------
+User can resubmit the autoreduction for a given run,
+perhaps after modifying one of the reduction options files under the current IPTS,
+then clicking the `reduction` link located at the bottom on the web monitor page for that run.
+For example:
+
+.. figure:: /user/media/reduction_button.png
+   :alt: click the reduction link
+   :width: 500px
+
 
 TroubleShooting
 ---------------

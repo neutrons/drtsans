@@ -1,6 +1,6 @@
 ## Description of work:
 
-Check all that apply:
+**Check all that apply:**
 - [ ] updated documentation and checked that it looks correct in the [pull request preview](https://docs.readthedocs.com/platform/stable/pull-requests.html)
 - [ ] Source added/refactored
 - [ ] Added unit tests

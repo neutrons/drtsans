@@ -104,7 +104,7 @@ def configure_logger(output_dir: str, run_number: str) -> tuple[io.StringIO, str
     logging.getLogger().addHandler(fileHandler)
 
     # create a stream handler for console output from loggers "Mantid" and "autoreduce" only
-    streamHandler = logging.StreamHandler()
+    streamHandler = logging.StreamHandler(sys.stdout)  # console output
     streamHandler.setLevel(logging.INFO)
     streamHandler.addFilter(lambda record: "Mantid" in record.name or LOG_NAME in record.name)
     logging.getLogger().addHandler(streamHandler)
@@ -567,7 +567,6 @@ def autoreduce(args: argparse.Namespace):
         raise RuntimeError(f"Autoreduction completed with errors, see {logfile} for details\n{error_messages}")
     else:
         logger.info("Autoreduction completed successfully")
-        sys.exit(0)  # Explicit successful exit
 
 
 if __name__ == "__main__":

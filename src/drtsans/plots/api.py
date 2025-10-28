@@ -521,6 +521,8 @@ def plotly_IQazimuthal(
     ValueError
         If profile is not of type IQazimuthal
     """
+    transpose_required = _require_transpose_intensity(profile)  # for correctly plotting
+
     if getDataType(profile) != DataType.IQ_AZIMUTHAL:
         raise ValueError("All profiles must be of type IQazimuthal")
 
@@ -538,7 +540,8 @@ def plotly_IQazimuthal(
     roi = _create_ring_roi(profile, q_min, q_max, roi)  # ROI as a ring (qmin, qmax)
     roi = _create_wedge_roi(profile, wedges, symmetric_wedges, roi)  # add wedge mask
     intensity = np.ma.masked_where(roi, intensity)  # additionally mask where roi is True
-
+    if transpose_required:
+        intensity = intensity.T
     return plot_heatmap(
         run_number=None,
         x=qx,

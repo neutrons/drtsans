@@ -8,22 +8,38 @@ from .script_locator import reduce_EQSANS
 
 @pytest.mark.mount_eqsans
 def test_autoreduce_sample(tmp_path):
+    """The counts for this run are not isotropic, so we can use it to assert the I(Qx, Qy)
+    plot reflects the asymmetry. Here's a rough ASCII representation of what the
+    I(Qx, Qy) plot should look like. The center of the intensity maximum is shifted
+    towards negative Qy values.
+    Qy
+    ^
+    |..........................................
+    |..........................................
+    |..........................................
+    |....................:::::.................
+    --------------------:::::::------------------> Qx
+    |..................:::::::::...............
+    |..................:::::::::...............
+    |....................:::::.................
+    |..........................................
+    """
     mock_args = Mock()
-    mock_args.events_file = "/SNS/EQSANS/IPTS-34577/nexus/EQSANS_162568.nxs.h5"
+    mock_args.events_file = "/SNS/EQSANS/IPTS-35884/nexus/EQSANS_172835.nxs.h5"
     mock_args.outdir = str(tmp_path)
     mock_args.no_publish = True  # Disable publishing to the live data server
     reduce_EQSANS.autoreduce(mock_args)
     filenames = [
-        "autoreduce_162568.log",
-        "EQSANS_162568.html",
-        "EQSANS_162568_Iq.dat",
-        "EQSANS_162568_Iq.png",
-        "EQSANS_162568_Iqxqy.dat",
-        "EQSANS_162568_Iqxqy.h5",
-        "EQSANS_162568_Iqxqy.png",
-        "EQSANS_162568_processed.nxs",
-        "EQSANS_162568_reduction_log.hdf",
-        "reduction_options_162568.json",
+        "autoreduce_172835.log",
+        "EQSANS_172835.html",
+        "EQSANS_172835_Iq.dat",
+        "EQSANS_172835_Iq.png",
+        "EQSANS_172835_Iqxqy.dat",
+        "EQSANS_172835_Iqxqy.h5",
+        "EQSANS_172835_Iqxqy.png",
+        "EQSANS_172835_processed.nxs",
+        "EQSANS_172835_reduction_log.hdf",
+        "reduction_options_172835.json",
     ]
     for expected in filenames:
         assert os.path.isfile(os.path.join(mock_args.outdir, expected))

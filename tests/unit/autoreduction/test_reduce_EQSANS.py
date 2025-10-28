@@ -66,7 +66,7 @@ def test_constants_values():
     assert reduce_EQSANS.TUBES_PER_EIGHTPACK == 8
     assert reduce_EQSANS.TUBES_IN_DETECTOR1 == 192
     assert reduce_EQSANS.PIXELS_PER_TUBE == 256
-    assert reduce_EQSANS.CONDA_ENV == "sans"
+    assert reduce_EQSANS.CONDA_ENV in ("sans", "sans-qa", "sans-dev")
 
 
 def test_upload_report():

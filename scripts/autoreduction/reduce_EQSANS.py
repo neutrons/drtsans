@@ -567,7 +567,6 @@ def autoreduce(args: argparse.Namespace):
         raise RuntimeError(f"Autoreduction completed with errors, see {logfile} for details\n{error_messages}")
     else:
         logger.info("Autoreduction completed successfully")
-        sys.exit(0)  # Explicit successful exit
 
 
 if __name__ == "__main__":

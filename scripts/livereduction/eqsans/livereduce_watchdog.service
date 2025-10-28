@@ -1,0 +1,11 @@
+[Unit]
+Description=Livereduction Watchdog
+
+[Service]
+WorkingDirectory=/tmp
+ExecStart=/SNS/EQSANS/shared/livereduce/watchdog/livereduce_watchdog.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

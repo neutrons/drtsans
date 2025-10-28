@@ -46,7 +46,6 @@ def test_load_all_files_simple_interval(datarepo_dir):
         },
     }
     reduction_input = reduction_parameters(specs, instrument_name="EQSANS")
-    del reduction_input["configuration"]["blockedBeamRunNumber"]
 
     # replace the /bin/true filenames with None
     reduction_input["configuration"]["maskFileName"] = None
@@ -122,7 +121,6 @@ def test_load_all_files_simple(datarepo_dir):
         },
     }
     reduction_input = reduction_parameters(specs, instrument_name="EQSANS")
-    del reduction_input["configuration"]["blockedBeamRunNumber"]
 
     # replace the /bin/true filenames with None
     reduction_input["configuration"]["maskFileName"] = None

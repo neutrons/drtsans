@@ -135,7 +135,7 @@
 
         "darkFileName": {
           "$ref": "common.json#/configuration/darkFileName",
-          "evaluateCondition": "('{this}' is None) or ({#configuration/blockedBeamRunNumber} is None)"
+          "evaluateCondition": "({this} is None) or ({#configuration/blockedBeamRunNumber} is None)"
         },
         "normalization": {
           "anyOf": [{ "type": "string", "enum": ["Monitor", "Total charge", "Time"] }, { "type": "null" }],
@@ -149,7 +149,7 @@
         },
         "blockedBeamRunNumber": {
           "$ref": "common.json#/configuration/blockedBeamRunNumber",
-          "evaluateCondition": "('{this}' is None) or ({#configuration/darkFileName} is None)"
+          "evaluateCondition": "({this} is None or {#configuration/darkFileName} is None)"
         },
         "fluxMonitorRatioFile": {
           "type": ["string", "null"],

@@ -1,3 +1,9 @@
+from contextlib import contextmanager
+import pathlib
+import os
+import stat
+import sys
+
 from mantid.api import AnalysisDataService, FileFinder
 from mantid.kernel import ConfigService, amend_config
 from drtsans.instruments import (
@@ -6,9 +12,6 @@ from drtsans.instruments import (
     instrument_filesystem_name,
     InstrumentEnumName,
 )
-import os
-import stat
-import pathlib
 
 __all__ = ["abspath", "abspaths", "exists", "registered_workspace", "allow_overwrite"]
 
@@ -238,3 +241,29 @@ def registered_workspace(source):
     bool
     """
     return AnalysisDataService.doesExist(str(source))
+
+
+@contextmanager
+def add_to_sys_path(path, clean_module_reduce_EQSANS=True):
+    r"""Temporarily add `path` to the PYTHONPATH.
+
+    Parameters
+    ----------
+    path : str
+        The path to be added to the PYTHONPATH.
+    clean_module_reduce_EQSANS : bool, optional
+        If True, remove the "reduce_EQSANS" module from sys.modules if it exists,
+        so it can be re-imported. Default is True.
+
+    Examples
+    --------
+    with add_to_sys_path(tempdir):
+        from reduce_EQSANS import reduction_user_options
+    """
+    sys.path.insert(0, path)
+    if clean_module_reduce_EQSANS and ("reduce_EQSANS" in sys.modules):
+        del sys.modules["reduce_EQSANS"]  # need to re-import
+    try:
+        yield
+    finally:
+        sys.path.remove(path)

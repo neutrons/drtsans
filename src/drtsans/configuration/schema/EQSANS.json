@@ -133,7 +133,10 @@
         "defaultMask": { "$ref": "common.json#/configuration/defaultMask" },
         "useMaskBackTubes": { "$ref": "common.json#/configuration/useMaskBackTubes", "default": false },
 
-        "darkFileName": { "$ref": "common.json#/configuration/darkFileName" },
+        "darkFileName": {
+          "$ref": "common.json#/configuration/darkFileName",
+          "evaluateCondition": "('{this}' is None) or ({#configuration/blockedBeamRunNumber} is None)"
+        },
         "normalization": {
           "anyOf": [{ "type": "string", "enum": ["Monitor", "Total charge", "Time"] }, { "type": "null" }],
           "description": "Normalization type. Allowed values 'Total charge', 'Time', 'Monitor'",
@@ -144,7 +147,10 @@
           "examples": ["Monitor", "Total charge", "Time"],
           "default": "Total charge"
         },
-        "blockedBeamRunNumber": { "$ref": "common.json#/configuration/blockedBeamRunNumber" },
+        "blockedBeamRunNumber": {
+          "$ref": "common.json#/configuration/blockedBeamRunNumber",
+          "evaluateCondition": "('{this}' is None) or ({#configuration/darkFileName} is None)"
+        },
         "fluxMonitorRatioFile": {
           "type": ["string", "null"],
           "datasource": "file",
@@ -315,10 +321,6 @@
           "description": "use smallest wavelength as reference wavelength"
         }
       },
-      "oneOf": [
-        { "required": ["darkFileName"] },
-        { "required": ["blockedBeamRunNumber"] }
-      ],
       "required": [
         "outputDir",
         "instrumentConfigurationDir",
@@ -340,6 +342,8 @@
         "useDefaultMask",
         "defaultMask",
         "useMaskBackTubes",
+        "darkFileName",
+        "blockedBeamRunNumber",
         "sensitivityFileName",
         "useSolidAngleCorrection",
         "useThetaDepTransCorrection",

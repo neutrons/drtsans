@@ -570,13 +570,13 @@ def pre_process_single_configuration(
         "mask_btp": mask_btp,
         "solid_angle": solid_angle,
         "sensitivity_workspace": sensitivity_workspace,
-        "has_blocked_beam": blocked_beam.data is not None,
+        "has_blocked_beam": (blocked_beam is not None and blocked_beam.data is not None),
     }
 
     # process sample
     sample_ws = prepare_data_workspaces(sample_ws_raw, output_workspace=output_workspace, **prepare_data_conf)
 
-    if blocked_beam.data:
+    if blocked_beam is not None and blocked_beam.data is not None:
         blocked_ws_name = output_suffix + "_blocked_beam"
         if not registered_workspace(blocked_ws_name):
             blocked_ws = prepare_data_workspaces(blocked_beam, output_workspace=blocked_ws_name, **prepare_data_conf)

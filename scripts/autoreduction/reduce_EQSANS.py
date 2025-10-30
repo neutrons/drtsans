@@ -97,17 +97,17 @@ def configure_logger(output_dir: str, run_number: str) -> tuple[io.StringIO, str
 
     # create a file handler
     logfile = os.path.join(output_dir, f"{LOG_NAME}_{run_number}.log")
-    fileHandler = logging.FileHandler(logfile, mode="w")  # overwrite existing log file
-    fileHandler.setLevel(logging.INFO)
+    file_handler = logging.FileHandler(logfile, mode="w")  # overwrite existing log file
+    file_handler.setLevel(logging.INFO)
     logformat = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    fileHandler.setFormatter(logging.Formatter(logformat))
-    logging.getLogger().addHandler(fileHandler)
+    file_handler.setFormatter(logging.Formatter(logformat))
+    logging.getLogger().addHandler(file_handler)
 
     # create a stream handler for console output from loggers "Mantid" and "autoreduce" only
-    streamHandler = logging.StreamHandler(sys.stdout)  # console output
-    streamHandler.setLevel(logging.INFO)
-    streamHandler.addFilter(lambda record: "Mantid" in record.name or LOG_NAME in record.name)
-    logging.getLogger().addHandler(streamHandler)
+    stream_handler = logging.StreamHandler(sys.stdout)  # console output
+    stream_handler.setLevel(logging.INFO)
+    stream_handler.addFilter(lambda record: "Mantid" in record.name or LOG_NAME in record.name)
+    logging.getLogger().addHandler(stream_handler)
 
     # Create a StringIO buffer and handler for error messages
     error_log_buffer = io.StringIO()

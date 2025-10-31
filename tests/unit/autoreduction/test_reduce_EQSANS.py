@@ -1,6 +1,6 @@
 import os
 import tempfile
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import DeleteWorkspace, MoveInstrumentComponent, mtd, Rebin
@@ -71,9 +71,10 @@ def test_constants_values():
 
 def test_upload_report():
     """Test successful plot upload"""
+    mock_logger = MagicMock()
     with patch.object(reduce_EQSANS, "publish_plot") as mock_publish_plot:
         mock_publish_plot.return_value = None
-        reduce_EQSANS.upload_report("12345", "<div>test plot</div>")
+        reduce_EQSANS.upload_report("12345", "<div>test plot</div>", mock_logger)
         mock_publish_plot.assert_called_once_with("EQSANS", "12345", files={"file": "<div>test plot</div>"})
 
 
@@ -83,7 +84,8 @@ def test_save_report():
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".html") as temp_file:
         temp_filename = temp_file.name
     try:
-        reduce_EQSANS.save_report(plot_div, temp_filename)
+        mock_logger = MagicMock()
+        reduce_EQSANS.save_report(plot_div, temp_filename, mock_logger)
         with open(temp_filename, "r") as f:
             content = f.read()
         assert "<!DOCTYPE html>" in content
@@ -99,7 +101,8 @@ def test_save_report_with_html_structure():
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".html") as temp_file:
         temp_filename = temp_file.name
     try:
-        reduce_EQSANS.save_report(plot_div, temp_filename)
+        mock_logger = MagicMock()
+        reduce_EQSANS.save_report(plot_div, temp_filename, mock_logger)
         with open(temp_filename, "r") as f:
             content = f.read()
         # Check HTML structure

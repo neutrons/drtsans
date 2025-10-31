@@ -40,7 +40,7 @@ in the following order of precedence:
 
 1. Under the ``shared`` directory of the current IPTS and taking into account the run number.
    For example, for IPTS-20196 and run number 89157,
-   the script will look for ``/SNS/EQSANS/IPTS-20196/shared/autoreduce/reduction_options_89157.json``.
+   the script will look for ``/SNS/EQSANS/IPTS-20196/shared/autoreduce/89157/reduction_options_89157.json``.
 2. Under the ``shared`` directory of the current IPTS. For example, for IPTS-20196,
    the script will look for ``/SNS/EQSANS/IPTS-20196/shared/autoreduce/reduction_options.json``.
 3. File ``/SNS/EQSANS/shared/autoreduce/reduction_options.json``.
@@ -55,11 +55,8 @@ For IPTS-20196 and run number 89157, all reduction files are saved under directo
 3. ``EQSANS_89157_Iqxqy.dat``, ``EQSANS_89157_Iqxqy.h5``, ``EQSANS_89157_Iqxqy.png`` - 2D reduced data files and plot.
 4. ``EQSANS_89157_processed.nxs`` - I(lambda) per detector pixel.
 5. ``EQSANS_162568_reduction_log.hdf`` - HDF5 file with reduction-derived parameters (transmission, center, etc).
-
-The following additional files are saved under directory ``/SNS/EQSANS/IPTS-20196/shared/autoreduction/``:
-
-1. ``autoreduce_89157.log`` - log file with detailed information about the reduction steps at level ``INFO`` and above.
-2. ``reduction_options_89157.json`` - input configuration options, completed with any missing default values.
+6. ``autoreduce_89157.log`` - log file with detailed information about the reduction steps at level ``INFO`` and above.
+7. ``reduction_options_89157.json`` - input configuration options, completed with any missing default values.
    If User requests to autoreduce the same run again, this file will be used as input configuration.
 
 Resubmitting Autoreduction

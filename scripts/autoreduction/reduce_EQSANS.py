@@ -438,12 +438,6 @@ def footer(events: EventWorkspace, output_dir: str, log_context: LogContext) -> 
         - Reduction options file paths
         - Output files directory
         - Reduction timestamp
-
-    Notes
-    -----
-    - The function determines the actual reduced files directory based on the output_dir
-    - If output_dir matches the IPTS autoreduce pattern, files are saved to a run-specific subdirectory
-    - The footer includes horizontal rules (<hr>) for visual separation in the HTML report
     """
     logger, logfile = log_context.logger, log_context.logfile
     run_number = str(events.getRunNumber())
@@ -487,7 +481,7 @@ def match_run_number(path: str) -> str:
     return match.group(1) if match else ""
 
 
-def reduce_events(events: EventWorkspace, output_dir: str, log_context: LogContext, publish: bool):
+def reduce_events(events: EventWorkspace, output_dir: str, log_context: LogContext) -> str:
     """Execute the reduction workflow and generate an HTML report.
 
     Performs the complete reduction process for either sample or non-sample runs,
@@ -523,13 +517,12 @@ def reduce_events(events: EventWorkspace, output_dir: str, log_context: LogConte
     - If publishing is enabled, uploads the report to the EQSANS livedata server
     """
     start_time = time.time()
-    logger, logfile, error_buffer = log_context.logger, log_context.logfile, log_context.error_buffer
+    logger, error_buffer = log_context.logger, log_context.error_buffer
 
     # reduce events
     report = ""
     try:
         report += reduce_sample(events, output_dir, logger) if is_sample_run(events) else reduce_non_sample(events)
-        report += footer(events, output_dir, log_context)
     except Exception:
         logger.error("Reduction failed")
 
@@ -540,22 +533,7 @@ def reduce_events(events: EventWorkspace, output_dir: str, log_context: LogConte
     else:
         minutes, seconds = divmod(time.time() - start_time, 60)
         report += f"<div>Reduction completed in: <b>{int(minutes)} min {int(seconds)} sec.</b><br></div>\n"
-
-    # Save report to disk as an HTML file
-    logger.info("Saving HTML report to disk")
-    run_number = str(events.getRunNumber())  # e.g. "105584"
-    save_report(report, os.path.join(output_dir, f"EQSANS_{run_number}.html"), logger)
-
-    #  Upload report to the livedata server if requested
-    if publish:
-        logger.info("Uploading HTML report to livedata server")
-        upload_report(run_number, report, logger)
-
-    # Exit ungracefully if there were errors
-    if error_messages:
-        raise RuntimeError(f"Reduction completed with errors, see {logfile} for details\n{error_messages}")
-    else:
-        logger.info("Reduction completed successfully")
+    return report
 
 
 def autoreduce(args: argparse.Namespace):
@@ -612,7 +590,25 @@ def autoreduce(args: argparse.Namespace):
     log_context = LogContext(logger=logger, logfile=logfile, error_buffer=error_buffer)
 
     # reduce events, save report, and optionally publish to livedata server
-    reduce_events(events, output_dir, log_context, publish=(not args.no_publish))
+    report = reduce_events(events, output_dir, log_context)
+    report += footer(events, output_dir, log_context)
+
+    # Save report to disk as an HTML file
+    logger.info("Saving HTML report to disk")
+    run_number = str(events.getRunNumber())  # e.g. "105584"
+    save_report(report, os.path.join(output_dir, f"EQSANS_{run_number}.html"), logger)
+
+    #  Upload report to the livedata server if requested
+    if not args.publish:
+        logger.info("Uploading HTML report to livedata server")
+        upload_report(run_number, report, logger)
+
+    # Exit ungracefully if there were errors
+    error_messages = error_buffer.getvalue()
+    if error_messages:
+        raise RuntimeError(f"Reduction completed with errors, see {logfile} for details\n{error_messages}")
+    else:
+        logger.info("Reduction completed successfully")
 
 
 if __name__ == "__main__":

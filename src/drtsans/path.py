@@ -260,10 +260,11 @@ def add_to_sys_path(path, clean_module_reduce_EQSANS=True):
     with add_to_sys_path(tempdir):
         from reduce_EQSANS import reduction_user_options
     """
+    original_sys_path = list(sys.path)
     sys.path.insert(0, path)
     if clean_module_reduce_EQSANS and ("reduce_EQSANS" in sys.modules):
         del sys.modules["reduce_EQSANS"]  # need to re-import
     try:
         yield
     finally:
-        sys.path.remove(path)
+        sys.path = original_sys_path

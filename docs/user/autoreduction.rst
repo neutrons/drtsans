@@ -4,7 +4,7 @@
 Autoreduction
 =============
 
-Python scripts for a1utomatic reduction of SANS data are provided in the ``scripts/autoreduction/`` directory.
+Python scripts for automatic reduction of SANS data are provided in the ``scripts/autoreduction/`` directory.
 These scripts are designed to be run by the SNS web monitor but also from the command line.
 
 Required arguments for the scripts include:
@@ -75,3 +75,10 @@ TroubleShooting
 ---------------
 If autoreduction fails, any log error messages as well as the traceback will be saved in the HTML report file
 as well as published to the live data server (if option ``--no_publish`` is not used).
+
+
+Livereduction
+=============
+
+Python scripts for automatic reduction of SANS data are provided in the ``scripts/livereduction/`` directory.
+These scripts are meant to be run automatically by the live reduction server, never directly by the User.

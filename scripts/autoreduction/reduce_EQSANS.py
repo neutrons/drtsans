@@ -124,7 +124,7 @@ def configure_logger(log_name: str, output_dir: str, run_number: str) -> tuple[i
 
     # add the handlers to the python root logger
 
-    logging.getLogger(LOG_NAME).setLevel(logging.INFO)
+    logging.getLogger(log_name).setLevel(logging.INFO)
     return error_log_buffer, logfile
 
 

@@ -5,6 +5,7 @@ LoadLiveData creates child algorithm "RunPythonScript" and runs it in a separate
 where "input" is the EventWorkspace containing the events accumulated up to the time when the script is run.
 """
 
+from contextlib import contextmanager
 import io
 import logging
 import os
@@ -30,19 +31,26 @@ def events_file_exists(events: EventWorkspace) -> bool:
     return os.path.isfile(events_file_path)
 
 
+@contextmanager
 def configure_error_buffer():
-    # Create a StringIO buffer and handler for error messages
+    """Context manager for error log buffer and handler."""
     error_log_buffer = io.StringIO()
     error_log_handler = logging.StreamHandler(error_log_buffer)
     error_log_handler.setLevel(logging.ERROR)
     error_log_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     logging.getLogger().addHandler(error_log_handler)
-    return error_log_buffer
+
+    try:
+        yield error_log_buffer
+    finally:
+        logging.getLogger().removeHandler(error_log_handler)
+        error_log_handler.close()
+        error_log_buffer.close()
 
 
 def livereduce(events: EventWorkspace, publish=True):
     # instantiate logging components
-    logger, error_buffer = logging.getLogger(LOG_NAME), configure_error_buffer()
+    logger = logging.getLogger(LOG_NAME)
     logger.info("Starting EQSANS live reduction post-processing")
 
     # final output directory
@@ -54,19 +62,20 @@ def livereduce(events: EventWorkspace, publish=True):
         # imports from the autoreduction script reduce_EQSANS.py
         from reduce_EQSANS import footer, LogContext, reduce_events, save_report, upload_report
 
-        log_context = LogContext(logger=logger, logfile=LOG_FILE, error_buffer=error_buffer)
-        with tempfile.TemporaryDirectory(prefix="livereduce_") as temp_dir:
-            report = reduce_events(events, temp_dir, log_context)
-            report += footer(events, output_dir, log_context)  # notice we pass output_dir here
-            save_report(report, os.path.join(temp_dir, f"EQSANS_{run}.html"), logger)  # save to disk
-            if events_file_exists(events):
-                logger.warning("Translation service produced the event file for the run during live reduction.")
-            else:
-                if publish:
-                    upload_report(run, report, logger)  # upload to live data server
-                # copy all output files from temp_dir to output_dir
-                makedirs(output_dir, exist_ok=True)  # create a parent directory if it does not exist
-                copytree(temp_dir, output_dir, dirs_exist_ok=True)
+        with configure_error_buffer() as error_buffer:
+            log_context = LogContext(logger=logger, logfile=LOG_FILE, error_buffer=error_buffer)
+            with tempfile.TemporaryDirectory(prefix="livereduce_") as temp_dir:
+                report = reduce_events(events, temp_dir, log_context)
+                report += footer(events, output_dir, log_context)  # notice we pass output_dir here
+                save_report(report, os.path.join(temp_dir, f"EQSANS_{run}.html"), logger)  # save to disk
+                if events_file_exists(events):
+                    logger.warning("Translation service produced the event file for the run during live reduction.")
+                else:
+                    if publish:
+                        upload_report(run, report, logger)  # upload to live data server
+                    # copy all output files from temp_dir to output_dir
+                    makedirs(output_dir, exist_ok=True)  # create a parent directory if it does not exist
+                    copytree(temp_dir, output_dir, dirs_exist_ok=True)
 
 
 if __name__ == "__main__":

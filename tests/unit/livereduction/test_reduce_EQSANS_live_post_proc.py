@@ -58,14 +58,13 @@ def simulated_events() -> EventWorkspace:
 
 
 def test_configure_error_buffer():
+    """Test that configure_error_buffer creates a context manager that properly captures errors."""
     root = logging.getLogger()
-    buf = None
-    handler = None
-    try:
-        from .script_locator import reduce_EQSANS_live_post_proc as livescript
+    from .script_locator import reduce_EQSANS_live_post_proc as livescript
 
-        buf = livescript.configure_error_buffer()
+    with livescript.configure_error_buffer() as buf:
         assert isinstance(buf, io.StringIO)
+        # Verify handler was added
         handler = next(
             (h for h in root.handlers if isinstance(h, logging.StreamHandler) and getattr(h, "stream", None) is buf),
             None,
@@ -74,19 +73,19 @@ def test_configure_error_buffer():
         assert handler.level == logging.ERROR
         assert handler.formatter is not None
         assert handler.formatter._fmt == "%(asctime)s - %(levelname)s - %(message)s"
-        # Log a message at level below ERROR and verify it's not captured in the buffer
+        # Log a message at level below ERROR and verify it's not captured
         root.info("Test info message")
         captured = buf.getvalue()
         assert "Test info message" not in captured
-        # Log an error and verify it's captured in the buffer
+        # Log an error and verify it's captured
         root.error("Test error message")
         captured = buf.getvalue()
         assert "Test error message" in captured
-    finally:  # Clean up: remove handler and close buffer
-        if handler is not None:
-            root.removeHandler(handler)
-        if buf is not None:
-            buf.close()
+    # Verify cleanup: handler should be removed after exiting context
+    handler_exists = any(
+        isinstance(h, logging.StreamHandler) and getattr(h, "stream", None) is buf for h in root.handlers
+    )
+    assert not handler_exists, "Handler should be removed after context exit"
 
 
 def test_livereduce(simulated_events, tmp_path):

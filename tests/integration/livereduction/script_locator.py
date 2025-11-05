@@ -1,11 +1,12 @@
 import importlib.util
 from pathlib import Path
+import types
 
 # Add the root directory to the path
 _root_dir = Path(__file__).parent.parent.parent.parent  # Go up 4 levels from test file
 
 
-def _load_module(script_file: str) -> importlib.machinery.ModuleSpec:
+def _load_module(script_file: str) -> types.ModuleType:
     """
     Load a Python module dynamically from the specified file.
 
@@ -16,7 +17,7 @@ def _load_module(script_file: str) -> importlib.machinery.ModuleSpec:
 
     Returns
     -------
-    importlib.machinery.ModuleSpec
+    types.ModuleType
         The loaded module object.
 
     Notes

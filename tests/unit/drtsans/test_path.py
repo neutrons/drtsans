@@ -179,7 +179,7 @@ class TestAddToSysPath:
         """Test that reduce_EQSANS module is removed from sys.modules by default."""
         test_path = str(tmp_path)
         sys.modules["reduce_EQSANS"] = object()  # Mock module
-        with add_to_sys_path(test_path):  # default clean_module_reduce_EQSANS=True
+        with add_to_sys_path(test_path):  # default clean_module=True
             assert "reduce_EQSANS" not in sys.modules
 
     def test_reduce_EQSANS_module_preserved_when_disabled(self, tmp_path):
@@ -188,7 +188,7 @@ class TestAddToSysPath:
         mock_module = object()
         sys.modules["reduce_EQSANS"] = mock_module
 
-        with add_to_sys_path(test_path, clean_module_reduce_EQSANS=False):
+        with add_to_sys_path(test_path, clean_module=False):
             assert sys.modules["reduce_EQSANS"] is mock_module
         del sys.modules["reduce_EQSANS"]  # Cleanup
 

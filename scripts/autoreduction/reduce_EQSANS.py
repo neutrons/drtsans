@@ -112,7 +112,7 @@ def configure_logger(log_name: str, output_dir: str, run_number: str) -> tuple[i
     # create a stream handler for console output from loggers "Mantid" and log_name only
     stream_handler = logging.StreamHandler(sys.stdout)  # console output
     stream_handler.setLevel(logging.INFO)
-    stream_handler.addFilter(lambda record: "Mantid" in record.name or LOG_NAME in record.name)
+    stream_handler.addFilter(lambda record: "Mantid" in record.name or log_name in record.name)
     logging.getLogger().addHandler(stream_handler)
 
     # Create a StringIO buffer and handler for error messages
@@ -586,7 +586,8 @@ def autoreduce(args: argparse.Namespace):
     os.makedirs(output_dir, exist_ok=True)
 
     # instantiate the logging context
-    error_buffer, logfile = configure_logger(LOG_NAME, output_dir, str(events.getRunNumber()))
+    run_number = str(events.getRunNumber())  # e.g. "105584"
+    error_buffer, logfile = configure_logger(LOG_NAME, output_dir, run_number)
     log_context = LogContext(logger=logger, logfile=logfile, error_buffer=error_buffer)
 
     # reduce events, save report, and optionally publish to livedata server
@@ -595,11 +596,10 @@ def autoreduce(args: argparse.Namespace):
 
     # Save report to disk as an HTML file
     logger.info("Saving HTML report to disk")
-    run_number = str(events.getRunNumber())  # e.g. "105584"
     save_report(report, os.path.join(output_dir, f"EQSANS_{run_number}.html"), logger)
 
     #  Upload report to the livedata server if requested
-    if not args.publish:
+    if not args.no_publish:
         logger.info("Uploading HTML report to livedata server")
         upload_report(run_number, report, logger)
 

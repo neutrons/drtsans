@@ -244,16 +244,15 @@ def registered_workspace(source):
 
 
 @contextmanager
-def add_to_sys_path(path, clean_module_reduce_EQSANS=True):
+def add_to_sys_path(path, clean_module=True):
     r"""Temporarily add `path` to the PYTHONPATH.
 
     Parameters
     ----------
     path : str
         The path to be added to the PYTHONPATH.
-    clean_module_reduce_EQSANS : bool, optional
-        If True, remove the "reduce_EQSANS" module from sys.modules if it exists,
-        so it can be re-imported. Default is True.
+    clean_module : bool, optional
+        If True, remove the  module from sys.modules if it exists, so it can be re-imported. Default is True.
 
     Examples
     --------
@@ -262,7 +261,7 @@ def add_to_sys_path(path, clean_module_reduce_EQSANS=True):
     """
     original_sys_path = list(sys.path)
     sys.path.insert(0, path)
-    if clean_module_reduce_EQSANS and ("reduce_EQSANS" in sys.modules):
+    if clean_module and ("reduce_EQSANS" in sys.modules):
         del sys.modules["reduce_EQSANS"]  # need to re-import
     try:
         yield

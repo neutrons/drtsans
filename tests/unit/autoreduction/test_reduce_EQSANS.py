@@ -1,4 +1,5 @@
 import os
+import pathlib
 import tempfile
 from unittest.mock import patch, MagicMock
 
@@ -8,10 +9,13 @@ import numpy as np
 from numpy.testing import assert_almost_equal
 import pytest
 
-from .script_locator import reduce_EQSANS
 from drtsans.instruments import empty_instrument_workspace
+from drtsans.path import load_module
 from drtsans.samplelogs import SampleLogs
 from drtsans.simulated_events import insert_background
+
+_root_dir = pathlib.Path(__file__).parent.parent.parent.parent  # Go up 4 levels from test file
+reduce_EQSANS = load_module(_root_dir / "scripts" / "autoreduction" / "reduce_EQSANS.py")
 
 
 @pytest.fixture(scope="module")

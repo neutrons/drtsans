@@ -1,9 +1,14 @@
+import pathlib
 import os
 from unittest.mock import Mock
 
 import pytest
 
-from .script_locator import reduce_EQSANS
+from drtsans.path import load_module
+
+# Add the root directory to the path
+_root_dir = pathlib.Path(__file__).parent.parent.parent.parent  # Go up 4 levels from test file
+reduce_EQSANS = load_module(_root_dir / "scripts/autoreduction/reduce_EQSANS.py")
 
 
 @pytest.mark.mount_eqsans

@@ -1,11 +1,16 @@
+import pathlib
 from unittest import mock
 import shutil
 
 from mantid.simpleapi import LoadEventNexus, mtd
 import pytest
 
-from .script_locator import reduce_EQSANS_live_post_proc as livescript
-from .script_locator import reduce_EQSANS_posixpath
+from drtsans.path import load_module
+
+# Add the repo's root directory to the path
+_root_dir = pathlib.Path(__file__).parent.parent.parent.parent  # Go up 4 levels from test file
+livescript = load_module(_root_dir / "scripts/livereduction/eqsans/reduce_EQSANS_live_post_proc.py")
+reduce_EQSANS_posixpath = _root_dir / "scripts/autoreduction/reduce_EQSANS.py"
 
 
 @pytest.mark.mount_eqsans

@@ -1,5 +1,6 @@
 import io
 import logging
+import pathlib
 import shutil
 import sys
 import types
@@ -8,12 +9,14 @@ from unittest import mock
 from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import DeleteWorkspace, MoveInstrumentComponent, mtd, Rebin
 import numpy as np
-
 import pytest
 
 from drtsans.instruments import empty_instrument_workspace
+from drtsans.path import load_module
 from drtsans.samplelogs import SampleLogs
 from drtsans.simulated_events import insert_background
+
+_root_dir = pathlib.Path(__file__).parent.parent.parent.parent  # Go up 4 levels from test file
 
 
 @pytest.fixture(scope="module")
@@ -60,7 +63,7 @@ def simulated_events() -> EventWorkspace:
 def test_configure_error_buffer():
     """Test that configure_error_buffer creates a context manager that properly captures errors."""
     root = logging.getLogger()
-    from .script_locator import reduce_EQSANS_live_post_proc as livescript
+    livescript = load_module(_root_dir / "scripts/livereduction/eqsans/reduce_EQSANS_live_post_proc.py")
 
     with livescript.configure_error_buffer() as buf:
         assert isinstance(buf, io.StringIO)
@@ -117,8 +120,7 @@ def test_livereduce(simulated_events, tmp_path):
 
     try:
         # import there so mocking the module's symbols won't affect other tests
-        from .script_locator import reduce_EQSANS_live_post_proc as livescript
-
+        livescript = load_module(_root_dir / "scripts/livereduction/eqsans/reduce_EQSANS_live_post_proc.py")
         livescript.add_to_sys_path = mock_add_to_sys_path
         livescript.events_file_exists = mock.MagicMock(return_value=False)
         livescript.copytree = mock_copytree

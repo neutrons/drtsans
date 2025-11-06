@@ -1,8 +1,10 @@
 from contextlib import contextmanager
 import pathlib
+import importlib.util
 import os
 import stat
 import sys
+import types
 
 from mantid.api import AnalysisDataService, FileFinder
 from mantid.kernel import ConfigService, amend_config
@@ -267,3 +269,29 @@ def add_to_sys_path(path, clean_module=True):
         yield
     finally:
         sys.path = original_sys_path
+
+
+def load_module(script_path: str) -> types.ModuleType:
+    """
+    Load a Python module dynamically from the specified file.
+
+    Parameters
+    ----------
+    script_path : str
+        The path to the script file to load (relative to the repository's root directory).
+
+    Returns
+    -------
+    types.ModuleType
+        The loaded module object.
+
+    Notes
+    -----
+    - The function constructs the full path to the script file based on the project structure.
+    - The module is loaded using `importlib.util` to allow dynamic imports.
+    """
+    script_path = pathlib.Path(script_path)
+    spec = importlib.util.spec_from_file_location(script_path.stem, script_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module

@@ -97,7 +97,7 @@ def configure_logger(log_name: str, output_dir: str, run_number: str) -> tuple[i
     - A separate StringIO handler captures only ERROR and above messages
     - The root logger for 'autoreduce' is set to INFO level
     """
-    # redirect Mantid Pocco logging to python logging
+    # redirect Mantid Poco logging to python logging
     mtd_log_to_python("information")
     logging.getLogger("Mantid").setLevel(logging.INFO)
 
@@ -499,8 +499,6 @@ def reduce_events(events: EventWorkspace, output_dir: str, log_context: LogConte
         - logger: Logger instance for logging reduction progress and errors
         - logfile: Path to the log file
         - error_buffer: StringIO buffer capturing error-level messages
-    publish : bool
-        If True, upload the HTML report to the livedata server. If False, only save locally.
 
     Raises
     ------
@@ -529,7 +527,7 @@ def reduce_events(events: EventWorkspace, output_dir: str, log_context: LogConte
     # If reduction failed, include error log messages and traceback in the HTML report
     error_messages = error_buffer.getvalue()
     if error_messages:
-        report += f"<div><h3>Error Messages</h3><pre>{error_messages}</pre></div></hr>\n"
+        report += f"<div><h3>Error Messages</h3><pre>{error_messages}</pre></div><hr>\n"
     else:
         minutes, seconds = divmod(time.time() - start_time, 60)
         report += f"<div>Reduction completed in: <b>{int(minutes)} min {int(seconds)} sec.</b><br></div>\n"

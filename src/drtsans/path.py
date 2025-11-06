@@ -278,7 +278,7 @@ def load_module(script_path: str) -> types.ModuleType:
     Parameters
     ----------
     script_path : str
-        The path to the script file to load (relative to the repository's root directory).
+        The path to the script file to load.
 
     Returns
     -------

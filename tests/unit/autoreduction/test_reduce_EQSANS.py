@@ -1,6 +1,7 @@
 import os
+import pathlib
 import tempfile
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import DeleteWorkspace, MoveInstrumentComponent, mtd, Rebin
@@ -8,10 +9,13 @@ import numpy as np
 from numpy.testing import assert_almost_equal
 import pytest
 
-from .script_locator import reduce_EQSANS
 from drtsans.instruments import empty_instrument_workspace
+from drtsans.path import load_module
 from drtsans.samplelogs import SampleLogs
 from drtsans.simulated_events import insert_background
+
+_root_dir = pathlib.Path(__file__).parent.parent.parent.parent  # Go up 4 levels from test file
+reduce_EQSANS = load_module(_root_dir / "scripts" / "autoreduction" / "reduce_EQSANS.py")
 
 
 @pytest.fixture(scope="module")
@@ -71,9 +75,10 @@ def test_constants_values():
 
 def test_upload_report():
     """Test successful plot upload"""
+    mock_logger = MagicMock()
     with patch.object(reduce_EQSANS, "publish_plot") as mock_publish_plot:
         mock_publish_plot.return_value = None
-        reduce_EQSANS.upload_report("12345", "<div>test plot</div>")
+        reduce_EQSANS.upload_report("12345", "<div>test plot</div>", mock_logger)
         mock_publish_plot.assert_called_once_with("EQSANS", "12345", files={"file": "<div>test plot</div>"})
 
 
@@ -83,7 +88,8 @@ def test_save_report():
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".html") as temp_file:
         temp_filename = temp_file.name
     try:
-        reduce_EQSANS.save_report(plot_div, temp_filename)
+        mock_logger = MagicMock()
+        reduce_EQSANS.save_report(plot_div, temp_filename, mock_logger)
         with open(temp_filename, "r") as f:
             content = f.read()
         assert "<!DOCTYPE html>" in content
@@ -99,7 +105,8 @@ def test_save_report_with_html_structure():
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".html") as temp_file:
         temp_filename = temp_file.name
     try:
-        reduce_EQSANS.save_report(plot_div, temp_filename)
+        mock_logger = MagicMock()
+        reduce_EQSANS.save_report(plot_div, temp_filename, mock_logger)
         with open(temp_filename, "r") as f:
             content = f.read()
         # Check HTML structure

@@ -1,3 +1,11 @@
+from contextlib import contextmanager
+import pathlib
+import importlib.util
+import os
+import stat
+import sys
+import types
+
 from mantid.api import AnalysisDataService, FileFinder
 from mantid.kernel import ConfigService, amend_config
 from drtsans.instruments import (
@@ -6,9 +14,6 @@ from drtsans.instruments import (
     instrument_filesystem_name,
     InstrumentEnumName,
 )
-import os
-import stat
-import pathlib
 
 __all__ = ["abspath", "abspaths", "exists", "registered_workspace", "allow_overwrite"]
 
@@ -238,3 +243,55 @@ def registered_workspace(source):
     bool
     """
     return AnalysisDataService.doesExist(str(source))
+
+
+@contextmanager
+def add_to_sys_path(path, clean_module=True):
+    r"""Temporarily add `path` to the PYTHONPATH.
+
+    Parameters
+    ----------
+    path : str
+        The path to be added to the PYTHONPATH.
+    clean_module : bool, optional
+        If True, remove the  module from sys.modules if it exists, so it can be re-imported. Default is True.
+
+    Examples
+    --------
+    with add_to_sys_path(tempdir):
+        from reduce_EQSANS import reduction_user_options
+    """
+    original_sys_path = list(sys.path)
+    sys.path.insert(0, path)
+    if clean_module and ("reduce_EQSANS" in sys.modules):
+        del sys.modules["reduce_EQSANS"]  # need to re-import
+    try:
+        yield
+    finally:
+        sys.path = original_sys_path
+
+
+def load_module(script_path: str) -> types.ModuleType:
+    """
+    Load a Python module dynamically from the specified file.
+
+    Parameters
+    ----------
+    script_path : str
+        The path to the script file to load.
+
+    Returns
+    -------
+    types.ModuleType
+        The loaded module object.
+
+    Notes
+    -----
+    - The function constructs the full path to the script file based on the project structure.
+    - The module is loaded using `importlib.util` to allow dynamic imports.
+    """
+    script_path = pathlib.Path(script_path)
+    spec = importlib.util.spec_from_file_location(script_path.stem, script_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module

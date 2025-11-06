@@ -2,11 +2,14 @@ import os
 import pytest
 import pathlib
 import stat
-from mantid.simpleapi import CreateWorkspace
-from mantid.kernel import amend_config
-from drtsans.path import abspath, exists, registered_workspace, allow_overwrite
+import sys
 from tempfile import gettempdir, NamedTemporaryFile
 from unittest.mock import patch
+
+from mantid.simpleapi import CreateWorkspace
+from mantid.kernel import amend_config
+
+from drtsans.path import abspath, add_to_sys_path, exists, registered_workspace, allow_overwrite
 
 SEARCH_ON = {}
 SEARCH_OFF = {"datasearch.searcharchive": "off"}
@@ -149,6 +152,71 @@ def test_allow_overwrite(cleanfile):
     assert bool(path.stat().st_mode & stat.S_IWGRP), "group writable"
     assert bool(path.stat().st_mode & stat.S_IWOTH), "world writable"
     # delete file
+
+
+class TestAddToSysPath:
+    """Test suite for the add_to_sys_path context manager."""
+
+    def test_path_added_to_sys_path(self, tmp_path):
+        """Test that the path is added to sys.path."""
+        test_path = str(tmp_path)
+        assert test_path not in sys.path
+        with add_to_sys_path(test_path):
+            assert test_path in sys.path
+            assert sys.path[0] == test_path  # Should be first
+        assert test_path not in sys.path  # path removed after context
+
+    def test_path_removed_on_exception(self, tmp_path):
+        """Test that the path is removed even if an exception occurs."""
+        test_path = str(tmp_path)
+        with pytest.raises(ValueError):
+            with add_to_sys_path(test_path):
+                assert test_path in sys.path
+                raise ValueError("Test exception")
+        assert test_path not in sys.path
+
+    def test_reduce_EQSANS_module_removed_by_default(self, tmp_path):
+        """Test that reduce_EQSANS module is removed from sys.modules by default."""
+        test_path = str(tmp_path)
+        sys.modules["reduce_EQSANS"] = object()  # Mock module
+        with add_to_sys_path(test_path):  # default clean_module=True
+            assert "reduce_EQSANS" not in sys.modules
+
+    def test_reduce_EQSANS_module_preserved_when_disabled(self, tmp_path):
+        """Test that reduce_EQSANS module is preserved when clean_module=False."""
+        test_path = str(tmp_path)
+        mock_module = object()
+        sys.modules["reduce_EQSANS"] = mock_module
+
+        with add_to_sys_path(test_path, clean_module=False):
+            assert sys.modules["reduce_EQSANS"] is mock_module
+        del sys.modules["reduce_EQSANS"]  # Cleanup
+
+    def test_reduce_EQSANS_not_present_no_error(self, tmp_path):
+        """Test that no error occurs if reduce_EQSANS is not in sys.modules."""
+        test_path = str(tmp_path)
+        if "reduce_EQSANS" in sys.modules:
+            del sys.modules["reduce_EQSANS"]
+        # Should not raise any exception
+        with add_to_sys_path(test_path):
+            pass
+
+    def test_original_sys_path_preserved(self, tmp_path):
+        """Test that the original sys.path is preserved after context exit."""
+        test_path = str(tmp_path)
+        original_path = sys.path.copy()
+        with add_to_sys_path(test_path):
+            pass
+        assert sys.path == original_path
+
+    def test_path_added_at_beginning(self, tmp_path):
+        """Test that the path is inserted at index 0 (highest priority)."""
+        test_path = str(tmp_path)
+        original_first = sys.path[0] if sys.path else None
+        with add_to_sys_path(test_path):
+            assert sys.path[0] == test_path
+            if original_first:
+                assert sys.path[1] == original_first
 
 
 if __name__ == "__main__":

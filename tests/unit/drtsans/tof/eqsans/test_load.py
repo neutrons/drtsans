@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from pytest import approx
 import numpy as np
@@ -110,7 +112,9 @@ def test_merge_Data(datarepo_dir):
 
 @pytest.mark.datarepo
 def test_load_events_and_histogram(datarepo_dir, clean_workspace):
-    ws0 = load_events_and_histogram("EQSANS_132068.nxs.h5", data_dir=datarepo_dir.eqsans)
+    ws0 = load_events_and_histogram(
+        "EQSANS_132068.nxs.h5", data_dir=os.path.join(datarepo_dir.eqsans, "test_corrections")
+    )
     clean_workspace(ws0.data)
 
     assert ws0.data.getAxis(0).getUnit().caption() == "Wavelength"
@@ -125,7 +129,7 @@ def test_load_events_and_histogram(datarepo_dir, clean_workspace):
 
     ws1 = load_events_and_histogram(
         "EQSANS_132068.nxs.h5,EQSANS_132078.nxs.h5",
-        data_dir=datarepo_dir.eqsans,
+        data_dir=os.path.join(datarepo_dir.eqsans, "test_corrections"),
         keep_events=False,
     )
 
@@ -140,7 +144,7 @@ def test_load_events_and_histogram(datarepo_dir, clean_workspace):
 
     with pytest.raises(IncompatibleRunsError):
         load_events_and_histogram(
-            "EQSANS_132068.nxs.h5,EQSANS_101595.nxs.h5",
+            "EQSANS_101595.nxs.h5,EQSANS_104088.nxs.h5,EQSANS_105428.nxs.h5",
             data_dir=datarepo_dir.eqsans,
             keep_events=False,
         )

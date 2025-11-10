@@ -30,6 +30,13 @@ from drtsans.process_uncertainties import set_init_uncertainties
 
 __all__ = ["transform_to_wavelength"]
 
+# maximum difference between wavelength bands of runs to be summed
+WAVELENGTH_BAND_DIFF_TOLERANCE = 0.1  # Angstrom
+
+
+class IncompatibleWavelengthBandsError(ValueError):
+    """Raised when the desired wavelength band is incompatible with the data"""
+
 
 def _is_frame_skipping(input_workspace):
     r"""
@@ -649,13 +656,29 @@ def transform_to_wavelength(
     if output_workspace is None:
         output_workspace = str(input_workspace)
 
-    # generate bands if not given
+    # generate bands from input workspace
+    if low_tof_clip > 0.0 or high_tof_clip > 0.0:
+        sdd = source_detector_distance(input_workspace, unit="m")
+        bands_from_ws = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip, high_tof_clip)
+    else:
+        bands_from_ws = transmitted_bands(input_workspace)
+
+    # use generated bands if not given
     if bands is None:
-        if low_tof_clip > 0.0 or high_tof_clip > 0.0:
-            sdd = source_detector_distance(input_workspace, unit="m")
-            bands = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip, high_tof_clip)
-        else:
-            bands = transmitted_bands(input_workspace)
+        bands = bands_from_ws
+    else:  # check that the given bands are compatible with the bands found from the workspace
+        diff_bands_min = np.abs(bands.lead.min - bands_from_ws.lead.min)
+        if diff_bands_min > WAVELENGTH_BAND_DIFF_TOLERANCE:
+            raise IncompatibleWavelengthBandsError(
+                f"Workspace min wavelength {bands_from_ws.lead.min} - input min {bands.lead.min} "
+                f"> tolerance {WAVELENGTH_BAND_DIFF_TOLERANCE}"
+            )
+        diff_bands_max = np.abs(bands.lead.max - bands_from_ws.lead.max)
+        if diff_bands_max > WAVELENGTH_BAND_DIFF_TOLERANCE:
+            raise IncompatibleWavelengthBandsError(
+                f"Workspace max wavelength {bands_from_ws.lead.max} - input max {bands.lead.max} "
+                f"> tolerance {WAVELENGTH_BAND_DIFF_TOLERANCE}"
+            )
 
     # convert input workspaces to wavelength
     convert_to_wavelength(

@@ -1,11 +1,19 @@
+import os
+
 import numpy as np
 import pytest
+from mantid.simpleapi import LoadEventNexus
 
 # https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py
 from drtsans.samplelogs import SampleLogs
 
 # https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/correct_frame.py
-from drtsans.tof.eqsans.correct_frame import convert_to_wavelength
+from drtsans.tof.eqsans.correct_frame import (
+    convert_to_wavelength,
+    transform_to_wavelength,
+    IncompatibleWavelengthBandsError,
+)
+from drtsans.wavelength import Wband
 
 
 def add_frame_skipping_log(ws):
@@ -107,6 +115,20 @@ def test_shuo(generic_workspace, clean_workspace):
         assert ws.dataX(i)[0] == pytest.approx(lambda_exp[0])
         assert ws.dataX(i)[1] == pytest.approx(lambda_exp[1])
         assert ws.dataX(i)[0] == pytest.approx(3.875969)  # Shuo asked for 3.8760
+
+
+@pytest.mark.datarepo
+def test_transform_to_wavelength_raises_error_for_incompatible_bands(datarepo_dir, temp_workspace_name):
+    file_name = os.path.join(datarepo_dir.eqsans, "EQSANS_86217.nxs.h5")
+    ws_tof = LoadEventNexus(file_name, OutputWorkspace=temp_workspace_name())
+    ws, bands = transform_to_wavelength(ws_tof)
+
+    # create band with a max that is incompatible with the max in the data
+    incompatible_lead_band = Wband(2.480, 6.50)
+    incompatible_bands = bands._replace(lead=incompatible_lead_band)
+
+    with pytest.raises(IncompatibleWavelengthBandsError):
+        transform_to_wavelength(ws_tof, bands=incompatible_bands)
 
 
 if __name__ == "__main__":

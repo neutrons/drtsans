@@ -10,6 +10,7 @@ from drtsans.tof.eqsans.load import (
     load_events_monitor,
     load_and_split_and_histogram,
     sum_data,
+    IncompatibleRunsError,
 )
 from drtsans.load import load_and_split as generic_load_and_split
 from drtsans.tof.eqsans.correct_frame import (
@@ -109,36 +110,40 @@ def test_merge_Data(datarepo_dir):
 
 @pytest.mark.datarepo
 def test_load_events_and_histogram(datarepo_dir, clean_workspace):
-    ws0 = load_events_and_histogram("EQSANS_101595.nxs.h5", data_dir=datarepo_dir.eqsans)
+    ws0 = load_events_and_histogram("EQSANS_132068.nxs.h5", data_dir=datarepo_dir.eqsans)
     clean_workspace(ws0.data)
 
     assert ws0.data.getAxis(0).getUnit().caption() == "Wavelength"
-    assert ws0.data.name() == "EQSANS_101595"
+    assert ws0.data.name() == "EQSANS_132068"
     assert ws0.monitor is None
 
     sample_logs0 = SampleLogs(ws0.data)
 
-    assert sample_logs0.duration.value == pytest.approx(215.531066895, abs=1e-9)
-    assert sample_logs0.getProtonCharge() == pytest.approx(83.37074628055555, abs=1e-9)
-    assert sample_logs0.proton_charge.size() == 12933
+    assert sample_logs0.duration.value == pytest.approx(142.488113403, abs=1e-9)
+    assert sample_logs0.getProtonCharge() == pytest.approx(55.5676991083, abs=1e-9)
+    assert sample_logs0.proton_charge.size() == 8551
 
     ws1 = load_events_and_histogram(
-        "EQSANS_101595.nxs.h5,EQSANS_104088.nxs.h5,EQSANS_105428.nxs.h5",
+        "EQSANS_132068.nxs.h5,EQSANS_132078.nxs.h5",
         data_dir=datarepo_dir.eqsans,
         keep_events=False,
     )
-    clean_workspace(ws1.data)
 
     assert ws1.data.getAxis(0).getUnit().caption() == "Wavelength"
-    assert ws1.data.name() == "EQSANS_101595_104088_105428"
+    assert ws1.data.name() == "EQSANS_132068_132078"
     assert ws1.monitor is None
 
     sample_logs1 = SampleLogs(ws1.data)
-    assert sample_logs1.duration.value == pytest.approx(215.531066895 + 289.029266357 + 72.3323135376, abs=1e-9)
-    assert sample_logs1.getProtonCharge() == pytest.approx(
-        83.37074628055555, +111.1237739861111 + 27.799524525, abs=1e-9
-    )
-    assert sample_logs1.proton_charge.size() == 12933 + 17343 + 4341
+    assert sample_logs1.duration.value == pytest.approx(142.488113403 + 213.965484619, abs=1e-9)
+    assert sample_logs1.getProtonCharge() == pytest.approx(55.5676991083 + 83.46640090555555, abs=1e-9)
+    assert sample_logs1.proton_charge.size() == 8551 + 12840
+
+    with pytest.raises(IncompatibleRunsError):
+        load_events_and_histogram(
+            "EQSANS_132068.nxs.h5,EQSANS_101595.nxs.h5",
+            data_dir=datarepo_dir.eqsans,
+            keep_events=False,
+        )
 
 
 @pytest.mark.datarepo

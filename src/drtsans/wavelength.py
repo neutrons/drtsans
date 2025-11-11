@@ -1,3 +1,5 @@
+from typing import Self
+
 from sortedcontainers import SortedList
 
 sigma = 3.9560346e-03  # plank constant divided by neutron mass
@@ -155,6 +157,24 @@ class Wband(object):
     def __str__(self):
         return "Wband({:.3f}, {:.3f})".format(self._min, self._max)
 
+    def almost_equal(self, other: Self, atol: float = 1e-6):
+        """
+        Check if two WBand objects are almost equal within a tolerance.
+
+        Parameters
+        ----------
+        other
+            The other WBand object to compare with.
+        atol
+            Absolute tolerance for the comparison. Default is 1e-6.
+
+        Returns
+        -------
+        bool
+            True if the two WBand objects are almost equal, False otherwise.
+        """
+        return abs(self.min - other.min) <= atol and abs(self.max - other.max) <= atol
+
 
 class Wbands(object):
     r"""
@@ -293,3 +313,28 @@ class Wbands(object):
 
     def __str__(self):
         return "(" + ", ".join([str(band) for band in self]) + ")"
+
+    def almost_equal(self, other: Self, atol: float = 1e-6):
+        """
+        Check if two WBands objects are almost equal within a tolerance.
+
+        Parameters
+        ----------
+        other
+            The other WBands object to compare with.
+        atol
+            Absolute tolerance for the comparison. Default is 1e-6.
+
+        Returns
+        -------
+        bool
+            True if the two WBands objects are almost equal, False otherwise.
+        """
+        if len(self) != len(other):
+            return False
+
+        for band1, band2 in zip(self, other):
+            if not band1.almost_equal(band2, atol):
+                return False
+
+        return True

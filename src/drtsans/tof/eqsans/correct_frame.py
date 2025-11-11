@@ -667,17 +667,9 @@ def transform_to_wavelength(
     if bands is None:
         bands = bands_from_ws
     else:  # check that the given bands are compatible with the bands found from the workspace
-        diff_bands_min = np.abs(bands.lead.min - bands_from_ws.lead.min)
-        if diff_bands_min > WAVELENGTH_BAND_DIFF_TOLERANCE:
+        if bands.lead.almost_equal(bands_from_ws.lead, atol=WAVELENGTH_BAND_DIFF_TOLERANCE) is False:
             raise IncompatibleWavelengthBandsError(
-                f"Workspace min wavelength {bands_from_ws.lead.min} - input min {bands.lead.min} "
-                f"> tolerance {WAVELENGTH_BAND_DIFF_TOLERANCE}"
-            )
-        diff_bands_max = np.abs(bands.lead.max - bands_from_ws.lead.max)
-        if diff_bands_max > WAVELENGTH_BAND_DIFF_TOLERANCE:
-            raise IncompatibleWavelengthBandsError(
-                f"Workspace max wavelength {bands_from_ws.lead.max} - input max {bands.lead.max} "
-                f"> tolerance {WAVELENGTH_BAND_DIFF_TOLERANCE}"
+                f"bands differ by more than {WAVELENGTH_BAND_DIFF_TOLERANCE} Angstroms"
             )
 
     # convert input workspaces to wavelength

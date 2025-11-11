@@ -22,6 +22,26 @@ class TestWband:
         assert b * Wband(2, 3) is None
         assert b * Wband(2.5, 3) is None
 
+    def test_almost_equal_same_bands(self):
+        b1 = Wband(1, 2)
+        b2 = Wband(1, 2)
+        assert b1.almost_equal(b2) is True
+
+    def test_almost_equal_different_bands(self):
+        b1 = Wband(1, 2)
+        b2 = Wband(1.1, 2)
+        assert b1.almost_equal(b2, atol=1e-6) is False
+
+    def test_almost_equal_same_min(self):
+        b1 = Wband(1, 2)
+        b2 = Wband(1, 2.1)
+        assert b1.almost_equal(b2, atol=1e-6) is False
+
+    def test_almost_equal_same_max(self):
+        b1 = Wband(1, 2)
+        b2 = Wband(1.1, 2)
+        assert b1.almost_equal(b2, atol=1e-6) is False
+
 
 class TestWbands:
     def test_init(self):
@@ -63,6 +83,21 @@ class TestWbands:
     def test_getitem(self):
         ws = Wbands(Wband(1, 1.5), Wband(3, 4), Wband(1.7, 2))
         assert ws[1] == Wband(1.7, 2)
+
+    def test_almost_equal_same_bands(self):
+        b1 = Wbands(Wband(1, 2), Wband(3, 4))
+        b2 = Wbands(Wband(1, 2), Wband(3, 4))
+        assert b1.almost_equal(b2) is True
+
+    def test_almost_equal_different_bands(self):
+        b1 = Wbands(Wband(1, 2), Wband(3, 4))
+        b2 = Wbands(Wband(1, 2.1), Wband(3, 4))
+        assert b1.almost_equal(b2, atol=1e-6) is False
+
+    def test_almost_equal_different_length(self):
+        b1 = Wbands(Wband(1, 2), Wband(3, 4))
+        b2 = Wbands(Wband(1, 2), Wband(3, 4), Wband(5, 6))
+        assert b1.almost_equal(b2) is False
 
 
 if __name__ == "__main__":

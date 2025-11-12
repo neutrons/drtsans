@@ -222,7 +222,7 @@ def transmitted_bands_clipped(
     if search_in_logs is True:
         try:
             bands = clipped_bands_from_logs(input_workspace)
-            return dict(lead=bands.lead, skip=bands.skip)
+            return TransmittedBands(lead=bands.lead, skip=bands.skip)
         except AttributeError:
             logger.warning("Clipped bands not present in the logs. Calculating using the chopper settings.")
 

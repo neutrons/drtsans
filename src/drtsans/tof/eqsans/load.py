@@ -23,6 +23,7 @@ from drtsans.tof.eqsans.correct_frame import (
     smash_monitor_spikes,
     set_init_uncertainties,
     correct_emission_time,
+    IncompatibleWavelengthBandsError,
 )
 from drtsans.tof.eqsans.geometry import source_monitor_distance
 
@@ -35,6 +36,10 @@ __all__ = [
     "load_and_split_and_histogram",
     "prepare_monitors",
 ]
+
+
+class IncompatibleRunsError(RuntimeError):
+    """Raised when two runs cannot be merged due to incompatibility."""
 
 
 def load_events_monitor(run, data_dir=None, output_workspace=None):
@@ -360,6 +365,7 @@ def load_events_and_histogram(
         temp_monitors_workspaces = []
 
         # load and transform each workspace in turn
+        bands_first_run = None
         for n, r in enumerate(run):
             temp_workspace_name = "__tmp_ws_{}".format(n)
             temp_monitors_workspace_name = temp_workspace_name + "_monitors"
@@ -386,15 +392,28 @@ def load_events_and_histogram(
                     centering_options=centering_options,
                 )
             center_detector(temp_workspace_name, center_x=center_x, center_y=center_y)  # operates in-place
-            # FIXME 792, whether the 2nd workspace shall use the bands from the first one?
-            ws, bands = transform_to_wavelength(
-                temp_workspace_name,
-                bin_width=bin_width,
-                low_tof_clip=low_tof_clip,
-                high_tof_clip=high_tof_clip,
-                keep_events=keep_events,
-            )
-            assert ws
+            if n == 0:
+                ws, bands = transform_to_wavelength(
+                    temp_workspace_name,
+                    bin_width=bin_width,
+                    low_tof_clip=low_tof_clip,
+                    high_tof_clip=high_tof_clip,
+                    keep_events=keep_events,
+                )
+                bands_first_run = bands
+            else:
+                try:
+                    ws, bands = transform_to_wavelength(
+                        temp_workspace_name,
+                        bin_width=bin_width,
+                        low_tof_clip=low_tof_clip,
+                        high_tof_clip=high_tof_clip,
+                        keep_events=keep_events,
+                        bands=bands_first_run,
+                    )
+                except IncompatibleWavelengthBandsError as e:
+                    raise IncompatibleRunsError(f"Cannot add runs {run}: {e}") from e
+
             temp_workspaces.append(temp_workspace_name)
 
         # Sum temporary loaded monitor workspaces
@@ -406,7 +425,6 @@ def load_events_and_histogram(
             ws_monitors = None
 
         # Sum temporary loaded workspaces
-        # FIXME 792 sum data potential defect: wavelength range are different
         ws = sum_data(temp_workspaces, output_workspace=output_workspace)
 
         # After summing data re-calculate initial uncertainties

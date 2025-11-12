@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from typing import Self
 import numpy as np
 
 # https://docs.mantidproject.org/nightly/algorithms/ConvertUnits-v1.html
@@ -22,7 +24,6 @@ from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.chopper import EQSANSDiskChopperSet
 from drtsans.frame_mode import FrameMode
 from drtsans import wavelength as wlg
-from drtsans.settings import namedtuplefy
 from drtsans.geometry import source_detector_distance
 from drtsans.tof.eqsans.geometry import source_monitor_distance
 from drtsans.process_uncertainties import set_init_uncertainties
@@ -36,6 +37,36 @@ WAVELENGTH_BAND_DIFF_TOLERANCE = 0.1  # Angstrom
 
 class IncompatibleWavelengthBandsError(ValueError):
     """Raised when the desired wavelength band is incompatible with the data"""
+
+
+@dataclass(frozen=True, slots=True)
+class TransmittedBands:
+    """Represents wavelength bands of the lead and skipped pulses transmitted by the choppers
+
+    Attributes
+    ----------
+    lead : Wband
+        Leading wavelength band.
+    skip : Wband
+        Skipping wavelength band. `None` if not operating in frame skip mode.
+    """
+
+    lead: wlg.Wband
+    skip: wlg.Wband
+
+    def almost_equal(self, other: Self, atol: float = 1e-6) -> bool:
+        # compare lead bands
+        lead_eq = self.lead.almost_equal(other.lead, atol)
+
+        # handle the possibility that the skip band may be None (non-skipping mode)
+        if self.skip is None and other.skip is None:
+            skip_eq = True
+        elif self.skip is None or other.skip is None:
+            skip_eq = False
+        else:
+            skip_eq = self.skip.almost_equal(other.skip, atol)
+
+        return lead_eq and skip_eq
 
 
 def _is_frame_skipping(input_workspace):
@@ -57,7 +88,6 @@ def _is_frame_skipping(input_workspace):
         return EQSANSDiskChopperSet(input_workspace).frame_mode == FrameMode.skip
 
 
-@namedtuplefy
 def transmitted_bands(input_workspace):
     r"""
     Wavelength bands of the lead and skipped pulses transmitted by the choppers of the workspace.
@@ -69,8 +99,8 @@ def transmitted_bands(input_workspace):
 
     Returns
     -------
-    namedtuple
-        Fields of the namedtuple:
+    TransmittedBands
+        Fields:
         - lead, WBand object for the wavelength band of the lead pulse
         - skipped, Wband for the skipped pulse. None if not operating in the skipped frame mode
     """
@@ -86,10 +116,9 @@ def transmitted_bands(input_workspace):
     lead_band = ch.transmission_bands(pulsed=True)[0]
     # Wavelength from the previous, skipped pulse.
     skip_band = ch.transmission_bands(delay=pulse_period, pulsed=True)[0] if ch.frame_mode == FrameMode.skip else None
-    return dict(lead=lead_band, skip=skip_band)
+    return TransmittedBands(lead=lead_band, skip=skip_band)
 
 
-@namedtuplefy
 def limiting_tofs(input_workspace, sdd):
     r"""
     Minimimum and maximum TOF's for neutrons coming from the lead and skip
@@ -104,8 +133,8 @@ def limiting_tofs(input_workspace, sdd):
 
     Returns
     -------
-    namedtuple
-        Fields of the namedtuple
+    TransmittedBands
+        Fields:
         lead: tuple, tof_min and tof_max for the neutrons of the lead pulse
         skip: tuple, tof_min and tof_max for the neutrons of the skip pulse. `None` if the frame mode is 'non-skipping'
     """
@@ -121,10 +150,9 @@ def limiting_tofs(input_workspace, sdd):
             wlg.tof(bands.skip.max, sdd),
         )
     )
-    return dict(lead=lead, skip=skip)
+    return TransmittedBands(lead=lead, skip=skip)
 
 
-@namedtuplefy
 def clipped_bands_from_logs(input_workspace):
     r"""
     Retrieve the wavelength bands over which we expect non-zero intensity. We
@@ -137,8 +165,8 @@ def clipped_bands_from_logs(input_workspace):
 
     Returns
     -------
-    namedtuple
-        Fields of the namedtuple:
+    TransmittedBands
+        Fields:
         - lead, WBand object for the wavelength band of the lead pulse
         - skipped, Wband for the skipped pulse. None if not operating in the skipped frame mode
     """
@@ -148,10 +176,9 @@ def clipped_bands_from_logs(input_workspace):
         skip = wlg.Wband(sl.wavelength_skip_min.value, sl.wavelength_skip_max.value)
     else:
         skip = None
-    return dict(lead=lead, skip=skip)
+    return TransmittedBands(lead=lead, skip=skip)
 
 
-@namedtuplefy
 def transmitted_bands_clipped(
     input_workspace,
     source_detector_dist=None,
@@ -186,8 +213,8 @@ def transmitted_bands_clipped(
 
     Returns
     -------
-    namedtuple
-        Fields of the namedtuple:
+    TransmittedBands
+        Fields:
         - lead, WBand object for the wavelength band of the lead pulse
         - skipped, Wband for the skipped pulse. None if not operating in the skipped frame mode
     """
@@ -222,7 +249,7 @@ def transmitted_bands_clipped(
         l_a = bands.skip.min + lwc if interior_clip is True else bands.skip.min
         lead = wlg.Wband(bands.lead.min + lwc, l_i)
         skip = wlg.Wband(l_a, bands.skip.max - hwc)
-    return dict(lead=lead, skip=skip)
+    return TransmittedBands(lead=lead, skip=skip)
 
 
 def log_tof_structure(input_workspace, low_tof_clip, high_tof_clip, interior_clip=True):
@@ -288,7 +315,6 @@ def log_band_structure(input_workspace, bands):
         sample_logs.insert("wavelength_skip_max", bands.skip.max, unit="Angstrom")
 
 
-@namedtuplefy
 def metadata_bands(input_workspace):
     r"""
     Scan the logs for the wavelength bands of the lead and skipped pulses transmitted by the choppers
@@ -296,10 +322,11 @@ def metadata_bands(input_workspace):
     Parameters
     ----------
     input_workspace: str, ~mantid.api.MatrixWorkspace
+
     Returns
     -------
-    namedtuple
-        Fields of the namedtuple:
+    TransmittedBands
+        Fields:
         - lead, WBand object for the wavelength band of the lead pulse
         - skipped, Wband for the skipped pulse. None if not operating in the skipped frame mode
     """
@@ -318,7 +345,7 @@ def metadata_bands(input_workspace):
         except AttributeError as e:
             raise RuntimeError("Bands from the skipped pulse missing in the logs") from e
 
-    return dict(lead=lead, skip=skip)
+    return TransmittedBands(lead=lead, skip=skip)
 
 
 def correct_tof_frame(input_workspace, source_to_component_distance, path_to_pixel=True):
@@ -338,13 +365,6 @@ def correct_tof_frame(input_workspace, source_to_component_distance, path_to_pix
         When correcting the recorded time of flight of each neutron, use the path from the moderator
         to the detector pixel (`True`) or to the center of the detector panel (`False`). The latter
         for comparison to the old data reduction.
-    Returns
-    -------
-    namedtuple
-        Fields of the namedtuple:
-        - ws: ~mantid.api.IEventsWorkspace, the input workspace
-        - lead_band: WBand wavelength band for the lead pulse
-        - skip_band: WBand wavelength band for the skip pulse. `None` if not working in frame-skipping mode
     """
     ws = mtd[str(input_workspace)]
     sl = SampleLogs(ws)
@@ -667,7 +687,7 @@ def transform_to_wavelength(
     if bands is None:
         bands = bands_from_ws
     else:  # check that the given bands are compatible with the bands found from the workspace
-        if bands.lead.almost_equal(bands_from_ws.lead, atol=WAVELENGTH_BAND_DIFF_TOLERANCE) is False:
+        if bands.almost_equal(bands_from_ws, atol=WAVELENGTH_BAND_DIFF_TOLERANCE) is False:
             raise IncompatibleWavelengthBandsError(
                 f"bands differ by more than {WAVELENGTH_BAND_DIFF_TOLERANCE} Angstroms"
             )

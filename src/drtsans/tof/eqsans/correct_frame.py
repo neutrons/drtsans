@@ -47,12 +47,12 @@ class TransmittedBands:
     ----------
     lead : Wband
         Leading wavelength band.
-    skip : Wband
+    skip : Wband | None
         Skipping wavelength band. `None` if not operating in frame skip mode.
     """
 
     lead: wlg.Wband
-    skip: wlg.Wband
+    skip: wlg.Wband | None
 
     def almost_equal(self, other: Self, atol: float = 1e-6) -> bool:
         # compare lead bands

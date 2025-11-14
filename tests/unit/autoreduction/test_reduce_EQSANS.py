@@ -37,6 +37,7 @@ def simulated_events() -> EventWorkspace:
         An EQSANS events workspace with simulated events
     """
     count = 9
+    rng = np.random.default_rng(7495230093183)  # add seed for deterministic results in tests
     workspace_name = mtd.unique_hidden_name()
     workspace_events = empty_instrument_workspace(
         output_workspace=workspace_name, instrument_name="EQSANS", event_workspace=True
@@ -51,7 +52,7 @@ def simulated_events() -> EventWorkspace:
     insert_background(
         workspace_events,
         # Normal distribution with 5 Angstroms mean wavelength, 0.1 Angstroms standard deviation
-        lambda_distribution=lambda n_events: np.random.normal(loc=5.0, scale=0.1, size=n_events),
+        lambda_distribution=lambda n_events: rng.normal(loc=5.0, scale=0.1, size=n_events),
         flavor="fix count",
         flavor_kwargs={"count": count},
     )

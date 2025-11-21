@@ -45,6 +45,7 @@ def test_main_detector(datarepo_dir, temp_directory, clean_workspace):
     Dark Current for all configurations above -
     /HFIR/CG3/IPTS-17241/exp549/Datafiles/BioSANS_exp549_scan0022_0001.xml
     """
+    pytest.skip("This test fails due to mantid crashing when loading the flood run, see EWM 14078")
 
     # output testing directory
     output_dir = temp_directory()

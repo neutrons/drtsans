@@ -133,10 +133,7 @@
         "defaultMask": { "$ref": "common.json#/configuration/defaultMask" },
         "useMaskBackTubes": { "$ref": "common.json#/configuration/useMaskBackTubes", "default": false },
 
-        "darkFileName": {
-          "$ref": "common.json#/configuration/darkFileName",
-          "evaluateCondition": "('{this}' is 'None' or '{#configuration/blockedBeamRunNumber}' is 'None')"
-        },
+        "darkFileName": {"$ref": "common.json#/configuration/darkFileName"},
         "normalization": {
           "anyOf": [{ "type": "string", "enum": ["Monitor", "Total charge", "Time"] }, { "type": "null" }],
           "description": "Normalization type. Allowed values 'Total charge', 'Time', 'Monitor'",
@@ -147,10 +144,7 @@
           "examples": ["Monitor", "Total charge", "Time"],
           "default": "Total charge"
         },
-        "blockedBeamRunNumber": {
-          "$ref": "common.json#/configuration/blockedBeamRunNumber",
-          "evaluateCondition": "('{this}' is 'None' or '{#configuration/darkFileName}' is 'None')"
-        },
+        "blockedBeamRunNumber": {"$ref": "common.json#/configuration/blockedBeamRunNumber"},
         "fluxMonitorRatioFile": {
           "type": ["string", "null"],
           "datasource": "file",

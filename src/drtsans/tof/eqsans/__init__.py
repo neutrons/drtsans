@@ -48,6 +48,7 @@ from ...transmission import apply_transmission_correction
 
 
 from .api import *
+from .blocked_beam import *
 from .cfg import *
 from .correct_frame import *
 from .dark_current import *
@@ -85,6 +86,7 @@ __all__ = (
     + momentum_transfer.__all__
     + normalization.__all__
     + transmission.__all__
+    + blocked_beam.__all__
 )
 
 from drtsans import configdir

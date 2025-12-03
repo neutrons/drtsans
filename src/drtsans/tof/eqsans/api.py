@@ -292,7 +292,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
         ("blocked_beam", blocked_beam_run, False),
     ]
 
-    other_ws_dict = {}
+    other_ws_dict = {}  # stores references to  workspaces other than the sample
 
     for run_type, run_number, is_elastic in other_runs:
         if run_number:
@@ -338,7 +338,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
         ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
         if not registered_workspace(ws_name):
             dark_current_file = abspath(dark_current_file)
-            print(f"Loading dark current {dark_current_file}")
+            logger.information(f"Loading dark current {dark_current_file}")
             filenames.add(dark_current_file)
             loaded_dark = load_events_and_histogram(dark_current_file, output_workspace=ws_name, **load_params)
             dark_current_ws = loaded_dark.data
@@ -459,8 +459,8 @@ def load_all_files(reduction_input, prefix="", load_params=None):
         empty=ws_mon_pair(data=empty_ws, monitor=empty_mon_ws),
         sample_transmission=ws_mon_pair(data=sample_transmission_ws, monitor=sample_transmission_mon_ws),
         background_transmission=ws_mon_pair(data=background_transmission_ws, monitor=background_transmission_mon_ws),
-        dark_current=ws_mon_pair(dark_current_ws, None),
-        blocked_beam=ws_mon_pair(blocked_beam_ws, None),
+        dark_current=ws_mon_pair(dark_current_ws, None),  # dark current requires no monitor data
+        blocked_beam=ws_mon_pair(blocked_beam_ws, None),  # blocked beam requires no monitor data
         sensitivity=sensitivity_ws,
         mask=mask_ws,
         elastic_reference=ws_mon_pair(elastic_ref_ws, None),
@@ -570,21 +570,11 @@ def pre_process_single_configuration(
         "mask_btp": mask_btp,
         "solid_angle": solid_angle,
         "sensitivity_workspace": sensitivity_workspace,
-        "has_blocked_beam": (blocked_beam is not None and blocked_beam.data is not None),
+        "blocked_beam": blocked_beam,
     }
 
     # process sample
     sample_ws = prepare_data_workspaces(sample_ws_raw, output_workspace=output_workspace, **prepare_data_conf)
-
-    if blocked_beam is not None and blocked_beam.data is not None:
-        blocked_ws_name = output_suffix + "_blocked_beam"
-        if not registered_workspace(blocked_ws_name):
-            blocked_ws = prepare_data_workspaces(blocked_beam, output_workspace=blocked_ws_name, **prepare_data_conf)
-        else:
-            blocked_ws = mtd[blocked_ws_name]
-
-        sample_ws = subtract_background(sample_ws, blocked_ws)
-
     # apply transmission to the sample
     if sample_trans_ws or sample_trans_value:
         if sample_trans_ws:
@@ -607,8 +597,6 @@ def pre_process_single_configuration(
         bkgd_ws_name = output_suffix + "_background"
         if not registered_workspace(bkgd_ws_name):
             bkgd_ws = prepare_data_workspaces(bkg_ws_raw, output_workspace=bkgd_ws_name, **prepare_data_conf)
-            if blocked_beam.data:
-                bkgd_ws = subtract_background(bkgd_ws, blocked_ws)
             # apply transmission to background
             if bkg_trans_ws or bkg_trans_value:
                 if bkg_trans_ws:
@@ -632,8 +620,6 @@ def pre_process_single_configuration(
 
         if not keep_processed_workspaces:
             bkgd_ws.delete()
-            if blocked_beam.data and blocked_ws:
-                blocked_ws.delete()
 
     # finalize with absolute scale and thickness
     sample_ws = normalize_by_thickness(sample_ws, thickness)

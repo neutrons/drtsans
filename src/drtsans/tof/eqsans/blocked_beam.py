@@ -13,8 +13,32 @@ __all__ = ["subtract_blocked_beam"]
 
 
 def subtract_blocked_beam(
-    input_workspace=None, blocked_beam=None, flux_method=None, flux=None, dark_current=None, output_workspace=None
+    input_workspace, blocked_beam=None, flux_method=None, flux=None, dark_current=None, output_workspace=None
 ):
+    r"""
+    Subtracts a blocked beam background from the input workspace, with optional
+    dark current subtraction and flux normalization.
+
+    Parameters
+    ----------
+    input_workspace : Workspace or str
+        The workspace from which the blocked beam background will be subtracted.
+    blocked_beam : namedtuple
+        (~mantid.dataobjects.Workspace2D, ~mantid.dataobjects.Workspace2D)
+        An object containing the blocked beam data. If None or its data is None, subtraction is skipped.
+    flux_method : str, optional
+        The method used for flux normalization. If "monitor", blocked beam subtraction is skipped.
+    flux : Workspace or str, optional
+        The workspace or value used for flux normalization.
+    dark_current : namedtuple
+        (~mantid.dataobjects.Workspace2D, ~mantid.dataobjects.Workspace2D)
+        An object containing dark current data. If provided, dark current is subtracted from the blocked beam.
+    output_workspace : str, optional
+        The name of the output workspace. If None, defaults to the name of the input workspace.
+    Returns
+    -------
+    None
+    """
     if blocked_beam is None or blocked_beam.data is None:
         return
 

@@ -19,6 +19,7 @@ from drtsans.dataobjects import IQmod, IQazimuthal  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.mask_utils import apply_mask  # noqa E402
 from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
+from drtsans.tof.eqsans.blocked_beam import subtract_blocked_beam  # noqa E402
 from drtsans.tof.eqsans.correction_api import (
     CorrectionConfiguration,
     do_inelastic_incoherence_correction,
@@ -50,6 +51,7 @@ def prepare_data_workspaces(
     mask_btp=None,  # mask bank/tube/pixel
     solid_angle=True,
     sensitivity_workspace=None,
+    blocked_beam=None,  # blocked beam workspace
     output_workspace=None,
 ):
     r"""
@@ -90,6 +92,8 @@ def prepare_data_workspaces(
     sensitivity_workspace: str, ~mantid.api.MatrixWorkspace
         workspace containing previously calculated sensitivity correction. This
         overrides the sensitivity_filename if both are provided.
+    blocked_beam: ~mantid.dataobjects.Workspace2D
+        histogram workspace containing the blocked beam measurement
     output_workspace: str
         The output workspace name. If None will create data.name()+output_suffix
 
@@ -114,6 +118,11 @@ def prepare_data_workspaces(
         if flux_method == "monitor":
             kw["monitor_workspace"] = data.monitor
         normalize_by_flux(output_workspace, flux, **kw)
+
+    # Blocked Beam
+    subtract_blocked_beam(
+        output_workspace, blocked_beam, flux_method=flux_method, flux=flux, dark_current=dark_current
+    )
 
     # Additional masks
     if mask_btp is None:
@@ -465,8 +474,11 @@ def remove_workspaces(
     ws_to_remove.append(f"{prefix}_{instrument_name}_{center_run_number}_raw_events")
     ws_to_remove.append(f"{prefix}_sensitivity")
     ws_to_remove.append(f"{prefix}_mask")
-    if reduction_config["darkFileName"]:
+    if "darkFileName" in reduction_config and reduction_config["darkFileName"]:
         run_number = extract_run_number(reduction_config["darkFileName"])
+        ws_to_remove.append(f"{prefix}_{instrument_name}_{run_number}_raw_histo")
+    if "blockedBeamRunNumber" in reduction_config and reduction_config["blockedBeamRunNumber"]:
+        run_number = extract_run_number(reduction_config["blockedBeamRunNumber"])
         ws_to_remove.append(f"{prefix}_{instrument_name}_{run_number}_raw_histo")
     for ws_name in ws_to_remove:
         # Remove existing workspaces, this is to guarantee that all the data is loaded correctly

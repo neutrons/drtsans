@@ -133,7 +133,7 @@
         "defaultMask": { "$ref": "common.json#/configuration/defaultMask" },
         "useMaskBackTubes": { "$ref": "common.json#/configuration/useMaskBackTubes", "default": false },
 
-        "darkFileName": { "$ref": "common.json#/configuration/darkFileName" },
+        "darkFileName": {"$ref": "common.json#/configuration/darkFileName"},
         "normalization": {
           "anyOf": [{ "type": "string", "enum": ["Monitor", "Total charge", "Time"] }, { "type": "null" }],
           "description": "Normalization type. Allowed values 'Total charge', 'Time', 'Monitor'",
@@ -144,6 +144,7 @@
           "examples": ["Monitor", "Total charge", "Time"],
           "default": "Total charge"
         },
+        "blockedBeamRunNumber": {"$ref": "common.json#/configuration/blockedBeamRunNumber"},
         "fluxMonitorRatioFile": {
           "type": ["string", "null"],
           "datasource": "file",
@@ -336,6 +337,7 @@
         "defaultMask",
         "useMaskBackTubes",
         "darkFileName",
+        "blockedBeamRunNumber",
         "sensitivityFileName",
         "useSolidAngleCorrection",
         "useThetaDepTransCorrection",

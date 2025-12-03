@@ -151,6 +151,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     elastic_ref_bkgd_run = reduction_config["elasticReferenceBkgd"].get("runNumber")
     elastic_ref_trans_run = reduction_config["elasticReference"]["transmission"].get("runNumber")
     elastic_ref_bkgd_trans_run = reduction_config["elasticReferenceBkgd"]["transmission"].get("runNumber")
+    blocked_beam_run = reduction_config.get("blockedBeamRunNumber")
 
     from drtsans.tof.eqsans.reduction_api import remove_workspaces
 
@@ -170,6 +171,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
             elastic_ref_bkgd_run,
             elastic_ref_trans_run,
             elastic_ref_bkgd_trans_run,
+            blocked_beam_run,
         ],
     )
 
@@ -276,26 +278,24 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     # Load all other files without further processing
     # background, empty, sample transmission, background transmission,
     # elastic reference and its transmission, background, background transmission
-    other_ws_list = list()
-    for irun, run_number in enumerate(
-        [
-            bkgd,
-            empty,
-            sample_trans,
-            bkgd_trans,
-            elastic_ref_run,
-            elastic_ref_bkgd_run,
-            elastic_ref_trans_run,
-            elastic_ref_bkgd_trans_run,
-        ]
-    ):
+    # blocked beam
+    # (run_type, run_number, is_elastic_reference)
+    other_runs = [
+        ("background", bkgd, False),
+        ("empty", empty, False),
+        ("sample_transmission", sample_trans, False),
+        ("background_transmission", bkgd_trans, False),
+        ("elastic_reference", elastic_ref_run, True),
+        ("elastic_reference_background", elastic_ref_bkgd_run, True),
+        ("elastic_reference_transmission", elastic_ref_trans_run, True),
+        ("elastic_reference_background_transmission", elastic_ref_bkgd_trans_run, True),
+        ("blocked_beam", blocked_beam_run, False),
+    ]
 
-        def is_elastic_ref_run(index):
-            r"""Human way of saying the index refers to one of the elastic ref runs"""
-            return index > 3
+    other_ws_dict = {}  # stores references to  workspaces other than the sample
 
+    for run_type, run_number, is_elastic in other_runs:
         if run_number:
-            # run number is given
             ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
             if not registered_workspace(ws_name):
                 filename = abspaths(
@@ -306,7 +306,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
                 )
                 logger.notice(f"Loading filename {filename}")
                 filenames.add(filename)
-                if is_elastic_ref_run(irun):
+                if is_elastic:
                     # elastic reference run and background run, the bands must be same as sample's
                     load_events_and_histogram(
                         filename,
@@ -318,27 +318,27 @@ def load_all_files(reduction_input, prefix="", load_params=None):
                     load_events_and_histogram(filename, output_workspace=ws_name, **load_params)
                 if default_mask:
                     apply_mask(ws_name, mask=default_mask)
-            other_ws_list.append(mtd[ws_name])
+            other_ws_dict[run_type] = mtd[ws_name]
         else:
-            # run number is not given
-            other_ws_list.append(None)
+            other_ws_dict[run_type] = None
 
     # workspaces associated to the elastic reference correction
-    elastic_ref_ws = other_ws_list[4]
-    elastic_ref_bkgd_ws = other_ws_list[5]
-    elastic_ref_trans_ws = other_ws_list[6]
-    elastic_ref_bkgd_trans_ws = other_ws_list[7]
+    elastic_ref_ws = other_ws_dict["elastic_reference"]
+    elastic_ref_bkgd_ws = other_ws_dict["elastic_reference_background"]
+    elastic_ref_trans_ws = other_ws_dict["elastic_reference_transmission"]
+    elastic_ref_bkgd_trans_ws = other_ws_dict["elastic_reference_background_transmission"]
+    blocked_beam_ws = other_ws_dict["blocked_beam"]
 
     # dark run (aka dark current run)
     dark_current_ws = None
-    dark_current_mon_ws = None
-    dark_current_file = reduction_config["darkFileName"]
+    dark_current_file = reduction_config.get("darkFileName")
+
     if dark_current_file is not None:
         run_number = extract_run_number(dark_current_file)
         ws_name = f"{prefix}_{instrument_name}_{run_number}_raw_histo"
         if not registered_workspace(ws_name):
             dark_current_file = abspath(dark_current_file)
-            print(f"Loading filename {dark_current_file}")
+            logger.information(f"Loading dark current {dark_current_file}")
             filenames.add(dark_current_file)
             loaded_dark = load_events_and_histogram(dark_current_file, output_workspace=ws_name, **load_params)
             dark_current_ws = loaded_dark.data
@@ -459,7 +459,8 @@ def load_all_files(reduction_input, prefix="", load_params=None):
         empty=ws_mon_pair(data=empty_ws, monitor=empty_mon_ws),
         sample_transmission=ws_mon_pair(data=sample_transmission_ws, monitor=sample_transmission_mon_ws),
         background_transmission=ws_mon_pair(data=background_transmission_ws, monitor=background_transmission_mon_ws),
-        dark_current=ws_mon_pair(data=dark_current_ws, monitor=dark_current_mon_ws),
+        dark_current=ws_mon_pair(dark_current_ws, None),  # dark current requires no monitor data
+        blocked_beam=ws_mon_pair(blocked_beam_ws, None),  # blocked beam requires no monitor data
         sensitivity=sensitivity_ws,
         mask=mask_ws,
         elastic_reference=ws_mon_pair(elastic_ref_ws, None),
@@ -480,6 +481,7 @@ def pre_process_single_configuration(
     bkg_trans_value=None,
     theta_dependent_transmission=True,
     dark_current=None,
+    blocked_beam=None,
     flux_method=None,  # normalization (time/monitor/proton charge)
     flux=None,  # file for flux
     mask_ws=None,  # apply a custom mask from workspace
@@ -519,6 +521,8 @@ def pre_process_single_configuration(
         flag to apply angle dependent transmission
     dark_current: ~mantid.dataobjects.Workspace2D
         dark current workspace
+    blocked_beam: ~mantid.dataobjects.Workspace2D
+        blocked beam workspace
     flux_method: str
         normalization by time or monitor
     mask_ws: ~mantid.dataobjects.Workspace2D
@@ -566,6 +570,7 @@ def pre_process_single_configuration(
         "mask_btp": mask_btp,
         "solid_angle": solid_angle,
         "sensitivity_workspace": sensitivity_workspace,
+        "blocked_beam": blocked_beam,
     }
 
     # process sample
@@ -690,6 +695,10 @@ def reduce_single_configuration(
         "Time": "duration",
     }
     flux = flux_translator.get(reduction_config["normalization"], None)
+    if flux_method == "time" and (
+        "blockedBeamRunNumber" in reduction_config and reduction_config["blockedBeamRunNumber"]
+    ):
+        flux = "proton_charge"
 
     solid_angle = reduction_config["useSolidAngleCorrection"]
     transmission_radius = reduction_config["mmRadiusForTransmission"]
@@ -862,6 +871,7 @@ def reduce_single_configuration(
             bkg_trans_value=elastic_ref.background_transmission_value,  # noqa E502
             theta_dependent_transmission=theta_dependent_transmission,  # noqa E502
             dark_current=loaded_ws.dark_current,
+            blocked_beam=loaded_ws.blocked_beam,
             flux_method=flux_method,
             flux=flux,
             mask_ws=loaded_ws.mask,
@@ -909,6 +919,7 @@ def reduce_single_configuration(
                 bkg_trans_value=bkg_trans_value,
                 theta_dependent_transmission=theta_dependent_transmission,  # noqa E502
                 dark_current=loaded_ws.dark_current,
+                blocked_beam=loaded_ws.blocked_beam,
                 flux_method=flux_method,
                 flux=flux,
                 mask_ws=loaded_ws.mask,
@@ -942,7 +953,7 @@ def reduce_single_configuration(
         # For EQSANS the suffix has to add _processed to tell the output file apart
         # from the original data file
         # remove history to write less data and speed up I/O
-        if reduction_config["removeAlgorithmHistory"]:
+        if "removeAlgorithmHistory" in reduction_config and reduction_config["removeAlgorithmHistory"]:
             RemoveWorkspaceHistory(processed_data_main)
         filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}_processed.nxs")
         SaveNexus(processed_data_main, Filename=filename)

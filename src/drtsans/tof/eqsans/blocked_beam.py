@@ -49,9 +49,6 @@ def subtract_blocked_beam(
         )
         return
 
-    if output_workspace is None:
-        output_workspace = str(input_workspace)
-
     bb_ws_name = str(blocked_beam.data).replace("_raw_histo", "_processed_histo")
     if not registered_workspace(bb_ws_name):
         mtd[str(blocked_beam.data)].clone(OutputWorkspace=bb_ws_name)

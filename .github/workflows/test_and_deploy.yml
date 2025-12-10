@@ -41,9 +41,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          # TODO: change back to running tests in parallel after the mantid memory leak has been patched (EWM 14083)
-          # pixi run test -vv -m "not mount_eqsans" --dist loadscope -n 2 --cov=src --cov-report=xml:integration_test_coverage.xml --cov-report=term-missing --junitxml=integration_test_results.xml tests/integration/
-          pixi run test -vv -m "not mount_eqsans" --cov=src --cov-report=xml:integration_test_coverage.xml --cov-report=term-missing --junitxml=integration_test_results.xml tests/integration/
+          pixi run test -vv -m "not mount_eqsans" --dist loadscope -n 2 --cov=src --cov-report=xml:integration_test_coverage.xml --cov-report=term-missing --junitxml=integration_test_results.xml tests/integration/
           mv .coverage .coverage.integration
 
       - name: Upload coverage to codecov
@@ -83,7 +81,7 @@ jobs:
           package-name: drtsans
           local-channel: /tmp/local-channel
           python-version: "3.11"
-          extra-channels: mantid neutrons
+          extra-channels: mantid-ornl mantid neutrons
           extra-commands:
             python -c "import drtsans"
             python -c "import mantid"

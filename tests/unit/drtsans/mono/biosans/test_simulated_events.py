@@ -279,7 +279,6 @@ def create_six_rings_pattern(config: dict, metadata: dict):
     # we're making the background transmission the same run number than the sample transmission, so no export again
 
 
-@pytest.mark.datarepo
 @pytest.fixture(scope="module")
 @namedtuplefy
 def six_rings_pattern(datarepo_dir) -> dict:

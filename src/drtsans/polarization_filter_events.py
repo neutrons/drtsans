@@ -146,7 +146,7 @@ def create_table(
     return split_table_ws
 
 
-def filter_cross_sections(
+def split_into_cross_sections(
     events_workspace: EventWorkspace,
     output_workspace: str,
     pv_polarizer_state: str = PV_POLARIZER_FLIPPER,
@@ -156,7 +156,8 @@ def filter_cross_sections(
     check_devices: bool = True,
 ) -> WorkspaceGroup:
     """
-    Filters events from a workspace into cross-sections based on polarization states.
+    Split events into a group of workspaces, each representing a scattering cross-section resulting
+    from a combination of polarizer and analyzer states.
 
     Parameters
     ----------
@@ -178,7 +179,7 @@ def filter_cross_sections(
     Returns
     -------
     WorkspaceGroup
-        A Mantid workspace group containing the filtered cross-sections.
+        A Mantid workspace group containing the cross-section workspaces.
 
     Raises
     ------
@@ -338,8 +339,8 @@ def filter_cross_sections(
 
 def split_events(
     output_workspace: str,
-    file_path: Optional[str] = None,
     input_workspace: Optional[MantidWorkspace] = None,
+    file_path: Optional[str] = None,
     pv_polarizer_state: Optional[str] = PV_POLARIZER_FLIPPER,
     pv_analyzer_state: Optional[str] = PV_ANALYZER_FLIPPER,
     pv_polarizer_veto: Optional[str] = PV_POLARIZER_VETO,
@@ -394,7 +395,7 @@ def split_events(
         events_workspace = LoadEventNexus(Filename=file_path, OutputWorkspace=mtd.unique_hidden_name())
     else:
         events_workspace = workspace_handle(input_workspace)
-    filter_cross_sections(
+    split_into_cross_sections(
         events_workspace,
         output_workspace,
         pv_polarizer_state=pv_polarizer_state,

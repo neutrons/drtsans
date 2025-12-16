@@ -251,6 +251,7 @@ def load_all_files(
                 timesliceinterval, timesliceperiod = None, None
                 logslicename = reduction_config["logSliceName"]
                 logsliceinterval = reduction_config["logSliceInterval"]
+
             load_and_split(
                 filename,
                 output_workspace=ws_name,
@@ -263,8 +264,9 @@ def load_all_files(
                 si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                 sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
                 sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
-                **load_params,
+                reduction_config=reduction_config**load_params,
             )
+
             for _w in mtd[ws_name]:
                 # Overwrite meta data
                 set_meta_data(
@@ -283,14 +285,16 @@ def load_all_files(
                 for btp_params in default_mask:
                     apply_mask(_w, **btp_params)
 
-                if logslicename is not None:
-                    for n in range(mtd[ws_name].getNumberOfEntries()):
-                        samplelogs = SampleLogs(mtd[ws_name].getItem(n))
-                        logslice_data_dict[str(n)] = {
-                            "data": list(samplelogs[logslicename].value),
-                            "units": samplelogs[logslicename].units,
-                            "name": logslicename,
-                        }
+            if logslicename is not None:
+                for n in range(mtd[ws_name].getNumberOfEntries()):
+                    samplelogs = SampleLogs(mtd[ws_name].getItem(n))
+                    logslice_data_dict[str(n)] = {
+                        "data": list(samplelogs[logslicename].value),
+                        "units": samplelogs[logslicename].units,
+                        "name": logslicename,
+                    }
+        else:
+            logger.notice(f"Workspace {ws_name} already exists.")
     else:
         # Load single data
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo"

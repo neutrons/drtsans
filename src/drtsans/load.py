@@ -406,6 +406,7 @@ def load_and_split(
     monitors=False,
     instrument_unique_name=None,
     is_mono=None,
+    reduction_config: dict = None,
     **kwargs,
 ):
     r"""Load an event NeXus file and filter into a WorkspaceGroup depending
@@ -462,6 +463,8 @@ def load_and_split(
         Delta of log value to be sliced into from min log value and max log value.
     reuse_workspace: bool
         When true, return the ``output_workspace`` if it already exists
+    reduction_config: dict
+        Dictionary containing all parameters under entry "configuration" of the input reduction options.
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
@@ -490,7 +493,7 @@ def load_and_split(
         # monitors are required for gpsans and biosans
         monitors = monitors or is_mono
 
-        all_events_workspace = "_load_tmp"  # temporary workspace
+        all_events_workspace = mtd.unique_hidden_name()  # temporary workspace
         load_events(
             run=run,
             data_dir=data_dir,
@@ -525,10 +528,12 @@ def load_and_split(
         time_interval, log_value_interval = None, 1
 
     # Create event filter workspace
+    splitter_workspace = "_filter"
+    info_workspace = "_info"
     GenerateEventsFilter(
         InputWorkspace=all_events_workspace,
-        OutputWorkspace="_filter",
-        InformationWorkspace="_info",
+        OutputWorkspace=splitter_workspace,
+        InformationWorkspace=info_workspace,
         StartTime=str(time_offset),  # the algorithm requires a string object
         TimeInterval=time_interval,
         UnitOfTime="Seconds",
@@ -538,8 +543,8 @@ def load_and_split(
 
     # Filter data
     filter_events_opts = dict(
-        SplitterWorkspace="_filter",
-        InformationWorkspace="_info",
+        SplitterWorkspace=splitter_workspace,
+        InformationWorkspace=info_workspace,
         FilterByPulseTime=True,
         GroupWorkspaces=True,
         OutputWorkspaceIndexedFrom1=True,
@@ -593,7 +598,7 @@ def load_and_split(
             samplelogs.insert("slice_end", float(slice_end), samplelogs[log_name].units)
 
     # Clean up
-    for name in [all_events_workspace, "_filter", "_info"]:
+    for name in [all_events_workspace, splitter_workspace, info_workspace]:
         DeleteWorkspace(name)
 
     if is_mono or not monitors:

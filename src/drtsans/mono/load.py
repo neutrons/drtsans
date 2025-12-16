@@ -418,6 +418,7 @@ def load_and_split(
     sample_detector_distance_value=None,
     reuse_workspace=False,
     monitors=False,
+    reduction_config: dict = None,
     **kwargs,
 ):
     r"""Load an event NeXus file and filter into a WorkspaceGroup depending
@@ -478,8 +479,10 @@ def load_and_split(
         When true, return the ``output_workspace`` if it already exists
     monitors: bool
         flag to load monitors
+    reduction_config: dict
+        Dictionary containing all parameters under entry "configuration" of the input reduction options.
     kwargs: dict
-        Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
+        Additional positional arguments for:ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
     Returns
     -------
@@ -537,6 +540,7 @@ def load_and_split(
         monitors=monitors,
         instrument_unique_name=instrument_name,
         is_mono=True,
+        reduction_config=reduction_config,
         **kwargs,
     )
 

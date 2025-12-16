@@ -457,7 +457,7 @@
     },
     "blockedBeamRunNumber": {
       "$ref": "common.json#/definitions/runNumberOptionalTypes",
-      "description": "Run number for the blocked beam run. More than one run number can be specified by passing a list or by passing a string containing the run numbers separated by commas."
+      "description": "Run number for the blocked beam run"
     },
     "useThetaDepTransCorrection": {
       "type": "boolean",

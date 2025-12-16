@@ -264,7 +264,8 @@ def load_all_files(
                 si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                 sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
                 sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
-                reduction_config=reduction_config**load_params,
+                reduction_config=reduction_config,
+                **load_params,
             )
 
             for _w in mtd[ws_name]:

@@ -36,7 +36,7 @@ class TestFilterEvents:
             analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 120.0, "veto_duration": 2.0}),
         )
         logs.inject(workspace)
-        ws_group = split_events("workspace_split", input_workspace=workspace)
+        ws_group = split_events(output_workspace="workspace_split", input_workspace=workspace)
         assert len(ws_group) == 4
         assert ws_group[0].getNumberEvents() == 908952
         assert ws_group[1].getNumberEvents() == 452402
@@ -55,7 +55,7 @@ class TestFilterEvents:
             polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "veto_duration": 1.0}),
         )
         logs.inject(workspace)
-        ws_group = split_events("workspace_split", input_workspace=workspace)
+        ws_group = split_events(output_workspace="workspace_split", input_workspace=workspace)
         assert len(ws_group) == 2
         assert ws_group[0].getNumberEvents() == 1367953
         assert ws_group[1].getNumberEvents() == 910789
@@ -72,7 +72,7 @@ class TestFilterEvents:
             analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 120.0, "veto_duration": 2.0}),
         )
         logs.inject(workspace)
-        ws_group = split_events("workspace_split", input_workspace=workspace)
+        ws_group = split_events(output_workspace="workspace_split", input_workspace=workspace)
         assert len(ws_group) == 2
         assert ws_group[0].getNumberEvents() == 1373177
         assert ws_group[1].getNumberEvents() == 909718
@@ -91,7 +91,7 @@ class TestFilterEvents:
         logs.inject(workspace)
         with mock.patch("drtsans.polarization_filter_events.LoadEventNexus") as mock_loadeventnexus:
             mock_loadeventnexus.return_value = workspace
-            ws_group = split_events("workspace_split", file_path="/path/to/file")
+            ws_group = split_events(output_workspace="workspace_split", file_path="/path/to/file")
         assert len(ws_group) == 2
         assert ws_group[0].getNumberEvents() == 1367953
         assert ws_group[1].getNumberEvents() == 910789
@@ -105,7 +105,7 @@ class TestFilterEvents:
         """
         workspace = gpsans_workspace
         num_events = workspace.getNumberEvents()
-        ws_group = split_events("workspace_split", input_workspace=workspace)
+        ws_group = split_events(output_workspace="workspace_split", input_workspace=workspace)
         assert len(ws_group) == 1
         assert ws_group[0].getNumberEvents() == num_events
         if mtd.doesExist(str(ws_group)):

@@ -1,8 +1,10 @@
+import argparse
 import json
 import os
-import sys
+
 import mantid.simpleapi as msapi  # noqa E402
-from drtsans.tof.eqsans import validate_reduction_parameters
+
+from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (
     load_all_files,
     reduce_single_configuration,
@@ -10,33 +12,65 @@ from drtsans.tof.eqsans.api import (
 )  # noqa E402
 
 
-def reduce_eqsans_configuration(input_config):
-    input_config = validate_reduction_parameters(input_config)
+def parse_command_arguments():
+    """
+    Parse command-line arguments for the EQSANS reduction script.
 
-    # chekcing if output directory exists, if it doesn't, creates the folder
-    output_dir = input_config["configuration"]["outputDir"]
+    Returns
+    -------
+    argparse.Namespace
+        An object containing the parsed command-line arguments:
+        - config (str): Path to a JSON file or a JSON string containing reduction parameters.
+        - permissible (bool): Allow permissible parameters in reduction configuration.
+
+    Notes
+    -----
+    - If the config argument is a path to an existing file, it will be read as a JSON file.
+    - Otherwise, it will be parsed as a JSON string (supports multiple arguments joined together).
+    """
+    parser = argparse.ArgumentParser(
+        description="EQSANS reduction script. Accepts either a JSON file path or a JSON string."
+    )
+    parser.add_argument(
+        "config",
+        type=str,
+        nargs="+",
+        help="Path to a JSON file containing reduction parameters, or a JSON string.",
+    )
+    parser.add_argument(
+        "--permissible",
+        action="store_true",
+        default=False,
+        help="raise only a warning (not and exception) if a parameter in input 'config'"
+        " is not found in the instrument's schema.",
+    )
+    return parser.parse_args()
+
+
+def reduce_eqsans_configuration(input_config, permissible=False):
+    # Serve and validate all necessary reduction parameters
+    config = reduction_parameters(input_config, permissible=permissible)
+    # create the output directory if non-existent
+    output_dir = config["configuration"]["outputDir"]
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-
-    loaded = load_all_files(input_config)
-    msapi.logger.warning("...loading completed.")
-    out = reduce_single_configuration(loaded, input_config)
-    msapi.logger.warning("...single reduction completed.")
-    plot_reduction_output(out, input_config)
-    msapi.logger.warning("...plotting completed.")
+    # load all files and perform reduction
+    loaded = load_all_files(config)
+    out = reduce_single_configuration(loaded, config)
+    # create figures in the output directory
+    plot_reduction_output(out, config)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise RuntimeError(".!.reduction code requires a parameter json string or file")
-    if os.path.isfile(sys.argv[1]):
-        json_filename = sys.argv[1]
-        msapi.logger.warning("...json file is used.")
-        with open(sys.argv[1], "r") as fd:
+    args = parse_command_arguments()
+
+    # Join config arguments (supports both single and multiple arguments)
+    config_input = " ".join(args.config)
+
+    if os.path.isfile(config_input):
+        with open(config_input, "r") as fd:
             reduction_input = json.load(fd)
     else:
-        msapi.logger.warning("...json string is used.")
-        json_filename = " ".join(sys.argv[1:])
-        reduction_input = json.loads(json_filename)
+        reduction_input = json.loads(config_input)
 
-    reduce_eqsans_configuration(reduction_input)
+    reduce_eqsans_configuration(reduction_input, permissible=args.permissible)

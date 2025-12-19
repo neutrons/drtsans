@@ -41,7 +41,7 @@ def parse_command_arguments():
         "--permissible",
         action="store_true",
         default=False,
-        help="raise only a warning (not and exception) if a parameter in input 'config'"
+        help="raise only a warning (not an exception) if a parameter in input 'config'"
         " is not found in the instrument's schema.",
     )
     return parser.parse_args()

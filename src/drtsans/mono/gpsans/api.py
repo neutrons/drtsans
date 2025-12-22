@@ -545,8 +545,20 @@ def prepare_data(
     **kwargs,
 ):
     r"""
-    Load a GPSANS data file and bring the data to a point where it can be used. This includes applying basic
-    corrections that are always applied regardless of whether the data is background or scattering data.
+    High level function that:
+
+    - Loads the data file using ``load_events()``
+    - Applies component scaling (``scale_components``)
+    - Applies pixel calibration (``pixel_calibration``)
+    - Sets detector/sample offsets (calculates and moves instrument)
+    - Transforms to wavelength (``transform_to_wavelength``)
+    - Sets initial uncertainties
+    - Centers detector
+    - Loads dark current (if specified)
+    - Loads sensitivity file (if specified)
+    - Masks detector components
+    - Sets metadata (wavelength, aperture sizes, sample thickness, etc.)
+    - Calls ``prepare_data_workspaces()`` to apply additional corrections.
 
     Parameters
     ----------
@@ -726,7 +738,7 @@ def prepare_data_workspaces(
     debug=False,
 ):
     r"""
-    Given a " raw"data workspace, this function provides the following:
+    Given a "raw" data workspace, this function provides the following:
 
         - centers the detector
         - subtracts dark current

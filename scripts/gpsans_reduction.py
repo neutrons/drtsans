@@ -1,43 +1,74 @@
-import sys
-import os
+import argparse
 import json
-import warnings
+import os
 
-warnings.simplefilter(action="ignore", category=FutureWarning)
-from drtsans.mono.gpsans import (
+from drtsans.mono.gpsans import reduction_parameters
+from drtsans.mono.gpsans.api import (
     load_all_files,
     reduce_single_configuration,
     plot_reduction_output,
-    validate_reduction_parameters,
-)  # noqa E402
-import drtsans  # noqa E402
-import mantid.simpleapi as msapi  # noqa E402
+)
+
+
+def parse_command_arguments():
+    """
+    Parse command-line arguments for the GPSANS reduction script.
+
+    Returns
+    -------
+    argparse.Namespace
+        An object containing the parsed command-line arguments:
+        - config (str): Path to a JSON file or a JSON string containing reduction parameters.
+        - permissible (bool): Allow permissible parameters in reduction configuration.
+
+    Notes
+    -----
+    - If the config argument is a path to an existing file, it will be read as a JSON file.
+    - Otherwise, it will be parsed as a JSON string (supports multiple arguments joined together).
+    """
+    parser = argparse.ArgumentParser(
+        description="GPSANS reduction script. Accepts either a JSON file path or a JSON string."
+    )
+    parser.add_argument(
+        "config",
+        type=str,
+        nargs="+",
+        help="Path to a JSON file containing reduction parameters, or a JSON string.",
+    )
+    parser.add_argument(
+        "--permissible",
+        action="store_true",
+        default=False,
+        help="raise only a warning (not an exception) if a parameter in input 'config'"
+        " is not found in the instrument's schema.",
+    )
+    return parser.parse_args()
+
+
+def reduce_gpsans_configuration(input_config, permissible=False):
+    # Serve and validate all necessary reduction parameters
+    config = reduction_parameters(input_config, permissible=permissible)
+    # create the output directory if non-existent
+    output_dir = config["configuration"]["outputDir"]
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    # load all files and perform reduction
+    loaded = load_all_files(config)
+    out = reduce_single_configuration(loaded, config)
+    # create figures in the output directory
+    plot_reduction_output(out, config)
+
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise RuntimeError("reduction code requires a parameter json string")
-    if os.path.isfile(sys.argv[1]):
-        print(sys.argv[1])
-        with open(sys.argv[1], "r") as fd:
+    args = parse_command_arguments()
+
+    # Join config arguments (supports both single and multiple arguments)
+    config_input = " ".join(args.config)
+
+    if os.path.isfile(config_input):
+        with open(config_input, "r") as fd:
             reduction_input = json.load(fd)
     else:
-        json_string = " ".join(sys.argv[1:])
-        reduction_input = json.loads(json_string)
+        reduction_input = json.loads(config_input)
 
-    reduction_input = validate_reduction_parameters(reduction_input)
-    # print the parameters to a file for inspection
-    # json.dump(reduction_input, open('/tmp/gpsans_reduction/gpsans_reduction.json', 'w'), indent=2)
-    # sys.exit(1)
-    msapi.logger.notice(json.dumps(reduction_input))
-    msapi.logger.notice("drtsans version: {}".format(drtsans.__version__))
-
-    # chekcing if output directory exists, if it doesn't, creates the folder
-    output_dir = reduction_input["configuration"]["outputDir"]
-    for subfolder in ["1D", "2D"]:
-        output_folder = os.path.join(output_dir, subfolder)
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-
-    loaded = load_all_files(reduction_input)
-    out = reduce_single_configuration(loaded, reduction_input)
-    plot_reduction_output(out, reduction_input)
+    reduce_gpsans_configuration(reduction_input, permissible=args.permissible)

@@ -24,16 +24,16 @@ class PolarizationLevel(StrEnum):
     FULL = "full"  # also 2
 
     @classmethod
-    def from_int(cls, mode: int) -> "PolarizationLevel":
+    def from_int(cls, level: int) -> "PolarizationLevel":
         r"""
-        Convert an integer polarization mode to a PolarizationMode enum.
+        Convert an integer polarization mode to a PolarizationLevel enum.
 
         Parameters
         ----------
-        mode : int
+        level : int
             Integer representation of the polarization mode:
             - 0: OFF (unpolarized)
-            - 1: HALF ( polarizer is active)
+            - 1: HALF (polarizer is active)
             - 2: FULL (both polarizer and analyzer are active)
 
         Raises
@@ -41,19 +41,19 @@ class PolarizationLevel(StrEnum):
         ValueError
             If the input integer does not correspond to a valid polarization mode.
         """
-        if mode == 0:
+        if level == 0:
             return cls.OFF
-        elif mode == 1:
+        elif level == 1:
             return cls.HALF
-        elif mode == 2:
+        elif level == 2:
             return cls.FULL
         else:
-            raise ValueError(f"Invalid polarization mode integer: {mode}. Must be 0, 1, or 2.")
+            raise ValueError(f"Invalid polarization mode integer: {level}. Must be 0, 1, or 2.")
 
     @classmethod
     def get_level(cls, source: Union[str, EventWorkspace]) -> "PolarizationLevel":
         r"""
-        Find if a run is polarized, and that what degree.
+        Find if a run is polarized, and to what degree.
 
         Parameters
         ----------

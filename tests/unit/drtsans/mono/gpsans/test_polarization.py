@@ -22,7 +22,6 @@ from drtsans.samplelogs import SampleLogs
 
 class TestPolarizationLevel:
     def test_from_int(self):
-        """Tests integer conversion; validates error on out‑of‑range input"""
         assert PolarizationLevel.from_int(0) == PolarizationLevel.OFF
         assert PolarizationLevel.from_int(0) == "off"  # a StrEnum instance also compares equal to its string value
         assert PolarizationLevel.from_int(1) == PolarizationLevel.HALF

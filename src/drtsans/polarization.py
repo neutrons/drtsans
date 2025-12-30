@@ -1,14 +1,18 @@
 # standard library imports
 from collections import namedtuple
 from dataclasses import dataclass
-from typing import ClassVar, Generator, List, Optional
+from typing import ClassVar, Generator, List, Optional, Union
 
 # third party imports
+import h5py
+from mantid.api import AnalysisDataService
+from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import CreateSingleValuedWorkspace, DeleteWorkspace, mtd, RenameWorkspace
 import numpy as np
 
 # drtsans imports
 from drtsans.api import _set_uncertainty_from_numpy
+from drtsans.path import abspath
 from drtsans.samplelogs import SampleLogs
 from drtsans.type_hints import MantidWorkspace
 
@@ -32,6 +36,43 @@ PV_POLARIZER_VETO = "PolarizerVeto"
 PV_ANALYZER = "Analyzer"
 PV_ANALYZER_FLIPPER = "AnalyzerFlipper"
 PV_ANALYZER_VETO = "AnalyzerVeto"
+
+
+def is_polarized(source: Union[str, EventWorkspace]) -> bool:
+    r"""
+    Determine if the source is a polarized run.
+
+    Parameters
+    ----------
+    source : str, EventWorkspace
+        Either an instrument plus run number identifier (e.g.,, CG2_1235), a file name in the current directory,
+        an absolute file path, the name of an events workspace, or an EventWorkspace object.
+
+    Returns
+    -------
+    bool
+        True if the run is polarized, False otherwise.
+    """
+    if isinstance(source, EventWorkspace):
+        sample_logs = SampleLogs(source)
+        return bool(sample_logs.single_value(PV_POLARIZER)) if PV_POLARIZER in sample_logs else False
+    elif isinstance(source, str):
+        # case 1: `source` is the name of a workspace in the AnalysisDataService
+        if AnalysisDataService.doesExist(source):
+            if isinstance(mtd[source], EventWorkspace):
+                sample_logs = SampleLogs(source)
+                return bool(sample_logs.single_value(PV_POLARIZER)) if PV_POLARIZER in sample_logs else False
+            else:
+                raise TypeError(f"The workspace '{source}' is not an EventWorkspace")
+        # case 2: `source` is a file path
+        filepath = abspath(source)
+        with h5py.File(filepath, "r") as file_handle:
+            dataset = file_handle.get(f"/entry/DASlogs/{PV_POLARIZER}")
+            if dataset is None:  # log not found, assume unpolarized
+                return False
+            return bool(dataset["value"][()])
+    else:
+        raise TypeError(f"{source} must be either a string or an EventWorkspace object")
 
 
 def _calc_flipping_ratio(polarization):

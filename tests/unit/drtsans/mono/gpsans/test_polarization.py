@@ -1,11 +1,12 @@
-# third-party imports
+import h5py
 from mantid.simpleapi import CreateSingleValuedWorkspace, mtd
 from numpy.testing import assert_equal, assert_array_almost_equal
 import pytest
 
-# drtsans imports
 from drtsans import half_polarization
+from drtsans.instruments import empty_instrument_workspace
 from drtsans.polarization import (
+    is_polarized,
     _calc_flipping_ratio,
     SimulatedPolarizationLogs,
     TimesGeneratorSpecs,
@@ -17,6 +18,39 @@ from drtsans.polarization import (
     PV_POLARIZER_VETO,
 )
 from drtsans.samplelogs import SampleLogs
+
+
+def test_is_polarized(tmp_path):
+    # case "event Nexus file" with no polarization metadata
+    nexus_file = tmp_path / "CG2_12345.nxs.h5"
+    with h5py.File(nexus_file, "w") as write_handle:
+        write_handle.require_group("/entry/DASlogs")
+    assert is_polarized(str(nexus_file)) is False
+
+    # case "event Nexus file" with polarization metadata
+    with h5py.File(nexus_file, "w") as write_handle:
+        group = write_handle.require_group(f"/entry/DASlogs/{PV_POLARIZER}")
+        group.create_dataset("value", data=1)
+    assert is_polarized(str(nexus_file)) is True
+
+    # case workspace that is not an EventWorkspace
+    ws = CreateSingleValuedWorkspace(DataValue=0.95, ErrorValue=0.01, OutputWorkspace=mtd.unique_hidden_name())
+    with pytest.raises(TypeError) as excinfo:
+        is_polarized(ws)  # passing workspace object
+    assert f"{str(ws)} must be either a string or an EventWorkspace object" in str(excinfo.value)
+    with pytest.raises(TypeError) as excinfo:
+        is_polarized(str(ws))  # passing workspace name
+    assert f"The workspace '{ws}' is not an EventWorkspace" in str(excinfo.value)
+
+    # case EventWorkspace with no polarization metadata
+    ws = empty_instrument_workspace(str(ws), instrument_name="GPSANS", event_workspace=True)
+    assert is_polarized(ws) is False
+    assert is_polarized(str(ws)) is False
+
+    # case EventWorkspace with no polarization metadata
+    SampleLogs(ws).insert(PV_POLARIZER, 1)
+    assert is_polarized(ws) is True
+    assert is_polarized(str(ws)) is True
 
 
 def test_flipping_ratio(temp_workspace_name, clean_workspace):

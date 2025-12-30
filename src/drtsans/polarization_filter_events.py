@@ -14,7 +14,7 @@ from mantid.simpleapi import (
     mtd,
 )
 
-from drtsans import PV_POLARIZER_FLIPPER, PV_ANALYZER_FLIPPER
+from drtsans.polarization import PV_POLARIZER_FLIPPER, PV_ANALYZER_FLIPPER
 from drtsans.dataobjects import workspace_handle
 from drtsans.polarization import PV_POLARIZER, PV_POLARIZER_VETO, PV_ANALYZER, PV_ANALYZER_VETO
 from drtsans.samplelogs import SampleLogs

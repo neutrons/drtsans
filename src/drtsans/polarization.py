@@ -1,5 +1,6 @@
 # standard library imports
 from collections import namedtuple
+from enum import StrEnum
 from dataclasses import dataclass
 from typing import ClassVar, Generator, List, Optional, Union
 
@@ -15,6 +16,88 @@ from drtsans.api import _set_uncertainty_from_numpy
 from drtsans.path import abspath
 from drtsans.samplelogs import SampleLogs
 from drtsans.type_hints import MantidWorkspace
+
+
+class PolarizationLevel(StrEnum):
+    OFF = "off"  # also 0
+    HALF = "half"  # also 1
+    FULL = "full"  # also 2
+
+    @classmethod
+    def from_int(cls, mode: int) -> "PolarizationLevel":
+        r"""
+        Convert an integer polarization mode to a PolarizationMode enum.
+
+        Parameters
+        ----------
+        mode : int
+            Integer representation of the polarization mode:
+            - 0: OFF (unpolarized)
+            - 1: HALF ( polarizer is active)
+            - 2: FULL (both polarizer and analyzer are active)
+
+        Raises
+        ------
+        ValueError
+            If the input integer does not correspond to a valid polarization mode.
+        """
+        if mode == 0:
+            return cls.OFF
+        elif mode == 1:
+            return cls.HALF
+        elif mode == 2:
+            return cls.FULL
+        else:
+            raise ValueError(f"Invalid polarization mode integer: {mode}. Must be 0, 1, or 2.")
+
+    @classmethod
+    def get_level(cls, source: Union[str, EventWorkspace]) -> "PolarizationLevel":
+        r"""
+        Find if a run is polarized, and that what degree.
+
+        Parameters
+        ----------
+        source : str, EventWorkspace
+            Either an instrument plus run number identifier (e.g., CG2_1235), a file name in the current directory,
+            an absolute file path, the name of an events workspace, or an EventWorkspace object.
+
+        Raises
+        ------
+        TypeError
+            If the input is neither a string nor an EventWorkspace.
+        """
+        mode = 0
+        # Determines polarization mode from workspace or file metadata
+        if isinstance(source, EventWorkspace):
+            sample_logs = SampleLogs(source)
+            if PV_POLARIZER in sample_logs:
+                mode += int(sample_logs.single_value(PV_POLARIZER))
+                if PV_ANALYZER in sample_logs:
+                    mode += int(sample_logs.single_value(PV_ANALYZER))
+        elif isinstance(source, str):
+            # case 1: `source` is the name of a workspace in the AnalysisDataService
+            if AnalysisDataService.doesExist(source):
+                if isinstance(mtd[source], EventWorkspace):
+                    sample_logs = SampleLogs(source)
+                    if PV_POLARIZER in sample_logs:
+                        mode += int(sample_logs.single_value(PV_POLARIZER))
+                        if PV_ANALYZER in sample_logs:
+                            mode += int(sample_logs.single_value(PV_ANALYZER))
+                else:
+                    raise TypeError(f"The workspace '{source}' is not an EventWorkspace")
+            else:
+                # case 2: `source` is a file path
+                filepath = abspath(source)
+                with h5py.File(filepath, "r") as file_handle:
+                    dataset = file_handle.get(f"/entry/DASlogs/{PV_POLARIZER}")
+                    if dataset is not None:  # log not found, assume unpolarized
+                        mode += int(dataset["value"][()])
+                        dataset = file_handle.get(f"/entry/DASlogs/{PV_ANALYZER}")
+                        if dataset is not None:
+                            mode += int(dataset["value"][()])
+        else:
+            raise TypeError(f"{source} must be either a string or an EventWorkspace object")
+        return cls.from_int(mode)
 
 
 __all__ = [
@@ -36,43 +119,6 @@ PV_POLARIZER_VETO = "PolarizerVeto"
 PV_ANALYZER = "Analyzer"
 PV_ANALYZER_FLIPPER = "AnalyzerFlipper"
 PV_ANALYZER_VETO = "AnalyzerVeto"
-
-
-def is_polarized(source: Union[str, EventWorkspace]) -> bool:
-    r"""
-    Determine if the source is a polarized run.
-
-    Parameters
-    ----------
-    source : str, EventWorkspace
-        Either an instrument plus run number identifier (e.g.,, CG2_1235), a file name in the current directory,
-        an absolute file path, the name of an events workspace, or an EventWorkspace object.
-
-    Returns
-    -------
-    bool
-        True if the run is polarized, False otherwise.
-    """
-    if isinstance(source, EventWorkspace):
-        sample_logs = SampleLogs(source)
-        return bool(sample_logs.single_value(PV_POLARIZER)) if PV_POLARIZER in sample_logs else False
-    elif isinstance(source, str):
-        # case 1: `source` is the name of a workspace in the AnalysisDataService
-        if AnalysisDataService.doesExist(source):
-            if isinstance(mtd[source], EventWorkspace):
-                sample_logs = SampleLogs(source)
-                return bool(sample_logs.single_value(PV_POLARIZER)) if PV_POLARIZER in sample_logs else False
-            else:
-                raise TypeError(f"The workspace '{source}' is not an EventWorkspace")
-        # case 2: `source` is a file path
-        filepath = abspath(source)
-        with h5py.File(filepath, "r") as file_handle:
-            dataset = file_handle.get(f"/entry/DASlogs/{PV_POLARIZER}")
-            if dataset is None:  # log not found, assume unpolarized
-                return False
-            return bool(dataset["value"][()])
-    else:
-        raise TypeError(f"{source} must be either a string or an EventWorkspace object")
 
 
 def _calc_flipping_ratio(polarization):

@@ -1,16 +1,103 @@
 # standard library imports
 from collections import namedtuple
+from enum import StrEnum
 from dataclasses import dataclass
-from typing import ClassVar, Generator, List, Optional
+from typing import ClassVar, Generator, List, Optional, Union
 
 # third party imports
+import h5py
+from mantid.api import AnalysisDataService
+from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import CreateSingleValuedWorkspace, DeleteWorkspace, mtd, RenameWorkspace
 import numpy as np
 
 # drtsans imports
 from drtsans.api import _set_uncertainty_from_numpy
+from drtsans.path import abspath
 from drtsans.samplelogs import SampleLogs
 from drtsans.type_hints import MantidWorkspace
+
+
+class PolarizationLevel(StrEnum):
+    OFF = "off"  # also 0
+    HALF = "half"  # also 1
+    FULL = "full"  # also 2
+
+    @classmethod
+    def from_int(cls, level: int) -> "PolarizationLevel":
+        r"""
+        Convert an integer polarization mode to a PolarizationLevel enum.
+
+        Parameters
+        ----------
+        level : int
+            Integer representation of the polarization mode:
+            - 0: OFF (unpolarized)
+            - 1: HALF (polarizer is active)
+            - 2: FULL (both polarizer and analyzer are active)
+
+        Raises
+        ------
+        ValueError
+            If the input integer does not correspond to a valid polarization mode.
+        """
+        if level == 0:
+            return cls.OFF
+        elif level == 1:
+            return cls.HALF
+        elif level == 2:
+            return cls.FULL
+        else:
+            raise ValueError(f"Invalid polarization mode integer: {level}. Must be 0, 1, or 2.")
+
+    @classmethod
+    def get_level(cls, source: Union[str, EventWorkspace]) -> "PolarizationLevel":
+        r"""
+        Find if a run is polarized, and to what degree.
+
+        Parameters
+        ----------
+        source : str, EventWorkspace
+            Either an instrument plus run number identifier (e.g., CG2_1235), a file name in the current directory,
+            an absolute file path, the name of an events workspace, or an EventWorkspace object.
+
+        Raises
+        ------
+        TypeError
+            If the input is neither a string nor an EventWorkspace.
+        """
+        mode = 0
+        # Determines polarization mode from workspace or file metadata
+        if isinstance(source, EventWorkspace):
+            sample_logs = SampleLogs(source)
+            if PV_POLARIZER in sample_logs:
+                mode += int(sample_logs.single_value(PV_POLARIZER))
+                if PV_ANALYZER in sample_logs:
+                    mode += int(sample_logs.single_value(PV_ANALYZER))
+        elif isinstance(source, str):
+            # case 1: `source` is the name of a workspace in the AnalysisDataService
+            if AnalysisDataService.doesExist(source):
+                if isinstance(mtd[source], EventWorkspace):
+                    sample_logs = SampleLogs(source)
+                    if PV_POLARIZER in sample_logs:
+                        mode += int(sample_logs.single_value(PV_POLARIZER))
+                        if PV_ANALYZER in sample_logs:
+                            mode += int(sample_logs.single_value(PV_ANALYZER))
+                else:
+                    raise TypeError(f"The workspace '{source}' is not an EventWorkspace")
+            else:
+                # case 2: `source` is a file path
+                filepath = abspath(source)
+                with h5py.File(filepath, "r") as file_handle:
+                    dataset = file_handle.get(f"/entry/DASlogs/{PV_POLARIZER}")
+                    if dataset is not None:  # log not found, assume unpolarized
+                        mode += int(dataset["value"][()])
+                        dataset = file_handle.get(f"/entry/DASlogs/{PV_ANALYZER}")
+                        if dataset is not None:
+                            mode += int(dataset["value"][()])
+        else:
+            raise TypeError(f"{source} must be either a string or an EventWorkspace object")
+        return cls.from_int(mode)
 
 
 __all__ = [

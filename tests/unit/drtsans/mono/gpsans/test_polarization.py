@@ -1,12 +1,13 @@
-# third-party imports
+import h5py
 from mantid.simpleapi import CreateSingleValuedWorkspace, mtd
 from numpy.testing import assert_equal, assert_array_almost_equal
 import pytest
 
-# drtsans imports
-from drtsans import half_polarization
+from drtsans.instruments import empty_instrument_workspace
 from drtsans.polarization import (
+    PolarizationLevel,
     _calc_flipping_ratio,
+    half_polarization,
     SimulatedPolarizationLogs,
     TimesGeneratorSpecs,
     PV_ANALYZER,
@@ -17,6 +18,76 @@ from drtsans.polarization import (
     PV_POLARIZER_VETO,
 )
 from drtsans.samplelogs import SampleLogs
+
+
+class TestPolarizationLevel:
+    def test_from_int(self):
+        assert PolarizationLevel.from_int(0) == PolarizationLevel.OFF
+        assert PolarizationLevel.from_int(0) == "off"  # a StrEnum instance also compares equal to its string value
+        assert PolarizationLevel.from_int(1) == PolarizationLevel.HALF
+        assert PolarizationLevel.from_int(1) == "half"
+        assert PolarizationLevel.from_int(2) == PolarizationLevel.FULL
+        assert PolarizationLevel.from_int(2) == "full"
+        with pytest.raises(ValueError) as excinfo:
+            PolarizationLevel.from_int(3)
+        assert "Invalid polarization mode integer: 3. Must be 0, 1, or 2." in str(excinfo.value)
+
+    def test_get_level(self, tmp_path):
+        # case "event Nexus file" with no polarization metadata
+        nexus_file = tmp_path / "CG2_12345.nxs.h5"
+        with h5py.File(nexus_file, "w") as write_handle:
+            write_handle.require_group("/entry/DASlogs")
+        assert PolarizationLevel.get_level(str(nexus_file)) == PolarizationLevel.OFF
+
+        # case "event Nexus file" with half polarization metadata
+        with h5py.File(nexus_file, "w") as write_handle:
+            group = write_handle.require_group(f"/entry/DASlogs/{PV_POLARIZER}")
+            group.create_dataset("value", data=0)
+        assert PolarizationLevel.get_level(str(nexus_file)) == PolarizationLevel.OFF
+        with h5py.File(nexus_file, "r+") as write_handle:
+            group = write_handle[f"/entry/DASlogs/{PV_POLARIZER}"]
+            group["value"][...] = 1
+        assert PolarizationLevel.get_level(str(nexus_file)) == PolarizationLevel.HALF
+
+        # case "event Nexus file" with full polarization metadata
+        with h5py.File(nexus_file, "r+") as write_handle:
+            group = write_handle.require_group(f"/entry/DASlogs/{PV_ANALYZER}")
+            group.create_dataset("value", data=0)
+        assert PolarizationLevel.get_level(str(nexus_file)) == PolarizationLevel.HALF
+        with h5py.File(nexus_file, "r+") as write_handle:
+            group = write_handle[f"/entry/DASlogs/{PV_ANALYZER}"]
+            group["value"][...] = 1
+        assert PolarizationLevel.get_level(str(nexus_file)) == PolarizationLevel.FULL
+
+        # case workspace that is not an EventWorkspace
+        ws = CreateSingleValuedWorkspace(DataValue=0.95, ErrorValue=0.01, OutputWorkspace=mtd.unique_hidden_name())
+        with pytest.raises(TypeError) as excinfo:
+            PolarizationLevel.get_level(ws)  # passing workspace object
+        assert f"{str(ws)} must be either a string or an EventWorkspace object" in str(excinfo.value)
+        with pytest.raises(TypeError) as excinfo:
+            PolarizationLevel.get_level(str(ws))  # passing workspace name
+        assert f"The workspace '{ws}' is not an EventWorkspace" in str(excinfo.value)
+
+        # case EventWorkspace with no polarization metadata
+        ws = empty_instrument_workspace(str(ws), instrument_name="GPSANS", event_workspace=True)
+        assert PolarizationLevel.get_level(ws) == PolarizationLevel.OFF
+        assert PolarizationLevel.get_level(str(ws)) == PolarizationLevel.OFF
+
+        # case EventWorkspace with half polarization metadata
+        SampleLogs(ws).insert(PV_POLARIZER, 0)
+        assert PolarizationLevel.get_level(ws) == PolarizationLevel.OFF
+        assert PolarizationLevel.get_level(str(ws)) == PolarizationLevel.OFF
+        SampleLogs(ws).insert(PV_POLARIZER, 1)
+        assert PolarizationLevel.get_level(ws) == PolarizationLevel.HALF
+        assert PolarizationLevel.get_level(str(ws)) == PolarizationLevel.HALF
+
+        # case EventWorkspace with full polarization metadata
+        SampleLogs(ws).insert(PV_ANALYZER, 0)
+        assert PolarizationLevel.get_level(ws) == PolarizationLevel.HALF
+        assert PolarizationLevel.get_level(str(ws)) == PolarizationLevel.HALF
+        SampleLogs(ws).insert(PV_ANALYZER, 1)
+        assert PolarizationLevel.get_level(ws) == PolarizationLevel.FULL
+        assert PolarizationLevel.get_level(str(ws)) == PolarizationLevel.FULL
 
 
 def test_flipping_ratio(temp_workspace_name, clean_workspace):

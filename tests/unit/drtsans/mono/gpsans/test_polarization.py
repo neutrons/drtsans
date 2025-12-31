@@ -6,6 +6,7 @@ import pytest
 from drtsans.instruments import empty_instrument_workspace
 from drtsans.polarization import (
     PolarizationLevel,
+    PolarizationCrossSection,
     _calc_flipping_ratio,
     half_polarization,
     SimulatedPolarizationLogs,
@@ -22,8 +23,8 @@ from drtsans.samplelogs import SampleLogs
 
 class TestPolarizationLevel:
     def test_from_int(self):
-        assert PolarizationLevel.from_int(0) == PolarizationLevel.OFF
-        assert PolarizationLevel.from_int(0) == "off"  # a StrEnum instance also compares equal to its string value
+        assert PolarizationLevel.from_int(0) == PolarizationLevel.NONE
+        assert PolarizationLevel.from_int(0) == "none"  # a StrEnum instance also compares equal to its string value
         assert PolarizationLevel.from_int(1) == PolarizationLevel.HALF
         assert PolarizationLevel.from_int(1) == "half"
         assert PolarizationLevel.from_int(2) == PolarizationLevel.FULL
@@ -37,13 +38,13 @@ class TestPolarizationLevel:
         nexus_file = tmp_path / "CG2_12345.nxs.h5"
         with h5py.File(nexus_file, "w") as write_handle:
             write_handle.require_group("/entry/DASlogs")
-        assert PolarizationLevel.get_level(str(nexus_file)) == PolarizationLevel.OFF
+        assert PolarizationLevel.get_level(str(nexus_file)) == PolarizationLevel.NONE
 
         # case "event Nexus file" with half polarization metadata
         with h5py.File(nexus_file, "w") as write_handle:
             group = write_handle.require_group(f"/entry/DASlogs/{PV_POLARIZER}")
             group.create_dataset("value", data=0)
-        assert PolarizationLevel.get_level(str(nexus_file)) == PolarizationLevel.OFF
+        assert PolarizationLevel.get_level(str(nexus_file)) == PolarizationLevel.NONE
         with h5py.File(nexus_file, "r+") as write_handle:
             group = write_handle[f"/entry/DASlogs/{PV_POLARIZER}"]
             group["value"][...] = 1
@@ -70,13 +71,13 @@ class TestPolarizationLevel:
 
         # case EventWorkspace with no polarization metadata
         ws = empty_instrument_workspace(str(ws), instrument_name="GPSANS", event_workspace=True)
-        assert PolarizationLevel.get_level(ws) == PolarizationLevel.OFF
-        assert PolarizationLevel.get_level(str(ws)) == PolarizationLevel.OFF
+        assert PolarizationLevel.get_level(ws) == PolarizationLevel.NONE
+        assert PolarizationLevel.get_level(str(ws)) == PolarizationLevel.NONE
 
         # case EventWorkspace with half polarization metadata
         SampleLogs(ws).insert(PV_POLARIZER, 0)
-        assert PolarizationLevel.get_level(ws) == PolarizationLevel.OFF
-        assert PolarizationLevel.get_level(str(ws)) == PolarizationLevel.OFF
+        assert PolarizationLevel.get_level(ws) == PolarizationLevel.NONE
+        assert PolarizationLevel.get_level(str(ws)) == PolarizationLevel.NONE
         SampleLogs(ws).insert(PV_POLARIZER, 1)
         assert PolarizationLevel.get_level(ws) == PolarizationLevel.HALF
         assert PolarizationLevel.get_level(str(ws)) == PolarizationLevel.HALF
@@ -90,8 +91,27 @@ class TestPolarizationLevel:
         assert PolarizationLevel.get_level(str(ws)) == PolarizationLevel.FULL
 
 
+class TestPolarizationCrossSection:
+    def test_values(self):
+        values = sorted([member.value for member in PolarizationCrossSection])
+        assert values == ["none", "off", "off_off", "off_on", "on", "on_off", "on_on"]
+
+    def test_log_get(self):
+        ws = CreateSingleValuedWorkspace(DataValue=0.95, ErrorValue=0.01, OutputWorkspace=mtd.unique_hidden_name())
+        for cross_section in PolarizationCrossSection:
+            cross_section.log(ws)
+            assert PolarizationCrossSection.get(ws) == str(cross_section)  # StrEnum can compare to its string value
+
+    def test_level(self):
+        assert PolarizationCrossSection.NONE.level == "none"
+        for cross_section in ["on", "off"]:
+            assert PolarizationCrossSection(cross_section).level == "half"
+        for cross_section in ["off_off", "off_on", "on_off", "on_on"]:
+            assert PolarizationCrossSection(cross_section).level == "full"
+
+
 def test_flipping_ratio(temp_workspace_name, clean_workspace):
-    """Test for the calclation of the flipping ratio in section 9.1. This was used to determine
+    """Test for the calculation of the flipping ratio in section 9.1. This was used to determine
     that the uncertainty needs to be calculated separately because of accumulation of numeric
     error.
 

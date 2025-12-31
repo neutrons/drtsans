@@ -236,7 +236,7 @@ def load_all_files(
     # Resolve polarization level and include it in the reduction configuration
     sample_filepath = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
     reduction_config["polarization"] = {"level": str(PolarizationLevel.get_level(sample_filepath))}
-    polarized = reduction_config["polarization"]["level"] != PolarizationLevel.OFF
+    polarized = reduction_config["polarization"]["level"] != PolarizationLevel.NONE
 
     # check for time/log slicing
     timeslice, logslice = resolve_slicing(reduction_input)

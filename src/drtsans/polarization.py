@@ -19,7 +19,7 @@ from drtsans.type_hints import MantidWorkspace
 
 
 class PolarizationLevel(StrEnum):
-    OFF = "off"  # also 0
+    NONE = "none"  # also 0
     HALF = "half"  # also 1
     FULL = "full"  # also 2
 
@@ -42,7 +42,7 @@ class PolarizationLevel(StrEnum):
             If the input integer does not correspond to a valid polarization mode.
         """
         if level == 0:
-            return cls.OFF
+            return cls.NONE
         elif level == 1:
             return cls.HALF
         elif level == 2:
@@ -51,7 +51,7 @@ class PolarizationLevel(StrEnum):
             raise ValueError(f"Invalid polarization mode integer: {level}. Must be 0, 1, or 2.")
 
     @classmethod
-    def get_level(cls, source: Union[str, EventWorkspace]) -> "PolarizationLevel":
+    def get(cls, source: Union[str, EventWorkspace]) -> "PolarizationLevel":
         r"""
         Find if a run is polarized, and to what degree.
 
@@ -98,6 +98,72 @@ class PolarizationLevel(StrEnum):
         else:
             raise TypeError(f"{source} must be either a string or an EventWorkspace object")
         return cls.from_int(mode)
+
+
+class PolarizationCrossSection(StrEnum):
+    """Enumerate the possible spin cross-section states based on flipper and analyzer status."""
+
+    NONE = "none"  # no polarizer and no analyzer
+    OFF = "off"  # flipper off, no analyzer
+    ON = "on"  # flipper on, no analyzer
+    OFF_OFF = "off_off"  # flipper off, analyzer off
+    OFF_ON = "off_on"  # flipper off, analyzer on
+    ON_OFF = "on_off"  # flipper on, analyzer off
+    ON_ON = "on_on"  # flipper on, analyzer on
+
+    @classmethod
+    def get(cls, workspace: MantidWorkspace) -> "PolarizationCrossSection":
+        """Retrieve the polarization cross-section from the sample logs of the given workspace."""
+        return cls(str(SampleLogs(workspace).single_value(cls.logname)))
+
+    def log(self, workspace: MantidWorkspace):
+        """Insert the polarization cross-section into the sample logs of the given workspace."""
+        SampleLogs(workspace).insert(name=self.__class__.logname, value=self.value)
+
+    @property
+    def level(self) -> PolarizationLevel:
+        if self == PolarizationCrossSection.NONE:
+            return PolarizationLevel.NONE
+        if self in {PolarizationCrossSection.OFF, PolarizationCrossSection.ON}:
+            return PolarizationLevel.HALF
+        return PolarizationLevel.FULL
+
+
+# Add class variable after the enum definition
+PolarizationCrossSection.logname = "polarization: cross-section"
+
+
+class PolarizationState(StrEnum):
+    """Enumerate the possible spin states based on the upstream and downstream neutrons"""
+
+    NONE = "none"  # no polarization
+    UP = "up"  # half polarization, upstream spin up
+    DOWN = "down"  # half polarization, upstream spin down
+    UP_UP = "up_up"  # full polarization, upstream spin up, downstream spin up
+    UP_DOWN = "up_down"  # full polarization, upstream spin up, downstream spin down
+    DOWN_UP = "down_up"  # full polarization, upstream spin down, downstream spin up
+    DOWN_DOWN = "down_down"  # full polarization, upstream spin down, downstream spin down
+
+    @classmethod
+    def get(cls, workspace: MantidWorkspace) -> "PolarizationState":
+        """Retrieve the polarization state from the sample logs of the given workspace."""
+        return cls(str(SampleLogs(workspace).single_value(cls.logname)))
+
+    def log(self, workspace: MantidWorkspace):
+        """Insert the polarization state into the sample logs of the given workspace."""
+        SampleLogs(workspace).insert(name=self.__class__.logname, value=self.value)
+
+    @property
+    def level(self) -> PolarizationLevel:
+        if self == PolarizationState.NONE:
+            return PolarizationLevel.NONE
+        if self in {PolarizationState.UP, PolarizationState.DOWN}:
+            return PolarizationLevel.HALF
+        return PolarizationLevel.FULL
+
+
+# Add class variable after the enum definition
+PolarizationState.logname = "polarization: state"
 
 
 __all__ = [

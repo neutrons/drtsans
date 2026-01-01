@@ -134,7 +134,7 @@ PolarizationCrossSection.logname = "polarization: cross-section"
 
 
 class PolarizationState(StrEnum):
-    """Enumerate the possible spin states based for the upstream and downstream neutrons"""
+    """Enumerate the possible spin states based on the upstream and downstream neutrons"""
 
     NONE = "none"  # no polarization
     UP = "up"  # half polarization, upstream spin up

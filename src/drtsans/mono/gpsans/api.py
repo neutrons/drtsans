@@ -111,6 +111,7 @@ def load_all_files(
     instrument_name = reduction_input["instrumentName"]
     ipts = reduction_input["iptsNumber"]
     sample = reduction_input["sample"]["runNumber"]
+    sample_load_options = reduction_input["sample"]["loadOptions"]
     sample_trans = reduction_input["sample"]["transmission"]["runNumber"]
     bkgd = reduction_input["background"]["runNumber"]
     bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
@@ -243,6 +244,8 @@ def load_all_files(
 
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
+    # Merge sample_load_options with load_params for sample loading
+    load_params_sample = {**sample_load_options, **load_params}
     if timeslice or logslice or polarized:
         # Load data and split
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
@@ -271,7 +274,7 @@ def load_all_files(
                 sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
                 sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
                 reduction_config=reduction_config,
-                **load_params,
+                **load_params_sample,
             )
 
             for _w in mtd[ws_name]:
@@ -308,8 +311,8 @@ def load_all_files(
         if not registered_workspace(ws_name):
             filename = abspaths(sample, instrument=instrument_name, ipts=ipts, directory=path)
             # Pass load params to be used in LoadEventAsWorkspace2D
-            load_params["XCenter"] = wave_length_dict[meta_data.SAMPLE]
-            load_params["XWidth"] = wave_length_spread_dict[meta_data.SAMPLE]
+            load_params_sample["XCenter"] = wave_length_dict[meta_data.SAMPLE]
+            load_params_sample["XWidth"] = wave_length_spread_dict[meta_data.SAMPLE]
             logger.notice(f"Loading filename {filename} to {ws_name}")
             load_events_and_histogram(
                 filename,
@@ -318,7 +321,7 @@ def load_all_files(
                 si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                 sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
                 sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
-                **load_params,
+                **load_params_sample,
             )
             # Overwrite meta data
             set_meta_data(

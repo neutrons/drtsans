@@ -31,20 +31,20 @@ Pixi is used for managing environments, dependencies, packaging, and task execut
 * Pixi is required. Install Pixi with the following command:
 
   .. code-block:: shell
-   
+
      $ curl -fsSL https://pixi.sh/install.sh | bash
-   
+
 
 * Create the evironment by running
 
   .. code-block:: shell
-   
+
      $ pixi install
 
 * Activate the environment by running
-  
+
   .. code-block:: shell
-  
+
      $ pixi shell
 
 3. Install the code in ``develop`` mode.

@@ -2,17 +2,9 @@
 Developer documentation
 =======================
 
-See `solid_angle_correction.py <drtsans/solid_angle_correction.py>`_ for propely documented code
-
 -----------------------------------------------
 Set-up for development in a virtual environment
 -----------------------------------------------
-
-These are the instructions for a person who is developing *both*
-drt-sans and mantid in tandem. It assumes that you are using a virtual
-environment and have a local build of mantid. As one caveat, for this
-method, mantid must be build against the same version of python being
-used in the virtual environment
 
 1. Checkout the code.
 

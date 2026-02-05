@@ -93,6 +93,8 @@ The time slicing parameters are applied relative to the whole data from the begi
 the run, independent of any event filtering during loading (i.e. using the parameter
 ``"loadOptions"``).
 
+This example shows EQSANS (SNS time-of-flight instrument) configuration:
+
 .. code-block:: json
 
     {
@@ -110,6 +112,38 @@ the run, independent of any event filtering during loading (i.e. using the param
 .. figure:: media/time_slicing_period_and_event_filtering.png
    :alt: Diagram of log slicing
    :width: 800px
+
+Event Filtering for BIOSANS and GPSANS
+++++++++++++++++++++++++++++++++++++++++
+
+BIOSANS and GPSANS (HFIR monochromatic instruments) also support event filtering using
+``loadOptions``. The same ``FilterByTimeStart`` and ``FilterByTimeStop`` parameters can be used
+to filter events before reduction. These options are passed directly to the Mantid algorithm
+``LoadEventAsWorkspace2D``.
+
+Example for BIOSANS or GPSANS:
+
+.. code-block:: json
+
+    {
+        "instrumentName": "BIOSANS",
+        "sample": {
+            "runNumber": "1322",
+            "loadOptions": {"FilterByTimeStart": 10.0, "FilterByTimeStop": 300.0}
+        },
+        "configuration": {
+            ...
+        }
+    }
+
+When using ``loadOptions`` with time slicing on HFIR instruments, the time filtering is applied
+first during loading, and then the time slicing is applied to the filtered events. This allows for
+fine-grained control over which portion of the run to analyze.
+
+.. note::
+   The ``FilterByTimeStart`` and ``FilterByTimeStop`` parameters specify times in seconds relative
+   to the start of the run. For HFIR instruments (BIOSANS and GPSANS), these options are passed to
+   ``LoadEventAsWorkspace2D``, while for SNS instruments (EQSANS), they are passed to ``LoadEventNexus``.
 
 Log Slicing
 -----------

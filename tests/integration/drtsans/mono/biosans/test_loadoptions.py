@@ -1,6 +1,7 @@
 """Integration tests for loadOptions time filtering in BIOSANS."""
 
 import pytest
+from mantid.simpleapi import SumSpectra
 from drtsans.mono.biosans import load_all_files, reduction_parameters
 
 
@@ -34,6 +35,10 @@ def test_load_with_time_filtering(datarepo_dir):
     ws = loaded.sample[0]
     assert ws is not None
     assert ws.getNumberHistograms() > 0
+
+    # Verify time filtering was applied by checking event count
+    ws_summed = SumSpectra(ws)
+    assert ws_summed.dataY(0)[0] == 2283  # number of events in the first 10 seconds
 
 
 @pytest.mark.datarepo
@@ -83,6 +88,9 @@ def test_load_with_partial_time_range(datarepo_dir):
     reduction_input = reduction_parameters(reduction_input, "BIOSANS", validate=False)
     loaded = load_all_files(reduction_input, path=datarepo_dir.biosans)
 
-    # Verify sample workspace was loaded
+    # Verify sample workspace was loaded successfully with partial time filter
     assert loaded.sample is not None
     assert len(loaded.sample) == 1
+    ws = loaded.sample[0]
+    assert ws is not None
+    assert ws.getNumberHistograms() > 0

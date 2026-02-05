@@ -111,7 +111,8 @@ def load_all_files(
     instrument_name = reduction_input["instrumentName"]
     ipts = reduction_input["iptsNumber"]
     sample = reduction_input["sample"]["runNumber"]
-    sample_load_options = reduction_input["sample"]["loadOptions"]
+    # Extract sample loadOptions - use .get() with default empty dict to handle cases where loadOptions is not provided
+    sample_load_options = reduction_input.get("sample", {}).get("loadOptions", {})
     sample_trans = reduction_input["sample"]["transmission"]["runNumber"]
     bkgd = reduction_input["background"]["runNumber"]
     bkgd_trans = reduction_input["background"]["transmission"]["runNumber"]
@@ -245,6 +246,8 @@ def load_all_files(
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
     # Merge sample_load_options with load_params for sample loading
+    # Merge load parameters: load_params takes precedence to preserve backward compatibility
+    # with existing behavior, but sample_load_options provides per-sample overrides
     load_params_sample = {**sample_load_options, **load_params}
     if timeslice or logslice or polarized:
         # Load data and split

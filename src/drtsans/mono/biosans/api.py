@@ -116,7 +116,8 @@ def load_all_files(
     instrument_name = reduction_input["instrumentName"]
     ipts = reduction_input["iptsNumber"]
     sample = reduction_input["sample"]["runNumber"]
-    sample_load_options = reduction_input["sample"]["loadOptions"]
+    # Extract sample loadOptions - use .get() with default empty dict to handle cases where loadOptions is not provided
+    sample_load_options = reduction_input.get("sample", {}).get("loadOptions", {})
 
     # on the fly check to see if mid-range detector is present in data
     reduction_input["has_midrange_detector"] = file_has_midrange_detector(
@@ -231,6 +232,8 @@ def load_all_files(
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
     # Merge sample_load_options with load_params for sample loading
+    # Merge load parameters: load_params takes precedence to preserve backward compatibility
+    # with existing behavior, but sample_load_options provides per-sample overrides
     load_params_sample = {**sample_load_options, **load_params}
 
     # Retrieve parameters for overwriting geometry related meta data

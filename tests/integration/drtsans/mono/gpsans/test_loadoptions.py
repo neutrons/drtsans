@@ -1,6 +1,7 @@
 """Integration tests for loadOptions time filtering in GPSANS."""
 
 import pytest
+from mantid.simpleapi import SumSpectra
 from drtsans.mono.gpsans import load_all_files, reduction_parameters
 
 
@@ -34,6 +35,14 @@ def test_load_with_time_filtering(datarepo_dir):
     ws = loaded.sample[0]
     assert ws is not None
     assert ws.getNumberHistograms() > 0
+
+    # Verify time filtering was applied by checking event count
+    ws_summed = SumSpectra(ws)
+    # Verify we have events loaded
+    event_count = ws_summed.dataY(0)[0]
+    assert event_count > 0, "Should have some events in the filtered range"
+    # Note: Actual event count verification would require knowing the exact count
+    # for this specific run with the given time filter parameters
 
 
 @pytest.mark.datarepo
@@ -83,6 +92,9 @@ def test_load_with_partial_time_range(datarepo_dir):
     reduction_input = reduction_parameters(reduction_input, "GPSANS", validate=False)
     loaded = load_all_files(reduction_input, path=datarepo_dir.gpsans)
 
-    # Verify sample workspace was loaded
+    # Verify sample workspace was loaded successfully with partial time filter
     assert loaded.sample is not None
     assert len(loaded.sample) == 1
+    ws = loaded.sample[0]
+    assert ws is not None
+    assert ws.getNumberHistograms() > 0

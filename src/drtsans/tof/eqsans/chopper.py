@@ -5,12 +5,16 @@ bands transmitted by the chopper set, given definite choppers settings such as a
 """
 
 from dataclasses import dataclass, field
+
+import numpy as np
 from drtsans.chopper import DiskChopper, DiskChopperConfiguration
 from drtsans.samplelogs import SampleLogs
 from drtsans.frame_mode import FrameMode
 from drtsans.path import exists
 from mantid.api import Run
 from mantid.simpleapi import LoadNexusProcessed, mtd
+
+from drtsans.wavelength import Wbands
 
 
 EQSANS_SIX_CHOPPERS_LOGS = ["Speed5", "Phase5", "Speed6", "Phase6"]
@@ -44,13 +48,13 @@ class EQSANSSixChoppersConfiguration(DiskChopperConfiguration):
     """
 
     n_choppers: int = 6
-    aperture: list[float] = field(default_factory=lambda: [129.600, 129.600, 180.000, 180.000, 230.010, 230.007])
-    to_source: list[float] = field(default_factory=lambda: [5.7178, 5.7238, 7.7998, 7.8058, 9.4998, 9.5058])
+    aperture: list[float] = field(default_factory=lambda: [129.600, 180.000, 230.010, 230.007, 129.600, 180.000])
+    to_source: list[float] = field(default_factory=lambda: [5.7178, 7.7998, 9.4998, 9.5058, 5.7238, 7.8058])
     offsets: dict[FrameMode, list[float]] = field(
         default_factory=lambda: {
             # TODO: Update these offsets when provided by the instrument scientists (EWM 15020)
-            FrameMode.not_skip: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            FrameMode.skip: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            FrameMode.not_skip: [9507.0, 9471.0, 9829.7, 9584.3, 0.0, 0.0],
+            FrameMode.skip: [19024.0, 18820.0, 19714.0, 19360.0, 0.0, 0.0],
         }
     )
 
@@ -115,7 +119,7 @@ class EQSANSDiskChopperSet:
             ch = self._choppers[chopper_index]
             ch.offset = self._offsets[self.frame_mode][chopper_index]
 
-    def transmission_bands(self, cutoff_wl=None, delay=0, pulsed=False):
+    def transmission_bands(self, cutoff_wl: float = None, delay: float = 0, pulsed: bool = False) -> Wbands:
         r"""
         Wavelength bands transmitted by the chopper apertures. The number of bands is determined by the
         slowest neutrons emitted from the moderator.
@@ -139,13 +143,17 @@ class EQSANSDiskChopperSet:
         """
         if cutoff_wl is None:
             cutoff_wl = self._cutoff_wl
+        # Filter out the choppers with zero speed, which do not contribute to the transmission bands
+        moving_choppers = [ch for ch in self._choppers if not np.isclose(ch.speed, 0.0)]
+        if not moving_choppers:
+            return Wbands()
         # Transmission bands of the first chopper
-        ch = self._choppers[0]
-        wb = ch.transmission_bands(cutoff_wl, delay, pulsed)
+        wb = moving_choppers[0].transmission_bands(cutoff_wl, delay, pulsed)
         # Find the common transmitted bands between the first chopper
         # and the ensuing choppers
-        for ch in self._choppers[1:]:
-            wb *= ch.transmission_bands(cutoff_wl, delay, pulsed)
+        for ch in moving_choppers[1:]:
+            wb_other = ch.transmission_bands(cutoff_wl, delay, pulsed)
+            wb *= wb_other
         # We end up with the transmission bands of the chopper set
         return wb
 

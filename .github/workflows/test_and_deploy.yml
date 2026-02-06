@@ -41,14 +41,14 @@ jobs:
         run: |
           pixi run versioningit -w
           git submodule update --init
-          pixi run test -vv -m "not mount_eqsans" --cov=src --cov-report=xml:unit_test_coverage.xml --cov-report=term-missing --junitxml=unit_test_results.xml tests/unit/
+          pixi run unit-test
           mv .coverage .coverage.unit
 
       - name: Run integration tests
         run: |
           # TODO: change back to running tests in parallel after the mantid memory leak has been patched (EWM 14083)
           # pixi run test -vv -m "not mount_eqsans" --dist loadscope -n 2 --cov=src --cov-report=xml:integration_test_coverage.xml --cov-report=term-missing --junitxml=integration_test_results.xml tests/integration/
-          pixi run test -vv -m "not mount_eqsans" --cov=src --cov-report=xml:integration_test_coverage.xml --cov-report=term-missing --junitxml=integration_test_results.xml tests/integration/
+          pixi run integration-test
           mv .coverage .coverage.integration
 
       - name: Upload coverage to codecov

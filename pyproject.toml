@@ -181,6 +181,8 @@ build-docs = { cmd = 'sphinx-build -b html docs docs/_build/html', description =
 test-docs = { cmd = "sphinx-build -M doctest docs docs/_build/html", description = "Test building the documentation" }
 # Testing
 test = { description = "Run the test suite", cmd = "pytest" }
+unit-test = { description = "Run the unit tests", cmd = "pytest -vv -m 'not mount_eqsans' --cov=src --cov-report=xml:unit_test_coverage.xml --cov-report=term-missing --junitxml=unit_test_results.xml tests/unit/" }
+integration-tests = { description = "Run the integration tests", cmd = "pytest -vv -m 'not mount_eqsans' --cov=src --cov-report=xml:integration_test_coverage.xml --cov-report=term-missing --junitxml=integration_test_results.xml tests/integration/" }
 # Packaging
 conda-build-command = { cmd = "pixi build", description = "Wrapper for building the conda package - used by `conda-build`" }
 conda-build = { description = "Build the conda package", depends-on = [

@@ -4,10 +4,37 @@ main goal is to find the set of neutron wavelength bands transmitted by the chop
 settings such as aperture and starting phase.
 """
 
+from dataclasses import dataclass, field
+from drtsans.frame_mode import FrameMode
 from drtsans.wavelength import Wband, Wbands
 
 
-class DiskChopper(object):
+@dataclass(frozen=True)
+class DiskChopperConfiguration:
+    """Configuration for a set of disk choppers.
+
+    Attributes
+    ----------
+    n_choppers: int
+        Number of single disk choppers in the set.
+    aperture: list[float]
+        List of transmission aperture widths (in degrees) for each chopper.
+    to_source: list[float]
+        List of distances to the neutron source (in meters) for each chopper.
+    offsets: dict[FrameMode, list[float]]
+        Dictionary mapping frame modes to lists of offset phases (in micro seconds) for each chopper.
+        These values are required to calibrate the value reported in the metadata. The combination on
+        the reported phase and this offset is the time (starting from the current pulse) at which the
+        middle of the choppers apertures will intersect with the neutron beam axis.
+    """
+
+    n_choppers: int
+    aperture: list[float] = field(default_factory=list)
+    to_source: list[float] = field(default_factory=list)
+    offsets: dict[FrameMode, list[float]] = field(default_factory=dict)
+
+
+class DiskChopper:
     r"""
     Rotating disk chopper with an aperture of a certain width letting neutrons through.
 

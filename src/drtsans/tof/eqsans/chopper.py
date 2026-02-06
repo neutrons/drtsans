@@ -4,7 +4,8 @@ This module provides class `EQSANSDiskChopperSet` representing the set of four d
 bands transmitted by the chopper set, given definite choppers settings such as aperture and starting phase.
 """
 
-from drtsans.chopper import DiskChopper
+from dataclasses import dataclass, field
+from drtsans.chopper import DiskChopper, DiskChopperConfiguration
 from drtsans.samplelogs import SampleLogs
 from drtsans.frame_mode import FrameMode
 from drtsans.path import exists
@@ -12,7 +13,49 @@ from mantid.api import Run
 from mantid.simpleapi import LoadNexusProcessed, mtd
 
 
-class EQSANSDiskChopperSet(object):
+EQSANS_SIX_CHOPPERS_LOGS = ["Speed5", "Phase5", "Speed6", "Phase6"]
+
+
+@dataclass(frozen=True)
+class EQSANSFourChoppersConfiguration(DiskChopperConfiguration):
+    """Configuration for the set of four disk choppers in EQSANS.
+
+    This is the configuration used at EQSANS prior to the installation of the
+    additional two choppers in 2026.
+    """
+
+    n_choppers: int = 4
+    aperture: list[float] = field(default_factory=lambda: [129.605, 179.989, 230.010, 230.007])
+    to_source: list[float] = field(default_factory=lambda: [5.700, 7.800, 9.497, 9.507])
+    offsets: dict[FrameMode, list[float]] = field(
+        default_factory=lambda: {
+            FrameMode.not_skip: [9507.0, 9471.0, 9829.7, 9584.3],
+            FrameMode.skip: [19024.0, 18820.0, 19714.0, 19360.0],
+        }
+    )
+
+
+@dataclass(frozen=True)
+class EQSANSSixChoppersConfiguration(DiskChopperConfiguration):
+    """Configuration for the set of six disk choppers in EQSANS.
+
+    This is the configuration used at EQSANS after the installation of the
+    additional two choppers in 2026, resulting in three double choppers.
+    """
+
+    n_choppers: int = 6
+    aperture: list[float] = field(default_factory=lambda: [129.600, 129.600, 180.000, 180.000, 230.010, 230.007])
+    to_source: list[float] = field(default_factory=lambda: [5.7178, 5.7238, 7.7998, 7.8058, 9.4998, 9.5058])
+    offsets: dict[FrameMode, list[float]] = field(
+        default_factory=lambda: {
+            # TODO: Update these offsets when provided by the instrument scientists (EWM 15020)
+            FrameMode.not_skip: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            FrameMode.skip: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        }
+    )
+
+
+class EQSANSDiskChopperSet:
     r"""
     Set of disks choppers installed in EQSANS.
 
@@ -32,23 +75,6 @@ class EQSANSDiskChopperSet(object):
     #: expressed as the maximum wavelength. This is the default cut-off maximum wavelength, in Angstroms.
     _cutoff_wl = 35
 
-    #: number of single-disk choppers in the set.
-    _n_choppers = 4
-
-    #: Transmission aperture of the choppers, in degrees.
-    _aperture = [129.605, 179.989, 230.010, 230.007]
-
-    #: Distance to neutron source (moderator), in meters.
-    _to_source = [5.700, 7.800, 9.497, 9.507]
-
-    #: Phase offsets, in micro-seconds. These values are required to calibrate the value reported in the
-    #: metadata. The combination on the reported phase and this offset is the time (starting from the
-    #: current pulse) at which the middle of the choppers apertures will intersect with the neutron beam axis.
-    _offsets = {
-        FrameMode.not_skip: [9507.0, 9471.0, 9829.7, 9584.3],
-        FrameMode.skip: [19024.0, 18820.0, 19714.0, 19360.0],
-    }
-
     def __init__(self, other):
         # Load choppers settings from the logs
         if isinstance(other, Run) or str(other) in mtd:
@@ -58,6 +84,14 @@ class EQSANSDiskChopperSet(object):
             sample_logs = SampleLogs(ws)
         else:
             raise RuntimeError("{} is not a valid file name, workspace, Run object or run number".format(other))
+
+        # Get the chopper configuration (4 or 6 choppers)
+        self.chopper_config: DiskChopperConfiguration = self.get_chopper_configuration(sample_logs)
+
+        self._n_choppers = self.chopper_config.n_choppers
+        self._aperture = self.chopper_config.aperture
+        self._to_source = self.chopper_config.to_source
+        self._offsets = self.chopper_config.offsets
 
         self._choppers = list()
         for chopper_index in range(self._n_choppers):
@@ -114,6 +148,27 @@ class EQSANSDiskChopperSet(object):
             wb *= ch.transmission_bands(cutoff_wl, delay, pulsed)
         # We end up with the transmission bands of the chopper set
         return wb
+
+    def get_chopper_configuration(self, sample_logs: SampleLogs) -> DiskChopperConfiguration:
+        r"""
+        Get the chopper configuration (number of choppers, apertures, distances to source, offsets)
+        based on the sample logs.
+
+        Parameters
+        ----------
+        sample_logs: ~drtsans.samplelogs.SampleLogs
+            Sample logs containing the run information.
+
+        Returns
+        -------
+        DiskChopperConfiguration
+            Configuration of the disk choppers.
+        """
+        has_six_choppers = all(log in sample_logs for log in EQSANS_SIX_CHOPPERS_LOGS)
+        if has_six_choppers:
+            return EQSANSSixChoppersConfiguration()
+        else:
+            return EQSANSFourChoppersConfiguration()
 
     @property
     def period(self):

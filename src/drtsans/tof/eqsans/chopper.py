@@ -1,6 +1,8 @@
 r"""
-This module provides class `EQSANSDiskChopperSet` representing the set of four disk choppers
-(two of them paired as a double chopper).  The main goal is to find the set of neutron wavelength
+This module provides class `EQSANSDiskChopperSet` representing the set of disk choppers.
+Prior to 2026, EQSANS had four disk choppers (two of them paired as a double chopper).
+Starting in 2026, EQSANS has six disk choppers (three double choppers).
+The main goal of the module is to find the set of neutron wavelength
 bands transmitted by the chopper set, given definite choppers settings such as aperture and starting phase.
 """
 

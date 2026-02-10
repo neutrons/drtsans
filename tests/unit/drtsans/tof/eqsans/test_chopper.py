@@ -1,11 +1,8 @@
 import pytest
-from mantid.simpleapi import AddSampleLog, CreateSingleValuedWorkspace, mtd
 from os.path import join as pjn
 from numpy.testing import assert_almost_equal
 
 from drtsans.tof.eqsans.chopper import (
-    EQSANSFourChoppersConfiguration,
-    EQSANSSixChoppersConfiguration,
     FrameMode,
     EQSANSDiskChopperSet,
 )
@@ -65,35 +62,6 @@ class TestEQSANSDiskChopperSet:
         wb = chs.transmission_bands(delay=chs.period, pulsed=True)
         assert len(wb) == 1  # we are working in the second frame
         assert_almost_equal((wb[0].min, wb[0].max), (11.89, 14.98), decimal=2)
-
-    def test_get_chopper_configuration(self):
-        """Test getting the chopper configuration depending on the available sample logs."""
-        workspace = mtd.unique_hidden_name()
-        CreateSingleValuedWorkspace(OutputWorkspace=workspace)
-        AddSampleLog(Workspace=workspace, LogName="Speed1", LogText="1", LogType="Number Series")
-        AddSampleLog(Workspace=workspace, LogName="Phase1", LogText="1", LogType="Number Series")
-        AddSampleLog(Workspace=workspace, LogName="Speed2", LogText="1", LogType="Number Series")
-        AddSampleLog(Workspace=workspace, LogName="Phase2", LogText="1", LogType="Number Series")
-        AddSampleLog(Workspace=workspace, LogName="Speed3", LogText="1", LogType="Number Series")
-        AddSampleLog(Workspace=workspace, LogName="Phase3", LogText="1", LogType="Number Series")
-        AddSampleLog(Workspace=workspace, LogName="Speed4", LogText="1", LogType="Number Series")
-        AddSampleLog(Workspace=workspace, LogName="Phase4", LogText="1", LogType="Number Series")
-        AddSampleLog(Workspace=workspace, LogName="frequency", LogText="60", LogType="Number Series")
-
-        # 4 choppers
-        chs = EQSANSDiskChopperSet(workspace)
-        assert chs._n_choppers == 4
-        assert isinstance(chs.chopper_config, EQSANSFourChoppersConfiguration)
-
-        AddSampleLog(Workspace=workspace, LogName="Speed5", LogText="1", LogType="Number Series")
-        AddSampleLog(Workspace=workspace, LogName="Phase5", LogText="1", LogType="Number Series")
-        AddSampleLog(Workspace=workspace, LogName="Speed6", LogText="1", LogType="Number Series")
-        AddSampleLog(Workspace=workspace, LogName="Phase6", LogText="1", LogType="Number Series")
-
-        # 6 choppers
-        chs = EQSANSDiskChopperSet(workspace)
-        assert chs._n_choppers == 6
-        assert isinstance(chs.chopper_config, EQSANSSixChoppersConfiguration)
 
 
 if __name__ == "__main__":

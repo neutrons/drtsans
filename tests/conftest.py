@@ -68,6 +68,20 @@ ret_val = namedtuple("ret_val", "ipts shared help r f w")
 pytest_plugins = ["mantid.fixtures"]
 
 
+# Fixtures that are automatically used in all tests
+
+
+@pytest.fixture(scope="session", autouse=True)
+def override_eqsans_chopper_config_file(datarepo_dir):
+    chopper_config_file = pjoin(datarepo_dir.eqsans, "chopper_configurations.json")
+    os.environ["DRTSANS_EQSANS_CHOPPER_CONFIG_PATH"] = str(chopper_config_file)
+    yield
+    os.environ.pop("DRTSANS_EQSANS_CHOPPER_CONFIG_PATH", None)
+
+
+# END of automatically used fixtures
+
+
 class GetWS(object):
     """Serves workspaces by cloning them. Prevents overwritting
 

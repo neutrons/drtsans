@@ -6,7 +6,9 @@ The main goal of the module is to find the set of neutron wavelength
 bands transmitted by the chopper set, given definite choppers settings such as aperture and starting phase.
 """
 
-from dataclasses import dataclass, field
+import json
+import os
+from pathlib import Path
 
 import numpy as np
 from drtsans.chopper import DiskChopper, DiskChopperConfiguration
@@ -19,46 +21,18 @@ from mantid.simpleapi import LoadNexusProcessed, mtd
 from drtsans.wavelength import Wbands
 
 
-EQSANS_SIX_CHOPPERS_LOGS = ["Speed5", "Phase5", "Speed6", "Phase6"]
+DEFAULT_CHOPPER_CONFIG_PATH = Path("/SNS/EQSANS/shared/chopper_configurations.json")
 
 
-@dataclass(frozen=True)
-class EQSANSFourChoppersConfiguration(DiskChopperConfiguration):
-    """Configuration for the set of four disk choppers in EQSANS.
+def get_chopper_config_file_path() -> Path:
+    """Get the path to the chopper configuration JSON file.
 
-    This is the configuration used at EQSANS prior to the installation of the
-    additional two choppers in 2026.
+    The path can be overridden by setting the environment variable `DRTSANS_EQSANS_CHOPPER_CONFIG_PATH`.
     """
-
-    n_choppers: int = 4
-    aperture: list[float] = field(default_factory=lambda: [129.605, 179.989, 230.010, 230.007])
-    to_source: list[float] = field(default_factory=lambda: [5.700, 7.800, 9.497, 9.507])
-    offsets: dict[FrameMode, list[float]] = field(
-        default_factory=lambda: {
-            FrameMode.not_skip: [9507.0, 9471.0, 9829.7, 9584.3],
-            FrameMode.skip: [19024.0, 18820.0, 19714.0, 19360.0],
-        }
-    )
-
-
-@dataclass(frozen=True)
-class EQSANSSixChoppersConfiguration(DiskChopperConfiguration):
-    """Configuration for the set of six disk choppers in EQSANS.
-
-    This is the configuration used at EQSANS after the installation of the
-    additional two choppers in 2026, resulting in three double choppers.
-    """
-
-    n_choppers: int = 6
-    aperture: list[float] = field(default_factory=lambda: [129.600, 180.000, 230.010, 230.007, 129.600, 180.000])
-    to_source: list[float] = field(default_factory=lambda: [5.7178, 7.7998, 9.4998, 9.5058, 5.7238, 7.8058])
-    offsets: dict[FrameMode, list[float]] = field(
-        default_factory=lambda: {
-            # TODO: Update these offsets when provided by the instrument scientists (EWM 15020)
-            FrameMode.not_skip: [9507.0, 9471.0, 9829.7, 9584.3, 0.0, 0.0],
-            FrameMode.skip: [19024.0, 18820.0, 19714.0, 19360.0, 0.0, 0.0],
-        }
-    )
+    override = os.getenv("DRTSANS_EQSANS_CHOPPER_CONFIG_PATH")
+    if override:
+        return Path(override)
+    return DEFAULT_CHOPPER_CONFIG_PATH
 
 
 class EQSANSDiskChopperSet:
@@ -159,10 +133,11 @@ class EQSANSDiskChopperSet:
         # We end up with the transmission bands of the chopper set
         return wb
 
-    def get_chopper_configuration(self, sample_logs: SampleLogs) -> DiskChopperConfiguration:
+    @staticmethod
+    def get_chopper_configuration(sample_logs: SampleLogs) -> DiskChopperConfiguration:
         r"""
         Get the chopper configuration (number of choppers, apertures, distances to source, offsets)
-        based on the sample logs.
+        from the JSON configuration file based on the log "start_time".
 
         Parameters
         ----------
@@ -174,11 +149,19 @@ class EQSANSDiskChopperSet:
         DiskChopperConfiguration
             Configuration of the disk choppers.
         """
-        has_six_choppers = all(log in sample_logs for log in EQSANS_SIX_CHOPPERS_LOGS)
-        if has_six_choppers:
-            return EQSANSSixChoppersConfiguration()
-        else:
-            return EQSANSFourChoppersConfiguration()
+        # Get daystamp from sample logs (format: YYYYMMDD)
+        start_time_str = sample_logs.start_time.value[0:10]  # "YYYY-MM-DD"
+        daystamp = int(start_time_str.replace("-", ""))  # Convert to YYYYMMDD integer
+
+        # Load configuration from JSON file
+        config_path = get_chopper_config_file_path()
+        path = Path(config_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Configuration file not found: {config_path}")
+        with open(path, "r") as f:
+            configs = json.load(f)
+
+        return DiskChopperConfiguration.from_json(configs, daystamp)
 
     @property
     def period(self):

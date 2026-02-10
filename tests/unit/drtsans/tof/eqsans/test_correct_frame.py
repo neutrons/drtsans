@@ -33,6 +33,8 @@ def test_transmitted_bands_zero_speed_choppers(datarepo_dir, clean_workspace):
         AddSampleLog(ws, "Phase5", "0", LogType="Number Series")
         AddSampleLog(ws, "Speed6", "0", LogType="Number Series")
         AddSampleLog(ws, "Phase6", "0", LogType="Number Series")
+        # overwrite start_time log to simulate run with new chopper configuration
+        AddSampleLog(ws, "start_time", "2026-01-02T05:49:47.754251666", LogType="String")
         clean_workspace(ws)
         bands = correct_frame.transmitted_bands(ws)
         assert_almost_equal((bands.lead.min, bands.lead.max), (2.48, 6.78), decimal=2)

@@ -10,12 +10,12 @@ from drtsans.frame_mode import FrameMode
 from drtsans.wavelength import Wband, Wbands
 
 
-class DiskChopperConfigurationParsingError(Exception):
-    """Raised when there is an error parsing the disk chopper configuration from JSON."""
+class DiskChopperSetConfigurationParsingError(Exception):
+    """Raised when there is an error parsing the disk chopper set configuration from JSON."""
 
 
 @dataclass(frozen=True)
-class DiskChopperConfiguration:
+class DiskChopperSetConfiguration:
     """Configuration for a set of disk choppers.
 
     Attributes
@@ -39,7 +39,7 @@ class DiskChopperConfiguration:
     offsets: dict[FrameMode, list[float]] = field(default_factory=dict)
 
     @classmethod
-    def from_json(cls, json_config: Any, target_daystamp: int) -> "DiskChopperConfiguration":
+    def from_json(cls, json_config: Any, target_daystamp: int) -> "DiskChopperSetConfiguration":
         """Get chopper configuration from JSON object based on daystamp.
 
         Selects the configuration with the largest daystamp that is less than or equal to
@@ -54,12 +54,12 @@ class DiskChopperConfiguration:
 
         Returns
         -------
-        DiskChopperConfiguration
+        DiskChopperSetConfiguration
             The configuration object matching the target daystamp
 
         Raises
         ------
-        DiskChopperConfigurationParsingError
+        DiskChopperSetConfigurationParsingError
              If there is an error parsing the JSON object or if no valid configuration is found for the target daystamp
         """
         # Find all entries that have the required keys
@@ -72,12 +72,12 @@ class DiskChopperConfiguration:
         }
         valid_configs = [entry for entry in json_config if required.issubset(set([str(v) for v in entry.keys()]))]
         if not valid_configs:
-            raise DiskChopperConfigurationParsingError("No valid configuration entries found")
+            raise DiskChopperSetConfigurationParsingError("No valid configuration entries found")
 
         # Find all configurations with daystamp <= target_daystamp
         valid_configs = [cfg for cfg in valid_configs if cfg.get("daystamp", 0) <= target_daystamp]
         if not valid_configs:
-            raise DiskChopperConfigurationParsingError(
+            raise DiskChopperSetConfigurationParsingError(
                 f"No valid configuration found on or before daystamp {target_daystamp}"
             )
 
@@ -90,7 +90,7 @@ class DiskChopperConfiguration:
             if n_choppers <= 0:
                 raise ValueError("n_choppers must be a positive integer")
         except (ValueError, TypeError) as e:
-            raise DiskChopperConfigurationParsingError(f"Invalid n_choppers value '{selected['n_choppers']}': {e}")
+            raise DiskChopperSetConfigurationParsingError(f"Invalid n_choppers value '{selected['n_choppers']}': {e}")
 
         # Parse and validate aperture
         try:
@@ -98,7 +98,7 @@ class DiskChopperConfiguration:
             if len(aperture) != n_choppers:
                 raise ValueError(f"aperture list length ({len(aperture)}) does not match n_choppers ({n_choppers})")
         except (ValueError, TypeError) as e:
-            raise DiskChopperConfigurationParsingError(f"Invalid aperture value '{selected['aperture']}': {e}")
+            raise DiskChopperSetConfigurationParsingError(f"Invalid aperture value '{selected['aperture']}': {e}")
 
         # Parse and validate to_source
         try:
@@ -106,7 +106,7 @@ class DiskChopperConfiguration:
             if len(to_source) != n_choppers:
                 raise ValueError(f"to_source list length ({len(to_source)}) does not match n_choppers ({n_choppers})")
         except (ValueError, TypeError) as e:
-            raise DiskChopperConfigurationParsingError(f"Invalid to_source value '{selected['to_source']}': {e}")
+            raise DiskChopperSetConfigurationParsingError(f"Invalid to_source value '{selected['to_source']}': {e}")
 
         # Parse offsets from strings to FrameMode enums and validate
         offsets_dict = {}
@@ -121,9 +121,9 @@ class DiskChopperConfiguration:
                     )
                 offsets_dict[mode] = offset_values
             except KeyError:
-                raise DiskChopperConfigurationParsingError(f"Invalid frame mode '{mode_str}' in offsets")
+                raise DiskChopperSetConfigurationParsingError(f"Invalid frame mode '{mode_str}' in offsets")
             except (ValueError, TypeError) as e:
-                raise DiskChopperConfigurationParsingError(f"Invalid offsets value for mode '{mode_str}': {e}")
+                raise DiskChopperSetConfigurationParsingError(f"Invalid offsets value for mode '{mode_str}': {e}")
 
         return cls(
             n_choppers=n_choppers,

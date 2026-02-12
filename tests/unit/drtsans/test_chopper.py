@@ -1,7 +1,7 @@
 import pytest
 from numpy.testing import assert_almost_equal
 
-from drtsans.chopper import DiskChopper, DiskChopperConfiguration, DiskChopperConfigurationParsingError
+from drtsans.chopper import DiskChopper, DiskChopperSetConfiguration, DiskChopperSetConfigurationParsingError
 from drtsans.frame_mode import FrameMode
 
 
@@ -61,8 +61,8 @@ class TestDiskChopper:
         assert_almost_equal((wb[0].min, wb[0].max), (0, 0.687), decimal=2)
 
 
-class TestDiskChopperConfiguration:
-    """Unit tests for DiskChopperConfiguration class."""
+class TestDiskChopperSetConfiguration:
+    """Unit tests for DiskChopperSetConfiguration class."""
 
     def _json_data(self):
         """Helper method to provide sample JSON data for testing."""
@@ -77,8 +77,8 @@ class TestDiskChopperConfiguration:
         ]
 
     def test_initialization(self):
-        """Test basic initialization of DiskChopperConfiguration."""
-        config = DiskChopperConfiguration(
+        """Test basic initialization of DiskChopperSetConfiguration."""
+        config = DiskChopperSetConfiguration(
             n_choppers=4,
             aperture=[45, 45, 45, 45],
             to_source=[1.0, 2.0, 3.0, 4.0],
@@ -87,6 +87,8 @@ class TestDiskChopperConfiguration:
         assert config.n_choppers == 4
         assert config.aperture == [45, 45, 45, 45]
         assert config.to_source == [1.0, 2.0, 3.0, 4.0]
+        assert config.offsets[FrameMode.skip] == [0, 0, 0, 0]
+        assert config.offsets[FrameMode.not_skip] == [10, 10, 10, 10]
 
     def test_from_json(self):
         """Test loading configuration from JSON string."""
@@ -108,52 +110,61 @@ class TestDiskChopperConfiguration:
         ]
 
         # Test loading pre-2026 configuration
-        config = DiskChopperConfiguration.from_json(json_data, 20250601)
+        config = DiskChopperSetConfiguration.from_json(json_data, 20250601)
         assert config.n_choppers == 4
         assert config.aperture == [45, 45, 45, 45]
         assert config.to_source == [1.0, 2.0, 3.0, 4.0]
+        assert config.offsets[FrameMode.skip] == [10, 10, 10, 10]
+        assert config.offsets[FrameMode.not_skip] == [0, 0, 0, 0]
 
         # Test loading post-2026 configuration
-        config = DiskChopperConfiguration.from_json(json_data, 20260201)
+        config = DiskChopperSetConfiguration.from_json(json_data, 20260201)
         assert config.n_choppers == 6
         assert config.aperture == [45, 30, 45, 30, 45, 30]
         assert config.to_source == [1.0, 1.5, 2.0, 2.5, 3.0, 3.5]
+        assert config.offsets[FrameMode.skip] == [15, 15, 15, 15, 15, 15]
+        assert config.offsets[FrameMode.not_skip] == [0, 0, 0, 0, 0, 0]
 
     def test_from_json_invalid_date(self):
         """Test from_json raises error for date before any configuration."""
         json_data = self._json_data()
-        with pytest.raises(DiskChopperConfigurationParsingError):
-            DiskChopperConfiguration.from_json(json_data, 20230101)
+        with pytest.raises(DiskChopperSetConfigurationParsingError):
+            DiskChopperSetConfiguration.from_json(json_data, 20230101)
 
     @pytest.mark.parametrize("key_str", ["aperture", "to_source"])
     def test_from_json_wrong_length(self, key_str):
         """Test from_json raises error for mismatched list lengths."""
         json_data = self._json_data()
         json_data[0][key_str] = [45, 45, 45]  # Incorrect length
-        with pytest.raises(DiskChopperConfigurationParsingError, match="list length"):
-            DiskChopperConfiguration.from_json(json_data, 20250601)
+        with pytest.raises(DiskChopperSetConfigurationParsingError, match="list length"):
+            DiskChopperSetConfiguration.from_json(json_data, 20250601)
 
     @pytest.mark.parametrize("key_str", ["aperture", "to_source"])
     def test_from_json_non_float(self, key_str):
         """Test from_json raises error for non-float values."""
         json_data = self._json_data()
         json_data[0][key_str] = [1.0, 2.0, 3.0, "bad data"]
-        with pytest.raises(DiskChopperConfigurationParsingError, match="Invalid"):
-            DiskChopperConfiguration.from_json(json_data, 20250601)
+        with pytest.raises(DiskChopperSetConfigurationParsingError, match="Invalid"):
+            DiskChopperSetConfiguration.from_json(json_data, 20250601)
 
     @pytest.mark.parametrize(
         "key_str,value,expected_error,expected_msg",
         [
-            ("skip", [1.0, 2.0, 3.0], DiskChopperConfigurationParsingError, "length"),
-            ("bogus_mode", [1.0, 2.0, 3.0, 4.0], DiskChopperConfigurationParsingError, "Invalid frame mode"),
-            ("not_skip", [1.0, 2.0, 3.0, "bad_data"], DiskChopperConfigurationParsingError, "Invalid offsets value"),
+            ("skip", [1.0, 2.0, 3.0], DiskChopperSetConfigurationParsingError, "length"),
+            ("bogus_mode", [1.0, 2.0, 3.0, 4.0], DiskChopperSetConfigurationParsingError, "Invalid frame mode"),
+            (
+                "not_skip",
+                [1.0, 2.0, 3.0, "bad_data"],
+                DiskChopperSetConfigurationParsingError,
+                "Invalid offsets value",
+            ),
         ],
     )
     def test_from_json_offsets(self, key_str, value, expected_error, expected_msg):
         json_data = self._json_data()
         json_data[0]["offsets"][key_str] = value
         with pytest.raises(expected_error, match=expected_msg):
-            DiskChopperConfiguration.from_json(json_data, 20250601)
+            DiskChopperSetConfiguration.from_json(json_data, 20250601)
 
 
 if __name__ == "__main__":

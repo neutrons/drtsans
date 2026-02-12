@@ -42,6 +42,7 @@ from drtsans.save_cansas import save_cansas_nx, save_cansas_xml_1D
 from drtsans.settings import namedtuplefy  # noqa E402
 from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
 from drtsans.tof.eqsans.cfg import load_config  # noqa E402
+from drtsans.tof.eqsans.chopper import EQSANSDiskChopperSet
 from drtsans.tof.eqsans.correction_api import (
     parse_correction_config,
 )
@@ -745,6 +746,11 @@ def reduce_single_configuration(
             "n_horizontal": reduction_config["subpixelsX"],
             "n_vertical": reduction_config["subpixelsY"],
         }
+
+    # Chopper configuration file
+    custom_chopper_config_file = reduction_config["chopperConfigurationFileName"]
+    if custom_chopper_config_file is not None:
+        EQSANSDiskChopperSet.configuration_file_path = custom_chopper_config_file
 
     ##############################################
     # PROCESS SAMPLE AND BACKGROUND TRANSMISSIONS

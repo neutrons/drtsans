@@ -7,11 +7,10 @@ bands transmitted by the chopper set, given definite choppers settings such as a
 """
 
 import json
-import os
 from pathlib import Path
 
 import numpy as np
-from drtsans.chopper import DiskChopper, DiskChopperConfiguration
+from drtsans.chopper import DiskChopper, DiskChopperSetConfiguration
 from drtsans.samplelogs import SampleLogs
 from drtsans.frame_mode import FrameMode
 from drtsans.path import exists
@@ -22,17 +21,6 @@ from drtsans.wavelength import Wbands
 
 
 DEFAULT_CHOPPER_CONFIG_PATH = Path("/SNS/EQSANS/shared/chopper_configurations.json")
-
-
-def get_chopper_config_file_path() -> Path:
-    """Get the path to the chopper configuration JSON file.
-
-    The path can be overridden by setting the environment variable `DRTSANS_EQSANS_CHOPPER_CONFIG_PATH`.
-    """
-    override = os.getenv("DRTSANS_EQSANS_CHOPPER_CONFIG_PATH")
-    if override:
-        return Path(override)
-    return DEFAULT_CHOPPER_CONFIG_PATH
 
 
 class EQSANSDiskChopperSet:
@@ -55,6 +43,9 @@ class EQSANSDiskChopperSet:
     #: expressed as the maximum wavelength. This is the default cut-off maximum wavelength, in Angstroms.
     _cutoff_wl = 35
 
+    # Path to the file with chopper configuration depending on the experiment date
+    configuration_file_path = DEFAULT_CHOPPER_CONFIG_PATH
+
     def __init__(self, other):
         # Load choppers settings from the logs
         if isinstance(other, Run) or str(other) in mtd:
@@ -66,12 +57,7 @@ class EQSANSDiskChopperSet:
             raise RuntimeError("{} is not a valid file name, workspace, Run object or run number".format(other))
 
         # Get the chopper configuration (4 or 6 choppers)
-        self.chopper_config: DiskChopperConfiguration = self.get_chopper_configuration(sample_logs)
-
-        self._n_choppers = self.chopper_config.n_choppers
-        self._aperture = self.chopper_config.aperture
-        self._to_source = self.chopper_config.to_source
-        self._offsets = self.chopper_config.offsets
+        self.chopper_config: DiskChopperSetConfiguration = self.get_chopper_configuration(sample_logs.start_time.value)
 
         self._choppers = list()
         for chopper_index in range(self._n_choppers):
@@ -133,35 +119,33 @@ class EQSANSDiskChopperSet:
         # We end up with the transmission bands of the chopper set
         return wb
 
-    @staticmethod
-    def get_chopper_configuration(sample_logs: SampleLogs) -> DiskChopperConfiguration:
+    def get_chopper_configuration(self, start_time: str) -> DiskChopperSetConfiguration:
         r"""
         Get the chopper configuration (number of choppers, apertures, distances to source, offsets)
         from the JSON configuration file based on the log "start_time".
 
         Parameters
         ----------
-        sample_logs: ~drtsans.samplelogs.SampleLogs
-            Sample logs containing the run information.
+        start_time
+            String representing the run start time in the format: "YYYY-MM-DDThh:mm:ssZ"
 
         Returns
         -------
-        DiskChopperConfiguration
+        DiskChopperSetConfiguration
             Configuration of the disk choppers.
         """
         # Get daystamp from sample logs (format: YYYYMMDD)
-        start_time_str = sample_logs.start_time.value[0:10]  # "YYYY-MM-DD"
+        start_time_str = start_time[0:10]  # "YYYY-MM-DD"
         daystamp = int(start_time_str.replace("-", ""))  # Convert to YYYYMMDD integer
 
         # Load configuration from JSON file
-        config_path = get_chopper_config_file_path()
-        path = Path(config_path)
-        if not path.exists():
+        config_path = Path(self.configuration_file_path)
+        if not config_path.exists():
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
-        with open(path, "r") as f:
+        with open(config_path, "r") as f:
             configs = json.load(f)
 
-        return DiskChopperConfiguration.from_json(configs, daystamp)
+        return DiskChopperSetConfiguration.from_json(configs, daystamp)
 
     @property
     def period(self):
@@ -173,3 +157,19 @@ class EQSANSDiskChopperSet:
     @property
     def pulse_width(self):
         return self._pulse_width
+
+    @property
+    def _n_choppers(self):
+        return self.chopper_config.n_choppers
+
+    @property
+    def _aperture(self):
+        return self.chopper_config.aperture
+
+    @property
+    def _to_source(self):
+        return self.chopper_config.to_source
+
+    @property
+    def _offsets(self):
+        return self.chopper_config.offsets

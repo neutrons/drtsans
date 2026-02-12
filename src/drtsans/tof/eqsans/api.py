@@ -153,6 +153,10 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     elastic_ref_trans_run = reduction_config["elasticReference"]["transmission"].get("runNumber")
     elastic_ref_bkgd_trans_run = reduction_config["elasticReferenceBkgd"]["transmission"].get("runNumber")
     blocked_beam_run = reduction_config.get("blockedBeamRunNumber")
+    # chopper configuration file
+    custom_chopper_config_file = reduction_config.get("chopperConfigurationFileName")
+    if custom_chopper_config_file is not None:
+        EQSANSDiskChopperSet.configuration_file_path = custom_chopper_config_file
 
     from drtsans.tof.eqsans.reduction_api import remove_workspaces
 
@@ -746,11 +750,6 @@ def reduce_single_configuration(
             "n_horizontal": reduction_config["subpixelsX"],
             "n_vertical": reduction_config["subpixelsY"],
         }
-
-    # Chopper configuration file
-    custom_chopper_config_file = reduction_config["chopperConfigurationFileName"]
-    if custom_chopper_config_file is not None:
-        EQSANSDiskChopperSet.configuration_file_path = custom_chopper_config_file
 
     ##############################################
     # PROCESS SAMPLE AND BACKGROUND TRANSMISSIONS

@@ -74,11 +74,6 @@
           "description": "additional configuration, such as mask, slits, TOF cuts. Currently, only mask is used.",
           "default": "/SNS/EQSANS/shared/instrument_configuration"
         },
-        "chopperConfigurationFileName": {
-          "$ref": "common.json#/definitions/safeString",
-          "datasource": "file",
-          "description": "Path to chopper configuration file with daystamp and configuration values for number of choppers, apertures (degrees), distances to source (meters) and phase offsets per frame mode (microseconds). Default is /SNS/EQSANS/shared/chopper_configuration.json."
-        },
 
         "useTimeSlice": { "$ref": "common.json#/configuration/useTimeSlice", "default": false },
         "timeSliceInterval": { "$ref": "common.json#/configuration/timeSliceInterval", "default": 300 },

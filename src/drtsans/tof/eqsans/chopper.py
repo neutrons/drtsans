@@ -6,8 +6,8 @@ The main goal of the module is to find the set of neutron wavelength
 bands transmitted by the chopper set, given definite choppers settings such as aperture and starting phase.
 """
 
+import importlib
 import json
-from pathlib import Path
 
 import numpy as np
 from drtsans.chopper import DiskChopper, DiskChopperSetConfiguration
@@ -18,9 +18,6 @@ from mantid.api import Run
 from mantid.simpleapi import LoadNexusProcessed, mtd
 
 from drtsans.wavelength import Wbands
-
-
-DEFAULT_CHOPPER_CONFIG_PATH = Path("/SNS/EQSANS/shared/chopper_configurations.json")
 
 
 class EQSANSDiskChopperSet:
@@ -42,9 +39,6 @@ class EQSANSDiskChopperSet:
     #: The number of wavelength bands transmitted by a disk chopper is determined by the slowest emitted neutron,
     #: expressed as the maximum wavelength. This is the default cut-off maximum wavelength, in Angstroms.
     _cutoff_wl = 35
-
-    # Path to the file with chopper configuration depending on the experiment date
-    configuration_file_path = DEFAULT_CHOPPER_CONFIG_PATH
 
     def __init__(self, other):
         # Load choppers settings from the logs
@@ -139,11 +133,8 @@ class EQSANSDiskChopperSet:
         daystamp = int(start_time_str.replace("-", ""))  # Convert to YYYYMMDD integer
 
         # Load configuration from JSON file
-        config_path = Path(self.configuration_file_path)
-        if not config_path.exists():
-            raise FileNotFoundError(f"Configuration file not found: {config_path}")
-        with open(config_path, "r") as f:
-            configs = json.load(f)
+        with importlib.resources.open_text("drtsans.configuration", "EQSANS_chopper_configurations.json") as file:
+            configs = json.load(file)
 
         return DiskChopperSetConfiguration.from_json(configs, daystamp)
 

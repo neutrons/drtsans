@@ -48,7 +48,7 @@ def flux_to_monitor(datarepo_dir):
 
 
 @pytest.fixture(scope="module")
-def data_ws(datarepo_dir, override_eqsans_chopper_config_file):
+def data_ws(datarepo_dir):
     r"""Two Mantid workspaces containing intensities versus wavelength for each of the EQSANS pixel-detectors.
     The two workspaces correspond to runs 92353 and 88565."""
     ws = dict()

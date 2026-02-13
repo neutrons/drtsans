@@ -1,5 +1,4 @@
 # local imports
-from _pytest.monkeypatch import MonkeyPatch
 
 from drtsans.dataobjects import DataType, getDataType
 from drtsans.geometry import spectrum_info_ranges
@@ -48,7 +47,6 @@ import string
 import sys
 import tempfile
 
-from drtsans.tof.eqsans.chopper import EQSANSDiskChopperSet
 
 # Resolve the path to the "external data"
 this_module_path = sys.modules[__name__].__file__
@@ -70,28 +68,6 @@ HAS_HFIR_MOUNT = os.path.exists(hfir_data_dir)
 ret_val = namedtuple("ret_val", "ipts shared help r f w")
 
 pytest_plugins = ["mantid.fixtures"]
-
-
-# Fixtures that are automatically used in all tests
-
-
-@pytest.fixture(scope="session", autouse=True)
-def override_eqsans_chopper_config_file(datarepo_dir):
-    """Override the class attribute EQSANSDiskChopperSet.configuration_file_path
-
-    This fixture is used in tests to point the class to the configuration file in the test data repo
-    since the default configuration file is on the /SNS file system.
-    """
-    # the fixture monkeypatch is function-scoped, but this fixture needs to be used in other
-    # fixtures with broader scope, therefore, create a new instance of MoneyPatch here
-    mp = MonkeyPatch()
-    chopper_config_file = pjoin(datarepo_dir.eqsans, "chopper_configurations.json")
-    mp.setattr(EQSANSDiskChopperSet, "configuration_file_path", chopper_config_file)
-    yield
-    mp.undo()
-
-
-# END of automatically used fixtures
 
 
 class GetWS(object):

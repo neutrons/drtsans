@@ -110,7 +110,7 @@ def transmitted_bands(input_workspace):
         pulse_period = 1.0e6 / sample_logs.single_value("frequency")
     except RuntimeError:
         pulse_period = 1.0e6 / 60.0  # reasonable default
-    ch = EQSANSDiskChopperSet(input_workspace)  # object representing the four choppers
+    ch = EQSANSDiskChopperSet(input_workspace)  # object representing the choppers (four or six)
     # Wavelength band of neutrons from the leading pulse transmitted
     # by the chopper system
     lead_band = ch.transmission_bands(pulsed=True)[0]
@@ -139,7 +139,7 @@ def limiting_tofs(input_workspace, sdd):
         skip: tuple, tof_min and tof_max for the neutrons of the skip pulse. `None` if the frame mode is 'non-skipping'
     """
     ws = mtd[str(input_workspace)]
-    ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
+    ch = EQSANSDiskChopperSet(ws)  # object representing the choppers (four or six)
     bands = transmitted_bands(ws)
     lead = (wlg.tof(bands.lead.min, sdd, ch.pulse_width), wlg.tof(bands.lead.max, sdd))
     skip = (
@@ -237,7 +237,7 @@ def transmitted_bands_clipped(
     if source_detector_dist is None:
         source_detector_dist = source_detector_distance(input_workspace, unit="m")
 
-    ch = EQSANSDiskChopperSet(input_workspace)  # object representing the four choppers
+    ch = EQSANSDiskChopperSet(input_workspace)  # object representing the choppers (four or six)
     lwc = wlg.from_tof(low_tof_clip, source_detector_dist, ch.pulse_width)  # low wavel. clip
     hwc = wlg.from_tof(high_tof_clip, source_detector_dist)  # high wavelength clip
     bands = transmitted_bands(input_workspace)
@@ -369,7 +369,7 @@ def correct_tof_frame(input_workspace, source_to_component_distance, path_to_pix
     ws = mtd[str(input_workspace)]
     sl = SampleLogs(ws)
     pulse_period = 1.0e6 / sl.frequency.value.mean()  # 10^6/60 micro-seconds
-    ch = EQSANSDiskChopperSet(ws)  # object representing the four choppers
+    ch = EQSANSDiskChopperSet(ws)  # object representing the choppers (four or six)
     # The TOF values recorded are never bigger than the frame width,
     # which is also the choppers' rotational period.
     frame_width = ch.period  # either 10^6/60 or 10^6/30 micro-seconds

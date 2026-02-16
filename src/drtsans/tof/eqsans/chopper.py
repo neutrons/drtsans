@@ -1,18 +1,26 @@
 r"""
-This module provides class `EQSANSDiskChopperSet` representing the set of four disk choppers
-(two of them paired as a double chopper).  The main goal is to find the set of neutron wavelength
+This module provides class `EQSANSDiskChopperSet` representing the set of disk choppers.
+Prior to 2026, EQSANS had four disk choppers (two of them paired as a double chopper).
+Starting in 2026, EQSANS has six disk choppers (three double choppers).
+The main goal of the module is to find the set of neutron wavelength
 bands transmitted by the chopper set, given definite choppers settings such as aperture and starting phase.
 """
 
-from drtsans.chopper import DiskChopper
+import importlib
+import json
+
+import numpy as np
+from drtsans.chopper import DiskChopper, DiskChopperSetConfiguration
 from drtsans.samplelogs import SampleLogs
 from drtsans.frame_mode import FrameMode
 from drtsans.path import exists
 from mantid.api import Run
 from mantid.simpleapi import LoadNexusProcessed, mtd
 
+from drtsans.wavelength import Wbands
 
-class EQSANSDiskChopperSet(object):
+
+class EQSANSDiskChopperSet:
     r"""
     Set of disks choppers installed in EQSANS.
 
@@ -32,23 +40,6 @@ class EQSANSDiskChopperSet(object):
     #: expressed as the maximum wavelength. This is the default cut-off maximum wavelength, in Angstroms.
     _cutoff_wl = 35
 
-    #: number of single-disk choppers in the set.
-    _n_choppers = 4
-
-    #: Transmission aperture of the choppers, in degrees.
-    _aperture = [129.605, 179.989, 230.010, 230.007]
-
-    #: Distance to neutron source (moderator), in meters.
-    _to_source = [5.700, 7.800, 9.497, 9.507]
-
-    #: Phase offsets, in micro-seconds. These values are required to calibrate the value reported in the
-    #: metadata. The combination on the reported phase and this offset is the time (starting from the
-    #: current pulse) at which the middle of the choppers apertures will intersect with the neutron beam axis.
-    _offsets = {
-        FrameMode.not_skip: [9507.0, 9471.0, 9829.7, 9584.3],
-        FrameMode.skip: [19024.0, 18820.0, 19714.0, 19360.0],
-    }
-
     def __init__(self, other):
         # Load choppers settings from the logs
         if isinstance(other, Run) or str(other) in mtd:
@@ -58,6 +49,9 @@ class EQSANSDiskChopperSet(object):
             sample_logs = SampleLogs(ws)
         else:
             raise RuntimeError("{} is not a valid file name, workspace, Run object or run number".format(other))
+
+        # Get the chopper configuration (4 or 6 choppers)
+        self.chopper_config: DiskChopperSetConfiguration = self.get_chopper_configuration(sample_logs.start_time.value)
 
         self._choppers = list()
         for chopper_index in range(self._n_choppers):
@@ -81,7 +75,7 @@ class EQSANSDiskChopperSet(object):
             ch = self._choppers[chopper_index]
             ch.offset = self._offsets[self.frame_mode][chopper_index]
 
-    def transmission_bands(self, cutoff_wl=None, delay=0, pulsed=False):
+    def transmission_bands(self, cutoff_wl: float = None, delay: float = 0, pulsed: bool = False) -> Wbands:
         r"""
         Wavelength bands transmitted by the chopper apertures. The number of bands is determined by the
         slowest neutrons emitted from the moderator.
@@ -105,15 +99,44 @@ class EQSANSDiskChopperSet(object):
         """
         if cutoff_wl is None:
             cutoff_wl = self._cutoff_wl
+        # Filter out the choppers with zero speed, which do not contribute to the transmission bands
+        moving_choppers = [ch for ch in self._choppers if not np.isclose(ch.speed, 0.0)]
+        if not moving_choppers:
+            return Wbands()
         # Transmission bands of the first chopper
-        ch = self._choppers[0]
-        wb = ch.transmission_bands(cutoff_wl, delay, pulsed)
+        wb = moving_choppers[0].transmission_bands(cutoff_wl, delay, pulsed)
         # Find the common transmitted bands between the first chopper
         # and the ensuing choppers
-        for ch in self._choppers[1:]:
-            wb *= ch.transmission_bands(cutoff_wl, delay, pulsed)
+        for ch in moving_choppers[1:]:
+            wb_other = ch.transmission_bands(cutoff_wl, delay, pulsed)
+            wb *= wb_other
         # We end up with the transmission bands of the chopper set
         return wb
+
+    def get_chopper_configuration(self, start_time: str) -> DiskChopperSetConfiguration:
+        r"""
+        Get the chopper configuration (number of choppers, apertures, distances to source, offsets)
+        from the JSON configuration file based on the log "start_time".
+
+        Parameters
+        ----------
+        start_time
+            String representing the run start time in the format: "YYYY-MM-DDThh:mm:ssZ"
+
+        Returns
+        -------
+        DiskChopperSetConfiguration
+            Configuration of the disk choppers.
+        """
+        # Get daystamp from sample logs (format: YYYYMMDD)
+        start_time_str = start_time[0:10]  # "YYYY-MM-DD"
+        daystamp = int(start_time_str.replace("-", ""))  # Convert to YYYYMMDD integer
+
+        # Load configuration from JSON file
+        with importlib.resources.open_text("drtsans.configuration", "EQSANS_chopper_configurations.json") as file:
+            configs = json.load(file)
+
+        return DiskChopperSetConfiguration.from_json(configs, daystamp)
 
     @property
     def period(self):
@@ -125,3 +148,19 @@ class EQSANSDiskChopperSet(object):
     @property
     def pulse_width(self):
         return self._pulse_width
+
+    @property
+    def _n_choppers(self):
+        return self.chopper_config.n_choppers
+
+    @property
+    def _aperture(self):
+        return self.chopper_config.aperture
+
+    @property
+    def _to_source(self):
+        return self.chopper_config.to_source
+
+    @property
+    def _offsets(self):
+        return self.chopper_config.offsets

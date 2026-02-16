@@ -1,4 +1,5 @@
 # local imports
+
 from drtsans.dataobjects import DataType, getDataType
 from drtsans.geometry import spectrum_info_ranges
 from drtsans.instruments import fetch_idf as instruments_fetch_idf
@@ -45,6 +46,7 @@ from shutil import rmtree
 import string
 import sys
 import tempfile
+
 
 # Resolve the path to the "external data"
 this_module_path = sys.modules[__name__].__file__

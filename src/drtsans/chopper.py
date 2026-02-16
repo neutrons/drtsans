@@ -4,10 +4,136 @@ main goal is to find the set of neutron wavelength bands transmitted by the chop
 settings such as aperture and starting phase.
 """
 
+from dataclasses import dataclass, field
+from typing import Any
+from drtsans.frame_mode import FrameMode
 from drtsans.wavelength import Wband, Wbands
 
 
-class DiskChopper(object):
+class DiskChopperSetConfigurationParsingError(Exception):
+    """Raised when there is an error parsing the disk chopper set configuration from JSON."""
+
+
+@dataclass(frozen=True)
+class DiskChopperSetConfiguration:
+    """Configuration for a set of disk choppers.
+
+    Attributes
+    ----------
+    n_choppers: int
+        Number of single disk choppers in the set.
+    aperture: list[float]
+        List of transmission aperture widths (in degrees) for each chopper.
+    to_source: list[float]
+        List of distances to the neutron source (in meters) for each chopper.
+    offsets: dict[FrameMode, list[float]]
+        Dictionary mapping frame modes to lists of offset phases (in micro seconds) for each chopper.
+        These values are required to calibrate the value reported in the metadata. The combination on
+        the reported phase and this offset is the time (starting from the current pulse) at which the
+        middle of the choppers apertures will intersect with the neutron beam axis.
+    """
+
+    n_choppers: int
+    aperture: list[float] = field(default_factory=list)
+    to_source: list[float] = field(default_factory=list)
+    offsets: dict[FrameMode, list[float]] = field(default_factory=dict)
+
+    @classmethod
+    def from_json(cls, json_config: Any, target_daystamp: int) -> "DiskChopperSetConfiguration":
+        """Get chopper configuration from JSON object based on daystamp.
+
+        Selects the configuration with the largest daystamp that is less than or equal to
+        the target daystamp.
+
+        Parameters
+        ----------
+        json_config
+            JSON configuration
+        target_daystamp
+            8-digit integer whose digits are to be understood as YYYYMMDD (e.g., 20260209)
+
+        Returns
+        -------
+        DiskChopperSetConfiguration
+            The configuration object matching the target daystamp
+
+        Raises
+        ------
+        DiskChopperSetConfigurationParsingError
+             If there is an error parsing the JSON object or if no valid configuration is found for the target daystamp
+        """
+        # Find all entries that have the required keys
+        required = {
+            "n_choppers",
+            "aperture",
+            "to_source",
+            "offsets",
+            "daystamp",
+        }
+        valid_configs = [entry for entry in json_config if required.issubset(set([str(v) for v in entry.keys()]))]
+        if not valid_configs:
+            raise DiskChopperSetConfigurationParsingError("No valid configuration entries found")
+
+        # Find all configurations with daystamp <= target_daystamp
+        valid_configs = [cfg for cfg in valid_configs if cfg.get("daystamp", 0) <= target_daystamp]
+        if not valid_configs:
+            raise DiskChopperSetConfigurationParsingError(
+                f"No valid configuration found on or before daystamp {target_daystamp}"
+            )
+
+        # Select the configuration with the largest daystamp
+        selected = max(valid_configs, key=lambda x: x.get("daystamp", 0))
+
+        # Parse and validate n_choppers
+        try:
+            n_choppers = int(selected["n_choppers"])
+            if n_choppers <= 0:
+                raise ValueError("n_choppers must be a positive integer")
+        except (ValueError, TypeError) as e:
+            raise DiskChopperSetConfigurationParsingError(f"Invalid n_choppers value '{selected['n_choppers']}': {e}")
+
+        # Parse and validate aperture
+        try:
+            aperture = [float(x) for x in selected["aperture"]]
+            if len(aperture) != n_choppers:
+                raise ValueError(f"aperture list length ({len(aperture)}) does not match n_choppers ({n_choppers})")
+        except (ValueError, TypeError) as e:
+            raise DiskChopperSetConfigurationParsingError(f"Invalid aperture value '{selected['aperture']}': {e}")
+
+        # Parse and validate to_source
+        try:
+            to_source = [float(x) for x in selected["to_source"]]
+            if len(to_source) != n_choppers:
+                raise ValueError(f"to_source list length ({len(to_source)}) does not match n_choppers ({n_choppers})")
+        except (ValueError, TypeError) as e:
+            raise DiskChopperSetConfigurationParsingError(f"Invalid to_source value '{selected['to_source']}': {e}")
+
+        # Parse offsets from strings to FrameMode enums and validate
+        offsets_dict = {}
+        for mode_str, values in selected["offsets"].items():
+            try:
+                mode = FrameMode[mode_str]  # Convert string to FrameMode enum
+                offset_values = [float(x) for x in values]
+                if len(offset_values) != n_choppers:
+                    raise ValueError(
+                        f"offsets list length ({len(offset_values)}) for mode '{mode_str}' "
+                        f"does not match n_choppers ({n_choppers})"
+                    )
+                offsets_dict[mode] = offset_values
+            except KeyError:
+                raise DiskChopperSetConfigurationParsingError(f"Invalid frame mode '{mode_str}' in offsets")
+            except (ValueError, TypeError) as e:
+                raise DiskChopperSetConfigurationParsingError(f"Invalid offsets value for mode '{mode_str}': {e}")
+
+        return cls(
+            n_choppers=n_choppers,
+            aperture=aperture,
+            to_source=to_source,
+            offsets=offsets_dict,
+        )
+
+
+class DiskChopper:
     r"""
     Rotating disk chopper with an aperture of a certain width letting neutrons through.
 

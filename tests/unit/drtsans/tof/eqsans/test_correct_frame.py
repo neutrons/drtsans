@@ -4,7 +4,7 @@ import pytest
 from pytest import approx
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_allclose
-from mantid.simpleapi import Load, CreateWorkspace, CreateSampleWorkspace
+from mantid.simpleapi import AddSampleLog, Load, CreateWorkspace, CreateSampleWorkspace
 from mantid.kernel import DateAndTime, amend_config
 from drtsans import wavelength as sans_wavelength
 from drtsans.samplelogs import SampleLogs
@@ -22,6 +22,23 @@ def test_transmitted_bands(datarepo_dir, clean_workspace):
         bands = correct_frame.transmitted_bands(ws)
         assert_almost_equal((bands.lead.min, bands.lead.max), (2.48, 6.78), decimal=2)
         assert_almost_equal((bands.skip.min, bands.skip.max), (10.90, 15.23), decimal=2)
+
+
+@pytest.mark.datarepo
+def test_transmitted_bands_zero_speed_choppers(datarepo_dir, clean_workspace):
+    """Test that the transmitted bands are correctly calculated when some choppers have zero speed."""
+    with amend_config(data_dir=datarepo_dir.eqsans):
+        ws = Load(Filename="EQSANS_86217.nxs.h5")
+        AddSampleLog(ws, "Speed5", "0", LogType="Number Series")
+        AddSampleLog(ws, "Phase5", "0", LogType="Number Series")
+        AddSampleLog(ws, "Speed6", "0", LogType="Number Series")
+        AddSampleLog(ws, "Phase6", "0", LogType="Number Series")
+        # overwrite start_time log to simulate run with new chopper configuration
+        AddSampleLog(ws, "start_time", "2026-01-02T05:49:47.754251666", LogType="String")
+        clean_workspace(ws)
+        bands = correct_frame.transmitted_bands(ws)
+        assert_almost_equal((bands.lead.min, bands.lead.max), (2.48, 6.78), decimal=2)
+        assert_almost_equal((bands.skip.min, bands.skip.max), (10.87, 15.23), decimal=2)
 
 
 @pytest.mark.datarepo

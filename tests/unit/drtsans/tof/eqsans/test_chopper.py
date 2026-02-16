@@ -2,7 +2,10 @@ import pytest
 from os.path import join as pjn
 from numpy.testing import assert_almost_equal
 
-from drtsans.tof.eqsans.chopper import FrameMode, EQSANSDiskChopperSet
+from drtsans.tof.eqsans.chopper import (
+    FrameMode,
+    EQSANSDiskChopperSet,
+)
 
 
 class TestEQSANSDiskChopperSet:

@@ -1440,7 +1440,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
 
 def form_output_name(workspace):
     workspace_name = str(workspace)
-    file_name = workspace_name.split("/")[-1].split(".")[0]
+    file_name = workspace_name.rsplit("/", maxsplit=1)[-1].split(".")[0]
     return f"{file_name}.png"
 
 

@@ -396,7 +396,7 @@ def export_iq_comparison(iq1d_tuple_list: List[Tuple[str, IQmod, str]], png_name
     plt.legend()
 
     # save
-    plt.savefig(f"{png_name.split('.')[0]}_error_bar.png")
+    plt.savefig(f"{png_name.split('.', maxsplit=1)[0]}_error_bar.png")
     # close
     plt.close()
 

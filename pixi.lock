@@ -8,8 +8,6 @@ environments:
     - url: https://prefix.dev/pixi-build-backends/
     indexes:
     - https://pypi.org/simple
-    options:
-      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -124,8 +122,6 @@ environments:
     - url: https://prefix.dev/pixi-build-backends/
     indexes:
     - https://pypi.org/simple
-    options:
-      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -529,8 +525,6 @@ environments:
     - url: https://prefix.dev/pixi-build-backends/
     indexes:
     - https://pypi.org/simple
-    options:
-      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -1448,9 +1442,10 @@ packages:
   timestamp: 1739569648873
 - pypi: ./
   name: drtsans
-  version: 1.25.0.dev18
+  version: 1.26.0.dev1
   sha256: 875bd9df2bc868cce05de30b35709430d2911f250e674cb78ea310a31b10e42d
   requires_python: '>=3.11'
+  editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/editdistance-s-1.0.0-py314h9891dd4_7.conda
   sha256: 8ec13a26f553445041138bc7d0cfd3909f9059533adcecd3a1f5f29f42f46831
   md5: 2111df2165d475f89934dbceeb61110c

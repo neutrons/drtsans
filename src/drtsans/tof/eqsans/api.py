@@ -23,9 +23,9 @@ from drtsans import (
 )  # noqa E402
 from drtsans.beam_finder import fbc_options_json, find_beam_center  # noqa E402
 from drtsans.dataobjects import save_i1d, I1DAnnular  # noqa E402
+from drtsans.eventslice import resolve_slicing
 from drtsans.instruments import extract_run_number  # noqa E402
 from drtsans.iq import bin_all  # noqa E402
-from drtsans.load import resolve_slicing
 from drtsans.mask_utils import apply_mask, load_mask  # noqa E402
 from drtsans.path import (  # noqa E402
     abspath,

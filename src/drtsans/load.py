@@ -1,7 +1,7 @@
 # standard modules
 import h5py
 import re
-from typing import List, Tuple, Union
+from typing import List, Union
 
 # third party modules
 import mantid
@@ -166,6 +166,7 @@ def load_events(
         Additional positional arguments for loading algorithm;
         :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`,
         or :ref:`LoadEventAsWorkspace2D <algm-LoadEventAsWorkspace2D-v1>`.
+        May contain filtering options such as ``FilterByTimeStart`` and ``FilterByTimeStop``.
 
     Returns
     -------
@@ -651,34 +652,3 @@ def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monito
     )
 
     return mtd[output_workspace]
-
-
-def resolve_slicing(reduction_input: dict) -> Tuple[bool, bool]:
-    r"""
-    Resolve if the reduction configuration parameters specify time or log slicing
-
-
-    Parameters
-    ----------
-    reduction_input
-        Dictionary of reduction configuration parameters
-
-    Returns
-    -------
-    boolean values for time and log slicing, respectively
-
-    Raises
-    ------
-    ValueError
-        - If the sample input data is composed of more than one run
-        - If both time and log slicing are ``True``
-    """
-    parameters = reduction_input["configuration"]
-    timeslice, logslice = parameters["useTimeSlice"], parameters["useLogSlice"]
-    if timeslice and logslice:
-        raise ValueError("Can't do both time and log slicing")
-    if timeslice or logslice:
-        sample = reduction_input["sample"]["runNumber"]
-        if len(sample.split(",")) > 1:
-            raise ValueError("Can't do slicing on summed data sets")
-    return timeslice, logslice

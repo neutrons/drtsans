@@ -12,7 +12,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 # package imports
-from drtsans.load import _insert_periodic_timeslice_log, __monitor_counts, load_events, resolve_slicing
+from drtsans.load import _insert_periodic_timeslice_log, __monitor_counts, load_events
 from drtsans.samplelogs import SampleLogs
 
 
@@ -97,21 +97,6 @@ def test_periodic_timeslice_log(temp_workspace_name, ID, time_interval, duration
         # and again, [0 : 60 / 8 = 7.5 : 1]
         assert log.lastValue() == np.floor((60 - 42) / 8)
         assert max(log.value) == np.floor(60 / 8)
-
-
-def test_resolve_slicing():
-    options = {"configuration": {"useTimeSlice": True, "useLogSlice": False}, "sample": {"runNumber": "12345"}}
-    assert resolve_slicing(options) == (True, False)
-
-    with pytest.raises(ValueError) as except_info:
-        options["configuration"]["useLogSlice"] = True
-        resolve_slicing(options)
-    assert "Can't do both time and log slicing" in str(except_info.value)
-
-    options = {"configuration": {"useTimeSlice": True, "useLogSlice": False}, "sample": {"runNumber": "1,2,3"}}
-    with pytest.raises(ValueError) as except_info:
-        resolve_slicing(options)
-    assert "Can't do slicing on summed data sets" in str(except_info.value)
 
 
 class TestLoadEvents:

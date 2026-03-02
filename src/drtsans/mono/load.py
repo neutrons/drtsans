@@ -482,7 +482,9 @@ def load_and_split(
     reduction_config: dict
         Dictionary containing all parameters under entry "configuration" of the input reduction options.
     kwargs: dict
-        Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
+        Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`,
+        or :ref:`LoadEventAsWorkspace2D <algm-LoadEventAsWorkspace2D-v1>`.
+        May contain filtering options such as ``FilterByTimeStart`` and ``FilterByTimeStop``.
 
     Returns
     -------

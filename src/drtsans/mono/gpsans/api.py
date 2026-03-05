@@ -27,7 +27,6 @@ from drtsans.eventslice import resolve_slicing
 from drtsans.instruments import extract_run_number, instrument_filesystem_name
 from drtsans.iq import bin_all
 from drtsans.load import move_instrument
-from drtsans.polarization import PolarizationLevel
 from drtsans.mask_utils import apply_mask, load_mask
 from drtsans.mono import meta_data
 from drtsans.mono.absolute_units import empty_beam_scaling
@@ -236,13 +235,8 @@ def load_all_files(
         dark_current_run=False,
     )
 
-    # Resolve polarization level and include it in the reduction configuration
-    sample_filepath = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
-    reduction_config["polarization"] = {"level": str(PolarizationLevel.get(sample_filepath))}
-    polarized = reduction_config["polarization"]["level"] != PolarizationLevel.NONE
-
-    # check for time/log slicing
-    timeslice, logslice = resolve_slicing(reduction_input)
+    # check for time/log/polarized slicing
+    timeslice, logslice, polarized = resolve_slicing(reduction_input)
 
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}

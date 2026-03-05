@@ -187,6 +187,57 @@ PV_ANALYZER_FLIPPER = "AnalyzerFlipper"
 PV_ANALYZER_VETO = "AnalyzerVeto"
 
 
+def polarized_sample(reduction_parameters: dict) -> bool:
+    r"""
+    Determine if the sample run involves polarized neutrons.
+
+    This function checks for polarization under `reduction_config['polarization']['level']`.
+    If the settings are missing, it examines the sample metadata to determine the polarization level.
+
+    Parameters
+    ----------
+    reduction_parameters : dict
+        Dictionary of reduction configuration parameters. It can be either the full reduction input containing
+        a "reduction_config" key or just the reduction configuration itself.
+
+    Returns
+    -------
+    bool
+        True if the sample is polarized (polarization level is not NONE), False otherwise.
+
+    Raises
+    ------
+    ValueError
+        If multiple sample runs are provided and the first sample represents a polarized run.
+        Currently, we can't reduce polarization for summed datasets.
+
+    Notes
+    -----
+    The function modifies the reduction configuration by setting the polarization level in
+    `reduction_config['polarization']['level']` if not previously specified.
+    """
+
+    if "configuration" in reduction_parameters:
+        reduction_config = reduction_parameters["configuration"]
+    else:
+        reduction_config = reduction_parameters
+
+    if reduction_config.get("polarization", {}).get("level", None) is None:
+        sample = reduction_parameters["sample"]["runNumber"].strip()
+        multiple_samples = len(sample.split(",")) > 1
+        if multiple_samples:
+            sample = sample.split(",")[0]  # inquire from the first sample
+        sample_filepath = abspath(
+            sample, instrument=reduction_parameters["instrumentName"], ipts=reduction_parameters["iptsNumber"]
+        )
+        level = PolarizationLevel.get(sample_filepath)
+        if multiple_samples and level != PolarizationLevel.NONE:
+            raise ValueError("Can't do polarization reduction on summed data sets")
+        reduction_config["polarization"] = {"level": str(level)}
+
+    return reduction_config["polarization"]["level"] != PolarizationLevel.NONE
+
+
 def _calc_flipping_ratio(polarization):
     """Calculates the flipping ratio from the polarization state
 

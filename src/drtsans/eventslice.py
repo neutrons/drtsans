@@ -1,5 +1,7 @@
 from typing import Tuple
 
+from drtsans.polarization import polarized_sample
+
 
 def resolve_slicing(reduction_input: dict) -> Tuple[bool, bool]:
     r"""
@@ -21,12 +23,15 @@ def resolve_slicing(reduction_input: dict) -> Tuple[bool, bool]:
         - If the sample input data is composed of more than one run
         - If both time and log slicing are ``True``
     """
-    parameters = reduction_input["configuration"]
-    timeslice, logslice = parameters["useTimeSlice"], parameters["useLogSlice"]
+    reduction_config = reduction_input["configuration"]
+    timeslice, logslice = reduction_config["useTimeSlice"], reduction_config["useLogSlice"]
     if timeslice and logslice:
         raise ValueError("Can't do both time and log slicing")
-    if timeslice or logslice:
-        sample = reduction_input["sample"]["runNumber"]
-        if len(sample.split(",")) > 1:
-            raise ValueError("Can't do slicing on summed data sets")
-    return timeslice, logslice
+    sample = reduction_input["sample"]["runNumber"]
+    multiple_samples = len(sample.split(",")) > 1
+    if (timeslice or logslice) and multiple_samples:
+        raise ValueError("Can't do slicing on summed data sets")
+    polarized = polarized_sample(reduction_input)
+    if (timeslice and polarized) or (logslice and polarized):
+        raise NotImplementedError("Time or log slicing on polarized data sets is not implemented yet")
+    return timeslice, logslice, polarized

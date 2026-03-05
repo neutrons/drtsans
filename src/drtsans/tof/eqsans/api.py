@@ -212,7 +212,7 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     # ----- END OF SETUP of load_params -----
 
     # check for time/log slicing
-    timeslice, logslice = resolve_slicing(reduction_input)
+    timeslice, logslice, polarized = resolve_slicing(reduction_input)
     load_params_sample = {**sample_load_options, **load_params}
     # Load (and optionally slice) sample runs
     # special loading case for sample to allow the slicing options

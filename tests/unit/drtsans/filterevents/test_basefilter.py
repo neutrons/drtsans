@@ -1,6 +1,6 @@
 import pytest
 
-from drtsans.eventslice import resolve_slicing
+from drtsans.filterevents import resolve_slicing
 
 
 def test_resolve_slicing():

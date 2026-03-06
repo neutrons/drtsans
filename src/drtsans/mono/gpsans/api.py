@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
 from drtsans.beam_finder import center_detector, fbc_options_json, find_beam_center
 from drtsans.dataobjects import save_i1d
-from drtsans.eventslice import resolve_slicing
+from drtsans.filterevents import resolve_slicing
 from drtsans.instruments import extract_run_number, instrument_filesystem_name
 from drtsans.iq import bin_all
 from drtsans.load import move_instrument

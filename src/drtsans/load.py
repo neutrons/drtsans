@@ -34,6 +34,7 @@ from drtsans.instruments import (
 )
 from drtsans.path import abspath, registered_workspace, exists as path_exists
 from drtsans.pixel_calibration import apply_calibrations
+from drtsans.polarization import polarized_sample
 from drtsans.samplelogs import SampleLogs, periodic_index_log
 
 
@@ -475,8 +476,9 @@ def load_and_split(
         Reference to the workspace groups containing all the split workspaces
 
     """
-    if not (time_interval or (log_name and log_value_interval)):
-        raise ValueError("Must provide with time_interval or log_name and log_value_interval")
+    polarized = polarized_sample(reduction_config) if reduction_config is not None else False
+    if not (time_interval or (log_name and log_value_interval) or polarized):
+        raise ValueError("Load and split called with no slicing parameters")
 
     # Check whether we need to load or not
     run = str(run)
@@ -528,7 +530,7 @@ def load_and_split(
         )
         time_interval, log_value_interval = None, 1
 
-    # Create event filter workspace
+    # Create output splitter and info filter workspaces
     splitter_workspace = "_filter"
     info_workspace = "_info"
     GenerateEventsFilter(
@@ -598,7 +600,7 @@ def load_and_split(
             samplelogs.insert("slice_start", float(slice_start), samplelogs[log_name].units)
             samplelogs.insert("slice_end", float(slice_end), samplelogs[log_name].units)
 
-    # Clean up
+    # Clean up temporary workspaces
     for name in [all_events_workspace, splitter_workspace, info_workspace]:
         DeleteWorkspace(name)
 

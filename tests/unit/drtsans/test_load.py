@@ -12,8 +12,8 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 # package imports
-from drtsans.load import _insert_periodic_timeslice_log, __monitor_counts, load_events
-from drtsans.samplelogs import SampleLogs
+from drtsans.load import __monitor_counts, load_events
+from drtsans.samplelogs import SampleLogs, periodic_index_log
 
 
 def test_monitor_counts():
@@ -64,9 +64,21 @@ def test_periodic_timeslice_log(temp_workspace_name, ID, time_interval, duration
 
     # insert the periodic log starting 42 seconds after run_start
     # and having values from zero up to period / time_interval - 1
-    _insert_periodic_timeslice_log(
-        workspace, name="periodic_log", time_interval=time_interval, time_period=time_period, time_offset=time_offset
+    try:
+        run_start = sample_logs.run_start.value
+    except AttributeError:
+        run_start = sample_logs.start_time.value
+
+    log = periodic_index_log(
+        period=time_period,
+        interval=time_interval,
+        duration=sample_logs.run_duration,
+        run_start=run_start,
+        offset=time_offset,
+        step=1.0,
+        name="periodic_log",
     )
+    sample_logs.insert(name="periodic_log", value=log)
 
     sample_logs = SampleLogs(workspace)
     log = sample_logs["periodic_log"]

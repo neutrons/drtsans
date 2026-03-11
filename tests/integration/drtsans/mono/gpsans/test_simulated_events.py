@@ -257,7 +257,6 @@ def create_three_rings_pattern(config: dict, metadata: dict):
     return None
 
 
-@pytest.mark.datarepo
 @pytest.fixture(scope="module")
 @namedtuplefy
 def three_rings_pattern(datarepo_dir) -> dict:

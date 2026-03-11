@@ -16,7 +16,7 @@ def test_load_and_split(datarepo_dir, clean_workspace):
             sample_to_si_name="CG2:CS:SampleToSi",
             si_nominal_distance=0.0,
         )
-    assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
+    assert "Load and split called with no slicing parameters" in str(excinfo.value)
 
     filtered_ws = load_and_split(
         filename,
@@ -65,7 +65,7 @@ def test_load_and_split_overwrite_ssd(datarepo_dir, clean_workspace):
             sample_to_si_name="CG2:CS:SampleToSi",
             si_nominal_distance=0.0,
         )
-    assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
+    assert "Load and split called with no slicing parameters" in str(excinfo.value)
 
     filtered_ws = load_and_split(
         filename,

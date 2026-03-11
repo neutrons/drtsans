@@ -7,7 +7,7 @@ reduction configuration parameters.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, Tuple, List
 from mantid.api import IEventWorkspace
 from mantid.simpleapi import GenerateEventsFilter, FilterEvents
 
@@ -44,8 +44,9 @@ class FilterStrategy(ABC):
     >>> class MyFilter(FilterStrategy):
     ...     def generate_filter(self):
     ...         return {'TimeInterval': 10.0}
-    ...     def get_metadata(self, slice_idx):
-    ...         return {'slice_parameter': 'time'}
+    ...     def inject_metadata(self, output_workspace):
+    ...         # Add metadata to each slice
+    ...         pass
     """
 
     def __init__(self, workspace: Union[str, IEventWorkspace]):
@@ -87,37 +88,44 @@ class FilterStrategy(ABC):
         pass
 
     @abstractmethod
-    def get_metadata(self, slice_idx: int) -> dict:
+    def inject_metadata(self, output_workspace: str) -> None:
         """
-        Get metadata specific to this filter type for a given slice.
+        Inject metadata into all sliced workspaces in the output workspace group.
 
-        This method extracts relevant information about the filtering parameters
-        and the specific slice to be added to the workspace's sample logs.
+        This method must be implemented by concrete strategy classes to add
+        filter-specific metadata to each workspace slice. It should add both
+        common metadata (slice number, total slices) and filter-specific metadata
+        (parameter name, interval, start/end values with appropriate units).
 
         Parameters
         ----------
-        slice_idx : int
-            Index of the filtered workspace slice (0-based)
+        output_workspace : str
+            Name of the workspace group containing the filtered workspaces
 
-        Returns
-        -------
-        dict
-            Dictionary of metadata key-value pairs to add to sample logs.
-            Common keys include:
-            - 'slice_parameter': Name or description of the slicing parameter
-            - 'slice_interval': The interval value used for slicing
-            - 'slice_start': Start value/time of this slice
-            - 'slice_end': End value/time of this slice
+        Notes
+        -----
+        Each implementation should add the following metadata to each slice:
+        - 'slice': Slice number (1-based)
+        - 'number_of_slices': Total number of slices
+        - 'slice_info': Comment from the workspace
+        - 'slice_parameter': Name/description of the slicing parameter
+        - 'slice_interval': The interval value used
+        - 'slice_start': Start value for this slice (with units if applicable)
+        - 'slice_end': End value for this slice (with units if applicable)
 
         Examples
         --------
-        >>> def get_metadata(self, slice_idx):
-        ...     return {
-        ...         'slice_parameter': 'relative time from start',
-        ...         'slice_interval': self.time_interval,
-        ...         'slice_start': slice_idx * self.time_interval,
-        ...         'slice_end': (slice_idx + 1) * self.time_interval
-        ...     }
+        >>> def inject_metadata(self, output_workspace):
+        ...     workspace_group = mtd[output_workspace]
+        ...     for n in range(workspace_group.getNumberOfEntries()):
+        ...         slice_ws = workspace_group.getItem(n)
+        ...         samplelogs = SampleLogs(slice_ws)
+        ...         # Add common metadata
+        ...         samplelogs.insert("slice", n + 1)
+        ...         samplelogs.insert("number_of_slices", workspace_group.getNumberOfEntries())
+        ...         # Add filter-specific metadata
+        ...         samplelogs.insert("slice_parameter", "relative time from start")
+        ...         # ... add interval, start/end times with units
         """
         pass
 
@@ -239,31 +247,38 @@ def resolve_slicing(reduction_input: dict) -> Tuple[bool, bool, bool]:
 
 
 def create_filter_strategy(
-    workspace: MantidWorkspace, reduction_config: Optional[dict] = None, **kwargs
+    workspace: MantidWorkspace,
+    reduction_config: Optional[dict] = None,
+    time_interval: Optional[Union[float, List]] = None,
+    time_offset: float = 0.0,
+    time_period: Optional[float] = None,
+    log_name: Optional[str] = None,
+    log_value_interval: Optional[float] = None,
 ) -> FilterStrategy:
     """
     Factory function to create the appropriate filter strategy.
 
     This function analyzes the input parameters and instantiates the correct
-    FilterStrategy subclass. It supports both reduction configuration dictionaries
-    and direct parameter specifications.
+    FilterStrategy subclass based on the provided filtering parameters.
 
     Parameters
     ----------
     workspace : MantidWorkspace
         Input workspace to filter (workspace object or name)
     reduction_config : dict, optional
-        Reduction configuration dictionary. If provided, the filtering type and
-        parameters are extracted from this dictionary using :func:`resolve_slicing`.
-        Should contain keys like "configuration" with "useTimeSlice", "useLogSlice",
-        "timeSliceInterval", "logSliceName", etc.
-    **kwargs
-        Direct filter parameters. Supported parameters depend on the filter type:
-
-        - For time filtering: ``time_interval``, ``time_offset``
-        - For periodic time filtering: ``time_interval``, ``time_period``, ``time_offset``
-        - For log filtering: ``log_name``, ``log_value_interval``
-        - For spin filtering: ``pv_polarizer_state``, ``pv_analyzer_state``, etc.
+        Reduction configuration dictionary. Only used to detect if the sample
+        is polarized. All other filter parameters should be passed explicitly.
+    time_interval : float or list of float, optional
+        Time interval(s) for time-based splitting, in seconds
+    time_offset : float, optional
+        Offset for the start time, in seconds. Default is 0.0
+    time_period : float, optional
+        Period for periodic time slicing, in seconds. If provided with
+        time_interval, creates a PeriodicTimeFilter
+    log_name : str, optional
+        Name of the sample log for log-based filtering
+    log_value_interval : float, optional
+        Interval of log value changes for log-based filtering
 
     Returns
     -------
@@ -274,23 +289,12 @@ def create_filter_strategy(
     ------
     ValueError
         If no valid filtering parameters are provided
+    NotImplementedError
+        If polarized sample is detected (spin filtering not yet supported)
 
     Examples
     --------
-    Create a filter from reduction config:
-
-    >>> config = {
-    ...     "configuration": {
-    ...         "useTimeSlice": True,
-    ...         "timeSliceInterval": 10.0,
-    ...         "timeSliceOffset": 5.0
-    ...     },
-    ...     "sample": {"runNumber": "12345"}
-    ... }
-    >>> strategy = create_filter_strategy(workspace, reduction_config=config)
-    >>> strategy.apply_filter("output_ws")
-
-    Create a filter with direct parameters:
+    Create a time filter:
 
     >>> strategy = create_filter_strategy(
     ...     workspace,
@@ -306,62 +310,66 @@ def create_filter_strategy(
     ...     time_interval=5.0,
     ...     time_period=60.0
     ... )
+    >>> strategy.apply_filter("output_ws")
+
+    Create a log filter:
+
+    >>> strategy = create_filter_strategy(
+    ...     workspace,
+    ...     log_name='SampleTemp',
+    ...     log_value_interval=5.0
+    ... )
+    >>> strategy.apply_filter("output_ws")
 
     Notes
     -----
-    When both ``reduction_config`` and ``kwargs`` are provided, ``reduction_config``
-    takes precedence for determining the filter type, but ``kwargs`` can provide
-    additional parameters not present in the config.
+    The function determines which filter to use based on which parameters
+    are provided:
+
+    - time_interval + time_period → PeriodicTimeFilter
+    - time_interval → TimeIntervalFilter
+    - log_name + log_value_interval → LogValueFilter
+
+    Polarized samples are not yet supported by this factory function.
     """
     # Import here to avoid circular dependencies
     from drtsans.filterevents.timefilter import TimeIntervalFilter, PeriodicTimeFilter
     from drtsans.filterevents.logfilter import LogValueFilter
-    from drtsans.filterevents.spinfilter import SpinFilter
 
-    # Resolve from reduction config if provided
-    if reduction_config:
-        time_slice, log_slice, spin_slice = resolve_slicing(reduction_config)
-
-        if spin_slice:
-            return SpinFilter(workspace, **kwargs)
-        elif time_slice:
-            # Extract time parameters from config
-            config = reduction_config["configuration"]
-            time_interval = config.get("timeSliceInterval")
-            time_offset = config.get("timeSliceOffset", 0.0)
-            time_period = config.get("timeSlicePeriod")
-
-            # Override with kwargs if provided
-            time_interval = kwargs.get("time_interval", time_interval)
-            time_offset = kwargs.get("time_offset", time_offset)
-            time_period = kwargs.get("time_period", time_period)
-
-            if time_period:
-                return PeriodicTimeFilter(workspace, time_interval, time_period, time_offset)
-            else:
-                return TimeIntervalFilter(workspace, time_interval, time_offset)
-        elif log_slice:
-            # Extract log parameters from config
-            config = reduction_config["configuration"]
-            log_name = config.get("logSliceName")
-            log_value_interval = config.get("logSliceInterval")
-
-            # Override with kwargs if provided
-            log_name = kwargs.get("log_name", log_name)
-            log_value_interval = kwargs.get("log_value_interval", log_value_interval)
-
-            return LogValueFilter(workspace, log_name, log_value_interval)
-
-    # Fallback: infer from explicit kwargs
-    if "time_period" in kwargs and "time_interval" in kwargs:
-        return PeriodicTimeFilter(
-            workspace, kwargs["time_interval"], kwargs["time_period"], kwargs.get("time_offset", 0.0)
+    # Check for polarized sample - not yet supported
+    if reduction_config and polarized_sample(reduction_config):
+        raise NotImplementedError(
+            "Spin filtering for polarized samples is not yet implemented in create_filter_strategy"
         )
-    elif "time_interval" in kwargs:
-        return TimeIntervalFilter(workspace, kwargs["time_interval"], kwargs.get("time_offset", 0.0))
-    elif "log_name" in kwargs and "log_value_interval" in kwargs:
-        return LogValueFilter(workspace, kwargs["log_name"], kwargs["log_value_interval"])
-    elif any(key.startswith("pv_") for key in kwargs) or "check_devices" in kwargs:
-        return SpinFilter(workspace, **kwargs)
 
-    raise ValueError("No valid filtering parameters provided")
+    # Determine filter type based on provided parameters
+    if time_interval is not None:
+        # Check if this is periodic time slicing
+        if time_period is not None:
+            # Periodic time slicing
+            return PeriodicTimeFilter(
+                workspace,
+                time_interval=time_interval,
+                time_period=time_period,
+                time_offset=time_offset,
+            )
+        else:
+            # Regular time slicing
+            return TimeIntervalFilter(
+                workspace,
+                time_interval=time_interval,
+                time_offset=time_offset,
+            )
+    elif log_name is not None and log_value_interval is not None:
+        # Log-based slicing
+        return LogValueFilter(
+            workspace,
+            log_name=log_name,
+            log_value_interval=log_value_interval,
+        )
+
+    raise ValueError(
+        "No valid filtering parameters provided. Must specify either:\n"
+        "  - time_interval (with optional time_period for periodic slicing)\n"
+        "  - log_name and log_value_interval"
+    )

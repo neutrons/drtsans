@@ -1,16 +1,13 @@
 # standard modules
 import h5py
-import re
 from typing import List, Union
 
 # third party modules
 import mantid
-from mantid.dataobjects import Workspace2D, EventWorkspace
 from mantid.simpleapi import mtd
 from mantid.simpleapi import (
     DeleteWorkspace,
     FilterEvents,
-    GenerateEventsFilter,
     LoadEventNexus,
     LoadEventAsWorkspace2D,
     MergeRuns,
@@ -35,7 +32,8 @@ from drtsans.instruments import (
 from drtsans.path import abspath, registered_workspace, exists as path_exists
 from drtsans.pixel_calibration import apply_calibrations
 from drtsans.polarization import polarized_sample
-from drtsans.samplelogs import SampleLogs, periodic_index_log
+from drtsans.samplelogs import SampleLogs
+from drtsans.filterevents.basefilter import create_filter_strategy
 
 
 __all__ = ["load_events", "sum_data", "load_and_split", "move_instrument"]
@@ -71,48 +69,6 @@ def __monitor_counts(filename, monitor_name="monitor1"):
         else:
             counts = nxmonitor["event_time_offset"].shape[0]
     return int(counts)
-
-
-def _insert_periodic_timeslice_log(
-    input_workspace: Union[str, Workspace2D, EventWorkspace],
-    name: str,
-    time_interval: float,
-    time_period: float,
-    time_offset: float = 0,
-):
-    r"""
-    Insert a log into the input workspace that emulates the periodicity of the time intervals. Within a given
-    period, the log value is incremented by one every ``time_interval`` seconds, starting from zero.
-    If a non-integer number of partitions, the remainder is the last of the slices.
-
-    Parameters
-    ----------
-    input_workspace
-    name
-        Name of the log to insert
-    time_interval
-        Interval between consecutive log entries, in seconds.
-    time_period
-        The time in between equal log values.
-    time_offset
-    """
-    sample_logs = SampleLogs(input_workspace)
-
-    try:
-        run_start = sample_logs.run_start.value
-    except AttributeError:
-        run_start = sample_logs.start_time.value
-
-    log = periodic_index_log(
-        period=time_period,
-        interval=time_interval,
-        duration=sample_logs.run_duration,
-        run_start=run_start,
-        offset=time_offset,
-        step=1.0,
-        name=name,
-    )
-    sample_logs.insert(name=name, value=log)
 
 
 def load_events(
@@ -516,43 +472,19 @@ def load_and_split(
         run_number = extract_run_number(run) if isinstance(run, str) else ""
         output_workspace = "{}_{}{}".format(instrument_unique_name, run_number, output_suffix)
 
-    # in the case of periodic time slicing, we replace the time slicing with a log slicing by creating a log emulating
-    # the periodicity of the time intervals. This is so because Mantid algorithm GenerateEventsFilter
-    # does not support periodic time slicing, but it does support the slicing of a periodic log.
-    if isinstance(time_interval, float) and time_period:
-        log_name = "periodic_time_slicing"
-        _insert_periodic_timeslice_log(
-            all_events_workspace,
-            name=log_name,
-            time_interval=time_interval,
-            time_period=time_period,
-            time_offset=time_offset,
-        )
-        time_interval, log_value_interval = None, 1
-
-    # Create output splitter and info filter workspaces
-    splitter_workspace = "_filter"
-    info_workspace = "_info"
-    GenerateEventsFilter(
-        InputWorkspace=all_events_workspace,
-        OutputWorkspace=splitter_workspace,
-        InformationWorkspace=info_workspace,
-        StartTime=str(time_offset),  # the algorithm requires a string object
-        TimeInterval=time_interval,
-        UnitOfTime="Seconds",
-        LogName=log_name,
-        LogValueInterval=log_value_interval,
+    # Create and apply filter strategy
+    filter_strategy = create_filter_strategy(
+        workspace=all_events_workspace,
+        reduction_config=reduction_config,
+        time_interval=time_interval,
+        time_offset=time_offset,
+        time_period=time_period,
+        log_name=log_name,
+        log_value_interval=log_value_interval,
     )
 
-    # Filter data
-    filter_events_opts = dict(
-        SplitterWorkspace=splitter_workspace,
-        InformationWorkspace=info_workspace,
-        FilterByPulseTime=True,
-        GroupWorkspaces=True,
-        OutputWorkspaceIndexedFrom1=True,
-    )
-    FilterEvents(InputWorkspace=all_events_workspace, OutputWorkspaceBaseName=output_workspace, **filter_events_opts)
+    # Apply filtering
+    filter_strategy.apply_filter(output_workspace)
 
     # Remove empty workspaces from event filtering
     split_ws_list = [mtd[output_workspace].getItem(n) for n in range(mtd[output_workspace].getNumberOfEntries())]
@@ -564,6 +496,14 @@ def load_and_split(
 
     assert is_mono is not None, "is_mono shall be either set or specified"
     if monitors:
+        # Use the strategy's splitter and info workspace names for monitor filtering
+        filter_events_opts = dict(
+            SplitterWorkspace=filter_strategy.splitter_workspace,
+            InformationWorkspace=filter_strategy.info_workspace,
+            FilterByPulseTime=True,
+            GroupWorkspaces=True,
+            OutputWorkspaceIndexedFrom1=True,
+        )
         _monitor_split_and_log(
             monitor=all_events_workspace + "_monitors",
             monitor_group=output_workspace + "_monitors",
@@ -572,36 +512,11 @@ def load_and_split(
             filter_events=filter_events_opts,
         )
 
-    # Add metadata for each slice with details
-    for n in range(mtd[output_workspace].getNumberOfEntries()):
-        samplelogs = SampleLogs(mtd[output_workspace].getItem(n))
-        samplelogs.insert("slice", n + 1)
-        samplelogs.insert("number_of_slices", mtd[output_workspace].getNumberOfEntries())
-        slice_info = mtd[output_workspace].getItem(n).getComment()
-        samplelogs.insert("slice_info", slice_info)
-        if time_interval:
-            samplelogs.insert("slice_parameter", "relative time from start")
-            samplelogs.insert("slice_interval", time_interval)
-            # Calculate relative start and end time
-            samplelogs.insert(
-                "slice_start",
-                (mtd["_filter"].cell(n, 0) - samplelogs.startTime().totalNanoseconds()) / 1e9,
-                "seconds",
-            )
-            samplelogs.insert(
-                "slice_end",
-                (mtd["_filter"].cell(n, 1) - samplelogs.startTime().totalNanoseconds()) / 1e9,
-                "seconds",
-            )
-        else:
-            samplelogs.insert("slice_parameter", log_name)
-            samplelogs.insert("slice_interval", log_value_interval)
-            slice_start, slice_end = re.sub(r".*\.From\.|\.Value.*", "", slice_info).split(".To.")
-            samplelogs.insert("slice_start", float(slice_start), samplelogs[log_name].units)
-            samplelogs.insert("slice_end", float(slice_end), samplelogs[log_name].units)
+    # Inject metadata using the strategy
+    filter_strategy.inject_metadata(output_workspace)
 
     # Clean up temporary workspaces
-    for name in [all_events_workspace, splitter_workspace, info_workspace]:
+    for name in [all_events_workspace, filter_strategy.splitter_workspace, filter_strategy.info_workspace]:
         DeleteWorkspace(name)
 
     if is_mono or not monitors:

@@ -7,9 +7,11 @@ reduction configuration parameters.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Tuple, List
+from typing import Generator, Optional, Tuple, Union, List
 from mantid.api import IEventWorkspace
-from mantid.simpleapi import GenerateEventsFilter, FilterEvents
+from mantid.simpleapi import GenerateEventsFilter, FilterEvents, mtd
+
+from drtsans.samplelogs import SampleLogs
 
 from drtsans.polarization import polarized_sample
 from drtsans.type_hints import MantidWorkspace
@@ -36,17 +38,6 @@ class FilterStrategy(ABC):
         Name of the temporary workspace holding the splitter table
     info_workspace : str
         Name of the temporary workspace holding filter information
-
-    Examples
-    --------
-    Concrete strategies should inherit from this class:
-
-    >>> class MyFilter(FilterStrategy):
-    ...     def generate_filter(self):
-    ...         return {'TimeInterval': 10.0}
-    ...     def inject_metadata(self, output_workspace):
-    ...         # Add metadata to each slice
-    ...         pass
     """
 
     def __init__(self, workspace: Union[str, IEventWorkspace]):
@@ -75,15 +66,6 @@ class FilterStrategy(ABC):
         dict or None
             Parameters to pass to GenerateEventsFilter algorithm.
             Return None if filtering is not applicable (e.g., no polarization devices found).
-
-        Examples
-        --------
-        >>> def generate_filter(self):
-        ...     return {
-        ...         'StartTime': '0.0',
-        ...         'TimeInterval': self.time_interval,
-        ...         'UnitOfTime': 'Seconds'
-        ...     }
         """
         pass
 
@@ -112,22 +94,44 @@ class FilterStrategy(ABC):
         - 'slice_interval': The interval value used
         - 'slice_start': Start value for this slice (with units if applicable)
         - 'slice_end': End value for this slice (with units if applicable)
-
-        Examples
-        --------
-        >>> def inject_metadata(self, output_workspace):
-        ...     workspace_group = mtd[output_workspace]
-        ...     for n in range(workspace_group.getNumberOfEntries()):
-        ...         slice_ws = workspace_group.getItem(n)
-        ...         samplelogs = SampleLogs(slice_ws)
-        ...         # Add common metadata
-        ...         samplelogs.insert("slice", n + 1)
-        ...         samplelogs.insert("number_of_slices", workspace_group.getNumberOfEntries())
-        ...         # Add filter-specific metadata
-        ...         samplelogs.insert("slice_parameter", "relative time from start")
-        ...         # ... add interval, start/end times with units
         """
         pass
+
+    def _inject_common_metadata(self, output_workspace: str) -> Generator[Tuple[int, SampleLogs, str], None, None]:
+        """
+        Inject common metadata into each slice and yield per-slice objects for further use.
+
+        Handles the shared metadata block — slice number, total slice count, and workspace
+        comment — for every workspace in the group, then yields ``(n, samplelogs, slice_info)``
+        so the calling ``inject_metadata`` override can add filter-specific entries without
+        repeating the common block.
+
+        Parameters
+        ----------
+        output_workspace : str
+            Name of the workspace group containing the filtered workspaces
+
+        Yields
+        ------
+        n : int
+            Zero-based index of the current slice within the group.
+        samplelogs : SampleLogs
+            Sample-log accessor for the current slice workspace, already populated with
+            ``"slice"``, ``"number_of_slices"``, and ``"slice_info"``.
+        slice_info : str
+            Raw comment string from the current slice workspace, as returned by
+            ``getComment()``.
+        """
+        workspace_group = mtd[output_workspace]
+        num_slices = workspace_group.getNumberOfEntries()
+        for n in range(num_slices):
+            slice_workspace = workspace_group.getItem(n)
+            samplelogs = SampleLogs(slice_workspace)
+            samplelogs.insert("slice", n + 1)
+            samplelogs.insert("number_of_slices", num_slices)
+            slice_info = slice_workspace.getComment()
+            samplelogs.insert("slice_info", slice_info)
+            yield n, samplelogs, slice_info
 
     def apply_filter(self, output_workspace: str) -> None:
         """
@@ -147,12 +151,6 @@ class FilterStrategy(ABC):
         -----
         After filtering, empty workspaces should be removed from the group.
         Subclasses overriding this method should maintain similar behavior.
-
-        Examples
-        --------
-        >>> strategy = TimeIntervalFilter(workspace, time_interval=10.0)
-        >>> strategy.apply_filter("filtered_data")
-        >>> # Creates workspace group "filtered_data" with time-sliced data
         """
         filter_params = self.generate_filter()
 
@@ -210,15 +208,6 @@ def resolve_slicing(reduction_input: dict) -> Tuple[bool, bool, bool]:
         - If slicing is requested on multiple summed runs
     NotImplementedError
         - If time or log slicing is requested on polarized data
-
-    Examples
-    --------
-    >>> config = {
-    ...     "configuration": {"useTimeSlice": True, "useLogSlice": False},
-    ...     "sample": {"runNumber": "12345"}
-    ... }
-    >>> timeslice, logslice, spinslice = resolve_slicing(config)
-    >>> assert timeslice and not logslice and not spinslice
 
     Notes
     -----
@@ -291,35 +280,6 @@ def create_filter_strategy(
         If no valid filtering parameters are provided
     NotImplementedError
         If polarized sample is detected (spin filtering not yet supported)
-
-    Examples
-    --------
-    Create a time filter:
-
-    >>> strategy = create_filter_strategy(
-    ...     workspace,
-    ...     time_interval=10.0,
-    ...     time_offset=5.0
-    ... )
-    >>> strategy.apply_filter("output_ws")
-
-    Create a periodic time filter:
-
-    >>> strategy = create_filter_strategy(
-    ...     workspace,
-    ...     time_interval=5.0,
-    ...     time_period=60.0
-    ... )
-    >>> strategy.apply_filter("output_ws")
-
-    Create a log filter:
-
-    >>> strategy = create_filter_strategy(
-    ...     workspace,
-    ...     log_name='SampleTemp',
-    ...     log_value_interval=5.0
-    ... )
-    >>> strategy.apply_filter("output_ws")
 
     Notes
     -----

@@ -219,7 +219,7 @@ def polarized_sample(reduction_parameters: dict) -> bool:
 
     if "configuration" in reduction_parameters:
         reduction_config = reduction_parameters["configuration"]
-        directories = reduction_parameters["dataDirectories"]
+        directories = reduction_parameters.get("dataDirectories", None)
     else:
         reduction_config = reduction_parameters
         directories = None

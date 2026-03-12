@@ -353,7 +353,8 @@ class SpinFilter(FilterStrategy):
 
             - ``timestamp`` (int): time of the state change in nanoseconds
             - ``device_on`` (bool): ``True`` if the device turned ON, ``False`` if it turned OFF
-            - ``device_mask`` (list of bool): ``[is_polarizer, is_analyzer, is_polarizer_veto, is_analyzer_veto]``
+            - ``device_mask`` (list of bool): ``[is_polarizer, is_analyzer, is_polarizer_veto, is_analyzer_veto]``.
+               Only one of these should be ``True`` for each entry, indicating which device's state changed.
 
             The possible combinations and their meanings are:
 

@@ -13,8 +13,8 @@ class _ConcreteFilter(FilterStrategy):
     def generate_filter(self):
         return {"TimeInterval": 10.0, "UnitOfTime": "Seconds"}
 
-    def inject_metadata(self, output_workspace: str) -> None:
-        for _, samplelogs, slice_info in self._inject_common_metadata(output_workspace):
+    def inject_metadata(self, workspace) -> None:
+        for _, samplelogs, slice_info in self._inject_common_metadata(workspace):
             samplelogs.insert("slice_parameter", "test")
 
 
@@ -118,10 +118,10 @@ def test_create_filter_strategy():
 
 
 @patch("drtsans.filterevents.basefilter.SampleLogs")
-@patch("drtsans.filterevents.basefilter.mtd")
-def test_inject_common_metadata_yields_correct_count(mock_mtd, mock_samplelogs_cls):
+@patch("drtsans.filterevents.basefilter.workspace_handle")
+def test_inject_common_metadata_yields_correct_count(mock_workspace_handle, mock_samplelogs_cls):
     comments = ["info_0", "info_1", "info_2"]
-    mock_mtd.__getitem__.return_value = _make_workspace_group(comments)
+    mock_workspace_handle.return_value = _make_workspace_group(comments)
     mock_samplelogs_cls.side_effect = [MagicMock() for _ in comments]
 
     results = list(_ConcreteFilter(MagicMock())._inject_common_metadata("output_ws"))
@@ -129,10 +129,10 @@ def test_inject_common_metadata_yields_correct_count(mock_mtd, mock_samplelogs_c
 
 
 @patch("drtsans.filterevents.basefilter.SampleLogs")
-@patch("drtsans.filterevents.basefilter.mtd")
-def test_inject_common_metadata_inserts_slice_fields(mock_mtd, mock_samplelogs_cls):
+@patch("drtsans.filterevents.basefilter.workspace_handle")
+def test_inject_common_metadata_inserts_slice_fields(mock_workspace_handle, mock_samplelogs_cls):
     comments = ["info_0", "info_1", "info_2"]
-    mock_mtd.__getitem__.return_value = _make_workspace_group(comments)
+    mock_workspace_handle.return_value = _make_workspace_group(comments)
     mock_samplelogs_cls.side_effect = [MagicMock() for _ in comments]
 
     strategy = _ConcreteFilter(MagicMock())
@@ -144,11 +144,11 @@ def test_inject_common_metadata_inserts_slice_fields(mock_mtd, mock_samplelogs_c
 
 
 @patch("drtsans.filterevents.basefilter.SampleLogs")
-@patch("drtsans.filterevents.basefilter.mtd")
-def test_inject_common_metadata_n_matches_inserted_slice_number(mock_mtd, mock_samplelogs_cls):
+@patch("drtsans.filterevents.basefilter.workspace_handle")
+def test_inject_common_metadata_n_matches_inserted_slice_number(mock_workspace_handle, mock_samplelogs_cls):
     """Yielded n must always equal the value passed to insert('slice', n+1)."""
     comments = ["a", "b"]
-    mock_mtd.__getitem__.return_value = _make_workspace_group(comments)
+    mock_workspace_handle.return_value = _make_workspace_group(comments)
     mock_samplelogs_cls.side_effect = [MagicMock(), MagicMock()]
 
     strategy = _ConcreteFilter(MagicMock())

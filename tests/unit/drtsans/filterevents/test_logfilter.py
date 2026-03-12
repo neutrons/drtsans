@@ -25,13 +25,13 @@ def test_log_value_filter_generate_filter():
 
 
 @patch("drtsans.filterevents.basefilter.SampleLogs")
-@patch("drtsans.filterevents.basefilter.mtd")
-def test_log_value_inject_metadata_with_units(mock_mtd, mock_samplelogs_cls):
+@patch("drtsans.filterevents.basefilter.workspace_handle")
+def test_log_value_inject_metadata_with_units(mock_workspace_handle, mock_samplelogs_cls):
     comments = [
         "Splitter.From.10.To.15.Value.0",
         "Splitter.From.15.To.20.Value.1",
     ]
-    mock_mtd.__getitem__.return_value = _make_workspace_group(comments)
+    mock_workspace_handle.return_value = _make_workspace_group(comments)
     samplelogs_instances = [_make_samplelogs(units="K"), _make_samplelogs(units="K")]
     mock_samplelogs_cls.side_effect = samplelogs_instances
     LogValueFilter(MagicMock(), log_name="SampleTemp", log_value_interval=5.0).inject_metadata("output_ws")
@@ -45,10 +45,10 @@ def test_log_value_inject_metadata_with_units(mock_mtd, mock_samplelogs_cls):
 
 
 @patch("drtsans.filterevents.basefilter.SampleLogs")
-@patch("drtsans.filterevents.basefilter.mtd")
-def test_log_value_inject_metadata_without_units(mock_mtd, mock_samplelogs_cls):
+@patch("drtsans.filterevents.basefilter.workspace_handle")
+def test_log_value_inject_metadata_without_units(mock_workspace_handle, mock_samplelogs_cls):
     comments = ["Splitter.From.3.To.6.Value.0"]
-    mock_mtd.__getitem__.return_value = _make_workspace_group(comments)
+    mock_workspace_handle.return_value = _make_workspace_group(comments)
     samplelogs_instances = [_make_samplelogs("")]  # present but no units
     mock_samplelogs_cls.side_effect = samplelogs_instances
     LogValueFilter(MagicMock(), log_name="ProtonCharge", log_value_interval=3.0).inject_metadata("output_ws")
@@ -58,13 +58,13 @@ def test_log_value_inject_metadata_without_units(mock_mtd, mock_samplelogs_cls):
 
 
 @patch("drtsans.filterevents.basefilter.SampleLogs")
-@patch("drtsans.filterevents.basefilter.mtd")
-def test_log_value_inject_metadata_common_fields(mock_mtd, mock_samplelogs_cls):
+@patch("drtsans.filterevents.basefilter.workspace_handle")
+def test_log_value_inject_metadata_common_fields(mock_workspace_handle, mock_samplelogs_cls):
     comments = [
         "Splitter.From.0.To.5.Value.0",
         "Splitter.From.5.To.10.Value.1",
     ]
-    mock_mtd.__getitem__.return_value = _make_workspace_group(comments)
+    mock_workspace_handle.return_value = _make_workspace_group(comments)
     samplelogs_instances = [_make_samplelogs(None), _make_samplelogs(None)]
     mock_samplelogs_cls.side_effect = samplelogs_instances
     LogValueFilter(MagicMock(), log_name="SampleTemp", log_value_interval=5.0).inject_metadata("output_ws")

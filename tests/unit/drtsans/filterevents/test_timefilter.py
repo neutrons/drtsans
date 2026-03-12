@@ -26,12 +26,12 @@ def test_time_interval_filter_generate_filter():
 
 
 @patch("drtsans.filterevents.basefilter.SampleLogs")
-@patch("drtsans.filterevents.basefilter.mtd")
+@patch("drtsans.filterevents.basefilter.workspace_handle")
 @patch("drtsans.filterevents.timefilter.mtd")
-def test_time_interval_inject_metadata(mock_timefilter_mtd, mock_base_mtd, mock_samplelogs_cls):
+def test_time_interval_inject_metadata(mock_timefilter_mtd, mock_workspace_handle, mock_samplelogs_cls):
     run_start_ns = 1_000_000_000
     comments = ["slice_0", "slice_1"]
-    mock_base_mtd.__getitem__.return_value = _make_workspace_group(comments)
+    mock_workspace_handle.return_value = _make_workspace_group(comments)
 
     samplelogs_instances = []
     for _ in comments:
@@ -78,15 +78,15 @@ def test_periodic_time_filter_generate_filter(mock_create_log):
 
 
 @patch("drtsans.filterevents.basefilter.SampleLogs")
-@patch("drtsans.filterevents.basefilter.mtd")
+@patch("drtsans.filterevents.basefilter.workspace_handle")
 @patch("drtsans.filterevents.timefilter.PeriodicTimeFilter._create_periodic_log")
-def test_periodic_time_inject_metadata(mock_create_log, mock_mtd, mock_samplelogs_cls):
+def test_periodic_time_inject_metadata(mock_create_log, mock_workspace_handle, mock_samplelogs_cls):
     # Comment format parsed by the regex: "...From.X.To.Y.Value..."
     comments = [
         "Splitter.From.0.To.1.Value.0",
         "Splitter.From.1.To.2.Value.1",
     ]
-    mock_mtd.__getitem__.return_value = _make_workspace_group(comments)
+    mock_workspace_handle.return_value = _make_workspace_group(comments)
     samplelogs_instances = [MagicMock() for _ in comments]
     mock_samplelogs_cls.side_effect = samplelogs_instances
 

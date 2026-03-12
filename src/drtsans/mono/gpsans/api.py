@@ -19,7 +19,6 @@ from mantid.simpleapi import (
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 
-# local imports
 from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
 from drtsans.beam_finder import center_detector, fbc_options_json, find_beam_center
 from drtsans.dataobjects import save_i1d
@@ -106,6 +105,12 @@ def load_all_files(
     -------
 
     """
+    # append `path` to reduction_input["dataDirectories"]
+    if path is not None:
+        if isinstance(path, str):
+            path = [path]
+        reduction_input["dataDirectories"] = (reduction_input.get("dataDirectories") or []) + path
+
     reduction_config = reduction_input["configuration"]
 
     instrument_name = reduction_input["instrumentName"]

@@ -219,8 +219,10 @@ def polarized_sample(reduction_parameters: dict) -> bool:
 
     if "configuration" in reduction_parameters:
         reduction_config = reduction_parameters["configuration"]
+        directories = reduction_parameters["dataDirectories"]
     else:
         reduction_config = reduction_parameters
+        directories = None
 
     if reduction_config.get("polarization", {}).get("level", None) is None:
         sample = reduction_parameters["sample"]["runNumber"].strip()
@@ -228,7 +230,11 @@ def polarized_sample(reduction_parameters: dict) -> bool:
         if multiple_samples:
             sample = sample.split(",")[0]  # inquire from the first sample
         sample_filepath = abspath(
-            sample, instrument=reduction_parameters["instrumentName"], ipts=reduction_parameters["iptsNumber"]
+            sample,
+            instrument=reduction_parameters["instrumentName"],
+            ipts=reduction_parameters["iptsNumber"],
+            directory=directories,
+            search_archive=True,
         )
         level = PolarizationLevel.get(sample_filepath)
         if multiple_samples and level != PolarizationLevel.NONE:

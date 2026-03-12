@@ -177,7 +177,7 @@ def test_spin_filter_init_defaults():
     """__init__ stores PV names and initialises device-presence flags to False."""
     ws = MagicMock()
     sf = SpinFilter(ws)
-    assert sf.workspace is ws
+    assert sf.workspace == str(ws)
     assert sf.pv_polarizer_state == PV_POLARIZER_FLIPPER
     assert sf.pv_analyzer_state == PV_ANALYZER_FLIPPER
     assert sf.pv_polarizer_veto == PV_POLARIZER_VETO
@@ -210,16 +210,16 @@ def test_spin_filter_init_custom_pv_names():
 
 
 @patch("drtsans.filterevents.spinfilter.create_table")
-@patch("drtsans.filterevents.spinfilter.mtd")
+@patch("drtsans.filterevents.spinfilter.workspace_handle")
 @patch.object(SpinFilter, "_build_change_list")
 @patch("drtsans.filterevents.spinfilter.SampleLogs")
 def test_generate_filter_returns_empty_dict_when_devices_present(
-    mock_samplelogs_cls, mock_build, mock_mtd, mock_create_table
+    mock_samplelogs_cls, mock_build, mock_workspace_handle, mock_create_table
 ):
     """generate_filter returns {} and sets splitter_workspace when devices are found."""
     mock_samplelogs_cls.return_value = _make_device_sample_logs(has_polarizer=True, has_analyzer=True)
     mock_build.return_value = [(100, True, [True, False, False, False])]
-    mock_mtd.__getitem__.return_value.run.return_value.startTime.return_value.totalNanoseconds.return_value = 0
+    mock_workspace_handle.return_value.run.return_value.startTime.return_value.totalNanoseconds.return_value = 0
     mock_create_table.return_value = MagicMock()
 
     sf = SpinFilter(MagicMock())

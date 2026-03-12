@@ -102,7 +102,9 @@ def create_table(
     ----------
     change_list : list of tuple
         Sorted list of state change tuples from :func:`extract_times`.
-        Each tuple contains (timestamp, device_on, device_mask).
+        Each tuple contains ``(timestamp, device_on, device_mask)`` — see
+        :meth:`SpinFilter._build_change_list` for the full table of possible
+        ``device_mask`` combinations and their meanings.
     start_time : int
         Run start time in nanoseconds, used to normalize intervals
     has_polarizer : bool, optional
@@ -346,7 +348,27 @@ class SpinFilter(FilterStrategy):
         Returns
         -------
         list of tuple
-            Sorted list of all state changes
+            Sorted list of state change tuples, each containing
+            ``(timestamp, device_on, device_mask)`` where:
+
+            - ``timestamp`` (int): time of the state change in nanoseconds
+            - ``device_on`` (bool): ``True`` if the device turned ON, ``False`` if it turned OFF
+            - ``device_mask`` (list of bool): ``[is_polarizer, is_analyzer, is_polarizer_veto, is_analyzer_veto]``
+
+            The possible combinations and their meanings are:
+
+            ============  ============  ============  ==============  ==============  ================================
+            ``device_on`` ``is_pol``    ``is_ana``    ``is_pol_veto`` ``is_ana_veto`` Meaning
+            ============  ============  ============  ==============  ==============  ================================
+            True          True          False         False           False           Polarizer flipper turned **ON**
+            False         True          False         False           False           Polarizer flipper turned **OFF**
+            True          False         True          False           False           Analyzer flipper turned **ON**
+            False         False         True          False           False           Analyzer flipper turned **OFF**
+            True          False         False         True            False           Polarizer veto became **active**
+            False         False         False         True            False           Polarizer veto **lifted**
+            True          False         False         False           True            Analyzer veto became **active**
+            False         False         False         False           True            Analyzer veto **lifted**
+            ============  ============  ============  ==============  ==============  ================================
         """
         change_list = []
 

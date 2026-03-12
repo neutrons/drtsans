@@ -49,7 +49,7 @@ class FilterStrategy(ABC):
         workspace : str or IEventWorkspace
             The input workspace to be filtered
         """
-        self.workspace = workspace
+        self.workspace = str(workspace)  # store the name
         self.splitter_workspace = "_filter"
         self.info_workspace = "_info"
 

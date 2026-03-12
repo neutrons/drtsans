@@ -330,7 +330,7 @@ class SpinFilter(FilterStrategy):
             return None
 
         # Create custom splitter table
-        start_time = mtd[self.workspace].run().startTime().totalNanoseconds()
+        start_time = workspace_handle(self.workspace).run().startTime().totalNanoseconds()
         self.splitter_workspace = create_table(
             change_list, start_time, has_polarizer=self._has_polarizer, has_analyzer=self._has_analyzer
         )

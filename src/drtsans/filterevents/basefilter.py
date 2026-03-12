@@ -9,11 +9,11 @@ reduction configuration parameters.
 from abc import ABC, abstractmethod
 from typing import Generator, Optional, Tuple, Union, List
 from mantid.api import IEventWorkspace
-from mantid.simpleapi import GenerateEventsFilter, FilterEvents, mtd
+from mantid.simpleapi import GenerateEventsFilter, FilterEvents
 
-from drtsans.samplelogs import SampleLogs
-
+from drtsans.dataobjects import workspace_handle
 from drtsans.polarization import polarized_sample
+from drtsans.samplelogs import SampleLogs
 from drtsans.type_hints import MantidWorkspace
 
 
@@ -70,7 +70,7 @@ class FilterStrategy(ABC):
         pass
 
     @abstractmethod
-    def inject_metadata(self, output_workspace: str) -> None:
+    def inject_metadata(self, workspace: MantidWorkspace) -> None:
         """
         Inject metadata into all sliced workspaces in the output workspace group.
 
@@ -81,8 +81,8 @@ class FilterStrategy(ABC):
 
         Parameters
         ----------
-        output_workspace : str
-            Name of the workspace group containing the filtered workspaces
+        workspace : MantidWorkspace
+            The workspace group (or its name) containing the filtered workspaces
 
         Notes
         -----
@@ -97,7 +97,9 @@ class FilterStrategy(ABC):
         """
         pass
 
-    def _inject_common_metadata(self, output_workspace: str) -> Generator[Tuple[int, SampleLogs, str], None, None]:
+    def _inject_common_metadata(
+        self, workspace: MantidWorkspace
+    ) -> Generator[Tuple[int, SampleLogs, str], None, None]:
         """
         Inject common metadata into each slice and yield per-slice objects for further use.
 
@@ -108,8 +110,8 @@ class FilterStrategy(ABC):
 
         Parameters
         ----------
-        output_workspace : str
-            Name of the workspace group containing the filtered workspaces
+        workspace : MantidWorkspace
+            The workspace group (or its name) containing the filtered workspaces
 
         Yields
         ------
@@ -122,7 +124,7 @@ class FilterStrategy(ABC):
             Raw comment string from the current slice workspace, as returned by
             ``getComment()``.
         """
-        workspace_group = mtd[output_workspace]
+        workspace_group = workspace_handle(workspace)
         num_slices = workspace_group.getNumberOfEntries()
         for n in range(num_slices):
             slice_workspace = workspace_group.getItem(n)

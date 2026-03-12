@@ -8,6 +8,7 @@ grouped by changes in experimental parameters recorded in the sample logs.
 import re
 
 from drtsans.filterevents.basefilter import FilterStrategy
+from drtsans.type_hints import MantidWorkspace
 
 
 class LogValueFilter(FilterStrategy):
@@ -74,7 +75,7 @@ class LogValueFilter(FilterStrategy):
         """
         return {"LogName": self.log_name, "LogValueInterval": self.log_value_interval}
 
-    def inject_metadata(self, output_workspace: str) -> None:
+    def inject_metadata(self, workspace: MantidWorkspace) -> None:
         """
         Inject metadata into all log-filtered slices.
 
@@ -84,10 +85,10 @@ class LogValueFilter(FilterStrategy):
 
         Parameters
         ----------
-        output_workspace : str
-            Name of the workspace group containing the filtered workspaces
+        workspace : MantidWorkspace
+            The workspace group (or its name) containing the filtered workspaces
         """
-        for _, samplelogs, slice_info in self._inject_common_metadata(output_workspace):
+        for _, samplelogs, slice_info in self._inject_common_metadata(workspace):
             samplelogs.insert("slice_parameter", self.log_name)
             samplelogs.insert("slice_interval", self.log_value_interval)
 

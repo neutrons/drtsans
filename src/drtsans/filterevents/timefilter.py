@@ -12,6 +12,7 @@ from mantid.simpleapi import mtd
 from drtsans.filterevents.basefilter import FilterStrategy
 from drtsans.filterevents.logfilter import LogValueFilter
 from drtsans.samplelogs import SampleLogs
+from drtsans.type_hints import MantidWorkspace
 
 
 class TimeIntervalFilter(FilterStrategy):
@@ -76,7 +77,7 @@ class TimeIntervalFilter(FilterStrategy):
         """
         return {"StartTime": str(self.time_offset), "TimeInterval": self.time_interval, "UnitOfTime": "Seconds"}
 
-    def inject_metadata(self, output_workspace: str) -> None:
+    def inject_metadata(self, workspace: MantidWorkspace) -> None:
         """
         Inject metadata into all time-filtered slices.
 
@@ -85,10 +86,10 @@ class TimeIntervalFilter(FilterStrategy):
 
         Parameters
         ----------
-        output_workspace : str
-            Name of the workspace group containing the filtered workspaces
+        workspace : MantidWorkspace
+            The workspace group (or its name) containing the filtered workspaces
         """
-        for n, samplelogs, _ in self._inject_common_metadata(output_workspace):
+        for n, samplelogs, _ in self._inject_common_metadata(workspace):
             samplelogs.insert("slice_parameter", "relative time from start")
             samplelogs.insert("slice_interval", self.time_interval)
 
@@ -218,7 +219,7 @@ class PeriodicTimeFilter(FilterStrategy):
         """
         return self._log_filter.generate_filter()
 
-    def inject_metadata(self, output_workspace: str) -> None:
+    def inject_metadata(self, workspace: MantidWorkspace) -> None:
         """
         Inject metadata into all periodically-filtered slices.
 
@@ -227,10 +228,10 @@ class PeriodicTimeFilter(FilterStrategy):
 
         Parameters
         ----------
-        output_workspace : str
-            Name of the workspace group containing the filtered workspaces
+        workspace : MantidWorkspace
+            The workspace group (or its name) containing the filtered workspaces
         """
-        for _, samplelogs, slice_info in self._inject_common_metadata(output_workspace):
+        for _, samplelogs, slice_info in self._inject_common_metadata(workspace):
             slice_start_str, slice_end_str = re.sub(r".*\.From\.|\.Value.*", "", slice_info).split(".To.")
             log_start = float(slice_start_str)
             log_end = float(slice_end_str)

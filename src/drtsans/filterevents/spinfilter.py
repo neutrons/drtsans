@@ -29,6 +29,8 @@ from drtsans.polarization import (
     PV_ANALYZER_VETO,
 )
 from drtsans.samplelogs import SampleLogs
+from drtsans.type_hints import MantidWorkspace
+from drtsans.dataobjects import workspace_handle
 
 
 def extract_times(
@@ -495,8 +497,11 @@ class SpinFilter(FilterStrategy):
         for ws in outputs[-1]:
             xs_id = str(ws).replace(f"{output_workspace}_", "")
             AddSampleLog(Workspace=ws, LogName="cross_section_id", LogText=xs_id)
+            # These two lines mimic what FilterEvents does when passed an information workspace
+            ws.setComment(xs_id)
+            ws.setTitle(xs_id)
 
-    def inject_metadata(self, output_workspace: str) -> None:
+    def inject_metadata(self, workspace: MantidWorkspace) -> None:
         """
         Inject metadata into all polarization-filtered cross-sections.
 
@@ -505,10 +510,10 @@ class SpinFilter(FilterStrategy):
 
         Parameters
         ----------
-        output_workspace : str
-            Name of the workspace group containing the filtered cross-sections
+        workspace : MantidWorkspace
+            The workspace group (or its name) containing the filtered cross-sections
         """
-        workspace_group = mtd[output_workspace]
+        workspace_group = workspace_handle(workspace)
         num_slices = workspace_group.getNumberOfEntries()
 
         for n in range(num_slices):

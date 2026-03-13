@@ -191,14 +191,14 @@ def polarized_sample(reduction_parameters: dict) -> bool:
     r"""
     Determine if the sample run involves polarized neutrons.
 
-    This function checks for polarization under `reduction_config['polarization']['level']`.
+    This function checks for polarization under `configuration['polarization']['level']`.
     If the settings are missing, it examines the sample metadata to determine the polarization level.
 
     Parameters
     ----------
     reduction_parameters : dict
         Dictionary of reduction configuration parameters. It can be either the full reduction input containing
-        a "reduction_config" key or just the reduction configuration itself.
+        the "configuration" key or just the reduction configuration itself.
 
     Returns
     -------
@@ -214,7 +214,7 @@ def polarized_sample(reduction_parameters: dict) -> bool:
     Notes
     -----
     The function modifies the reduction configuration by setting the polarization level in
-    `reduction_config['polarization']['level']` if not previously specified.
+    `configuration['polarization']['level']` if not previously specified.
     """
 
     if "configuration" in reduction_parameters:

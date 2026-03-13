@@ -131,7 +131,7 @@ def create_table(
 
     Time intervals before start_time are discarded or truncated.
     """
-    split_table_ws = CreateEmptyTableWorkspace(OutputWorkspace=mtd.unique_hidden_name())
+    split_table_ws = CreateEmptyTableWorkspace(OutputWorkspace="_filter")
     split_table_ws.addColumn("float", "start")
     split_table_ws.addColumn("float", "stop")
     split_table_ws.addColumn("str", "target")
@@ -331,9 +331,9 @@ class SpinFilter(FilterStrategy):
 
         # Create custom splitter table
         start_time = workspace_handle(self.workspace).run().startTime().totalNanoseconds()
-        self.splitter_workspace = create_table(
-            change_list, start_time, has_polarizer=self._has_polarizer, has_analyzer=self._has_analyzer
-        )
+        self.splitter_workspace = str(
+            create_table(change_list, start_time, has_polarizer=self._has_polarizer, has_analyzer=self._has_analyzer)
+        )  # store the name of the table workspace
 
         # Return empty dict to signal that custom splitter is ready
         return {}
@@ -494,9 +494,7 @@ class SpinFilter(FilterStrategy):
 
         # Check if splitter table has content
         if self.splitter_workspace.rowCount() == 0:
-            logger.warning("No valid cross-section intervals found")
-            GroupWorkspaces([self.workspace], OutputWorkspace=output_workspace)
-            return
+            raise ValueError("Sample run flagged as polarized but no valid cross-section intervals found")
 
         # Use custom splitter table
         correction_workspace = mtd.unique_hidden_name()
@@ -528,34 +526,23 @@ class SpinFilter(FilterStrategy):
         """
         Inject metadata into all polarization-filtered cross-sections.
 
-        Adds common metadata (slice number, total slices) and polarization-specific
-        metadata to each cross-section workspace in the group.
+        Adds common metadata (slice number, total slices, slice_info) and
+        polarization-specific metadata to each cross-section workspace in the group.
 
         Parameters
         ----------
         workspace : MantidWorkspace
             The workspace group (or its name) containing the filtered cross-sections
         """
-        workspace_group = workspace_handle(workspace)
-        num_slices = workspace_group.getNumberOfEntries()
+        for _, samplelogs, slice_info in self._inject_common_metadata(workspace):
+            # Resolve cross-section label: prefer the dedicated log, fall back to
+            # the workspace comment set by apply_filter, then to "Unknown"
+            if "cross_section_id" in samplelogs:
+                cross_section = samplelogs.get("cross_section_id", None).value
+            else:
+                cross_section = slice_info if slice_info else "Unknown"
 
-        for n in range(num_slices):
-            slice_workspace = workspace_group.getItem(n)
-            samplelogs = SampleLogs(slice_workspace)
-
-            # Add common metadata
-            samplelogs.insert("slice", n + 1)
-            samplelogs.insert("number_of_slices", num_slices)
-
-            # Add polarization-specific metadata
             samplelogs.insert("slice_parameter", "polarization_state")
-
-            # Extract cross-section ID from workspace
-            xs_id = (
-                samplelogs.get("cross_section_id", "Unknown").value if "cross_section_id" in samplelogs else "Unknown"
-            )
-            samplelogs.insert("cross_section", xs_id)
-
-            # Add device presence information
+            samplelogs.insert("cross_section", cross_section)
             samplelogs.insert("has_polarizer", int(self._has_polarizer))
             samplelogs.insert("has_analyzer", int(self._has_analyzer))

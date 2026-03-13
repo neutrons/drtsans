@@ -49,9 +49,9 @@ class FilterStrategy(ABC):
         workspace : str or IEventWorkspace
             The input workspace to be filtered
         """
-        self.workspace = str(workspace)  # store the name
-        self.splitter_workspace = "_filter"
-        self.info_workspace = "_info"
+        self.workspace: str = str(workspace)  # store the name
+        self.splitter_workspace: str = "_filter"
+        self.info_workspace: str = "_info"
 
     @abstractmethod
     def generate_filter(self) -> Optional[dict]:

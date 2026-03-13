@@ -96,10 +96,10 @@ def test_create_table():
     }
 
 
-@patch("drtsans.filterevents.spinfilter.workspace_handle")
-@patch("drtsans.filterevents.spinfilter.SampleLogs")
+@patch("drtsans.filterevents.basefilter.workspace_handle")
+@patch("drtsans.filterevents.basefilter.SampleLogs")
 def test_spin_filter_inject_metadata_common_fields(mock_samplelogs_cls, mock_workspace_handle):
-    """inject_metadata inserts slice and number_of_slices for every cross-section."""
+    """inject_metadata inserts slice, number_of_slices, and slice_info for every cross-section."""
     xs_ids = ["On_On", "Off_Off"]
     mock_workspace_handle.return_value = _make_workspace_group(xs_ids)
     samplelogs_instances = [_make_samplelogs(xs_id) for xs_id in xs_ids]
@@ -110,14 +110,16 @@ def test_spin_filter_inject_metadata_common_fields(mock_samplelogs_cls, mock_wor
     sl0, sl1 = samplelogs_instances
     sl0.insert.assert_any_call("slice", 1)
     sl0.insert.assert_any_call("number_of_slices", 2)
+    sl0.insert.assert_any_call("slice_info", "On_On")
     sl1.insert.assert_any_call("slice", 2)
     sl1.insert.assert_any_call("number_of_slices", 2)
+    sl1.insert.assert_any_call("slice_info", "Off_Off")
 
 
-@patch("drtsans.filterevents.spinfilter.workspace_handle")
-@patch("drtsans.filterevents.spinfilter.SampleLogs")
+@patch("drtsans.filterevents.basefilter.workspace_handle")
+@patch("drtsans.filterevents.basefilter.SampleLogs")
 def test_spin_filter_inject_metadata_polarization_fields(mock_samplelogs_cls, mock_workspace_handle):
-    """inject_metadata inserts slice_parameter, cross_section, has_polarizer, has_analyzer."""
+    """inject_metadata inserts slice_parameter, cross_section, has_polarizer, has_analyzer, and slice_info."""
     xs_ids = ["On_On", "On_Off"]
     mock_workspace_handle.return_value = _make_workspace_group(xs_ids)
     samplelogs_instances = [_make_samplelogs(xs_id) for xs_id in xs_ids]
@@ -129,17 +131,19 @@ def test_spin_filter_inject_metadata_polarization_fields(mock_samplelogs_cls, mo
     spin_filter.inject_metadata("output_ws")
 
     sl0, sl1 = samplelogs_instances
+    sl0.insert.assert_any_call("slice_info", "On_On")
     sl0.insert.assert_any_call("slice_parameter", "polarization_state")
     sl0.insert.assert_any_call("cross_section", "On_On")
     sl0.insert.assert_any_call("has_polarizer", 1)
     sl0.insert.assert_any_call("has_analyzer", 1)
+    sl1.insert.assert_any_call("slice_info", "On_Off")
     sl1.insert.assert_any_call("cross_section", "On_Off")
 
 
-@patch("drtsans.filterevents.spinfilter.workspace_handle")
-@patch("drtsans.filterevents.spinfilter.SampleLogs")
+@patch("drtsans.filterevents.basefilter.workspace_handle")
+@patch("drtsans.filterevents.basefilter.SampleLogs")
 def test_spin_filter_inject_metadata_unknown_cross_section(mock_samplelogs_cls, mock_workspace_handle):
-    """inject_metadata falls back to 'Unknown' when cross_section_id log is absent."""
+    """inject_metadata falls back to slice_info when cross_section_id log is absent, or 'Unknown' if also empty."""
     mock_workspace_handle.return_value = _make_workspace_group(["On_On"])
     sl = MagicMock()
     sl.__contains__ = MagicMock(return_value=False)  # cross_section_id not present
@@ -147,11 +151,12 @@ def test_spin_filter_inject_metadata_unknown_cross_section(mock_samplelogs_cls, 
 
     SpinFilter(MagicMock()).inject_metadata("output_ws")
 
-    sl.insert.assert_any_call("cross_section", "Unknown")
+    sl.insert.assert_any_call("slice_info", "On_On")
+    sl.insert.assert_any_call("cross_section", "On_On")
 
 
-@patch("drtsans.filterevents.spinfilter.workspace_handle")
-@patch("drtsans.filterevents.spinfilter.SampleLogs")
+@patch("drtsans.filterevents.basefilter.workspace_handle")
+@patch("drtsans.filterevents.basefilter.SampleLogs")
 def test_spin_filter_inject_metadata_no_devices(mock_samplelogs_cls, mock_workspace_handle):
     """inject_metadata records has_polarizer=0, has_analyzer=0 when no devices are present."""
     mock_workspace_handle.return_value = _make_workspace_group(["Off_Off"])
@@ -164,6 +169,7 @@ def test_spin_filter_inject_metadata_no_devices(mock_samplelogs_cls, mock_worksp
     spin_filter.inject_metadata("output_ws")
 
     sl = samplelogs_instances[0]
+    sl.insert.assert_any_call("slice_info", "Off_Off")
     sl.insert.assert_any_call("has_polarizer", 0)
     sl.insert.assert_any_call("has_analyzer", 0)
 
@@ -436,17 +442,19 @@ def test_apply_filter_groups_raw_workspace_when_no_devices(mock_generate, mock_g
 
 @patch("drtsans.filterevents.spinfilter.GroupWorkspaces")
 @patch.object(SpinFilter, "generate_filter")
-def test_apply_filter_groups_raw_workspace_when_empty_splitter(mock_generate, mock_group):
-    """apply_filter groups the raw workspace when the splitter table is empty."""
+def test_apply_filter_raises_when_empty_splitter(mock_generate, mock_group):
+    """apply_filter raises ValueError when the splitter table is empty."""
     mock_generate.return_value = {}
     splitter = MagicMock()
     splitter.rowCount.return_value = 0
 
     sf = SpinFilter("raw_ws")
     sf.splitter_workspace = splitter
-    sf.apply_filter("output_ws")
 
-    mock_group.assert_called_once_with(["raw_ws"], OutputWorkspace="output_ws")
+    with pytest.raises(ValueError, match="Sample run flagged as polarized but no valid cross-section intervals found"):
+        sf.apply_filter("output_ws")
+
+    mock_group.assert_not_called()
 
 
 @patch("drtsans.filterevents.spinfilter.AnalysisDataService")

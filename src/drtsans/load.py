@@ -499,7 +499,7 @@ def load_and_split(
         # Use the strategy's splitter and info workspace names for monitor filtering
         filter_events_opts = dict(
             SplitterWorkspace=filter_strategy.splitter_workspace,
-            InformationWorkspace=filter_strategy.info_workspace,
+            InformationWorkspace=filter_strategy.info_workspace,  # TODO: SpinFilter doesn't create an info workspace
             FilterByPulseTime=True,
             GroupWorkspaces=True,
             OutputWorkspaceIndexedFrom1=True,

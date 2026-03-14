@@ -19,14 +19,13 @@ from mantid.simpleapi import (
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 
-# local imports
 from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
 from drtsans.beam_finder import center_detector, fbc_options_json, find_beam_center
 from drtsans.dataobjects import save_i1d
+from drtsans.filterevents import resolve_slicing
 from drtsans.instruments import extract_run_number, instrument_filesystem_name
 from drtsans.iq import bin_all
-from drtsans.load import move_instrument, resolve_slicing
-from drtsans.polarization import PolarizationLevel
+from drtsans.load import move_instrument
 from drtsans.mask_utils import apply_mask, load_mask
 from drtsans.mono import meta_data
 from drtsans.mono.absolute_units import empty_beam_scaling
@@ -106,6 +105,12 @@ def load_all_files(
     -------
 
     """
+    # append `path` to reduction_input["dataDirectories"]
+    if path is not None:
+        if isinstance(path, str):
+            path = [path]
+        reduction_input["dataDirectories"] = (reduction_input.get("dataDirectories") or []) + path
+
     reduction_config = reduction_input["configuration"]
 
     instrument_name = reduction_input["instrumentName"]
@@ -235,13 +240,8 @@ def load_all_files(
         dark_current_run=False,
     )
 
-    # Resolve polarization level and include it in the reduction configuration
-    sample_filepath = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
-    reduction_config["polarization"] = {"level": str(PolarizationLevel.get(sample_filepath))}
-    polarized = reduction_config["polarization"]["level"] != PolarizationLevel.NONE
-
-    # check for time/log slicing
-    timeslice, logslice = resolve_slicing(reduction_input)
+    # check for time/log/polarized slicing
+    timeslice, logslice, polarized = resolve_slicing(reduction_input)
 
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}
@@ -255,25 +255,26 @@ def load_all_files(
         if not registered_workspace(ws_name):
             filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
             logger.notice(f"Loading filename {filename} to slice")
+            timesliceinterval = timesliceperiod = logslicename = logsliceinterval = None
             if timeslice:
                 timesliceinterval = reduction_config["timeSliceInterval"]
                 timesliceperiod = reduction_config["timeSlicePeriod"]
-                logslicename = logsliceinterval = None
             elif logslice:
-                timesliceinterval, timesliceperiod = None, None
                 logslicename = reduction_config["logSliceName"]
                 logsliceinterval = reduction_config["logSliceInterval"]
+            elif polarized:
+                pass  # polarization metadata stored in reduction_config['polarization']
 
             load_and_split(
-                filename,
+                filename,  # file path to the sample run
+                sample_to_si_name=SAMPLE_SI_META_NAME,
+                si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                 output_workspace=ws_name,
                 time_interval=timesliceinterval,
                 time_offset=reduction_config["timeSliceOffset"],
                 time_period=timesliceperiod,
                 log_name=logslicename,
                 log_value_interval=logsliceinterval,
-                sample_to_si_name=SAMPLE_SI_META_NAME,
-                si_nominal_distance=SI_WINDOW_NOMINAL_DISTANCE_METER,
                 sample_to_si_value=swd_value_dict[meta_data.SAMPLE],
                 sample_detector_distance_value=sdd_value_dict[meta_data.SAMPLE],
                 reduction_config=reduction_config,

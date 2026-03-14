@@ -1,17 +1,16 @@
 import os
-from unittest import mock
 
+from mantid.simpleapi import DeleteWorkspace, LoadEventNexus, mtd
 import pytest
-from mantid.simpleapi import mtd, LoadEventNexus, DeleteWorkspace
 
-from drtsans.polarization_filter_events import split_events
+from drtsans.filterevents.spinfilter import SpinFilter
 from drtsans.polarization import (
     SimulatedPolarizationLogs,
     TimesGeneratorSpecs,
 )
 
 
-class TestFilterEvents:
+class TestSpinFilter:
     @pytest.fixture(scope="function")
     def gpsans_workspace(self, datarepo_dir):
         """GP-SANS run that is 300 s long"""
@@ -36,18 +35,20 @@ class TestFilterEvents:
             analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 120.0, "veto_duration": 2.0}),
         )
         logs.inject(workspace)
-        ws_group = split_events(output_workspace="workspace_split", input_workspace=workspace)
+        sf = SpinFilter(workspace)
+        sf.apply_filter("workspace_split")
+        ws_group = mtd["workspace_split"]
         assert len(ws_group) == 4
         assert ws_group[0].getNumberEvents() == 908952
         assert ws_group[1].getNumberEvents() == 452402
         assert ws_group[2].getNumberEvents() == 451236
         assert ws_group[3].getNumberEvents() == 450732
-        if mtd.doesExist(str(ws_group)):
-            DeleteWorkspace(ws_group)
+        if mtd.doesExist("workspace_split"):
+            DeleteWorkspace("workspace_split")
 
     @pytest.mark.datarepo
     def test_polarizer(self, gpsans_workspace):
-        """Test splitting events based on polarizer state."""
+        """Test splitting events based on polarizer state only."""
         workspace = gpsans_workspace
         logs = SimulatedPolarizationLogs(
             polarizer=1,
@@ -55,16 +56,18 @@ class TestFilterEvents:
             polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "veto_duration": 1.0}),
         )
         logs.inject(workspace)
-        ws_group = split_events(output_workspace="workspace_split", input_workspace=workspace)
+        sf = SpinFilter(workspace)
+        sf.apply_filter("workspace_split")
+        ws_group = mtd["workspace_split"]
         assert len(ws_group) == 2
         assert ws_group[0].getNumberEvents() == 1367953
         assert ws_group[1].getNumberEvents() == 910789
-        if mtd.doesExist(str(ws_group)):
-            DeleteWorkspace(ws_group)
+        if mtd.doesExist("workspace_split"):
+            DeleteWorkspace("workspace_split")
 
     @pytest.mark.datarepo
     def test_analyzer(self, gpsans_workspace):
-        """Test splitting events based on analyzer state."""
+        """Test splitting events based on analyzer state only."""
         workspace = gpsans_workspace
         logs = SimulatedPolarizationLogs(
             analyzer=2,
@@ -72,41 +75,27 @@ class TestFilterEvents:
             analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 120.0, "veto_duration": 2.0}),
         )
         logs.inject(workspace)
-        ws_group = split_events(output_workspace="workspace_split", input_workspace=workspace)
+        sf = SpinFilter(workspace)
+        sf.apply_filter("workspace_split")
+        ws_group = mtd["workspace_split"]
         assert len(ws_group) == 2
         assert ws_group[0].getNumberEvents() == 1373177
         assert ws_group[1].getNumberEvents() == 909718
-        if mtd.doesExist(str(ws_group)):
-            DeleteWorkspace(ws_group)
-
-    @pytest.mark.datarepo
-    def test_split_with_input_file(self, gpsans_workspace):
-        """Test splitting events using an input Nexus file."""
-        workspace = gpsans_workspace
-        logs = SimulatedPolarizationLogs(
-            polarizer=1,
-            polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 60.0}),
-            polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "veto_duration": 1.0}),
-        )
-        logs.inject(workspace)
-        with mock.patch("drtsans.polarization_filter_events.LoadEventNexus") as mock_loadeventnexus:
-            mock_loadeventnexus.return_value = workspace
-            ws_group = split_events(output_workspace="workspace_split", file_path="/path/to/file")
-        assert len(ws_group) == 2
-        assert ws_group[0].getNumberEvents() == 1367953
-        assert ws_group[1].getNumberEvents() == 910789
-        if mtd.doesExist(str(ws_group)):
-            DeleteWorkspace(ws_group)
+        if mtd.doesExist("workspace_split"):
+            DeleteWorkspace("workspace_split")
 
     @pytest.mark.datarepo
     def test_no_filtering(self, gpsans_workspace):
         """
-        Verify that if no filtering is requested, the original workspace is returned unchanged.
+        Verify that if no polarization devices are present, the raw workspace
+        is returned unchanged in a group of one.
         """
         workspace = gpsans_workspace
         num_events = workspace.getNumberEvents()
-        ws_group = split_events(output_workspace="workspace_split", input_workspace=workspace)
+        sf = SpinFilter(workspace)
+        sf.apply_filter("workspace_split")
+        ws_group = mtd["workspace_split"]
         assert len(ws_group) == 1
         assert ws_group[0].getNumberEvents() == num_events
-        if mtd.doesExist(str(ws_group)):
-            DeleteWorkspace(ws_group)
+        if mtd.doesExist("workspace_split"):
+            DeleteWorkspace("workspace_split")

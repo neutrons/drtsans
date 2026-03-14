@@ -1,4 +1,5 @@
 import h5py
+from mantid.kernel import amend_config
 from mantid.simpleapi import CreateSingleValuedWorkspace, mtd
 from numpy.testing import assert_equal, assert_array_almost_equal
 import pytest
@@ -8,6 +9,7 @@ from drtsans.polarization import (
     PolarizationLevel,
     PolarizationCrossSection,
     PolarizationState,
+    polarized_sample,
     _calc_flipping_ratio,
     half_polarization,
     SimulatedPolarizationLogs,
@@ -128,6 +130,77 @@ class TestPolarizationState:
             assert PolarizationState(cross_section).level == "half"
         for cross_section in ["down_down", "down_up", "up_down", "up_up"]:
             assert PolarizationState(cross_section).level == "full"
+
+
+def test_polarized_sample(tmp_path):
+    # Test when polarization level is already set to NONE in reduction config.
+    reduction_config = {"polarization": {"level": "none"}}
+    result = polarized_sample(reduction_config)
+    assert result is False
+
+    # case: polarization level already set to HALF
+    reduction_config = {"polarization": {"level": "half"}}
+    assert polarized_sample(reduction_config) is True
+
+    # case: polarization level already set to FULL
+    reduction_config = {"polarization": {"level": "full", "extra_key": "extra_value"}}
+    assert polarized_sample(reduction_config) is True
+    assert reduction_config["polarization"]["extra_key"] == "extra_value"
+
+    with amend_config(data_dir=str(tmp_path)):
+        # case: single sample run with no polarization metatadata
+        nexus_file = tmp_path / "CG2_12345.nxs.h5"
+        with h5py.File(nexus_file, "w") as write_handle:
+            write_handle.require_group("/entry/DASlogs")
+        reduction_input = {
+            "configuration": {},
+            "sample": {"runNumber": "12345"},
+            "instrumentName": "CG2",
+            "iptsNumber": "1234",
+        }
+        assert polarized_sample(reduction_input) is False
+        assert reduction_input["configuration"]["polarization"]["level"] == "none"
+
+        # case: single sample run with half polarization
+        with h5py.File(nexus_file, "a") as write_handle:
+            group = write_handle.require_group(f"/entry/DASlogs/{PV_POLARIZER}")
+            group.create_dataset("value", data=1)
+        reduction_input["configuration"]["polarization"] = {"extra_key": "extra_value"}  # clear "level""
+        assert polarized_sample(reduction_input) is True
+        assert reduction_input["configuration"]["polarization"]["level"] == "half"
+        assert "extra_key" not in reduction_input["configuration"]["polarization"]  # deleted obsolete key
+
+        # case: single sample run with full polarization
+        with h5py.File(nexus_file, "a") as write_handle:
+            group = write_handle.require_group(f"/entry/DASlogs/{PV_ANALYZER}")
+            group.create_dataset("value", data=1)
+        reduction_input["configuration"]["polarization"] = {}  # clear the polarization entry
+        assert polarized_sample(reduction_input) is True
+        assert reduction_input["configuration"]["polarization"]["level"] == "full"
+
+        # case: multiple sample runs when all are unpolarized
+        for run_num in ["12349", "12350", "12351"]:
+            nexus_file = tmp_path / f"CG2_{run_num}.nxs.h5"
+            with h5py.File(nexus_file, "w") as write_handle:
+                write_handle.require_group("/entry/DASlogs")
+        reduction_input = {
+            "sample": {"runNumber": "12349, 12350, 12351"},
+            "instrumentName": "CG2",
+            "iptsNumber": "1234",
+            "configuration": {"polarization": {}},
+        }
+        assert polarized_sample(reduction_input) is False
+        assert reduction_input["configuration"]["polarization"]["level"] == "none"
+
+        # case: multiple sample runs with polarization raises ValueError
+        nexus_file = tmp_path / "CG2_12349.nxs.h5"
+        with h5py.File(nexus_file, "a") as write_handle:
+            group = write_handle.require_group(f"/entry/DASlogs/{PV_POLARIZER}")
+            group.create_dataset("value", data=1)
+        reduction_input["configuration"]["polarization"] = {}  # clear the polarization entry
+        with pytest.raises(ValueError) as excinfo:
+            polarized_sample(reduction_input)
+        assert "Can't do polarization reduction on summed data sets" in str(excinfo.value)
 
 
 def test_flipping_ratio(temp_workspace_name, clean_workspace):

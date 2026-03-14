@@ -8,7 +8,7 @@ from typing import ClassVar, Generator, List, Optional, Union
 import h5py
 from mantid.api import AnalysisDataService
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import CreateSingleValuedWorkspace, DeleteWorkspace, mtd, RenameWorkspace
+from mantid.simpleapi import CreateSingleValuedWorkspace, DeleteWorkspace, logger, mtd, RenameWorkspace
 import numpy as np
 
 # drtsans imports
@@ -225,21 +225,25 @@ def polarized_sample(reduction_parameters: dict) -> bool:
         directories = None
 
     if reduction_config.get("polarization", {}).get("level", None) is None:
-        sample = reduction_parameters["sample"]["runNumber"].strip()
-        multiple_samples = len(sample.split(",")) > 1
-        if multiple_samples:
-            sample = sample.split(",")[0]  # inquire from the first sample
-        sample_filepath = abspath(
-            sample,
-            instrument=reduction_parameters["instrumentName"],
-            ipts=reduction_parameters["iptsNumber"],
-            directory=directories,
-            search_archive=True,
-        )
-        level = PolarizationLevel.get(sample_filepath)
-        if multiple_samples and level != PolarizationLevel.NONE:
-            raise ValueError("Can't do polarization reduction on summed data sets")
-        reduction_config["polarization"] = {"level": str(level)}
+        if reduction_config == reduction_parameters:
+            logger.warning("Unable to resolve polarization level. Setting to NONE by default.")
+            reduction_config["polarization"] = {"level": str(PolarizationLevel.NONE)}
+        else:
+            sample = reduction_parameters["sample"]["runNumber"].strip()
+            multiple_samples = len(sample.split(",")) > 1
+            if multiple_samples:
+                sample = sample.split(",")[0]  # inquire from the first sample
+            sample_filepath = abspath(
+                sample,
+                instrument=reduction_parameters["instrumentName"],
+                ipts=reduction_parameters["iptsNumber"],
+                directory=directories,
+                search_archive=True,
+            )
+            level = PolarizationLevel.get(sample_filepath)
+            if multiple_samples and level != PolarizationLevel.NONE:
+                raise ValueError("Can't do polarization reduction on summed data sets")
+            reduction_config["polarization"] = {"level": str(level)}
 
     return reduction_config["polarization"]["level"] != PolarizationLevel.NONE
 

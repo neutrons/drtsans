@@ -404,6 +404,8 @@ class SpinFilter(FilterStrategy):
             List of state change tuples
         """
         changes = []
+        output_workspace = mtd.unique_hidden_name()
+        information_workspace = mtd.unique_hidden_name()
 
         # Device ON (log value ~1.0)
         splitws, _ = GenerateEventsFilter(
@@ -413,8 +415,8 @@ class SpinFilter(FilterStrategy):
             MaximumLogValue=1.01,
             TimeTolerance=0,
             UnitOfTime="Nanoseconds",
-            OutputWorkspace=mtd.unique_hidden_name(),
-            InformationWorkspace=mtd.unique_hidden_name(),
+            OutputWorkspace=output_workspace,
+            InformationWorkspace=information_workspace,
         )
         time_dict = splitws.toDict()
         changes.extend(extract_times(time_dict["start"], True, **kwargs))
@@ -428,13 +430,17 @@ class SpinFilter(FilterStrategy):
             MaximumLogValue=0.01,
             TimeTolerance=0,
             UnitOfTime="Nanoseconds",
-            OutputWorkspace=mtd.unique_hidden_name(),
-            InformationWorkspace=mtd.unique_hidden_name(),
+            OutputWorkspace=output_workspace,
+            InformationWorkspace=information_workspace,
         )
         time_dict = splitws.toDict()
         changes.extend(extract_times(time_dict["start"], False, **kwargs))
         changes.extend(extract_times(time_dict["stop"], True, **kwargs))
-
+        [
+            AnalysisDataService.remove(name)
+            for name in (output_workspace, information_workspace)
+            if AnalysisDataService.doesExist(name)
+        ]
         return changes
 
     def _extract_veto_changes(self, log_name: str, **kwargs) -> List:
@@ -454,6 +460,8 @@ class SpinFilter(FilterStrategy):
             List of veto change tuples
         """
         changes = []
+        output_workspace = mtd.unique_hidden_name()
+        information_workspace = mtd.unique_hidden_name()
 
         # Veto ON (log value ~1.0) - vetoed periods to exclude
         splitws, _ = GenerateEventsFilter(
@@ -463,13 +471,17 @@ class SpinFilter(FilterStrategy):
             MaximumLogValue=1.01,
             TimeTolerance=0,
             UnitOfTime="Nanoseconds",
-            OutputWorkspace=mtd.unique_hidden_name(),
-            InformationWorkspace=mtd.unique_hidden_name(),
+            OutputWorkspace=output_workspace,
+            InformationWorkspace=information_workspace,
         )
         time_dict = splitws.toDict()
         changes.extend(extract_times(time_dict["start"], True, **kwargs))
         changes.extend(extract_times(time_dict["stop"], False, **kwargs))
-
+        [
+            AnalysisDataService.remove(name)
+            for name in (output_workspace, information_workspace)
+            if AnalysisDataService.doesExist(name)
+        ]
         return changes
 
     def apply_filter(self, output_workspace: str) -> None:
@@ -493,7 +505,7 @@ class SpinFilter(FilterStrategy):
             return
 
         # Check if splitter table has content
-        if self.splitter_workspace.rowCount() == 0:
+        if workspace_handle(self.splitter_workspace).rowCount() == 0:
             raise ValueError("Sample run flagged as polarized but no valid cross-section intervals found")
 
         # Use custom splitter table

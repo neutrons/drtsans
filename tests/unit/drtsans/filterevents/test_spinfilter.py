@@ -440,16 +440,18 @@ def test_apply_filter_groups_raw_workspace_when_no_devices(mock_generate, mock_g
     mock_group.assert_called_once_with(["raw_ws"], OutputWorkspace="output_ws")
 
 
+@patch("drtsans.filterevents.spinfilter.workspace_handle")
 @patch("drtsans.filterevents.spinfilter.GroupWorkspaces")
 @patch.object(SpinFilter, "generate_filter")
-def test_apply_filter_raises_when_empty_splitter(mock_generate, mock_group):
+def test_apply_filter_raises_when_empty_splitter(mock_generate, mock_group, mock_workspace_handle):
     """apply_filter raises ValueError when the splitter table is empty."""
     mock_generate.return_value = {}
     splitter = MagicMock()
     splitter.rowCount.return_value = 0
+    mock_workspace_handle.return_value = splitter
 
     sf = SpinFilter("raw_ws")
-    sf.splitter_workspace = splitter
+    sf.splitter_workspace = "_filter"
 
     with pytest.raises(ValueError, match="Sample run flagged as polarized but no valid cross-section intervals found"):
         sf.apply_filter("output_ws")
@@ -460,15 +462,17 @@ def test_apply_filter_raises_when_empty_splitter(mock_generate, mock_group):
 @patch("drtsans.filterevents.spinfilter.AnalysisDataService")
 @patch("drtsans.filterevents.spinfilter.AddSampleLog")
 @patch("drtsans.filterevents.spinfilter.FilterEvents")
+@patch("drtsans.filterevents.spinfilter.workspace_handle")
 @patch("drtsans.filterevents.spinfilter.mtd")
 @patch.object(SpinFilter, "generate_filter")
 def test_apply_filter_calls_filter_events_and_adds_sample_log(
-    mock_generate, mock_mtd, mock_filter_events, mock_add_log, mock_ads
+    mock_generate, mock_mtd, mock_workspace_handle, mock_filter_events, mock_add_log, mock_ads
 ):
     """apply_filter calls FilterEvents and adds cross_section_id to each output workspace."""
     mock_generate.return_value = {}
     splitter = MagicMock()
     splitter.rowCount.return_value = 2
+    mock_workspace_handle.return_value = splitter
 
     ws_on = MagicMock()
     ws_on.__str__ = lambda _: "output_ws_On_On"
@@ -480,7 +484,7 @@ def test_apply_filter_calls_filter_events_and_adds_sample_log(
     mock_mtd.unique_hidden_name.return_value = "_corr"
 
     sf = SpinFilter("raw_ws")
-    sf.splitter_workspace = splitter
+    sf.splitter_workspace = "_filter"
     sf.apply_filter("output_ws")
 
     mock_filter_events.assert_called_once()

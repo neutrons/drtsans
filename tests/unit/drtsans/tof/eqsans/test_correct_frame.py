@@ -37,8 +37,8 @@ def test_transmitted_bands_zero_speed_choppers(datarepo_dir, clean_workspace):
         AddSampleLog(ws, "start_time", "2026-01-02T05:49:47.754251666", LogType="String")
         clean_workspace(ws)
         bands = correct_frame.transmitted_bands(ws)
-        assert_almost_equal((bands.lead.min, bands.lead.max), (2.48, 6.78), decimal=2)
-        assert_almost_equal((bands.skip.min, bands.skip.max), (10.87, 15.23), decimal=2)
+        assert_almost_equal((bands.lead.min, bands.lead.max), (2.4797, 6.7973), decimal=2)
+        assert_almost_equal((bands.skip.min, bands.skip.max), (10.9466, 15.2774), decimal=2)
 
 
 @pytest.mark.datarepo

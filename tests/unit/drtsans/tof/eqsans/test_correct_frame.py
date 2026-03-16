@@ -5,7 +5,7 @@ from pytest import approx
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_allclose
 from mantid.simpleapi import AddSampleLog, Load, CreateWorkspace, CreateSampleWorkspace
-from mantid.kernel import DateAndTime, amend_config
+from mantid.kernel import DateAndTime, amend_config, FloatTimeSeriesProperty
 from drtsans import wavelength as sans_wavelength
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import correct_frame
@@ -36,9 +36,27 @@ def test_transmitted_bands_zero_speed_choppers(datarepo_dir, clean_workspace):
         # overwrite start_time log to simulate run with new chopper configuration
         AddSampleLog(ws, "start_time", "2026-01-02T05:49:47.754251666", LogType="String")
         clean_workspace(ws)
+
+        run = ws.mutableRun()
+        # To simulate the new chopper configuration, we need to update the "Phase" logs of the first 4 choppers
+        # to match the phase offsets in the new configuration
+        # (the offset differences are the difference between the old and new offsets for frame-skip mode)
+        offset_difference = [10884.92, 10790.8, 9738.12, 9771.38]
+        for i in range(4):
+            phase_log_name = "Phase{}".format(i + 1)
+            phase_log = run.getProperty(phase_log_name)
+            times = phase_log.times
+            values = phase_log.value
+            new_phase_log = FloatTimeSeriesProperty(phase_log_name)
+            for t, v in zip(times, values):
+                new_phase_log.addValue(t, v + offset_difference[i])
+            run.addProperty(phase_log_name, new_phase_log, True)
+
         bands = correct_frame.transmitted_bands(ws)
-        assert_almost_equal((bands.lead.min, bands.lead.max), (2.48, 6.78), decimal=2)
-        assert_almost_equal((bands.skip.min, bands.skip.max), (10.87, 15.23), decimal=2)
+        # The small difference in bands compared to test_transmitted_bands is due to
+        # slightly different distances to the source in the new chopper configuration
+        assert_almost_equal((bands.lead.min, bands.lead.max), (2.48, 6.80), decimal=2)
+        assert_almost_equal((bands.skip.min, bands.skip.max), (10.95, 15.28), decimal=2)
 
 
 @pytest.mark.datarepo

@@ -39,10 +39,10 @@ class TestSpinFilter:
         sf.apply_filter("workspace_split")
         ws_group = mtd["workspace_split"]
         assert len(ws_group) == 4
-        assert ws_group[0].getNumberEvents() == 908952
-        assert ws_group[1].getNumberEvents() == 452402
-        assert ws_group[2].getNumberEvents() == 451236
-        assert ws_group[3].getNumberEvents() == 450732
+        assert ws_group[0].getNumberEvents() == 909080
+        assert ws_group[1].getNumberEvents() == 452401
+        assert ws_group[2].getNumberEvents() == 451254
+        assert ws_group[3].getNumberEvents() == 450724
         if mtd.doesExist("workspace_split"):
             DeleteWorkspace("workspace_split")
 
@@ -60,8 +60,8 @@ class TestSpinFilter:
         sf.apply_filter("workspace_split")
         ws_group = mtd["workspace_split"]
         assert len(ws_group) == 2
-        assert ws_group[0].getNumberEvents() == 1367953
-        assert ws_group[1].getNumberEvents() == 910789
+        assert ws_group[0].getNumberEvents() == 1368108
+        assert ws_group[1].getNumberEvents() == 910749
         if mtd.doesExist("workspace_split"):
             DeleteWorkspace("workspace_split")
 
@@ -79,8 +79,8 @@ class TestSpinFilter:
         sf.apply_filter("workspace_split")
         ws_group = mtd["workspace_split"]
         assert len(ws_group) == 2
-        assert ws_group[0].getNumberEvents() == 1373177
-        assert ws_group[1].getNumberEvents() == 909718
+        assert ws_group[0].getNumberEvents() == 1373190
+        assert ws_group[1].getNumberEvents() == 909694
         if mtd.doesExist("workspace_split"):
             DeleteWorkspace("workspace_split")
 

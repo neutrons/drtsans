@@ -89,7 +89,11 @@ def extract_times(
 
 
 def create_table(
-    change_list: list, start_time: int, has_polarizer: Optional[bool] = True, has_analyzer: Optional[bool] = True
+    change_list: list,
+    start_time: int,
+    has_polarizer: Optional[bool] = True,
+    has_analyzer: Optional[bool] = True,
+    output_workspace: Optional[str] = "_filter",
 ) -> object:
     """
     Create a Mantid table workspace defining time intervals for cross-sections.
@@ -131,7 +135,7 @@ def create_table(
 
     Time intervals before start_time are discarded or truncated.
     """
-    split_table_ws = CreateEmptyTableWorkspace(OutputWorkspace="_filter")
+    split_table_ws = CreateEmptyTableWorkspace(OutputWorkspace=output_workspace)
     split_table_ws.addColumn("float", "start")
     split_table_ws.addColumn("float", "stop")
     split_table_ws.addColumn("str", "target")
@@ -331,12 +335,14 @@ class SpinFilter(FilterStrategy):
 
         # Create custom splitter table
         start_time = workspace_handle(self.workspace).run().startTime().totalNanoseconds()
-        self.splitter_workspace = str(
-            create_table(change_list, start_time, has_polarizer=self._has_polarizer, has_analyzer=self._has_analyzer)
-        )  # store the name of the table workspace
-
-        # Return empty dict to signal that custom splitter is ready
-        return {}
+        create_table(
+            change_list,
+            start_time,
+            has_polarizer=self._has_polarizer,
+            has_analyzer=self._has_analyzer,
+            output_workspace=self.FILTER_WORKSPACE_NAME,
+        )
+        return {}  # Return empty dict to signal that custom splitter is ready
 
     def _build_change_list(self) -> List[Tuple[int, bool, List[bool]]]:
         """
@@ -514,7 +520,7 @@ class SpinFilter(FilterStrategy):
             InputWorkspace=self.workspace,
             SplitterWorkspace=self.splitter_workspace,
             GroupWorkspaces=True,
-            FilterByPulseTime=False,
+            FilterByPulseTime=True,
             OutputWorkspaceIndexedFrom1=False,
             CorrectionToSample="None",
             SpectrumWithoutDetector="Skip",

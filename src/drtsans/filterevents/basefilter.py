@@ -40,6 +40,9 @@ class FilterStrategy(ABC):
         Name of the temporary workspace holding filter information
     """
 
+    FILTER_WORKSPACE_NAME = "_filter"
+    INFO_WORKSPACE_NAME = "_info"
+
     def __init__(self, workspace: Union[str, IEventWorkspace]):
         """
         Initialize the filter strategy.
@@ -50,8 +53,8 @@ class FilterStrategy(ABC):
             The input workspace to be filtered
         """
         self.workspace: str = str(workspace)  # store the name
-        self.splitter_workspace: str = "_filter"
-        self.info_workspace: str = "_info"
+        self.splitter_workspace: str = self.FILTER_WORKSPACE_NAME
+        self.info_workspace: str = self.INFO_WORKSPACE_NAME
 
     @abstractmethod
     def generate_filter(self) -> Optional[dict]:

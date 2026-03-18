@@ -206,7 +206,7 @@ def test_load_and_split(reference_dir, has_sns_mount):
             sample_to_si_name="CG3:CS:SampleToSi",
             si_nominal_distance=0.071,
         )
-    assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
+    assert "Load and split called with no slicing parameters" in str(excinfo.value)
 
     filtered_ws = load_and_split(
         "CG3_961.nxs.h5",
@@ -277,7 +277,7 @@ def test_load_and_split_overwrite_geometry(reference_dir, has_sns_mount):
             sample_to_si_name="CG3:CS:SampleToSi",
             si_nominal_distance=0.071,
         )
-    assert "Must provide with time_interval or log_name and log_value_interval" == str(excinfo.value)
+    assert "Load and split called with no slicing parameters" in str(excinfo.value)
 
     filtered_ws = load_and_split(
         "CG3_961",

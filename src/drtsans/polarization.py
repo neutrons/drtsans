@@ -8,7 +8,7 @@ from typing import ClassVar, Generator, List, Optional, Union
 import h5py
 from mantid.api import AnalysisDataService
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import CreateSingleValuedWorkspace, DeleteWorkspace, mtd, RenameWorkspace
+from mantid.simpleapi import CreateSingleValuedWorkspace, DeleteWorkspace, logger, mtd, RenameWorkspace
 import numpy as np
 
 # drtsans imports
@@ -185,6 +185,67 @@ PV_POLARIZER_VETO = "PolarizerVeto"
 PV_ANALYZER = "Analyzer"
 PV_ANALYZER_FLIPPER = "AnalyzerFlipper"
 PV_ANALYZER_VETO = "AnalyzerVeto"
+
+
+def polarized_sample(reduction_parameters: dict) -> bool:
+    r"""
+    Determine if the sample run involves polarized neutrons.
+
+    This function checks for polarization under `configuration['polarization']['level']`.
+    If the settings are missing, it examines the sample metadata to determine the polarization level.
+
+    Parameters
+    ----------
+    reduction_parameters : dict
+        Dictionary of reduction configuration parameters. It can be either the full reduction input containing
+        the "configuration" key or just the reduction configuration itself.
+
+    Returns
+    -------
+    bool
+        True if the sample is polarized (polarization level is not NONE), False otherwise.
+
+    Raises
+    ------
+    ValueError
+        If multiple sample runs are provided and the first sample represents a polarized run.
+        Currently, we can't reduce polarization for summed datasets.
+
+    Notes
+    -----
+    The function modifies the reduction configuration by setting the polarization level in
+    `configuration['polarization']['level']` if not previously specified.
+    """
+
+    if "configuration" in reduction_parameters:
+        reduction_config = reduction_parameters["configuration"]
+        directories = reduction_parameters.get("dataDirectories", None)
+    else:
+        reduction_config = reduction_parameters
+        directories = None
+
+    if reduction_config.get("polarization", {}).get("level", None) is None:
+        if reduction_config == reduction_parameters:
+            logger.warning("Unable to resolve polarization level. Setting to NONE by default.")
+            reduction_config["polarization"] = {"level": str(PolarizationLevel.NONE)}
+        else:
+            sample = reduction_parameters["sample"]["runNumber"].strip()
+            multiple_samples = len(sample.split(",")) > 1
+            if multiple_samples:
+                sample = sample.split(",")[0]  # inquire from the first sample
+            sample_filepath = abspath(
+                sample,
+                instrument=reduction_parameters["instrumentName"],
+                ipts=reduction_parameters["iptsNumber"],
+                directory=directories,
+                search_archive=True,
+            )
+            level = PolarizationLevel.get(sample_filepath)
+            if multiple_samples and level != PolarizationLevel.NONE:
+                raise ValueError("Can't do polarization reduction on summed data sets")
+            reduction_config["polarization"] = {"level": str(level)}
+
+    return reduction_config["polarization"]["level"] != PolarizationLevel.NONE
 
 
 def _calc_flipping_ratio(polarization):

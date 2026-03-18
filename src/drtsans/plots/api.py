@@ -492,7 +492,7 @@ def plotly_IQazimuthal(
     symmetric_wedges: bool = True,
     log_scale: bool = True,
 ) -> str:
-    """Generate a Plotly heatmap plot for for an I(Qx, Qy) profile.
+    """Generate a Plotly heatmap plot for an I(Qx, Qy) profile.
 
     Parameters
     ----------
@@ -542,7 +542,7 @@ def plotly_IQazimuthal(
     intensity = np.ma.masked_where(roi, intensity)  # additionally mask where roi is True
     if transpose_required:
         intensity = intensity.T
-    return plot_heatmap(
+    div = plot_heatmap(
         run_number=None,
         x=qx,
         y=qy,
@@ -554,6 +554,7 @@ def plotly_IQazimuthal(
         title=title + title_suffix,
         publish=False,
     )
+    return div
 
 
 def plot_IQazimuthal(

@@ -8,6 +8,7 @@ from mantid.simpleapi import (
     SaveAscii,
     mtd,
 )  # noqa E402
+from mantid.kernel import logger  # noqa E402
 
 # Import rolled up to complete a single top-level API
 from drtsans import (  # noqa E402
@@ -22,8 +23,11 @@ from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
 from drtsans.tof.eqsans.blocked_beam import subtract_blocked_beam  # noqa E402
 from drtsans.tof.eqsans.correction_api import (
     CorrectionConfiguration,
-    do_inelastic_incoherence_correction,
     save_k_vector,
+)
+from drtsans.tof.eqsans.incoherence_correction_1d import (
+    calculate_incoherence_correction_factors,
+    apply_incoherence_correction_to_unbinned_data,
 )
 from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
 from drtsans.tof.eqsans.elastic_reference_normalization import (
@@ -239,7 +243,7 @@ def bin_i_with_correction(
     Parameters
     ----------
     iq1d_in_frames: list[~drtsans.dataobjects.IQmod]
-        Objects containing 1D unbinned data I(\|Q\|). It will be used for scalar binned data
+        Objects containing 1D unbinned data I(|Q|). It will be used for scalar binned data
     iq2d_in_frames: list[~drtsans.dataobjects.IQazimuthal]
         Objects containing 2D unbinned data I(Qx, Qy). It will be used for 2D binned data,
         and 1D wedge or annular binned data
@@ -277,7 +281,7 @@ def bin_i_with_correction(
     correction_setup: ~drtsans.tof.eqsans.correction_api.CorrectionConfiguration
         Parameters for elastic and inelastic/incoherence scattering correction
     iq1d_elastic_ref_fr: list[~drtsans.dataobjects.IQmod]
-        Objects containing 1D unbinned data I(\|Q\|) for the elastic reference run
+        Objects containing 1D unbinned data I(|Q|) for the elastic reference run
     iq2d_elastic_ref_fr: list[~drtsans.dataobjects.IQazimuthal]
         Objects containing 2D unbinned data I(Qx, Qy) for the elastic reference run
     raw_name: str
@@ -396,6 +400,7 @@ def bin_i_with_correction(
             )
 
     # Inelastic incoherence correction
+    correction_factors = None
     if correction_setup.do_inelastic_correction[frameskip_frame]:
         inelastic_output_dir = os.path.join(
             output_dir, "info", "inelastic_incoh", output_filename, slice_name, f"frame_{frameskip_frame}"
@@ -404,24 +409,56 @@ def bin_i_with_correction(
 
         b_file_prefix = f"{raw_name}"
 
-        # 1D correction
-        iq2d_main_wl, iq1d_wl = do_inelastic_incoherence_correction(
-            iq2d_main_wl,
-            iq1d_main_wl[0],
-            frameskip_frame,
-            correction_setup,
-            b_file_prefix,
-            inelastic_output_dir,
-            output_filename,
+        # Calculate correction factors from scalar-binned I(Q, lambda)
+        # This ensures consistent correction factors regardless of the final binning mode
+        logger.notice("Calculating inelastic/incoherent correction factors from scalar-binned I(Q, lambda)")
+        correction_factors = calculate_incoherence_correction_factors(
+            iq1d_main_wl[0],  # scalar-binned I(Q, lambda)
+            correction_setup.select_min_incoherence,
+            correction_setup.select_intensityweighted[frameskip_frame],
+            correction_setup.qmin[frameskip_frame],
+            correction_setup.qmax[frameskip_frame],
+            correction_setup.factor[frameskip_frame],
         )
-        iq1d_main_wl[0] = iq1d_wl
+
+        # Save correction factors
+        from drtsans.tof.eqsans.correction_api import save_b_factor
+        from drtsans.tof.eqsans.incoherence_correction_1d import CorrectedI1D
+
+        save_b_factor(
+            CorrectedI1D(iq1d_main_wl[0], correction_factors.b_factor, correction_factors.b_error),
+            os.path.join(inelastic_output_dir, f"{output_filename}_inelastic_b1d_{b_file_prefix}.dat"),
+        )
+
+        # Apply corrections to UNBINNED data
+        # This ensures scalar and wedge modes get the same corrections
+        logger.notice("Applying inelastic/incoherent correction to unbinned data")
+        iq2d_corrected_unbinned, iq1d_corrected_unbinned = apply_incoherence_correction_to_unbinned_data(
+            iq2d_in_frames[frameskip_frame],
+            iq1d_in_frames[frameskip_frame],
+            correction_factors,
+        )
+
+        # Update the unbinned data with corrected values
+        # These will be used in the final binning step
+        iq2d_in_frames[frameskip_frame] = iq2d_corrected_unbinned
+        iq1d_in_frames[frameskip_frame] = iq1d_corrected_unbinned
+
+        # Note: We no longer work with iq2d_main_wl and iq1d_main_wl after correction
+        # The corrected unbinned data will be binned in the final step below
 
     if not correction_setup.do_elastic_correction and not any(correction_setup.do_inelastic_correction):
         finite_iq1d = iq1d_in_frames[frameskip_frame]
         finite_iq2d = iq2d_in_frames[frameskip_frame]
         qmin = user_qmin
         qmax = user_qmax
+    elif correction_setup.do_inelastic_correction[frameskip_frame]:
+        # Use corrected unbinned data (already applied)
+        finite_iq1d = iq1d_in_frames[frameskip_frame].be_finite()
+        finite_iq2d = iq2d_in_frames[frameskip_frame].be_finite()
+        # qmin and qmax already set above
     else:
+        # Only elastic correction was done (no inelastic)
         # Be finite
         finite_iq1d = iq1d_main_wl[0].be_finite()
         finite_iq2d = iq2d_main_wl.be_finite()

@@ -20,10 +20,19 @@ import numpy as np
 import os
 
 
-__all__ = ["correct_incoherence_inelastic_all", "correct_incoherence_inelastic_1d", "CorrectedI1D"]
+__all__ = [
+    "correct_incoherence_inelastic_all",
+    "calculate_incoherence_correction_factors",
+    "apply_incoherence_correction_to_unbinned_data",
+    "correct_incoherence_inelastic_1d",
+    "CorrectedI1D",
+    "CorrectionFactors",
+]
 
 # Output of corrected 1D case
 CorrectedI1D = namedtuple("CorrectedI1D", "i1d b_factor b_error")
+# Output of correction factors calculation
+CorrectionFactors = namedtuple("CorrectionFactors", "b_factor b_error wavelength")
 
 
 def correct_incoherence_inelastic_all(
@@ -125,6 +134,200 @@ def correct_incoherence_inelastic_all(
         corrected_2d = None
 
     return corrected_2d, corrected_1d
+
+
+def calculate_incoherence_correction_factors(
+    i1d_scalar_binned,
+    select_minimum_incoherence,
+    intensity_weighted=False,
+    qmin=None,
+    qmax=None,
+    factor=None,
+):
+    """Calculate wavelength-dependent incoherence correction factors from scalar-binned I(Q, λ)
+
+    This function calculates the b(λ) correction factors that are independent of binning mode.
+    It should be called with scalar-binned I(Q, λ) data to ensure consistent correction factors
+    regardless of whether the final output is scalar, wedge, or annular binning.
+
+    Parameters
+    ----------
+    i1d_scalar_binned: ~drtsans.dataobjects.IQmod | ~drtsans.dataobjects.I1DAnnular
+        Scalar-binned I(Q, wavelength) data used to calculate correction factors
+    select_minimum_incoherence: bool
+        flag to determine correction B by minimum incoherence
+    intensity_weighted: bool
+        if set to true, the B factor is calculated using weighted function by intensity
+    qmin: float
+        manually set the qmin used for incoherent calculation
+    qmax: float
+        manually set the qmax used for incoherent calculation
+    factor: float
+        automatically determine the qmin qmax by checking the intensity profile
+
+    Returns
+    -------
+    CorrectionFactors
+        Named tuple containing b_factor, b_error, and wavelength arrays
+    """
+    # Convert to mesh grid I(Q) and delta I(Q), or I(phi) for annular binning
+    wl_vec, x_vec, i_array, error_array, _ = reshape_intensity_domain_meshgrid(i1d_scalar_binned)
+
+    if qmin is not None and qmax is not None:
+        xmin_index, xmax_index = np.searchsorted(x_vec, [qmin, qmax])
+        xmax_index = min(xmax_index, len(x_vec) - 1)
+    else:
+        # determine x min and x max that exists in all I(Q, wl) or I(phi, wl)
+        xmin_index, xmax_index = determine_common_domain_range_mesh(x_vec, i_array)
+
+    if factor is not None:
+        logger.notice(f"Using automated (xmin, xmax) finder with factor={factor}")
+        xmin_index, xmax_index = tune_xmin(xmin_index, xmax_index, i_array, factor=factor)
+
+    logger.notice(
+        f"Incoherent correction using xmin={x_vec[xmin_index]} xmax={x_vec[xmax_index]} "
+        f"with xmin_index={xmin_index}, xmax_index={xmax_index}"
+    )
+
+    # calculate B factors and errors
+    b_array, _, _ = calculate_b_factors(
+        wl_vec,
+        x_vec,
+        i_array,
+        error_array,
+        select_minimum_incoherence,
+        xmin_index,
+        xmax_index,
+        intensity_weighted=intensity_weighted,
+    )
+
+    return CorrectionFactors(b_factor=b_array[0], b_error=b_array[1], wavelength=wl_vec)
+
+
+def apply_incoherence_correction_to_unbinned_data(
+    i_of_q_2d,
+    i_of_q_1d,
+    correction_factors,
+):
+    """Apply incoherence correction factors to unbinned I(Q, λ) and I(Qx, Qy, λ) data
+
+    This function applies pre-calculated b(λ) correction factors to unbinned data.
+    The corrected unbinned data can then be binned in any mode (scalar, wedge, annular)
+    and will produce consistent results.
+
+    Parameters
+    ----------
+    i_of_q_2d: ~drtsans.dataobjects.IQazimuthal
+        Unbinned I(Qx, Qy, wavelength) data
+    i_of_q_1d: ~drtsans.dataobjects.IQmod
+        Unbinned I(Q, wavelength) data
+    correction_factors: CorrectionFactors
+        Correction factors from calculate_incoherence_correction_factors()
+
+    Returns
+    -------
+    tuple[IQazimuthal, IQmod]
+        Corrected unbinned I(Qx, Qy, λ) and I(Q, λ)
+    """
+    from drtsans.dataobjects import IQazimuthal, IQmod
+
+    # Helper function to create numpy-based interpolation with edge handling
+    def _make_interp_fn(x, y):
+        """
+        Create a 1D interpolation function using numpy.interp with
+        linear interpolation and edge handling equivalent to
+        scipy.interpolate.interp1d(..., bounds_error=False,
+        fill_value=(y[0], y[-1])).
+
+        Parameters
+        ----------
+        x: array-like
+            x coordinates (must be sorted)
+        y: array-like
+            y values corresponding to x
+
+        Returns
+        -------
+        callable
+            Interpolation function that accepts new x values
+        """
+        x = np.asarray(x)
+        y = np.asarray(y)
+        left = y[0]
+        right = y[-1]
+
+        def _interp(new_x):
+            return np.interp(new_x, x, y, left=left, right=right)
+
+        return _interp
+
+    # Create interpolation functions for b_factor and b_error
+    # Use linear interpolation, extrapolate with nearest values at edges
+    b_factor_interp = _make_interp_fn(
+        correction_factors.wavelength,
+        correction_factors.b_factor,
+    )
+    b_error_interp = _make_interp_fn(
+        correction_factors.wavelength,
+        correction_factors.b_error,
+    )
+
+    # Apply correction to 2D unbinned data
+    if i_of_q_2d is not None and len(i_of_q_2d.intensity) > 0:
+        # Interpolate b factors to match wavelengths in unbinned data
+        b_vals_2d = b_factor_interp(i_of_q_2d.wavelength)
+        b_errs_2d = b_error_interp(i_of_q_2d.wavelength)
+
+        # Apply correction: I_corrected = I - b(λ)
+        corrected_intensity_2d = i_of_q_2d.intensity - b_vals_2d
+
+        # Error propagation: σ²_corrected = σ²_I + σ²_b
+        # Note: We treat I and b as independent because:
+        # 1. b(λ) is calculated from scalar-binned I(Q, λ) at specific Q values within [qmin, qmax]
+        # 2. The unbinned data being corrected consists of individual events at arbitrary (Qx, Qy)
+        #    values that were NOT used in the b(λ) calculation
+        # Therefore, the standard independent error propagation is appropriate here.
+        # This differs from the correlation-aware error model in correct_intensity_error(),
+        # which applies when correcting the SAME binned data used to calculate b(λ).
+        corrected_error_2d = np.sqrt(i_of_q_2d.error**2 + b_errs_2d**2)
+
+        corrected_i_of_q_2d = IQazimuthal(
+            intensity=corrected_intensity_2d,
+            error=corrected_error_2d,
+            qx=i_of_q_2d.qx,
+            qy=i_of_q_2d.qy,
+            wavelength=i_of_q_2d.wavelength,
+            delta_qx=i_of_q_2d.delta_qx,
+            delta_qy=i_of_q_2d.delta_qy,
+        )
+    else:
+        # Return input as-is if None or empty
+        corrected_i_of_q_2d = i_of_q_2d
+
+    # Apply correction to 1D unbinned data
+    if i_of_q_1d is not None and len(i_of_q_1d.intensity) > 0:
+        # Interpolate b factors to match wavelengths in unbinned data
+        b_vals_1d = b_factor_interp(i_of_q_1d.wavelength)
+        b_errs_1d = b_error_interp(i_of_q_1d.wavelength)
+
+        # Apply correction: I_corrected = I - b(λ)
+        corrected_intensity_1d = i_of_q_1d.intensity - b_vals_1d
+
+        # Error propagation: σ²_corrected = σ²_I + σ²_b (independent errors, see comment above)
+        corrected_error_1d = np.sqrt(i_of_q_1d.error**2 + b_errs_1d**2)
+
+        corrected_i_of_q_1d = IQmod(
+            intensity=corrected_intensity_1d,
+            error=corrected_error_1d,
+            mod_q=i_of_q_1d.mod_q,
+            delta_mod_q=i_of_q_1d.delta_mod_q,
+            wavelength=i_of_q_1d.wavelength,
+        )
+    else:
+        # Return input as-is if None or empty
+        corrected_i_of_q_1d = i_of_q_1d
+
+    return corrected_i_of_q_2d, corrected_i_of_q_1d
 
 
 def correct_incoherence_inelastic_1d(

@@ -1,15 +1,12 @@
 # This module contains workflow algorithms and methods correct intensity and error of
 # sample and background data accounting wavelength-dependent incoherent inelastic scattering.
 # The workflow algorithms will be directly called by eqsans.api.
-import os.path
 from collections import namedtuple
 from typing import List, Union
 
-from drtsans.dataobjects import IQazimuthal, IQmod, I1DAnnular
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.tof.eqsans.incoherence_correction_1d import (
     CorrectedI1D,
-    correct_incoherence_inelastic_all,
 )
 from drtsans.tof.eqsans.incoherence_correction_2d import (
     CorrectedIQ2D,
@@ -338,67 +335,6 @@ def listify_incohfit_parameter(parameter):
 
 # Define named tuple for elastic scattering normalization factor
 NormFactor = namedtuple("NormFactor", "k k_error p s")
-
-
-def do_inelastic_incoherence_correction(
-    iq2d: IQazimuthal,
-    i1d: IQmod | I1DAnnular,
-    frameskip_frame: int,
-    correction_setup: CorrectionConfiguration,
-    prefix: str,
-    output_dir: str,
-    output_filename: str = "",
-) -> tuple[IQazimuthal, IQmod | I1DAnnular]:
-    """Do inelastic incoherence correction on 2D and 1D intensity profiles
-
-    Parameters
-    ----------
-    iq2d: IQazimuthal
-        2D intensity profile to correct
-    i1d: IQmod | I1DAnnular
-        1D intensity profile to correct
-    frameskip_frame: int
-        frame skip index (0 or 1)
-    correction_setup: CorrectionConfiguration
-        correction configuration
-    prefix: str
-        prefix for b factor file
-    output_dir: str
-        output directory for b1d(lambda)
-    output_filename: str
-        output filename parsed from input configuration file (JSON)
-
-    Returns
-    -------
-    tuple[IQazimuthal, IQmod | I1DAnnular]
-        The corrected I(Q2D) and I(1D)
-    """
-    # type check
-    assert isinstance(i1d, (IQmod, I1DAnnular)), (
-        f"Assuming each element in input is IQmod or I1DAnnular but not {type(i1d)}"
-    )
-    assert isinstance(iq2d, IQazimuthal), f"iq2d must be IQazimuthal but not {type(iq2d)}"
-
-    # do inelastic/incoherent correction
-    corrected_2d, corrected_1d = correct_incoherence_inelastic_all(
-        iq2d,
-        i1d,
-        correction_setup.select_min_incoherence,
-        correction_setup.select_intensityweighted[frameskip_frame],
-        correction_setup.qmin[frameskip_frame],
-        correction_setup.qmax[frameskip_frame],
-        correction_setup.factor[frameskip_frame],
-        correction_setup.output_wavelength_dependent_profile,
-        output_dir,
-    )
-
-    # save file
-    save_b_factor(
-        corrected_1d,
-        os.path.join(output_dir, f"{output_filename}_inelastic_b1d_{prefix}.dat"),
-    )
-
-    return corrected_2d.iq2d, corrected_1d.i1d
 
 
 def save_b_factor(i_of_q: Union[CorrectedI1D, CorrectedIQ2D], path: str) -> None:

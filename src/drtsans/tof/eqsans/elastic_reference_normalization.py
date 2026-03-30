@@ -13,6 +13,7 @@ __all__ = [
     "normalize_by_elastic_reference_all",
     "normalize_by_elastic_reference_1d",
     "normalize_by_elastic_reference_2d",
+    "apply_elastic_normalization_to_unbinned_data",
     "determine_reference_wavelength_intensity_mesh",
     "reshape_intensity_domain_meshgrid",
     "build_i1d_from_intensity_domain_meshgrid",
@@ -625,3 +626,116 @@ def normalize_intensity_1d(
         )
 
     return normalized_intensity_array, np.sqrt(normalized_error2_array)
+
+
+def apply_elastic_normalization_to_unbinned_data(
+    i_of_q_2d,
+    i_of_q_1d,
+    wl_vec,
+    k_vec,
+    k_error_vec,
+):
+    """Apply elastic normalization to unbinned I(Q, λ) and I(Qx, Qy, λ) data
+
+    This function applies pre-calculated k(λ) normalization factors to unbinned data.
+    The normalized unbinned data can then be binned in any mode (scalar, wedge, annular)
+    and will produce consistent results.
+
+    Parameters
+    ----------
+    i_of_q_2d: ~drtsans.dataobjects.IQazimuthal
+        Unbinned I(Qx, Qy, wavelength) data
+    i_of_q_1d: ~drtsans.dataobjects.IQmod
+        Unbinned I(Q, wavelength) data
+    wl_vec: ~numpy.ndarray
+        Wavelength bins corresponding to k_vec
+    k_vec: ~numpy.ndarray
+        Elastic reference normalization factors (one for each wavelength)
+    k_error_vec: ~numpy.ndarray
+        Elastic reference normalization factor errors (one for each wavelength)
+
+    Returns
+    -------
+    tuple[IQazimuthal, IQmod]
+        Normalized unbinned I(Qx, Qy, λ) and I(Q, λ)
+    """
+
+    # Helper function to create numpy-based interpolation with edge handling
+    def _make_interp_fn(x, y):
+        """
+        Create a 1D interpolation function using numpy.interp with
+        linear interpolation and edge handling (extrapolate with nearest values at edges).
+
+        Parameters
+        ----------
+        x: array-like
+            x coordinates (must be sorted)
+        y: array-like
+            y values corresponding to x
+
+        Returns
+        -------
+        callable
+            Interpolation function that accepts new x values
+        """
+        x = np.asarray(x)
+        y = np.asarray(y)
+        left = y[0]
+        right = y[-1]
+
+        def _interp(new_x):
+            return np.interp(new_x, x, y, left=left, right=right)
+
+        return _interp
+
+    # Create interpolation functions for k and k_error
+    k_interp = _make_interp_fn(wl_vec, k_vec)
+    k_error_interp = _make_interp_fn(wl_vec, k_error_vec)
+
+    # Apply normalization to 2D unbinned data
+    if i_of_q_2d is not None and len(i_of_q_2d.intensity) > 0:
+        # Interpolate k factors to match wavelengths in unbinned data
+        k_vals_2d = k_interp(i_of_q_2d.wavelength)
+        k_errs_2d = k_error_interp(i_of_q_2d.wavelength)
+
+        # Apply normalization: I_normalized = I * k(λ)
+        normalized_intensity_2d = i_of_q_2d.intensity * k_vals_2d
+        # Error propagation: σ²_normalized = k² * σ²_I + I² * σ²_k
+        normalized_error_2d = np.sqrt(k_vals_2d**2 * i_of_q_2d.error**2 + i_of_q_2d.intensity**2 * k_errs_2d**2)
+
+        normalized_i_of_q_2d = IQazimuthal(
+            intensity=normalized_intensity_2d,
+            error=normalized_error_2d,
+            qx=i_of_q_2d.qx,
+            qy=i_of_q_2d.qy,
+            wavelength=i_of_q_2d.wavelength,
+            delta_qx=i_of_q_2d.delta_qx,
+            delta_qy=i_of_q_2d.delta_qy,
+        )
+    else:
+        # Return input as-is if None or empty
+        normalized_i_of_q_2d = i_of_q_2d
+
+    # Apply normalization to 1D unbinned data
+    if i_of_q_1d is not None and len(i_of_q_1d.intensity) > 0:
+        # Interpolate k factors to match wavelengths in unbinned data
+        k_vals_1d = k_interp(i_of_q_1d.wavelength)
+        k_errs_1d = k_error_interp(i_of_q_1d.wavelength)
+
+        # Apply normalization: I_normalized = I * k(λ)
+        normalized_intensity_1d = i_of_q_1d.intensity * k_vals_1d
+        # Error propagation: σ²_normalized = k² * σ²_I + I² * σ²_k
+        normalized_error_1d = np.sqrt(k_vals_1d**2 * i_of_q_1d.error**2 + i_of_q_1d.intensity**2 * k_errs_1d**2)
+
+        normalized_i_of_q_1d = IQmod(
+            intensity=normalized_intensity_1d,
+            error=normalized_error_1d,
+            mod_q=i_of_q_1d.mod_q,
+            delta_mod_q=i_of_q_1d.delta_mod_q,
+            wavelength=i_of_q_1d.wavelength,
+        )
+    else:
+        # Return input as-is if None or empty
+        normalized_i_of_q_1d = i_of_q_1d
+
+    return normalized_i_of_q_2d, normalized_i_of_q_1d

@@ -32,6 +32,7 @@ from drtsans.tof.eqsans.incoherence_correction_1d import (
 from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
 from drtsans.tof.eqsans.elastic_reference_normalization import (
     normalize_by_elastic_reference_all,
+    apply_elastic_normalization_to_unbinned_data,
 )
 from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.transmission import calculate_transmission  # noqa E402
@@ -391,12 +392,27 @@ def bin_i_with_correction(
             )
             iq1d_main_wl[0] = iq1d_wl
 
-            # write
+            # write k vector
             save_k_vector(
                 iq1d_wl.wavelength,
                 k_vec,
                 k_error_vec,
                 path=os.path.join(elastic_output_dir, f"{output_filename}_elastic_k1d_{k_file_prefix}.dat"),
+            )
+
+            # Apply elastic normalization to unbinned data as well
+            # This ensures that if inelastic correction is also enabled, both corrections
+            # are applied to the unbinned data before final binning
+            logger.notice("Applying elastic normalization to unbinned data")
+            wl_vec = np.unique(iq1d_wl.wavelength)
+            iq2d_in_frames[frameskip_frame], iq1d_in_frames[frameskip_frame] = (
+                apply_elastic_normalization_to_unbinned_data(
+                    iq2d_in_frames[frameskip_frame],
+                    iq1d_in_frames[frameskip_frame],
+                    wl_vec,
+                    k_vec,
+                    k_error_vec,
+                )
             )
 
     # Inelastic incoherence correction

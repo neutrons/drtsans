@@ -230,23 +230,46 @@ def apply_incoherence_correction_to_unbinned_data(
         Corrected unbinned I(Qx, Qy, λ) and I(Q, λ)
     """
     from drtsans.dataobjects import IQazimuthal, IQmod
-    from scipy.interpolate import interp1d
+
+    # Helper function to create numpy-based interpolation with edge handling
+    def _make_interp_fn(x, y):
+        """
+        Create a 1D interpolation function using numpy.interp with
+        linear interpolation and edge handling equivalent to
+        scipy.interpolate.interp1d(..., bounds_error=False,
+        fill_value=(y[0], y[-1])).
+
+        Parameters
+        ----------
+        x: array-like
+            x coordinates (must be sorted)
+        y: array-like
+            y values corresponding to x
+
+        Returns
+        -------
+        callable
+            Interpolation function that accepts new x values
+        """
+        x = np.asarray(x)
+        y = np.asarray(y)
+        left = y[0]
+        right = y[-1]
+
+        def _interp(new_x):
+            return np.interp(new_x, x, y, left=left, right=right)
+
+        return _interp
 
     # Create interpolation functions for b_factor and b_error
     # Use linear interpolation, extrapolate with nearest values at edges
-    b_factor_interp = interp1d(
+    b_factor_interp = _make_interp_fn(
         correction_factors.wavelength,
         correction_factors.b_factor,
-        kind="linear",
-        bounds_error=False,
-        fill_value=(correction_factors.b_factor[0], correction_factors.b_factor[-1]),
     )
-    b_error_interp = interp1d(
+    b_error_interp = _make_interp_fn(
         correction_factors.wavelength,
         correction_factors.b_error,
-        kind="linear",
-        bounds_error=False,
-        fill_value=(correction_factors.b_error[0], correction_factors.b_error[-1]),
     )
 
     # Apply correction to 2D unbinned data
@@ -257,7 +280,15 @@ def apply_incoherence_correction_to_unbinned_data(
 
         # Apply correction: I_corrected = I - b(λ)
         corrected_intensity_2d = i_of_q_2d.intensity - b_vals_2d
-        # Error propagation: σ² = σ_I² + σ_b²
+
+        # Error propagation: σ²_corrected = σ²_I + σ²_b
+        # Note: We treat I and b as independent because:
+        # 1. b(λ) is calculated from scalar-binned I(Q, λ) at specific Q values within [qmin, qmax]
+        # 2. The unbinned data being corrected consists of individual events at arbitrary (Qx, Qy)
+        #    values that were NOT used in the b(λ) calculation
+        # Therefore, the standard independent error propagation is appropriate here.
+        # This differs from the correlation-aware error model in correct_intensity_error(),
+        # which applies when correcting the SAME binned data used to calculate b(λ).
         corrected_error_2d = np.sqrt(i_of_q_2d.error**2 + b_errs_2d**2)
 
         corrected_i_of_q_2d = IQazimuthal(
@@ -281,7 +312,8 @@ def apply_incoherence_correction_to_unbinned_data(
 
         # Apply correction: I_corrected = I - b(λ)
         corrected_intensity_1d = i_of_q_1d.intensity - b_vals_1d
-        # Error propagation: σ² = σ_I² + σ_b²
+
+        # Error propagation: σ²_corrected = σ²_I + σ²_b (independent errors, see comment above)
         corrected_error_1d = np.sqrt(i_of_q_1d.error**2 + b_errs_1d**2)
 
         corrected_i_of_q_1d = IQmod(

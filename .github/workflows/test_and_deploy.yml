@@ -89,7 +89,7 @@ jobs:
         with:
           package-name: ${{ env.PKG_NAME }}
           local-channel: /tmp/local-channel
-          python-version: "3.11"
+          python-version: "3.12"
           extra-channels: mantid neutrons
           extra-commands: python -c "import drtsans"
             python -c "import mantid"

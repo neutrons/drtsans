@@ -698,7 +698,22 @@ def reduce_single_configuration(
     if flux_method == "time" and (
         "blockedBeamRunNumber" in reduction_config and reduction_config["blockedBeamRunNumber"]
     ):
-        flux = "proton_charge"
+        raise ValueError(
+            'Flux normalization method "Time" is not compatible with blocked-beam subtraction. '
+            'Please choose "Total charge" (proton_charge) normalization when a blocked beam run is provided.'
+        )
+
+    # If no normalization method was chosen but a blocked-beam is requested,
+    # fall back to proton-charge normalization so the subtraction is valid.
+    if flux_method is None and (
+        "blockedBeamRunNumber" in reduction_config and reduction_config["blockedBeamRunNumber"]
+    ):
+        logger.warning(
+            "No flux normalization method was specified, but a blocked beam run was provided. "
+            'Automatically selecting "proton charge" normalization for proper blocked beam subtraction.'
+        )
+        flux_method = "proton charge"
+        flux = reduction_config["beamFluxFileName"]
 
     solid_angle = reduction_config["useSolidAngleCorrection"]
     transmission_radius = reduction_config["mmRadiusForTransmission"]

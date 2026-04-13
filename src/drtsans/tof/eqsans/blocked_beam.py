@@ -49,6 +49,12 @@ def subtract_blocked_beam(
         )
         return
 
+    if flux_method is None:
+        raise ValueError(
+            "subtract_blocked_beam requires a flux normalization method (e.g. 'proton charge'). "
+            "Cannot subtract blocked beam without normalization."
+        )
+
     bb_ws_name = str(blocked_beam.data).replace("_raw_histo", "_processed_histo")
     if not registered_workspace(bb_ws_name):
         mtd[str(blocked_beam.data)].clone(OutputWorkspace=bb_ws_name)

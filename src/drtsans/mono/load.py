@@ -492,7 +492,7 @@ def load_and_split(
         Reference to the workspace groups containing all the split workspaces
 
     """
-    # Load workspace
+    # Load workspace. It may include cropping time off the beginning and end of the run
     ws = load_events(
         run=run,
         data_dir=data_dir,

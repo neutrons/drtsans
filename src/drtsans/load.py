@@ -432,27 +432,29 @@ def load_and_split(
         Reference to the workspace groups containing all the split workspaces
 
     """
+    # check whether we have some slicing to do
     polarized = polarized_sample(reduction_config) if reduction_config is not None else False
-    if not (time_interval or (log_name and log_value_interval) or polarized):
+    if not (time_interval or polarized or (log_name and log_value_interval)):
         raise ValueError("Load and split called with no slicing parameters")
 
-    # Check whether we need to load or not
+    # find the unique instrument name, if necessary. Check `is_mono` consistent with the instrument's name
     run = str(run)
-    if registered_workspace(run):
-        all_events_workspace = run  # run is a workspace, or the name of a workspace in the AnalysisDataService
-        monitors = monitors or is_mono
-        assert instrument_unique_name is not None, "Instrument name must be given!"
+    if instrument_unique_name is None:
+        instrument_unique_name = instrument_enum_name(run)
+    if is_mono is None:
+        is_mono = instrument_unique_name in (InstrumentEnumName.BIOSANS, InstrumentEnumName.GPSANS)
     else:
-        # determine if this is a monochromatic measurement
-        instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
-        is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or (
-            instrument_unique_name == InstrumentEnumName.GPSANS
+        assert instrument_unique_name in (InstrumentEnumName.BIOSANS, InstrumentEnumName.GPSANS), (
+            f"Invalid instrument name '{instrument_unique_name}' for is_mono={is_mono}"
         )
 
-        # monitors are required for gpsans and biosans
+    # Check whether we need to load or not
+    if registered_workspace(run):  # run is a workspace, or the name of a workspace in the AnalysisDataService
+        all_events_workspace = run
         monitors = monitors or is_mono
-
+    else:
         all_events_workspace = mtd.unique_hidden_name()  # temporary workspace
+        monitors = monitors or is_mono
         load_events(
             run=run,
             data_dir=data_dir,
@@ -464,7 +466,7 @@ def load_and_split(
             detector_offset=detector_offset,
             sample_offset=sample_offset,
             reuse_workspace=reuse_workspace,
-            **dict(kwargs, LoadMonitors=monitors or is_mono),
+            **dict(kwargs, LoadMonitors=monitors),
         )
 
     # create default name for output workspace
@@ -519,11 +521,11 @@ def load_and_split(
     for name in [all_events_workspace, filter_strategy.splitter_workspace, filter_strategy.info_workspace]:
         DeleteWorkspace(name)
 
-    if is_mono or not monitors:
-        return mtd[output_workspace]
-    else:  # If EQSANS and the filtered monitors are also being returned
+    if monitors:
         DeleteWorkspace(all_events_workspace + "_monitors")
         return mtd[output_workspace], mtd[output_workspace + "_monitors"]
+    else:
+        return mtd[output_workspace]
 
 
 def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monitor", "monitor1")):

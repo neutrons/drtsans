@@ -18,7 +18,7 @@ def test_load_and_split(datarepo_dir, clean_workspace):
         )
     assert "Load and split called with no slicing parameters" in str(excinfo.value)
 
-    filtered_ws, filtered_ws_monitors = load_and_split(
+    filtered_ws = load_and_split(
         filename,
         data_dir=datarepo_dir.gpsans,
         time_interval=50,

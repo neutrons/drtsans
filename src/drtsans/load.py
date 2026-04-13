@@ -33,7 +33,7 @@ from drtsans.path import abspath, registered_workspace, exists as path_exists
 from drtsans.pixel_calibration import apply_calibrations
 from drtsans.polarization import polarized_sample
 from drtsans.samplelogs import SampleLogs
-from drtsans.filterevents.basefilter import create_filter_strategy
+from drtsans.filterevents.factory import create_filter_strategy
 
 
 __all__ = ["load_events", "sum_data", "load_and_split", "move_instrument"]

@@ -428,9 +428,10 @@ def load_and_split(
 
     Returns
     -------
-    WorkspaceGroup
-        Reference to the workspace groups containing all the split workspaces
-
+    Tuple[WorkspaceGroup, Optional[WorkspaceGroup]]
+        A tuple containing:
+        - The workspace group containing all the split sample data workspaces
+        - The workspace group containing all the split monitor workspaces (or None if monitors were not loaded)
     """
     # check whether we have some slicing to do
     polarized = polarized_sample(reduction_config) if reduction_config is not None else False
@@ -525,7 +526,7 @@ def load_and_split(
         DeleteWorkspace(all_events_workspace + "_monitors")
         return mtd[output_workspace], mtd[output_workspace + "_monitors"]
     else:
-        return mtd[output_workspace]
+        return mtd[output_workspace], None
 
 
 def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monitor", "monitor1")):

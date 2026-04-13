@@ -231,7 +231,7 @@ def test_load_and_split_periodic_timeslice_loadoptions(
     number_events_before_splitting = ws.getNumberEvents()
 
     # load and split the run
-    ws_split = generic_load_and_split(
+    ws_split, _ = generic_load_and_split(
         "EQSANS_104088.nxs.h5",
         data_dir=datarepo_dir.eqsans,
         time_interval=10.0,

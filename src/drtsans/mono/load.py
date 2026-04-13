@@ -525,7 +525,7 @@ def load_and_split(
         output_workspace = "{}_{}{}".format(instrument_name, run_number, output_suffix)
 
     # Split the workspace
-    split_ws_group = generic_load_and_split(
+    split_ws_group, _ = generic_load_and_split(
         run=ws,
         data_dir=data_dir,
         output_workspace=output_workspace,

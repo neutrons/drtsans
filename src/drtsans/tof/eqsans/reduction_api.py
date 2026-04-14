@@ -444,8 +444,13 @@ def bin_i_with_correction(
         from drtsans.tof.eqsans.correction_api import save_b_factor
         from drtsans.tof.eqsans.incoherence_correction import CorrectedI1D
 
+        from collections import namedtuple
+
+        WavelengthContainer = namedtuple("WavelengthContainer", ["wavelength"])
+        wl_container = WavelengthContainer(wavelength=correction_factors.wavelength)
+
         save_b_factor(
-            CorrectedI1D(iq1d_temp_binned[0], correction_factors.b_factor, correction_factors.b_error),
+            CorrectedI1D(wl_container, correction_factors.b_factor, correction_factors.b_error),
             os.path.join(inelastic_output_dir, f"{output_filename}_inelastic_b1d_{b_file_prefix}.dat"),
         )
 

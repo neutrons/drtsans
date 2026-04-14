@@ -1,7 +1,8 @@
-"""Integration test for EWM-13940: Scalar and 360° wedge binning consistency with inelastic correction
+"""Integration test for EWM-13940: Scalar and symmetric wedge binning consistency with inelastic correction
 
-This test verifies that scalar I(Q) and 360° wedge I(Q) produce identical results when
-inelastic/incoherent correction is enabled.
+This test verifies that scalar I(Q) and symmetric 179° wedge I(Q) produce nearly identical results
+when inelastic/incoherent correction is enabled. The symmetric 179° wedge (358° total coverage) should
+match scalar (360° coverage) to within ~1% due to the small angular gap.
 
 EWM-13940: Inelastic/incoherent correction produces different results for scalar and wedge binning
 Fix: Apply corrections to unbinned data before mode-specific binning
@@ -18,15 +19,13 @@ from drtsans.tof.eqsans import reduction_parameters, load_all_files, reduce_sing
 
 
 @pytest.mark.datarepo
-def test_scalar_vs_wedge360_with_inelastic_correction(datarepo_dir, temp_directory):
-    """Test that scalar and symmetric wedge I(Q) produce consistent results with inelastic correction.
+def test_scalar_vs_symmetric_wedge_179_with_inelastic_correction(datarepo_dir, temp_directory):
+    """Test that scalar and symmetric 179° wedge I(Q) produce consistent results with inelastic correction.
 
     This is the core regression test for EWM-13940. Before the fix, scalar and wedge binning
     produced different results when inelastic correction was enabled because corrections were
     applied to intermediate binned data. After the fix, corrections are applied to unbinned
-    data before binning, ensuring consistent results.
-
-    """
+    data before binning, ensuring consistent results."""
 
     # Base configuration using existing test data
     base_configuration = {
@@ -106,9 +105,9 @@ def test_scalar_vs_wedge360_with_inelastic_correction(datarepo_dir, temp_directo
         iq_scalar = output_scalar[0].I1D_main[0]
 
         # Test 2: Symmetric 179° wedge binning
-        # Single wedge 0-179° with autoSymmetricWedges=True covers full azimuthal range
-        # Note: Wedge angle must be <180° (not <=180°)
-        print("\n=== Running reduction with symmetric 179° WEDGE binning ===")
+        # Single wedge 0-179° with autoSymmetricWedges=True covers 358° azimuthal range
+        # Note: Wedge angle must be <180° (not <=180°), giving 358° total vs scalar's 360°
+        print("\n=== Running reduction with symmetric 179° WEDGE binning (358° coverage) ===")
         config_wedge = base_configuration.copy()
         config_wedge["configuration"] = base_configuration["configuration"].copy()
         config_wedge["configuration"]["outputDir"] = test_dir
@@ -130,7 +129,7 @@ def test_scalar_vs_wedge360_with_inelastic_correction(datarepo_dir, temp_directo
         iq_wedge_symmetric = output_wedge[0].I1D_main[0]
 
         # Compare scalar vs symmetric 179° wedge
-        print("\n=== Comparing scalar vs symmetric 179° wedge results ===")
+        print("\n=== Comparing scalar vs symmetric 179° wedge (358° coverage) results ===")
 
         # Check that Q bins are identical
         np.testing.assert_allclose(
@@ -141,7 +140,9 @@ def test_scalar_vs_wedge360_with_inelastic_correction(datarepo_dir, temp_directo
         )
 
         # Check that intensities match
-        # Allow small numerical differences from floating point operations
+        # Allow small numerical differences from:
+        # - 358° wedge coverage vs 360° scalar coverage (2° gap)
+        # - Floating point operations
         intensity_diff = np.abs(iq_scalar.intensity - iq_wedge_symmetric.intensity)
         intensity_mean = np.abs(iq_scalar.intensity)
 
@@ -157,17 +158,17 @@ def test_scalar_vs_wedge360_with_inelastic_correction(datarepo_dir, temp_directo
         print(f"Max relative difference: {max_rel_diff:.6e}")
 
         # Assert that differences are within acceptable tolerance
-        # Scalar and symmetric wedge aren't perfectly identical due to:
-        # - Wedge covers 179° x 2 = 358° (missing 2° vs scalar's 360°)
+        # Scalar (360°) and symmetric 179° wedge (358°) aren't perfectly identical due to:
+        # - Wedge covers 179° x 2 = 358°, missing 2° vs scalar's 360°
         # - Different binning implementations
         # But they should be very close after the EWM-13940 fix (<0.5% mean, <1% max)
         assert mean_rel_diff < 5e-3, (
             f"Mean relative difference {mean_rel_diff:.2e} exceeds 0.5% threshold. "
-            f"Scalar and symmetric 179° wedge I(Q) should be nearly identical after EWM-13940 fix."
+            f"Scalar (360°) and symmetric 179° wedge (358°) I(Q) should be nearly identical after EWM-13940 fix."
         )
         assert max_rel_diff < 1e-2, (
             f"Max relative difference {max_rel_diff:.2e} exceeds 1% threshold. "
-            f"Scalar and symmetric 179° wedge I(Q) should be nearly identical after EWM-13940 fix."
+            f"Scalar (360°) and symmetric 179° wedge (358°) I(Q) should be nearly identical after EWM-13940 fix."
         )
 
         # Also check errors match
@@ -190,7 +191,10 @@ def test_scalar_vs_wedge360_with_inelastic_correction(datarepo_dir, temp_directo
             f"Max relative error difference {max_rel_error_diff:.2e} exceeds 1% threshold"
         )
 
-        print("\n✓ SUCCESS: Scalar and symmetric 179° wedge I(Q) are nearly identical (EWM-13940 fix validated)")
+        print(
+            "\n✓ SUCCESS: Scalar (360°) and symmetric 179° wedge (358°) I(Q) are nearly identical "
+            "(EWM-13940 fix validated)"
+        )
     finally:
         # Cleanup workspaces even if assertions fail
         cleanup_workspaces()

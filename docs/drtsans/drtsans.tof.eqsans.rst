@@ -63,7 +63,7 @@ drtsans.tof.eqsans.dark\_current module
 drtsans.tof.eqsans.elastic\_reference\_normalization module
 -----------------------------------------------------------
 
-.. automodule:: drtsans.tof.eqsans.elastic_reference_normalization
+.. automodule:: drtsans.tof.eqsans.elastic_correction
    :members:
    :undoc-members:
    :show-inheritance:

@@ -25,12 +25,12 @@ from drtsans.tof.eqsans.correction_api import (
     CorrectionConfiguration,
     save_k_vector,
 )
-from drtsans.tof.eqsans.incoherence_correction_1d import (
+from drtsans.tof.eqsans.incoherence_correction import (
     calculate_incoherence_correction_factors,
     apply_incoherence_correction_to_unbinned_data,
 )
 from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
-from drtsans.tof.eqsans.elastic_reference_normalization import (
+from drtsans.tof.eqsans.elastic_correction import (
     normalize_by_elastic_reference_all,
     apply_elastic_normalization_to_unbinned_data,
 )
@@ -320,8 +320,10 @@ def bin_i_with_correction(
         qxrange = np.min(iq2d_in_frames[frameskip_frame].qx), np.max(iq2d_in_frames[frameskip_frame].qx)
         qyrange = np.min(iq2d_in_frames[frameskip_frame].qy), np.max(iq2d_in_frames[frameskip_frame].qy)
 
-        # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
-        iq2d_main_wl, iq1d_main_wl = bin_all(
+        # Temporarily bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space to CALCULATE correction factors
+        # These binned results are ONLY used to calculate k(λ) and b(λ), then discarded
+        # This temporary binning does NOT bin in wavelength (n_wavelength_bin=None)
+        iq2d_temp_binned, iq1d_temp_binned = bin_all(
             iq2d_in_frames[frameskip_frame],
             iq1d_in_frames[frameskip_frame],
             num_x_bins,
@@ -343,9 +345,11 @@ def bin_i_with_correction(
             n_wavelength_bin=None,
         )
         # Check due to functional limitation
-        assert isinstance(iq1d_main_wl, list), f"Output I(Q) must be a list but not a {type(iq1d_main_wl)}"
-        if len(iq1d_main_wl) != 1:
-            raise NotImplementedError(f"Not expected that there are more than 1 IQmod main but {len(iq1d_main_wl)}")
+        assert isinstance(iq1d_temp_binned, list), f"Output I(Q) must be a list but not a {type(iq1d_temp_binned)}"
+        if len(iq1d_temp_binned) != 1:
+            raise NotImplementedError(
+                f"Not expected that there are more than 1 IQmod main but {len(iq1d_temp_binned)}"
+            )
 
     # Elastic correction
     if correction_setup.do_elastic_correction:
@@ -356,10 +360,10 @@ def bin_i_with_correction(
 
         k_file_prefix = f"{raw_name}"
 
-        # Bin elastic reference run
+        # Temporarily bin elastic reference run to calculate k(λ) factors
         if iq1d_elastic_ref_fr:
             # bin the reference elastic runs of the current frame
-            iq2d_elastic_wl, iq1d_elastic_wl = bin_all(
+            iq2d_elastic_temp, iq1d_elastic_temp = bin_all(
                 iq2d_elastic_ref_fr[frameskip_frame],
                 iq1d_elastic_ref_fr[frameskip_frame],
                 num_x_bins,
@@ -380,31 +384,31 @@ def bin_i_with_correction(
                 error_weighted=weighted_errors,
                 n_wavelength_bin=None,
             )
-            if len(iq1d_elastic_wl) != 1:
+            if len(iq1d_elastic_temp) != 1:
                 raise NotImplementedError("Not expected that there are more than 1 IQmod of elastic reference run.")
 
-            iq2d_main_wl, iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference_all(
-                iq2d_main_wl,
-                iq1d_main_wl[0],
-                iq1d_elastic_wl[0],
+            # Calculate k(λ) correction factors from temporarily binned data
+            # We use the binned data ONLY to calculate k(λ), then discard these binned results
+            _, _, k_vec, k_error_vec = normalize_by_elastic_reference_all(
+                iq2d_temp_binned,
+                iq1d_temp_binned[0],
+                iq1d_elastic_temp[0],
                 correction_setup.output_wavelength_dependent_profile,
                 elastic_output_dir,
             )
-            iq1d_main_wl[0] = iq1d_wl
 
-            # write k vector
+            # Save k vector
+            wl_vec = np.unique(iq1d_temp_binned[0].wavelength)
             save_k_vector(
-                iq1d_wl.wavelength,
+                wl_vec,
                 k_vec,
                 k_error_vec,
                 path=os.path.join(elastic_output_dir, f"{output_filename}_elastic_k1d_{k_file_prefix}.dat"),
             )
 
-            # Apply elastic normalization to unbinned data as well
-            # This ensures that if inelastic correction is also enabled, both corrections
-            # are applied to the unbinned data before final binning
+            # Apply elastic normalization k(λ) to UNBINNED data
+            # This is the key fix: corrections applied to unbinned data, not binned data
             logger.notice("Applying elastic normalization to unbinned data")
-            wl_vec = np.unique(iq1d_wl.wavelength)
             iq2d_in_frames[frameskip_frame], iq1d_in_frames[frameskip_frame] = (
                 apply_elastic_normalization_to_unbinned_data(
                     iq2d_in_frames[frameskip_frame],
@@ -416,7 +420,6 @@ def bin_i_with_correction(
             )
 
     # Inelastic incoherence correction
-    correction_factors = None
     if correction_setup.do_inelastic_correction[frameskip_frame]:
         inelastic_output_dir = os.path.join(
             output_dir, "info", "inelastic_incoh", output_filename, slice_name, f"frame_{frameskip_frame}"
@@ -425,11 +428,11 @@ def bin_i_with_correction(
 
         b_file_prefix = f"{raw_name}"
 
-        # Calculate correction factors from scalar-binned I(Q, lambda)
+        # Calculate b(λ) correction factors from temporarily binned scalar I(Q, lambda)
         # This ensures consistent correction factors regardless of the final binning mode
         logger.notice("Calculating inelastic/incoherent correction factors from scalar-binned I(Q, lambda)")
         correction_factors = calculate_incoherence_correction_factors(
-            iq1d_main_wl[0],  # scalar-binned I(Q, lambda)
+            iq1d_temp_binned[0],  # scalar-binned I(Q, lambda) from temporary binning
             correction_setup.select_min_incoherence,
             correction_setup.select_intensityweighted[frameskip_frame],
             correction_setup.qmin[frameskip_frame],
@@ -437,53 +440,41 @@ def bin_i_with_correction(
             correction_setup.factor[frameskip_frame],
         )
 
-        # Save correction factors
+        # Save b(λ) correction factors
         from drtsans.tof.eqsans.correction_api import save_b_factor
-        from drtsans.tof.eqsans.incoherence_correction_1d import CorrectedI1D
+        from drtsans.tof.eqsans.incoherence_correction import CorrectedI1D
 
         save_b_factor(
-            CorrectedI1D(iq1d_main_wl[0], correction_factors.b_factor, correction_factors.b_error),
+            CorrectedI1D(iq1d_temp_binned[0], correction_factors.b_factor, correction_factors.b_error),
             os.path.join(inelastic_output_dir, f"{output_filename}_inelastic_b1d_{b_file_prefix}.dat"),
         )
 
-        # Apply corrections to UNBINNED data
-        # This ensures scalar and wedge modes get the same corrections
+        # Apply b(λ) corrections to UNBINNED data
+        # This ensures scalar and wedge modes get identical corrections
         logger.notice("Applying inelastic/incoherent correction to unbinned data")
-        iq2d_corrected_unbinned, iq1d_corrected_unbinned = apply_incoherence_correction_to_unbinned_data(
-            iq2d_in_frames[frameskip_frame],
-            iq1d_in_frames[frameskip_frame],
-            correction_factors,
+        iq2d_in_frames[frameskip_frame], iq1d_in_frames[frameskip_frame] = (
+            apply_incoherence_correction_to_unbinned_data(
+                iq2d_in_frames[frameskip_frame],
+                iq1d_in_frames[frameskip_frame],
+                correction_factors,
+            )
         )
 
-        # Update the unbinned data with corrected values
-        # These will be used in the final binning step
-        iq2d_in_frames[frameskip_frame] = iq2d_corrected_unbinned
-        iq1d_in_frames[frameskip_frame] = iq1d_corrected_unbinned
-
-        # Note: We no longer work with iq2d_main_wl and iq1d_main_wl after correction
-        # The corrected unbinned data will be binned in the final step below
-
-    if not correction_setup.do_elastic_correction and not any(correction_setup.do_inelastic_correction):
-        finite_iq1d = iq1d_in_frames[frameskip_frame]
-        finite_iq2d = iq2d_in_frames[frameskip_frame]
-        qmin = user_qmin
-        qmax = user_qmax
-    elif correction_setup.do_inelastic_correction[frameskip_frame]:
-        # Use corrected unbinned data (already applied)
+    # Prepare data for final binning
+    if correction_setup.do_elastic_correction or any(correction_setup.do_inelastic_correction):
+        # Corrections were applied to unbinned data - use the corrected unbinned data
         finite_iq1d = iq1d_in_frames[frameskip_frame].be_finite()
         finite_iq2d = iq2d_in_frames[frameskip_frame].be_finite()
         # qmin and qmax already set above
     else:
-        # Only elastic correction was done (no inelastic)
-        # Be finite
-        finite_iq1d = iq1d_main_wl[0].be_finite()
-        finite_iq2d = iq2d_main_wl.be_finite()
-        # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
-        assert len(iq1d_main_wl) == 1, (
-            f"It is assumed that output I(Q) list contains 1 I(Q) but not {len(iq1d_main_wl)}"
-        )
+        # No corrections - use original unbinned data
+        finite_iq1d = iq1d_in_frames[frameskip_frame]
+        finite_iq2d = iq2d_in_frames[frameskip_frame]
+        qmin = user_qmin
+        qmax = user_qmax
 
-    # Bin output in wavelength space
+    # ONE FINAL BINNING: Bin corrected (or uncorrected) unbinned data
+    # This is the ONLY binning that produces output - the "One Rebin Only" pattern
     iq2d_main_out, iq1d_main_out = bin_all(
         finite_iq2d,
         finite_iq1d,

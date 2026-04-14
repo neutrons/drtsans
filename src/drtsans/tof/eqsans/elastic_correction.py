@@ -314,7 +314,7 @@ def build_i1d_from_intensity_domain_meshgrid(
     as a function of Q (or phi) and wavelength
 
     This is the reversed operation to method
-    :py:meth:`~drtsans.tof.eqsans.elastic_reference_normalization.reshape_intensity_domain_meshgrid`
+    :py:meth:`~drtsans.tof.eqsans.elastic_correction.reshape_intensity_domain_meshgrid`
 
     Parameters
     ----------

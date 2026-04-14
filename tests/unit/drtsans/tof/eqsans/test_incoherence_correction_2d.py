@@ -1,10 +1,10 @@
-# Test drtsans.tof.eqsans.incoherence_correction_2d
+# Test drtsans.tof.eqsans.incoherence_correction (2D functionality)
 import pytest
 
 import numpy as np
 from numpy.testing import assert_allclose
 
-import drtsans.tof.eqsans.incoherence_correction_2d as ic2d
+import drtsans.tof.eqsans.incoherence_correction as ic2d
 from drtsans.dataobjects import IQazimuthal
 
 

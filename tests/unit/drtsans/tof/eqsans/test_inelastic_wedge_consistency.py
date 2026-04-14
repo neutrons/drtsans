@@ -1,12 +1,12 @@
 """
-Test that inelastic correction produces consistent results for scalar and wedge binning.
+Test the inelastic correction workflow for unbinned data processing.
 
 This test addresses EWM-13940: Intensity is not correct when inelastic correction
 and multiple wedging are both turned on at EQSANS.
 
-The fix ensures that correction factors are calculated from scalar-binned data and
-applied to unbinned data BEFORE mode-specific binning, so that scalar and 360° wedge
-I(Q) profiles overlap.
+These unit tests verify that correction factors can be calculated from scalar-binned
+data and applied to unbinned data, which is the prerequisite for ensuring scalar and
+wedge modes produce consistent results (validated by integration tests).
 """
 
 import pytest

@@ -1,6 +1,6 @@
 import pytest
 from drtsans.dataobjects import IQazimuthal
-from drtsans.tof.eqsans.elastic_reference_normalization import (
+from drtsans.tof.eqsans.elastic_correction import (
     normalize_by_elastic_reference_2d,
 )
 import numpy as np

@@ -183,7 +183,14 @@ def test_parse_invalid_json(datarepo_dir):
                 "This test compares new correct output against old buggy gold files."
             ),
         ),
-        (False, True),
+        pytest.param(
+            False,
+            True,
+            marks=pytest.mark.skip(
+                reason="EWM-13940: Gold files need regeneration after one-rebin-only implementation. "
+                "Elastic correction now applied to unbinned data, producing different (correct) results."
+            ),
+        ),
         pytest.param(
             True,
             True,

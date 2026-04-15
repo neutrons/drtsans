@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from drtsans.filterevents.factory import resolve_slicing, create_filter_strategy
 from drtsans.filterevents.logfilter import LogValueFilter
+from drtsans.filterevents.spinfilter import SpinFilter
 from drtsans.filterevents.timefilter import TimeIntervalFilter, PeriodicTimeFilter
 
 
@@ -80,17 +81,18 @@ def test_create_filter_strategy():
     assert strategy.log_name == "SampleTemp"
     assert strategy.log_value_interval == 5.0
 
+    # spin filter
+    strategy = create_filter_strategy(
+        ws,
+        reduction_config={
+            "sample": {"runNumber": "123"},
+            "configuration": {"polarization": {"level": "half"}},
+        },
+    )
+    assert isinstance(strategy, SpinFilter)
+    assert strategy._has_polarizer is False  # ws's sample-logs need to be inspected
+    assert strategy._has_analyzer is False  # ws's sample-logs need to be inspected
+
     # no params → ValueError
     with pytest.raises(ValueError, match="No valid filtering parameters"):
         create_filter_strategy(ws)
-
-    # polarized sample → NotImplementedError
-    with pytest.raises(NotImplementedError, match="Spin filtering"):
-        create_filter_strategy(
-            ws,
-            reduction_config={
-                "sample": {"runNumber": "123"},
-                "configuration": {"polarization": {"level": "half"}},
-            },
-            time_interval=10.0,
-        )

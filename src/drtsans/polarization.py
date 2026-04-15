@@ -178,10 +178,10 @@ __all__ = [
 ]
 
 # Names of processing variables related to polarization, stored in the sample logs of the Nexus Event file
+# For the moment, we assume these PVs are consistent across instruments.
 PV_POLARIZER = "Polarizer"
 PV_POLARIZER_FLIPPER = "PolarizerFlipper"
 PV_POLARIZER_VETO = "PolarizerVeto"
-
 PV_ANALYZER = "Analyzer"
 PV_ANALYZER_FLIPPER = "AnalyzerFlipper"
 PV_ANALYZER_VETO = "AnalyzerVeto"

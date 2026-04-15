@@ -2,6 +2,7 @@ from typing import Optional, Union, List, Tuple
 
 from drtsans.filterevents.basefilter import FilterStrategy
 from drtsans.filterevents.logfilter import LogValueFilter
+from drtsans.filterevents.spinfilter import SpinFilter
 from drtsans.filterevents.timefilter import PeriodicTimeFilter, TimeIntervalFilter
 from drtsans.polarization import polarized_sample
 from drtsans.type_hints import MantidWorkspace
@@ -55,21 +56,13 @@ def create_filter_strategy(
 
     Notes
     -----
-    The function determines which filter to use based on which parameters
-    are provided:
+    The function determines which filter to use based on which parameters are provided:
 
     - time_interval + time_period → PeriodicTimeFilter
     - time_interval → TimeIntervalFilter
     - log_name + log_value_interval → LogValueFilter
-
-    Polarized samples are not yet supported by this factory function.
+    - reduction_config --> SpinFilter
     """
-
-    # Check for polarized sample - not yet supported
-    if reduction_config and polarized_sample(reduction_config):
-        raise NotImplementedError(
-            "Spin filtering for polarized samples is not yet implemented in create_filter_strategy"
-        )
 
     # Determine filter type based on provided parameters
     if time_interval is not None:
@@ -96,12 +89,16 @@ def create_filter_strategy(
             log_name=log_name,
             log_value_interval=log_value_interval,
         )
-
-    raise ValueError(
-        "No valid filtering parameters provided. Must specify either:\n"
-        "  - time_interval (with optional time_period for periodic slicing)\n"
-        "  - log_name and log_value_interval"
-    )
+    elif bool(reduction_config) and polarized_sample(reduction_config):
+        # Spin-based slicing
+        return SpinFilter(workspace)
+    else:
+        raise ValueError(
+            "No valid filtering parameters provided. Must specify either:\n"
+            "  - time_interval (with optional time_period for periodic slicing)\n"
+            "  - log_name and log_value_interval\n"
+            "  - reduction_config with a polarized sample (spin-based slicing)"
+        )
 
 
 def resolve_slicing(reduction_input: dict) -> Tuple[bool, bool, bool]:

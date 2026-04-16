@@ -26,8 +26,11 @@ def subtract_blocked_beam(
     blocked_beam : namedtuple
         (~mantid.dataobjects.Workspace2D, ~mantid.dataobjects.Workspace2D)
         An object containing the blocked beam data. If None or its data is None, subtraction is skipped.
-    flux_method : str, optional
-        The method used for flux normalization. If "monitor", blocked beam subtraction is skipped.
+    flux_method : str
+        The method used for flux normalization. Required when blocked_beam is provided.
+        If "monitor", blocked beam subtraction is skipped with a warning.
+        If None, raises ValueError.
+        Common values: "proton charge", "time".
     flux : Workspace or str, optional
         The workspace or value used for flux normalization.
     dark_current : namedtuple

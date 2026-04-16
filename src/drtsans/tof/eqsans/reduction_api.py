@@ -3,6 +3,7 @@ import os
 from collections import namedtuple
 from typing import Dict, List, Tuple
 
+import numpy as np
 from mantid.simpleapi import (
     SaveAscii,
     mtd,
@@ -298,6 +299,11 @@ def bin_i_with_correction(
     iq2d = iq2d_in_frames[frameskip_frame]
     iq1d = iq1d_in_frames[frameskip_frame]
 
+    # Preserve original unbinned data - both corrections should calculate factors from the SAME original data
+    # This matches the old working pattern where one temporary binning was used for both corrections
+    iq2d_for_factor_calc = iq2d
+    iq1d_for_factor_calc = iq1d
+
     # Apply elastic correction if requested
     if correction_setup.do_elastic_correction and iq1d_elastic_ref_fr and iq2d_elastic_ref_fr:
         # Build output directory with slice and frame info
@@ -315,9 +321,14 @@ def bin_i_with_correction(
             num_q1d_bins=num_q1d_bins,
             num_q1d_bins_per_decade=num_q1d_bins_per_decade,
             decade_on_center=decade_on_center,
+            bin1d_type=bin1d_type,
             log_binning=log_binning,
             user_qmin=user_qmin,
             user_qmax=user_qmax,
+            annular_bin=annular_bin,
+            wedges=wedges,
+            symmetric_wedges=symmetric_wedges,
+            weighted_errors=weighted_errors,
             output_wavelength_profile=correction_setup.output_wavelength_dependent_profile,
             output_dir=elastic_dir,
             output_filename=output_filename,
@@ -331,26 +342,95 @@ def bin_i_with_correction(
             output_dir, "info", "inelastic_incoh", output_filename, slice_name, f"frame_{frameskip_frame}"
         )
 
-        iq2d, iq1d = inelastic_correction(
-            iq2d_unbinned=iq2d,
-            iq1d_unbinned=iq1d,
-            num_x_bins=num_x_bins,
-            num_y_bins=num_y_bins,
-            num_q1d_bins=num_q1d_bins,
-            num_q1d_bins_per_decade=num_q1d_bins_per_decade,
-            decade_on_center=decade_on_center,
-            log_binning=log_binning,
-            user_qmin=user_qmin,
-            user_qmax=user_qmax,
-            select_min_incoherence=correction_setup.select_min_incoherence,
-            intensity_weighted=correction_setup.select_intensityweighted[frameskip_frame],
-            incoh_qmin=correction_setup.qmin[frameskip_frame],
-            incoh_qmax=correction_setup.qmax[frameskip_frame],
-            incoh_factor=correction_setup.factor[frameskip_frame],
-            output_dir=inelastic_dir,
-            output_filename=output_filename,
-            raw_name=raw_name,
-        )
+        if correction_setup.do_elastic_correction and iq1d_elastic_ref_fr and iq2d_elastic_ref_fr:
+            # Elastic correction was applied, so calculate b(λ) from original but apply to corrected
+            from drtsans.iq import bin_all
+            from drtsans.tof.eqsans.inelastic_correction import (
+                calculate_incoherence_correction_factors,
+                apply_incoherence_correction_to_unbinned_data,
+            )
+
+            # Determine Q ranges from original data (same as elastic correction would have used)
+            qmin = user_qmin if user_qmin is not None else iq1d_for_factor_calc.mod_q.min()
+            qmax = user_qmax if user_qmax is not None else iq1d_for_factor_calc.mod_q.max()
+            qxrange = (np.min(iq2d_for_factor_calc.qx), np.max(iq2d_for_factor_calc.qx))
+            qyrange = (np.min(iq2d_for_factor_calc.qy), np.max(iq2d_for_factor_calc.qy))
+
+            # Temporarily bin ORIGINAL data for factor calculation
+            _, iq1d_temp = bin_all(
+                iq2d_for_factor_calc,
+                iq1d_for_factor_calc,
+                num_x_bins,
+                num_y_bins,
+                n1dbins=num_q1d_bins,
+                n1dbins_per_decade=num_q1d_bins_per_decade,
+                decade_on_center=decade_on_center,
+                bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
+                log_scale=log_binning,
+                qmin=qmin,
+                qmax=qmax,
+                qxrange=qxrange,
+                qyrange=qyrange,
+                annular_angle_bin=annular_bin,
+                wedges=wedges,
+                symmetric_wedges=symmetric_wedges,
+                error_weighted=weighted_errors,
+                n_wavelength_bin=None,
+            )
+
+            # Calculate b(λ) from temporarily binned ORIGINAL data
+            correction_factors = calculate_incoherence_correction_factors(
+                iq1d_temp[0],
+                correction_setup.select_min_incoherence,
+                correction_setup.select_intensityweighted[frameskip_frame],
+                correction_setup.qmin[frameskip_frame],
+                correction_setup.qmax[frameskip_frame],
+                correction_setup.factor[frameskip_frame],
+            )
+
+            # Save b(λ)
+            from drtsans.tof.eqsans.correction_api import save_b_factor
+            from drtsans.tof.eqsans.inelastic_correction import CorrectedI1D
+            from collections import namedtuple
+
+            os.makedirs(inelastic_dir, exist_ok=True)
+            WavelengthContainer = namedtuple("WavelengthContainer", ["wavelength"])
+            wl_container = WavelengthContainer(wavelength=correction_factors.wavelength)
+            save_b_factor(
+                CorrectedI1D(wl_container, correction_factors.b_factor, correction_factors.b_error),
+                os.path.join(inelastic_dir, f"{output_filename}_inelastic_b1d_{raw_name}.dat"),
+            )
+
+            # Apply b(λ) to ELASTIC-CORRECTED unbinned data
+            logger.notice("Applying inelastic/incoherent correction to unbinned data")
+            iq2d, iq1d = apply_incoherence_correction_to_unbinned_data(iq2d, iq1d, correction_factors)
+        else:
+            # No elastic correction, use the standard inelastic correction wrapper
+            iq2d, iq1d = inelastic_correction(
+                iq2d_unbinned=iq2d,
+                iq1d_unbinned=iq1d,
+                num_x_bins=num_x_bins,
+                num_y_bins=num_y_bins,
+                num_q1d_bins=num_q1d_bins,
+                num_q1d_bins_per_decade=num_q1d_bins_per_decade,
+                decade_on_center=decade_on_center,
+                bin1d_type=bin1d_type,
+                log_binning=log_binning,
+                user_qmin=user_qmin,
+                user_qmax=user_qmax,
+                annular_bin=annular_bin,
+                wedges=wedges,
+                symmetric_wedges=symmetric_wedges,
+                weighted_errors=weighted_errors,
+                select_min_incoherence=correction_setup.select_min_incoherence,
+                intensity_weighted=correction_setup.select_intensityweighted[frameskip_frame],
+                incoh_qmin=correction_setup.qmin[frameskip_frame],
+                incoh_qmax=correction_setup.qmax[frameskip_frame],
+                incoh_factor=correction_setup.factor[frameskip_frame],
+                output_dir=inelastic_dir,
+                output_filename=output_filename,
+                raw_name=raw_name,
+            )
 
     # Remove non-finite values before final binning
     finite_iq2d = iq2d.be_finite()

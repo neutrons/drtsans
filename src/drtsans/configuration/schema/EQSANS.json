@@ -142,10 +142,12 @@
             "Total Charge": "#configuration/beamFluxFileName"
           },
           "examples": ["Monitor", "Total charge", "Time"],
-          "default": "Total charge",
-          "evaluateCondition": "('{this}' != 'Time') or ({#configuration/blockedBeamRunNumber} is None or {#configuration/blockedBeamRunNumber} == '')"
+          "default": "Total charge"
         },
-        "blockedBeamRunNumber": {"$ref": "common.json#/configuration/blockedBeamRunNumber"},
+        "blockedBeamRunNumber": {
+          "$ref": "common.json#/configuration/blockedBeamRunNumber",
+          "evaluateCondition": "('{this}' in [None, '']) or ('{#configuration/normalization}' != 'Time')"
+        },
         "fluxMonitorRatioFile": {
           "type": ["string", "null"],
           "datasource": "file",

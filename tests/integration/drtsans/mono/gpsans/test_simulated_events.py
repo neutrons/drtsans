@@ -211,7 +211,7 @@ def create_three_rings_pattern(config: dict, metadata: dict):
 
         Plus(LHSWorkspace=input_workspace, RHSWorkspace=events_cache["beam_spot"], OutputWorkspace=input_workspace)
 
-    # SAMPLE RUN (three time-resolved rings, one isotropic scattering, one flat noise)
+    # SAMPLE RUN (three time-resolved rings, plus one isotropic scattering and one flat noise)
     ws_sample = common_empty_workspace(run_number=config["sample"]["runNumber"])
     for pulse_time, two_theta in zip(
         metadata["pulse_times"], np.tile(metadata["two_theta_at_max"], len(metadata["pulse_times"]))
@@ -358,7 +358,7 @@ def three_rings_pattern(datarepo_dir) -> dict:
         pulse_count += 1
         pulse_current = pulse_start + round(pulse_count * pulse_period)
 
-    # Four our monochromatic wavelength distribution with wavelength `W`, the scattering ring pattern has a maximum at
+    # For our monochromatic wavelength distribution with wavelength `W`, the scattering ring pattern has a maximum at
     # scattering angle `two_theta_at_max`, thus the momentum transfer modulus Q corresponding to this maximum
     # is Q = 2 * k_i * sin(two_theta_at_max / 2), with k_i = 2 * pi / W
     theta_at_max = np.radians(metadata["two_theta_at_max"]) / 2.0

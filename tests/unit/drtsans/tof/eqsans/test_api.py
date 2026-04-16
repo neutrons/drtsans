@@ -397,55 +397,31 @@ title = I_1D_1_wedge_1
     )
 
 
-def test_reduce_single_configuration_errors_on_time_normalization_with_blocked_beam():
-    """Test that reduce_single_configuration raises ValueError when Time normalization is used with blocked beam"""
-    from drtsans.tof.eqsans.api import reduce_single_configuration
+@pytest.mark.parametrize("blocked_beam_value", ["12345", 12345])
+def test_reduce_single_configuration_errors_on_time_normalization_with_blocked_beam(blocked_beam_value):
+    """Test that schema validation rejects Time normalization when blocked beam is provided"""
+    from drtsans.redparams import reduction_parameters, update_reduction_parameters, ReductionParameterError
 
-    # Create minimal loaded workspace mock
-    loaded_ws = mock.MagicMock()
-    loaded_ws.sample = [mock.MagicMock()]
-    loaded_ws.background = mock.MagicMock()
-    loaded_ws.background.data = None
-    loaded_ws.blocked_beam = mock.MagicMock()
-    loaded_ws.blocked_beam.data = None
+    # Start with default EQSANS parameters
+    params = reduction_parameters(instrument_name="EQSANS", validate=False)
 
-    # Create reduction input with Time normalization and blocked beam
-    reduction_input = {
-        "configuration": {
-            "normalization": "Time",
-            "blockedBeamRunNumber": "12345",  # Blocked beam is provided
-            "fluxMonitorRatioFile": None,
-            "beamFluxFileName": "flux.dat",
-            "useSolidAngleCorrection": False,
-            "mmRadiusForTransmission": 10.0,
-            "useThetaDepTransCorrection": False,
-            "useMaskBackTubes": False,
-            "numQxQyBins": 100,
-            "1DQbinType": "scalar",
-            "QbinType": "log",
-            "useLogQBinsDecadeCenter": False,
-            "numQBins": 100,
-            "LogQBinsPerDecade": 10,
-            "useErrorWeighting": False,
-            "Qmin": 0.001,
-            "Qmax": 1.0,
-            "AnnularAngleBin": 5.0,
-            "WedgeMinAngles": None,
-            "WedgeMaxAngles": None,
-            "useTimeSlice": False,
-            "useSubpixels": False,
-            "outputDir": "/tmp",
-            "absoluteScaleMethod": "standard",
-            "StandardAbsoluteScale": 1.0,
+    # Update with conflicting configuration: Time normalization + blocked beam
+    params_with_conflict = update_reduction_parameters(
+        params,
+        {
+            "configuration": {
+                "normalization": "Time",
+                "blockedBeamRunNumber": blocked_beam_value,
+            }
         },
-        "sample": {"thickness": 1.0, "transmission": {"value": None}},
-        "background": {"transmission": {"value": None}},
-        "outputFileName": "test_output",
-    }
+        validate=False,
+    )
 
-    # Verify that ValueError is raised
-    with pytest.raises(ValueError, match='Flux normalization method "Time" is not compatible with blocked-beam'):
-        reduce_single_configuration(loaded_ws, reduction_input, prefix="test")
+    # Verify that ReductionParameterError is raised during schema validation
+    with pytest.raises(ReductionParameterError):
+        from drtsans.redparams import validate_reduction_parameters
+
+        validate_reduction_parameters(params_with_conflict)
 
 
 def test_reduce_single_configuration_auto_promotes_none_to_proton_charge():
@@ -490,24 +466,14 @@ def test_reduce_single_configuration_auto_promotes_none_to_proton_charge():
         "outputFileName": "test_output",
     }
 
-    # The test verifies that ValueError is NOT raised for the configuration
-    # (If there were an error in the auto-promotion logic, it would raise ValueError)
-    # The function will fail downstream due to mocks, but we only care that the
-    # auto-promotion logic doesn't raise ValueError
-    try:
-        reduce_single_configuration(loaded_ws, reduction_input, prefix="test")
-    except ValueError as e:
-        # If we got a ValueError, check if it's the one we're testing
-        if "beamFluxFileName" in str(e) or "Time" in str(e):
-            pytest.fail(f"Auto-promotion should work without error, but got: {e}")
-        # Re-raise if it's a different ValueError
-        raise
-    except Exception:
-        # Other exceptions are expected due to incomplete mocking
-        pass
-
-    # If we reach here, the auto-promotion logic worked correctly
-    # (Note: The warning is logged and visible in test output)
+    # Stop execution deterministically after the flux-method selection logic so we can
+    # verify auto-promotion works without relying on unrelated failures from incomplete mocks.
+    with mock.patch(
+        "drtsans.tof.eqsans.api.prepare_data_workspaces",
+        side_effect=RuntimeError("stop after flux selection"),
+    ):
+        with pytest.raises(RuntimeError, match="stop after flux selection"):
+            reduce_single_configuration(loaded_ws, reduction_input, prefix="test")
 
 
 def test_reduce_single_configuration_errors_when_beam_flux_file_missing():

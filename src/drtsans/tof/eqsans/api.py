@@ -695,14 +695,6 @@ def reduce_single_configuration(
         "Time": "duration",
     }
     flux = flux_translator.get(reduction_config["normalization"], None)
-    if flux_method == "time" and (
-        "blockedBeamRunNumber" in reduction_config and reduction_config["blockedBeamRunNumber"]
-    ):
-        raise ValueError(
-            'Flux normalization method "Time" is not compatible with blocked-beam subtraction. '
-            'Please choose configuration "Total charge" (method "proton charge") normalization '
-            "when a blocked beam run is provided."
-        )
 
     # If no normalization method was chosen but a blocked-beam is requested,
     # fall back to proton-charge normalization so the subtraction is valid.

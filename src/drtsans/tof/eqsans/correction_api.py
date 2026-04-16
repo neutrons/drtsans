@@ -5,7 +5,7 @@ from collections import namedtuple
 from typing import List, Union
 
 from drtsans.iq import bin_all  # noqa E402
-from drtsans.tof.eqsans.incoherence_correction import (
+from drtsans.tof.eqsans.inelastic_correction import (
     CorrectedI1D,
     CorrectedIQ2D,
 )

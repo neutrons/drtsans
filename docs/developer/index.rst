@@ -180,7 +180,7 @@ Test Driven Development (TDD)
   Examples:
 
   * `drtsans/resolution.py <https://github.com/neutrons/drtsans/blob/next/src/drtsans/resolution.py>`_ and `tests/unit/drtsans/test_resolution.py <https://github.com/neutrons/drtsans/blob/next/tests/unit/drtsans/test_resolution.py>`_.
-  * `drtsans/tof/eqsans/incoherence_correction_1d.py <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/incoherence_correction_1d.py>`_ and `tests/unit/drtsans/tof/eqsans/test_incoherence_correction_1d.py <https://github.com/neutrons/drtsans/blob/next/tests/unit/drtsans/tof/eqsans/test_incoherence_correction_1d.py>`_.
+  * `drtsans/tof/eqsans/inelastic_correction.py <https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/inelastic_correction.py>`_ and `tests/unit/drtsans/tof/eqsans/test_incoherence_correction_1d.py <https://github.com/neutrons/drtsans/blob/next/tests/unit/drtsans/tof/eqsans/test_incoherence_correction_1d.py>`_.
 
 * Integration test
 

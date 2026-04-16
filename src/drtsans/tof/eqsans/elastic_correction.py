@@ -3,9 +3,10 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
 import os
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Tuple, List
 
 import numpy as np
+from mantid.kernel import logger
 
 from drtsans.dataobjects import IQazimuthal, IQmod, verify_same_q_bins, I1DAnnular, save_i1d, getDataType, DataType
 
@@ -19,6 +20,7 @@ __all__ = [
     "build_i1d_from_intensity_domain_meshgrid",
     "build_i1d_one_wl_from_intensity_domain_meshgrid",
     "determine_common_domain_range_mesh",
+    "elastic_correction",
 ]
 
 
@@ -739,3 +741,175 @@ def apply_elastic_normalization_to_unbinned_data(
         normalized_i_of_q_1d = i_of_q_1d
 
     return normalized_i_of_q_2d, normalized_i_of_q_1d
+
+
+def elastic_correction(
+    iq2d_unbinned: IQazimuthal,
+    iq1d_unbinned: IQmod,
+    iq2d_elastic_ref: IQazimuthal,
+    iq1d_elastic_ref: IQmod,
+    num_x_bins: int,
+    num_y_bins: int,
+    num_q1d_bins: int,
+    num_q1d_bins_per_decade: int,
+    decade_on_center: bool,
+    bin1d_type: str,
+    log_binning: bool,
+    user_qmin: Optional[float],
+    user_qmax: Optional[float],
+    annular_bin: float,
+    wedges: List[Tuple[int, int]],
+    symmetric_wedges: bool,
+    weighted_errors: bool,
+    output_wavelength_profile: bool,
+    output_dir: str,
+    output_filename: str,
+    raw_name: str,
+) -> Tuple[IQazimuthal, IQmod]:
+    """Apply elastic reference normalization to unbinned I(Q) data.
+
+    This function encapsulates all elastic correction logic:
+    1. Determines Q ranges from data if not provided by user
+    2. Temporarily bins sample and elastic reference data to calculate k(λ) factors
+    3. Saves k(λ) to file
+    4. Applies k(λ) correction to unbinned sample data
+    5. Returns corrected unbinned data
+
+    Parameters
+    ----------
+    iq2d_unbinned : IQazimuthal
+        Unbinned 2D I(Qx, Qy) sample data
+    iq1d_unbinned : IQmod
+        Unbinned 1D I(Q) sample data
+    iq2d_elastic_ref : IQazimuthal
+        Unbinned 2D I(Qx, Qy) elastic reference data
+    iq1d_elastic_ref : IQmod
+        Unbinned 1D I(Q) elastic reference data
+    num_x_bins : int
+        Number of Qx bins for temporary binning
+    num_y_bins : int
+        Number of Qy bins for temporary binning
+    num_q1d_bins : int
+        Number of Q bins for temporary 1D binning
+    num_q1d_bins_per_decade : int
+        Number of bins per decade for logarithmic binning
+    decade_on_center : bool
+        Whether decade boundaries are on bin centers
+    bin1d_type : str
+        Type of 1D binning ('scalar', 'wedge', 'annular')
+    log_binning : bool
+        Whether to use logarithmic binning
+    user_qmin : float, optional
+        Minimum Q value (if None, determined from data)
+    user_qmax : float, optional
+        Maximum Q value (if None, determined from data)
+    annular_bin : float
+        Width of annular bin in degrees
+    wedges : list
+        List of (angle_min, angle_max) tuples for wedges
+    symmetric_wedges : bool
+        Whether to add symmetric wedges
+    weighted_errors : bool
+        Whether to use error-weighted binning
+    output_wavelength_profile : bool
+        Whether to output wavelength-dependent profiles
+    output_dir : str
+        Output directory for correction files
+    output_filename : str
+        Base filename for output
+    raw_name : str
+        Prefix for correction file names
+
+    Returns
+    -------
+    tuple
+        (corrected_iq2d_unbinned, corrected_iq1d_unbinned)
+    """
+    # Import bin_all here to avoid circular import
+    from drtsans.iq import bin_all
+    from drtsans.tof.eqsans.correction_api import save_k_vector
+
+    logger.notice("Applying elastic reference normalization")
+
+    # Determine Q ranges from data if not provided by user
+    qmin = user_qmin if user_qmin is not None else iq1d_unbinned.mod_q.min()
+    qmax = user_qmax if user_qmax is not None else iq1d_unbinned.mod_q.max()
+    qxrange = (np.min(iq2d_unbinned.qx), np.max(iq2d_unbinned.qx))
+    qyrange = (np.min(iq2d_unbinned.qy), np.max(iq2d_unbinned.qy))
+
+    # Temporarily bin sample data to calculate k(λ) factors
+    # These binned results are ONLY used for factor calculation, then discarded
+    iq2d_temp_binned, iq1d_temp_binned = bin_all(
+        iq2d_unbinned,
+        iq1d_unbinned,
+        num_x_bins,
+        num_y_bins,
+        n1dbins=num_q1d_bins,
+        n1dbins_per_decade=num_q1d_bins_per_decade,
+        decade_on_center=decade_on_center,
+        bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
+        log_scale=log_binning,
+        qmin=qmin,
+        qmax=qmax,
+        qxrange=qxrange,
+        qyrange=qyrange,
+        annular_angle_bin=annular_bin,
+        wedges=wedges,
+        symmetric_wedges=symmetric_wedges,
+        error_weighted=weighted_errors,
+        n_wavelength_bin=None,
+    )
+
+    # Temporarily bin elastic reference data
+    iq2d_elastic_temp, iq1d_elastic_temp = bin_all(
+        iq2d_elastic_ref,
+        iq1d_elastic_ref,
+        num_x_bins,
+        num_y_bins,
+        n1dbins=num_q1d_bins,
+        n1dbins_per_decade=num_q1d_bins_per_decade,
+        decade_on_center=decade_on_center,
+        bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
+        log_scale=log_binning,
+        qmin=qmin,
+        qmax=qmax,
+        qxrange=qxrange,
+        qyrange=qyrange,
+        annular_angle_bin=annular_bin,
+        wedges=wedges,
+        symmetric_wedges=symmetric_wedges,
+        error_weighted=weighted_errors,
+        n_wavelength_bin=None,
+    )
+
+    if len(iq1d_temp_binned) != 1 or len(iq1d_elastic_temp) != 1:
+        raise NotImplementedError("Expected exactly one IQmod from temporary binning")
+
+    # Calculate k(λ) correction factors
+    elastic_output_dir = os.path.join(output_dir, "info", "elastic_norm", output_filename)
+    os.makedirs(elastic_output_dir, exist_ok=True)
+
+    _, _, k_vec, k_error_vec = normalize_by_elastic_reference_all(
+        iq2d_temp_binned,
+        iq1d_temp_binned[0],
+        iq1d_elastic_temp[0],
+        output_wavelength_profile,
+        elastic_output_dir,
+    )
+
+    # Save k(λ) to file
+    wl_vec = np.unique(iq1d_temp_binned[0].wavelength)
+    save_k_vector(
+        wl_vec,
+        k_vec,
+        k_error_vec,
+        path=os.path.join(elastic_output_dir, f"{output_filename}_elastic_k1d_{raw_name}.dat"),
+    )
+
+    # Apply k(λ) to unbinned sample data
+    logger.notice("Applying elastic normalization to unbinned data")
+    iq2d_corrected, iq1d_corrected = apply_elastic_normalization_to_unbinned_data(
+        iq2d_unbinned, iq1d_unbinned, wl_vec, k_vec, k_error_vec
+    )
+
+    return iq2d_corrected, iq1d_corrected

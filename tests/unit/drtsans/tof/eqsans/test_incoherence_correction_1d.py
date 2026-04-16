@@ -1,4 +1,4 @@
-# Test drtsans.tof.eqsans.incoherence_correction
+# Test drtsans.tof.eqsans.inelastic_correction
 import pytest
 from drtsans.dataobjects import IQmod
 from drtsans.tof.eqsans.elastic_correction import (
@@ -6,7 +6,7 @@ from drtsans.tof.eqsans.elastic_correction import (
     determine_common_domain_range_mesh,
     determine_reference_wavelength_intensity_mesh,
 )
-from drtsans.tof.eqsans.incoherence_correction import (
+from drtsans.tof.eqsans.inelastic_correction import (
     calculate_b_error_b,
     calculate_b_factors,
     correct_intensity_error,

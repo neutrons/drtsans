@@ -3,7 +3,6 @@ import os
 from collections import namedtuple
 from typing import Dict, List, Tuple
 
-import numpy as np
 from mantid.simpleapi import (
     SaveAscii,
     mtd,
@@ -23,17 +22,12 @@ from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
 from drtsans.tof.eqsans.blocked_beam import subtract_blocked_beam  # noqa E402
 from drtsans.tof.eqsans.correction_api import (
     CorrectionConfiguration,
-    save_k_vector,
-)
-from drtsans.tof.eqsans.incoherence_correction import (
-    calculate_incoherence_correction_factors,
-    apply_incoherence_correction_to_unbinned_data,
 )
 from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
 from drtsans.tof.eqsans.elastic_correction import (
-    normalize_by_elastic_reference_all,
-    apply_elastic_normalization_to_unbinned_data,
+    elastic_correction,
 )
+from drtsans.tof.eqsans.inelastic_correction import inelastic_correction
 from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.transmission import calculate_transmission  # noqa E402
 from drtsans.transmission import apply_transmission_correction  # noqa E402
@@ -214,329 +208,6 @@ def process_transmission(
     return calculated_trans_ws, processed_transmission_dict, raw_transmission_dict
 
 
-def elastic_correction(
-    iq2d_unbinned: IQazimuthal,
-    iq1d_unbinned: IQmod,
-    iq2d_elastic_ref: IQazimuthal,
-    iq1d_elastic_ref: IQmod,
-    num_x_bins: int,
-    num_y_bins: int,
-    num_q1d_bins: int,
-    num_q1d_bins_per_decade: int,
-    decade_on_center: bool,
-    bin1d_type: str,
-    log_binning: bool,
-    qmin: float,
-    qmax: float,
-    qxrange: Tuple[float, float],
-    qyrange: Tuple[float, float],
-    annular_bin: float,
-    wedges: List[Tuple[int, int]],
-    symmetric_wedges: bool,
-    weighted_errors: bool,
-    output_wavelength_profile: bool,
-    output_dir: str,
-    output_filename: str,
-    raw_name: str,
-) -> Tuple[IQazimuthal, IQmod]:
-    """Apply elastic reference normalization to unbinned I(Q) data.
-
-    This function encapsulates all elastic correction logic:
-    1. Temporarily bins sample and elastic reference data to calculate k(λ) factors
-    2. Saves k(λ) to file
-    3. Applies k(λ) correction to unbinned sample data
-    4. Returns corrected unbinned data
-
-    Parameters
-    ----------
-    iq2d_unbinned : IQazimuthal
-        Unbinned 2D I(Qx, Qy) sample data
-    iq1d_unbinned : IQmod
-        Unbinned 1D I(Q) sample data
-    iq2d_elastic_ref : IQazimuthal
-        Unbinned 2D I(Qx, Qy) elastic reference data
-    iq1d_elastic_ref : IQmod
-        Unbinned 1D I(Q) elastic reference data
-    num_x_bins : int
-        Number of Qx bins for temporary binning
-    num_y_bins : int
-        Number of Qy bins for temporary binning
-    num_q1d_bins : int
-        Number of Q bins for temporary 1D binning
-    num_q1d_bins_per_decade : int
-        Number of bins per decade for logarithmic binning
-    decade_on_center : bool
-        Whether decade boundaries are on bin centers
-    bin1d_type : str
-        Type of 1D binning ('scalar', 'wedge', 'annular')
-    log_binning : bool
-        Whether to use logarithmic binning
-    qmin : float
-        Minimum Q value
-    qmax : float
-        Maximum Q value
-    qxrange : tuple
-        (Qx_min, Qx_max) range
-    qyrange : tuple
-        (Qy_min, Qy_max) range
-    annular_bin : float
-        Width of annular bin in degrees
-    wedges : list
-        List of (angle_min, angle_max) tuples for wedges
-    symmetric_wedges : bool
-        Whether to add symmetric wedges
-    weighted_errors : bool
-        Whether to use error-weighted binning
-    output_wavelength_profile : bool
-        Whether to output wavelength-dependent profiles
-    output_dir : str
-        Output directory for correction files
-    output_filename : str
-        Base filename for output
-    raw_name : str
-        Prefix for correction file names
-
-    Returns
-    -------
-    tuple
-        (corrected_iq2d_unbinned, corrected_iq1d_unbinned)
-    """
-    logger.notice("Applying elastic reference normalization")
-
-    # Temporarily bin sample data to calculate k(λ) factors
-    # These binned results are ONLY used for factor calculation, then discarded
-    iq2d_temp_binned, iq1d_temp_binned = bin_all(
-        iq2d_unbinned,
-        iq1d_unbinned,
-        num_x_bins,
-        num_y_bins,
-        n1dbins=num_q1d_bins,
-        n1dbins_per_decade=num_q1d_bins_per_decade,
-        decade_on_center=decade_on_center,
-        bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
-        log_scale=log_binning,
-        qmin=qmin,
-        qmax=qmax,
-        qxrange=qxrange,
-        qyrange=qyrange,
-        annular_angle_bin=annular_bin,
-        wedges=wedges,
-        symmetric_wedges=symmetric_wedges,
-        error_weighted=weighted_errors,
-        n_wavelength_bin=None,
-    )
-
-    # Temporarily bin elastic reference data
-    iq2d_elastic_temp, iq1d_elastic_temp = bin_all(
-        iq2d_elastic_ref,
-        iq1d_elastic_ref,
-        num_x_bins,
-        num_y_bins,
-        n1dbins=num_q1d_bins,
-        n1dbins_per_decade=num_q1d_bins_per_decade,
-        decade_on_center=decade_on_center,
-        bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
-        log_scale=log_binning,
-        qmin=qmin,
-        qmax=qmax,
-        qxrange=qxrange,
-        qyrange=qyrange,
-        annular_angle_bin=annular_bin,
-        wedges=wedges,
-        symmetric_wedges=symmetric_wedges,
-        error_weighted=weighted_errors,
-        n_wavelength_bin=None,
-    )
-
-    if len(iq1d_temp_binned) != 1 or len(iq1d_elastic_temp) != 1:
-        raise NotImplementedError("Expected exactly one IQmod from temporary binning")
-
-    # Calculate k(λ) correction factors
-    elastic_output_dir = os.path.join(output_dir, "info", "elastic_norm", output_filename)
-    os.makedirs(elastic_output_dir, exist_ok=True)
-
-    _, _, k_vec, k_error_vec = normalize_by_elastic_reference_all(
-        iq2d_temp_binned,
-        iq1d_temp_binned[0],
-        iq1d_elastic_temp[0],
-        output_wavelength_profile,
-        elastic_output_dir,
-    )
-
-    # Save k(λ) to file
-    wl_vec = np.unique(iq1d_temp_binned[0].wavelength)
-    save_k_vector(
-        wl_vec,
-        k_vec,
-        k_error_vec,
-        path=os.path.join(elastic_output_dir, f"{output_filename}_elastic_k1d_{raw_name}.dat"),
-    )
-
-    # Apply k(λ) to unbinned sample data
-    logger.notice("Applying elastic normalization to unbinned data")
-    iq2d_corrected, iq1d_corrected = apply_elastic_normalization_to_unbinned_data(
-        iq2d_unbinned, iq1d_unbinned, wl_vec, k_vec, k_error_vec
-    )
-
-    return iq2d_corrected, iq1d_corrected
-
-
-def inelastic_correction(
-    iq2d_unbinned: IQazimuthal,
-    iq1d_unbinned: IQmod,
-    num_x_bins: int,
-    num_y_bins: int,
-    num_q1d_bins: int,
-    num_q1d_bins_per_decade: int,
-    decade_on_center: bool,
-    bin1d_type: str,
-    log_binning: bool,
-    qmin: float,
-    qmax: float,
-    qxrange: Tuple[float, float],
-    qyrange: Tuple[float, float],
-    annular_bin: float,
-    wedges: List[Tuple[int, int]],
-    symmetric_wedges: bool,
-    weighted_errors: bool,
-    select_min_incoherence: bool,
-    intensity_weighted: bool,
-    incoh_qmin: float,
-    incoh_qmax: float,
-    incoh_factor: float,
-    output_dir: str,
-    output_filename: str,
-    raw_name: str,
-) -> Tuple[IQazimuthal, IQmod]:
-    """Apply inelastic/incoherence correction to unbinned I(Q) data.
-
-    This function encapsulates all inelastic correction logic:
-    1. Temporarily bins data in scalar mode to calculate b(λ) factors
-    2. Saves b(λ) to file
-    3. Applies b(λ) correction to unbinned sample data
-    4. Returns corrected unbinned data
-
-    Parameters
-    ----------
-    iq2d_unbinned : IQazimuthal
-        Unbinned 2D I(Qx, Qy) sample data
-    iq1d_unbinned : IQmod
-        Unbinned 1D I(Q) sample data
-    num_x_bins : int
-        Number of Qx bins for temporary binning
-    num_y_bins : int
-        Number of Qy bins for temporary binning
-    num_q1d_bins : int
-        Number of Q bins for temporary 1D binning
-    num_q1d_bins_per_decade : int
-        Number of bins per decade for logarithmic binning
-    decade_on_center : bool
-        Whether decade boundaries are on bin centers
-    bin1d_type : str
-        Type of 1D binning ('scalar', 'wedge', 'annular')
-    log_binning : bool
-        Whether to use logarithmic binning
-    qmin : float
-        Minimum Q value for binning
-    qmax : float
-        Maximum Q value for binning
-    qxrange : tuple
-        (Qx_min, Qx_max) range
-    qyrange : tuple
-        (Qy_min, Qy_max) range
-    annular_bin : float
-        Width of annular bin in degrees
-    wedges : list
-        List of (angle_min, angle_max) tuples for wedges
-    symmetric_wedges : bool
-        Whether to add symmetric wedges
-    weighted_errors : bool
-        Whether to use error-weighted binning
-    select_min_incoherence : bool
-        Flag to determine correction B by minimum incoherence
-    intensity_weighted : bool
-        Whether to use intensity-weighted B factor calculation
-    incoh_qmin : float
-        Minimum Q for incoherence correction calculation
-    incoh_qmax : float
-        Maximum Q for incoherence correction calculation
-    incoh_factor : float
-        Factor for automatic Q range determination
-    output_dir : str
-        Output directory for correction files
-    output_filename : str
-        Base filename for output
-    raw_name : str
-        Prefix for correction file names
-
-    Returns
-    -------
-    tuple
-        (corrected_iq2d_unbinned, corrected_iq1d_unbinned)
-    """
-    logger.notice("Applying inelastic/incoherent correction")
-
-    # Temporarily bin data in scalar mode to calculate b(λ) factors
-    # These binned results are ONLY used for factor calculation, then discarded
-    iq2d_temp_binned, iq1d_temp_binned = bin_all(
-        iq2d_unbinned,
-        iq1d_unbinned,
-        num_x_bins,
-        num_y_bins,
-        n1dbins=num_q1d_bins,
-        n1dbins_per_decade=num_q1d_bins_per_decade,
-        decade_on_center=decade_on_center,
-        bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
-        log_scale=log_binning,
-        qmin=qmin,
-        qmax=qmax,
-        qxrange=qxrange,
-        qyrange=qyrange,
-        annular_angle_bin=annular_bin,
-        wedges=wedges,
-        symmetric_wedges=symmetric_wedges,
-        error_weighted=weighted_errors,
-        n_wavelength_bin=None,
-    )
-
-    if len(iq1d_temp_binned) != 1:
-        raise NotImplementedError("Expected exactly one IQmod from temporary binning")
-
-    # Calculate b(λ) correction factors from scalar-binned I(Q, λ)
-    logger.notice("Calculating inelastic/incoherent correction factors from scalar-binned I(Q, lambda)")
-    correction_factors = calculate_incoherence_correction_factors(
-        iq1d_temp_binned[0],
-        select_min_incoherence,
-        intensity_weighted,
-        incoh_qmin,
-        incoh_qmax,
-        incoh_factor,
-    )
-
-    # Save b(λ) to file
-    from drtsans.tof.eqsans.correction_api import save_b_factor
-    from drtsans.tof.eqsans.incoherence_correction import CorrectedI1D
-
-    inelastic_output_dir = os.path.join(output_dir, "info", "inelastic_incoh", output_filename)
-    os.makedirs(inelastic_output_dir, exist_ok=True)
-
-    WavelengthContainer = namedtuple("WavelengthContainer", ["wavelength"])
-    wl_container = WavelengthContainer(wavelength=correction_factors.wavelength)
-
-    save_b_factor(
-        CorrectedI1D(wl_container, correction_factors.b_factor, correction_factors.b_error),
-        os.path.join(inelastic_output_dir, f"{output_filename}_inelastic_b1d_{raw_name}.dat"),
-    )
-
-    # Apply b(λ) to unbinned sample data
-    logger.notice("Applying inelastic/incoherent correction to unbinned data")
-    iq2d_corrected, iq1d_corrected = apply_incoherence_correction_to_unbinned_data(
-        iq2d_unbinned, iq1d_unbinned, correction_factors
-    )
-
-    return iq2d_corrected, iq1d_corrected
-
-
 def bin_i_with_correction(
     iq1d_in_frames: List[IQmod],
     iq2d_in_frames: List[IQazimuthal],
@@ -627,19 +298,6 @@ def bin_i_with_correction(
     iq2d = iq2d_in_frames[frameskip_frame]
     iq1d = iq1d_in_frames[frameskip_frame]
 
-    # Determine Q ranges and enable error weighting if corrections are applied
-    if correction_setup.do_elastic_correction or any(correction_setup.do_inelastic_correction):
-        weighted_errors = True
-        qmin = user_qmin if user_qmin is not None else iq1d.mod_q.min()
-        qmax = user_qmax if user_qmax is not None else iq1d.mod_q.max()
-        qxrange = (np.min(iq2d.qx), np.max(iq2d.qx))
-        qyrange = (np.min(iq2d.qy), np.max(iq2d.qy))
-    else:
-        qmin = user_qmin
-        qmax = user_qmax
-        qxrange = None
-        qyrange = None
-
     # Apply elastic correction if requested
     if correction_setup.do_elastic_correction and iq1d_elastic_ref_fr and iq2d_elastic_ref_fr:
         # Build output directory with slice and frame info
@@ -657,16 +315,9 @@ def bin_i_with_correction(
             num_q1d_bins=num_q1d_bins,
             num_q1d_bins_per_decade=num_q1d_bins_per_decade,
             decade_on_center=decade_on_center,
-            bin1d_type=bin1d_type,
             log_binning=log_binning,
-            qmin=qmin,
-            qmax=qmax,
-            qxrange=qxrange,
-            qyrange=qyrange,
-            annular_bin=annular_bin,
-            wedges=wedges,
-            symmetric_wedges=symmetric_wedges,
-            weighted_errors=weighted_errors,
+            user_qmin=user_qmin,
+            user_qmax=user_qmax,
             output_wavelength_profile=correction_setup.output_wavelength_dependent_profile,
             output_dir=elastic_dir,
             output_filename=output_filename,
@@ -688,16 +339,9 @@ def bin_i_with_correction(
             num_q1d_bins=num_q1d_bins,
             num_q1d_bins_per_decade=num_q1d_bins_per_decade,
             decade_on_center=decade_on_center,
-            bin1d_type=bin1d_type,
             log_binning=log_binning,
-            qmin=qmin,
-            qmax=qmax,
-            qxrange=qxrange,
-            qyrange=qyrange,
-            annular_bin=annular_bin,
-            wedges=wedges,
-            symmetric_wedges=symmetric_wedges,
-            weighted_errors=weighted_errors,
+            user_qmin=user_qmin,
+            user_qmax=user_qmax,
             select_min_incoherence=correction_setup.select_min_incoherence,
             intensity_weighted=correction_setup.select_intensityweighted[frameskip_frame],
             incoh_qmin=correction_setup.qmin[frameskip_frame],
@@ -724,8 +368,8 @@ def bin_i_with_correction(
         decade_on_center=decade_on_center,
         bin1d_type=bin1d_type,
         log_scale=log_binning,
-        qmin=qmin,
-        qmax=qmax,
+        qmin=user_qmin,
+        qmax=user_qmax,
         qxrange=None,
         qyrange=None,
         annular_angle_bin=annular_bin,

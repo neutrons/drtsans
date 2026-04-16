@@ -76,10 +76,10 @@ drtsans.tof.eqsans.geometry module
    :undoc-members:
    :show-inheritance:
 
-drtsans.tof.eqsans.incoherence\_correction module
---------------------------------------------------
+drtsans.tof.eqsans.inelastic\_correction module
+------------------------------------------------
 
-.. automodule:: drtsans.tof.eqsans.incoherence_correction
+.. automodule:: drtsans.tof.eqsans.inelastic_correction
    :members:
    :undoc-members:
    :show-inheritance:

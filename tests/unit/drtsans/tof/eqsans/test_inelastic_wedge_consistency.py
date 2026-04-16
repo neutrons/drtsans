@@ -12,7 +12,7 @@ wedge modes produce consistent results (validated by integration tests).
 import pytest
 import numpy as np
 from drtsans.dataobjects import IQmod, IQazimuthal
-from drtsans.tof.eqsans.incoherence_correction import (
+from drtsans.tof.eqsans.inelastic_correction import (
     calculate_incoherence_correction_factors,
     apply_incoherence_correction_to_unbinned_data,
     CorrectionFactors,

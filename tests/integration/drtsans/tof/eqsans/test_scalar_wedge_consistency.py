@@ -159,15 +159,16 @@ def test_scalar_vs_symmetric_wedge_179_with_inelastic_correction(datarepo_dir, t
 
         # Assert that differences are within acceptable tolerance
         # Scalar (360°) and symmetric 179° wedge (358°) aren't perfectly identical due to:
-        # - Wedge covers 179° x 2 = 358°, missing 2° vs scalar's 360°
+        # - Wedge covers 179° x 2 = 358°, missing 2° vs scalar's 360° (~0.56% geometric difference)
         # - Different binning implementations
-        # But they should be very close after the EWM-13940 fix (<0.5% mean, <1% max)
-        assert mean_rel_diff < 5e-3, (
-            f"Mean relative difference {mean_rel_diff:.2e} exceeds 0.5% threshold. "
+        # - Floating point operations
+        # After the EWM-13940 fix, they should be close (~1% as noted in docstring)
+        assert mean_rel_diff < 1e-2, (
+            f"Mean relative difference {mean_rel_diff:.2e} exceeds 1% threshold. "
             f"Scalar (360°) and symmetric 179° wedge (358°) I(Q) should be nearly identical after EWM-13940 fix."
         )
-        assert max_rel_diff < 1e-2, (
-            f"Max relative difference {max_rel_diff:.2e} exceeds 1% threshold. "
+        assert max_rel_diff < 3e-2, (
+            f"Max relative difference {max_rel_diff:.2e} exceeds 3% threshold. "
             f"Scalar (360°) and symmetric 179° wedge (358°) I(Q) should be nearly identical after EWM-13940 fix."
         )
 

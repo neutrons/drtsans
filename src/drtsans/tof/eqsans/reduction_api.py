@@ -299,11 +299,6 @@ def bin_i_with_correction(
     iq2d = iq2d_in_frames[frameskip_frame]
     iq1d = iq1d_in_frames[frameskip_frame]
 
-    # Preserve original unbinned data - both corrections should calculate factors from the SAME original data
-    # This matches the old working pattern where one temporary binning was used for both corrections
-    iq2d_for_factor_calc = iq2d
-    iq1d_for_factor_calc = iq1d
-
     # Apply elastic correction if requested
     if correction_setup.do_elastic_correction and iq1d_elastic_ref_fr and iq2d_elastic_ref_fr:
         # Build output directory with slice and frame info
@@ -342,24 +337,28 @@ def bin_i_with_correction(
             output_dir, "info", "inelastic_incoh", output_filename, slice_name, f"frame_{frameskip_frame}"
         )
 
+        # If elastic correction was applied, we need to calculate b(λ) from original data
+        # but apply it to elastic-corrected data
         if correction_setup.do_elastic_correction and iq1d_elastic_ref_fr and iq2d_elastic_ref_fr:
-            # Elastic correction was applied, so calculate b(λ) from original but apply to corrected
-            from drtsans.iq import bin_all
             from drtsans.tof.eqsans.inelastic_correction import (
                 calculate_incoherence_correction_factors,
                 apply_incoherence_correction_to_unbinned_data,
             )
 
-            # Determine Q ranges from original data (same as elastic correction would have used)
-            qmin = user_qmin if user_qmin is not None else iq1d_for_factor_calc.mod_q.min()
-            qmax = user_qmax if user_qmax is not None else iq1d_for_factor_calc.mod_q.max()
-            qxrange = (np.min(iq2d_for_factor_calc.qx), np.max(iq2d_for_factor_calc.qx))
-            qyrange = (np.min(iq2d_for_factor_calc.qy), np.max(iq2d_for_factor_calc.qy))
+            # Use original unbinned data for calculating b(λ) factors
+            iq2d_orig = iq2d_in_frames[frameskip_frame]
+            iq1d_orig = iq1d_in_frames[frameskip_frame]
+
+            # Determine Q ranges from original data
+            qmin = user_qmin if user_qmin is not None else iq1d_orig.mod_q.min()
+            qmax = user_qmax if user_qmax is not None else iq1d_orig.mod_q.max()
+            qxrange = (np.min(iq2d_orig.qx), np.max(iq2d_orig.qx))
+            qyrange = (np.min(iq2d_orig.qy), np.max(iq2d_orig.qy))
 
             # Temporarily bin ORIGINAL data for factor calculation
             _, iq1d_temp = bin_all(
-                iq2d_for_factor_calc,
-                iq1d_for_factor_calc,
+                iq2d_orig,
+                iq1d_orig,
                 num_x_bins,
                 num_y_bins,
                 n1dbins=num_q1d_bins,
@@ -379,6 +378,7 @@ def bin_i_with_correction(
             )
 
             # Calculate b(λ) from temporarily binned ORIGINAL data
+            logger.notice("Calculating inelastic/incoherent correction factors from scalar-binned I(Q, lambda)")
             correction_factors = calculate_incoherence_correction_factors(
                 iq1d_temp[0],
                 correction_setup.select_min_incoherence,

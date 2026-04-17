@@ -77,6 +77,10 @@ def create_three_rings_pattern(config: dict, metadata: dict):
     - background transmission run
     - empty transmission run
 
+    The sample run is 1 second long, thus containing 60 pulses in total.
+    During a pulse, neutrons scattered by the sample will all scatter at a particular two_theta value.
+    We only allow three possible two_theta values, thus we cycle these values after three pulses have elapsed.
+
     Parameters
     ----------
     config
@@ -212,6 +216,8 @@ def create_three_rings_pattern(config: dict, metadata: dict):
         Plus(LHSWorkspace=input_workspace, RHSWorkspace=events_cache["beam_spot"], OutputWorkspace=input_workspace)
 
     # SAMPLE RUN (three time-resolved rings, plus one isotropic scattering and one flat noise)
+    # There are 60 pulses in total, and neutrons will all scatter at a particular two_theta on each pulse.
+    # There are three possible two_theta values, so we cycle these values every three pulses.
     ws_sample = common_empty_workspace(run_number=config["sample"]["runNumber"])
     for pulse_time, two_theta in zip(
         metadata["pulse_times"], np.tile(metadata["two_theta_at_max"], len(metadata["pulse_times"]))
@@ -265,6 +271,10 @@ def three_rings_pattern(datarepo_dir) -> dict:
     A set of processed event Nexus files simulating the scattering from a sample that leaves an intensity
     pattern in the shape of three time-resolved rings in the main detector of GPSANS.
     Read :func:`create_ring_pattern` for more details.
+
+    The sample run is 1 second long, thus containing 60 pulses in total.
+    During a pulse, neutrons scattered by the sample will all scatter at a particular two_theta value.
+    We only allow three possible values for two_theta, thus we cycle these values after three pulses have elapsed.
 
     Files are stored in the data repository under subdirectory :code:`/gpsans/simulated_events/three_rings_pattern`
 
@@ -349,7 +359,7 @@ def three_rings_pattern(datarepo_dir) -> dict:
         ),  # in degrees, scattering angles with maximum scattered intensity
     }
 
-    # create the list of pulse times
+    # create the list of pulse times. There will be 60 items in the list.
     pulse_start, end_time = [DateAndTime(metadata[time]) for time in ["start_time", "end_time"]]
     pulse_period = metadata["pulse_period"] * 1000000  # from mili-seconds to nano-seconds
     pulse_current, pulse_count, metadata["pulse_times"] = pulse_start, 0, list()
@@ -483,6 +493,24 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
         i_vs_qmod: IQmod = reduction_output[1].I1D_main[0]  # 1D intensity profile
         closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][2]))
         assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
+
+
+def test_half_polarization(three_rings_pattern: dict, temp_directory: Callable[[Any], str]):
+    r"""
+    Split the three_rings_pattern into Off_Off and On_Off cross-sections.
+
+    The sample run in the three_rings_pattern is 1 second long, thus containing 60 pulses in total.
+    During a pulse, neutrons scattered by the sample will all scatter at a particular two_theta value.
+    We only allow three possible two_theta values, thus we cycle these values after three pulses have elapsed.
+
+    We insert a time-series for PV_POLARIZER_FLIPPER. During the first two seconds it will take a value of zero,
+    and a value of one during the third second. This will be repeated 20 times to spand the 60 pulses.
+    Thus, we expect the Off_Off intensity to contain the first two rings,
+    and the On_Off intensity to contain the third ring.
+
+    We do not include a PV_POLARIZER_VETO log. The code should be resilient to this missing log.
+    """
+    pass
 
 
 if __name__ == "__main__":

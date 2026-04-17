@@ -29,8 +29,8 @@ def subtract_blocked_beam(
     flux_method : str
         The method used for flux normalization. Required when blocked_beam is provided.
         If "monitor", blocked beam subtraction is skipped with a warning.
-        If None, raises ValueError.
-        Common values: "proton charge", "time".
+        If None or "time", raises ValueError (invalid for blocked beam subtraction).
+        Valid value: "proton charge".
     flux : Workspace or str, optional
         The workspace or value used for flux normalization.
     dark_current : namedtuple
@@ -52,10 +52,11 @@ def subtract_blocked_beam(
         )
         return
 
-    if flux_method is None:
+    if flux_method in [None, "time"]:
         raise ValueError(
-            "subtract_blocked_beam requires a flux normalization method (e.g. 'proton charge'). "
-            "Cannot subtract blocked beam without normalization."
+            "subtract_blocked_beam requires a valid flux normalization method. "
+            f"Received flux_method='{flux_method}', but only 'proton charge' is valid for blocked beam subtraction. "
+            "Cannot subtract blocked beam without proper normalization."
         )
 
     bb_ws_name = str(blocked_beam.data).replace("_raw_histo", "_processed_histo")

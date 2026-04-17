@@ -96,11 +96,14 @@ def test_processes_with_dark_current(
     mock_subtract_bg.assert_called_once()
 
 
-def test_raises_error_when_flux_method_is_none(sample_workspace, blocked_beam_workspace, blocked_beam_mock):
-    """Test that ValueError is raised when flux_method is None with blocked beam"""
-    with pytest.raises(ValueError, match="subtract_blocked_beam requires a flux normalization method"):
+@pytest.mark.parametrize("flux_method", [None, "time"])
+def test_raises_error_when_flux_method_is_invalid(
+    sample_workspace, blocked_beam_workspace, blocked_beam_mock, flux_method
+):
+    """Test that ValueError is raised when flux_method is None or 'time' with blocked beam"""
+    with pytest.raises(ValueError, match="subtract_blocked_beam requires a valid flux normalization method"):
         subtract_blocked_beam(
-            input_workspace=sample_workspace, blocked_beam=blocked_beam_mock, flux_method=None, flux=None
+            input_workspace=sample_workspace, blocked_beam=blocked_beam_mock, flux_method=flux_method, flux=None
         )
 
 

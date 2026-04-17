@@ -696,25 +696,6 @@ def reduce_single_configuration(
     }
     flux = flux_translator.get(reduction_config["normalization"], None)
 
-    # If no normalization method was chosen but a blocked-beam is requested,
-    # fall back to proton-charge normalization so the subtraction is valid.
-    if flux_method is None and (
-        "blockedBeamRunNumber" in reduction_config and reduction_config["blockedBeamRunNumber"]
-    ):
-        beam_flux_file = reduction_config.get("beamFluxFileName")
-        if beam_flux_file is None or (isinstance(beam_flux_file, str) and not beam_flux_file.strip()):
-            raise ValueError(
-                "A blocked beam run was provided without an explicit normalization method, so "
-                '"Total charge" (proton charge) normalization was selected automatically. '
-                'This requires reduction_config["beamFluxFileName"] to be provided and non-empty.'
-            )
-        logger.warning(
-            "No flux normalization method was specified, but a blocked beam run was provided. "
-            'Automatically selecting "proton charge" normalization for proper blocked beam subtraction.'
-        )
-        flux_method = "proton charge"
-        flux = beam_flux_file
-
     solid_angle = reduction_config["useSolidAngleCorrection"]
     transmission_radius = reduction_config["mmRadiusForTransmission"]
     sample_trans_value = reduction_input["sample"]["transmission"]["value"]

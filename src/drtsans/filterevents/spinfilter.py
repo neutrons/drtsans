@@ -218,9 +218,6 @@ class SpinFilter(FilterStrategy):
     pv_analyzer_veto : str, optional
         Name of the sample log for analyzer veto signal.
         Default is from drtsans.polarization.PV_ANALYZER_VETO
-    check_devices : bool, optional
-        Whether to check for the presence of polarizer/analyzer in the experiment.
-        If False, assumes both devices are present. Default is True.
 
     Attributes
     ----------
@@ -232,17 +229,14 @@ class SpinFilter(FilterStrategy):
         Sample log name for polarizer veto
     pv_analyzer_veto : str
         Sample log name for analyzer veto
-    check_devices : bool
-        Whether device presence is checked
-    _has_polarizer : bool
+    _active_polarizer : bool
         Whether a polarizer was detected in the experiment
-    _has_analyzer : bool
+    _active_analyzer : bool
         Whether an analyzer was detected in the experiment
 
     Notes
     -----
-    If no polarizer or analyzer is detected, and check_devices is True, the
-    raw workspace is returned ungrouped with a warning.
+    If no polarizer or analyzer is detected the raw workspace is returned ungrouped with a warning.
 
     The filter creates a custom splitter table based on device state transitions
     rather than using Mantid's standard time or log interval filters. This allows
@@ -263,7 +257,6 @@ class SpinFilter(FilterStrategy):
         pv_analyzer_state: str = PV_ANALYZER_FLIPPER,
         pv_polarizer_veto: str = PV_POLARIZER_VETO,
         pv_analyzer_veto: str = PV_ANALYZER_VETO,
-        check_devices: bool = True,
     ):
         """
         Initialize the spin filter.
@@ -273,24 +266,37 @@ class SpinFilter(FilterStrategy):
         workspace : str or IEventWorkspace
             The input workspace to filter
         pv_polarizer_state : str, optional
-            Sample log name for polarizer flipper state
+            Sample log name for polarizer flipper state, an int time series.
         pv_analyzer_state : str, optional
-            Sample log name for analyzer flipper state
+            Sample log name for analyzer flipper state, an int time series.
         pv_polarizer_veto : str, optional
-            Sample log name for polarizer veto
+            Sample log name for polarizer veto, an int time series.
         pv_analyzer_veto : str, optional
-            Sample log name for analyzer veto
-        check_devices : bool, optional
-            Whether to check for device presence
+            Sample log name for analyzer veto, an int time series.
         """
         super().__init__(workspace)
+        self.info_workspace = ""  # SpinFilter does not generate an info workspace
         self.pv_polarizer_state = pv_polarizer_state
         self.pv_analyzer_state = pv_analyzer_state
         self.pv_polarizer_veto = pv_polarizer_veto
         self.pv_analyzer_veto = pv_analyzer_veto
-        self.check_devices = check_devices
-        self._has_polarizer = False
-        self._has_analyzer = False
+
+        # Check if polarizer and/or analyzer are active
+        sample_logs = SampleLogs(self.workspace)
+        polarizer = sample_logs.get(PV_POLARIZER, 0).value if PV_POLARIZER in sample_logs else 0
+        self._active_polarizer = polarizer > 0
+        analyzer = sample_logs.get(PV_ANALYZER, 0).value if PV_ANALYZER in sample_logs else 0
+        self._active_analyzer = analyzer > 0
+        if not self._active_polarizer and not self._active_analyzer:
+            raise ValueError("No active polarizer or analyzer detected in sample logs. Cannot apply spin filter.")
+
+        # Make sure veto logs are present, otherwise log a warning
+        if self._active_polarizer and pv_polarizer_veto not in sample_logs:
+            self.pv_polarizer_veto = ""
+            logger.warning(f"Polarizer veto log '{pv_polarizer_veto}' not found.")
+        if self._active_analyzer and pv_analyzer_veto not in sample_logs:
+            self.pv_analyzer_veto = ""
+            logger.warning(f"Analyzer veto log '{pv_analyzer_veto}' not found.")
 
     def generate_filter(self) -> Optional[dict]:
         """
@@ -312,20 +318,6 @@ class SpinFilter(FilterStrategy):
         GenerateEventsFilter. The empty dict return value signals apply_filter()
         to skip GenerateEventsFilter and use the custom table directly.
         """
-        # Check if devices are present
-        sample_logs = SampleLogs(self.workspace)
-        if self.check_devices:
-            polarizer = sample_logs.get(PV_POLARIZER, 0).value if PV_POLARIZER in sample_logs else 0
-            analyzer = sample_logs.get(PV_ANALYZER, 0).value if PV_ANALYZER in sample_logs else 0
-        else:
-            polarizer = analyzer = 1  # Assume present
-
-        self._has_polarizer = polarizer > 0
-        self._has_analyzer = analyzer > 0
-
-        if not self._has_polarizer and not self._has_analyzer:
-            logger.warning("No polarizer/analyzer information available")
-            return None
 
         # Build change list from device states
         change_list = self._build_change_list()
@@ -338,8 +330,8 @@ class SpinFilter(FilterStrategy):
         create_table(
             change_list,
             start_time,
-            has_polarizer=self._has_polarizer,
-            has_analyzer=self._has_analyzer,
+            has_polarizer=self._active_polarizer,
+            has_analyzer=self._active_analyzer,
             output_workspace=self.FILTER_WORKSPACE_NAME,
         )
         return {}  # Return empty dict to signal that custom splitter is ready
@@ -380,13 +372,13 @@ class SpinFilter(FilterStrategy):
         change_list = []
 
         # Extract polarizer state changes
-        if self._has_polarizer:
+        if self._active_polarizer:
             change_list.extend(self._extract_device_changes(self.pv_polarizer_state, is_polarizer=True))
             if self.pv_polarizer_veto:
                 change_list.extend(self._extract_veto_changes(self.pv_polarizer_veto, is_polarizer_veto=True))
 
         # Extract analyzer state changes
-        if self._has_analyzer:
+        if self._active_analyzer:
             change_list.extend(self._extract_device_changes(self.pv_analyzer_state, is_analyzer=True))
             if self.pv_analyzer_veto:
                 change_list.extend(self._extract_veto_changes(self.pv_analyzer_veto, is_analyzer_veto=True))
@@ -535,7 +527,7 @@ class SpinFilter(FilterStrategy):
         # Add cross-section IDs to each workspace
         for ws in outputs[-1]:
             xs_id = str(ws).replace(f"{output_workspace}_", "")
-            AddSampleLog(Workspace=ws, LogName="cross_section_id", LogText=xs_id)
+            AddSampleLog(Workspace=ws, LogName="polarization.cross_section", LogText=xs_id)
             # These two lines mimic what FilterEvents does when passed an information workspace
             ws.setComment(xs_id)
             ws.setTitle(xs_id)
@@ -552,15 +544,7 @@ class SpinFilter(FilterStrategy):
         workspace : MantidWorkspace
             The workspace group (or its name) containing the filtered cross-sections
         """
-        for _, samplelogs, slice_info in self._inject_common_metadata(workspace):
-            # Resolve cross-section label: prefer the dedicated log, fall back to
-            # the workspace comment set by apply_filter, then to "Unknown"
-            if "cross_section_id" in samplelogs:
-                cross_section = samplelogs.get("cross_section_id", None).value
-            else:
-                cross_section = slice_info if slice_info else "Unknown"
-
-            samplelogs.insert("slice_parameter", "polarization_state")
-            samplelogs.insert("cross_section", cross_section)
-            samplelogs.insert("has_polarizer", int(self._has_polarizer))
-            samplelogs.insert("has_analyzer", int(self._has_analyzer))
+        for _, samplelogs, _ in self._inject_common_metadata(workspace):
+            samplelogs.insert("slice_parameter", "polarization.cross_section")
+            samplelogs.insert("polarization.active_polarizer", int(self._active_polarizer))
+            samplelogs.insert("polarization.active_analyzer", int(self._active_analyzer))

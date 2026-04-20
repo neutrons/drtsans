@@ -24,7 +24,7 @@ def _make_workspace_group(xs_ids):
 def _make_samplelogs(xs_id):
     """Return a SampleLogs mock that exposes cross_section_id."""
     sl = MagicMock()
-    sl.__contains__ = MagicMock(side_effect=lambda key: key == "cross_section_id")
+    sl.__contains__ = MagicMock(side_effect=lambda key: key == "polarization.cross_section")
     sl.get = MagicMock(return_value=MagicMock(value=xs_id))
     return sl
 
@@ -126,18 +126,18 @@ def test_spin_filter_inject_metadata_polarization_fields(mock_samplelogs_cls, mo
     mock_samplelogs_cls.side_effect = samplelogs_instances
 
     spin_filter = SpinFilter(MagicMock())
-    spin_filter._has_polarizer = True
-    spin_filter._has_analyzer = True
+    spin_filter._active_polarizer = True
+    spin_filter._active_analyzer = True
     spin_filter.inject_metadata("output_ws")
 
     sl0, sl1 = samplelogs_instances
     sl0.insert.assert_any_call("slice_info", "On_On")
     sl0.insert.assert_any_call("slice_parameter", "polarization_state")
-    sl0.insert.assert_any_call("cross_section", "On_On")
-    sl0.insert.assert_any_call("has_polarizer", 1)
-    sl0.insert.assert_any_call("has_analyzer", 1)
+    sl0.insert.assert_any_call("polarization.cross_section", "On_On")
+    sl0.insert.assert_any_call("polarization.active_polarizer", 1)
+    sl0.insert.assert_any_call("polarization.active_analyzer", 1)
     sl1.insert.assert_any_call("slice_info", "On_Off")
-    sl1.insert.assert_any_call("cross_section", "On_Off")
+    sl1.insert.assert_any_call("polarization.cross_section", "On_Off")
 
 
 @patch("drtsans.filterevents.basefilter.workspace_handle")
@@ -152,7 +152,7 @@ def test_spin_filter_inject_metadata_unknown_cross_section(mock_samplelogs_cls, 
     SpinFilter(MagicMock()).inject_metadata("output_ws")
 
     sl.insert.assert_any_call("slice_info", "On_On")
-    sl.insert.assert_any_call("cross_section", "On_On")
+    sl.insert.assert_any_call("polarization.cross_section", "On_On")
 
 
 @patch("drtsans.filterevents.basefilter.workspace_handle")
@@ -164,14 +164,14 @@ def test_spin_filter_inject_metadata_no_devices(mock_samplelogs_cls, mock_worksp
     mock_samplelogs_cls.side_effect = samplelogs_instances
 
     spin_filter = SpinFilter(MagicMock())
-    spin_filter._has_polarizer = False
-    spin_filter._has_analyzer = False
+    spin_filter._active_polarizer = False
+    spin_filter._active_analyzer = False
     spin_filter.inject_metadata("output_ws")
 
     sl = samplelogs_instances[0]
     sl.insert.assert_any_call("slice_info", "Off_Off")
-    sl.insert.assert_any_call("has_polarizer", 0)
-    sl.insert.assert_any_call("has_analyzer", 0)
+    sl.insert.assert_any_call("polarization.active_polarizer", 0)
+    sl.insert.assert_any_call("polarization.active_analyzer", 0)
 
 
 # ---------------------------------------------------------------------------
@@ -189,8 +189,8 @@ def test_spin_filter_init_defaults():
     assert sf.pv_polarizer_veto == PV_POLARIZER_VETO
     assert sf.pv_analyzer_veto == PV_ANALYZER_VETO
     assert sf.check_devices is True
-    assert sf._has_polarizer is False
-    assert sf._has_analyzer is False
+    assert sf._active_polarizer is False
+    assert sf._active_analyzer is False
 
 
 def test_spin_filter_init_custom_pv_names():
@@ -232,8 +232,8 @@ def test_generate_filter_returns_empty_dict_when_devices_present(
     result = sf.generate_filter()
 
     assert result == {}
-    assert sf._has_polarizer is True
-    assert sf._has_analyzer is True
+    assert sf._active_polarizer is True
+    assert sf._active_analyzer is True
     mock_create_table.assert_called_once()
 
 
@@ -246,8 +246,8 @@ def test_generate_filter_returns_none_when_no_devices(mock_samplelogs_cls):
     result = sf.generate_filter()
 
     assert result is None
-    assert sf._has_polarizer is False
-    assert sf._has_analyzer is False
+    assert sf._active_polarizer is False
+    assert sf._active_analyzer is False
 
 
 @patch.object(SpinFilter, "_build_change_list")
@@ -273,8 +273,8 @@ def test_generate_filter_check_devices_false_assumes_both_present(mock_samplelog
     sf = SpinFilter(MagicMock(), check_devices=False)
     sf.generate_filter()
 
-    assert sf._has_polarizer is True
-    assert sf._has_analyzer is True
+    assert sf._active_polarizer is True
+    assert sf._active_analyzer is True
 
 
 # ---------------------------------------------------------------------------
@@ -290,8 +290,8 @@ def test_build_change_list_only_polarizer(mock_device, mock_veto):
     mock_veto.return_value = [(100, True, [False, False, True, False])]
 
     sf = SpinFilter(MagicMock())
-    sf._has_polarizer = True
-    sf._has_analyzer = False
+    sf._active_polarizer = True
+    sf._active_analyzer = False
     result = sf._build_change_list()
 
     mock_device.assert_called_once_with(sf.pv_polarizer_state, is_polarizer=True)
@@ -307,8 +307,8 @@ def test_build_change_list_both_devices(mock_device, mock_veto):
     mock_veto.return_value = []
 
     sf = SpinFilter(MagicMock())
-    sf._has_polarizer = True
-    sf._has_analyzer = True
+    sf._active_polarizer = True
+    sf._active_analyzer = True
     sf._build_change_list()
 
     assert mock_device.call_count == 2
@@ -327,8 +327,8 @@ def test_build_change_list_result_is_sorted(mock_device, mock_veto):
     mock_veto.return_value = []
 
     sf = SpinFilter(MagicMock())
-    sf._has_polarizer = True
-    sf._has_analyzer = True
+    sf._active_polarizer = True
+    sf._active_analyzer = True
     result = sf._build_change_list()
 
     timestamps = [t for t, _, _ in result]
@@ -489,8 +489,8 @@ def test_apply_filter_calls_filter_events_and_adds_sample_log(
 
     mock_filter_events.assert_called_once()
     mock_ads.remove.assert_called_once_with("_corr")
-    mock_add_log.assert_any_call(Workspace=ws_on, LogName="cross_section_id", LogText="On_On")
-    mock_add_log.assert_any_call(Workspace=ws_off, LogName="cross_section_id", LogText="Off_Off")
+    mock_add_log.assert_any_call(Workspace=ws_on, LogName="polarization.cross_section", LogText="On_On")
+    mock_add_log.assert_any_call(Workspace=ws_off, LogName="polarization.cross_section", LogText="Off_Off")
     ws_on.setComment.assert_called_once_with("On_On")
     ws_on.setTitle.assert_called_once_with("On_On")
     ws_off.setComment.assert_called_once_with("Off_Off")

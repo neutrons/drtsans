@@ -90,8 +90,8 @@ def test_create_filter_strategy():
         },
     )
     assert isinstance(strategy, SpinFilter)
-    assert strategy._has_polarizer is False  # ws's sample-logs need to be inspected
-    assert strategy._has_analyzer is False  # ws's sample-logs need to be inspected
+    assert strategy._active_polarizer is False  # ws's sample-logs need to be inspected
+    assert strategy._active_analyzer is False  # ws's sample-logs need to be inspected
 
     # no params → ValueError
     with pytest.raises(ValueError, match="No valid filtering parameters"):

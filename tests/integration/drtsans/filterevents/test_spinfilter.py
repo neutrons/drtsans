@@ -29,10 +29,10 @@ class TestSpinFilter:
         logs = SimulatedPolarizationLogs(
             polarizer=1,
             polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 60.0}),
-            polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "veto_duration": 1.0}),
+            polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "alive_duration": 1.0}),
             analyzer=2,
             analyzer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 120}),
-            analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 120.0, "veto_duration": 2.0}),
+            analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 120.0, "alive_duration": 2.0}),
         )
         logs.inject(workspace)
         sf = SpinFilter(workspace)
@@ -53,7 +53,7 @@ class TestSpinFilter:
         logs = SimulatedPolarizationLogs(
             polarizer=1,
             polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 60.0}),
-            polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "veto_duration": 1.0}),
+            polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "alive_duration": 1.0}),
         )
         logs.inject(workspace)
         sf = SpinFilter(workspace)
@@ -72,7 +72,7 @@ class TestSpinFilter:
         logs = SimulatedPolarizationLogs(
             analyzer=2,
             analyzer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 120}),
-            analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 120.0, "veto_duration": 2.0}),
+            analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 120.0, "alive_duration": 2.0}),
         )
         logs.inject(workspace)
         sf = SpinFilter(workspace)

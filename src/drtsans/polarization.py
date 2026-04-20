@@ -415,7 +415,7 @@ def half_polarization(
 
 
 # A simple way to encode the name and specifications for one of the time generators methods of class SimulatedLogs
-# Example: polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 1.0, "veto_duration": 0.2})
+# Example: polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 1.0, "alive_duration": 0.2})
 TimesGeneratorSpecs = namedtuple("TimesGeneratorSpecs", ["name", "kwargs"])
 
 
@@ -431,7 +431,7 @@ class SimulatedPolarizationLogs:
     analyzer_veto: Optional[TimesGeneratorSpecs] = None
 
     # Class variables
-    flipper_generators: ClassVar[List[str]] = ["heartbeat"]  # available time-generators for flipper devices
+    flipper_generators: ClassVar[List[str]] = ["heartbeat", "binary_pulse", "cycled_intervals"]
     veto_generators: ClassVar[List[str]] = ["binary_pulse"]  # available time-generators for veto intervals
 
     def __post_init__(self):
@@ -480,24 +480,71 @@ class SimulatedPolarizationLogs:
                 yield elapsed
             elapsed += interval
 
+    def cycled_intervals(
+        self,
+        intervals: List[float],
+        dead_time: Optional[float] = 0.0,
+        upper_bound: Optional[float] = None,
+    ) -> Generator[float, None, None]:
+        """
+        Generate a sequence of timestamps by repeatedly cycling through a list of time intervals.
+
+        Starting from time zero, each successive timestamp is computed by adding the next interval
+        in ``intervals`` to the current elapsed time. Once all intervals have been consumed, the
+        cycle restarts from the first interval. Timestamps are only yielded when at or after
+        ``dead_time``.
+
+        Parameters
+        ----------
+        intervals : list of float
+            A list of time intervals, in seconds, to cycle through repeatedly.
+        dead_time : float, optional
+            The initial time period, in seconds, during which no times are generated. If
+            :py:obj:`None`, all timestamps starting from zero are yielded.
+        upper_bound : float, optional
+            The maximum time value to generate, in seconds. If :py:obj:`None`, the generator
+            will continue indefinitely.
+
+        Yields
+        ------
+        float
+            The next timestamp in the cycled intervals sequence.
+
+        Examples
+        --------
+        >>> log = SimulatedPolarizationLogs()
+        >>> list(log.cycled_intervals(intervals=[1.0, 2.0, 1.5], dead_time=0.0, upper_bound=10.0))
+        [0.0, 1.0, 3.0, 4.5, 5.5, 7.5, 9.0]
+        """
+        elapsed, i = 0.0, 0
+        while elapsed <= upper_bound if upper_bound is not None else True:
+            if elapsed >= dead_time:
+                yield elapsed
+            if i < len(intervals):
+                elapsed += intervals[i]
+                i += 1
+            else:
+                elapsed += intervals[0]
+                i = 1
+
     def binary_pulse(
         self,
         interval: float,
-        veto_duration: float,
+        alive_duration: float,
         dead_time: Optional[float] = 0.0,
         upper_bound: Optional[float] = None,
     ) -> Generator[float, None, None]:
         """
         Generate a sequence of timestamps with a binary pulse pattern, starting at or later than dead_time.
 
-        The timestamps alternate between the start and end of a veto period,which is centered within each interval.
+        The timestamps alternate between the start and end of a veto period, which is centered within each interval.
 
         Parameters
         ----------
         interval : float
             The time interval between consecutive pulses, in seconds.
-        veto_duration : float
-            The duration of the veto period, in seconds. Must be less than the interval.
+        alive_duration : float
+            The duration of the period above the zero baseline, in seconds. Must be less than `interval`.
         dead_time: float
             The initial time period, in seconds, during which no times are generated. Defaults to 0.0.
         upper_bound : float, optional
@@ -511,12 +558,12 @@ class SimulatedPolarizationLogs:
         Examples
         --------
         >>> log = SimulatedPolarizationLogs()
-        >>> list(log.binary_pulse(interval=3.0, veto_duration=1.0, upper_bound=10))
+        >>> list(log.binary_pulse(interval=3.0, alive_duration=1.0, upper_bound=10))
         [0, 2.5, 3.5, 5.5, 6.5, 8.5, 9.5]
         """
-        if not veto_duration < interval:
+        if not alive_duration < interval:
             raise ValueError("Veto duration must be less than the interval")
-        elapsed, latest_pulse_time, veto_half, continue_while = 0.0, interval, veto_duration / 2, True
+        elapsed, latest_pulse_time, veto_half, continue_while = 0.0, interval, alive_duration / 2, True
         if dead_time == 0.0:
             yield elapsed
         while continue_while:
@@ -555,7 +602,7 @@ class SimulatedPolarizationLogs:
         --------
         >>> logs = SimulatedPolarizationLogs(
         ...     polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 1.0}),
-        ...     polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 1.0, "veto_duration": 0.4})
+        ...     polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 1.0, "alive_duration": 0.4})
         ... )
         >>> list(logs.times_generator(PV_POLARIZER_FLIPPER, upper_bound=6.3))
         [0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
@@ -607,7 +654,7 @@ class SimulatedPolarizationLogs:
         >>> logs = SimulatedPolarizationLogs(
         ...     polarizer=1,
         ...     polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 1.0}),
-        ...     polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 2.0, "veto_duration": 0.5})
+        ...     polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 2.0, "alive_duration": 0.5})
         ... )
         >>> logs.inject(workspace)
         """

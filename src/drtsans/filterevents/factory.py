@@ -90,7 +90,6 @@ def create_filter_strategy(
             log_value_interval=log_value_interval,
         )
     elif bool(reduction_config) and polarized_sample(reduction_config):
-        # Spin-based slicing
         return SpinFilter(workspace)
     else:
         raise ValueError(

@@ -3,18 +3,19 @@ import h5py
 from typing import List, Union
 
 # third party modules
-import mantid
-from mantid.simpleapi import mtd
+from mantid.dataobjects import Workspace2D
+from mantid.api import AnalysisDataService
+from mantid.kernel import Logger, amend_config
 from mantid.simpleapi import (
-    DeleteWorkspace,
+    AddSampleLogMultiple,
     FilterEvents,
     LoadEventNexus,
     LoadEventAsWorkspace2D,
     MergeRuns,
+    mtd,
     ScaleInstrumentComponent,
 )
-from mantid.simpleapi import AddSampleLogMultiple
-from mantid.kernel import Logger, amend_config
+
 from drtsans.geometry import (
     translate_detector_by_z,
     translate_sample_by_z,
@@ -342,7 +343,8 @@ def _monitor_split_and_log(monitor: str, monitor_group: str, sample_group: str, 
     if is_mono:
         splitted_workspaces_count = mtd[sample_group].getNumberOfEntries()
         for n in range(splitted_workspaces_count):
-            SampleLogs(mtd[sample_group].getItem(n)).insert("monitor", mtd[monitor_group].getItem(n).getNumberEvents())
+            workspace = mtd[monitor_group].getItem(n)
+            SampleLogs(workspace).insert("monitor", workspace.getNumberEvents())
 
 
 def load_and_split(
@@ -520,10 +522,10 @@ def load_and_split(
 
     # Clean up temporary workspaces
     for name in [all_events_workspace, filter_strategy.splitter_workspace, filter_strategy.info_workspace]:
-        DeleteWorkspace(name)
+        AnalysisDataService.remove(name)
 
     if monitors:
-        DeleteWorkspace(all_events_workspace + "_monitors")
+        AnalysisDataService.remove(all_events_workspace + "_monitors")
         return mtd[output_workspace], mtd[output_workspace + "_monitors"]
     else:
         return mtd[output_workspace], None
@@ -558,7 +560,7 @@ def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monito
     for data in data_list:
         if not mtd.doesExist(str(data)):
             raise ValueError("Workspace " + data + " does not exist")
-        if not isinstance(mtd[str(data)], mantid.dataobjects.Workspace2D):
+        if not isinstance(mtd[str(data)], Workspace2D):
             raise ValueError(data + " is not a Workspace2D, this currently only works correctly for Workspace2D")
 
     # Filter sum_logs list to only include logs that exist in data

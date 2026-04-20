@@ -1,5 +1,7 @@
 # standard imports
+import os.path
 from pathlib import Path
+import shutil
 from typing import Any, Callable, List, Union
 from unittest.mock import patch as mock_patch
 
@@ -29,6 +31,7 @@ from drtsans.mono.gpsans import (
     reduction_parameters,
     update_reduction_parameters,
 )
+from drtsans.polarization import PolarizationLevel, SimulatedPolarizationLogs, TimesGeneratorSpecs
 from drtsans.samplelogs import SampleLogs
 from drtsans.settings import namedtuplefy
 from drtsans.simulated_events import insert_background, insert_beam_spot, insert_events_isotropic, insert_events_ring
@@ -418,7 +421,7 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
         Fixture evaluating to a function. When invoked, returns the path to a directory which will be erased upon
         completion of the test, irrespective of the test being successful or not.
     """
-    # pad missing parameters with default values from schema EQSANS.json
+    # pad missing parameters with default values from schema GPSANS.json
     config = reduction_parameters(three_rings_pattern.config, "GPSANS", validate=False)
 
     # insert parameters customized for the current test
@@ -441,12 +444,12 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
     ):
         r"""
         Divide the total number of monitor counts by the number of time slices, then insert the resulting value
-         as log entry 'monitor' in the corresponding splited sample workspaces
+         as log entry 'monitor' in the corresponding split sample workspaces
 
         Parameters
         ----------
         sample_group
-            name of the WorkspaceGroup containing the splited workspaces for the sample
+            name of the WorkspaceGroup containing the split workspaces for the sample
         """
         splitted_workspaces_count = mtd[sample_group].getNumberOfEntries()
         duration_total = 0.0
@@ -495,22 +498,110 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
         assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
 
+@pytest.mark.datarepo
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D)
+@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 def test_half_polarization(three_rings_pattern: dict, temp_directory: Callable[[Any], str]):
     r"""
     Split the three_rings_pattern into Off_Off and On_Off cross-sections.
 
-    The sample run in the three_rings_pattern is 1 second long, thus containing 60 pulses in total.
-    During a pulse, neutrons scattered by the sample will all scatter at a particular two_theta value.
+    The sample run in the "three_rings_pattern" fixture is 1 second long, thus containing 60 pulses in total.
+    During a pulse, neutrons scattered by the sample are set to scatter at a particular two_theta value.
     We only allow three possible two_theta values, thus we cycle these values after three pulses have elapsed.
 
-    We insert a time-series for PV_POLARIZER_FLIPPER. During the first two seconds it will take a value of zero,
-    and a value of one during the third second. This will be repeated 20 times to spand the 60 pulses.
+    We insert a time-series for PV_POLARIZER_FLIPPER. During the first two seconds it will take a value of 0,
+    and a value of 1 during the third second. This will be repeated 20 times to span the 60 pulses.
     Thus, we expect the Off_Off intensity to contain the first two rings,
     and the On_Off intensity to contain the third ring.
-
     We do not include a PV_POLARIZER_VETO log. The code should be resilient to this missing log.
+
+    We'll be changing the sample logs of the sample Nexus file.
+    Other tests will also try to access the Nexus files, thus we'll copy the files to a temporary directory
+    so that we can modify the logs without affecting other tests.
     """
-    pass
+    config = reduction_parameters(three_rings_pattern.config, "GPSANS", validate=False)
+
+    # Temporary copy of the data files
+    output_dir = temp_directory(prefix="testGPSANSHalfPolarization_")  # save all output files
+    data_dir = os.path.join(output_dir, "datadir")  # location of the Nexus data files
+    os.makedirs(data_dir, exist_ok=True)
+    for nexus_file in Path(config["dataDirectories"][0]).glob("CG2_*.nxs"):
+        shutil.copy2(nexus_file, data_dir)  # duplicate the data files to avoid interfering with other tests
+
+    # Insert half-polarization logs in the sample run
+    sample_filepath, workspace_name = os.path.join(data_dir, "CG2_92310.nxs"), mtd.unique_hidden_name()
+    workspace = LoadNexusProcessed(Filename=sample_filepath, OutputWorkspace=workspace_name)
+    logs = SimulatedPolarizationLogs(
+        polarizer=1,
+        polarizer_flipper=TimesGeneratorSpecs(
+            "cycled_intervals", {"intervals": [2.0 / 60, 1.0 / 60], "upper_bound": 1.0}
+        ),
+    )
+    logs.inject(workspace)
+    SaveNexus(InputWorkspace=workspace, Filename=sample_filepath)  # now we have modified the sample Nexus file
+    DeleteWorkspace(workspace)
+
+    # insert parameters customized for the current test
+    sample_run_number = config["sample"]["runNumber"]
+    amendments = {
+        "outputFileName": f"CG2_{sample_run_number}",
+        "dataDirectories": [data_dir],  # point to the temporary directory with the modified Nexus file
+        "configuration": {
+            "outputDir": output_dir,
+        },
+    }
+    config = update_reduction_parameters(config, amendments, validate=True)
+    metadata = three_rings_pattern.metadata
+
+    def _mock_monitor_split_and_log(
+        monitor: str, monitor_group: str, sample_group: str, is_mono: bool, filter_events: dict
+    ):
+        r"""
+        Divide the total number of monitor counts by the number of time slices, then insert the resulting value
+         as log entry 'monitor' in the corresponding split sample workspaces
+
+        Parameters
+        ----------
+        sample_group
+            name of the WorkspaceGroup containing the split workspaces for the sample
+        """
+        splitted_workspaces_count = mtd[sample_group].getNumberOfEntries()
+        duration_total = 0.0
+        for n in range(splitted_workspaces_count):
+            duration_total += SampleLogs(mtd[sample_group].getItem(n))["duration"].value
+        for n in range(splitted_workspaces_count):
+            duration = SampleLogs(mtd[sample_group].getItem(n))["duration"].value
+            monitor_count = metadata["monitor"] * (duration / duration_total)
+            SampleLogs(mtd[sample_group].getItem(n)).insert("monitor", monitor_count)
+        #  ensures return values exist and future call to DeleteWorkspace doesn't fail
+        CreateSingleValuedWorkspace(OutputWorkspace=monitor)
+        CreateSingleValuedWorkspace(OutputWorkspace=monitor_group)
+
+    # load all necessary files
+    with (
+        mock_patch("drtsans.load._monitor_split_and_log", side_effect=_mock_monitor_split_and_log),
+        mock_patch("drtsans.polarization.PolarizationLevel.get", return_value=PolarizationLevel.HALF),
+    ):
+        loaded = load_all_files(config, path=config["dataDirectories"])
+
+    # do the actual reduction
+    reduction_output = reduce_single_configuration(loaded, config)
+
+    # 2 time slices, there will be 2 peaks in the first I(Q)
+    i_vs_qmod: IQmod = reduction_output[0].I1D_main[0]  # 1D intensity profile
+
+    peak0_closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][0]))
+    peak1_closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][1]))
+
+    minimum_peak_intensity = 800.0  # all three peaks have a maximum intensity bigger than this number
+    # the first slice is now twice as long as the integer case so intensity decreases half
+    assert i_vs_qmod.intensity[peak0_closest_index] > minimum_peak_intensity / 2
+    assert i_vs_qmod.intensity[peak1_closest_index] > minimum_peak_intensity / 2
+
+    # second slice, 3rd peak here
+    i_vs_qmod: IQmod = reduction_output[1].I1D_main[0]  # 1D intensity profile
+    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][2]))
+    assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
 
 if __name__ == "__main__":

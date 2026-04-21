@@ -15,13 +15,28 @@ BandsTuple = namedtuple("BandsTuple", "lead skip")
 
 
 @pytest.mark.datarepo
-def test_transmitted_bands(datarepo_dir, clean_workspace):
+@pytest.mark.parametrize(
+    "filename, lead_range, skip_range",
+    [
+        # four chopper configuration (before 2026)
+        ("EQSANS_101595.nxs.h5", (1.98, 6.16), None),
+        ("EQSANS_86217.nxs.h5", (2.48, 6.78), (10.90, 15.23)),  # frame skipping mode
+        # six chopper configuration (starting 2026)
+        ("EQSANS_176973.nxs.h5", (11.9, 14.98), None),
+        ("EQSANS_176937.nxs.h5", (2.48, 6.13), None),
+        ("EQSANS_178264.nxs.h5", (2.48, 6.13), (9.62, 13.38)),  # frame skipping mode
+    ],
+)
+def test_transmitted_bands(datarepo_dir, clean_workspace, filename, lead_range, skip_range):
     with amend_config(data_dir=datarepo_dir.eqsans):
-        ws = Load(Filename="EQSANS_86217.nxs.h5")
+        ws = Load(Filename=filename)
         clean_workspace(ws)
         bands = correct_frame.transmitted_bands(ws)
-        assert_almost_equal((bands.lead.min, bands.lead.max), (2.48, 6.78), decimal=2)
-        assert_almost_equal((bands.skip.min, bands.skip.max), (10.90, 15.23), decimal=2)
+        assert_almost_equal((bands.lead.min, bands.lead.max), lead_range, decimal=2)
+        if skip_range is not None:
+            assert_almost_equal((bands.skip.min, bands.skip.max), skip_range, decimal=2)
+        else:
+            assert bands.skip is None
 
 
 @pytest.mark.datarepo

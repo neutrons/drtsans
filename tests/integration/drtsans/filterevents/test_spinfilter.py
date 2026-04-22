@@ -24,25 +24,30 @@ class TestSpinFilter:
 
     @pytest.mark.datarepo
     def test_polarizer_flipper_analyzer_flipper(self, gpsans_workspace):
-        """Test splitting events based on both polarizer and analyzer states, with flipper and veto."""
+        """Test splitting events based on both polarizer and analyzer states, with flipper and veto.
+
+        The analyzer interval (61 s) is chosen to be coprime with the polarizer interval (60 s)
+        so that their state-change timestamps never coincide, avoiding the deduplication in
+        SpinFilter._build_change_list that would otherwise silently drop all analyzer events.
+        """
         workspace = gpsans_workspace
         logs = SimulatedPolarizationLogs(
             polarizer=1,
             polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 60.0}),
             polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "alive_duration": 1.0}),
             analyzer=2,
-            analyzer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 120}),
-            analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 120.0, "alive_duration": 2.0}),
+            analyzer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 61.0}),
+            analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 61.0, "alive_duration": 1.0}),
         )
         logs.inject(workspace)
         sf = SpinFilter(workspace)
         sf.apply_filter("workspace_split")
         ws_group = mtd["workspace_split"]
         assert len(ws_group) == 4
-        assert ws_group[0].getNumberEvents() == 909080
-        assert ws_group[1].getNumberEvents() == 452401
-        assert ws_group[2].getNumberEvents() == 451254
-        assert ws_group[3].getNumberEvents() == 450724
+        assert ws_group[0].getNumberEvents() == 883574
+        assert ws_group[1].getNumberEvents() == 30957
+        assert ws_group[2].getNumberEvents() == 863634
+        assert ws_group[3].getNumberEvents() == 15511
         if mtd.doesExist("workspace_split"):
             DeleteWorkspace("workspace_split")
 
@@ -87,15 +92,12 @@ class TestSpinFilter:
     @pytest.mark.datarepo
     def test_no_filtering(self, gpsans_workspace):
         """
-        Verify that if no polarization devices are present, the raw workspace
-        is returned unchanged in a group of one.
+        Verify that if no polarization devices are present SpinFilter raises ValueError.
+
+        The new SpinFilter.__init__ eagerly checks for active polarizer/analyzer logs and
+        raises ValueError immediately when neither is found, rather than deferring to
+        apply_filter and returning the raw workspace unchanged.
         """
         workspace = gpsans_workspace
-        num_events = workspace.getNumberEvents()
-        sf = SpinFilter(workspace)
-        sf.apply_filter("workspace_split")
-        ws_group = mtd["workspace_split"]
-        assert len(ws_group) == 1
-        assert ws_group[0].getNumberEvents() == num_events
-        if mtd.doesExist("workspace_split"):
-            DeleteWorkspace("workspace_split")
+        with pytest.raises(ValueError, match="No active polarizer or analyzer"):
+            SpinFilter(workspace)

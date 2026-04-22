@@ -508,6 +508,7 @@ def test_half_polarization(three_rings_pattern: dict, temp_directory: Callable[[
     The sample run in the "three_rings_pattern" fixture is 1 second long, thus containing 60 pulses in total.
     During a pulse, neutrons scattered by the sample are set to scatter at a particular two_theta value.
     We only allow three possible two_theta values, thus we cycle these values after three pulses have elapsed.
+    Because neutrons scatter with only three possible two_theta values, they imprint three rings in the detector.
 
     We insert a time-series for PV_POLARIZER_FLIPPER. During the first two seconds it will take a value of 0,
     and a value of 1 during the third second. This will be repeated 20 times to span the 60 pulses.
@@ -521,14 +522,14 @@ def test_half_polarization(three_rings_pattern: dict, temp_directory: Callable[[
     """
     config = reduction_parameters(three_rings_pattern.config, "GPSANS", validate=False)
 
-    # Temporary copy of the data files
-    output_dir = temp_directory(prefix="testGPSANSHalfPolarization_")  # save all output files
-    data_dir = os.path.join(output_dir, "datadir")  # location of the Nexus data files
+    # Duplicate the Nexus data files to avoid interfering with other tests
+    output_dir = temp_directory(prefix="testGPSANSHalfPolarization_")
+    data_dir = os.path.join(output_dir, "datadir")
     os.makedirs(data_dir, exist_ok=True)
     for nexus_file in Path(config["dataDirectories"][0]).glob("CG2_*.nxs"):
-        shutil.copy2(nexus_file, data_dir)  # duplicate the data files to avoid interfering with other tests
+        shutil.copy2(nexus_file, data_dir)
 
-    # Insert half-polarization logs in the sample run
+    # Insert half-polarization logs in the sample run. We load the data, add the log, then save to diskl
     sample_filepath, workspace_name = os.path.join(data_dir, "CG2_92310.nxs"), mtd.unique_hidden_name()
     workspace = LoadNexusProcessed(Filename=sample_filepath, OutputWorkspace=workspace_name)
     logs = SimulatedPolarizationLogs(
@@ -539,7 +540,7 @@ def test_half_polarization(three_rings_pattern: dict, temp_directory: Callable[[
     )
     logs.inject(workspace)
     SaveNexus(InputWorkspace=workspace, Filename=sample_filepath)  # now we have modified the sample Nexus file
-    DeleteWorkspace(workspace)
+    DeleteWorkspace(workspace)  # delete the temporary file
 
     # insert parameters customized for the current test
     sample_run_number = config["sample"]["runNumber"]
@@ -587,18 +588,18 @@ def test_half_polarization(three_rings_pattern: dict, temp_directory: Callable[[
     # do the actual reduction
     reduction_output = reduce_single_configuration(loaded, config)
 
-    # 2 time slices, there will be 2 peaks in the first I(Q)
+    # Two polarizer states, with two intensity peaks in the first I(Q), corresponding to polarizer state == 0.
+    # It contains two intensitie peaks (two rings)
     i_vs_qmod: IQmod = reduction_output[0].I1D_main[0]  # 1D intensity profile
 
     peak0_closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][0]))
     peak1_closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][1]))
 
     minimum_peak_intensity = 800.0  # all three peaks have a maximum intensity bigger than this number
-    # the first slice is now twice as long as the integer case so intensity decreases half
-    assert i_vs_qmod.intensity[peak0_closest_index] > minimum_peak_intensity / 2
-    assert i_vs_qmod.intensity[peak1_closest_index] > minimum_peak_intensity / 2
+    assert i_vs_qmod.intensity[peak0_closest_index] > minimum_peak_intensity
+    assert i_vs_qmod.intensity[peak1_closest_index] > minimum_peak_intensity
 
-    # second slice, 3rd peak here
+    # The second I(Q) corresponds to polarizer state == 1. It contains only one intensity peak (one ring)
     i_vs_qmod: IQmod = reduction_output[1].I1D_main[0]  # 1D intensity profile
     closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][2]))
     assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity

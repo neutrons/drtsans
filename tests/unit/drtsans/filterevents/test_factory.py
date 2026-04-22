@@ -82,16 +82,20 @@ def test_create_filter_strategy():
     assert strategy.log_value_interval == 5.0
 
     # spin filter
-    strategy = create_filter_strategy(
-        ws,
-        reduction_config={
-            "sample": {"runNumber": "123"},
-            "configuration": {"polarization": {"level": "half"}},
-        },
-    )
+    mock_sl = MagicMock()
+    mock_sl.__contains__ = MagicMock(return_value=True)
+    mock_sl.get.return_value.value = 1  # both polarizer and analyzer are active
+    with patch("drtsans.filterevents.spinfilter.SampleLogs", return_value=mock_sl):
+        strategy = create_filter_strategy(
+            ws,
+            reduction_config={
+                "sample": {"runNumber": "123"},
+                "configuration": {"polarization": {"level": "half"}},
+            },
+        )
     assert isinstance(strategy, SpinFilter)
-    assert strategy._active_polarizer is False  # ws's sample-logs need to be inspected
-    assert strategy._active_analyzer is False  # ws's sample-logs need to be inspected
+    assert strategy._active_polarizer is True
+    assert strategy._active_analyzer is True
 
     # no params → ValueError
     with pytest.raises(ValueError, match="No valid filtering parameters"):

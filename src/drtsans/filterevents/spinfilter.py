@@ -9,15 +9,8 @@ from operator import itemgetter
 from typing import List, Optional, Tuple
 
 from mantid.api import AnalysisDataService
-from mantid.simpleapi import (
-    AddSampleLog,
-    CreateEmptyTableWorkspace,
-    FilterEvents,
-    GenerateEventsFilter,
-    GroupWorkspaces,
-    logger,
-    mtd,
-)
+from mantid.dataobjects import SplittersWorkspace
+from mantid.simpleapi import CreateEmptyTableWorkspace, GenerateEventsFilter, logger, mtd
 
 from drtsans.filterevents.basefilter import FilterStrategy
 from drtsans.polarization import (
@@ -93,7 +86,8 @@ def create_table(
     start_time: int,
     has_polarizer: Optional[bool] = True,
     has_analyzer: Optional[bool] = True,
-    output_workspace: Optional[str] = "_filter",
+    output_splitter_workspace: Optional[str] = "_filter",
+    output_info_workspace: Optional[str] = "_info",
 ) -> object:
     """
     Create a Mantid table workspace defining time intervals for cross-sections.
@@ -135,10 +129,12 @@ def create_table(
 
     Time intervals before start_time are discarded or truncated.
     """
-    split_table_ws = CreateEmptyTableWorkspace(OutputWorkspace=output_workspace)
-    split_table_ws.addColumn("float", "start")
-    split_table_ws.addColumn("float", "stop")
-    split_table_ws.addColumn("str", "target")
+    split_table_ws = SplittersWorkspace()  # Table-like object with columns "start", "stop", and "workspacegroup"
+    mtd.addOrReplace(output_splitter_workspace, split_table_ws)
+    info_table_ws = CreateEmptyTableWorkspace(OutputWorkspace=output_info_workspace)
+    info_table_ws.addColumn("int", "workspacegroup")
+    info_table_ws.addColumn("str", "title")
+    cross_sections = []
 
     # Indices for device_mask
     POLARIZER, ANALYZER, POL_VETO, ANA_VETO = 0, 1, 2, 3
@@ -161,10 +157,12 @@ def create_table(
         if start < 0 and stop <= 0:
             return  # Completely before start
         if start < 0 < stop:
-            start = 0.0  # Keep fragment after start_time
+            start_ns = start_time
 
-        # Mantid expects times in seconds
-        split_table_ws.addRow([start * 1e-9, stop * 1e-9, xs_label])
+        if xs_label not in cross_sections:
+            cross_sections.append(xs_label)
+            info_table_ws.addRow([cross_sections.index(xs_label), xs_label])
+        split_table_ws.addRow([start_ns, stop_ns, cross_sections.index(xs_label)])
 
     # Process each state change chronologically
     for change_time, device_on, device_mask in change_list:
@@ -275,7 +273,6 @@ class SpinFilter(FilterStrategy):
             Sample log name for analyzer veto, an int time series.
         """
         super().__init__(workspace)
-        self.info_workspace = ""  # SpinFilter does not generate an info workspace
         self.pv_polarizer_state = pv_polarizer_state
         self.pv_analyzer_state = pv_analyzer_state
         self.pv_polarizer_veto = pv_polarizer_veto
@@ -332,7 +329,8 @@ class SpinFilter(FilterStrategy):
             start_time,
             has_polarizer=self._active_polarizer,
             has_analyzer=self._active_analyzer,
-            output_workspace=self.FILTER_WORKSPACE_NAME,
+            output_splitter_workspace=self.FILTER_WORKSPACE_NAME,
+            output_info_workspace=self.INFO_WORKSPACE_NAME,
         )
         return {}  # Return empty dict to signal that custom splitter is ready
 
@@ -383,7 +381,15 @@ class SpinFilter(FilterStrategy):
             if self.pv_analyzer_veto:
                 change_list.extend(self._extract_veto_changes(self.pv_analyzer_veto, is_analyzer_veto=True))
 
-        return sorted(change_list, key=itemgetter(0))
+        sorted_list = sorted(change_list, key=itemgetter(0))  # sort by time stamp
+        # remove entries with same time stamp
+        unique_list = [sorted_list[0]]  # initialize with the first entry
+        for entry in sorted_list[1:]:
+            new_timestamp = entry[0]
+            last_timestamp = unique_list[-1][0]
+            if new_timestamp != last_timestamp:  # same timestamp
+                unique_list.append(entry)
+        return unique_list
 
     def _extract_device_changes(self, log_name: str, **kwargs) -> List:
         """
@@ -482,56 +488,6 @@ class SpinFilter(FilterStrategy):
         ]
         return changes
 
-    def apply_filter(self, output_workspace: str) -> None:
-        """
-        Apply polarization filtering with custom splitter table.
-
-        This method overrides the base class implementation to use the custom
-        splitter table created in generate_filter() rather than using
-        GenerateEventsFilter.
-
-        Parameters
-        ----------
-        output_workspace : str
-            Name for the output workspace group
-        """
-        filter_params = self.generate_filter()
-
-        # If no filtering possible, return raw workspace
-        if filter_params is None:
-            GroupWorkspaces([self.workspace], OutputWorkspace=output_workspace)
-            return
-
-        # Check if splitter table has content
-        if workspace_handle(self.splitter_workspace).rowCount() == 0:
-            raise ValueError("Sample run flagged as polarized but no valid cross-section intervals found")
-
-        # Use custom splitter table
-        correction_workspace = mtd.unique_hidden_name()
-        outputs = FilterEvents(
-            InputWorkspace=self.workspace,
-            SplitterWorkspace=self.splitter_workspace,
-            GroupWorkspaces=True,
-            FilterByPulseTime=True,
-            OutputWorkspaceIndexedFrom1=False,
-            CorrectionToSample="None",
-            SpectrumWithoutDetector="Skip",
-            SplitSampleLogs=True,
-            RelativeTime=True,
-            ExcludeSpecifiedLogs=True,
-            OutputTOFCorrectionWorkspace=correction_workspace,
-            OutputWorkspaceBaseName=output_workspace,
-        )
-        AnalysisDataService.remove(correction_workspace)
-
-        # Add cross-section IDs to each workspace
-        for ws in outputs[-1]:
-            xs_id = str(ws).replace(f"{output_workspace}_", "")
-            AddSampleLog(Workspace=ws, LogName="polarization.cross_section", LogText=xs_id)
-            # These two lines mimic what FilterEvents does when passed an information workspace
-            ws.setComment(xs_id)
-            ws.setTitle(xs_id)
-
     def inject_metadata(self, workspace: MantidWorkspace) -> None:
         """
         Inject metadata into all polarization-filtered cross-sections.
@@ -544,7 +500,8 @@ class SpinFilter(FilterStrategy):
         workspace : MantidWorkspace
             The workspace group (or its name) containing the filtered cross-sections
         """
-        for _, samplelogs, _ in self._inject_common_metadata(workspace):
+        for _, samplelogs, cross_section in self._inject_common_metadata(workspace):
             samplelogs.insert("slice_parameter", "polarization.cross_section")
+            samplelogs.insert("polarization.cross_section", cross_section)
             samplelogs.insert("polarization.active_polarizer", int(self._active_polarizer))
             samplelogs.insert("polarization.active_analyzer", int(self._active_analyzer))

@@ -13,16 +13,20 @@ def _make_workspace_group(comments):
     return group
 
 
-def test_time_interval_filter_generate_filter():
+@patch("drtsans.filterevents.timefilter.GenerateEventsFilter")
+def test_time_interval_filter_generate_filter(mock_gef):
     # default offset
-    params = TimeIntervalFilter(MagicMock(), time_interval=10.0).generate_filter()
-    assert params["TimeInterval"] == 10.0
-    assert params["UnitOfTime"] == "Seconds"
-    assert params["StartTime"] == "0.0"
+    TimeIntervalFilter(MagicMock(), time_interval=10.0).generate_filter()
+    _, kwargs = mock_gef.call_args
+    assert kwargs["TimeInterval"] == 10.0
+    assert kwargs["UnitOfTime"] == "Seconds"
+    assert kwargs["StartTime"] == "0.0"
+
     # explicit offset
-    params = TimeIntervalFilter(MagicMock(), time_interval=5.0, time_offset=3.0).generate_filter()
-    assert params["StartTime"] == "3.0"
-    assert params["TimeInterval"] == 5.0
+    TimeIntervalFilter(MagicMock(), time_interval=5.0, time_offset=3.0).generate_filter()
+    _, kwargs = mock_gef.call_args
+    assert kwargs["StartTime"] == "3.0"
+    assert kwargs["TimeInterval"] == 5.0
 
 
 @patch("drtsans.filterevents.basefilter.SampleLogs")
@@ -70,11 +74,14 @@ def test_time_interval_inject_metadata(mock_timefilter_mtd, mock_workspace_handl
 # ------------------
 
 
+@patch("drtsans.filterevents.logfilter.GenerateEventsFilter")
 @patch("drtsans.filterevents.timefilter.PeriodicTimeFilter._create_periodic_log")
-def test_periodic_time_filter_generate_filter(mock_create_log):
-    params = PeriodicTimeFilter(MagicMock(), time_interval=5.0, time_period=60.0).generate_filter()
-    assert params["LogName"] == "periodic_time_slicing"
-    assert params["LogValueInterval"] == 1
+def test_periodic_time_filter_generate_filter(mock_create_log, mock_gef):
+    PeriodicTimeFilter(MagicMock(), time_interval=5.0, time_period=60.0).generate_filter()
+    mock_gef.assert_called_once()
+    _, kwargs = mock_gef.call_args
+    assert kwargs["LogName"] == "periodic_time_slicing"
+    assert kwargs["LogValueInterval"] == 1
 
 
 @patch("drtsans.filterevents.basefilter.SampleLogs")

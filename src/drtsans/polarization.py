@@ -2,6 +2,7 @@
 from collections import namedtuple
 from enum import StrEnum
 from dataclasses import dataclass
+from math import fsum
 from typing import ClassVar, Generator, List, Optional, Union
 
 # third party imports
@@ -516,16 +517,20 @@ class SimulatedPolarizationLogs:
         >>> list(log.cycled_intervals(intervals=[1.0, 2.0, 1.5], dead_time=0.0, upper_bound=10.0))
         [0.0, 1.0, 3.0, 4.5, 5.5, 7.5, 9.0]
         """
-        elapsed, i = 0.0, 0
+        accumulated, elapsed, i = [], 0.0, 0
         while elapsed <= upper_bound if upper_bound is not None else True:
             if elapsed >= dead_time:
                 yield elapsed
             if i < len(intervals):
-                elapsed += intervals[i]
+                accumulated.append(intervals[i])
                 i += 1
             else:
-                elapsed += intervals[0]
+                accumulated.append(intervals[0])
                 i = 1
+            # timestamps are computed with math.fsum over all accumulated intervals rather than by
+            # incrementatl addition, because summing many small floats incrementally causes rounding errors to
+            # drift (e.g. yielding 0.19999999 instead of 0.2).
+            elapsed = fsum(accumulated)
 
     def binary_pulse(
         self,

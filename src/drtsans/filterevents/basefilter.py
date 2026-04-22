@@ -7,9 +7,9 @@ reduction configuration parameters.
 """
 
 from abc import ABC, abstractmethod
-from typing import Generator, Optional, Union, Tuple
+from typing import Generator, Union, Tuple
 from mantid.api import IEventWorkspace
-from mantid.simpleapi import GenerateEventsFilter, FilterEvents
+from mantid.simpleapi import FilterEvents
 
 from drtsans.dataobjects import workspace_handle
 from drtsans.samplelogs import SampleLogs
@@ -56,18 +56,18 @@ class FilterStrategy(ABC):
         self.info_workspace: str = self.INFO_WORKSPACE_NAME
 
     @abstractmethod
-    def generate_filter(self) -> Optional[dict]:
+    def generate_filter(self) -> None:
         """
-        Generate filter parameters for Mantid's GenerateEventsFilter algorithm.
+        Generate and apply the event filter.
 
-        This method must be implemented by concrete strategy classes to provide
-        the specific parameters needed for their filtering approach.
+        Concrete implementations must call Mantid's GenerateEventsFilter (or an
+        equivalent mechanism) directly, populating ``self.splitter_workspace`` and
+        ``self.info_workspace`` so that ``apply_filter`` can pass them straight to
+        ``FilterEvents``.
 
-        Returns
-        -------
-        dict or None
-            Parameters to pass to GenerateEventsFilter algorithm.
-            Return None if filtering is not applicable (e.g., no polarization devices found).
+        Implementations that build a custom splitter table (e.g. ``SpinFilter``)
+        should write it to ``self.splitter_workspace`` by other means and may skip
+        calling ``GenerateEventsFilter`` entirely.
         """
         pass
 
@@ -156,18 +156,7 @@ class FilterStrategy(ABC):
         After filtering, empty workspaces should be removed from the group.
         Subclasses overriding this method should maintain similar behavior.
         """
-        filter_params = self.generate_filter()
-
-        # Allow subclasses to handle no-filter case
-        if filter_params is None:
-            return
-
-        GenerateEventsFilter(
-            InputWorkspace=self.workspace,
-            OutputWorkspace=self.splitter_workspace,
-            InformationWorkspace=self.info_workspace,
-            **filter_params,
-        )
+        self.generate_filter()
 
         FilterEvents(
             InputWorkspace=self.workspace,

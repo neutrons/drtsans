@@ -315,6 +315,10 @@ class TestSimulatedLogs:
         assert_array_almost_equal(list(times), [3.5, 5.5, 6.5, 8.5, 9.5], decimal=2)
 
     def test_cycled_intervals_generator(self):
+        times = SimulatedPolarizationLogs().cycled_intervals(
+            intervals=[2.0 / 60, 1.0 / 60], dead_time=0, upper_bound=0.2
+        )
+        assert list(times)[-1] == 0.2  # makes sure rounding errors don't accumulate
         times = SimulatedPolarizationLogs().cycled_intervals(intervals=[1.0, 2.0], upper_bound=9.0)
         assert_array_almost_equal(list(times), [0.0, 1.0, 3.0, 4.0, 6.0, 7.0, 9.0])
         times = SimulatedPolarizationLogs().cycled_intervals(intervals=[1.0, 2.0], dead_time=3.5, upper_bound=9.0)

@@ -605,5 +605,138 @@ def test_half_polarization(three_rings_pattern: dict, temp_directory: Callable[[
     assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
 
+@pytest.mark.datarepo
+@mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D)
+@mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
+def test_full_polarization(three_rings_pattern: dict, temp_directory: Callable[[Any], str]):
+    r"""
+    Split the three_rings_pattern into Off_Off, On_Off, Off_On, and On_On cross-sections.
+
+    The sample run is 1 second long (60 pulses). Neutrons cycle through three two_theta values every
+    three pulses, imprinting three rings on the detector.
+
+    We insert time-series logs for PV_POLARIZER_FLIPPER and PV_ANALYZER_FLIPPER only — no veto logs.
+    The code should be resilient to missing veto logs.
+
+    The flipper states follow a 6-pulse super-cycle (period = 6/60 s):
+
+        Pulse 0  [0,     1/60) : pol=Off, ana=Off  →  Off_Off  (ring 1°)
+        Pulse 1  [1/60,  2/60) : pol=On,  ana=Off  →  On_Off   (ring 3°)
+        Pulse 2  [2/60,  3/60) : pol=On,  ana=On   →  On_On    (ring 5°)
+        Pulse 3  [3/60,  4/60) : pol=Off, ana=Off  →  Off_Off  (ring 1°)
+        Pulse 4  [4/60,  5/60) : pol=Off, ana=On   →  Off_On   (ring 3°)
+        Pulse 5  [5/60,  6/60) : pol=On,  ana=On   →  On_On    (ring 5°)
+
+    The polarizer flipper uses cycled_intervals [1/60, 2/60, 2/60, 1/60], and the analyzer
+    flipper uses cycled_intervals [2/60, 1/60, 1/60, 2/60]. Every interval is >= 1/60 s.
+
+    Over 60 pulses (10 super-cycles) ring 3° contributes equally to On_Off and Off_On
+    (10 pulses each), while rings 1° and 5° contribute 20 pulses each to Off_Off and On_On.
+
+    We'll be changing the sample logs of the sample Nexus file.
+    Other tests will also try to access the Nexus files, thus we'll copy the files to a temporary
+    directory so that we can modify the logs without affecting other tests.
+    """
+    config = reduction_parameters(three_rings_pattern.config, "GPSANS", validate=False)
+
+    # Duplicate the Nexus data files to avoid interfering with other tests
+    output_dir = temp_directory(prefix="testGPSANSFullPolarization_")
+    data_dir = os.path.join(output_dir, "datadir")
+    os.makedirs(data_dir, exist_ok=True)
+    for nexus_file in Path(config["dataDirectories"][0]).glob("CG2_*.nxs"):
+        shutil.copy2(nexus_file, data_dir)
+
+    # Insert full-polarization logs in the sample run
+    sample_filepath, workspace_name = os.path.join(data_dir, "CG2_92310.nxs"), mtd.unique_hidden_name()
+    workspace = LoadNexusProcessed(Filename=sample_filepath, OutputWorkspace=workspace_name)
+    logs = SimulatedPolarizationLogs(
+        polarizer=1,
+        polarizer_flipper=TimesGeneratorSpecs(
+            "cycled_intervals", {"intervals": [1.0 / 60, 2.0 / 60, 2.0 / 60, 1.0 / 60], "upper_bound": 1.0}
+        ),
+        analyzer=2,
+        analyzer_flipper=TimesGeneratorSpecs(
+            "cycled_intervals", {"intervals": [2.0 / 60, 1.0 / 60, 1.0 / 60, 2.0 / 60], "upper_bound": 1.0}
+        ),
+    )
+    logs.inject(workspace)
+    SaveNexus(InputWorkspace=workspace, Filename=sample_filepath)
+    DeleteWorkspace(workspace)
+
+    # insert parameters customized for the current test
+    sample_run_number = config["sample"]["runNumber"]
+    amendments = {
+        "outputFileName": f"CG2_{sample_run_number}",
+        "dataDirectories": [data_dir],
+        "configuration": {
+            "outputDir": output_dir,
+        },
+    }
+    config = update_reduction_parameters(config, amendments, validate=True)
+    metadata = three_rings_pattern.metadata
+
+    def _mock_monitor_split_and_log(
+        monitor: str, monitor_group: str, sample_group: str, is_mono: bool, filter_events: dict
+    ):
+        r"""
+        Divide the total number of monitor counts by the number of time slices, then insert the resulting value
+         as log entry 'monitor' in the corresponding split sample workspaces
+
+        Parameters
+        ----------
+        sample_group
+            name of the WorkspaceGroup containing the split workspaces for the sample
+        """
+        splitted_workspaces_count = mtd[sample_group].getNumberOfEntries()
+        duration_total = 0.0
+        for n in range(splitted_workspaces_count):
+            duration_total += SampleLogs(mtd[sample_group].getItem(n))["duration"].value
+        for n in range(splitted_workspaces_count):
+            duration = SampleLogs(mtd[sample_group].getItem(n))["duration"].value
+            monitor_count = metadata["monitor"] * (duration / duration_total)
+            SampleLogs(mtd[sample_group].getItem(n)).insert("monitor", monitor_count)
+        #  ensures return values exist and future call to DeleteWorkspace doesn't fail
+        CreateSingleValuedWorkspace(OutputWorkspace=monitor)
+        CreateSingleValuedWorkspace(OutputWorkspace=monitor_group)
+
+    # load all necessary files
+    with (
+        mock_patch("drtsans.load._monitor_split_and_log", side_effect=_mock_monitor_split_and_log),
+        mock_patch("drtsans.polarization.PolarizationLevel.get", return_value=PolarizationLevel.FULL),
+    ):
+        loaded = load_all_files(config, path=config["dataDirectories"])
+
+    # do the actual reduction
+    reduction_output = reduce_single_configuration(loaded, config)
+
+    # Cross-sections appear in the order they are first encountered by the splitter:
+    #   reduction_output[0] → Off_Off  (ring 1°, 20 pulses)
+    #   reduction_output[1] → On_Off   (ring 3°, 10 pulses — half the full ring)
+    #   reduction_output[2] → On_On    (ring 5°, 20 pulses)
+    #   reduction_output[3] → Off_On   (ring 3°, 10 pulses — half the full ring)
+
+    minimum_peak_intensity = 800.0
+
+    # Off_Off: only the small-angle ring (1°) should be visible
+    i_vs_qmod: IQmod = reduction_output[0].I1D_main[0]
+    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][0]))
+    assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
+
+    # On_Off: half of the middle ring (3°) — intensity roughly halved relative to a full ring
+    i_vs_qmod: IQmod = reduction_output[1].I1D_main[0]
+    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][1]))
+    assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
+
+    # On_On: only the large-angle ring (5°) should be visible
+    i_vs_qmod: IQmod = reduction_output[2].I1D_main[0]
+    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][2]))
+    assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
+
+    # Off_On: the other half of the middle ring (3°)
+    i_vs_qmod: IQmod = reduction_output[3].I1D_main[0]
+    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][1]))
+    assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

@@ -1026,6 +1026,20 @@ class TestReductionParametersEQSANS:
             parameters["sample"]["loadOptions"]["additionalProperties"] = True
             validate_reduction_parameters(parameters)
 
+    @pytest.mark.parametrize("blocked_beam_value", ["12345", 12345])
+    def test_time_normalization_with_blocked_beam_rejected(self, blocked_beam_value):
+        """Test that schema validation rejects Time normalization when blocked beam is provided"""
+        # Start with default EQSANS parameters
+        params = deepcopy(self.parameters_all)
+
+        # Update with conflicting configuration: Time normalization + blocked beam
+        params["configuration"]["normalization"] = "Time"
+        params["configuration"]["blockedBeamRunNumber"] = blocked_beam_value
+
+        # Verify that ReductionParameterError is raised during schema validation
+        with pytest.raises(ReductionParameterError):
+            validate_reduction_parameters(params)
+
 
 def test_generate_json_files(tmpdir, cleanfile):
     directory = tmpdir.mkdir("generate_json_files")

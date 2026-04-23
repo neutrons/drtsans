@@ -26,8 +26,11 @@ def subtract_blocked_beam(
     blocked_beam : namedtuple
         (~mantid.dataobjects.Workspace2D, ~mantid.dataobjects.Workspace2D)
         An object containing the blocked beam data. If None or its data is None, subtraction is skipped.
-    flux_method : str, optional
-        The method used for flux normalization. If "monitor", blocked beam subtraction is skipped.
+    flux_method : str
+        The method used for flux normalization. Required when blocked_beam is provided.
+        If "monitor", blocked beam subtraction is skipped with a warning.
+        If None or "time", raises ValueError (invalid for blocked beam subtraction).
+        Valid value: "proton charge".
     flux : Workspace or str, optional
         The workspace or value used for flux normalization.
     dark_current : namedtuple
@@ -48,6 +51,13 @@ def subtract_blocked_beam(
             "Skipping blocked beam subtraction."
         )
         return
+
+    if flux_method in [None, "time"]:
+        raise ValueError(
+            "subtract_blocked_beam requires a valid flux normalization method. "
+            f"Received flux_method='{flux_method}', but only 'proton charge' is valid for blocked beam subtraction. "
+            "Cannot subtract blocked beam without proper normalization."
+        )
 
     bb_ws_name = str(blocked_beam.data).replace("_raw_histo", "_processed_histo")
     if not registered_workspace(bb_ws_name):

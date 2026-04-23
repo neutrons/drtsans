@@ -695,10 +695,6 @@ def reduce_single_configuration(
         "Time": "duration",
     }
     flux = flux_translator.get(reduction_config["normalization"], None)
-    if flux_method == "time" and (
-        "blockedBeamRunNumber" in reduction_config and reduction_config["blockedBeamRunNumber"]
-    ):
-        flux = "proton_charge"
 
     solid_angle = reduction_config["useSolidAngleCorrection"]
     transmission_radius = reduction_config["mmRadiusForTransmission"]

@@ -1409,6 +1409,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         "sample_transmission": sample_transmission_dict,
         "background_transmission": background_transmission_dict,
     }
+
+    if absolute_scale_method == "standard":
+        specialparameters["standard_beam_scaling"] = {"value": absolute_scale}
+
     if processed_data_main.run().hasProperty("direct_beam_scaling") and processed_data_main.run().hasProperty(
         "direct_beam_scaling_error"
     ):

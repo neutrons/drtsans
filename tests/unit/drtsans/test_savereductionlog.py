@@ -230,6 +230,31 @@ def test_writing_metadata(cleanfile):
         assert reduction_information_entry["special_parameters"]["key3"][()].decode() == ""  # noqa: PLC1901
 
 
+def test_writing_metadata_with_absolute_scale(cleanfile):
+    specialparameters = {
+        "absolute_scale": {
+            "method": "standard",
+            "factor": 1.23,
+        }
+    }
+
+    test_iq = [_create_iq()]
+    tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
+    savereductionlog(
+        tmp_log_filename,
+        detectordata={"slice_1": {"main_detector": {"i1d": test_iq}}},
+        specialparameters=specialparameters,
+    )
+
+    with h5py.File(tmp_log_filename, "r") as handle:
+        reduction_information_entry = _getGroup(handle, "reduction_information", "NXentry")
+        absolute_scale_group = _getGroup(reduction_information_entry["special_parameters"], "absolute_scale", "NXnote")
+
+        assert absolute_scale_group["method"][()].decode() == "standard"
+        assert absolute_scale_group["factor"][()] == pytest.approx(1.23)
+
+
 def test_writing_iq_wedge_mode(cleanfile):
     test_iq_1 = _create_iq()
     test_iq = list([test_iq_1, test_iq_1])

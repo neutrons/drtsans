@@ -157,6 +157,7 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0, export_stitch_in
         current_index = current_index + 1
 
     if export_stitch_info is not None:
+<<<<<<< HEAD
         try:
             with open(export_stitch_info, "w") as stitch_info:
                 stitch_info.write(
@@ -174,6 +175,16 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0, export_stitch_in
                 f"OSError during stitching info write to {export_stitch_info}. "
                 f"Stitching info could not be written. {exc}"
             )
+=======
+        with open(export_stitch_info, "w") as stitch_info:
+            stitch_info.write(
+                "# direction profile_index target_profile_index overlap_qmin overlap_qmax scale_factor\n"
+            )
+            for direction, profile_index, target_index, start_q, end_q, scale in stitch_scales:
+                stitch_info.write(
+                    f"{direction} {profile_index} {target_index} {start_q:.16g} {end_q:.16g} {scale:.16g}\n"
+                )
+>>>>>>> 2b49c265 (standard method check)
 
     return target_profile
 

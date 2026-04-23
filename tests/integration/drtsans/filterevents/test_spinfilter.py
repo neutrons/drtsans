@@ -26,9 +26,11 @@ class TestSpinFilter:
     def test_polarizer_flipper_analyzer_flipper(self, gpsans_workspace):
         """Test splitting events based on both polarizer and analyzer states, with flipper and veto.
 
-        The analyzer interval (61 s) is chosen to be coprime with the polarizer interval (60 s)
-        so that their state-change timestamps never coincide, avoiding the deduplication in
-        SpinFilter._build_change_list that would otherwise silently drop all analyzer events.
+        The analyzer interval (30 s) is half the polarizer interval (60 s), so their
+        state-change timestamps deliberately coincide at t = 0, 60, 120, 180, 240, 300 s.
+        Deduplication in SpinFilter._build_change_list only removes consecutive entries that
+        share both timestamp *and* device_mask, so coinciding timestamps from different devices
+        are preserved correctly and all four cross-sections are produced.
         """
         workspace = gpsans_workspace
         logs = SimulatedPolarizationLogs(
@@ -36,18 +38,18 @@ class TestSpinFilter:
             polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 60.0}),
             polarizer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 60.0, "alive_duration": 1.0}),
             analyzer=2,
-            analyzer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 61.0}),
-            analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 61.0, "alive_duration": 1.0}),
+            analyzer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 30.0}),
+            analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 30.0, "alive_duration": 0.5}),
         )
         logs.inject(workspace)
         sf = SpinFilter(workspace)
         sf.apply_filter("workspace_split")
         ws_group = mtd["workspace_split"]
         assert len(ws_group) == 4
-        assert ws_group[0].getNumberEvents() == 883574
-        assert ws_group[1].getNumberEvents() == 30957
-        assert ws_group[2].getNumberEvents() == 863634
-        assert ws_group[3].getNumberEvents() == 15511
+        assert ws_group[0].getNumberEvents() == 681236
+        assert ws_group[1].getNumberEvents() == 675256
+        assert ws_group[2].getNumberEvents() == 451292
+        assert ws_group[3].getNumberEvents() == 451734
         if mtd.doesExist("workspace_split"):
             DeleteWorkspace("workspace_split")
 

@@ -382,13 +382,13 @@ class SpinFilter(FilterStrategy):
                 change_list.extend(self._extract_veto_changes(self.pv_analyzer_veto, is_analyzer_veto=True))
 
         sorted_list = sorted(change_list, key=itemgetter(0))  # sort by time stamp
-        # remove entries with same time stamp
+        # remove consecutive entries with same timestamp and same device (device_mask)
         unique_list = [sorted_list[0]]  # initialize with the first entry
         for entry in sorted_list[1:]:
-            new_timestamp = entry[0]
-            last_timestamp = unique_list[-1][0]
-            if new_timestamp != last_timestamp:  # same timestamp
-                unique_list.append(entry)
+            last = unique_list[-1]
+            if entry[0] == last[0] and entry[2] == last[2]:  # same timestamp and same device_mask
+                continue
+            unique_list.append(entry)
         return unique_list
 
     def _extract_device_changes(self, log_name: str, **kwargs) -> List:

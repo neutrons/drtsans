@@ -318,17 +318,17 @@ def move_instrument(
 
 def _monitor_split_and_log(monitor: str, monitor_group: str, sample_group: str, is_mono: bool, filter_events: dict):
     r"""
-    Split the monitor workspace and insert the total count in each splitted workspace as log entry
-    'monitor' in the corresponding splited sample workspaces
+    Split the monitor workspace and insert the total count from each split workspace as log entry
+    'monitor' in the corresponding split sample workspace.
 
     Parameters
     ----------
     monitor
         name of the input events monitor workspace
     monitor_group
-        name of the output WorkspaceGroup containing the splited workspaces for the sample monitor
+        name of the output WorkspaceGroup containing the split workspaces for the sample monitor
     sample_group
-        name of the WorkspaceGroup containing the splited workspaces for the sample
+        name of the WorkspaceGroup containing the split workspaces for the sample
     is_mono
         monochromatic or time-of-flight instrument?
     filter_events
@@ -342,9 +342,16 @@ def _monitor_split_and_log(monitor: str, monitor_group: str, sample_group: str, 
     )
     if is_mono:
         splitted_workspaces_count = mtd[sample_group].getNumberOfEntries()
+        # sanity check
+        if mtd[monitor_group].getNumberOfEntries() != splitted_workspaces_count:
+            message = "Mismatch: the number of sample and monitor slices differ"
+            logger.error(message)
+            raise ValueError(message)
+        # insert sample-log entry "monitor"
         for n in range(splitted_workspaces_count):
-            workspace = mtd[monitor_group].getItem(n)
-            SampleLogs(workspace).insert("monitor", workspace.getNumberEvents())
+            monitor_slice = mtd[monitor_group].getItem(n)
+            sample_slice = mtd[sample_group].getItem(n)
+            SampleLogs(sample_slice).insert("monitor", monitor_slice.getNumberEvents())
 
 
 def load_and_split(
@@ -504,7 +511,7 @@ def load_and_split(
         # Use the strategy's splitter and info workspace names for monitor filtering
         filter_events_opts = dict(
             SplitterWorkspace=filter_strategy.splitter_workspace,
-            InformationWorkspace=filter_strategy.info_workspace,  # TODO: SpinFilter doesn't create an info workspace
+            InformationWorkspace=filter_strategy.info_workspace,
             FilterByPulseTime=True,
             GroupWorkspaces=True,
             OutputWorkspaceIndexedFrom1=True,

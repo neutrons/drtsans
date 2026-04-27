@@ -324,8 +324,8 @@ class SpinFilter(FilterStrategy):
             start_time,
             has_polarizer=self._active_polarizer,
             has_analyzer=self._active_analyzer,
-            output_splitter_workspace=self.FILTER_WORKSPACE_NAME,
-            output_info_workspace=self.INFO_WORKSPACE_NAME,
+            output_splitter_workspace=self.splitter_workspace,
+            output_info_workspace=self.info_workspace,
         )
 
     def _build_change_list(self) -> List[Tuple[int, bool, List[bool]]]:

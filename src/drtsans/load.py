@@ -454,8 +454,9 @@ def load_and_split(
     if is_mono is None:
         is_mono = instrument_unique_name in (InstrumentEnumName.BIOSANS, InstrumentEnumName.GPSANS)
     elif is_mono is False:
-        assert instrument_unique_name == InstrumentEnumName.EQSANS, \
+        assert instrument_unique_name == InstrumentEnumName.EQSANS, (
             f"Invalid instrument name '{instrument_unique_name}' when is_mono=False"
+        )
     elif is_mono is True:
         assert instrument_unique_name in (InstrumentEnumName.BIOSANS, InstrumentEnumName.GPSANS), (
             f"Invalid instrument name '{instrument_unique_name}' when is_mono=True"
@@ -463,9 +464,11 @@ def load_and_split(
 
     # Check whether we need to load or not
     if registered_workspace(run):  # run is a workspace, or the name of a workspace in the AnalysisDataService
+        sample_workspace_already_exists = True
         all_events_workspace = run
         monitors = monitors or is_mono
     else:
+        sample_workspace_already_exists = False
         all_events_workspace = mtd.unique_hidden_name()  # temporary workspace
         monitors = monitors or is_mono
         load_events(
@@ -501,14 +504,6 @@ def load_and_split(
     # Apply filtering
     filter_strategy.apply_filter(output_workspace)
 
-    # Remove empty workspaces from event filtering
-    split_ws_list = [mtd[output_workspace].getItem(n) for n in range(mtd[output_workspace].getNumberOfEntries())]
-    for split_ws in split_ws_list:
-        num_events = split_ws.getNumberEvents()
-        if num_events == 0:
-            logger.notice(f"Remove empty sliced workspace {str(split_ws)}")
-            mtd[output_workspace].remove(str(split_ws))
-
     assert is_mono is not None, "is_mono shall be either set or specified"
     if monitors:
         # Use the strategy's splitter and info workspace names for monitor filtering
@@ -527,10 +522,22 @@ def load_and_split(
             filter_events=filter_events_opts,
         )
 
+    # Remove empty workspaces from event filtering
+    split_ws_list = [mtd[output_workspace].getItem(n) for n in range(mtd[output_workspace].getNumberOfEntries())]
+    for i, split_ws in enumerate(split_ws_list):
+        num_events = split_ws.getNumberEvents()
+        if num_events == 0:
+            logger.notice(f"Remove empty sliced workspace {str(split_ws)}")
+            mtd[output_workspace].remove(str(split_ws))
+            if monitors:
+                mtd[output_workspace + "_monitors"].remove(mtd[output_workspace + "_monitors"].getItem(i).name())
+
     # Inject metadata using the strategy
     filter_strategy.inject_metadata(output_workspace)
 
     # Clean up temporary workspaces
+    if sample_workspace_already_exists is True:
+        logger.warning("Removing sample workspace, which already existed")
     for name in [all_events_workspace, filter_strategy.splitter_workspace, filter_strategy.info_workspace]:
         AnalysisDataService.remove(name)
 

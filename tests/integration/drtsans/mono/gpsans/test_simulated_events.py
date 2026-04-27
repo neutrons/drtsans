@@ -529,7 +529,7 @@ def test_half_polarization(three_rings_pattern: dict, temp_directory: Callable[[
     for nexus_file in Path(config["dataDirectories"][0]).glob("CG2_*.nxs"):
         shutil.copy2(nexus_file, data_dir)
 
-    # Insert half-polarization logs in the sample run. We load the data, add the log, then save to diskl
+    # Insert half-polarization logs in the sample run. We load the data, add the log, then save to disk
     sample_filepath, workspace_name = os.path.join(data_dir, "CG2_92310.nxs"), mtd.unique_hidden_name()
     workspace = LoadNexusProcessed(Filename=sample_filepath, OutputWorkspace=workspace_name)
     logs = SimulatedPolarizationLogs(

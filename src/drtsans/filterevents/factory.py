@@ -11,7 +11,7 @@ from drtsans.type_hints import MantidWorkspace
 def create_filter_strategy(
     workspace: MantidWorkspace,
     reduction_config: Optional[dict] = None,
-    time_interval: Optional[Union[float, List]] = None,
+    time_interval: Optional[Union[float, List[float]]] = None,
     time_offset: float = 0.0,
     time_period: Optional[float] = None,
     log_name: Optional[str] = None,
@@ -51,8 +51,6 @@ def create_filter_strategy(
     ------
     ValueError
         If no valid filtering parameters are provided
-    NotImplementedError
-        If polarized sample is detected (spin filtering not yet supported)
 
     Notes
     -----

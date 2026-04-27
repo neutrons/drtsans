@@ -500,8 +500,7 @@ class SimulatedPolarizationLogs:
         intervals : list of float
             A list of time intervals, in seconds, to cycle through repeatedly.
         dead_time : float, optional
-            The initial time period, in seconds, during which no times are generated. If
-            :py:obj:`None`, all timestamps starting from zero are yielded.
+            The initial time period, in seconds, during which no times are generated. Defaults to 0.0.
         upper_bound : float, optional
             The maximum time value to generate, in seconds. If :py:obj:`None`, the generator
             will continue indefinitely.
@@ -528,7 +527,7 @@ class SimulatedPolarizationLogs:
                 accumulated.append(intervals[0])
                 i = 1
             # timestamps are computed with math.fsum over all accumulated intervals rather than by
-            # incrementatl addition, because summing many small floats incrementally causes rounding errors to
+            # incremental addition, because summing many small floats incrementally causes rounding errors to
             # drift (e.g. yielding 0.19999999 instead of 0.2).
             elapsed = fsum(accumulated)
 

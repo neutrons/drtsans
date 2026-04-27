@@ -232,9 +232,10 @@ class SpinFilter(FilterStrategy):
     _active_analyzer : bool
         Whether an analyzer was detected in the experiment
 
-    Notes
-    -----
-    If no polarizer or analyzer is detected the raw workspace is returned ungrouped with a warning.
+    Raises
+    ------
+    ValueError
+        If no active polarizer or analyzer is detected in the sample logs.
 
     The filter creates a custom splitter table based on device state transitions
     rather than using Mantid's standard time or log interval filters. This allows
@@ -295,18 +296,12 @@ class SpinFilter(FilterStrategy):
             self.pv_analyzer_veto = ""
             logger.warning(f"Analyzer veto log '{pv_analyzer_veto}' not found.")
 
-    def generate_filter(self) -> Optional[dict]:
+    def generate_filter(self) -> None:
         """
         Generate custom splitter table for polarization states.
 
         This method builds a chronological list of all device state changes and
         creates a custom splitter table defining when each cross-section is valid.
-
-        Returns
-        -------
-        dict or None
-            Empty dict if filtering succeeds (splitter created separately).
-            None if no devices are present or no valid intervals exist.
 
         Notes
         -----
@@ -332,7 +327,6 @@ class SpinFilter(FilterStrategy):
             output_splitter_workspace=self.FILTER_WORKSPACE_NAME,
             output_info_workspace=self.INFO_WORKSPACE_NAME,
         )
-        return {}  # Return empty dict to signal that custom splitter is ready
 
     def _build_change_list(self) -> List[Tuple[int, bool, List[bool]]]:
         """
@@ -380,6 +374,9 @@ class SpinFilter(FilterStrategy):
             change_list.extend(self._extract_device_changes(self.pv_analyzer_state, is_analyzer=True))
             if self.pv_analyzer_veto:
                 change_list.extend(self._extract_veto_changes(self.pv_analyzer_veto, is_analyzer_veto=True))
+
+        if len(change_list) == 0:
+            raise ValueError("No information found in the polarization flipper or veto logs!")
 
         sorted_list = sorted(change_list, key=itemgetter(0))  # sort by time stamp
         # remove consecutive entries with same timestamp and same device (device_mask)

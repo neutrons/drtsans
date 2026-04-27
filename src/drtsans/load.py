@@ -453,9 +453,12 @@ def load_and_split(
         instrument_unique_name = instrument_enum_name(run)
     if is_mono is None:
         is_mono = instrument_unique_name in (InstrumentEnumName.BIOSANS, InstrumentEnumName.GPSANS)
-    else:
+    elif is_mono is False:
+        assert instrument_unique_name == InstrumentEnumName.EQSANS, \
+            f"Invalid instrument name '{instrument_unique_name}' when is_mono=False"
+    elif is_mono is True:
         assert instrument_unique_name in (InstrumentEnumName.BIOSANS, InstrumentEnumName.GPSANS), (
-            f"Invalid instrument name '{instrument_unique_name}' for is_mono={is_mono}"
+            f"Invalid instrument name '{instrument_unique_name}' when is_mono=True"
         )
 
     # Check whether we need to load or not

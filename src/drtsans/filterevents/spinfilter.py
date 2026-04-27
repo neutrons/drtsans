@@ -315,7 +315,7 @@ class SpinFilter(FilterStrategy):
         change_list = self._build_change_list()
 
         if not change_list:
-            return None
+            return
 
         # Create custom splitter table
         start_time = workspace_handle(self.workspace).run().startTime().totalNanoseconds()

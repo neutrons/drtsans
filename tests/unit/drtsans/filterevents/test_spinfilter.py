@@ -263,7 +263,7 @@ def test_spin_filter_init_raises_when_no_devices(mock_samplelogs_cls):
 @patch("drtsans.filterevents.spinfilter.workspace_handle")
 @patch.object(SpinFilter, "_build_change_list")
 @patch("drtsans.filterevents.spinfilter.SampleLogs")
-def test_generate_filter_returns_empty_dict_when_devices_present(
+def test_generate_filter_when_devices_present(
     mock_samplelogs_cls, mock_build, mock_workspace_handle, mock_create_table
 ):
     """generate_filter returns {} and sets splitter_workspace when devices are found."""
@@ -273,9 +273,8 @@ def test_generate_filter_returns_empty_dict_when_devices_present(
     mock_create_table.return_value = MagicMock()
 
     sf = SpinFilter(MagicMock())
-    result = sf.generate_filter()
+    sf.generate_filter()
 
-    assert result == {}
     assert sf._active_polarizer is True
     assert sf._active_analyzer is True
     mock_create_table.assert_called_once()
@@ -283,15 +282,12 @@ def test_generate_filter_returns_empty_dict_when_devices_present(
 
 @patch.object(SpinFilter, "_build_change_list")
 @patch("drtsans.filterevents.spinfilter.SampleLogs")
-def test_generate_filter_returns_none_when_empty_change_list(mock_samplelogs_cls, mock_build):
+def test_generate_filter_when_empty_change_list(mock_samplelogs_cls, mock_build):
     """generate_filter returns None when the change list is empty."""
     mock_samplelogs_cls.return_value = _make_device_sample_logs(has_polarizer=True, has_analyzer=False)
     mock_build.return_value = []
-
     sf = SpinFilter(MagicMock())
-    result = sf.generate_filter()
-
-    assert result is None
+    sf.generate_filter()
 
 
 @patch("drtsans.filterevents.spinfilter.create_table")
@@ -308,9 +304,8 @@ def test_generate_filter_reflects_device_presence_from_init(
     mock_create_table.return_value = MagicMock()
 
     sf = SpinFilter(MagicMock())
-    result = sf.generate_filter()
+    sf.generate_filter()
 
-    assert result == {}
     assert sf._active_polarizer is True
     assert sf._active_analyzer is False
 

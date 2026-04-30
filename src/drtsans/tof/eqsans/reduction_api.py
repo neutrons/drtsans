@@ -338,6 +338,25 @@ def bin_i_with_correction(
             raw_name=raw_name,
         )
 
+        # EWM-13940: After elastic correction, replace errors with originals for binning consistency
+        # This ensures scalar and wedge modes use the same binning weights
+        iq2d = IQazimuthal(
+            intensity=iq2d.intensity,
+            error=iq2d_orig_errors,
+            qx=iq2d.qx,
+            qy=iq2d.qy,
+            wavelength=iq2d.wavelength,
+            delta_qx=iq2d.delta_qx,
+            delta_qy=iq2d.delta_qy,
+        )
+        iq1d = IQmod(
+            intensity=iq1d.intensity,
+            error=iq1d_orig_errors,
+            mod_q=iq1d.mod_q,
+            wavelength=iq1d.wavelength,
+            delta_mod_q=iq1d.delta_mod_q,
+        )
+
     # Apply inelastic correction if requested
     if correction_setup.do_inelastic_correction[frameskip_frame]:
         # Build output directory with slice and frame info
@@ -345,15 +364,9 @@ def bin_i_with_correction(
             output_dir, "info", "inelastic_incoh", output_filename, slice_name, f"frame_{frameskip_frame}"
         )
 
-        # EWM-13940: Calculate b(λ) from elastic-corrected intensities with original error weights
-        if correction_setup.do_elastic_correction and iq1d_elastic_ref_fr and iq2d_elastic_ref_fr:
-            from drtsans.tof.eqsans.inelastic_correction import (
-                calculate_incoherence_correction_factors,
-                apply_incoherence_correction_to_unbinned_data,
-            )
-
-            # Use elastic-corrected intensities with original errors for binning consistency
-            iq2d_for_binning = IQazimuthal(
+        # EWM-13940: If no elastic correction was applied, replace errors with originals now
+        if not correction_setup.do_elastic_correction:
+            iq2d = IQazimuthal(
                 intensity=iq2d.intensity,
                 error=iq2d_orig_errors,
                 qx=iq2d.qx,
@@ -362,7 +375,7 @@ def bin_i_with_correction(
                 delta_qx=iq2d.delta_qx,
                 delta_qy=iq2d.delta_qy,
             )
-            iq1d_for_binning = IQmod(
+            iq1d = IQmod(
                 intensity=iq1d.intensity,
                 error=iq1d_orig_errors,
                 mod_q=iq1d.mod_q,
@@ -370,94 +383,37 @@ def bin_i_with_correction(
                 delta_mod_q=iq1d.delta_mod_q,
             )
 
-            # Determine Q ranges
-            qmin = user_qmin if user_qmin is not None else iq1d.mod_q.min()
-            qmax = user_qmax if user_qmax is not None else iq1d.mod_q.max()
-            qxrange = (np.min(iq2d.qx), np.max(iq2d.qx))
-            qyrange = (np.min(iq2d.qy), np.max(iq2d.qy))
-
-            # Bin elastic-corrected intensities with original error weights
-            _, iq1d_temp = bin_all(
-                iq2d_for_binning,
-                iq1d_for_binning,
-                num_x_bins,
-                num_y_bins,
-                n1dbins=num_q1d_bins,
-                n1dbins_per_decade=num_q1d_bins_per_decade,
-                decade_on_center=decade_on_center,
-                bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
-                log_scale=log_binning,
-                qmin=qmin,
-                qmax=qmax,
-                qxrange=qxrange,
-                qyrange=qyrange,
-                annular_angle_bin=annular_bin,
-                wedges=wedges,
-                symmetric_wedges=symmetric_wedges,
-                error_weighted=weighted_errors,
-                n_wavelength_bin=None,
-            )
-
-            # Calculate b(λ) from temporarily binned data
-            logger.notice("Calculating inelastic/incoherent correction factors from scalar-binned I(Q, lambda)")
-            correction_factors = calculate_incoherence_correction_factors(
-                iq1d_temp[0],
-                correction_setup.select_min_incoherence,
-                correction_setup.select_intensityweighted[frameskip_frame],
-                correction_setup.qmin[frameskip_frame],
-                correction_setup.qmax[frameskip_frame],
-                correction_setup.factor[frameskip_frame],
-            )
-
-            # Save b(λ)
-            from drtsans.tof.eqsans.correction_api import save_b_factor
-            from drtsans.tof.eqsans.inelastic_correction import CorrectedI1D
-            from collections import namedtuple
-
-            os.makedirs(inelastic_dir, exist_ok=True)
-            WavelengthContainer = namedtuple("WavelengthContainer", ["wavelength"])
-            wl_container = WavelengthContainer(wavelength=correction_factors.wavelength)
-            save_b_factor(
-                CorrectedI1D(wl_container, correction_factors.b_factor, correction_factors.b_error),
-                os.path.join(inelastic_dir, f"{output_filename}_inelastic_b1d_{raw_name}.dat"),
-            )
-
-            # Apply b(λ) to elastic-corrected unbinned data
-            logger.notice("Applying inelastic/incoherent correction to unbinned data")
-            iq2d, iq1d = apply_incoherence_correction_to_unbinned_data(iq2d, iq1d, correction_factors)
-        else:
-            # No elastic correction, use the standard inelastic correction wrapper
-            iq2d, iq1d = inelastic_correction(
-                iq2d_unbinned=iq2d,
-                iq1d_unbinned=iq1d,
-                num_x_bins=num_x_bins,
-                num_y_bins=num_y_bins,
-                num_q1d_bins=num_q1d_bins,
-                num_q1d_bins_per_decade=num_q1d_bins_per_decade,
-                decade_on_center=decade_on_center,
-                bin1d_type=bin1d_type,
-                log_binning=log_binning,
-                user_qmin=user_qmin,
-                user_qmax=user_qmax,
-                annular_bin=annular_bin,
-                wedges=wedges,
-                symmetric_wedges=symmetric_wedges,
-                weighted_errors=weighted_errors,
-                select_min_incoherence=correction_setup.select_min_incoherence,
-                intensity_weighted=correction_setup.select_intensityweighted[frameskip_frame],
-                incoh_qmin=correction_setup.qmin[frameskip_frame],
-                incoh_qmax=correction_setup.qmax[frameskip_frame],
-                incoh_factor=correction_setup.factor[frameskip_frame],
-                output_dir=inelastic_dir,
-                output_filename=output_filename,
-                raw_name=raw_name,
-            )
+        iq2d, iq1d = inelastic_correction(
+            iq2d_unbinned=iq2d,
+            iq1d_unbinned=iq1d,
+            num_x_bins=num_x_bins,
+            num_y_bins=num_y_bins,
+            num_q1d_bins=num_q1d_bins,
+            num_q1d_bins_per_decade=num_q1d_bins_per_decade,
+            decade_on_center=decade_on_center,
+            bin1d_type=bin1d_type,
+            log_binning=log_binning,
+            user_qmin=user_qmin,
+            user_qmax=user_qmax,
+            annular_bin=annular_bin,
+            wedges=wedges,
+            symmetric_wedges=symmetric_wedges,
+            weighted_errors=weighted_errors,
+            select_min_incoherence=correction_setup.select_min_incoherence,
+            intensity_weighted=correction_setup.select_intensityweighted[frameskip_frame],
+            incoh_qmin=correction_setup.qmin[frameskip_frame],
+            incoh_qmax=correction_setup.qmax[frameskip_frame],
+            incoh_factor=correction_setup.factor[frameskip_frame],
+            output_dir=inelastic_dir,
+            output_filename=output_filename,
+            raw_name=raw_name,
+        )
 
     # Remove non-finite values before final binning
     finite_iq2d = iq2d.be_finite()
     finite_iq1d = iq1d.be_finite()
 
-    # EWM-13940: Use corrected intensities with original error weights for final binning
+    # EWM-13940: Restore original errors after corrections (inelastic modifies them again)
     if (
         correction_setup.do_elastic_correction or correction_setup.do_inelastic_correction[frameskip_frame]
     ) and weighted_errors:
@@ -466,7 +422,7 @@ def bin_i_with_correction(
         iq2d_orig_errors_finite = iq2d_orig_errors[finite_mask_2d]
         iq1d_orig_errors_finite = iq1d_orig_errors[finite_mask_1d]
 
-        finite_iq2d_for_binning = IQazimuthal(
+        finite_iq2d = IQazimuthal(
             intensity=finite_iq2d.intensity,
             error=iq2d_orig_errors_finite,
             qx=finite_iq2d.qx,
@@ -475,22 +431,19 @@ def bin_i_with_correction(
             delta_qx=finite_iq2d.delta_qx,
             delta_qy=finite_iq2d.delta_qy,
         )
-        finite_iq1d_for_binning = IQmod(
+        finite_iq1d = IQmod(
             intensity=finite_iq1d.intensity,
             error=iq1d_orig_errors_finite,
             mod_q=finite_iq1d.mod_q,
             wavelength=finite_iq1d.wavelength,
             delta_mod_q=finite_iq1d.delta_mod_q,
         )
-    else:
-        finite_iq2d_for_binning = finite_iq2d
-        finite_iq1d_for_binning = finite_iq1d
 
     # ONE FINAL BINNING: Bin corrected (or uncorrected) unbinned data
     # This is the ONLY binning that produces output - the "One Rebin Only" pattern
     iq2d_main_out, iq1d_main_out = bin_all(
-        finite_iq2d_for_binning,
-        finite_iq1d_for_binning,
+        finite_iq2d,
+        finite_iq1d,
         num_x_bins,
         num_y_bins,
         n1dbins=num_q1d_bins,

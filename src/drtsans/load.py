@@ -524,13 +524,16 @@ def load_and_split(
 
     # Remove empty workspaces from event filtering
     split_ws_list = [mtd[output_workspace].getItem(n) for n in range(mtd[output_workspace].getNumberOfEntries())]
+    if monitors:
+        group_workspace = mtd[output_workspace + "_monitors"]
+        split_monitors = [str(group_workspace.getItem(n)) for n in range(group_workspace.getNumberOfEntries())]
     for i, split_ws in enumerate(split_ws_list):
         num_events = split_ws.getNumberEvents()
         if num_events == 0:
             logger.notice(f"Remove empty sliced workspace {str(split_ws)}")
             mtd[output_workspace].remove(str(split_ws))
             if monitors:
-                mtd[output_workspace + "_monitors"].remove(mtd[output_workspace + "_monitors"].getItem(i).name())
+                mtd[output_workspace + "_monitors"].remove(split_monitors[i])
 
     # Inject metadata using the strategy
     filter_strategy.inject_metadata(output_workspace)

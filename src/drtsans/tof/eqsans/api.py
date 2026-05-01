@@ -719,6 +719,17 @@ def reduce_single_configuration(
     nbins_main_per_decade = reduction_config["LogQBinsPerDecade"]
     outputFilename = reduction_input["outputFileName"]
     weighted_errors = reduction_config["useErrorWeighting"]
+
+    # EWM-13940: Validate that weighted_errors is True when corrections are enabled
+    if (
+        correction_setup.do_elastic_correction or any(correction_setup.do_inelastic_correction)
+    ) and not weighted_errors:
+        raise ValueError(
+            "Error-weighted binning (useErrorWeighting=true) is required when elastic or inelastic "
+            "corrections are enabled. This ensures scalar and wedge I(Q) results remain consistent. "
+            "Please set 'useErrorWeighting': true in your reduction configuration."
+        )
+
     qmin = reduction_config["Qmin"]
     qmax = reduction_config["Qmax"]
     annular_bin = reduction_config["AnnularAngleBin"]

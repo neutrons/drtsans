@@ -299,10 +299,6 @@ def bin_i_with_correction(
     iq2d = iq2d_in_frames[frameskip_frame]
     iq1d = iq1d_in_frames[frameskip_frame]
 
-    # EWM-13940: Force error-weighted binning when corrections are enabled
-    if correction_setup.do_elastic_correction or correction_setup.do_inelastic_correction[frameskip_frame]:
-        weighted_errors = True
-
     # EWM-13940: Preserve original errors for binning consistency
     iq2d_orig_errors = iq2d.error.copy()
     iq1d_orig_errors = iq1d.error.copy()

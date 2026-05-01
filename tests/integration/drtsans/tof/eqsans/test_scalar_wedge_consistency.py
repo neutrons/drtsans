@@ -59,6 +59,8 @@ def test_scalar_vs_symmetric_wedge_179_with_inelastic_correction(datarepo_dir, t
                 "runNumber": None,
                 "transmission": {"runNumber": None, "value": "0.9"},
             },
+            # EWM-13940: Error-weighted binning required for corrections
+            "useErrorWeighting": True,
             # Files
             "darkFileName": "/bin/true",
             "useDefaultMask": True,
@@ -202,6 +204,83 @@ def test_scalar_vs_symmetric_wedge_179_with_inelastic_correction(datarepo_dir, t
 
 
 @pytest.mark.datarepo
+def test_weighted_errors_required_with_corrections(datarepo_dir, temp_directory):
+    """Test that useErrorWeighting=True is required when corrections are enabled (EWM-13940).
+
+    This validates that the explicit error is raised when corrections are enabled
+    but useErrorWeighting is False, preventing silent incorrect results."""
+
+    # Configuration with corrections but WITHOUT error weighting
+    config_invalid = {
+        "instrumentName": "EQSANS",
+        "iptsNumber": "27799",
+        "sample": {"runNumber": "125707", "thickness": 1, "transmission": {"runNumber": "", "value": "1"}},
+        "background": {"runNumber": "", "transmission": {"runNumber": "", "value": ""}},
+        "emptyTransmission": {"runNumber": "125701", "value": ""},
+        "beamCenter": {"runNumber": "125701"},
+        "configuration": {
+            "cutTOFmax": 2000.0,
+            "cutTOFmin": 500.0,
+            "wavelengthStep": 0.1,
+            "wavelengthStepType": "constant Delta lambda",
+            "sampleApertureSize": 10,
+            "numQBins": 100,
+            "numQxQyBins": 80,
+            "QbinType": "linear",
+            "Qmin": None,
+            "Qmax": None,
+            "fitInelasticIncoh": [True],
+            "selectMinIncoh": True,
+            "elasticReference": {
+                "runNumber": "124680",
+                "thickness": "1.0",
+                "transmission": {"runNumber": None, "value": "1.0"},
+            },
+            "elasticReferenceBkgd": {
+                "runNumber": None,
+                "transmission": {"runNumber": None, "value": "0.9"},
+            },
+            "useErrorWeighting": False,  # ← This should cause validation error
+            "darkFileName": "/bin/true",
+            "useDefaultMask": True,
+            "normalization": "Total charge",
+            "detectorOffset": "80",
+            "sampleOffset": "314.5",
+            "1DQbinType": "scalar",
+        },
+    }
+
+    # Set up data directories
+    datadir = os.path.join(datarepo_dir.eqsans, "test_corrections")
+    config_invalid["dataDirectories"] = datadir
+    config_invalid["configuration"]["maskFileName"] = os.path.join(datadir, "beamstop_mask_4m_ext.nxs")
+    config_invalid["configuration"]["sensitivityFileName"] = os.path.join(
+        datadir, "Sensitivity_patched_thinPMMA_4m_124972.nxs"
+    )
+    config_invalid["configuration"]["instrumentConfigurationDir"] = os.path.join(
+        datarepo_dir.eqsans, "instrument_configuration"
+    )
+    config_invalid["configuration"]["beamFluxFileName"] = os.path.join(
+        datarepo_dir.eqsans, "test_normalization", "beam_profile_flux.txt"
+    )
+
+    test_dir = temp_directory(prefix="test_ewm13940_validation")
+    config_invalid["configuration"]["outputDir"] = test_dir
+    config_invalid["outputFileName"] = "EWM13940_test_validation"
+
+    # Expect ValueError to be raised during reduction parameter validation
+    with amend_config(data_dir=datarepo_dir.eqsans):
+        input_config = reduction_parameters(config_invalid)
+        input_config["configuration"]["darkFileName"] = None
+        loaded = load_all_files(input_config)
+
+        with pytest.raises(ValueError, match="Error-weighted binning.*useErrorWeighting=true.*required"):
+            reduce_single_configuration(loaded_ws=loaded, reduction_input=input_config)
+
+    print("\n✓ SUCCESS: Validation properly rejects useErrorWeighting=False with corrections enabled")
+
+
+@pytest.mark.datarepo
 def test_multiple_wedges_with_inelastic_correction(datarepo_dir, temp_directory):
     """Test that multiple wedges can be binned consistently with inelastic correction.
 
@@ -240,6 +319,8 @@ def test_multiple_wedges_with_inelastic_correction(datarepo_dir, temp_directory)
                 "runNumber": None,
                 "transmission": {"runNumber": None, "value": "0.9"},
             },
+            # EWM-13940: Error-weighted binning required for corrections
+            "useErrorWeighting": True,
             "darkFileName": "/bin/true",
             "useDefaultMask": True,
             "normalization": "Total charge",

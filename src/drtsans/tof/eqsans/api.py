@@ -275,6 +275,43 @@ def load_all_files(reduction_input, prefix="", load_params=None):
 
     reduction_input["logslice_data"] = logslice_data_dict
 
+    # Detect monochromatic mode from the workspace sample logs
+    if registered_workspace(f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"):
+        sample_ws = mtd[f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"]
+        sample_ws_list = [w for w in sample_ws]
+    else:
+        sample_ws_list = [mtd[f"{prefix}_{instrument_name}_{sample}_raw_histo"]]
+
+    samplelogs = SampleLogs(sample_ws_list[0])
+    monochromatic_mode = "monochromatic" in samplelogs and samplelogs["monochromatic"].value == 1
+    if monochromatic_mode:
+        # Update load_params to be used in subsequent loading to reflect monochromatic mode
+        load_params["bin_width"] = None
+        # Set elastic reference runs to None to skip loading them
+        elastic_ref_run = None
+        elastic_ref_bkgd_run = None
+        elastic_ref_trans_run = None
+        elastic_ref_bkgd_trans_run = None
+        # Log warning about incompatible options
+        monochromatic_incompatible_options = [
+            "wavelengthStep",
+            "wavelengthStepType",
+            "elasticReference",
+            "elasticReferenceBkgd",
+            "fitInelasticIncoh",
+        ]
+        for option in monochromatic_incompatible_options:
+            if reduction_config[option] is not None:
+                logger.warning(
+                    f"Option {option} is set in the configuration but will be ignored in monochromatic mode."
+                )
+        # Update `reduction_input` to ignore incompatible options in downstream processing
+        reduction_input["configuration"]["wavelengthStep"] = None
+        reduction_input["configuration"]["wavelengthStepType"] = None
+        reduction_input["configuration"]["fitInelasticIncoh"] = False
+        reduction_input["configuration"]["elasticReference"]["runNumber"] = None
+        reduction_input["configuration"]["elasticReferenceBkgd"]["runNumber"] = None
+
     # Load all other files without further processing
     # background, empty, sample transmission, background transmission,
     # elastic reference and its transmission, background, background transmission

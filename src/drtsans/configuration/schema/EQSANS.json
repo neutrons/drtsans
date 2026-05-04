@@ -405,10 +405,10 @@
   "allOf": [
     {
       "if": {
-        "properties": {
-          "configuration": {
-            "anyOf": [
-              {
+        "anyOf": [
+          {
+            "properties": {
+              "configuration": {
                 "properties": {
                   "elasticReference": {
                     "properties": {
@@ -419,18 +419,27 @@
                     },
                     "required": ["runNumber"]
                   }
-                }
-              },
-              {
+                },
+                "required": ["elasticReference"]
+              }
+            }
+          },
+          {
+            "properties": {
+              "configuration": {
                 "properties": {
                   "fitInelasticIncoh": {
-                    "contains": { "const": true }
+                    "oneOf": [
+                      { "const": true },
+                      { "type": "array", "contains": { "const": true } }
+                    ]
                   }
-                }
+                },
+                "required": ["fitInelasticIncoh"]
               }
-            ]
+            }
           }
-        }
+        ]
       },
       "then": {
         "properties": {

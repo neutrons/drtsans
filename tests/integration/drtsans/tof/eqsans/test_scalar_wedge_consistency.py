@@ -268,14 +268,11 @@ def test_weighted_errors_required_with_corrections(datarepo_dir, temp_directory)
     config_invalid["configuration"]["outputDir"] = test_dir
     config_invalid["outputFileName"] = "EWM13940_test_validation"
 
-    # Expect ValueError to be raised during reduction parameter validation
+    # Expect validation error during JSON schema validation (before data loading)
+    # The schema requires useErrorWeighting=true when corrections are enabled
     with amend_config(data_dir=datarepo_dir.eqsans):
-        input_config = reduction_parameters(config_invalid)
-        input_config["configuration"]["darkFileName"] = None
-        loaded = load_all_files(input_config)
-
-        with pytest.raises(ValueError, match="Error-weighted binning.*useErrorWeighting=true.*required"):
-            reduce_single_configuration(loaded_ws=loaded, reduction_input=input_config)
+        with pytest.raises(Exception, match="True was expected"):
+            reduction_parameters(config_invalid)
 
     print("\n✓ SUCCESS: Validation properly rejects useErrorWeighting=False with corrections enabled")
 

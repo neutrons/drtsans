@@ -82,6 +82,11 @@ def test_parse_json(
         },
     }
 
+    # EWM-13940: Add useErrorWeighting when corrections are enabled
+    # Required when elastic_reference_run is set OR fitInelasticIncoh contains True
+    if elastic_reference_run is not None or any(fitInelasticIncoh):
+        reduction_input["configuration"]["useErrorWeighting"] = True
+
     # Validate
     with amend_config(data_dir=datarepo_dir.eqsans):
         input_config = reduction_parameters(reduction_input)
@@ -146,6 +151,8 @@ def test_parse_invalid_json(datarepo_dir):
             "selectMinIncoh": True,
             "maskFileName": "/bin/true",
             "darkFileName": "/bin/true",
+            # EWM-13940: Error-weighted binning required when corrections are enabled
+            "useErrorWeighting": True,
         },
     }
 

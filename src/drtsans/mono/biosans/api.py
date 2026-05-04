@@ -1,6 +1,24 @@
 """BIOSANS API"""
 
-# local imports
+from collections import namedtuple
+import copy
+from datetime import datetime
+import os
+from typing import Union, List
+
+from mantid.dataobjects import Workspace2D
+from mantid.kernel import Logger
+from mantid.simpleapi import (
+    mtd,
+    MaskDetectors,
+    LoadEventNexus,
+    LoadNexusProcessed,
+    DeleteWorkspace,
+    RemoveWorkspaceHistory,
+)
+from matplotlib.colors import LogNorm
+import matplotlib.pyplot as plt
+
 import drtsans
 from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
 from drtsans.dataobjects import save_i1d, IQazimuthal
@@ -34,26 +52,6 @@ from drtsans.reductionlog import savereductionlog
 from drtsans.thickness_normalization import normalize_by_thickness
 from drtsans.transmission import TransmissionErrorToleranceError, TransmissionNanError
 
-# third party imports
-from mantid.dataobjects import Workspace2D
-from mantid.kernel import Logger
-from mantid.simpleapi import (
-    mtd,
-    MaskDetectors,
-    LoadEventNexus,
-    LoadNexusProcessed,
-    DeleteWorkspace,
-    RemoveWorkspaceHistory,
-)
-from matplotlib.colors import LogNorm
-import matplotlib.pyplot as plt
-
-# standard imports
-from collections import namedtuple
-import copy
-from datetime import datetime
-import os
-from typing import Union, List
 
 # Functions exposed to the general user (public) API
 __all__ = [
@@ -1416,10 +1414,44 @@ def reduce_single_configuration(
         bkgd_trans_ws = None
 
     # sample transmission
-    def _prepare_sample_transmission_ws(_sample_transmission):
-        """
-        inline function that prepare the sample transmission workspace for
-        normalization usage
+    def _prepare_sample_transmission_ws(_sample_transmission: Workspace2D):
+        """Process a raw transmission workspace into a calibrated transmission value.
+
+        Applies flux normalization, beam center correction, and sensitivity correction
+        to ``_sample_transmission`` using the main detector only, then computes the
+        transmission relative to the empty beam workspace.
+
+        Called in two contexts:
+        - Once before slice iteration, using the dedicated sample transmission run
+          (``loaded_ws.sample_transmission``) to produce a single transmission workspace
+          shared across all slices.
+        - Once per slice when ``useTimeSliceTransmission`` is enabled, using the
+          sample data slice itself (``raw_sample_ws``) to compute a slice-specific
+          transmission. Slices that fail due to poor statistics are skipped.
+
+        Parameters
+        ----------
+        _sample_transmission
+            Raw histogram workspace representing the transmission measurement,
+            either a dedicated transmission run or a time-sliced sample workspace.
+
+        Returns
+        -------
+        ~mantid.dataobjects.Workspace2D
+            The input workspace after centering its detector and applying the corrections and normalizations.
+        ~mantid.dataobjects.Workspace2D
+            The computed scalar transmission workspace containing only one spectrum with one value,
+            the transmission and its associated error.
+
+        Raises
+        ------
+        ZeroMonitorCountsError
+            If monitor normalization is selected but no monitor counts are available.
+        TransmissionErrorToleranceError
+            If the transmission uncertainty exceeds ``sample_trans_error_tol``
+            (only checked when ``useTimeSliceTransmission`` is enabled).
+        TransmissionNanError
+            If the calculated transmission contains NaN values.
         """
         _ws_processed = prepare_data_workspaces(
             _sample_transmission,
@@ -1434,7 +1466,6 @@ def reduce_single_configuration(
             sensitivity_workspace=loaded_ws.sensitivity_main,
             output_workspace=f"{prefix}_sample_trans",
         )
-
         return _ws_processed, calculate_transmission(
             _ws_processed,
             empty_trans_ws,

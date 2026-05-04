@@ -35,7 +35,7 @@ jobs:
       - name: Install chromium
         run: |
           echo "chromium enables testing HTML reports"
-          sudo apt-get install --yes chromium-browser
+          pixi run playwright install chromium --with-deps
 
       - name: Run unit tests
         run: |

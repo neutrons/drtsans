@@ -7,6 +7,8 @@ grouped by changes in experimental parameters recorded in the sample logs.
 
 import re
 
+from mantid.simpleapi import GenerateEventsFilter
+
 from drtsans.filterevents.basefilter import FilterStrategy
 from drtsans.type_hints import MantidWorkspace
 
@@ -62,18 +64,21 @@ class LogValueFilter(FilterStrategy):
         self.log_name = log_name
         self.log_value_interval = log_value_interval
 
-    def generate_filter(self) -> dict:
+    def generate_filter(self) -> None:
         """
-        Generate filter parameters for log-based splitting.
+        Generate and apply the log-based event filter.
 
-        Returns
-        -------
-        dict
-            Parameters for GenerateEventsFilter including:
-            - 'LogName': Name of the sample log
-            - 'LogValueInterval': The log value interval
+        Calls Mantid's GenerateEventsFilter directly, writing the splitter
+        and information workspaces used by ``apply_filter``.
         """
-        return {"LogName": self.log_name, "LogValueInterval": self.log_value_interval}
+
+        GenerateEventsFilter(
+            InputWorkspace=self.workspace,
+            OutputWorkspace=self.splitter_workspace,
+            InformationWorkspace=self.info_workspace,
+            LogName=self.log_name,
+            LogValueInterval=self.log_value_interval,
+        )
 
     def inject_metadata(self, workspace: MantidWorkspace) -> None:
         """

@@ -7,7 +7,7 @@ including both regular and periodic time slicing.
 
 import re
 from typing import Union, List
-from mantid.simpleapi import mtd
+from mantid.simpleapi import GenerateEventsFilter, mtd
 
 from drtsans.filterevents.basefilter import FilterStrategy
 from drtsans.filterevents.logfilter import LogValueFilter
@@ -63,19 +63,21 @@ class TimeIntervalFilter(FilterStrategy):
         self.time_interval = time_interval
         self.time_offset = time_offset
 
-    def generate_filter(self) -> dict:
+    def generate_filter(self) -> None:
         """
-        Generate filter parameters for time-based splitting.
+        Generate and apply the time-based event filter.
 
-        Returns
-        -------
-        dict
-            Parameters for GenerateEventsFilter including:
-            - 'StartTime': String representation of time offset
-            - 'TimeInterval': The time interval(s)
-            - 'UnitOfTime': Always 'Seconds' for time filtering
+        Calls Mantid's GenerateEventsFilter directly, writing the splitter
+        and information workspaces used by ``apply_filter``.
         """
-        return {"StartTime": str(self.time_offset), "TimeInterval": self.time_interval, "UnitOfTime": "Seconds"}
+        GenerateEventsFilter(
+            InputWorkspace=self.workspace,
+            OutputWorkspace=self.splitter_workspace,
+            InformationWorkspace=self.info_workspace,
+            StartTime=str(self.time_offset),
+            TimeInterval=self.time_interval,
+            UnitOfTime="Seconds",
+        )
 
     def inject_metadata(self, workspace: MantidWorkspace) -> None:
         """
@@ -203,21 +205,14 @@ class PeriodicTimeFilter(FilterStrategy):
         )
         sample_logs.insert(name=self.log_name, value=log)
 
-    def generate_filter(self) -> dict:
+    def generate_filter(self) -> None:
         """
-        Generate filter parameters for periodic time slicing.
+        Generate and apply the periodic time-based event filter.
 
-        Delegates to the internal LogValueFilter to use log-based filtering
-        with the synthetic periodic log.
-
-        Returns
-        -------
-        dict
-            Parameters for GenerateEventsFilter including:
-            - 'LogName': Name of the synthetic periodic log
-            - 'LogValueInterval': Always 1 (group by log value)
+        Delegates to the internal ``LogValueFilter`` which calls Mantid's
+        GenerateEventsFilter directly using the synthetic periodic log.
         """
-        return self._log_filter.generate_filter()
+        self._log_filter.generate_filter()
 
     def inject_metadata(self, workspace: MantidWorkspace) -> None:
         """

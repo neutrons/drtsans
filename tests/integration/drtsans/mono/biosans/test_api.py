@@ -356,6 +356,18 @@ def remove_ws(workspace):
 
 @pytest.mark.datarepo
 def test_reduce_single_configuration_slice_transmission_true(datarepo_dir, temp_directory):
+    r"""
+    Verify that `reduce_single_configuration` correctly handles time-sliced data when per-slice
+    transmission calculation is enabled (`useTimeSlice=True`, `useTimeSliceTransmission=True`).
+
+    The run (~600 s) is divided into 60-second intervals, producing 11 slices. The 11th slice is
+    expected to be skipped because its transmission error exceeds the configured tolerance of 0.05.
+    As a result, only 10 slices appear in the output.
+
+    After reduction, the transmission value computed from the last (skipped) slice's sample
+    transmission workspace is verified against a known reference value of ~0.7498, using a
+    relaxed error tolerance of 3.0 to accommodate the high uncertainty of that slice.
+    """
     reduction_input = REDUCTION_INPUT.copy()
     reduction_input["configuration"]["useTimeSlice"] = True
     reduction_input["configuration"]["useTimeSliceTransmission"] = True

@@ -38,5 +38,5 @@ repos:
       - id: pixi-lock-check
         name: pixi-lock-check
         entry: bash -c "PATH=$HOME/.pixi/bin:$PATH pixi lock --check"
-        stage: pre-push
+        stages: [pre-push]
         language: system

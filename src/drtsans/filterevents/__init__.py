@@ -11,6 +11,7 @@ The main entry points are:
 - :func:`resolve_slicing`: Determine which filtering strategy to use from reduction config
 """
 
-from drtsans.filterevents.basefilter import FilterStrategy, create_filter_strategy, resolve_slicing
+from drtsans.filterevents.basefilter import FilterStrategy
+from drtsans.filterevents.factory import create_filter_strategy, resolve_slicing
 
 __all__ = ["FilterStrategy", "create_filter_strategy", "resolve_slicing"]

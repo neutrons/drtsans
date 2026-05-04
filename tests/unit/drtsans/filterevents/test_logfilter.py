@@ -19,9 +19,13 @@ def _make_samplelogs(units):
     return sl
 
 
-def test_log_value_filter_generate_filter():
-    params = LogValueFilter(MagicMock(), log_name="SampleTemp", log_value_interval=5.0).generate_filter()
-    assert params == {"LogName": "SampleTemp", "LogValueInterval": 5.0}
+@patch("drtsans.filterevents.logfilter.GenerateEventsFilter")
+def test_log_value_filter_generate_filter(mock_gef):
+    LogValueFilter(MagicMock(), log_name="SampleTemp", log_value_interval=5.0).generate_filter()
+    mock_gef.assert_called_once()
+    _, kwargs = mock_gef.call_args
+    assert kwargs["LogName"] == "SampleTemp"
+    assert kwargs["LogValueInterval"] == 5.0
 
 
 @patch("drtsans.filterevents.basefilter.SampleLogs")

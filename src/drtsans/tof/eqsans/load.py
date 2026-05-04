@@ -498,7 +498,7 @@ def load_and_split(
     # FIXME the issues with the monitor on EQSANS has not been fixed. Enable normalization by monitor (issue #538)
     kwargs["monitors"] = False
 
-    ws_group = generic_load_and_split(
+    ws_group, _ = generic_load_and_split(
         run=run,
         data_dir=data_dir,
         output_workspace=output_workspace,

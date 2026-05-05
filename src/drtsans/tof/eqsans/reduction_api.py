@@ -3,7 +3,6 @@ import os
 from collections import namedtuple
 from typing import Dict, List, Tuple
 
-import numpy as np
 from mantid.simpleapi import (
     SaveAscii,
     mtd,
@@ -360,25 +359,6 @@ def bin_i_with_correction(
             output_dir, "info", "inelastic_incoh", output_filename, slice_name, f"frame_{frameskip_frame}"
         )
 
-        # EWM-13940: If no elastic correction was applied, replace errors with originals now
-        if not correction_setup.do_elastic_correction:
-            iq2d = IQazimuthal(
-                intensity=iq2d.intensity,
-                error=iq2d_orig_errors,
-                qx=iq2d.qx,
-                qy=iq2d.qy,
-                wavelength=iq2d.wavelength,
-                delta_qx=iq2d.delta_qx,
-                delta_qy=iq2d.delta_qy,
-            )
-            iq1d = IQmod(
-                intensity=iq1d.intensity,
-                error=iq1d_orig_errors,
-                mod_q=iq1d.mod_q,
-                wavelength=iq1d.wavelength,
-                delta_mod_q=iq1d.delta_mod_q,
-            )
-
         iq2d, iq1d = inelastic_correction(
             iq2d_unbinned=iq2d,
             iq1d_unbinned=iq1d,
@@ -405,35 +385,28 @@ def bin_i_with_correction(
             raw_name=raw_name,
         )
 
+        # EWM-13940: After inelastic correction, replace errors with originals for binning consistency
+        # This ensures scalar and wedge modes use the same binning weights
+        iq2d = IQazimuthal(
+            intensity=iq2d.intensity,
+            error=iq2d_orig_errors,
+            qx=iq2d.qx,
+            qy=iq2d.qy,
+            wavelength=iq2d.wavelength,
+            delta_qx=iq2d.delta_qx,
+            delta_qy=iq2d.delta_qy,
+        )
+        iq1d = IQmod(
+            intensity=iq1d.intensity,
+            error=iq1d_orig_errors,
+            mod_q=iq1d.mod_q,
+            wavelength=iq1d.wavelength,
+            delta_mod_q=iq1d.delta_mod_q,
+        )
+
     # Remove non-finite values before final binning
     finite_iq2d = iq2d.be_finite()
     finite_iq1d = iq1d.be_finite()
-
-    # EWM-13940: Restore original errors after corrections (inelastic modifies them again)
-    if (
-        correction_setup.do_elastic_correction or correction_setup.do_inelastic_correction[frameskip_frame]
-    ) and weighted_errors:
-        finite_mask_2d = np.isfinite(iq2d.intensity) & np.isfinite(iq2d.error)
-        finite_mask_1d = np.isfinite(iq1d.intensity) & np.isfinite(iq1d.error)
-        iq2d_orig_errors_finite = iq2d_orig_errors[finite_mask_2d]
-        iq1d_orig_errors_finite = iq1d_orig_errors[finite_mask_1d]
-
-        finite_iq2d = IQazimuthal(
-            intensity=finite_iq2d.intensity,
-            error=iq2d_orig_errors_finite,
-            qx=finite_iq2d.qx,
-            qy=finite_iq2d.qy,
-            wavelength=finite_iq2d.wavelength,
-            delta_qx=finite_iq2d.delta_qx,
-            delta_qy=finite_iq2d.delta_qy,
-        )
-        finite_iq1d = IQmod(
-            intensity=finite_iq1d.intensity,
-            error=iq1d_orig_errors_finite,
-            mod_q=finite_iq1d.mod_q,
-            wavelength=finite_iq1d.wavelength,
-            delta_mod_q=finite_iq1d.delta_mod_q,
-        )
 
     # ONE FINAL BINNING: Bin corrected (or uncorrected) unbinned data
     # This is the ONLY binning that produces output - the "One Rebin Only" pattern

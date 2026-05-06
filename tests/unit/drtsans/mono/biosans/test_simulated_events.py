@@ -8,7 +8,9 @@ from mantid.dataobjects import EventWorkspace
 from mantid.kernel import DateAndTime
 from mantid.simpleapi import (
     AddSampleLog,
+    CreateSingleValuedWorkspace,
     DeleteWorkspace,
+    GroupWorkspaces,
     LoadEmptyInstrument,
     LoadNexusProcessed,
     mtd,
@@ -498,6 +500,14 @@ def test_split_six_rings(six_rings_pattern: dict, temp_directory: Callable[[Any]
         monitor_count_per_slice = metadata["monitor"] / splitted_workspaces_count
         for n in range(splitted_workspaces_count):
             SampleLogs(mtd[sample_group].getItem(n)).insert("monitor", monitor_count_per_slice)
+        #  ensures return values exist and future call to DeleteWorkspace doesn't fail
+        CreateSingleValuedWorkspace(OutputWorkspace=monitor)
+        monitor_ws_names = []
+        for n in range(splitted_workspaces_count):
+            ws_name = f"{monitor_group}_{n + 1}"
+            CreateSingleValuedWorkspace(OutputWorkspace=ws_name)
+            monitor_ws_names.append(ws_name)
+        GroupWorkspaces(InputWorkspaces=monitor_ws_names, OutputWorkspace=monitor_group)
 
     # load all necessary files
     with mock_patch("drtsans.load._monitor_split_and_log", side_effect=_mock_monitor_split_and_log):

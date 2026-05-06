@@ -252,9 +252,12 @@ def load_all_files(
     if timeslice or logslice or polarized:
         # Load data and split
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo_slice_group"
-        if not registered_workspace(ws_name):
+        if registered_workspace(ws_name):
+            logger.notice(f"Workspace {ws_name} already exists.")
+        else:
             filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
             logger.notice(f"Loading filename {filename} to slice")
+
             timesliceinterval = timesliceperiod = logslicename = logsliceinterval = None
             if timeslice:
                 timesliceinterval = reduction_config["timeSliceInterval"]
@@ -263,8 +266,9 @@ def load_all_files(
                 logslicename = reduction_config["logSliceName"]
                 logsliceinterval = reduction_config["logSliceInterval"]
             elif polarized:
-                pass  # polarization metadata stored in reduction_config['polarization']
+                pass  # polarization metadata stored in reduction_config['polarization'], so nothing to do here
 
+            # split according to time, log, or spin
             load_and_split(
                 filename,  # file path to the sample run
                 sample_to_si_name=SAMPLE_SI_META_NAME,
@@ -307,8 +311,6 @@ def load_all_files(
                         "units": samplelogs[logslicename].units,
                         "name": logslicename,
                     }
-        else:
-            logger.notice(f"Workspace {ws_name} already exists.")
     else:
         # Load single data
         ws_name = f"{prefix}_{instrument_name}_{sample}_raw_histo"

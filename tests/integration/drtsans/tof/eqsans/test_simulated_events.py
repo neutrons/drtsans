@@ -833,7 +833,7 @@ def test_reduce_three_rings(three_rings_pattern: dict, temp_directory: Callable[
 
 
 def _mock_eqsans_load_and_split(*args, **kwargs):
-    workspace_group = generic_load_and_split(*args, **kwargs)
+    workspace_group, _ = generic_load_and_split(*args, **kwargs)
     for workspace in workspace_group:
         SampleLogs(workspace).insert("is_frame_skipping", 0)
     return workspace_group

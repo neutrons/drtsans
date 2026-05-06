@@ -3,18 +3,19 @@ import h5py
 from typing import List, Union
 
 # third party modules
-import mantid
-from mantid.simpleapi import mtd
+from mantid.dataobjects import Workspace2D
+from mantid.api import AnalysisDataService
+from mantid.kernel import Logger, amend_config
 from mantid.simpleapi import (
-    DeleteWorkspace,
+    AddSampleLogMultiple,
     FilterEvents,
     LoadEventNexus,
     LoadEventAsWorkspace2D,
     MergeRuns,
+    mtd,
     ScaleInstrumentComponent,
 )
-from mantid.simpleapi import AddSampleLogMultiple
-from mantid.kernel import Logger, amend_config
+
 from drtsans.geometry import (
     translate_detector_by_z,
     translate_sample_by_z,
@@ -33,7 +34,7 @@ from drtsans.path import abspath, registered_workspace, exists as path_exists
 from drtsans.pixel_calibration import apply_calibrations
 from drtsans.polarization import polarized_sample
 from drtsans.samplelogs import SampleLogs
-from drtsans.filterevents.basefilter import create_filter_strategy
+from drtsans.filterevents.factory import create_filter_strategy
 
 
 __all__ = ["load_events", "sum_data", "load_and_split", "move_instrument"]
@@ -317,17 +318,17 @@ def move_instrument(
 
 def _monitor_split_and_log(monitor: str, monitor_group: str, sample_group: str, is_mono: bool, filter_events: dict):
     r"""
-    Split the monitor workspace and insert the total count in each splitted workspace as log entry
-    'monitor' in the corresponding splited sample workspaces
+    Split the monitor workspace and insert the total count from each split workspace as log entry
+    'monitor' in the corresponding split sample workspace.
 
     Parameters
     ----------
     monitor
         name of the input events monitor workspace
     monitor_group
-        name of the output WorkspaceGroup containing the splited workspaces for the sample monitor
+        name of the output WorkspaceGroup containing the split workspaces for the sample monitor
     sample_group
-        name of the WorkspaceGroup containing the splited workspaces for the sample
+        name of the WorkspaceGroup containing the split workspaces for the sample
     is_mono
         monochromatic or time-of-flight instrument?
     filter_events
@@ -341,8 +342,16 @@ def _monitor_split_and_log(monitor: str, monitor_group: str, sample_group: str, 
     )
     if is_mono:
         splitted_workspaces_count = mtd[sample_group].getNumberOfEntries()
+        # sanity check
+        if mtd[monitor_group].getNumberOfEntries() != splitted_workspaces_count:
+            message = "Mismatch: the number of sample and monitor slices differ"
+            logger.error(message)
+            raise ValueError(message)
+        # insert sample-log entry "monitor"
         for n in range(splitted_workspaces_count):
-            SampleLogs(mtd[sample_group].getItem(n)).insert("monitor", mtd[monitor_group].getItem(n).getNumberEvents())
+            monitor_slice = mtd[monitor_group].getItem(n)
+            sample_slice = mtd[sample_group].getItem(n)
+            SampleLogs(sample_slice).insert("monitor", monitor_slice.getNumberEvents())
 
 
 def load_and_split(
@@ -428,31 +437,40 @@ def load_and_split(
 
     Returns
     -------
-    WorkspaceGroup
-        Reference to the workspace groups containing all the split workspaces
-
+    Tuple[WorkspaceGroup, Optional[WorkspaceGroup]]
+        A tuple containing:
+        - The workspace group containing all the split sample data workspaces
+        - The workspace group containing all the split monitor workspaces (or None if monitors were not loaded)
     """
+    # check whether we have some slicing to do
     polarized = polarized_sample(reduction_config) if reduction_config is not None else False
-    if not (time_interval or (log_name and log_value_interval) or polarized):
+    if not (time_interval or polarized or (log_name and log_value_interval)):
         raise ValueError("Load and split called with no slicing parameters")
 
-    # Check whether we need to load or not
+    # find the unique instrument name, if necessary. Check `is_mono` consistent with the instrument's name
     run = str(run)
-    if registered_workspace(run):
-        all_events_workspace = run  # run is a workspace, or the name of a workspace in the AnalysisDataService
-        monitors = monitors or is_mono
-        assert instrument_unique_name is not None, "Instrument name must be given!"
-    else:
-        # determine if this is a monochromatic measurement
-        instrument_unique_name = instrument_enum_name(run)  # determine which SANS instrument
-        is_mono = (instrument_unique_name == InstrumentEnumName.BIOSANS) or (
-            instrument_unique_name == InstrumentEnumName.GPSANS
+    if instrument_unique_name is None:
+        instrument_unique_name = instrument_enum_name(run)
+    if is_mono is None:
+        is_mono = instrument_unique_name in (InstrumentEnumName.BIOSANS, InstrumentEnumName.GPSANS)
+    elif is_mono is False:
+        assert instrument_unique_name == InstrumentEnumName.EQSANS, (
+            f"Invalid instrument name '{instrument_unique_name}' when is_mono=False"
+        )
+    elif is_mono is True:
+        assert instrument_unique_name in (InstrumentEnumName.BIOSANS, InstrumentEnumName.GPSANS), (
+            f"Invalid instrument name '{instrument_unique_name}' when is_mono=True"
         )
 
-        # monitors are required for gpsans and biosans
+    # Check whether we need to load or not
+    if registered_workspace(run):  # run is a workspace, or the name of a workspace in the AnalysisDataService
+        sample_workspace_already_exists = True
+        all_events_workspace = run
         monitors = monitors or is_mono
-
+    else:
+        sample_workspace_already_exists = False
         all_events_workspace = mtd.unique_hidden_name()  # temporary workspace
+        monitors = monitors or is_mono
         load_events(
             run=run,
             data_dir=data_dir,
@@ -464,7 +482,7 @@ def load_and_split(
             detector_offset=detector_offset,
             sample_offset=sample_offset,
             reuse_workspace=reuse_workspace,
-            **dict(kwargs, LoadMonitors=monitors or is_mono),
+            **dict(kwargs, LoadMonitors=monitors),
         )
 
     # create default name for output workspace
@@ -486,20 +504,12 @@ def load_and_split(
     # Apply filtering
     filter_strategy.apply_filter(output_workspace)
 
-    # Remove empty workspaces from event filtering
-    split_ws_list = [mtd[output_workspace].getItem(n) for n in range(mtd[output_workspace].getNumberOfEntries())]
-    for split_ws in split_ws_list:
-        num_events = split_ws.getNumberEvents()
-        if num_events == 0:
-            logger.notice(f"Remove empty sliced workspace {str(split_ws)}")
-            mtd[output_workspace].remove(str(split_ws))
-
     assert is_mono is not None, "is_mono shall be either set or specified"
     if monitors:
         # Use the strategy's splitter and info workspace names for monitor filtering
         filter_events_opts = dict(
             SplitterWorkspace=filter_strategy.splitter_workspace,
-            InformationWorkspace=filter_strategy.info_workspace,  # TODO: SpinFilter doesn't create an info workspace
+            InformationWorkspace=filter_strategy.info_workspace,
             FilterByPulseTime=True,
             GroupWorkspaces=True,
             OutputWorkspaceIndexedFrom1=True,
@@ -512,18 +522,33 @@ def load_and_split(
             filter_events=filter_events_opts,
         )
 
+    # Remove empty workspaces from event filtering
+    split_ws_list = [mtd[output_workspace].getItem(n) for n in range(mtd[output_workspace].getNumberOfEntries())]
+    if monitors:
+        group_workspace = mtd[output_workspace + "_monitors"]
+        split_monitors = [str(group_workspace.getItem(n)) for n in range(group_workspace.getNumberOfEntries())]
+    for i, split_ws in enumerate(split_ws_list):
+        num_events = split_ws.getNumberEvents()
+        if num_events == 0:
+            logger.notice(f"Remove empty sliced workspace {str(split_ws)}")
+            mtd[output_workspace].remove(str(split_ws))
+            if monitors:
+                mtd[output_workspace + "_monitors"].remove(split_monitors[i])
+
     # Inject metadata using the strategy
     filter_strategy.inject_metadata(output_workspace)
 
     # Clean up temporary workspaces
+    if sample_workspace_already_exists is True:
+        logger.warning("Removing sample workspace, which already existed")
     for name in [all_events_workspace, filter_strategy.splitter_workspace, filter_strategy.info_workspace]:
-        DeleteWorkspace(name)
+        AnalysisDataService.remove(name)
 
-    if is_mono or not monitors:
-        return mtd[output_workspace]
-    else:  # If EQSANS and the filtered monitors are also being returned
-        DeleteWorkspace(all_events_workspace + "_monitors")
+    if monitors:
+        AnalysisDataService.remove(all_events_workspace + "_monitors")
         return mtd[output_workspace], mtd[output_workspace + "_monitors"]
+    else:
+        return mtd[output_workspace], None
 
 
 def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monitor", "monitor1")):
@@ -555,7 +580,7 @@ def sum_data(data_list, output_workspace, sum_logs=("duration", "timer", "monito
     for data in data_list:
         if not mtd.doesExist(str(data)):
             raise ValueError("Workspace " + data + " does not exist")
-        if not isinstance(mtd[str(data)], mantid.dataobjects.Workspace2D):
+        if not isinstance(mtd[str(data)], Workspace2D):
             raise ValueError(data + " is not a Workspace2D, this currently only works correctly for Workspace2D")
 
     # Filter sum_logs list to only include logs that exist in data

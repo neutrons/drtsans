@@ -9,15 +9,8 @@ from operator import itemgetter
 from typing import List, Optional, Tuple
 
 from mantid.api import AnalysisDataService
-from mantid.simpleapi import (
-    AddSampleLog,
-    CreateEmptyTableWorkspace,
-    FilterEvents,
-    GenerateEventsFilter,
-    GroupWorkspaces,
-    logger,
-    mtd,
-)
+from mantid.dataobjects import SplittersWorkspace
+from mantid.simpleapi import CreateEmptyTableWorkspace, GenerateEventsFilter, logger, mtd
 
 from drtsans.filterevents.basefilter import FilterStrategy
 from drtsans.polarization import (
@@ -93,7 +86,8 @@ def create_table(
     start_time: int,
     has_polarizer: Optional[bool] = True,
     has_analyzer: Optional[bool] = True,
-    output_workspace: Optional[str] = "_filter",
+    output_splitter_workspace: Optional[str] = "_filter",
+    output_info_workspace: Optional[str] = "_info",
 ) -> object:
     """
     Create a Mantid table workspace defining time intervals for cross-sections.
@@ -135,10 +129,12 @@ def create_table(
 
     Time intervals before start_time are discarded or truncated.
     """
-    split_table_ws = CreateEmptyTableWorkspace(OutputWorkspace=output_workspace)
-    split_table_ws.addColumn("float", "start")
-    split_table_ws.addColumn("float", "stop")
-    split_table_ws.addColumn("str", "target")
+    split_table_ws = SplittersWorkspace()  # Table-like object with columns "start", "stop", and "workspacegroup"
+    mtd.addOrReplace(output_splitter_workspace, split_table_ws)
+    info_table_ws = CreateEmptyTableWorkspace(OutputWorkspace=output_info_workspace)
+    info_table_ws.addColumn("int", "workspacegroup")
+    info_table_ws.addColumn("str", "title")
+    cross_sections = []
 
     # Indices for device_mask
     POLARIZER, ANALYZER, POL_VETO, ANA_VETO = 0, 1, 2, 3
@@ -161,10 +157,12 @@ def create_table(
         if start < 0 and stop <= 0:
             return  # Completely before start
         if start < 0 < stop:
-            start = 0.0  # Keep fragment after start_time
+            start_ns = start_time
 
-        # Mantid expects times in seconds
-        split_table_ws.addRow([start * 1e-9, stop * 1e-9, xs_label])
+        if xs_label not in cross_sections:
+            cross_sections.append(xs_label)
+            info_table_ws.addRow([cross_sections.index(xs_label), xs_label])
+        split_table_ws.addRow([start_ns, stop_ns, cross_sections.index(xs_label)])
 
     # Process each state change chronologically
     for change_time, device_on, device_mask in change_list:
@@ -218,9 +216,6 @@ class SpinFilter(FilterStrategy):
     pv_analyzer_veto : str, optional
         Name of the sample log for analyzer veto signal.
         Default is from drtsans.polarization.PV_ANALYZER_VETO
-    check_devices : bool, optional
-        Whether to check for the presence of polarizer/analyzer in the experiment.
-        If False, assumes both devices are present. Default is True.
 
     Attributes
     ----------
@@ -232,17 +227,15 @@ class SpinFilter(FilterStrategy):
         Sample log name for polarizer veto
     pv_analyzer_veto : str
         Sample log name for analyzer veto
-    check_devices : bool
-        Whether device presence is checked
-    _has_polarizer : bool
+    _active_polarizer : bool
         Whether a polarizer was detected in the experiment
-    _has_analyzer : bool
+    _active_analyzer : bool
         Whether an analyzer was detected in the experiment
 
-    Notes
-    -----
-    If no polarizer or analyzer is detected, and check_devices is True, the
-    raw workspace is returned ungrouped with a warning.
+    Raises
+    ------
+    ValueError
+        If no active polarizer or analyzer is detected in the sample logs.
 
     The filter creates a custom splitter table based on device state transitions
     rather than using Mantid's standard time or log interval filters. This allows
@@ -263,7 +256,6 @@ class SpinFilter(FilterStrategy):
         pv_analyzer_state: str = PV_ANALYZER_FLIPPER,
         pv_polarizer_veto: str = PV_POLARIZER_VETO,
         pv_analyzer_veto: str = PV_ANALYZER_VETO,
-        check_devices: bool = True,
     ):
         """
         Initialize the spin filter.
@@ -273,37 +265,43 @@ class SpinFilter(FilterStrategy):
         workspace : str or IEventWorkspace
             The input workspace to filter
         pv_polarizer_state : str, optional
-            Sample log name for polarizer flipper state
+            Sample log name for polarizer flipper state, an int time series.
         pv_analyzer_state : str, optional
-            Sample log name for analyzer flipper state
+            Sample log name for analyzer flipper state, an int time series.
         pv_polarizer_veto : str, optional
-            Sample log name for polarizer veto
+            Sample log name for polarizer veto, an int time series.
         pv_analyzer_veto : str, optional
-            Sample log name for analyzer veto
-        check_devices : bool, optional
-            Whether to check for device presence
+            Sample log name for analyzer veto, an int time series.
         """
         super().__init__(workspace)
         self.pv_polarizer_state = pv_polarizer_state
         self.pv_analyzer_state = pv_analyzer_state
         self.pv_polarizer_veto = pv_polarizer_veto
         self.pv_analyzer_veto = pv_analyzer_veto
-        self.check_devices = check_devices
-        self._has_polarizer = False
-        self._has_analyzer = False
 
-    def generate_filter(self) -> Optional[dict]:
+        # Check if polarizer and/or analyzer are active
+        sample_logs = SampleLogs(self.workspace)
+        polarizer = sample_logs.get(PV_POLARIZER, 0).value if PV_POLARIZER in sample_logs else 0
+        self._active_polarizer = polarizer > 0
+        analyzer = sample_logs.get(PV_ANALYZER, 0).value if PV_ANALYZER in sample_logs else 0
+        self._active_analyzer = analyzer > 0
+        if not self._active_polarizer and not self._active_analyzer:
+            raise ValueError("No active polarizer or analyzer detected in sample logs. Cannot apply spin filter.")
+
+        # Make sure veto logs are present, otherwise log a warning
+        if self._active_polarizer and pv_polarizer_veto not in sample_logs:
+            self.pv_polarizer_veto = ""
+            logger.warning(f"Polarizer veto log '{pv_polarizer_veto}' not found.")
+        if self._active_analyzer and pv_analyzer_veto not in sample_logs:
+            self.pv_analyzer_veto = ""
+            logger.warning(f"Analyzer veto log '{pv_analyzer_veto}' not found.")
+
+    def generate_filter(self) -> None:
         """
         Generate custom splitter table for polarization states.
 
         This method builds a chronological list of all device state changes and
         creates a custom splitter table defining when each cross-section is valid.
-
-        Returns
-        -------
-        dict or None
-            Empty dict if filtering succeeds (splitter created separately).
-            None if no devices are present or no valid intervals exist.
 
         Notes
         -----
@@ -312,37 +310,23 @@ class SpinFilter(FilterStrategy):
         GenerateEventsFilter. The empty dict return value signals apply_filter()
         to skip GenerateEventsFilter and use the custom table directly.
         """
-        # Check if devices are present
-        sample_logs = SampleLogs(self.workspace)
-        if self.check_devices:
-            polarizer = sample_logs.get(PV_POLARIZER, 0).value if PV_POLARIZER in sample_logs else 0
-            analyzer = sample_logs.get(PV_ANALYZER, 0).value if PV_ANALYZER in sample_logs else 0
-        else:
-            polarizer = analyzer = 1  # Assume present
-
-        self._has_polarizer = polarizer > 0
-        self._has_analyzer = analyzer > 0
-
-        if not self._has_polarizer and not self._has_analyzer:
-            logger.warning("No polarizer/analyzer information available")
-            return None
 
         # Build change list from device states
         change_list = self._build_change_list()
 
         if not change_list:
-            return None
+            return
 
         # Create custom splitter table
         start_time = workspace_handle(self.workspace).run().startTime().totalNanoseconds()
         create_table(
             change_list,
             start_time,
-            has_polarizer=self._has_polarizer,
-            has_analyzer=self._has_analyzer,
-            output_workspace=self.FILTER_WORKSPACE_NAME,
+            has_polarizer=self._active_polarizer,
+            has_analyzer=self._active_analyzer,
+            output_splitter_workspace=self.splitter_workspace,
+            output_info_workspace=self.info_workspace,
         )
-        return {}  # Return empty dict to signal that custom splitter is ready
 
     def _build_change_list(self) -> List[Tuple[int, bool, List[bool]]]:
         """
@@ -380,18 +364,29 @@ class SpinFilter(FilterStrategy):
         change_list = []
 
         # Extract polarizer state changes
-        if self._has_polarizer:
+        if self._active_polarizer:
             change_list.extend(self._extract_device_changes(self.pv_polarizer_state, is_polarizer=True))
             if self.pv_polarizer_veto:
                 change_list.extend(self._extract_veto_changes(self.pv_polarizer_veto, is_polarizer_veto=True))
 
         # Extract analyzer state changes
-        if self._has_analyzer:
+        if self._active_analyzer:
             change_list.extend(self._extract_device_changes(self.pv_analyzer_state, is_analyzer=True))
             if self.pv_analyzer_veto:
                 change_list.extend(self._extract_veto_changes(self.pv_analyzer_veto, is_analyzer_veto=True))
 
-        return sorted(change_list, key=itemgetter(0))
+        if len(change_list) == 0:
+            raise ValueError("No information found in the polarization flipper or veto logs!")
+
+        sorted_list = sorted(change_list, key=itemgetter(0))  # sort by time stamp
+        # remove consecutive entries with same timestamp and same device (device_mask)
+        unique_list = [sorted_list[0]]  # initialize with the first entry
+        for entry in sorted_list[1:]:
+            last = unique_list[-1]
+            if entry[0] == last[0] and entry[2] == last[2]:  # same timestamp and same device_mask
+                continue
+            unique_list.append(entry)
+        return unique_list
 
     def _extract_device_changes(self, log_name: str, **kwargs) -> List:
         """
@@ -490,56 +485,6 @@ class SpinFilter(FilterStrategy):
         ]
         return changes
 
-    def apply_filter(self, output_workspace: str) -> None:
-        """
-        Apply polarization filtering with custom splitter table.
-
-        This method overrides the base class implementation to use the custom
-        splitter table created in generate_filter() rather than using
-        GenerateEventsFilter.
-
-        Parameters
-        ----------
-        output_workspace : str
-            Name for the output workspace group
-        """
-        filter_params = self.generate_filter()
-
-        # If no filtering possible, return raw workspace
-        if filter_params is None:
-            GroupWorkspaces([self.workspace], OutputWorkspace=output_workspace)
-            return
-
-        # Check if splitter table has content
-        if workspace_handle(self.splitter_workspace).rowCount() == 0:
-            raise ValueError("Sample run flagged as polarized but no valid cross-section intervals found")
-
-        # Use custom splitter table
-        correction_workspace = mtd.unique_hidden_name()
-        outputs = FilterEvents(
-            InputWorkspace=self.workspace,
-            SplitterWorkspace=self.splitter_workspace,
-            GroupWorkspaces=True,
-            FilterByPulseTime=True,
-            OutputWorkspaceIndexedFrom1=False,
-            CorrectionToSample="None",
-            SpectrumWithoutDetector="Skip",
-            SplitSampleLogs=True,
-            RelativeTime=True,
-            ExcludeSpecifiedLogs=True,
-            OutputTOFCorrectionWorkspace=correction_workspace,
-            OutputWorkspaceBaseName=output_workspace,
-        )
-        AnalysisDataService.remove(correction_workspace)
-
-        # Add cross-section IDs to each workspace
-        for ws in outputs[-1]:
-            xs_id = str(ws).replace(f"{output_workspace}_", "")
-            AddSampleLog(Workspace=ws, LogName="cross_section_id", LogText=xs_id)
-            # These two lines mimic what FilterEvents does when passed an information workspace
-            ws.setComment(xs_id)
-            ws.setTitle(xs_id)
-
     def inject_metadata(self, workspace: MantidWorkspace) -> None:
         """
         Inject metadata into all polarization-filtered cross-sections.
@@ -552,15 +497,8 @@ class SpinFilter(FilterStrategy):
         workspace : MantidWorkspace
             The workspace group (or its name) containing the filtered cross-sections
         """
-        for _, samplelogs, slice_info in self._inject_common_metadata(workspace):
-            # Resolve cross-section label: prefer the dedicated log, fall back to
-            # the workspace comment set by apply_filter, then to "Unknown"
-            if "cross_section_id" in samplelogs:
-                cross_section = samplelogs.get("cross_section_id", None).value
-            else:
-                cross_section = slice_info if slice_info else "Unknown"
-
-            samplelogs.insert("slice_parameter", "polarization_state")
-            samplelogs.insert("cross_section", cross_section)
-            samplelogs.insert("has_polarizer", int(self._has_polarizer))
-            samplelogs.insert("has_analyzer", int(self._has_analyzer))
+        for _, samplelogs, cross_section in self._inject_common_metadata(workspace):
+            samplelogs.insert("slice_parameter", "polarization.cross_section")
+            samplelogs.insert("polarization.cross_section", cross_section)
+            samplelogs.insert("polarization.active_polarizer", int(self._active_polarizer))
+            samplelogs.insert("polarization.active_analyzer", int(self._active_analyzer))

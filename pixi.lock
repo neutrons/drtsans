@@ -8,8 +8,6 @@ environments:
     - url: https://prefix.dev/pixi-build-backends/
     indexes:
     - https://pypi.org/simple
-    options:
-      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
@@ -149,8 +147,6 @@ environments:
     - url: https://prefix.dev/pixi-build-backends/
     indexes:
     - https://pypi.org/simple
-    options:
-      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
@@ -572,8 +568,6 @@ environments:
     - url: https://prefix.dev/pixi-build-backends/
     indexes:
     - https://pypi.org/simple
-    options:
-      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
@@ -1597,9 +1591,10 @@ packages:
   timestamp: 1765193127016
 - pypi: ./
   name: drtsans
-  version: 1.27.0.dev20260501192024
+  version: 1.28.0.dev20260506010922
   sha256: fc3f175ca19573b2af6902f55f09c0fc2ef7b637a8e129060889856124e77086
   requires_python: '>=3.12'
+  editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/epoxy-1.5.10-hb03c661_2.conda
   sha256: a5b51e491fec22bcc1765f5b2c8fff8a97428e9a5a7ee6730095fb9d091b0747
   md5: 057083b06ccf1c2778344b6dabace38b

@@ -380,6 +380,7 @@ def bin_i_with_correction(
             incoh_qmin=correction_setup.qmin[frameskip_frame],
             incoh_qmax=correction_setup.qmax[frameskip_frame],
             incoh_factor=correction_setup.factor[frameskip_frame],
+            output_wavelength_profile=correction_setup.output_wavelength_dependent_profile,
             output_dir=inelastic_dir,
             output_filename=output_filename,
             raw_name=raw_name,

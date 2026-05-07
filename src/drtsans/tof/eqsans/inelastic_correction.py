@@ -839,6 +839,7 @@ def inelastic_correction(
     incoh_qmin: Optional[float],
     incoh_qmax: Optional[float],
     incoh_factor: Optional[float],
+    output_wavelength_profile: bool,
     output_dir: str,
     output_filename: str,
     raw_name: str,
@@ -894,6 +895,8 @@ def inelastic_correction(
         Maximum Q for incoherence correction calculation
     incoh_factor : float, optional
         Factor for automatic Q range determination
+    output_wavelength_profile : bool
+        If True, output I(Q) for each wavelength before and after b correction
     output_dir : str
         Output directory for correction files
     output_filename : str
@@ -955,17 +958,58 @@ def inelastic_correction(
         incoh_factor,
     )
 
-    # Save b(λ) to file
-    inelastic_output_dir = os.path.join(output_dir, "info", "inelastic_incoh", output_filename)
-    os.makedirs(inelastic_output_dir, exist_ok=True)
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
 
+    # Save b(λ) to file
     WavelengthContainer = namedtuple("WavelengthContainer", ["wavelength"])
     wl_container = WavelengthContainer(wavelength=correction_factors.wavelength)
 
     save_b_factor(
         CorrectedI1D(wl_container, correction_factors.b_factor, correction_factors.b_error),
-        os.path.join(inelastic_output_dir, f"{output_filename}_inelastic_b1d_{raw_name}.dat"),
+        os.path.join(output_dir, f"{output_filename}_inelastic_b1d_{raw_name}.dat"),
     )
+
+    # Output wavelength-dependent I(Q) profiles if requested
+    if output_wavelength_profile:
+        os.makedirs(output_dir, exist_ok=True)
+        logger.notice("Writing wavelength-dependent I(Q) profiles before and after b correction")
+
+        # Get the binned I(Q, λ) data and reshape to meshgrid format
+        iq1d_binned = iq1d_temp_binned[0]
+
+        wl_vec, x_vec, i_array, error_array, delta_x_array = reshape_intensity_domain_meshgrid(iq1d_binned)
+
+        # Get data type (IQmod or I1DAnnular)
+        i1d_type = getDataType(iq1d_binned)
+
+        # Write "before b correction" files for each wavelength
+        for tmpwlii, wl in enumerate(wl_vec):
+            tmpfn = os.path.join(output_dir, f"IQ_{wl:.3f}_before_b_correction.dat")
+            i1d_wl = build_i1d_one_wl_from_intensity_domain_meshgrid(
+                x_vec, i_array, error_array, delta_x_array, tmpwlii, i1d_type
+            )
+            save_i1d(i1d_wl, tmpfn)
+
+        # Apply b correction to intensities and errors
+        b_factor_array = correction_factors.b_factor
+        b_error_array = correction_factors.b_error
+
+        # Correct each wavelength slice
+        corrected_i_array = i_array.copy()
+        corrected_error_array = error_array.copy()
+        for wl_idx in range(len(wl_vec)):
+            corrected_i_array[:, wl_idx] = i_array[:, wl_idx] - b_factor_array[wl_idx]
+            # Error propagation: σ²_corrected = σ²_intensity + σ²_b
+            corrected_error_array[:, wl_idx] = np.sqrt(error_array[:, wl_idx] ** 2 + b_error_array[wl_idx] ** 2)
+
+        # Write "after b correction" files for each wavelength
+        for tmpwlii, wl in enumerate(wl_vec):
+            tmpfn = os.path.join(output_dir, f"IQ_{wl:.3f}_after_b_correction.dat")
+            i1d_wl = build_i1d_one_wl_from_intensity_domain_meshgrid(
+                x_vec, corrected_i_array, corrected_error_array, delta_x_array, tmpwlii, i1d_type
+            )
+            save_i1d(i1d_wl, tmpfn)
 
     # Apply b(λ) to unbinned sample data
     logger.notice("Applying inelastic/incoherent correction to unbinned data")

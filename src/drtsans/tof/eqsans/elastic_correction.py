@@ -216,6 +216,7 @@ def normalize_by_elastic_reference_1d(
 
     i1d_type = getDataType(i1d)
     if output_wavelength_dependent_profile and output_dir:
+        os.makedirs(output_dir, exist_ok=True)
         for tmpwlii, wl in enumerate(wl_vec):
             tmpfn = os.path.join(output_dir, f"IQ_{wl:.3f}_before_k_correction.dat")
             i1d_wl = build_i1d_one_wl_from_intensity_domain_meshgrid(
@@ -886,15 +887,15 @@ def elastic_correction(
         raise NotImplementedError("Expected exactly one IQmod from temporary binning")
 
     # Calculate k(λ) correction factors
-    elastic_output_dir = os.path.join(output_dir, "info", "elastic_norm", output_filename)
-    os.makedirs(elastic_output_dir, exist_ok=True)
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
 
     _, _, k_vec, k_error_vec = normalize_by_elastic_reference_all(
         iq2d_temp_binned,
         iq1d_temp_binned[0],
         iq1d_elastic_temp[0],
         output_wavelength_profile,
-        elastic_output_dir,
+        output_dir,
     )
 
     # Save k(λ) to file
@@ -903,7 +904,7 @@ def elastic_correction(
         wl_vec,
         k_vec,
         k_error_vec,
-        path=os.path.join(elastic_output_dir, f"{output_filename}_elastic_k1d_{raw_name}.dat"),
+        path=os.path.join(output_dir, f"{output_filename}_elastic_k1d_{raw_name}.dat"),
     )
 
     # Apply k(λ) to unbinned sample data

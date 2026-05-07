@@ -37,6 +37,14 @@ jobs:
           echo "chromium enables testing HTML reports"
           pixi run playwright install chromium --with-deps
 
+      - name: Dependency check
+        continue-on-error: true
+        run: |
+          if ! pixi run audit-deps; then
+            echo "::warning::Dependency check failed"
+            exit 1
+          fi
+
       - name: Run unit tests
         run: |
           pixi run versioningit -w
@@ -54,13 +62,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Dependency check
-        continue-on-error: true
-        run: |
-          if ! pixi run audit-deps; then
-            echo "::warning::Dependency check failed"
-            exit 1
-          fi
 
   ##############################
   ### Package and Deployment ###

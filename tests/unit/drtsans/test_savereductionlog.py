@@ -230,11 +230,10 @@ def test_writing_metadata(cleanfile):
         assert reduction_information_entry["special_parameters"]["key3"][()].decode() == ""  # noqa: PLC1901
 
 
-def test_writing_metadata_with_absolute_scale(cleanfile):
+def test_writing_metadata_with_standard_scale(cleanfile):
     specialparameters = {
-        "absolute_scale": {
-            "method": "standard",
-            "factor": 1.23,
+        "standard_beam_scaling": {
+            "value": 1.23,
         }
     }
 
@@ -249,10 +248,11 @@ def test_writing_metadata_with_absolute_scale(cleanfile):
 
     with h5py.File(tmp_log_filename, "r") as handle:
         reduction_information_entry = _getGroup(handle, "reduction_information", "NXentry")
-        absolute_scale_group = _getGroup(reduction_information_entry["special_parameters"], "absolute_scale", "NXnote")
+        standard_scale_group = _getGroup(
+            reduction_information_entry["special_parameters"], "standard_beam_scaling", "NXnote"
+        )
 
-        assert absolute_scale_group["method"][()].decode() == "standard"
-        assert absolute_scale_group["factor"][()] == pytest.approx(1.23)
+        assert standard_scale_group["value"][()] == pytest.approx(1.23)
 
 
 def test_writing_iq_wedge_mode(cleanfile):

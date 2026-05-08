@@ -114,7 +114,9 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0, export_stitch_in
         # Rescale the "to_target" profile to match the scaling of the target profile
         scale = scaling(target_profile, to_target_profile, start_q, end_q)
         to_target_profile = to_target_profile * scale
-        print(f"Stitching profile {current_index} to profile {target_profile_index}. Scale factor is {scale:.3e}")
+        logger.notice(
+            f"Stitching profile {current_index} to profile {target_profile_index}. Scale factor is {scale:.3e}"
+        )
         stitch_scales.append(("lower_q", current_index, target_profile_index, start_q, end_q, scale))
 
         # Discard extrema points
@@ -138,7 +140,9 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0, export_stitch_in
         # Rescale the "to_target" profile to match the scaling of the target profile
         scale = scaling(target_profile, to_target_profile, start_q, end_q)
         to_target_profile = to_target_profile * scale
-        print(f"Stitching profile {current_index} to profile {target_profile_index}. Scale factor is {scale:.3e}")
+        logger.notice(
+            f"Stitching profile {current_index} to profile {target_profile_index}. Scale factor is {scale:.3e}"
+        )
         stitch_scales.append(("higher_q", current_index, target_profile_index, start_q, end_q, scale))
 
         # Discard extrema points
@@ -153,14 +157,23 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0, export_stitch_in
         current_index = current_index + 1
 
     if export_stitch_info is not None:
-        with open(export_stitch_info, "w") as stitch_info:
-            stitch_info.write(
-                "# direction profile_index target_profile_index overlap_qmin overlap_qmax scale_factor\n"
-            )
-            for direction, profile_index, target_index, start_q, end_q, scale in stitch_scales:
+        try:
+            with open(export_stitch_info, "w") as stitch_info:
                 stitch_info.write(
-                    f"{direction} {profile_index} {target_index} {start_q:.16g} {end_q:.16g} {scale:.16g}\n"
+                    "# direction profile_index target_profile_index overlap_qmin overlap_qmax scale_factor\n"
                 )
+                for direction, profile_index, target_index, start_q, end_q, scale in stitch_scales:
+                    stitch_info.write(
+                        f"{direction} {profile_index} {target_index} {start_q:.16g} {end_q:.16g} {scale:.16g}\n"
+                    )
+        except FileNotFoundError:
+            logger.error(f"FileNotFoundError: {export_stitch_info}. Stitching info could not be written.")
+            raise
+        except OSError as exc:
+            logger.error(
+                f"OSError during stitching info write to {export_stitch_info}. "
+                f"Stitching info could not be written. {exc}"
+            )
 
     return target_profile
 

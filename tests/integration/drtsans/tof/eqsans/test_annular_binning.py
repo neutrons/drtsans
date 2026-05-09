@@ -50,6 +50,8 @@ REDUCTION_INPUT = {
         "useDefaultMask": True,
         "wavelengthStep": 0.1,
         "wavelengthStepType": "constant Delta lambda",
+        # EWM-13940: Error-weighted binning required when corrections are enabled
+        "useErrorWeighting": True,
     },
 }
 

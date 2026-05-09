@@ -2,20 +2,20 @@ import os
 import pytest
 from drtsans.dataobjects import IQmod
 
-from drtsans.tof.eqsans.elastic_reference_normalization import (
+from drtsans.tof.eqsans.elastic_correction import (
     determine_common_domain_range_mesh,
     normalize_by_elastic_reference_1d,
 )
-from drtsans.tof.eqsans.elastic_reference_normalization import (
+from drtsans.tof.eqsans.elastic_correction import (
     calculate_scale_factor_mesh_grid,
 )
-from drtsans.tof.eqsans.elastic_reference_normalization import (
+from drtsans.tof.eqsans.elastic_correction import (
     reshape_intensity_domain_meshgrid,
 )
-from drtsans.tof.eqsans.elastic_reference_normalization import (
+from drtsans.tof.eqsans.elastic_correction import (
     determine_reference_wavelength_intensity_mesh,
 )
-from drtsans.tof.eqsans.elastic_reference_normalization import normalize_intensity_1d
+from drtsans.tof.eqsans.elastic_correction import normalize_intensity_1d
 import numpy as np
 
 

@@ -60,10 +60,10 @@ drtsans.tof.eqsans.dark\_current module
    :undoc-members:
    :show-inheritance:
 
-drtsans.tof.eqsans.elastic\_reference\_normalization module
------------------------------------------------------------
+drtsans.tof.eqsans.elastic\_correction module
+----------------------------------------------
 
-.. automodule:: drtsans.tof.eqsans.elastic_reference_normalization
+.. automodule:: drtsans.tof.eqsans.elastic_correction
    :members:
    :undoc-members:
    :show-inheritance:
@@ -76,18 +76,10 @@ drtsans.tof.eqsans.geometry module
    :undoc-members:
    :show-inheritance:
 
-drtsans.tof.eqsans.incoherence\_correction\_1d module
------------------------------------------------------
+drtsans.tof.eqsans.inelastic\_correction module
+------------------------------------------------
 
-.. automodule:: drtsans.tof.eqsans.incoherence_correction_1d
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-drtsans.tof.eqsans.incoherence\_correction\_2d module
------------------------------------------------------
-
-.. automodule:: drtsans.tof.eqsans.incoherence_correction_2d
+.. automodule:: drtsans.tof.eqsans.inelastic_correction
    :members:
    :undoc-members:
    :show-inheritance:

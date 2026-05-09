@@ -401,5 +401,57 @@
     "beamCenter",
     "outputFileName",
     "configuration"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "anyOf": [
+          {
+            "properties": {
+              "configuration": {
+                "properties": {
+                  "elasticReference": {
+                    "properties": {
+                      "runNumber": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": ["runNumber"]
+                  }
+                },
+                "required": ["elasticReference"]
+              }
+            }
+          },
+          {
+            "properties": {
+              "configuration": {
+                "properties": {
+                  "fitInelasticIncoh": {
+                    "oneOf": [
+                      { "const": true },
+                      { "type": "array", "contains": { "const": true } }
+                    ]
+                  }
+                },
+                "required": ["fitInelasticIncoh"]
+              }
+            }
+          }
+        ]
+      },
+      "then": {
+        "properties": {
+          "configuration": {
+            "properties": {
+              "useErrorWeighting": { "const": true }
+            },
+            "required": ["useErrorWeighting"]
+          }
+        },
+        "errorMessage": "Error-weighted binning (useErrorWeighting: true) is required when elastic reference (elasticReference.runNumber) or inelastic correction (fitInelasticIncoh) is enabled. This ensures scalar and wedge I(Q) results remain consistent (EWM-13940)."
+      }
+    }
   ]
 }

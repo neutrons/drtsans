@@ -3,11 +3,11 @@ import os
 from collections import namedtuple
 from typing import Dict, List, Tuple
 
-import numpy as np
 from mantid.simpleapi import (
     SaveAscii,
     mtd,
 )  # noqa E402
+from mantid.kernel import logger  # noqa E402
 
 # Import rolled up to complete a single top-level API
 from drtsans import (  # noqa E402
@@ -22,13 +22,12 @@ from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
 from drtsans.tof.eqsans.blocked_beam import subtract_blocked_beam  # noqa E402
 from drtsans.tof.eqsans.correction_api import (
     CorrectionConfiguration,
-    do_inelastic_incoherence_correction,
-    save_k_vector,
 )
 from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
-from drtsans.tof.eqsans.elastic_reference_normalization import (
-    normalize_by_elastic_reference_all,
+from drtsans.tof.eqsans.elastic_correction import (
+    elastic_correction,
 )
+from drtsans.tof.eqsans.inelastic_correction import inelastic_correction
 from drtsans.tof.eqsans.normalization import normalize_by_flux  # noqa E402
 from drtsans.tof.eqsans.transmission import calculate_transmission  # noqa E402
 from drtsans.transmission import apply_transmission_correction  # noqa E402
@@ -239,7 +238,7 @@ def bin_i_with_correction(
     Parameters
     ----------
     iq1d_in_frames: list[~drtsans.dataobjects.IQmod]
-        Objects containing 1D unbinned data I(\|Q\|). It will be used for scalar binned data
+        Objects containing 1D unbinned data I(|Q|). It will be used for scalar binned data
     iq2d_in_frames: list[~drtsans.dataobjects.IQazimuthal]
         Objects containing 2D unbinned data I(Qx, Qy). It will be used for 2D binned data,
         and 1D wedge or annular binned data
@@ -277,7 +276,7 @@ def bin_i_with_correction(
     correction_setup: ~drtsans.tof.eqsans.correction_api.CorrectionConfiguration
         Parameters for elastic and inelastic/incoherence scattering correction
     iq1d_elastic_ref_fr: list[~drtsans.dataobjects.IQmod]
-        Objects containing 1D unbinned data I(\|Q\|) for the elastic reference run
+        Objects containing 1D unbinned data I(|Q|) for the elastic reference run
     iq2d_elastic_ref_fr: list[~drtsans.dataobjects.IQazimuthal]
         Objects containing 2D unbinned data I(Qx, Qy) for the elastic reference run
     raw_name: str
@@ -295,142 +294,123 @@ def bin_i_with_correction(
           1, unless the 'wedge' mode is selected, when the length is the number of
           original wedges
     """
+    # Get unbinned data for this frame
+    iq2d = iq2d_in_frames[frameskip_frame]
+    iq1d = iq1d_in_frames[frameskip_frame]
 
-    # Setup for corrections
-    if correction_setup.do_elastic_correction or any(correction_setup.do_inelastic_correction):
-        # If any correction is turned on, then weighted_errors is always true
-        weighted_errors = True
+    # EWM-13940: Preserve original errors for binning consistency
+    iq2d_orig_errors = iq2d.error.copy()
+    iq1d_orig_errors = iq1d.error.copy()
 
-        # Define qmin and qmax for this frame
-        if user_qmin is None:
-            qmin = iq1d_in_frames[frameskip_frame].mod_q.min()
-        else:
-            qmin = user_qmin
-        if user_qmax is None:
-            qmax = iq1d_in_frames[frameskip_frame].mod_q.max()
-        else:
-            qmax = user_qmax
-
-        # Set qxrange and qyrange for this frame
-        qxrange = np.min(iq2d_in_frames[frameskip_frame].qx), np.max(iq2d_in_frames[frameskip_frame].qx)
-        qyrange = np.min(iq2d_in_frames[frameskip_frame].qy), np.max(iq2d_in_frames[frameskip_frame].qy)
-
-        # Bin I(Q1D, wl) and I(Q2D, wl) in Q and (Qx, Qy) space respectively but not wavelength
-        iq2d_main_wl, iq1d_main_wl = bin_all(
-            iq2d_in_frames[frameskip_frame],
-            iq1d_in_frames[frameskip_frame],
-            num_x_bins,
-            num_y_bins,
-            n1dbins=num_q1d_bins,
-            n1dbins_per_decade=num_q1d_bins_per_decade,
-            decade_on_center=decade_on_center,
-            # corrections should use all the detector-panel's area, not just one wedge
-            bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
-            log_scale=log_binning,
-            qmin=qmin,
-            qmax=qmax,
-            qxrange=qxrange,
-            qyrange=qyrange,
-            annular_angle_bin=annular_bin,
-            wedges=wedges,
-            symmetric_wedges=symmetric_wedges,
-            error_weighted=weighted_errors,
-            n_wavelength_bin=None,
-        )
-        # Check due to functional limitation
-        assert isinstance(iq1d_main_wl, list), f"Output I(Q) must be a list but not a {type(iq1d_main_wl)}"
-        if len(iq1d_main_wl) != 1:
-            raise NotImplementedError(f"Not expected that there are more than 1 IQmod main but {len(iq1d_main_wl)}")
-
-    # Elastic correction
-    if correction_setup.do_elastic_correction:
-        elastic_output_dir = os.path.join(
+    # Apply elastic correction if requested
+    if correction_setup.do_elastic_correction and iq1d_elastic_ref_fr and iq2d_elastic_ref_fr:
+        # Build output directory with slice and frame info
+        elastic_dir = os.path.join(
             output_dir, "info", "elastic_norm", output_filename, slice_name, f"frame_{frameskip_frame}"
         )
-        os.makedirs(elastic_output_dir, exist_ok=True)
 
-        k_file_prefix = f"{raw_name}"
+        iq2d, iq1d = elastic_correction(
+            iq2d_unbinned=iq2d,
+            iq1d_unbinned=iq1d,
+            iq2d_elastic_ref=iq2d_elastic_ref_fr[frameskip_frame],
+            iq1d_elastic_ref=iq1d_elastic_ref_fr[frameskip_frame],
+            num_x_bins=num_x_bins,
+            num_y_bins=num_y_bins,
+            num_q1d_bins=num_q1d_bins,
+            num_q1d_bins_per_decade=num_q1d_bins_per_decade,
+            decade_on_center=decade_on_center,
+            bin1d_type=bin1d_type,
+            log_binning=log_binning,
+            user_qmin=user_qmin,
+            user_qmax=user_qmax,
+            annular_bin=annular_bin,
+            wedges=wedges,
+            symmetric_wedges=symmetric_wedges,
+            weighted_errors=weighted_errors,
+            output_wavelength_profile=correction_setup.output_wavelength_dependent_profile,
+            output_dir=elastic_dir,
+            output_filename=output_filename,
+            raw_name=raw_name,
+        )
 
-        # Bin elastic reference run
-        if iq1d_elastic_ref_fr:
-            # bin the reference elastic runs of the current frame
-            iq2d_elastic_wl, iq1d_elastic_wl = bin_all(
-                iq2d_elastic_ref_fr[frameskip_frame],
-                iq1d_elastic_ref_fr[frameskip_frame],
-                num_x_bins,
-                num_y_bins,
-                n1dbins=num_q1d_bins,
-                n1dbins_per_decade=num_q1d_bins_per_decade,
-                decade_on_center=decade_on_center,
-                # corrections should use all the detector-panel's area, not just one wedge
-                bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
-                log_scale=log_binning,
-                qmin=qmin,
-                qmax=qmax,
-                qxrange=qxrange,
-                qyrange=qyrange,
-                annular_angle_bin=annular_bin,
-                wedges=wedges,
-                symmetric_wedges=symmetric_wedges,
-                error_weighted=weighted_errors,
-                n_wavelength_bin=None,
-            )
-            if len(iq1d_elastic_wl) != 1:
-                raise NotImplementedError("Not expected that there are more than 1 IQmod of elastic reference run.")
+        # EWM-13940: After elastic correction, replace errors with originals for binning consistency
+        # This ensures scalar and wedge modes use the same binning weights
+        iq2d = IQazimuthal(
+            intensity=iq2d.intensity,
+            error=iq2d_orig_errors,
+            qx=iq2d.qx,
+            qy=iq2d.qy,
+            wavelength=iq2d.wavelength,
+            delta_qx=iq2d.delta_qx,
+            delta_qy=iq2d.delta_qy,
+        )
+        iq1d = IQmod(
+            intensity=iq1d.intensity,
+            error=iq1d_orig_errors,
+            mod_q=iq1d.mod_q,
+            wavelength=iq1d.wavelength,
+            delta_mod_q=iq1d.delta_mod_q,
+        )
 
-            iq2d_main_wl, iq1d_wl, k_vec, k_error_vec = normalize_by_elastic_reference_all(
-                iq2d_main_wl,
-                iq1d_main_wl[0],
-                iq1d_elastic_wl[0],
-                correction_setup.output_wavelength_dependent_profile,
-                elastic_output_dir,
-            )
-            iq1d_main_wl[0] = iq1d_wl
-
-            # write
-            save_k_vector(
-                iq1d_wl.wavelength,
-                k_vec,
-                k_error_vec,
-                path=os.path.join(elastic_output_dir, f"{output_filename}_elastic_k1d_{k_file_prefix}.dat"),
-            )
-
-    # Inelastic incoherence correction
+    # Apply inelastic correction if requested
     if correction_setup.do_inelastic_correction[frameskip_frame]:
-        inelastic_output_dir = os.path.join(
+        # Build output directory with slice and frame info
+        inelastic_dir = os.path.join(
             output_dir, "info", "inelastic_incoh", output_filename, slice_name, f"frame_{frameskip_frame}"
         )
-        os.makedirs(inelastic_output_dir, exist_ok=True)
 
-        b_file_prefix = f"{raw_name}"
-
-        # 1D correction
-        iq2d_main_wl, iq1d_wl = do_inelastic_incoherence_correction(
-            iq2d_main_wl,
-            iq1d_main_wl[0],
-            frameskip_frame,
-            correction_setup,
-            b_file_prefix,
-            inelastic_output_dir,
-            output_filename,
-        )
-        iq1d_main_wl[0] = iq1d_wl
-
-    if not correction_setup.do_elastic_correction and not any(correction_setup.do_inelastic_correction):
-        finite_iq1d = iq1d_in_frames[frameskip_frame]
-        finite_iq2d = iq2d_in_frames[frameskip_frame]
-        qmin = user_qmin
-        qmax = user_qmax
-    else:
-        # Be finite
-        finite_iq1d = iq1d_main_wl[0].be_finite()
-        finite_iq2d = iq2d_main_wl.be_finite()
-        # Bin binned I(Q1D, wl) and and binned I(Q2D, wl) in wavelength space
-        assert len(iq1d_main_wl) == 1, (
-            f"It is assumed that output I(Q) list contains 1 I(Q) but not {len(iq1d_main_wl)}"
+        iq2d, iq1d = inelastic_correction(
+            iq2d_unbinned=iq2d,
+            iq1d_unbinned=iq1d,
+            num_x_bins=num_x_bins,
+            num_y_bins=num_y_bins,
+            num_q1d_bins=num_q1d_bins,
+            num_q1d_bins_per_decade=num_q1d_bins_per_decade,
+            decade_on_center=decade_on_center,
+            bin1d_type=bin1d_type,
+            log_binning=log_binning,
+            user_qmin=user_qmin,
+            user_qmax=user_qmax,
+            annular_bin=annular_bin,
+            wedges=wedges,
+            symmetric_wedges=symmetric_wedges,
+            weighted_errors=weighted_errors,
+            select_min_incoherence=correction_setup.select_min_incoherence,
+            intensity_weighted=correction_setup.select_intensityweighted[frameskip_frame],
+            incoh_qmin=correction_setup.qmin[frameskip_frame],
+            incoh_qmax=correction_setup.qmax[frameskip_frame],
+            incoh_factor=correction_setup.factor[frameskip_frame],
+            output_wavelength_profile=correction_setup.output_wavelength_dependent_profile,
+            output_dir=inelastic_dir,
+            output_filename=output_filename,
+            raw_name=raw_name,
         )
 
-    # Bin output in wavelength space
+        # EWM-13940: After inelastic correction, replace errors with originals for binning consistency
+        # This ensures scalar and wedge modes use the same binning weights
+        iq2d = IQazimuthal(
+            intensity=iq2d.intensity,
+            error=iq2d_orig_errors,
+            qx=iq2d.qx,
+            qy=iq2d.qy,
+            wavelength=iq2d.wavelength,
+            delta_qx=iq2d.delta_qx,
+            delta_qy=iq2d.delta_qy,
+        )
+        iq1d = IQmod(
+            intensity=iq1d.intensity,
+            error=iq1d_orig_errors,
+            mod_q=iq1d.mod_q,
+            wavelength=iq1d.wavelength,
+            delta_mod_q=iq1d.delta_mod_q,
+        )
+
+    # Remove non-finite values before final binning
+    finite_iq2d = iq2d.be_finite()
+    finite_iq1d = iq1d.be_finite()
+
+    # ONE FINAL BINNING: Bin corrected (or uncorrected) unbinned data
+    # This is the ONLY binning that produces output - the "One Rebin Only" pattern
     iq2d_main_out, iq1d_main_out = bin_all(
         finite_iq2d,
         finite_iq1d,
@@ -441,14 +421,13 @@ def bin_i_with_correction(
         decade_on_center=decade_on_center,
         bin1d_type=bin1d_type,
         log_scale=log_binning,
-        qmin=qmin,
-        qmax=qmax,
+        qmin=user_qmin,
+        qmax=user_qmax,
         qxrange=None,
         qyrange=None,
         annular_angle_bin=annular_bin,
         wedges=wedges,
         symmetric_wedges=symmetric_wedges,
-        # When set to true, reduces high uncertainty in the high-Q limit when low statistics
         error_weighted=weighted_errors,
     )
 

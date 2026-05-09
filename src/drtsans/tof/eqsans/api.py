@@ -719,6 +719,7 @@ def reduce_single_configuration(
     nbins_main_per_decade = reduction_config["LogQBinsPerDecade"]
     outputFilename = reduction_input["outputFileName"]
     weighted_errors = reduction_config["useErrorWeighting"]
+
     qmin = reduction_config["Qmin"]
     qmax = reduction_config["Qmax"]
     annular_bin = reduction_config["AnnularAngleBin"]

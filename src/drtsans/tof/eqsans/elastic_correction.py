@@ -3,9 +3,10 @@
 # https://code.ornl.gov/sns-hfir-scse/sans/sans-backend/-/issues/689
 import os
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Tuple, List
 
 import numpy as np
+from mantid.kernel import logger
 
 from drtsans.dataobjects import IQazimuthal, IQmod, verify_same_q_bins, I1DAnnular, save_i1d, getDataType, DataType
 
@@ -13,11 +14,13 @@ __all__ = [
     "normalize_by_elastic_reference_all",
     "normalize_by_elastic_reference_1d",
     "normalize_by_elastic_reference_2d",
+    "apply_elastic_normalization_to_unbinned_data",
     "determine_reference_wavelength_intensity_mesh",
     "reshape_intensity_domain_meshgrid",
     "build_i1d_from_intensity_domain_meshgrid",
     "build_i1d_one_wl_from_intensity_domain_meshgrid",
     "determine_common_domain_range_mesh",
+    "elastic_correction",
 ]
 
 
@@ -213,6 +216,7 @@ def normalize_by_elastic_reference_1d(
 
     i1d_type = getDataType(i1d)
     if output_wavelength_dependent_profile and output_dir:
+        os.makedirs(output_dir, exist_ok=True)
         for tmpwlii, wl in enumerate(wl_vec):
             tmpfn = os.path.join(output_dir, f"IQ_{wl:.3f}_before_k_correction.dat")
             i1d_wl = build_i1d_one_wl_from_intensity_domain_meshgrid(
@@ -313,7 +317,7 @@ def build_i1d_from_intensity_domain_meshgrid(
     as a function of Q (or phi) and wavelength
 
     This is the reversed operation to method
-    :py:meth:`~drtsans.tof.eqsans.elastic_reference_normalization.reshape_intensity_domain_meshgrid`
+    :py:meth:`~drtsans.tof.eqsans.elastic_correction.reshape_intensity_domain_meshgrid`
 
     Parameters
     ----------
@@ -625,3 +629,288 @@ def normalize_intensity_1d(
         )
 
     return normalized_intensity_array, np.sqrt(normalized_error2_array)
+
+
+def apply_elastic_normalization_to_unbinned_data(
+    i_of_q_2d,
+    i_of_q_1d,
+    wl_vec,
+    k_vec,
+    k_error_vec,
+):
+    """Apply elastic normalization to unbinned I(Q, λ) and I(Qx, Qy, λ) data
+
+    This function applies pre-calculated k(λ) normalization factors to unbinned data.
+    The normalized unbinned data can then be binned in any mode (scalar, wedge, annular)
+    and will produce consistent results.
+
+    Parameters
+    ----------
+    i_of_q_2d: ~drtsans.dataobjects.IQazimuthal
+        Unbinned I(Qx, Qy, wavelength) data
+    i_of_q_1d: ~drtsans.dataobjects.IQmod
+        Unbinned I(Q, wavelength) data
+    wl_vec: ~numpy.ndarray
+        Wavelength bins corresponding to k_vec
+    k_vec: ~numpy.ndarray
+        Elastic reference normalization factors (one for each wavelength)
+    k_error_vec: ~numpy.ndarray
+        Elastic reference normalization factor errors (one for each wavelength)
+
+    Returns
+    -------
+    tuple[IQazimuthal, IQmod]
+        Normalized unbinned I(Qx, Qy, λ) and I(Q, λ)
+    """
+
+    # Helper function to create numpy-based interpolation with edge handling
+    def _make_interp_fn(x, y):
+        """
+        Create a 1D interpolation function using numpy.interp with
+        linear interpolation and edge handling (extrapolate with nearest values at edges).
+
+        Parameters
+        ----------
+        x: array-like
+            x coordinates (must be sorted)
+        y: array-like
+            y values corresponding to x
+
+        Returns
+        -------
+        callable
+            Interpolation function that accepts new x values
+        """
+        x = np.asarray(x)
+        y = np.asarray(y)
+        left = y[0]
+        right = y[-1]
+
+        def _interp(new_x):
+            return np.interp(new_x, x, y, left=left, right=right)
+
+        return _interp
+
+    # Create interpolation functions for k and k_error
+    k_interp = _make_interp_fn(wl_vec, k_vec)
+    k_error_interp = _make_interp_fn(wl_vec, k_error_vec)
+
+    # Apply normalization to 2D unbinned data
+    if i_of_q_2d is not None and len(i_of_q_2d.intensity) > 0:
+        # Interpolate k factors to match wavelengths in unbinned data
+        k_vals_2d = k_interp(i_of_q_2d.wavelength)
+        k_errs_2d = k_error_interp(i_of_q_2d.wavelength)
+
+        # Apply normalization: I_normalized = I * k(λ)
+        normalized_intensity_2d = i_of_q_2d.intensity * k_vals_2d
+        # Error propagation: σ²_normalized = k² * σ²_I + I² * σ²_k
+        normalized_error_2d = np.sqrt(k_vals_2d**2 * i_of_q_2d.error**2 + i_of_q_2d.intensity**2 * k_errs_2d**2)
+
+        normalized_i_of_q_2d = IQazimuthal(
+            intensity=normalized_intensity_2d,
+            error=normalized_error_2d,
+            qx=i_of_q_2d.qx,
+            qy=i_of_q_2d.qy,
+            wavelength=i_of_q_2d.wavelength,
+            delta_qx=i_of_q_2d.delta_qx,
+            delta_qy=i_of_q_2d.delta_qy,
+        )
+    else:
+        # Return input as-is if None or empty
+        normalized_i_of_q_2d = i_of_q_2d
+
+    # Apply normalization to 1D unbinned data
+    if i_of_q_1d is not None and len(i_of_q_1d.intensity) > 0:
+        # Interpolate k factors to match wavelengths in unbinned data
+        k_vals_1d = k_interp(i_of_q_1d.wavelength)
+        k_errs_1d = k_error_interp(i_of_q_1d.wavelength)
+
+        # Apply normalization: I_normalized = I * k(λ)
+        normalized_intensity_1d = i_of_q_1d.intensity * k_vals_1d
+        # Error propagation: σ²_normalized = k² * σ²_I + I² * σ²_k
+        normalized_error_1d = np.sqrt(k_vals_1d**2 * i_of_q_1d.error**2 + i_of_q_1d.intensity**2 * k_errs_1d**2)
+
+        normalized_i_of_q_1d = IQmod(
+            intensity=normalized_intensity_1d,
+            error=normalized_error_1d,
+            mod_q=i_of_q_1d.mod_q,
+            delta_mod_q=i_of_q_1d.delta_mod_q,
+            wavelength=i_of_q_1d.wavelength,
+        )
+    else:
+        # Return input as-is if None or empty
+        normalized_i_of_q_1d = i_of_q_1d
+
+    return normalized_i_of_q_2d, normalized_i_of_q_1d
+
+
+def elastic_correction(
+    iq2d_unbinned: IQazimuthal,
+    iq1d_unbinned: IQmod,
+    iq2d_elastic_ref: IQazimuthal,
+    iq1d_elastic_ref: IQmod,
+    num_x_bins: int,
+    num_y_bins: int,
+    num_q1d_bins: int,
+    num_q1d_bins_per_decade: int,
+    decade_on_center: bool,
+    bin1d_type: str,
+    log_binning: bool,
+    user_qmin: Optional[float],
+    user_qmax: Optional[float],
+    annular_bin: float,
+    wedges: List[Tuple[int, int]],
+    symmetric_wedges: bool,
+    weighted_errors: bool,
+    output_wavelength_profile: bool,
+    output_dir: str,
+    output_filename: str,
+    raw_name: str,
+) -> Tuple[IQazimuthal, IQmod]:
+    """Apply elastic reference normalization to unbinned I(Q) data.
+
+    This function encapsulates all elastic correction logic:
+    1. Determines Q ranges from data if not provided by user
+    2. Temporarily bins sample and elastic reference data to calculate k(λ) factors
+    3. Saves k(λ) to file
+    4. Applies k(λ) correction to unbinned sample data
+    5. Returns corrected unbinned data
+
+    Parameters
+    ----------
+    iq2d_unbinned : IQazimuthal
+        Unbinned 2D I(Qx, Qy) sample data
+    iq1d_unbinned : IQmod
+        Unbinned 1D I(Q) sample data
+    iq2d_elastic_ref : IQazimuthal
+        Unbinned 2D I(Qx, Qy) elastic reference data
+    iq1d_elastic_ref : IQmod
+        Unbinned 1D I(Q) elastic reference data
+    num_x_bins : int
+        Number of Qx bins for temporary binning
+    num_y_bins : int
+        Number of Qy bins for temporary binning
+    num_q1d_bins : int
+        Number of Q bins for temporary 1D binning
+    num_q1d_bins_per_decade : int
+        Number of bins per decade for logarithmic binning
+    decade_on_center : bool
+        Whether decade boundaries are on bin centers
+    bin1d_type : str
+        Type of 1D binning ('scalar', 'wedge', 'annular')
+    log_binning : bool
+        Whether to use logarithmic binning
+    user_qmin : float, optional
+        Minimum Q value (if None, determined from data)
+    user_qmax : float, optional
+        Maximum Q value (if None, determined from data)
+    annular_bin : float
+        Width of annular bin in degrees
+    wedges : list
+        List of (angle_min, angle_max) tuples for wedges
+    symmetric_wedges : bool
+        Whether to add symmetric wedges
+    weighted_errors : bool
+        Whether to use error-weighted binning
+    output_wavelength_profile : bool
+        Whether to output wavelength-dependent profiles
+    output_dir : str
+        Output directory for correction files
+    output_filename : str
+        Base filename for output
+    raw_name : str
+        Prefix for correction file names
+
+    Returns
+    -------
+    tuple
+        (corrected_iq2d_unbinned, corrected_iq1d_unbinned)
+    """
+    # Import bin_all here to avoid circular import
+    from drtsans.iq import bin_all
+    from drtsans.tof.eqsans.correction_api import save_k_vector
+
+    logger.notice("Applying elastic reference normalization")
+
+    # Determine Q ranges from data if not provided by user
+    qmin = user_qmin if user_qmin is not None else iq1d_unbinned.mod_q.min()
+    qmax = user_qmax if user_qmax is not None else iq1d_unbinned.mod_q.max()
+    qxrange = (np.min(iq2d_unbinned.qx), np.max(iq2d_unbinned.qx))
+    qyrange = (np.min(iq2d_unbinned.qy), np.max(iq2d_unbinned.qy))
+
+    # Temporarily bin sample data to calculate k(λ) factors
+    # These binned results are ONLY used for factor calculation, then discarded
+    iq2d_temp_binned, iq1d_temp_binned = bin_all(
+        iq2d_unbinned,
+        iq1d_unbinned,
+        num_x_bins,
+        num_y_bins,
+        n1dbins=num_q1d_bins,
+        n1dbins_per_decade=num_q1d_bins_per_decade,
+        decade_on_center=decade_on_center,
+        bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
+        log_scale=log_binning,
+        qmin=qmin,
+        qmax=qmax,
+        qxrange=qxrange,
+        qyrange=qyrange,
+        annular_angle_bin=annular_bin,
+        wedges=wedges,
+        symmetric_wedges=symmetric_wedges,
+        error_weighted=weighted_errors,
+        n_wavelength_bin=None,
+    )
+
+    # Temporarily bin elastic reference data
+    iq2d_elastic_temp, iq1d_elastic_temp = bin_all(
+        iq2d_elastic_ref,
+        iq1d_elastic_ref,
+        num_x_bins,
+        num_y_bins,
+        n1dbins=num_q1d_bins,
+        n1dbins_per_decade=num_q1d_bins_per_decade,
+        decade_on_center=decade_on_center,
+        bin1d_type="scalar" if bin1d_type == "wedge" else bin1d_type,
+        log_scale=log_binning,
+        qmin=qmin,
+        qmax=qmax,
+        qxrange=qxrange,
+        qyrange=qyrange,
+        annular_angle_bin=annular_bin,
+        wedges=wedges,
+        symmetric_wedges=symmetric_wedges,
+        error_weighted=weighted_errors,
+        n_wavelength_bin=None,
+    )
+
+    if len(iq1d_temp_binned) != 1 or len(iq1d_elastic_temp) != 1:
+        raise NotImplementedError("Expected exactly one IQmod from temporary binning")
+
+    # Calculate k(λ) correction factors
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+
+    _, _, k_vec, k_error_vec = normalize_by_elastic_reference_all(
+        iq2d_temp_binned,
+        iq1d_temp_binned[0],
+        iq1d_elastic_temp[0],
+        output_wavelength_profile,
+        output_dir,
+    )
+
+    # Save k(λ) to file
+    wl_vec = np.unique(iq1d_temp_binned[0].wavelength)
+    save_k_vector(
+        wl_vec,
+        k_vec,
+        k_error_vec,
+        path=os.path.join(output_dir, f"{output_filename}_elastic_k1d_{raw_name}.dat"),
+    )
+
+    # Apply k(λ) to unbinned sample data
+    logger.notice("Applying elastic normalization to unbinned data")
+    iq2d_corrected, iq1d_corrected = apply_elastic_normalization_to_unbinned_data(
+        iq2d_unbinned, iq1d_unbinned, wl_vec, k_vec, k_error_vec
+    )
+
+    return iq2d_corrected, iq1d_corrected

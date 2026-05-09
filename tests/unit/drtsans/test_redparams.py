@@ -1026,6 +1026,98 @@ class TestReductionParametersEQSANS:
             parameters["sample"]["loadOptions"]["additionalProperties"] = True
             validate_reduction_parameters(parameters)
 
+    @pytest.mark.datarepo
+    @pytest.mark.parametrize(
+        "elastic_reference_run, fitInelasticIncoh, useErrorWeighting, should_pass",
+        [
+            # No corrections - useErrorWeighting not required
+            (None, False, False, True),
+            (None, False, True, True),
+            (None, [False], False, True),
+            (None, [False, False], False, True),
+            # Elastic correction only - useErrorWeighting required
+            ("89157", False, False, False),
+            ("89157", False, True, True),
+            ("89157", [False], False, False),
+            ("89157", [False], True, True),
+            # Inelastic correction only (boolean true) - useErrorWeighting required
+            (None, True, False, False),
+            (None, True, True, True),
+            # Inelastic correction only (array with true) - useErrorWeighting required
+            (None, [True], False, False),
+            (None, [True], True, True),
+            (None, [False, True], False, False),
+            (None, [False, True], True, True),
+            (None, [True, False], False, False),
+            (None, [True, False], True, True),
+            # Both corrections enabled - useErrorWeighting required
+            ("89157", True, False, False),
+            ("89157", True, True, True),
+            ("89157", [True], False, False),
+            ("89157", [True], True, True),
+            ("89157", [True, False], False, False),
+            ("89157", [True, False], True, True),
+        ],
+        ids=[
+            "no_corrections_no_weighting",
+            "no_corrections_with_weighting",
+            "no_corrections_array_false",
+            "no_corrections_array_both_false",
+            "elastic_only_no_weighting",
+            "elastic_only_with_weighting",
+            "elastic_only_array_false_no_weighting",
+            "elastic_only_array_false_with_weighting",
+            "inelastic_bool_true_no_weighting",
+            "inelastic_bool_true_with_weighting",
+            "inelastic_array_true_no_weighting",
+            "inelastic_array_true_with_weighting",
+            "inelastic_array_mixed_false_true_no_weighting",
+            "inelastic_array_mixed_false_true_with_weighting",
+            "inelastic_array_mixed_true_false_no_weighting",
+            "inelastic_array_mixed_true_false_with_weighting",
+            "both_corrections_bool_no_weighting",
+            "both_corrections_bool_with_weighting",
+            "both_corrections_array_no_weighting",
+            "both_corrections_array_with_weighting",
+            "both_corrections_array_mixed_no_weighting",
+            "both_corrections_array_mixed_with_weighting",
+        ],
+    )
+    def test_conditional_useErrorWeighting_validation(
+        self, elastic_reference_run, fitInelasticIncoh, useErrorWeighting, should_pass, datarepo_dir
+    ):
+        """Test EWM-13940: useErrorWeighting must be true when corrections are enabled.
+
+        This test verifies the conditional validation logic in EQSANS.json that requires
+        error-weighted binning when either elastic reference or inelastic correction is enabled.
+        This ensures scalar and wedge I(Q) results remain consistent.
+        """
+        parameters = deepcopy(self.parameters_all)
+
+        # Set corrections configuration
+        if elastic_reference_run is not None:
+            parameters["configuration"]["elasticReference"] = {
+                "runNumber": elastic_reference_run,
+                "thickness": "1.0",
+                "transmission": {"runNumber": None, "value": "1.0"},
+            }
+        else:
+            parameters["configuration"]["elasticReference"] = {
+                "runNumber": None,
+                "thickness": "1.0",
+                "transmission": {"runNumber": None, "value": "1.0"},
+            }
+
+        parameters["configuration"]["fitInelasticIncoh"] = fitInelasticIncoh
+        parameters["configuration"]["useErrorWeighting"] = useErrorWeighting
+
+        with amend_config(data_dir=datarepo_dir.eqsans):
+            if should_pass:
+                validate_reduction_parameters(parameters)
+            else:
+                with pytest.raises(ReductionParameterError, match="True was expected"):
+                    validate_reduction_parameters(parameters)
+
     @pytest.mark.parametrize("blocked_beam_value", ["12345", 12345])
     def test_time_normalization_with_blocked_beam_rejected(self, blocked_beam_value):
         """Test that schema validation rejects Time normalization when blocked beam is provided"""

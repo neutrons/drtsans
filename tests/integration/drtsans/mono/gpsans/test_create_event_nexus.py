@@ -182,8 +182,10 @@ def test_reduction(datarepo_dir, temp_directory):
     )
 
     output_log = h5py.File(os.path.join(output_dir, f"{sample_names[0]}_reduction_log.hdf"), "r")
-    assert output_log["reduction_information"]["special_parameters"]["direct_beam_scaling"]["value"]
-    assert output_log["reduction_information"]["special_parameters"]["direct_beam_scaling"]["error"]
+    absolute_scale = output_log["reduction_information"]["special_parameters"]["absolute_scale"]
+    assert absolute_scale["method"][()].decode() == "direct_beam"
+    assert absolute_scale["factor"]["value"][()]
+    assert absolute_scale["factor"]["error"][()]
 
     # NOTE:
     # mysterious leftover workspaces in memory

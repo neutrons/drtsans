@@ -1410,18 +1410,32 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         "fit_results": fit_results,
         "sample_transmission": sample_transmission_dict,
         "background_transmission": background_transmission_dict,
+        "absolute_scale": {
+            "method": absolute_scale_method,  # standard or direct_beam
+            "factor": {"value": None, "error": None},
+        },
     }
 
     if absolute_scale_method == "standard":
-        specialparameters["standard_beam_scaling"] = {"value": absolute_scale}
-        logger.notice(f"Standard Beam Scaling: {absolute_scale}")
-    if processed_data_main.run().hasProperty("direct_beam_scaling") and processed_data_main.run().hasProperty(
-        "direct_beam_scaling_error"
-    ):
+        scaling_value = reduction_config["StandardAbsoluteScale"]
+        scaling_error = 0.0
+
+        specialparameters["absolute_scale"]["factor"]["value"] = scaling_value
+        specialparameters["absolute_scale"]["factor"]["error"] = scaling_error
+
+        logger.notice(f"Standard Beam Scaling: {scaling_value}\tError: {scaling_error}")
+
+    elif absolute_scale_method == "direct_beam":
         scaling_value = processed_data_main.run().getProperty("direct_beam_scaling").value
         scaling_error = processed_data_main.run().getProperty("direct_beam_scaling_error").value
-        logger.notice(f"Direct Beam Scaling: {scaling_value}\tError: {scaling_error}")
-        specialparameters["direct_beam_scaling"] = {"value": scaling_value, "error": scaling_error}
+
+        factor_value = 1.0 / scaling_value
+        factor_error = scaling_error / (scaling_value**2)
+
+        specialparameters["absolute_scale"]["factor"]["value"] = factor_value
+        specialparameters["absolute_scale"]["factor"]["error"] = factor_error
+
+        logger.notice(f"Direct Beam Scaling: {factor_value}\tError: {factor_error}")
 
     samplelogs = {"main": SampleLogs(processed_data_main)}
     logslice_data_dict = reduction_input["logslice_data"]

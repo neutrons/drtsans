@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-def stitch_profiles(profiles, overlaps, target_profile_index=0):
+def stitch_profiles(profiles, overlaps, target_profile_index=0, export_stitch_info=None):
     r"""
     Stitch together a sequence of intensity profiles with overlapping domains, returning a single encompassing profile.
 
@@ -30,6 +30,8 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
         compatibility): [start_1, end_1, start_2, end_2, start_3, end_3, ...]
     target_profile_index: int
         Index of the ``profiles`` list indicating the target profile, that is, the profile defining the final scaling.
+    export_stitch_info: str, None
+        Optional output path for an ASCII file containing the stitching scale factors.
 
     Returns
     -------
@@ -99,6 +101,8 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
         else:
             return scale
 
+    stitch_scales = []
+
     # We begin stitching to the target profile the neighboring profile with lower Q-values, then proceed until we
     # run out of profiles with lower Q-values than the target profile
     target_profile = profiles[target_profile_index]
@@ -110,7 +114,10 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
         # Rescale the "to_target" profile to match the scaling of the target profile
         scale = scaling(target_profile, to_target_profile, start_q, end_q)
         to_target_profile = to_target_profile * scale
-        print(f"Stitching profile {current_index} to profile {target_profile_index}. Scale factor is {scale:.3e}")
+        logger.notice(
+            f"Stitching profile {current_index} to profile {target_profile_index}. Scale factor is {scale:.3e}"
+        )
+        stitch_scales.append(("lower_q", current_index, target_profile_index, start_q, end_q, scale))
 
         # Discard extrema points
         to_target_profile = to_target_profile.extract(to_target_profile.mod_q < end_q)  # keep data with Q < end_q
@@ -133,7 +140,10 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
         # Rescale the "to_target" profile to match the scaling of the target profile
         scale = scaling(target_profile, to_target_profile, start_q, end_q)
         to_target_profile = to_target_profile * scale
-        print(f"Stitching profile {current_index} to profile {target_profile_index}. Scale factor is {scale:.3e}")
+        logger.notice(
+            f"Stitching profile {current_index} to profile {target_profile_index}. Scale factor is {scale:.3e}"
+        )
+        stitch_scales.append(("higher_q", current_index, target_profile_index, start_q, end_q, scale))
 
         # Discard extrema points
         to_target_profile = to_target_profile.extract(to_target_profile.mod_q > start_q)  # keep data with Q < end_q
@@ -145,6 +155,25 @@ def stitch_profiles(profiles, overlaps, target_profile_index=0):
 
         # Move to the next to-target profile
         current_index = current_index + 1
+
+    if export_stitch_info is not None:
+        try:
+            with open(export_stitch_info, "w") as stitch_info:
+                stitch_info.write(
+                    "# direction profile_index target_profile_index overlap_qmin overlap_qmax scale_factor\n"
+                )
+                for direction, profile_index, target_index, start_q, end_q, scale in stitch_scales:
+                    stitch_info.write(
+                        f"{direction} {profile_index} {target_index} {start_q:.16g} {end_q:.16g} {scale:.16g}\n"
+                    )
+        except FileNotFoundError:
+            logger.error(f"FileNotFoundError: {export_stitch_info}. Stitching info could not be written.")
+            raise
+        except OSError as exc:
+            logger.error(
+                f"OSError during stitching info write to {export_stitch_info}. "
+                f"Stitching info could not be written. {exc}"
+            )
 
     return target_profile
 
@@ -278,7 +307,6 @@ def stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config):
         Example: [[IQ_main_wedge1, IQ_main_wedge2], [IQ_wing_wedge1, IQ_wing_wedge2]]
     reduction_config: dict
         The dictionary of reduction parameters.
-
     Returns
     -------
     list of ~drtsans.dataobjects.IQmod objects
@@ -287,7 +315,6 @@ def stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config):
         one per wedge.
     """
     iq1d_combined_out = []
-
     if isinstance(iq1d_binned[0][0], I1DAnnular):
         # stitching of annular profiles is not supported, return empty combined profile(s)
         iq1d_binned_main = iq1d_binned[0]
@@ -313,4 +340,5 @@ def stitch_binned_profiles(iq1d_unbinned, iq1d_binned, reduction_config):
         except ValueError:
             iq1d_combined = IQmod(intensity=[], error=[], mod_q=[], delta_mod_q=[])
         iq1d_combined_out.append(iq1d_combined)
+
     return iq1d_combined_out

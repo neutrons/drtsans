@@ -230,6 +230,60 @@ def test_writing_metadata(cleanfile):
         assert reduction_information_entry["special_parameters"]["key3"][()].decode() == ""  # noqa: PLC1901
 
 
+def test_writing_metadata_with_standard_absolute_scale(cleanfile):
+    specialparameters = {
+        "absolute_scale": {
+            "method": "standard",
+            "factor": {"value": 1.23, "error": 0.0},
+        }
+    }
+
+    test_iq = [_create_iq()]
+    tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
+    savereductionlog(
+        tmp_log_filename,
+        detectordata={"slice_1": {"main_detector": {"i1d": test_iq}}},
+        specialparameters=specialparameters,
+    )
+
+    with h5py.File(tmp_log_filename, "r") as handle:
+        reduction_information_entry = _getGroup(handle, "reduction_information", "NXentry")
+        absolute_scale_group = _getGroup(reduction_information_entry["special_parameters"], "absolute_scale", "NXnote")
+        factor_group = _getGroup(absolute_scale_group, "factor", "NXnote")
+
+        assert absolute_scale_group["method"][()].decode() == "standard"
+        assert factor_group["value"][()] == pytest.approx(1.23)
+        assert factor_group["error"][()] == pytest.approx(0.0)
+
+
+def test_writing_metadata_with_direct_beam_absolute_scale(cleanfile):
+    specialparameters = {
+        "absolute_scale": {
+            "method": "direct_beam",
+            "factor": {"value": 1.23, "error": 4.56},
+        }
+    }
+
+    test_iq = [_create_iq()]
+    tmp_log_filename = _create_tmp_log_filename()
+    cleanfile(tmp_log_filename)
+    savereductionlog(
+        tmp_log_filename,
+        detectordata={"slice_1": {"main_detector": {"i1d": test_iq}}},
+        specialparameters=specialparameters,
+    )
+
+    with h5py.File(tmp_log_filename, "r") as handle:
+        reduction_information_entry = _getGroup(handle, "reduction_information", "NXentry")
+        absolute_scale_group = _getGroup(reduction_information_entry["special_parameters"], "absolute_scale", "NXnote")
+        factor_group = _getGroup(absolute_scale_group, "factor", "NXnote")
+
+        assert absolute_scale_group["method"][()].decode() == "direct_beam"
+        assert factor_group["value"][()] == pytest.approx(1.23)
+        assert factor_group["error"][()] == pytest.approx(4.56)
+
+
 def test_writing_iq_wedge_mode(cleanfile):
     test_iq_1 = _create_iq()
     test_iq = list([test_iq_1, test_iq_1])

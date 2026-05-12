@@ -466,6 +466,26 @@ def test_stitch_binned_profiles_isotropic(data_test_16b):
     testing.assert_allclose(result[0], data.stitched, rtol=data.tolerance, atol=0)
 
 
+def test_stitch_profiles_export_stitch_info(data_test_16b, tmp_path):
+    data = data_test_16b
+    export_file = tmp_path / "stitch_info.dat"
+
+    result = stitch_profiles(
+        data.profiles,
+        data.overlaps,
+        target_profile_index=data.target_index,
+        export_stitch_info=str(export_file),
+    )
+
+    testing.assert_allclose(result, data.stitched, rtol=data.tolerance, atol=0)
+    assert export_file.exists()
+
+    export_lines = export_file.read_text().splitlines()
+    assert export_lines[0] == "# direction profile_index target_profile_index overlap_qmin overlap_qmax scale_factor"
+    assert export_lines[1].startswith("higher_q 1 0 ")
+    assert export_lines[2].startswith("higher_q 2 0 ")
+
+
 def test_stitch_binned_profiles_wedges(data_test_16b):
     data = data_test_16b  # handy shortcut
     qmin = [x[0] for x in data.overlaps]

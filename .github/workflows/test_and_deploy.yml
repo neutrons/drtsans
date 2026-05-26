@@ -46,10 +46,10 @@ jobs:
           fi
 
       - name: Configure Git credentials for code.ornl.gov
+        env:
+          TOKEN: ${{ secrets.DRTSANS_DATA_READ_TOKEN }}
         run: |
-          git config --global credential.helper store
-          echo "https://gitlab-ci-token:${{ secrets.DRTSANS_DATA_READ_TOKEN }}@code.ornl.gov" >> ~/.git-credentials
-          chmod 600 ~/.git-credentials
+          git config --global url."https://gitlab-ci-token:${TOKEN}@code.ornl.gov/".insteadOf "https://code.ornl.gov/"
 
       - name: Run unit tests
         run: |

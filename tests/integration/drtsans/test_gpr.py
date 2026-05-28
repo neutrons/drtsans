@@ -32,7 +32,8 @@ def realistic_iq_data():
     # Add realistic noise (5-10% relative error)
     relative_error = 0.08
     I_err = I_true * relative_error
-    I = I_true + np.random.normal(0, I_err)
+    rng = np.random.default_rng(42)
+    I = I_true + rng.normal(0, I_err)
 
     # Ensure no negative intensities
     I = np.maximum(I, I_err)

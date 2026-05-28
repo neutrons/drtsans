@@ -23,6 +23,7 @@ BugTracker = "https://github.com/neutrons/drtsans/issues"
 
 [project.scripts]
 grasp_cg2 = "drtsans.mono.gpsans.export_to_grasp:main"
+drtsans-gpr = "drtsans.gpr:main"
 
 ####################
 ### Build config ###

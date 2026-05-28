@@ -148,12 +148,12 @@ Understanding the Parameters
 lmbda (Lambda)
 ~~~~~~~~~~~~~~
 
-Controls the smoothness of the GPR fit. Smaller values give smoother curves:
+Controls the smoothness of the GPR fit (RBF kernel length scale). Larger values give smoother curves:
 
-- ``lmbda=0.1`` - Very smooth, might over-smooth real features
+- ``lmbda=0.1`` - Least smooth, follows data more closely (can overfit noise)
 - ``lmbda=0.25`` - Default, good balance for most SANS data
-- ``lmbda=0.5`` - Less smooth, follows data more closely
-- ``lmbda=1.0`` - Minimal smoothing, close to the data
+- ``lmbda=0.5`` - Smoother, emphasizes broad trends
+- ``lmbda=1.0`` - Very smooth, may underfit real features
 
 use_log_Q
 ~~~~~~~~~

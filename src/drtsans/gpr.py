@@ -57,12 +57,6 @@ __all__ = [
 # ============================================================================
 
 
-def get_viridis_color(value: float) -> str:
-    """Get color from viridis colormap."""
-    cmap = plt.get_cmap("viridis")
-    return cmap(value)
-
-
 def f_loglin(x: np.ndarray, x_c: float = 1) -> np.ndarray:
     """Log-linear transformation function."""
     return np.where(x < x_c, (x - x_c) / x_c + np.log(x_c), np.log(x))
@@ -347,10 +341,10 @@ def gpr_posterior_predictive(
 
     y_bg = f_I(I_bg)
     I_mean_GP = f_inv_I(mu_s + y_bg)
-    I_std_GP = std_s
 
-    if f_I == f_loglin:
-        I_std_GP = std_s / f_loglin_deriv(I, x_c=np.exp(np.max(f_I(I_bg))))
+    # Convert uncertainty from transformed space back to intensity space
+    # For identity transform, f_I_deriv(...) == 1 so this is a no-op
+    I_std_GP = std_s / np.abs(f_I_deriv(I_mean_GP))
 
     return I_mean_GP, I_std_GP
 
@@ -416,8 +410,17 @@ def run_gpr(
     if len(q) != len(I) or len(q) != len(I_err):
         raise ValueError("Input arrays q, I, and I_err must have the same length")
 
+    if dq is not None and len(dq) != len(q):
+        raise ValueError("dq array must have the same length as q")
+
     if np.any(q <= 0):
         raise ValueError("Q values must be positive")
+
+    if lmbda <= 0:
+        raise ValueError("lmbda must be positive")
+
+    if background_filter_width <= 0:
+        raise ValueError("background_filter_width must be positive")
 
     if np.any(I_err <= 0):
         logger.warning("Found zero or negative uncertainties, replacing with minimum positive value")
@@ -864,7 +867,12 @@ def main() -> int:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    parser.add_argument("input_file", help="Input .dat file with columns: Q, I, I_err, dQ")
+    parser.add_argument(
+        "input_file",
+        nargs="?",
+        default=None,
+        help="Input .dat file with columns: Q, I, I_err, dQ",
+    )
 
     parser.add_argument(
         "-o",
@@ -930,6 +938,13 @@ def main() -> int:
         pass  # argparse_tui is optional
 
     args = parser.parse_args()
+
+    # Check if input_file is provided (required unless --tui was used)
+    if args.input_file is None:
+        if hasattr(args, "tui") and getattr(args, "tui", False):
+            # TUI was run, exit gracefully
+            return 0
+        parser.error("input_file is required (or run with --tui)")
 
     # Run GPR analysis
     try:

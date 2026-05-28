@@ -158,6 +158,9 @@ ruff = "*"
 versioningit = ">=3.2.0"
 argcomplete = "*"
 
+[tool.pixi.feature.dev.pypi-dependencies]
+argparse-tui = "*"
+
 [tool.pixi.feature.docs.dependencies]
 graphviz = "*"
 sphinx = ">=8"

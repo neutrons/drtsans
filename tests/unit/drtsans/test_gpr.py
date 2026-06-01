@@ -8,7 +8,7 @@ import pytest
 
 # local imports
 from drtsans.dataobjects import IQmod
-from drtsans.gpr import (
+from drtsans.extensions.gpr import (
     f_loglin,
     f_loglin_inv,
     f_loglin_deriv,

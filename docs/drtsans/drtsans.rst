@@ -105,14 +105,14 @@ drtsans.geometry module
    :undoc-members:
    :show-inheritance:
 
-.. _api.drtsans.gpr:
+.. _api.drtsans.extensions.gpr:
 
-drtsans.gpr module
-------------------
+drtsans.extensions.gpr module
+------------------------------
 
 This module provides Gaussian Process Regression (GPR) analysis for I(Q) profiles, generating uncertainty-quantified fits and interactive plots for autoreduction reports.
 
-.. automodule:: drtsans.gpr
+.. automodule:: drtsans.extensions.gpr
    :members:
    :undoc-members:
    :show-inheritance:

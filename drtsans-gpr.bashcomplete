@@ -1,5 +1,5 @@
 #!/bin/bash
-# Bash completion for drtsans.gpr module
+# Bash completion for drtsans.extensions.gpr module
 #
 # Installation:
 #   Add to your ~/.bashrc or ~/.bash_profile:

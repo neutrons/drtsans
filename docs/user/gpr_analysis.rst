@@ -29,7 +29,7 @@ You can also run GPR analysis independently on any I(Q) data file:
 
 .. code-block:: bash
 
-    python -m drtsans.gpr input_file_Iq.dat
+    python -m drtsans.extensions.gpr input_file_Iq.dat
 
 This will create two files in the same directory:
 
@@ -40,7 +40,7 @@ Specify a different output directory:
 
 .. code-block:: bash
 
-    python -m drtsans.gpr input_file_Iq.dat --output-dir /path/to/output
+    python -m drtsans.extensions.gpr input_file_Iq.dat --output-dir /path/to/output
 
 Interactive Terminal Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,7 +49,7 @@ For an interactive experience, use the ``--tui`` flag to launch a terminal-based
 
 .. code-block:: bash
 
-    python -m drtsans.gpr --tui
+    python -m drtsans.extensions.gpr --tui
 
 This presents a menu where you can select files and adjust parameters without typing long command lines.
 
@@ -75,7 +75,7 @@ Basic Usage
 
 .. code-block:: python
 
-    from drtsans.gpr import generate_gpr_analysis
+    from drtsans.extensions.gpr import generate_gpr_analysis
     from drtsans.dataobjects import IQmod
 
     # Load your I(Q) data
@@ -135,7 +135,7 @@ Process .dat files directly:
 
 .. code-block:: python
 
-    from drtsans.gpr import run_gpr_from_file
+    from drtsans.extensions.gpr import run_gpr_from_file
 
     png_path, dat_path = run_gpr_from_file(
         "EQSANS_89157_Iq.dat",
@@ -231,4 +231,4 @@ References
 
 **Integration**: May 2026 - Added to drtsans for EQSANS autoreduction
 
-For more details on the statistical methods, see the API documentation: :ref:`drtsans.gpr module <api.drtsans.gpr>`
+For more details on the statistical methods, see the API documentation: :ref:`drtsans.extensions.gpr module <api.drtsans.extensions.gpr>`

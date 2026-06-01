@@ -35,7 +35,7 @@ from drtsans.tof.eqsans.api import (
 from drtsans.tof.eqsans.meta_data import is_sample_run
 
 try:
-    from drtsans.gpr import generate_gpr_analysis
+    from drtsans.extensions.gpr import autoreduction_plots
 
     GPR_AVAILABLE = True
 except ImportError:
@@ -315,104 +315,6 @@ def reduce_non_sample(events: EventWorkspace):
     return report
 
 
-def generate_gpr_plots(
-    reduction_output, output_dir: str, output_filename: str, conf: dict, logger: logging.Logger
-) -> str:
-    """Generate GPR analysis plots for reduced I(Q) profiles.
-
-    Parameters
-    ----------
-    reduction_output : List[I_output]
-        List of reduction output objects, each containing I2D_main and I1D_main profiles
-    output_dir : str
-        Directory to save GPR output files
-    output_filename : str
-        Base filename for outputs (e.g., "EQSANS_172839")
-    conf : dict
-        Reduction configuration dictionary containing bin type and other settings
-    logger : logging.Logger
-        Logger for status messages
-
-    Returns
-    -------
-    str
-        HTML string containing GPR plots, or empty string if GPR is disabled/unavailable
-
-    Notes
-    -----
-    - Handles multiple profile sets (time slices, wedges)
-    - Gracefully handles errors without breaking the main reduction
-    - Only runs if GPR is available and enabled in configuration
-    """
-    # Check if GPR is available and enabled
-    if not GPR_AVAILABLE:
-        logger.info("GPR analysis skipped: drtsans.gpr module not available")
-        return ""
-
-    # Check configuration for GPR enable/disable flag
-    enable_gpr = conf.get("enableGPR", True)  # default to True if not specified
-    if not enable_gpr:
-        logger.info("GPR analysis skipped: disabled in configuration")
-        return ""
-
-    logger.info("Starting GPR analysis for I(Q) profiles")
-    report = ""
-
-    try:
-        # Process each profile set (time slices)
-        for i, profile_set in enumerate(reduction_output):
-            # Determine suffix for multiple profile sets
-            slice_suffix = f"_{i}" if len(reduction_output) > 1 else ""
-
-            # Get 1D profiles (list of IQmod objects)
-            profiles = profile_set.I1D_main
-
-            # Process wedges if applicable
-            if conf["1DQbinType"] == "wedge" and len(profiles) > 1:
-                # Multiple wedges: process each with wedge suffix
-                for j, profile in enumerate(profiles):
-                    base_name = f"{output_filename}{slice_suffix}_wedge_{j}"
-                    logger.info(f"Running GPR for profile set {i}, wedge {j}")
-
-                    try:
-                        html, png_files, dat_files = generate_gpr_analysis(profile, output_dir, base_name)
-                        if html:
-                            report += html
-                        logger.info(f"GPR complete for {base_name}: {len(png_files)} PNG, {len(dat_files)} DAT files")
-                    except Exception as e:
-                        logger.error(f"GPR failed for {base_name}: {e}")
-                        continue
-
-            else:
-                # Single profile (scalar or annular binning)
-                base_name = f"{output_filename}{slice_suffix}"
-                logger.info(f"Running GPR for profile set {i}")
-
-                try:
-                    # generate_gpr_analysis can handle list or single IQmod
-                    html, png_files, dat_files = generate_gpr_analysis(
-                        profiles[0] if len(profiles) == 1 else profiles, output_dir, base_name
-                    )
-                    if html:
-                        report += html
-                    logger.info(f"GPR complete for {base_name}: {len(png_files)} PNG, {len(dat_files)} DAT files")
-                except Exception as e:
-                    logger.error(f"GPR failed for {base_name}: {e}")
-                    continue
-
-        if report:
-            logger.info("GPR analysis completed successfully")
-        else:
-            logger.warning("GPR analysis produced no output")
-
-    except Exception as e:
-        # Catch-all to ensure GPR failures don't break the reduction
-        logger.error(f"GPR analysis failed with unexpected error: {e}")
-        return ""
-
-    return report
-
-
 def reduce_sample(events: EventWorkspace, output_dir: str, logger: logging.Logger) -> str:
     """Reduce events from a sample run and generate comprehensive output files and plots.
 
@@ -505,12 +407,11 @@ def reduce_sample(events: EventWorkspace, output_dir: str, logger: logging.Logge
 
     # Generate GPR analysis plots
     logger.info("reduce_sample: generating GPR analysis plots")
-    gpr_report = generate_gpr_plots(
+    gpr_report = autoreduction_plots(
         reduction_output=output,
         output_dir=output_dir,
         output_filename=input_config["outputFileName"],
         conf=input_config["configuration"],
-        logger=logger,
     )
     if gpr_report:
         report += gpr_report + "<hr>\n"

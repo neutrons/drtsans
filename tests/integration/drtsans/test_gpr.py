@@ -10,7 +10,7 @@ import pytest
 
 # local imports
 from drtsans.dataobjects import IQmod
-from drtsans.gpr import generate_gpr_analysis, run_gpr_from_file
+from drtsans.extensions.gpr import generate_gpr_analysis, run_gpr_from_file
 
 
 @pytest.fixture

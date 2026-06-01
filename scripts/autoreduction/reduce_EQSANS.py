@@ -35,7 +35,7 @@ from drtsans.tof.eqsans.api import (
 from drtsans.tof.eqsans.meta_data import is_sample_run
 
 try:
-    from drtsans.extensions.gpr import autoreduction_plots
+    from extensions.gpr import autoreduction_plots
 
     GPR_AVAILABLE = True
 except ImportError:
@@ -406,15 +406,16 @@ def reduce_sample(events: EventWorkspace, output_dir: str, logger: logging.Logge
     report += plotly_reduction_output(output, input_config) + "<hr>\n"
 
     # Generate GPR analysis plots
-    logger.info("reduce_sample: generating GPR analysis plots")
-    gpr_report = autoreduction_plots(
-        reduction_output=output,
-        output_dir=output_dir,
-        output_filename=input_config["outputFileName"],
-        conf=input_config["configuration"],
-    )
-    if gpr_report:
-        report += gpr_report + "<hr>\n"
+    if GPR_AVAILABLE:
+        logger.info("reduce_sample: generating GPR analysis plots")
+        gpr_report = autoreduction_plots(
+            reduction_output=output,
+            output_dir=output_dir,
+            output_filename=input_config["outputFileName"],
+            conf=input_config["configuration"],
+        )
+        if gpr_report:
+            report += gpr_report + "<hr>\n"
 
     # Save the input reduction options
     logger.info("reduce_sample: saving final input reduction options to JSON file")

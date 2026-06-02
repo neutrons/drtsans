@@ -141,12 +141,12 @@ def limiting_tofs(input_workspace, sdd):
     ws = mtd[str(input_workspace)]
     ch = EQSANSDiskChopperSet(ws)  # object representing the choppers (four or six)
     bands = transmitted_bands(ws)
-    lead = (wlg.tof(bands.lead.min, sdd, ch.pulse_width), wlg.tof(bands.lead.max, sdd))
+    lead = (wlg.tof(bands.lead.min, sdd, emission_delay=emission_delay), wlg.tof(bands.lead.max, sdd))
     skip = (
         None
         if ch.frame_mode == FrameMode.not_skip
         else (
-            wlg.tof(bands.skip.min, sdd, ch.pulse_width),
+            wlg.tof(bands.skip.min, sdd, emission_delay=emission_delay),
             wlg.tof(bands.skip.max, sdd),
         )
     )
@@ -413,10 +413,37 @@ def correct_monitor_frame(input_workspace):
     correct_tof_frame(ws, source_monitor_distance(ws, unit="m"), path_to_pixel=False)
 
 
+# Delayed emission time of a neutron from the moderator as a function of wavelength, in microseconds.
+DELAY_FIT = (
+    "(x < 2.0) ? 0.5*(1280.5-7448.4*x+16509*x^2-17872*x^3+10445*x^4-3169.3*x^5+392.31*x^6) :"
+    " 0.5*(231.99+6.4797*x-0.5233*x^2+0.0148*x^3)"
+)
+
+
+def emission_delay(wavelength):
+    r"""
+    Delayed emission time of a neutron from the moderator as a function of wavelength.
+
+    Parameters
+    ----------
+    wavelength: float
+        Wavelength of the neutron, in Angstroms.
+
+    Returns
+    -------
+    float
+        Delayed emission time, in microseconds.
+    """
+    w = wavelength
+    if w < 2.0:
+        return 0.5 * (1280.5 - 7448.4 * w + 16509 * w**2 - 17872 * w**3 + 10445 * w**4 - 3169.3 * w**5 + 392.31 * w**6)
+    else:
+        return 0.5 * (231.99 + 6.4797 * w - 0.5233 * w**2 + 0.0148 * w**3)
+
+
 def correct_emission_time(input_workspace):
     r"""
-    This correct the TOF values on a workspace for the moderator
-    emission time as a function of wavelength.
+    This correct the TOF values on a workspace for the moderator emission time as a function of wavelength.
 
     Parameters
     ----------
@@ -434,7 +461,7 @@ def correct_emission_time(input_workspace):
     SetInstrumentParameter(
         Workspace=input_workspace,
         ParameterName="t0_formula",
-        Value="incidentEnergy=sqrt(81.80420249996277/incidentEnergy), (incidentEnergy < 2.0) ? 0.5*(1280.5-7448.4*incidentEnergy+16509*incidentEnergy^2-17872*incidentEnergy^3+10445*incidentEnergy^4-3169.3*incidentEnergy^5+392.31*incidentEnergy^6) : 0.5*(231.99+6.4797*incidentEnergy-0.5233*incidentEnergy^2+0.0148*incidentEnergy^3)",  # noqa: E501
+        Value=f"incidentEnergy=sqrt(81.80420249996277/incidentEnergy), {DELAY_FIT.replace('x', 'incidentEnergy')}",
     )
     ModeratorTzero(
         InputWorkspace=input_workspace,

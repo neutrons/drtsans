@@ -5,28 +5,28 @@ from sortedcontainers import SortedList
 sigma = 3.9560346e-03  # plank constant divided by neutron mass
 
 
-def tof(wavelength, distance, pulse_width=0.0):
+def tof(wavelength, distance, emission_delay=None):
     r"""
     Convert neutron wavelength to time of flight
 
     Parameters
     ----------
     wavelength: float
-        wavelength of the travelling neutron, in microseconds
+        wavelength of the traveling neutron, in Angstroms
     distance: float
-        Distance travelled by the neutron, in meters
-    pulse_width: float
-        Neutrons emitted from the moderator with a certain wavelength
-        :math:`\lambda` have a distribution of delayed emission times
-        with :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`.
-        Units are microseconds/Angstroms.
+        Distance traveled by the neutron, in meters
+    emission_delay: callable, optional
+        Function returning the delayed emission time (in microseconds) for a neutron of a given
+        wavelength (in Angstroms). If :py:obj:`None`, no emission-time correction is applied.
 
     Returns
     -------
     float
         time of flight (in micro seconds)
     """
-    return wavelength * (distance + sigma * pulse_width) / sigma
+    t0 = emission_delay(wavelength) if emission_delay is not None else 0.0
+    velocity = sigma / wavelength  # neutron velocity, in meters/microsecond
+    return distance / velocity + t0
 
 
 def from_tof(tof, distance, pulse_width=0.0):

@@ -1,11 +1,13 @@
 from collections import namedtuple
 from os.path import join as pjoin
-import pytest
-from pytest import approx
+
+from mantid.kernel import DateAndTime, amend_config, FloatTimeSeriesProperty
+from mantid.simpleapi import AddSampleLog, Load, CreateWorkspace, CreateSampleWorkspace
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_allclose
-from mantid.simpleapi import AddSampleLog, Load, CreateWorkspace, CreateSampleWorkspace
-from mantid.kernel import DateAndTime, amend_config, FloatTimeSeriesProperty
+import pytest
+from pytest import approx
+
 from drtsans import wavelength as sans_wavelength
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import correct_frame
@@ -386,6 +388,19 @@ def test_correct_emission_time_30Hz(clean_workspace):
     m = 1.674927211e-27
     z = 18.1395946855299
     assert_allclose(w.getSpectrum(0).getTofs() * 10000 * h / (z * m), expected_wl, rtol=1e-4)
+
+
+@pytest.mark.parametrize(
+    "wavelength, expected",
+    [
+        # λ < 2 Å branch
+        (1.0, 68.555),
+        # λ >= 2 Å branch
+        (5.0, 126.578),
+    ],
+)
+def test_emission_delay(wavelength, expected):
+    assert correct_frame.emission_delay(wavelength) == pytest.approx(expected, abs=1e-3)
 
 
 if __name__ == "__main__":

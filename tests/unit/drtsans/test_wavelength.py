@@ -1,6 +1,15 @@
 import pytest
 
-from drtsans.wavelength import Wband, Wbands
+from drtsans.wavelength import tof, sigma, Wband, Wbands
+
+
+def test_tof():
+    wavelength, distance = 4.0, 10.0
+    # Without emission delay, tof = distance / velocity = wavelength * distance / sigma
+    assert tof(wavelength, distance) == pytest.approx(wavelength * distance / sigma)
+    # With an emission_delay callable, the delay is added to the flight time
+    t0 = 100.0
+    assert tof(wavelength, distance, emission_delay=lambda _: t0) == pytest.approx(wavelength * distance / sigma + t0)
 
 
 class TestWband:

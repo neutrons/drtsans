@@ -29,28 +29,36 @@ def tof(wavelength, distance, emission_delay=None):
     return distance / velocity + t0
 
 
-def from_tof(tof, distance, pulse_width=0.0):
+def from_tof(tof, distance, emission_delay=None):
     r"""
     Convert time of flight of arriving neutron to wavelength.
 
     Parameters
     ----------
     tof: float
-        time of flight of the traveling neutron, in Angstroms.
+        time of flight of the traveling neutron, in microseconds.
     distance: float
         Distance traveled by the neutron, in meters.
-    pulse_width: float
-        Neutrons emitted from the moderator with a certain wavelength
-        :math:`\lambda` have a distribution of delayed emission times that depends on the wavelength,
-        with :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`.
-        Units are microseconds/Angstroms.
+    emission_delay: callable, optional
+        Function returning the delayed emission time (in microseconds) for a neutron of a given
+        wavelength (in Angstroms). If :py:obj:`None`, no emission-time correction is applied.
+        When provided, the implicit equation ``distance / velocity(w) + emission_delay(w) = tof``
+        is solved iteratively (up to 10 iterations, converging when the change in wavelength
+        is no more than 0.001 Angstroms).
 
     Returns
     -------
     float
         wavelength (in Angstroms)
     """
-    return tof * sigma / (distance + sigma * pulse_width)
+    w = tof * sigma / distance  # initial guess: no emission delay
+    if emission_delay is not None:
+        for _ in range(10):
+            w_new = (tof - emission_delay(w)) * sigma / distance
+            if abs(w_new - w) <= 0.001:
+                return w_new
+            w = w_new
+    return w
 
 
 class Wband(object):

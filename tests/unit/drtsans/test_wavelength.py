@@ -1,6 +1,6 @@
 import pytest
 
-from drtsans.wavelength import tof, sigma, Wband, Wbands
+from drtsans.wavelength import tof, from_tof, sigma, Wband, Wbands
 
 
 def test_tof():
@@ -10,6 +10,18 @@ def test_tof():
     # With an emission_delay callable, the delay is added to the flight time
     t0 = 100.0
     assert tof(wavelength, distance, emission_delay=lambda _: t0) == pytest.approx(wavelength * distance / sigma + t0)
+
+
+def test_from_tof():
+    wavelength, distance = 4.0, 10.0
+    # Without emission delay, from_tof is the exact inverse of tof
+    assert from_tof(tof(wavelength, distance), distance) == pytest.approx(wavelength)
+    # With emission_delay, from_tof iteratively inverts tof to recover the original wavelength
+    from drtsans.tof.eqsans.correct_frame import emission_delay
+
+    assert from_tof(
+        tof(wavelength, distance, emission_delay=emission_delay), distance, emission_delay=emission_delay
+    ) == pytest.approx(wavelength, abs=0.001)
 
 
 class TestWband:

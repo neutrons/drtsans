@@ -238,7 +238,7 @@ def transmitted_bands_clipped(
         source_detector_dist = source_detector_distance(input_workspace, unit="m")
 
     ch = EQSANSDiskChopperSet(input_workspace)  # object representing the choppers (four or six)
-    lwc = wlg.from_tof(low_tof_clip, source_detector_dist, ch.pulse_width)  # low wavel. clip
+    lwc = wlg.from_tof(low_tof_clip, source_detector_dist, emission_delay=emission_delay)  # low wavel. clip
     hwc = wlg.from_tof(high_tof_clip, source_detector_dist)  # high wavelength clip
     bands = transmitted_bands(input_workspace)
     if ch.frame_mode == FrameMode.not_skip:

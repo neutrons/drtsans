@@ -159,12 +159,6 @@ class DiskChopper:
         the value `sensor_phase` reported by the metadata. Units are in micro seconds.
     """
 
-    #: Neutrons of a given wavelength :math:`\lambda` emitted from the moderator follow a distribution of delayed
-    #: emission times that depends on the wavelength, and is characterized by function
-    #: :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`.
-    #: This is the default :math:`pulsewidth` in micro-sec/Angstrom.
-    _pulse_width = 20
-
     #: The number of wavelength bands transmitted by a disk chopper is determined by the slowest emitted neutron,
     #: expressed as the maximum wavelength. This is the default cut-off maximum wavelength, in Angstroms.
     _cutoff_wl = 35
@@ -175,23 +169,6 @@ class DiskChopper:
         self.speed = float(speed)
         self.sensor_phase = float(sensor_phase)
         self.offset = float(offset)
-
-    @property
-    def pulse_width(self):
-        r"""
-        Neutrons of a given wavelength :math:`\lambda` emitted from the
-        moderator have a distribution of delayed times that depends on the wavelength, and is characterized by
-        a :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`. This property can override the default
-        pulse width :const:`~drtsans.chopper.DiskChopper._pulse_width`.
-        """
-        return self._pulse_width
-
-    @pulse_width.setter
-    def pulse_width(self, value):
-        r"""
-        Override the default pulse width :const:`~drtsans.chopper.DiskChopper._pulse_width`.
-        """
-        self._pulse_width = value
 
     @property
     def cutoff_wl(self):

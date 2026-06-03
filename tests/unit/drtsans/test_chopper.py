@@ -8,13 +8,6 @@ from drtsans.frame_mode import FrameMode
 class TestDiskChopper:
     ch = DiskChopper(1.0, 45, 60, 2000, 850)
 
-    def test_pulse_width(self):
-        assert self.ch.pulse_width == DiskChopper._pulse_width
-        self.ch.pulse_width = 0
-        assert self.ch.pulse_width == 0
-        assert self.ch.pulse_width != DiskChopper._pulse_width
-        self.ch.pulse_width = DiskChopper._pulse_width  # restore state
-
     def test_cutoff_wl(self):
         assert self.ch.cutoff_wl == DiskChopper._cutoff_wl
         self.ch.cutoff_wl = 0

@@ -30,12 +30,6 @@ class EQSANSDiskChopperSet:
         Load the chopper settings from this object.
     """
 
-    #: Neutrons of a given wavelength :math:`\lambda` emitted from the moderator follow a distribution of delayed
-    #: emission times that depends on the wavelength, and is characterized by function
-    #: :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`.
-    #: This is the default :math:`pulsewidth` in micro-sec/Angstrom.
-    _pulse_width = 20
-
     #: The number of wavelength bands transmitted by a disk chopper is determined by the slowest emitted neutron,
     #: expressed as the maximum wavelength. This is the default cut-off maximum wavelength, in Angstroms.
     _cutoff_wl = 35
@@ -60,7 +54,6 @@ class EQSANSDiskChopperSet:
             speed = sample_logs["Speed{}".format(1 + chopper_index)].value.mean()
             sensor_phase = sample_logs["Phase{}".format(1 + chopper_index)].value.mean()
             ch = DiskChopper(to_source, aperture, speed, sensor_phase)
-            ch.pulse_width = self._pulse_width
             ch.cutoff_wl = self._cutoff_wl
             self._choppers.append(ch)
 
@@ -143,10 +136,6 @@ class EQSANSDiskChopperSet:
 
     def __getitem__(self, item):
         return self._choppers[item]
-
-    @property
-    def pulse_width(self):
-        return self._pulse_width
 
     @property
     def _n_choppers(self):

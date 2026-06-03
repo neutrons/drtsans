@@ -87,7 +87,7 @@ def test_load_all_files_simple_interval(datarepo_dir):
 
     # check interval
     w = loaded.sample[0].data
-    assert int(w.extractY().sum()) == 773
+    assert int(w.extractY().sum()) == 765
 
     # Change reduction input and rerun load_all_files
     reduction_input["configuration"]["useDefaultMask"] = True

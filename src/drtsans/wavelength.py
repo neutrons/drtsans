@@ -52,9 +52,13 @@ def from_tof(tof, distance, emission_delay=None):
         wavelength (in Angstroms)
     """
     w = tof * sigma / distance  # initial guess: no emission delay
+    if w <= 0:
+        return 0.0  # chopper opening before the pulse; treated as zero wavelength
     if emission_delay is not None:
         for _ in range(10):
             w_new = (tof - emission_delay(w)) * sigma / distance
+            if w_new <= 0.0:
+                raise ValueError(f"Negative wavelength {w_new:.4f} Å during iteration (tof={tof})")
             if abs(w_new - w) <= 0.001:
                 return w_new
             w = w_new

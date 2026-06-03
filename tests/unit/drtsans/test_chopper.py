@@ -45,11 +45,19 @@ class TestDiskChopper:
 
     def test_wavelength(self):
         assert_almost_equal(self.ch.wavelength(1200), 4.7, decimal=1)
-        assert_almost_equal(self.ch.wavelength(1200, pulsed=True), 4.3, decimal=1)
+
+        def emission_delay(w):  # linear approximation, pulse_width = 20 µs/Å
+            return 20 * w
+
+        assert_almost_equal(self.ch.wavelength(1200, emission_delay=emission_delay), 4.3, decimal=1)
 
     def test_tof(self):
         assert_almost_equal(self.ch.tof(4.747), 1200, decimal=0)
-        assert_almost_equal(self.ch.tof(4.399, pulsed=True), 1200, decimal=0)
+
+        def emission_delay(w):  # linear approximation, pulse_width = 20 µs/Å
+            return 20 * w
+
+        assert_almost_equal(self.ch.tof(4.399, emission_delay=emission_delay), 1200, decimal=0)
 
     def test_transmission_bands(self):
         wb = self.ch.transmission_bands()

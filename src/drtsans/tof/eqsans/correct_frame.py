@@ -113,9 +113,13 @@ def transmitted_bands(input_workspace):
     ch = EQSANSDiskChopperSet(input_workspace)  # object representing the choppers (four or six)
     # Wavelength band of neutrons from the leading pulse transmitted
     # by the chopper system
-    lead_band = ch.transmission_bands(pulsed=True)[0]
+    lead_band = ch.transmission_bands(emission_delay=emission_delay)[0]
     # Wavelength from the previous, skipped pulse.
-    skip_band = ch.transmission_bands(delay=pulse_period, pulsed=True)[0] if ch.frame_mode == FrameMode.skip else None
+    skip_band = (
+        ch.transmission_bands(delay=pulse_period, emission_delay=emission_delay)[0]
+        if ch.frame_mode == FrameMode.skip
+        else None
+    )
     return TransmittedBands(lead=lead_band, skip=skip_band)
 
 
@@ -209,7 +213,8 @@ def transmitted_bands_clipped(
         pulse (using `low_tof_clip`)
     search_in_logs: True
         If :py:obj:`True`, function clipped_bands_from_logs is tried first in order to retrieve the clipped bands
-        from the logs.
+        from the logs. If :py:obj:`False`, the clipped bands are calculated using the chopper settings
+        and the provided TOF clippings.
 
     Returns
     -------
@@ -238,7 +243,7 @@ def transmitted_bands_clipped(
         source_detector_dist = source_detector_distance(input_workspace, unit="m")
 
     ch = EQSANSDiskChopperSet(input_workspace)  # object representing the choppers (four or six)
-    lwc = wlg.from_tof(low_tof_clip, source_detector_dist, emission_delay=emission_delay)  # low wavel. clip
+    lwc = wlg.from_tof(low_tof_clip, source_detector_dist)  # low wavel. clip
     hwc = wlg.from_tof(high_tof_clip, source_detector_dist)  # high wavelength clip
     bands = transmitted_bands(input_workspace)
     if ch.frame_mode == FrameMode.not_skip:

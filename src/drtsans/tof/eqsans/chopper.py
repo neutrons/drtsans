@@ -75,7 +75,7 @@ class EQSANSDiskChopperSet:
             ch = self._choppers[chopper_index]
             ch.offset = self._offsets[self.frame_mode][chopper_index]
 
-    def transmission_bands(self, cutoff_wl: float = None, delay: float = 0, pulsed: bool = False) -> Wbands:
+    def transmission_bands(self, cutoff_wl: float = None, delay: float = 0, emission_delay=None) -> Wbands:
         r"""
         Wavelength bands transmitted by the chopper apertures. The number of bands is determined by the
         slowest neutrons emitted from the moderator.
@@ -87,10 +87,9 @@ class EQSANSDiskChopperSet:
         delay: float
             Additional time-of-flight to include in the calculations. For instance, this could be a multiple
             of the the pulse period.
-        pulsed: bool
-            Include a correction due to delayed emission of neutrons from the moderator. See
-            :const:`~drtsans.tof.eqsans.chopper.EQSANSDiskChopperSet._pulse_width` for a
-            more detailed explanation.
+        emission_delay: callable, optional
+            Function returning the delayed emission time (in microseconds) for a neutron of a given
+            wavelength (in Angstroms). If :py:obj:`None`, no emission-time correction is applied.
 
         Returns
         -------
@@ -104,11 +103,11 @@ class EQSANSDiskChopperSet:
         if not moving_choppers:
             return Wbands()
         # Transmission bands of the first chopper
-        wb = moving_choppers[0].transmission_bands(cutoff_wl, delay, pulsed)
+        wb = moving_choppers[0].transmission_bands(cutoff_wl, delay, emission_delay)
         # Find the common transmitted bands between the first chopper
         # and the ensuing choppers
         for ch in moving_choppers[1:]:
-            wb_other = ch.transmission_bands(cutoff_wl, delay, pulsed)
+            wb_other = ch.transmission_bands(cutoff_wl, delay, emission_delay)
             wb *= wb_other
         # We end up with the transmission bands of the chopper set
         return wb
@@ -128,7 +127,7 @@ class EQSANSDiskChopperSet:
         DiskChopperSetConfiguration
             Configuration of the disk choppers.
         """
-        # Get daystamp from sample logs (format: YYYYMMDD)
+        # Get daystamp from samplde logs (format: YYYYMMDD)
         start_time_str = start_time[0:10]  # "YYYY-MM-DD"
         daystamp = int(start_time_str.replace("-", ""))  # Convert to YYYYMMDD integer
 

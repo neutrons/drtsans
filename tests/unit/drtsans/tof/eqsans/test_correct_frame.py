@@ -21,12 +21,12 @@ BandsTuple = namedtuple("BandsTuple", "lead skip")
     "filename, lead_range, skip_range",
     [
         # four chopper configuration (before 2026)
-        ("EQSANS_101595.nxs.h5", (1.98, 6.16), None),
-        ("EQSANS_86217.nxs.h5", (2.48, 6.78), (10.90, 15.23)),  # frame skipping mode
+        ("EQSANS_101595.nxs.h5", (1.95, 6.16), None),
+        ("EQSANS_86217.nxs.h5", (2.45, 6.78), (10.96, 15.23)),  # frame skipping mode
         # six chopper configuration (starting 2026)
-        ("EQSANS_176973.nxs.h5", (11.9, 14.98), None),
-        ("EQSANS_176937.nxs.h5", (2.48, 6.13), None),
-        ("EQSANS_178264.nxs.h5", (2.48, 6.13), (9.62, 13.38)),  # frame skipping mode
+        ("EQSANS_176973.nxs.h5", (11.95, 14.98), None),
+        ("EQSANS_176937.nxs.h5", (2.45, 6.13), None),
+        ("EQSANS_178264.nxs.h5", (2.45, 6.13), (9.66, 13.38)),  # frame skipping mode
     ],
 )
 def test_transmitted_bands(datarepo_dir, clean_workspace, filename, lead_range, skip_range):
@@ -72,8 +72,8 @@ def test_transmitted_bands_zero_speed_choppers(datarepo_dir, clean_workspace):
         bands = correct_frame.transmitted_bands(ws)
         # The small difference in bands compared to test_transmitted_bands is due to
         # slightly different distances to the source in the new chopper configuration
-        assert_almost_equal((bands.lead.min, bands.lead.max), (2.48, 6.80), decimal=2)
-        assert_almost_equal((bands.skip.min, bands.skip.max), (10.95, 15.28), decimal=2)
+        assert_almost_equal((bands.lead.min, bands.lead.max), (2.45, 6.80), decimal=2)
+        assert_almost_equal((bands.skip.min, bands.skip.max), (11.01, 15.28), decimal=2)
 
 
 @pytest.mark.datarepo

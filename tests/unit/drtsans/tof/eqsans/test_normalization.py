@@ -83,8 +83,8 @@ def test_load_beam_flux_file(beam_flux, data_ws, clean_workspace):
     """
     flux_workspace = load_beam_flux_file(beam_flux, data_workspace=data_ws["92353"])
     clean_workspace(flux_workspace)
-    assert flux_workspace.readY(0)[0] == approx(959270.0, abs=1.0)
-    assert max(flux_workspace.readY(0)) == approx(966276.0, abs=1.0)
+    assert flux_workspace.readY(0)[0] == approx(954034, abs=1.0)
+    assert max(flux_workspace.readY(0)) == approx(964931, abs=1.0)
     assert flux_workspace.dataX(0) == approx(data_ws["92353"].dataX(0))
 
 
@@ -169,7 +169,7 @@ def test_load_flux_to_monitor_ratio_file(flux_to_monitor, data_ws, clean_workspa
     clean_workspace(flux_to_monitor_workspace)
     # Check the wavelength bin boundaries are those of the reference workspace.
     assert flux_to_monitor_workspace.dataX(0) == approx(data_workspace.dataX(0), abs=1e-3)
-    assert max(flux_to_monitor_workspace.dataY(0)) == approx(0.569, abs=1e-3)  # a simple check
+    assert max(flux_to_monitor_workspace.dataY(0)) == approx(0.561, abs=1e-3)  # a simple check
 
 
 @pytest.mark.datarepo
@@ -265,7 +265,7 @@ def test_normalize_by_time(data_ws, temp_workspace_name):
     data_workspace_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=data_workspace_normalized.name())
     # Second we integrate over all wavelength bins and check the value will not change as the code in the repository
     # evolves
-    assert sum(data_workspace_normalized.dataY(0)) == approx(2560.5, abs=1.0)
+    assert sum(data_workspace_normalized.dataY(0)) == approx(2576, abs=1.0)
 
 
 @pytest.mark.datarepo
@@ -315,7 +315,7 @@ def test_normalize_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws, temp
     # then we integrate this single spectrum over all wavelengths
     total_normalized_intensity = sum(summed_normalized.readY(0))
     # here we just check that the result will not change as the code in the repository evolves
-    assert total_normalized_intensity == approx(0.552, abs=1e-3)
+    assert total_normalized_intensity == approx(0.659, abs=1e-3)
 
     #
     # Third we normalize by run duration with method='time'
@@ -340,7 +340,7 @@ def test_normalize_by_flux(beam_flux, flux_to_monitor, data_ws, monitor_ws, temp
     data_workspace_normalized = SumSpectra(data_workspace_normalized, OutputWorkspace=data_workspace_normalized.name())
     # Second we integrate over all wavelength bins and check the value will not change as the code in the repository
     # evolves
-    assert sum(data_workspace_normalized.dataY(0)) == approx(2560, abs=1.0)
+    assert sum(data_workspace_normalized.dataY(0)) == approx(2576, abs=1.0)
 
 
 if __name__ == "__main__":

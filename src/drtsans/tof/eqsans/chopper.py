@@ -102,8 +102,10 @@ class EQSANSDiskChopperSet:
         for ch in moving_choppers[1:]:
             wb_other = ch.transmission_bands(cutoff_wl, delay, emission_delay)
             wb *= wb_other
+            if wb is None:
+                return Wbands()
         # We end up with the transmission bands of the chopper set
-        return wb
+        return Wbands() if wb is None else wb
 
     def get_chopper_configuration(self, start_time: str) -> DiskChopperSetConfiguration:
         r"""

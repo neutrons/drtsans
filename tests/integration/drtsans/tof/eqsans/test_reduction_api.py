@@ -474,7 +474,7 @@ def test_wavelength_step(has_sns_mount, reference_dir):
         # verify output file existence
         output_file_name = os.path.join(test_dir, "test_wavelength_step_reg_processed.nxs")
         assert os.path.isfile(output_file_name), f"Expected output file {output_file_name} does not exists"
-        # verify reduced worksapce
+        # verify reduced workspace
         gold_file = os.path.join(gold_dir, "test_integration_api/EQSANS_88980_wl_reduced_reg_m6.nxs")
         verify_processed_workspace(output_file_name, gold_file, "reg", ignore_error=False)
         # verify binned reduced I(Q)

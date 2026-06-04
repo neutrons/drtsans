@@ -131,7 +131,7 @@ def test_eqsans_prepare_sensitivities(has_sns_mount, reference_dir, cleanfile):
     assert os.path.exists(output_sens_file), "Output sensitivity file {} cannot be found".format(output_sens_file)
 
     # Verify value
-    gold_eq_file = os.path.join(reference_dir.sans, "sensitivities", "EQSANS_sens_patched_20200602.nxs")
+    gold_eq_file = os.path.join(reference_dir.sans, "sensitivities", "EQSANS_sens_patched_20260604.nxs")
 
     verify_sensitivities_file(output_sens_file, gold_eq_file)
 

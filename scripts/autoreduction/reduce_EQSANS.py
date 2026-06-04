@@ -35,11 +35,16 @@ from drtsans.tof.eqsans.api import (
 from drtsans.tof.eqsans.meta_data import is_sample_run
 
 try:
-    from extensions.gpr import autoreduction_plots
+    from drtsans.extensions.gpr import autoreduction_plots
 
     GPR_AVAILABLE = True
 except ImportError:
-    GPR_AVAILABLE = False
+    try:
+        from extensions.gpr import autoreduction_plots
+
+        GPR_AVAILABLE = True
+    except ImportError:
+        GPR_AVAILABLE = False
 
 # silently ignore all types of numerical errors (like divide by zero, overflow, etc.)
 np.seterr(all="ignore")

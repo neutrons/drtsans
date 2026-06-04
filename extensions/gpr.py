@@ -11,15 +11,19 @@ Command-Line Interface
 ----------------------
 The module can be run as a standalone CLI tool:
 
-    python -m extensions.gpr input_file.dat [options]
+    python -m drtsans.extensions.gpr input_file.dat [options]
+
+Or using the console script (after installation):
+
+    gpr input_file.dat [options]
 
 Shell Tab Completion (argcomplete):
     To enable bash/zsh tab completion, add to ~/.bashrc:
-        eval "$(register-python-argcomplete drtsans-gpr)"
+        eval "$(register-python-argcomplete gpr)"
 
 Interactive TUI (argparse-tui):
     Launch an interactive terminal UI with:
-        python -m extensions.gpr --tui
+        python -m drtsans.extensions.gpr --tui
 
 References
 ----------

@@ -23,7 +23,7 @@ BugTracker = "https://github.com/neutrons/drtsans/issues"
 
 [project.scripts]
 grasp_cg2 = "drtsans.mono.gpsans.export_to_grasp:main"
-drtsans-gpr = "extensions.gpr:main"
+gpr = "drtsans.extensions.gpr:main"
 
 ####################
 ### Build config ###
@@ -38,6 +38,9 @@ source = "versioningit"
 
 [tool.hatch.build]
 artifacts = ["*.yml", "*.yaml", "*.ini", "*.gx", "*.json", "*.ui"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"extensions" = "drtsans/extensions"
 
 [tool.hatch.build.hooks.versioningit-onbuild]
 source-file = "src/drtsans/_version.py"

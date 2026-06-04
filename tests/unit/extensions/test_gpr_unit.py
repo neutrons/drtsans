@@ -8,16 +8,30 @@ import pytest
 
 # local imports
 from drtsans.dataobjects import IQmod
-from extensions.gpr import (
-    f_loglin,
-    f_loglin_inv,
-    f_loglin_deriv,
-    run_gpr,
-    create_png_plot,
-    plotly_gpr_plot,
-    generate_gpr_analysis,
-    run_gpr_from_file,
-)
+
+try:
+    from drtsans.extensions.gpr import (
+        f_loglin,
+        f_loglin_inv,
+        f_loglin_deriv,
+        run_gpr,
+        create_png_plot,
+        plotly_gpr_plot,
+        generate_gpr_analysis,
+        run_gpr_from_file,
+    )
+except ImportError:
+    # Development mode - import from top-level extensions/
+    from extensions.gpr import (
+        f_loglin,
+        f_loglin_inv,
+        f_loglin_deriv,
+        run_gpr,
+        create_png_plot,
+        plotly_gpr_plot,
+        generate_gpr_analysis,
+        run_gpr_from_file,
+    )
 
 
 class TestTransformFunctions:

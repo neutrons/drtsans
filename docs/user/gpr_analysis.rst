@@ -29,6 +29,10 @@ You can also run GPR analysis independently on any I(Q) data file:
 
 .. code-block:: bash
 
+    # In development mode (source checkout)
+    python -m extensions.gpr input_file_Iq.dat
+
+    # In installed package mode
     python -m drtsans.extensions.gpr input_file_Iq.dat
 
 This will create two files in the same directory:
@@ -40,7 +44,10 @@ Specify a different output directory:
 
 .. code-block:: bash
 
-    python -m extensions.gpr input_file_Iq.dat --output-dir /path/to/output
+    python -m drtsans.extensions.gpr input_file_Iq.dat --output-dir /path/to/output
+
+    # Or:
+    gpr input_file_Iq.dat --output-dir /path/to/output
 
 Interactive Terminal Interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,7 +56,10 @@ For an interactive experience, use the ``--tui`` flag to launch a terminal-based
 
 .. code-block:: bash
 
-    python -m extensions.gpr --tui
+    python -m drtsans.extensions.gpr --tui
+
+    # Or:
+    gpr --tui
 
 This presents a menu where you can select files and adjust parameters without typing long command lines.
 
@@ -61,7 +71,7 @@ Enable tab completion for faster command-line use:
 .. code-block:: bash
 
     # Add to your ~/.bashrc or ~/.zshrc:
-    eval "$(register-python-argcomplete drtsans-gpr)"
+    eval "$(register-python-argcomplete gpr)"
 
 Then you can tab-complete file paths and options when using the GPR command.
 
@@ -75,7 +85,7 @@ Basic Usage
 
 .. code-block:: python
 
-    from extensions.gpr import generate_gpr_analysis
+    from drtsans.extensions.gpr import generate_gpr_analysis
     from drtsans.dataobjects import IQmod
 
     # Load your I(Q) data
@@ -135,7 +145,7 @@ Process .dat files directly:
 
 .. code-block:: python
 
-    from extensions.gpr import run_gpr_from_file
+    from drtsans.extensions.gpr import run_gpr_from_file
 
     png_path, dat_path = run_gpr_from_file(
         "EQSANS_89157_Iq.dat",

@@ -637,6 +637,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
             InputWorkspace=output_workspace,
             Params=params,
             PreserveEvents=events,
+            FullBinsOnly=True,
             OutputWorkspace=output_workspace,
         )
         SampleLogs(output_workspace).insert("wavelength_bin_width", bin_width, unit="Angstrom")

@@ -425,19 +425,18 @@ DELAY_FIT = (
 )
 
 
-def emission_delay(wavelength):
+def emission_delay(wavelength: float) -> float:
     r"""
     Delayed emission time of a neutron from the moderator as a function of wavelength.
 
     Parameters
     ----------
-    wavelength: float
+    wavelength
         Wavelength of the neutron, in Angstroms.
 
     Returns
     -------
-    float
-        Delayed emission time, in microseconds.
+    Delayed emission time, in microseconds.
     """
     w = wavelength
     if w < 2.0:

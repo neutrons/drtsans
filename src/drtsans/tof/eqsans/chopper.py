@@ -17,6 +17,7 @@ from drtsans.path import exists
 from mantid.api import Run
 from mantid.simpleapi import LoadNexusProcessed, mtd
 
+from drtsans.type_hints import EmissionDelay
 from drtsans.wavelength import Wbands
 
 
@@ -68,7 +69,9 @@ class EQSANSDiskChopperSet:
             ch = self._choppers[chopper_index]
             ch.offset = self._offsets[self.frame_mode][chopper_index]
 
-    def transmission_bands(self, cutoff_wl: float = None, delay: float = 0, emission_delay=None) -> Wbands:
+    def transmission_bands(
+        self, cutoff_wl: float = None, delay: float = 0, emission_delay: EmissionDelay = None
+    ) -> Wbands:
         r"""
         Wavelength bands transmitted by the chopper apertures. The number of bands is determined by the
         slowest neutrons emitted from the moderator.

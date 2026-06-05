@@ -243,8 +243,8 @@ def transmitted_bands_clipped(
         source_detector_dist = source_detector_distance(input_workspace, unit="m")
 
     ch = EQSANSDiskChopperSet(input_workspace)  # object representing the choppers (four or six)
-    lwc = wlg.from_tof(low_tof_clip, source_detector_dist)  # low wavel. clip
-    hwc = wlg.from_tof(high_tof_clip, source_detector_dist)  # high wavelength clip
+    lwc = wlg.from_tof(low_tof_clip, distance=source_detector_dist)  # low wavel. clip
+    hwc = wlg.from_tof(high_tof_clip, distance=source_detector_dist)  # high wavelength clip
     bands = transmitted_bands(input_workspace)
     if ch.frame_mode == FrameMode.not_skip:
         lead = wlg.Wband(bands.lead.min + lwc, bands.lead.max - hwc)
@@ -432,17 +432,33 @@ def emission_delay(wavelength: float) -> float:
     Parameters
     ----------
     wavelength
-        Wavelength of the neutron, in Angstroms.
+        Wavelength of the neutron, in Angstroms. Must be positive.
 
     Returns
     -------
     Delayed emission time, in microseconds.
+
+    Raises
+    ------
+    ValueError
+        If ``wavelength`` is not positive, or if the empirical fit yields a negative
+        delay (which would indicate the input is outside the valid fitted range).
     """
+    if wavelength <= 0:
+        raise ValueError(f"wavelength must be positive (got {wavelength} Å)")
     w = wavelength
     if w < 2.0:
-        return 0.5 * (1280.5 - 7448.4 * w + 16509 * w**2 - 17872 * w**3 + 10445 * w**4 - 3169.3 * w**5 + 392.31 * w**6)
+        result = 0.5 * (
+            1280.5 - 7448.4 * w + 16509 * w**2 - 17872 * w**3 + 10445 * w**4 - 3169.3 * w**5 + 392.31 * w**6
+        )
     else:
-        return 0.5 * (231.99 + 6.4797 * w - 0.5233 * w**2 + 0.0148 * w**3)
+        result = 0.5 * (231.99 + 6.4797 * w - 0.5233 * w**2 + 0.0148 * w**3)
+    if result < 0:
+        raise ValueError(
+            f"emission_delay returned a negative value ({result:.4f} µs) for wavelength={wavelength} Å; "
+            "input is likely outside the valid range of the empirical fit"
+        )
+    return result
 
 
 def correct_emission_time(input_workspace):

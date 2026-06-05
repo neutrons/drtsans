@@ -7,7 +7,8 @@ settings such as aperture and starting phase.
 from dataclasses import dataclass, field
 from typing import Any
 from drtsans.frame_mode import FrameMode
-from drtsans.wavelength import Wband, Wbands
+from drtsans.type_hints import EmissionDelay
+from drtsans.wavelength import BROGLIE_NEUTRON, Wband, Wbands, from_tof as wavelength_from_tof
 
 
 class DiskChopperSetConfigurationParsingError(Exception):
@@ -240,7 +241,7 @@ class DiskChopper:
             t_closing += self.period
         return t_closing - self.transmission_duration
 
-    def wavelength(self, tof, delay=0, emission_delay=None):
+    def wavelength(self, tof, delay=0, emission_delay: EmissionDelay = None):
         r"""
         Convert time-of-flight to neutron wavelength, for a neutron that has traveled the distance from the
         moderator to the chopper.
@@ -272,21 +273,9 @@ class DiskChopper:
         float
             Neutron wavelength (in Angstroms). Returns zero for negative `tof`.
         """
-        sigma = 3.9560346e-03  # plank constant divided by neutron mass
-        w = sigma * (tof + delay) / self.to_source  # initial guess: no emission delay
-        if w <= 0:
-            return 0.0  # chopper opening before the pulse; treated as zero wavelength
-        if emission_delay is not None:
-            for _ in range(10):
-                w_new = (tof + delay - emission_delay(w)) * sigma / self.to_source
-                if w_new <= 0.0:
-                    raise ValueError(f"Negative wavelength {w_new:.4f} Å during iteration (tof={tof}, delay={delay})")
-                if abs(w_new - w) <= 0.001:
-                    return w_new
-                w = w_new
-        return w
+        return wavelength_from_tof(tof, delay, distance=self.to_source, emission_delay=emission_delay)
 
-    def tof(self, wavelength, delay=0, emission_delay=None):
+    def tof(self, wavelength, delay=0, emission_delay: EmissionDelay = None):
         r"""
         Convert wavelength to *measured* time-of-flight, for a neutron that has traveled the distance from the
         moderator to the chopper.
@@ -317,12 +306,11 @@ class DiskChopper:
         float
             time-of-flight, in micro seconds.
         """
-        sigma = 3.9560346e-03  # plank constant divided by neutron mass
-        velocity = sigma / wavelength  # neutron velocity, in meters/microsecond
+        velocity = BROGLIE_NEUTRON / wavelength  # neutron velocity, in meters/microsecond
         t0 = emission_delay(wavelength) if emission_delay is not None else 0.0
         return self.to_source / velocity + t0 - delay
 
-    def transmission_bands(self, cutoff_wl=None, delay=0, emission_delay=None):
+    def transmission_bands(self, cutoff_wl=None, delay=0, emission_delay: EmissionDelay = None):
         r"""
         Wavelength bands transmitted by the chopper aperture. The number of bands is determined by the
         slowest neutrons emitted from the moderator.

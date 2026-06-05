@@ -59,6 +59,59 @@ For IPTS-20196 and run number 89157, all reduction files are saved under directo
 7. ``reduction_options_89157.json`` - input configuration options, completed with any missing default values.
    If User requests to autoreduce the same run again, this file will be used as input configuration.
 
+Additionally, if GPR analysis is enabled (which it is by default), the following files will also be generated:
+
+8. ``EQSANS_89157_Iq_gpr.png`` - High-resolution plot showing the GPR fit alongside the experimental data.
+9. ``EQSANS_89157_Iq_gpr.dat`` - ASCII file with the GPR-fitted I(Q) profile including uncertainties.
+
+For reductions with multiple I(Q) profiles (wedges or time slices), separate GPR files are created for each:
+
+- ``EQSANS_89157_wedge_0_Iq_gpr.png``, ``EQSANS_89157_wedge_0_Iq_gpr.dat``
+- ``EQSANS_89157_wedge_1_Iq_gpr.png``, ``EQSANS_89157_wedge_1_Iq_gpr.dat``
+- and so on for each wedge or time slice.
+
+Gaussian Process Regression Analysis
+-------------------------------------
+
+The EQSANS autoreduction now includes Gaussian Process Regression (GPR) analysis of the calculated I(Q) profiles.
+This analysis provides uncertainty-quantified fits to your scattering data and appears directly in the HTML report.
+
+What GPR Does
+~~~~~~~~~~~~~
+
+GPR fits a smooth curve through your I(Q) data while accounting for measurement uncertainties. It gives you:
+
+- A noise-reduced representation of your scattering profile
+- Quantified uncertainties on the fit
+- Better visualization of underlying trends in noisy data
+
+The algorithm uses log-space transformations optimized for SANS data and includes iterative background estimation.
+Interactive Plotly plots are embedded in the HTML report, allowing you to zoom and explore your data.
+
+Configuration
+~~~~~~~~~~~~~
+
+GPR analysis runs automatically by default. If you want to disable it, add this to your reduction configuration JSON file:
+
+.. code-block:: json
+
+    {
+        "configuration": {
+            "enableGPR": false
+        }
+    }
+
+Error Handling
+~~~~~~~~~~~~~~
+
+GPR analysis is designed to never break your reduction. If GPR fails for any reason:
+
+- The failure is logged but doesn't stop the reduction
+- Other reduction outputs are still generated normally
+- Error details appear in the log file
+
+This means you can safely leave GPR enabled even for challenging datasets.
+
 Resubmitting Autoreduction
 --------------------------
 User can resubmit the autoreduction for a given run,

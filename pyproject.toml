@@ -23,6 +23,7 @@ BugTracker = "https://github.com/neutrons/drtsans/issues"
 
 [project.scripts]
 grasp_cg2 = "drtsans.mono.gpsans.export_to_grasp:main"
+gpr = "drtsans.extensions.gpr:main"
 
 ####################
 ### Build config ###
@@ -37,6 +38,9 @@ source = "versioningit"
 
 [tool.hatch.build]
 artifacts = ["*.yml", "*.yaml", "*.ini", "*.gx", "*.json", "*.ui"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"extensions" = "drtsans/extensions"
 
 [tool.hatch.build.hooks.versioningit-onbuild]
 source-file = "src/drtsans/_version.py"
@@ -157,6 +161,9 @@ pre-commit = ">=4.2.0"
 ruff = "*"
 versioningit = ">=3.2.0"
 argcomplete = "*"
+
+[tool.pixi.feature.dev.pypi-dependencies]
+argparse-tui = "*"
 
 [tool.pixi.feature.docs.dependencies]
 graphviz = "*"

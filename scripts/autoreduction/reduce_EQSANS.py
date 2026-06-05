@@ -34,6 +34,18 @@ from drtsans.tof.eqsans.api import (
 )
 from drtsans.tof.eqsans.meta_data import is_sample_run
 
+try:
+    from drtsans.extensions.gpr import autoreduction_plots
+
+    GPR_AVAILABLE = True
+except ImportError:
+    try:
+        from extensions.gpr import autoreduction_plots
+
+        GPR_AVAILABLE = True
+    except ImportError:
+        GPR_AVAILABLE = False
+
 # silently ignore all types of numerical errors (like divide by zero, overflow, etc.)
 np.seterr(all="ignore")
 warnings.filterwarnings("ignore", module="numpy")
@@ -397,6 +409,18 @@ def reduce_sample(events: EventWorkspace, output_dir: str, logger: logging.Logge
     # create plotly images for all intensity profiles, save as HTML report
     logger.info("reduce_sample: creating Plotly output with plotly_reduction_output()")
     report += plotly_reduction_output(output, input_config) + "<hr>\n"
+
+    # Generate GPR analysis plots
+    if GPR_AVAILABLE:
+        logger.info("reduce_sample: generating GPR analysis plots")
+        gpr_report = autoreduction_plots(
+            reduction_output=output,
+            output_dir=output_dir,
+            output_filename=input_config["outputFileName"],
+            conf=input_config["configuration"],
+        )
+        if gpr_report:
+            report += gpr_report + "<hr>\n"
 
     # Save the input reduction options
     logger.info("reduce_sample: saving final input reduction options to JSON file")

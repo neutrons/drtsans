@@ -580,7 +580,9 @@ def band_gap_indexes(input_workspace, bands):
     if bands.skip is None:
         return list()
     else:
-        return (np.where((ws.dataX(0) > bands.lead.max) & (ws.dataX(0) < bands.skip.min))[0]).tolist()
+        wavelength_bins = (np.where((ws.dataX(0) > bands.lead.max) & (ws.dataX(0) < bands.skip.min))[0]).tolist()
+        intensity_indexes = [wavelength_bins[0] - 1] + wavelength_bins
+        return intensity_indexes
 
 
 # flake8: noqa: C901
@@ -631,13 +633,13 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
             params = (w_min, bin_width, w_max)
         else:
             params = bin_width
-
         Rebin(
             InputWorkspace=output_workspace,
             Params=params,
             PreserveEvents=events,
             OutputWorkspace=output_workspace,
         )
+        SampleLogs(output_workspace).insert("wavelength_bin_width", bin_width, unit="Angstrom")
     else:
         # crop the workspace if wavelength range is found
         kwargs = dict()

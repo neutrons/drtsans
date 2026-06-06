@@ -289,12 +289,14 @@ def split_by_frame(input_workspace, *args, **kwargs):
     if bool(sl.is_frame_skipping.value):
         # skip frame mode
         logger.information("This is a frame skipping data set.")
-        # frame 1
-        frame1_wavelength_min = sl.wavelength_skip_min.value
+        bin_width = sl.wavelength_bin_width.value
+        # Preserve historical frame order: frame 1 is skip frame (the high-wavelength range), frame 2 is lead frame!
+        # frame 1 (skip frame or high-wavelength range)
+        frame1_wavelength_min = sl.wavelength_skip_min.value + bin_width / 2.0
         frame1_wavelength_max = sl.wavelength_skip_max.value
-        # frame 2
+        # frame 2 (lead frame or low-wavelength range)
         frame2_wavelength_min = sl.wavelength_lead_min.value
-        frame2_wavelength_max = sl.wavelength_lead_max.value
+        frame2_wavelength_max = sl.wavelength_lead_max.value - bin_width / 2.0
         # append
         frames.append((frame1_wavelength_min, frame1_wavelength_max))
         frames.append((frame2_wavelength_min, frame2_wavelength_max))
@@ -310,8 +312,8 @@ def split_by_frame(input_workspace, *args, **kwargs):
     for wl_min, wl_max in frames:
         output = dict()
         wavelength = kwargs["wavelength"]
-        # use only data between the given wavelengths
-        kept_data_indexes = np.logical_and(np.greater_equal(wavelength, wl_min), np.less_equal(wavelength, wl_max))
+        # use only data strictly between the given wavelengths
+        kept_data_indexes = np.logical_and(np.greater(wavelength, wl_min), np.less(wavelength, wl_max))
         # filter each data/key
         for k in keys:
             output[k] = kwargs[k][kept_data_indexes]

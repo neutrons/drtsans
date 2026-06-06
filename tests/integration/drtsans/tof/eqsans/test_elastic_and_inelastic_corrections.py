@@ -531,16 +531,15 @@ def test_incoherence_correction_elastic_normalization_slices_frames(
     assert reduction_output
     print(f"Output directory: {test_dir}")
 
-    # check that the wavelength dependent profiles are created in subdirectories for slices and frames
+    # check that the wavelength-dependent profiles are created in subdirectories for slices and frames
+    wavelength_count = [28, 28]  # number of wavelengths for each frame
     for islice in range(3):
         for iframe in range(2):
-            # 29 wavelengths for the first frame, 28 for the second frame
-            # unless inelastic correction is disabled for the frame
             if isinstance(fitInelasticIncoh, list) and fitInelasticIncoh[iframe] is False:
-                num_wavelengths_k = 29 - iframe
+                num_wavelengths_k = wavelength_count[iframe]
                 num_wavelengths_b = 0
             else:
-                num_wavelengths_k = num_wavelengths_b = 29 - iframe
+                num_wavelengths_k = num_wavelengths_b = wavelength_count[iframe]
             elastic_output_dir = os.path.join(
                 test_dir, "info", "elastic_norm", f"{base_name}", f"slice_{islice}", f"frame_{iframe}"
             )

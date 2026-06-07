@@ -17,6 +17,7 @@ from drtsans.path import exists
 from mantid.api import Run
 from mantid.simpleapi import LoadNexusProcessed, mtd
 
+from drtsans.type_hints import EmissionDelay
 from drtsans.wavelength import Wbands
 
 
@@ -29,12 +30,6 @@ class EQSANSDiskChopperSet:
     other: file name, workspace, Run object, run number
         Load the chopper settings from this object.
     """
-
-    #: Neutrons of a given wavelength :math:`\lambda` emitted from the moderator follow a distribution of delayed
-    #: emission times that depends on the wavelength, and is characterized by function
-    #: :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`.
-    #: This is the default :math:`pulsewidth` in micro-sec/Angstrom.
-    _pulse_width = 20
 
     #: The number of wavelength bands transmitted by a disk chopper is determined by the slowest emitted neutron,
     #: expressed as the maximum wavelength. This is the default cut-off maximum wavelength, in Angstroms.
@@ -60,7 +55,6 @@ class EQSANSDiskChopperSet:
             speed = sample_logs["Speed{}".format(1 + chopper_index)].value.mean()
             sensor_phase = sample_logs["Phase{}".format(1 + chopper_index)].value.mean()
             ch = DiskChopper(to_source, aperture, speed, sensor_phase)
-            ch.pulse_width = self._pulse_width
             ch.cutoff_wl = self._cutoff_wl
             self._choppers.append(ch)
 
@@ -75,7 +69,9 @@ class EQSANSDiskChopperSet:
             ch = self._choppers[chopper_index]
             ch.offset = self._offsets[self.frame_mode][chopper_index]
 
-    def transmission_bands(self, cutoff_wl: float = None, delay: float = 0, pulsed: bool = False) -> Wbands:
+    def transmission_bands(
+        self, cutoff_wl: float = None, delay: float = 0, emission_delay: EmissionDelay = None
+    ) -> Wbands:
         r"""
         Wavelength bands transmitted by the chopper apertures. The number of bands is determined by the
         slowest neutrons emitted from the moderator.
@@ -87,10 +83,9 @@ class EQSANSDiskChopperSet:
         delay: float
             Additional time-of-flight to include in the calculations. For instance, this could be a multiple
             of the the pulse period.
-        pulsed: bool
-            Include a correction due to delayed emission of neutrons from the moderator. See
-            :const:`~drtsans.tof.eqsans.chopper.EQSANSDiskChopperSet._pulse_width` for a
-            more detailed explanation.
+        emission_delay: callable, optional
+            Function returning the delayed emission time (in microseconds) for a neutron of a given
+            wavelength (in Angstroms). If :py:obj:`None`, no emission-time correction is applied.
 
         Returns
         -------
@@ -104,14 +99,16 @@ class EQSANSDiskChopperSet:
         if not moving_choppers:
             return Wbands()
         # Transmission bands of the first chopper
-        wb = moving_choppers[0].transmission_bands(cutoff_wl, delay, pulsed)
+        wb = moving_choppers[0].transmission_bands(cutoff_wl, delay, emission_delay)
         # Find the common transmitted bands between the first chopper
         # and the ensuing choppers
         for ch in moving_choppers[1:]:
-            wb_other = ch.transmission_bands(cutoff_wl, delay, pulsed)
+            wb_other = ch.transmission_bands(cutoff_wl, delay, emission_delay)
             wb *= wb_other
+            if wb is None:
+                return Wbands()
         # We end up with the transmission bands of the chopper set
-        return wb
+        return Wbands() if wb is None else wb
 
     def get_chopper_configuration(self, start_time: str) -> DiskChopperSetConfiguration:
         r"""
@@ -128,7 +125,7 @@ class EQSANSDiskChopperSet:
         DiskChopperSetConfiguration
             Configuration of the disk choppers.
         """
-        # Get daystamp from sample logs (format: YYYYMMDD)
+        # Get daystamp from samplde logs (format: YYYYMMDD)
         start_time_str = start_time[0:10]  # "YYYY-MM-DD"
         daystamp = int(start_time_str.replace("-", ""))  # Convert to YYYYMMDD integer
 
@@ -144,10 +141,6 @@ class EQSANSDiskChopperSet:
 
     def __getitem__(self, item):
         return self._choppers[item]
-
-    @property
-    def pulse_width(self):
-        return self._pulse_width
 
     @property
     def _n_choppers(self):

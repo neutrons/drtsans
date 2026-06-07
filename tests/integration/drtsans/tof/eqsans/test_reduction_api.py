@@ -209,7 +209,7 @@ def test_weighted_binning_setup(has_sns_mount, run_config, basename, temp_direct
     reduction_output = reduce_single_configuration(loaded, input_config)
 
     # Verify reduced workspace
-    gold_ws_nexus = os.path.join(reference_dir.eqsans, "test_integration_api/EQSANS_88980_reduced_m6.nxs")
+    gold_ws_nexus = os.path.join(reference_dir.eqsans, "test_integration_api/EQSANS_88980_reduced_m6_wb.nxs")
     print(f"[TEST] Verify correction workflow reduction: {reduced_data_nexus} vs. {gold_ws_nexus}")
     verify_processed_workspace(
         test_file=reduced_data_nexus,
@@ -474,7 +474,7 @@ def test_wavelength_step(has_sns_mount, reference_dir):
         # verify output file existence
         output_file_name = os.path.join(test_dir, "test_wavelength_step_reg_processed.nxs")
         assert os.path.isfile(output_file_name), f"Expected output file {output_file_name} does not exists"
-        # verify reduced worksapce
+        # verify reduced workspace
         gold_file = os.path.join(gold_dir, "test_integration_api/EQSANS_88980_wl_reduced_reg_m6.nxs")
         verify_processed_workspace(output_file_name, gold_file, "reg", ignore_error=False)
         # verify binned reduced I(Q)

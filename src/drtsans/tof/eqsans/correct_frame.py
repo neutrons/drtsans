@@ -113,9 +113,13 @@ def transmitted_bands(input_workspace):
     ch = EQSANSDiskChopperSet(input_workspace)  # object representing the choppers (four or six)
     # Wavelength band of neutrons from the leading pulse transmitted
     # by the chopper system
-    lead_band = ch.transmission_bands(pulsed=True)[0]
+    lead_band = ch.transmission_bands(emission_delay=emission_delay)[0]
     # Wavelength from the previous, skipped pulse.
-    skip_band = ch.transmission_bands(delay=pulse_period, pulsed=True)[0] if ch.frame_mode == FrameMode.skip else None
+    skip_band = (
+        ch.transmission_bands(delay=pulse_period, emission_delay=emission_delay)[0]
+        if ch.frame_mode == FrameMode.skip
+        else None
+    )
     return TransmittedBands(lead=lead_band, skip=skip_band)
 
 
@@ -141,12 +145,12 @@ def limiting_tofs(input_workspace, sdd):
     ws = mtd[str(input_workspace)]
     ch = EQSANSDiskChopperSet(ws)  # object representing the choppers (four or six)
     bands = transmitted_bands(ws)
-    lead = (wlg.tof(bands.lead.min, sdd, ch.pulse_width), wlg.tof(bands.lead.max, sdd))
+    lead = (wlg.tof(bands.lead.min, sdd, emission_delay=emission_delay), wlg.tof(bands.lead.max, sdd))
     skip = (
         None
         if ch.frame_mode == FrameMode.not_skip
         else (
-            wlg.tof(bands.skip.min, sdd, ch.pulse_width),
+            wlg.tof(bands.skip.min, sdd, emission_delay=emission_delay),
             wlg.tof(bands.skip.max, sdd),
         )
     )
@@ -209,7 +213,8 @@ def transmitted_bands_clipped(
         pulse (using `low_tof_clip`)
     search_in_logs: True
         If :py:obj:`True`, function clipped_bands_from_logs is tried first in order to retrieve the clipped bands
-        from the logs.
+        from the logs. If :py:obj:`False`, the clipped bands are calculated using the chopper settings
+        and the provided TOF clippings.
 
     Returns
     -------
@@ -238,8 +243,8 @@ def transmitted_bands_clipped(
         source_detector_dist = source_detector_distance(input_workspace, unit="m")
 
     ch = EQSANSDiskChopperSet(input_workspace)  # object representing the choppers (four or six)
-    lwc = wlg.from_tof(low_tof_clip, source_detector_dist, ch.pulse_width)  # low wavel. clip
-    hwc = wlg.from_tof(high_tof_clip, source_detector_dist)  # high wavelength clip
+    lwc = wlg.from_tof(low_tof_clip, distance=source_detector_dist)  # low wavel. clip
+    hwc = wlg.from_tof(high_tof_clip, distance=source_detector_dist)  # high wavelength clip
     bands = transmitted_bands(input_workspace)
     if ch.frame_mode == FrameMode.not_skip:
         lead = wlg.Wband(bands.lead.min + lwc, bands.lead.max - hwc)
@@ -413,10 +418,52 @@ def correct_monitor_frame(input_workspace):
     correct_tof_frame(ws, source_monitor_distance(ws, unit="m"), path_to_pixel=False)
 
 
+# Delayed emission time of a neutron from the moderator as a function of wavelength, in microseconds.
+DELAY_FIT = (
+    "(x < 2.0) ? 0.5*(1280.5-7448.4*x+16509*x^2-17872*x^3+10445*x^4-3169.3*x^5+392.31*x^6) :"
+    " 0.5*(231.99+6.4797*x-0.5233*x^2+0.0148*x^3)"
+)
+
+
+def emission_delay(wavelength: float) -> float:
+    r"""
+    Delayed emission time of a neutron from the moderator as a function of wavelength.
+
+    Parameters
+    ----------
+    wavelength
+        Wavelength of the neutron, in Angstroms. Must be positive.
+
+    Returns
+    -------
+    Delayed emission time, in microseconds.
+
+    Raises
+    ------
+    ValueError
+        If ``wavelength`` is not positive, or if the empirical fit yields a negative
+        delay (which would indicate the input is outside the valid fitted range).
+    """
+    if wavelength <= 0:
+        raise ValueError(f"wavelength must be positive (got {wavelength} Å)")
+    w = wavelength
+    if w < 2.0:
+        result = 0.5 * (
+            1280.5 - 7448.4 * w + 16509 * w**2 - 17872 * w**3 + 10445 * w**4 - 3169.3 * w**5 + 392.31 * w**6
+        )
+    else:
+        result = 0.5 * (231.99 + 6.4797 * w - 0.5233 * w**2 + 0.0148 * w**3)
+    if result < 0:
+        raise ValueError(
+            f"emission_delay returned a negative value ({result:.4f} µs) for wavelength={wavelength} Å; "
+            "input is likely outside the valid range of the empirical fit"
+        )
+    return result
+
+
 def correct_emission_time(input_workspace):
     r"""
-    This correct the TOF values on a workspace for the moderator
-    emission time as a function of wavelength.
+    This correct the TOF values on a workspace for the moderator emission time as a function of wavelength.
 
     Parameters
     ----------
@@ -434,7 +481,7 @@ def correct_emission_time(input_workspace):
     SetInstrumentParameter(
         Workspace=input_workspace,
         ParameterName="t0_formula",
-        Value="incidentEnergy=sqrt(81.80420249996277/incidentEnergy), (incidentEnergy < 2.0) ? 0.5*(1280.5-7448.4*incidentEnergy+16509*incidentEnergy^2-17872*incidentEnergy^3+10445*incidentEnergy^4-3169.3*incidentEnergy^5+392.31*incidentEnergy^6) : 0.5*(231.99+6.4797*incidentEnergy-0.5233*incidentEnergy^2+0.0148*incidentEnergy^3)",  # noqa: E501
+        Value=f"incidentEnergy=sqrt(81.80420249996277/incidentEnergy), {DELAY_FIT.replace('x', 'incidentEnergy')}",
     )
     ModeratorTzero(
         InputWorkspace=input_workspace,
@@ -533,7 +580,9 @@ def band_gap_indexes(input_workspace, bands):
     if bands.skip is None:
         return list()
     else:
-        return (np.where((ws.dataX(0) > bands.lead.max) & (ws.dataX(0) < bands.skip.min))[0]).tolist()
+        wavelength_bins = (np.where((ws.dataX(0) > bands.lead.max) & (ws.dataX(0) < bands.skip.min))[0]).tolist()
+        intensity_indexes = [wavelength_bins[0] - 1] + wavelength_bins
+        return intensity_indexes
 
 
 # flake8: noqa: C901
@@ -584,13 +633,13 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
             params = (w_min, bin_width, w_max)
         else:
             params = bin_width
-
         Rebin(
             InputWorkspace=output_workspace,
             Params=params,
             PreserveEvents=events,
             OutputWorkspace=output_workspace,
         )
+        SampleLogs(output_workspace).insert("wavelength_bin_width", bin_width, unit="Angstrom")
     else:
         # crop the workspace if wavelength range is found
         kwargs = dict()

@@ -7,7 +7,8 @@ settings such as aperture and starting phase.
 from dataclasses import dataclass, field
 from typing import Any
 from drtsans.frame_mode import FrameMode
-from drtsans.wavelength import Wband, Wbands
+from drtsans.type_hints import EmissionDelay
+from drtsans.wavelength import BROGLIE_NEUTRON, Wband, Wbands, from_tof as wavelength_from_tof
 
 
 class DiskChopperSetConfigurationParsingError(Exception):
@@ -159,12 +160,6 @@ class DiskChopper:
         the value `sensor_phase` reported by the metadata. Units are in micro seconds.
     """
 
-    #: Neutrons of a given wavelength :math:`\lambda` emitted from the moderator follow a distribution of delayed
-    #: emission times that depends on the wavelength, and is characterized by function
-    #: :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`.
-    #: This is the default :math:`pulsewidth` in micro-sec/Angstrom.
-    _pulse_width = 20
-
     #: The number of wavelength bands transmitted by a disk chopper is determined by the slowest emitted neutron,
     #: expressed as the maximum wavelength. This is the default cut-off maximum wavelength, in Angstroms.
     _cutoff_wl = 35
@@ -175,23 +170,6 @@ class DiskChopper:
         self.speed = float(speed)
         self.sensor_phase = float(sensor_phase)
         self.offset = float(offset)
-
-    @property
-    def pulse_width(self):
-        r"""
-        Neutrons of a given wavelength :math:`\lambda` emitted from the
-        moderator have a distribution of delayed times that depends on the wavelength, and is characterized by
-        a :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`. This property can override the default
-        pulse width :const:`~drtsans.chopper.DiskChopper._pulse_width`.
-        """
-        return self._pulse_width
-
-    @pulse_width.setter
-    def pulse_width(self, value):
-        r"""
-        Override the default pulse width :const:`~drtsans.chopper.DiskChopper._pulse_width`.
-        """
-        self._pulse_width = value
 
     @property
     def cutoff_wl(self):
@@ -263,29 +241,21 @@ class DiskChopper:
             t_closing += self.period
         return t_closing - self.transmission_duration
 
-    def wavelength(self, tof, delay=0, pulsed=False):
+    def wavelength(self, tof, delay=0, emission_delay: EmissionDelay = None):
         r"""
         Convert time-of-flight to neutron wavelength, for a neutron that has traveled the distance from the
         moderator to the chopper.
 
-        The measured time of flight :math:`t_m` plus the additional delay :math:`d` is equal to the
-        real time of flight :math:`tof` plus the delayed emission time from the moderator :math:`p \lambda`,
-        where :math:`p` is constant :const:`~drtsans.chopper.DiskChopperSet._pulse_width`.
+        Solves the implicit equation
 
         .. math::
 
-           t_m + d = tof + p \lambda
+            \frac{D}{v(\lambda)} + t_0(\lambda) = t_m + d
 
-           D = tof / v
-
-           v = \frac{h}{m\lambda}
-
-        where :math:`D` is the distance from moderator to chopper and :math:`v` is the neutron velocity.
-        Solving this system of equations for :math:`\lambda`, one obtains
-
-        .. math::
-
-            \lambda = \frac{h}{m} \frac{t_m + d}{D + hp/m}
+        where :math:`D` is the distance from moderator to chopper, :math:`v(\lambda) = h/(m\lambda)` is
+        the neutron velocity, and :math:`t_0(\lambda)` is the delayed emission time from the moderator.
+        When no emission delay is provided the equation is explicit:
+        :math:`\lambda = \frac{h}{m} \frac{t_m + d}{D}`.
 
         Parameters
         ----------
@@ -294,71 +264,53 @@ class DiskChopper:
         delay: float
             Additional time-of-flight to include in the calculations. For instance, this could be a multiple
             of the the pulse period.
-        pulsed: bool
-            Include a correction due to delayed emission of neutrons from the moderator. See
-            :const:`~drtsans.chopper.DiskChopper._pulse_width` for a more detailed explanation.
+        emission_delay: callable, optional
+            Function returning the delayed emission time (in microseconds) for a neutron of a given
+            wavelength (in Angstroms). If :py:obj:`None`, no emission-time correction is applied.
 
         Returns
         -------
         float
             Neutron wavelength (in Angstroms). Returns zero for negative `tof`.
         """
-        sigma = 3.9560346e-03  # plank constant divided by neutron mass
-        loc = self.to_source
-        if pulsed is True:
-            loc += sigma * self._pulse_width
-        wl = sigma * (tof + delay) / loc
-        if wl < 0:
-            wl = 0
-        return wl
+        return wavelength_from_tof(tof, delay, distance=self.to_source, emission_delay=emission_delay)
 
-    def tof(self, wavelength, delay=0, pulsed=False):
+    def tof(self, wavelength, delay=0, emission_delay: EmissionDelay = None):
         r"""
         Convert wavelength to *measured* time-of-flight, for a neutron that has traveled the distance from the
         moderator to the chopper.
 
-        The measured time of flight :math:`t_m` plus the additional delay :math:`d` is equal to the
-        real time of flight :math:`t_r` plus the delayed emission time from the moderator :math:`p \lambda`,
-        where :math:`p` is constant :const:`~drtsans.chopper.DiskChopperSet._pulse_width`.
+        The measured time of flight :math:`t_m` is the sum of the actual flight time and the delayed emission
+        time :math:`t_0(\lambda)` from the moderator, minus any additional delay :math:`d`:
 
         .. math::
 
-           t_m + d = t_r + p \lambda
+            t_m = \frac{D}{v} + t_0(\lambda) - d = \frac{D \lambda}{h/m} + t_0(\lambda) - d
 
-           D = t_r / v
-
-           v = \frac{h}{m\lambda}
-
-        where :math:`D` is the distance from moderator to chopper and :math:`v` is the neutron velocity.
-        Solving this system of equations for :math:`t_m`, one obtains
-
-        .. math::
-
-            t_m = \lambda \frac{D + hp/m}{h/m} - d
+        where :math:`D` is the distance from moderator to chopper and :math:`v = h/(m\lambda)` is the neutron
+        velocity.
 
         Parameters
         ----------
         wavelength: float
-            wavelength of the neutron, in micro seconds.
+            wavelength of the neutron, in Angstroms.
         delay: float
             Additional time-of-flight to include in the calculations. For instance, this could be a multiple
-            of the the pulse period.
-        pulsed: bool
-            Include a correction due to delayed emission of neutrons from the moderator. See
-            :const:`~drtsans.chopper.DiskChopper._pulse_width` for a more detailed explanation.
+            of the pulse period.
+        emission_delay: callable, optional
+            Function returning the delayed emission time (in microseconds) for a neutron of a given
+            wavelength (in Angstroms). If :py:obj:`None`, no emission-time correction is applied.
 
         Returns
         -------
         float
             time-of-flight, in micro seconds.
         """
-        sigma = 3.9560346e-03  # plank constant divided by neutron mass
-        loc = self.to_source
-        if pulsed is True:
-            loc += sigma * self._pulse_width
-        return wavelength * loc / sigma - delay
+        velocity = BROGLIE_NEUTRON / wavelength  # neutron velocity, in meters/microsecond
+        t0 = emission_delay(wavelength) if emission_delay is not None else 0.0
+        return self.to_source / velocity + t0 - delay
 
-    def transmission_bands(self, cutoff_wl=None, delay=0, pulsed=False):
+    def transmission_bands(self, cutoff_wl=None, delay=0, emission_delay: EmissionDelay = None):
         r"""
         Wavelength bands transmitted by the chopper aperture. The number of bands is determined by the
         slowest neutrons emitted from the moderator.
@@ -370,9 +322,9 @@ class DiskChopper:
         delay: float
             Additional time-of-flight to include in the calculations. For instance, this could be a multiple
             of the the pulse period.
-        pulsed: bool
-            Include a correction due to delayed emission of neutrons from the moderator. See
-            :const:`~drtsans.chopper.DiskChopper._pulse_width` for a more detailed explanation.
+        emission_delay: callable, optional
+            Function returning the delayed emission time (in microseconds) for a neutron of a given
+            wavelength (in Angstroms). If :py:obj:`None`, no emission-time correction is applied.
 
         Returns
         -------
@@ -383,15 +335,15 @@ class DiskChopper:
             cutoff_wl = self.cutoff_wl
         wb = Wbands()
         t_opening = self.rewind
-        # shortest wavelength, obtained with pulsed correction if needed
-        opening_wl = self.wavelength(t_opening, delay, pulsed)
+        # shortest wavelength, corrected for emission delay if provided
+        opening_wl = self.wavelength(t_opening, delay, emission_delay)
         while opening_wl < cutoff_wl:
-            # slowest wavelength, obtained with no pulse correction
+            # slowest wavelength, no emission delay correction on the closing edge
             t = t_opening + self.transmission_duration
-            closing_wl = self.wavelength(t, delay, False)
+            closing_wl = self.wavelength(t, delay)
             if closing_wl > cutoff_wl:
                 closing_wl = cutoff_wl
             wb += Wband(opening_wl, closing_wl)
             t_opening += self.period
-            opening_wl = self.wavelength(t_opening, delay, pulsed)
+            opening_wl = self.wavelength(t_opening, delay, emission_delay)
         return wb

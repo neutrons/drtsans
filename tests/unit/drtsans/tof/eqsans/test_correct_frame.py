@@ -1,11 +1,13 @@
 from collections import namedtuple
 from os.path import join as pjoin
-import pytest
-from pytest import approx
+
+from mantid.kernel import DateAndTime, amend_config, FloatTimeSeriesProperty
+from mantid.simpleapi import AddSampleLog, Load, CreateWorkspace, CreateSampleWorkspace
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_allclose
-from mantid.simpleapi import AddSampleLog, Load, CreateWorkspace, CreateSampleWorkspace
-from mantid.kernel import DateAndTime, amend_config, FloatTimeSeriesProperty
+import pytest
+from pytest import approx
+
 from drtsans import wavelength as sans_wavelength
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans import correct_frame
@@ -19,12 +21,12 @@ BandsTuple = namedtuple("BandsTuple", "lead skip")
     "filename, lead_range, skip_range",
     [
         # four chopper configuration (before 2026)
-        ("EQSANS_101595.nxs.h5", (1.98, 6.16), None),
-        ("EQSANS_86217.nxs.h5", (2.48, 6.78), (10.90, 15.23)),  # frame skipping mode
+        ("EQSANS_101595.nxs.h5", (1.95, 6.16), None),
+        ("EQSANS_86217.nxs.h5", (2.45, 6.78), (10.96, 15.23)),  # frame skipping mode
         # six chopper configuration (starting 2026)
-        ("EQSANS_176973.nxs.h5", (11.9, 14.98), None),
-        ("EQSANS_176937.nxs.h5", (2.48, 6.13), None),
-        ("EQSANS_178264.nxs.h5", (2.48, 6.13), (9.62, 13.38)),  # frame skipping mode
+        ("EQSANS_176973.nxs.h5", (11.95, 14.98), None),
+        ("EQSANS_176937.nxs.h5", (2.45, 6.13), None),
+        ("EQSANS_178264.nxs.h5", (2.45, 6.13), (9.66, 13.38)),  # frame skipping mode
     ],
 )
 def test_transmitted_bands(datarepo_dir, clean_workspace, filename, lead_range, skip_range):
@@ -70,8 +72,8 @@ def test_transmitted_bands_zero_speed_choppers(datarepo_dir, clean_workspace):
         bands = correct_frame.transmitted_bands(ws)
         # The small difference in bands compared to test_transmitted_bands is due to
         # slightly different distances to the source in the new chopper configuration
-        assert_almost_equal((bands.lead.min, bands.lead.max), (2.48, 6.80), decimal=2)
-        assert_almost_equal((bands.skip.min, bands.skip.max), (10.95, 15.28), decimal=2)
+        assert_almost_equal((bands.lead.min, bands.lead.max), (2.45, 6.80), decimal=2)
+        assert_almost_equal((bands.skip.min, bands.skip.max), (11.01, 15.28), decimal=2)
 
 
 @pytest.mark.datarepo
@@ -386,6 +388,31 @@ def test_correct_emission_time_30Hz(clean_workspace):
     m = 1.674927211e-27
     z = 18.1395946855299
     assert_allclose(w.getSpectrum(0).getTofs() * 10000 * h / (z * m), expected_wl, rtol=1e-4)
+
+
+@pytest.mark.parametrize(
+    "wavelength, expected",
+    [
+        # λ < 2 Å branch
+        (1.0, 68.555),
+        # λ >= 2 Å branch
+        (5.0, 126.578),
+        # small positive λ — polynomial branch must not return a negative delay
+        (0.1, "non_negative"),
+        # non-positive wavelengths must raise ValueError
+        (0.0, ValueError),
+        (-1.0, ValueError),
+        (-0.001, ValueError),
+    ],
+)
+def test_emission_delay(wavelength, expected):
+    if expected is ValueError:
+        with pytest.raises(ValueError, match="wavelength must be positive"):
+            correct_frame.emission_delay(wavelength)
+    elif expected == "non_negative":
+        assert correct_frame.emission_delay(wavelength) >= 0
+    else:
+        assert correct_frame.emission_delay(wavelength) == pytest.approx(expected, abs=1e-3)
 
 
 if __name__ == "__main__":

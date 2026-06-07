@@ -1,56 +1,79 @@
 from typing import Self
 
+from mantid.kernel import logger
 from sortedcontainers import SortedList
+from drtsans.type_hints import EmissionDelay
 
-sigma = 3.9560346e-03  # plank constant divided by neutron mass
+BROGLIE_NEUTRON = 3.9560346e-03  # h/m_n, Planck constant divided by neutron mass [Å·m/μs]
 
 
-def tof(wavelength, distance, pulse_width=0.0):
+def tof(wavelength, distance, emission_delay: EmissionDelay = None):
     r"""
     Convert neutron wavelength to time of flight
 
     Parameters
     ----------
     wavelength: float
-        wavelength of the travelling neutron, in microseconds
+        wavelength of the traveling neutron, in Angstroms
     distance: float
-        Distance travelled by the neutron, in meters
-    pulse_width: float
-        Neutrons emitted from the moderator with a certain wavelength
-        :math:`\lambda` have a distribution of delayed emission times
-        with :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`.
-        Units are microseconds/Angstroms.
+        Distance traveled by the neutron, in meters
+    emission_delay: callable, optional
+        Function returning the delayed emission time (in microseconds) for a neutron of a given
+        wavelength (in Angstroms). If :py:obj:`None`, no emission-time correction is applied.
 
     Returns
     -------
     float
         time of flight (in micro seconds)
     """
-    return wavelength * (distance + sigma * pulse_width) / sigma
+    t0 = emission_delay(wavelength) if emission_delay is not None else 0.0
+    velocity = BROGLIE_NEUTRON / wavelength  # neutron velocity, in meters/microsecond
+    return distance / velocity + t0
 
 
-def from_tof(tof, distance, pulse_width=0.0):
+def from_tof(tof, delay: float = 0.0, *, distance, emission_delay: EmissionDelay = None):
     r"""
     Convert time of flight of arriving neutron to wavelength.
 
     Parameters
     ----------
     tof: float
-        time of flight of the traveling neutron, in Angstroms.
+        time of flight of the traveling neutron, in microseconds.
+    delay: float, optional
+        Additional time offset (in microseconds) to add to ``tof`` before converting. For instance,
+        this could be a multiple of the pulse period. Default is ``0.0``.
     distance: float
         Distance traveled by the neutron, in meters.
-    pulse_width: float
-        Neutrons emitted from the moderator with a certain wavelength
-        :math:`\lambda` have a distribution of delayed emission times that depends on the wavelength,
-        with :math:`FWHM(\lambda) \simeq pulsewidth \cdot \lambda`.
-        Units are microseconds/Angstroms.
+    emission_delay: callable, optional
+        Function returning the delayed emission time (in microseconds) for a neutron of a given
+        wavelength (in Angstroms). If :py:obj:`None`, no emission-time correction is applied.
+        When provided, the implicit equation
+        ``distance / velocity(w) + emission_delay(w) = tof + delay``
+        is solved iteratively (up to 10 iterations, converging when the change in wavelength
+        is no more than 0.001 Angstroms).
 
     Returns
     -------
     float
         wavelength (in Angstroms)
     """
-    return tof * sigma / (distance + sigma * pulse_width)
+    w = (tof + delay) * BROGLIE_NEUTRON / distance  # initial guess: no emission delay
+    if w <= 0:
+        return 0.0  # chopper opening before the pulse; treated as zero wavelength
+    if emission_delay is not None:
+        for _ in range(10):
+            w_new = (tof + delay - emission_delay(w)) * BROGLIE_NEUTRON / distance
+            if w_new <= 0.0:
+                raise ValueError(f"Negative wavelength {w_new:.4f} Å during iteration (tof={tof}, delay={delay})")
+            if abs(w_new - w) <= 0.001:  # 0.001 Angstrom is much smaller than the typical wavelength resolution
+                w = w_new
+                break
+            w = w_new
+        else:
+            logger.warning(
+                f"Wavelength solver did not converge after 10 iterations (tof={tof}, distance={distance}, last w={w})"
+            )
+    return w
 
 
 class Wband(object):

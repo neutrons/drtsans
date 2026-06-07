@@ -35,8 +35,8 @@ trials = dict(
     skip_5m=("EQSANS_85550.nxs.h5", 0.02, 5.0, -1),
     # configurations with no frame skipped
     nonskip_1m=("EQSANS_101595.nxs.h5", 0.02, 1.3, 15388),
-    nonskip_4m=("EQSANS_88565.nxs.h5", 0.02, 4.0, 25565),
-    nonskip_8m=("EQSANS_88901.nxs.h5", 0.02, 8.0, 30680),
+    nonskip_4m=("EQSANS_88565.nxs.h5", 0.02, 4.0, 25570),
+    nonskip_8m=("EQSANS_88901.nxs.h5", 0.02, 8.0, 30687),
 )
 
 

@@ -209,7 +209,7 @@ def test_weighted_binning_setup(has_sns_mount, run_config, basename, temp_direct
     reduction_output = reduce_single_configuration(loaded, input_config)
 
     # Verify reduced workspace
-    gold_ws_nexus = os.path.join(reference_dir.eqsans, "test_integration_api/EQSANS_88980_reduced_m6.nxs")
+    gold_ws_nexus = os.path.join(reference_dir.eqsans, "test_integration_api/EQSANS_88980_reduced_m6_wb.nxs")
     print(f"[TEST] Verify correction workflow reduction: {reduced_data_nexus} vs. {gold_ws_nexus}")
     verify_processed_workspace(
         test_file=reduced_data_nexus,

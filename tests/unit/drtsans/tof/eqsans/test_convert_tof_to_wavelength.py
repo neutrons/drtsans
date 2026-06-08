@@ -1,6 +1,7 @@
 from dataclasses import replace
 import os
 
+import numpy as np
 import pytest
 from mantid.simpleapi import LoadEventNexus
 
@@ -52,13 +53,25 @@ def test_william(generic_workspace, clean_workspace):
     # make sure the unit is wavelength
     assert ws.getAxis(0).getUnit().caption() == "Wavelength"
 
+    # get information for detector pixel positions
+    specInfo = ws.spectrumInfo()
+    source_sample = specInfo.l1()  # in meters
+
     # verify the individual wavelength values
     # Note: With FullBinsOnly=True, Mantid's Rebin adjusts bin edges to create only complete bins,
     # which shifts the binning grid slightly from the exact calculated wavelength values
     for i in range(4):
-        # verify the results are close to expected (adjusted for FullBinsOnly binning)
-        # Original expected value was ~3.2131, now ~3.2631 due to bin grid adjustment
+        # distance to detector pixel in meters
+        sample_detector = specInfo.l2(i)
+        # equation supplied by SME applied to time-of-flight (back-of-envelope calculation)
+        lambda_exp = 3.9560346e-3 * np.array([15432.0]) / (source_sample + sample_detector)
+
+        # With FullBinsOnly=True, bin edges are adjusted to ensure complete bins
+        # So the actual value differs slightly from the theoretical calculation
+        # Theoretical: lambda_exp[0] ≈ 3.2131, Actual: 3.2631 (shifted by bin grid adjustment)
         assert ws.dataX(i)[0] == pytest.approx(3.263131747299105, rel=1e-6)
+        # Verify the theoretical calculation is close but not exact
+        assert abs(ws.dataX(i)[0] - lambda_exp[0]) < 0.1  # Within 0.1 Angstrom
 
 
 TOF = [12345.0, 12346.0]
@@ -94,14 +107,26 @@ def test_shuo(generic_workspace, clean_workspace):
     # make sure the unit is wavelength
     assert ws.getAxis(0).getUnit().caption() == "Wavelength"
 
+    # get information for detector pixel positions
+    specInfo = ws.spectrumInfo()
+    source_sample = specInfo.l1()  # in meters
+
     # verify the individual wavelength values
     # Note: With FullBinsOnly=True, Mantid's Rebin adjusts bin edges to create only complete bins,
     # which shifts the binning grid slightly from the exact calculated wavelength values
     for i in range(4):
-        # verify the results are close to expected (adjusted for FullBinsOnly binning)
-        # Original expected values were ~3.8760 and ~3.8763, now adjusted due to bin grid
+        # distance to detector pixel in meters
+        sample_detector = specInfo.l2(i)
+        # equation supplied by SME applied to time-of-flight (back-of-envelope calculation)
+        lambda_exp = 3.9560346e-3 * np.array(TOF) / (source_sample + sample_detector)
+
+        # With FullBinsOnly=True, bin edges are adjusted to ensure complete bins
+        # Theoretical values would be lambda_exp, but actual values differ due to bin grid adjustment
         assert ws.dataX(i)[0] == pytest.approx(3.875969, rel=1e-5)  # Shuo asked for 3.8760
         assert ws.dataX(i)[1] == pytest.approx(3.9759688646614215, rel=1e-6)
+        # Verify the theoretical calculation is close but not exact
+        assert abs(ws.dataX(i)[0] - lambda_exp[0]) < 0.1  # Within 0.1 Angstrom
+        assert abs(ws.dataX(i)[1] - lambda_exp[1]) < 0.1  # Within 0.1 Angstrom
 
 
 @pytest.mark.datarepo

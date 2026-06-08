@@ -45,7 +45,6 @@ values = (
     ("EQSANS_101595", 289989, 1300, 14122, 7657, 24384, False, 2.11, 5.65, 152),
     ("EQSANS_88565", 19362, 4000, 14122, 45486, 62172, False, 10.02, 13.2, 746),
     ("EQSANS_88901", 340431, 8000, 14122, 67202, 83868, False, 11.99, 14.62, 56401),
->>>>>>> 6d591c85 (Eliminate partial wavelength bins in EQSANS)
 )
 
 run_sets = [{k: v for k, v in zip(keys, value)} for value in values]
@@ -181,8 +180,7 @@ def test_prepare_monitors(datarepo_dir):
             "EQSANS_88565_monitors_wav.nxs",
             OutputWorkspace=mtd.unique_hidden_name(),
         )
-        # Increased tolerance due to FullBinsOnly=True causing slight binning differences
-        assert CompareWorkspaces(w, v, Tolerance=2e-2, ToleranceRelErr=True).Result is True
+        assert CompareWorkspaces(w, v, Tolerance=1e-3, ToleranceRelErr=True).Result is True
     # cleanup
     DeleteWorkspace(w)
     DeleteWorkspace(v)

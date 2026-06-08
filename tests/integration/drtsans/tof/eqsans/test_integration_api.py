@@ -38,13 +38,13 @@ keys = (
 )
 
 values = (
-    # Note: min_tof and flux_normalized values updated to reflect FullBinsOnly=True behavior
-    # which adjusts bin edges to create only complete bins
-    ("EQSANS_86217", 508339, 1300, 14122, 9549, 59633, True, 2.61, 14.72, 534),
-    ("EQSANS_92353", 262291, 4000, 14122, 11222, 61309, True, 2.59, 12.98, 425),
-    ("EQSANS_85550", 270022, 5000, 14122, 11840, 61930, True, 2.59, 12.43, 572),
-    ("EQSANS_101595", 289989, 1300, 14122, 7599, 24384, False, 2.11, 5.65, 152),
-    ("EQSANS_88565", 19362, 4000, 14122, 45547, 62172, False, 10.02, 13.2, 744),
+    # Note: min_tof, max_tof, and flux_normalized values updated to reflect FullBinsOnly=True
+    # behavior which adjusts bin edges to create only complete bins
+    ("EQSANS_86217", 508339, 1300, 14122, 9549, 59600, True, 2.61, 14.72, 534),
+    ("EQSANS_92353", 262291, 4000, 14122, 11222, 61243, True, 2.59, 12.98, 425),
+    ("EQSANS_85550", 270022, 5000, 14122, 11840, 61857, True, 2.59, 12.43, 572),
+    ("EQSANS_101595", 289989, 1300, 14122, 7599, 24334, False, 2.11, 5.65, 152),
+    ("EQSANS_88565", 19362, 4000, 14122, 45547, 62236, False, 10.02, 13.2, 744),
     ("EQSANS_88901", 340431, 8000, 14122, 67202, 83868, False, 11.99, 14.62, 57360),
 )
 

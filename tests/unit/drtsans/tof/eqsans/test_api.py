@@ -87,7 +87,8 @@ def test_load_all_files_simple_interval(datarepo_dir):
 
     # check interval
     w = loaded.sample[0].data
-    assert int(w.extractY().sum()) == 765
+    # Note: Value updated from 765 to 758 due to FullBinsOnly=True dropping partial bins (~0.9% reduction)
+    assert int(w.extractY().sum()) == 758
 
     # Change reduction input and rerun load_all_files
     reduction_input["configuration"]["useDefaultMask"] = True

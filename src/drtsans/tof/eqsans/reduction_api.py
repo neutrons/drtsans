@@ -326,7 +326,7 @@ def bin_i_with_correction(
             annular_bin=annular_bin,
             wedges=wedges,
             symmetric_wedges=symmetric_wedges,
-            weighted_errors=True,  # allways use weighted errors when computing the elastic correction
+            weighted_errors=weighted_errors,
             output_wavelength_profile=correction_setup.output_wavelength_dependent_profile,
             output_dir=elastic_dir,
             output_filename=output_filename,
@@ -374,7 +374,7 @@ def bin_i_with_correction(
             annular_bin=annular_bin,
             wedges=wedges,
             symmetric_wedges=symmetric_wedges,
-            weighted_errors=True,  # allways use weighted errors when computing the inelastic correction
+            weighted_errors=weighted_errors,
             select_min_incoherence=correction_setup.select_min_incoherence,
             intensity_weighted=correction_setup.select_intensityweighted[frameskip_frame],
             incoh_qmin=correction_setup.qmin[frameskip_frame],

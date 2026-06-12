@@ -27,12 +27,18 @@ from drtsans import wavelength as wlg
 from drtsans.geometry import source_detector_distance
 from drtsans.tof.eqsans.geometry import source_monitor_distance
 from drtsans.process_uncertainties import set_init_uncertainties
+from drtsans.redparams import default_reduction_parameters
 
 
 __all__ = ["transform_to_wavelength"]
 
 # maximum difference between wavelength bands of runs to be summed
 WAVELENGTH_BAND_DIFF_TOLERANCE = 0.1  # Angstrom
+
+# Default TOF clipping values from EQSANS.json schema (in microseconds)
+_eqsans_defaults = default_reduction_parameters("EQSANS")["configuration"]
+DEFAULT_LOW_TOF_CLIP = _eqsans_defaults["cutTOFmin"]  # 500.0 µs
+DEFAULT_HIGH_TOF_CLIP = _eqsans_defaults["cutTOFmax"]  # 2000.0 µs
 
 
 class IncompatibleWavelengthBandsError(ValueError):
@@ -237,11 +243,11 @@ def transmitted_bands_clipped(
         low_tof_clip = float(sample_logs.low_tof_clip.value)
     if high_tof_clip is None:
         # Some older data files may not have high_tof_clip in sample logs
-        # Use 0 (no high-end clipping) as default for backwards compatibility
+        # Use default from EQSANS.json schema for backwards compatibility
         if "high_tof_clip" in sample_logs.keys():
             high_tof_clip = float(sample_logs.high_tof_clip.value)
         else:
-            high_tof_clip = 0.0
+            high_tof_clip = DEFAULT_HIGH_TOF_CLIP
 
     # If necessary, retrieve the source_detector_distance from the input workspace
     if source_detector_dist is None:

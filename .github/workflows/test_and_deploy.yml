@@ -109,12 +109,12 @@ jobs:
           local-channel: /tmp/local-channel
           extra-channels: mantid-ornl neutrons
           
-      - name: Verify conda package
-        uses: neutrons/conda-actions/pkg-verify@v1.3
+      - name: Verify Conda Package
+        uses: neutrons/conda-actions/pkg-verify@v2
         with:
           package-name: ${{ env.PKG_NAME }}
-          local-channel: /tmp/local-channel
-          python-version: "3.12"
+          conda-env-name: ${{ steps.install.outputs.conda_env }}
+          extra-commands: |
           extra-commands: python -c "import drtsans"
             python -c "import mantid"
 

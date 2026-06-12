@@ -60,14 +60,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Dependency check
-        continue-on-error: true
-        run: |
-          if ! pixi run audit-deps; then
-            echo "::warning::Dependency check failed"
-            exit 1
-          fi
-
 
   ##############################
   ### Package and Deployment ###
@@ -115,7 +107,7 @@ jobs:
           package-name: ${{ env.PKG_NAME }}
           conda-env-name: ${{ steps.install.outputs.conda_env }}
           extra-commands: |
-          extra-commands: python -c "import drtsans"
+            python -c "import drtsans"
             python -c "import mantid"
 
       # Audit the dependencies of the conda package we just installed. SARIF

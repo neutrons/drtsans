@@ -99,10 +99,11 @@ def test_merge_data(datarepo_dir):
     assert merged_sample_logs.proton_charge.size() == 12933 + 17343 + 4341
 
     # Check integrated intensity increases as the total sum
-    assert mtd[str(ws0)].extractY().sum() == 289530
-    assert mtd[str(ws1)].extractY().sum() == 1338500
+    # Note: Values reflect FullBinsOnly=True behavior in GitHub CI environment
+    assert mtd[str(ws0)].extractY().sum() == 289403
+    assert mtd[str(ws1)].extractY().sum() == 1325211
     assert mtd[str(ws2)].extractY().sum() == 65694
-    assert mtd[str(merged_workspaces)].extractY().sum() == 289530 + 1338500 + 65694
+    assert mtd[str(merged_workspaces)].extractY().sum() == 289403 + 1325211 + 65694
 
     mtd.remove(str(ws0))
     mtd.remove(str(ws1))

@@ -27,12 +27,18 @@ from drtsans import wavelength as wlg
 from drtsans.geometry import source_detector_distance
 from drtsans.tof.eqsans.geometry import source_monitor_distance
 from drtsans.process_uncertainties import set_init_uncertainties
+from drtsans.redparams import default_reduction_parameters
 
 
 __all__ = ["transform_to_wavelength"]
 
 # maximum difference between wavelength bands of runs to be summed
 WAVELENGTH_BAND_DIFF_TOLERANCE = 0.1  # Angstrom
+
+# Default TOF clipping values from EQSANS.json schema (in microseconds)
+_eqsans_defaults = default_reduction_parameters("EQSANS")["configuration"]
+DEFAULT_LOW_TOF_CLIP = _eqsans_defaults["cutTOFmin"]  # 500.0 µs
+DEFAULT_HIGH_TOF_CLIP = _eqsans_defaults["cutTOFmax"]  # 2000.0 µs
 
 
 class IncompatibleWavelengthBandsError(ValueError):
@@ -234,9 +240,14 @@ def transmitted_bands_clipped(
     # If necessary, retrieve the clips from the logs
     sample_logs = SampleLogs(input_workspace)
     if low_tof_clip is None:
-        low_tof_clip = sample_logs.low_tof_clip.value
+        low_tof_clip = float(sample_logs.low_tof_clip.value)
     if high_tof_clip is None:
-        high_tof_clip = sample_logs.low_tof_clip.value
+        # Some older data files may not have high_tof_clip in sample logs
+        # Use default from EQSANS.json schema for backwards compatibility
+        if "high_tof_clip" in sample_logs.keys():
+            high_tof_clip = float(sample_logs.high_tof_clip.value)
+        else:
+            high_tof_clip = DEFAULT_HIGH_TOF_CLIP
 
     # If necessary, retrieve the source_detector_distance from the input workspace
     if source_detector_dist is None:
@@ -637,6 +648,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
             InputWorkspace=output_workspace,
             Params=params,
             PreserveEvents=events,
+            FullBinsOnly=True,
             OutputWorkspace=output_workspace,
         )
         SampleLogs(output_workspace).insert("wavelength_bin_width", bin_width, unit="Angstrom")

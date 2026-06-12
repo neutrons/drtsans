@@ -234,9 +234,14 @@ def transmitted_bands_clipped(
     # If necessary, retrieve the clips from the logs
     sample_logs = SampleLogs(input_workspace)
     if low_tof_clip is None:
-        low_tof_clip = sample_logs.low_tof_clip.value
+        low_tof_clip = float(sample_logs.low_tof_clip.value)
     if high_tof_clip is None:
-        high_tof_clip = sample_logs.low_tof_clip.value
+        # Some older data files may not have high_tof_clip in sample logs
+        # Use 0 (no high-end clipping) as default for backwards compatibility
+        if "high_tof_clip" in sample_logs.keys():
+            high_tof_clip = float(sample_logs.high_tof_clip.value)
+        else:
+            high_tof_clip = 0.0
 
     # If necessary, retrieve the source_detector_distance from the input workspace
     if source_detector_dist is None:

@@ -296,6 +296,9 @@ def load_events_and_histogram(
         data: the loaded data
         monitor: the monitor for the data, if monitors==True else None
     """
+    # Ensure tof_clip parameters are floats (may come as strings from config files)
+    low_tof_clip = float(low_tof_clip)
+    high_tof_clip = float(high_tof_clip)
 
     # If needed convert comma separated string list of workspaces in list of strings
     if isinstance(run, str):

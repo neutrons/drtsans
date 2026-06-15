@@ -113,6 +113,7 @@ jobs:
       # Audit the dependencies of the conda package we just installed. SARIF
       # results are uploaded to GitHub code scanning by the grype action.
       - name: Scan installed environment with Grype
+        if: github.ref == 'refs/heads/next'
         uses: neutrons/conda-actions/grype@v2
         with:
           path: ${{ steps.install.outputs.conda_install_dir }}

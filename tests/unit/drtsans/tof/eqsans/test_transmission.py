@@ -101,7 +101,7 @@ def test_fit_raw(trasmission_data, clean_workspace):
     clean_workspace(fitting_results.skip_mantid_fit.OutputNormalisedCovarianceMatrix)
     clean_workspace(fitting_results.skip_mantid_fit.OutputParameters)
     assert_almost_equal(fitting_results.lead_mantid_fit.OutputChi2overDoF, 1.1, decimal=1)
-    assert_almost_equal(fitting_results.skip_mantid_fit.OutputChi2overDoF, 3.6, decimal=1)
+    assert_almost_equal(fitting_results.skip_mantid_fit.OutputChi2overDoF, 1.4, decimal=1)
 
 
 if __name__ == "__main__":

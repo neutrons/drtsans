@@ -135,3 +135,51 @@ Livereduction
 
 Python scripts for automatic reduction of SANS data are provided in the ``scripts/livereduction/`` directory.
 These scripts are meant to be run automatically by the live reduction server, never directly by the User.
+
+How Live Reduction Works
+-------------------------
+
+Live reduction processes neutron scattering data as it is being collected during a run, before the final
+Nexus file is written to disk. The workflow:
+
+1. Mantid's ``LoadLiveData`` algorithm continuously monitors the data stream from the instrument
+2. When new data arrives, it calls the live reduction script (e.g., ``reduce_EQSANS_live_post_proc.py``)
+3. The script receives an EventWorkspace containing the accumulated events
+4. Since no persistent Nexus file exists yet, the script:
+
+   - Saves the EventWorkspace to a temporary processed Nexus file using ``SaveNexusProcessed``
+   - Passes the temporary file path to the standard reduction pipeline
+   - Cleans up the temporary file after reduction completes
+
+5. The reduction results are published to the live data server for immediate viewing
+
+This approach allows live reduction to use the same reduction code as autoreduction, ensuring consistency
+between live and post-run results.
+
+Technical Details
+~~~~~~~~~~~~~~~~~
+
+The live reduction implementation uses a fallback loading mechanism:
+
+- When ``allow_processed_nexus=True`` is passed to ``load_events()``, the loader will:
+
+  1. First attempt to load the file as an event Nexus file using ``LoadEventNexus``
+  2. If that fails, fall back to ``LoadNexusProcessed`` for processed Nexus files
+
+- This allows the same loading code to handle both standard autoreduction (event Nexus files) and
+  live reduction (temporary processed Nexus files)
+
+- Temporary files are created in a secure temporary directory and automatically cleaned up after reduction
+
+Output Files
+~~~~~~~~~~~~
+
+Live reduction generates the same output files as autoreduction, published to the live data server:
+
+- HTML report with plots and reduction parameters
+- 1D and 2D reduced data files (.dat, .h5, .png)
+- Processed workspace (.nxs)
+- Reduction log (.hdf)
+- Configuration file (.json)
+
+If GPR analysis is enabled, GPR-fitted I(Q) profiles are also included in the live reduction results.

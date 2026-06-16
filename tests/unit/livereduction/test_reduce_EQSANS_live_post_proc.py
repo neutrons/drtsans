@@ -118,6 +118,9 @@ def test_livereduce(simulated_events, tmp_path):
     mock_reduce_module.LogContext = mock.MagicMock()
     sys.modules["reduce_EQSANS"] = mock_reduce_module
 
+    # Mock SaveNexusProcessed to track calls
+    mock_save_nexus = mock.MagicMock()
+
     try:
         # import there so mocking the module's symbols won't affect other tests
         livescript = load_module(_root_dir / "scripts/livereduction/eqsans/reduce_EQSANS_live_post_proc.py")
@@ -125,9 +128,64 @@ def test_livereduce(simulated_events, tmp_path):
         livescript.events_file_exists = mock.MagicMock(return_value=False)
         livescript.copytree = mock_copytree
         livescript.makedirs = mock_makedirs
+        livescript.SaveNexusProcessed = mock_save_nexus
         livescript.livereduce(simulated_events)
+
+        # Verify SaveNexusProcessed was called with the events workspace
+        assert mock_save_nexus.called, "SaveNexusProcessed should be called for live reduction"
+        save_call_args = mock_save_nexus.call_args
+        assert save_call_args[1]["InputWorkspace"] == simulated_events
+        # Verify the temp file path contains the run number
+        assert "EQSANS_12345_live.nxs" in save_call_args[1]["Filename"]
+
+        # Verify reduce_events was called with temp_sample_file parameter
+        reduce_events_call = mock_reduce_module.reduce_events
+        assert reduce_events_call.called
+        call_kwargs = reduce_events_call.call_args[1]
+        assert "temp_sample_file" in call_kwargs
+        assert "EQSANS_12345_live.nxs" in call_kwargs["temp_sample_file"]
+
         assert (tmp_path / "EQSANS_12345.html").read_text() == "<report><footer>"
     finally:  # Clean up
+        sys.modules.pop("reduce_EQSANS", None)
+
+
+def test_livereduce_temp_file_created_in_temp_dir(simulated_events, tmp_path):
+    """Test that the temporary sample file is created within the temporary directory."""
+    temp_files_created = []
+
+    def mock_save_nexus(InputWorkspace, Filename):
+        temp_files_created.append(Filename)
+
+    mock_add_to_sys_path = mock.MagicMock()
+    mock_add_to_sys_path.__enter__ = lambda self, *_: self
+    mock_add_to_sys_path.__exit__ = lambda *_: None
+
+    mock_reduce_module = types.ModuleType("reduce_EQSANS")
+    mock_reduce_module.reduce_events = mock.MagicMock(return_value="<report>")
+    mock_reduce_module.footer = mock.MagicMock(return_value="<footer>")
+    mock_reduce_module.save_report = mock.MagicMock()
+    mock_reduce_module.upload_report = mock.MagicMock()
+    mock_reduce_module.LogContext = mock.MagicMock()
+    sys.modules["reduce_EQSANS"] = mock_reduce_module
+
+    try:
+        livescript = load_module(_root_dir / "scripts/livereduction/eqsans/reduce_EQSANS_live_post_proc.py")
+        livescript.add_to_sys_path = mock_add_to_sys_path
+        livescript.events_file_exists = mock.MagicMock(return_value=False)
+        livescript.copytree = mock.MagicMock()
+        livescript.makedirs = mock.MagicMock()
+        livescript.SaveNexusProcessed = mock_save_nexus
+        livescript.livereduce(simulated_events, publish=False)
+
+        # Verify a temp file was created
+        assert len(temp_files_created) == 1
+        temp_file_path = temp_files_created[0]
+
+        # Verify the temp file is in a temp directory (contains 'livereduce_' prefix)
+        assert "livereduce_" in temp_file_path
+        assert "EQSANS_12345_live.nxs" in temp_file_path
+    finally:
         sys.modules.pop("reduce_EQSANS", None)
 
 

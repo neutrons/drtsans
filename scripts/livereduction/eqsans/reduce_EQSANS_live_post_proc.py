@@ -13,7 +13,7 @@ from os import makedirs
 from shutil import copytree
 import tempfile
 
-from mantid.simpleapi import LoadEmptyInstrument
+from mantid.simpleapi import LoadEmptyInstrument, SaveNexusProcessed
 from mantid.dataobjects import EventWorkspace
 
 from drtsans.path import add_to_sys_path
@@ -65,7 +65,16 @@ def livereduce(events: EventWorkspace, publish=True):
         with configure_error_buffer() as error_buffer:
             log_context = LogContext(logger=logger, logfile=LOG_FILE, error_buffer=error_buffer)
             with tempfile.TemporaryDirectory(prefix="livereduce_") as temp_dir:
-                report = reduce_events(events, temp_dir, log_context)
+                # Save the EventWorkspace to a temporary processed Nexus file.
+                # This is necessary because the reduction pipeline expects to load the sample
+                # data from a file, but during live reduction the permanent event file
+                # doesn't exist yet.
+                temp_sample_file = os.path.join(temp_dir, f"EQSANS_{run}_live.nxs")
+                logger.info(f"Saving live events to temporary file: {temp_sample_file}")
+                SaveNexusProcessed(InputWorkspace=events, Filename=temp_sample_file)
+
+                # Reduce the events using the temporary file
+                report = reduce_events(events, temp_dir, log_context, temp_sample_file=temp_sample_file)
                 report += footer(events, output_dir, log_context)  # notice we pass output_dir here
                 save_report(report, os.path.join(temp_dir, f"EQSANS_{run}.html"), logger)  # save to disk
                 if events_file_exists(events):

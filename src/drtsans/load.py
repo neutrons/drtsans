@@ -9,6 +9,7 @@ from mantid.kernel import Logger, amend_config
 from mantid.simpleapi import (
     AddSampleLogMultiple,
     FilterEvents,
+    Load,
     LoadEventNexus,
     LoadEventAsWorkspace2D,
     MergeRuns,
@@ -83,6 +84,7 @@ def load_events(
     detector_offset=0.0,
     sample_offset=0.0,
     reuse_workspace=False,
+    allow_processed_nexus=False,
     **kwargs,
 ):
     r"""
@@ -120,6 +122,11 @@ def load_events(
         at the origin of coordinates. Positive moves the sample downstream.
     reuse_workspace: bool
         When true, return the ``output_workspace`` if it already exists
+    allow_processed_nexus: bool
+        When true, allows loading processed Nexus files (e.g., saved with SaveNexusProcessed)
+        in addition to event Nexus files. This is useful for live reduction where events
+        are saved to a temporary file. If LoadEventNexus fails, falls back to Mantid's
+        generic Load algorithm which can handle both file types.
     kwargs: dict
         Additional positional arguments for loading algorithm;
         :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`,
@@ -163,7 +170,20 @@ def load_events(
                 # LoadEventAsWorkspace2D does not have MetaDataOnly as an argument parameter  "MetaDataOnly"
                 LoadEventAsWorkspace2D(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
             else:
-                LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
+                # Try LoadEventNexus first; if allow_processed_nexus is True and it fails,
+                # fall back to Mantid's generic Load algorithm which can handle processed Nexus files
+                # (e.g., files created by SaveNexusProcessed during live reduction)
+                if allow_processed_nexus:
+                    try:
+                        LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
+                    except RuntimeError as e:
+                        logger.notice(f"LoadEventNexus failed for {filename}, trying generic Load algorithm: {str(e)}")
+                        # Fall back to generic Load algorithm which auto-detects file type
+                        # Note: some kwargs specific to LoadEventNexus may not be valid for Load
+                        load_kwargs = {k: v for k, v in kwargs.items() if k not in ["LoadNexusInstrumentXML"]}
+                        Load(Filename=filename, OutputWorkspace=output_workspace, **load_kwargs)
+                else:
+                    LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
 
         if isinstance(scale_components, dict):
             for component, scalings in scale_components.items():

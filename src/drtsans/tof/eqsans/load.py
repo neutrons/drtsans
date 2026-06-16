@@ -119,6 +119,7 @@ def load_events(
     data_dir=None,
     output_workspace=None,
     output_suffix="",
+    allow_processed_nexus=False,
     **kwargs,
 ):
     r"""
@@ -160,6 +161,10 @@ def load_events(
     output_suffix: str
         If the ``output_workspace`` is not specified, this is appended to the automatically generated
         output workspace name.
+    allow_processed_nexus: bool
+        When true, allows loading processed Nexus files (e.g., saved with SaveNexusProcessed)
+        in addition to event Nexus files. This is useful for live reduction where events
+        are saved to a temporary file.
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
@@ -172,6 +177,7 @@ def load_events(
     output_workspace = generic_load_events(
         run=run,
         data_dir=data_dir,
+        allow_processed_nexus=allow_processed_nexus,
         output_workspace=output_workspace,
         output_suffix=output_suffix,
         scale_components=scale_components,
@@ -214,6 +220,7 @@ def load_events_and_histogram(
     monitors=False,
     keep_events=True,
     sample_bands=None,
+    allow_processed_nexus=False,
     **kwargs,
 ):
     r"""Load events from one or more NeXus files with initial corrections
@@ -286,6 +293,10 @@ def load_events_and_histogram(
         The final histogram will be an EventsWorkspace if True.
     sample_bands: bands or None
         sample bands
+    allow_processed_nexus: bool
+        When true, allows loading processed Nexus files (e.g., saved with SaveNexusProcessed)
+        in addition to event Nexus files. This is useful for live reduction where events
+        are saved to a temporary file.
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
@@ -325,6 +336,7 @@ def load_events_and_histogram(
             data_dir=data_dir,
             output_workspace=output_workspace,
             output_suffix=output_suffix,
+            allow_processed_nexus=allow_processed_nexus,
             **kwargs,
         )
 
@@ -385,6 +397,7 @@ def load_events_and_histogram(
                 data_dir=data_dir,
                 output_workspace=temp_workspace_name,
                 output_suffix=output_suffix,
+                allow_processed_nexus=allow_processed_nexus,
                 **kwargs,
             )
             if center_x is None or center_y is None:

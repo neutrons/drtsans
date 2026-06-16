@@ -36,15 +36,7 @@ jobs:
         run: |
           echo "chromium enables testing HTML reports"
           pixi run playwright install chromium --with-deps
-
-      - name: Dependency check
-        continue-on-error: true
-        run: |
-          if ! pixi run audit-deps; then
-            echo "::warning::Dependency check failed"
-            exit 1
-          fi
-
+          
       - name: Configure Git credentials for code.ornl.gov
         env:
           TOKEN: ${{ secrets.DRTSANS_DATA_READ_TOKEN }}
@@ -68,14 +60,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Dependency check
-        continue-on-error: true
-        run: |
-          if ! pixi run audit-deps; then
-            echo "::warning::Dependency check failed"
-            exit 1
-          fi
-
 
   ##############################
   ### Package and Deployment ###
@@ -83,6 +67,10 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read          # for actions/checkout
+      security-events: write  # for github/codeql-action/upload-sarif to upload results
+      actions: read           # for upload-sarif to read run status (private repos)
     defaults:
       run:
         shell: bash -el {0}
@@ -103,16 +91,33 @@ jobs:
           mkdir -p /tmp/local-channel/linux-64
           cp *.conda /tmp/local-channel/linux-64
 
-      - name: Verify conda package
-        uses: neutrons/conda-actions/pkg-verify@v1.3
+      # pkg-verify requires a conda env that already has the package
+      # installed (and micromamba on PATH); pkg-install sets both up.
+      - name: Install built conda package
+        id: install
+        uses: neutrons/conda-actions/pkg-install@v2
         with:
           package-name: ${{ env.PKG_NAME }}
           local-channel: /tmp/local-channel
-          python-version: "3.12"
           extra-channels: mantid-ornl neutrons
-          extra-commands: python -c "import drtsans"
+          
+      - name: Verify Conda Package
+        uses: neutrons/conda-actions/pkg-verify@v2
+        with:
+          package-name: ${{ env.PKG_NAME }}
+          conda-env-name: ${{ steps.install.outputs.conda_env }}
+          extra-commands: |
+            python -c "import drtsans"
             python -c "import mantid"
 
+      # Audit the dependencies of the conda package we just installed. SARIF
+      # results are uploaded to GitHub code scanning by the grype action.
+      - name: Scan installed environment with Grype
+        if: github.ref == 'refs/heads/next'
+        uses: neutrons/conda-actions/grype@v2
+        with:
+          path: ${{ steps.install.outputs.conda_install_dir }}
+            
       - name: Upload conda package as artifact
         uses: actions/upload-artifact@v7
         with:
@@ -141,7 +146,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: artifact-conda-package
-
+          
       - name: Upload package to anaconda
         uses: neutrons/conda-actions/publish@v1.3
         with:

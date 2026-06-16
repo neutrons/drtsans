@@ -9,9 +9,9 @@ from mantid.kernel import Logger, amend_config
 from mantid.simpleapi import (
     AddSampleLogMultiple,
     FilterEvents,
-    Load,
     LoadEventNexus,
     LoadEventAsWorkspace2D,
+    LoadNexusProcessed,
     MergeRuns,
     mtd,
     ScaleInstrumentComponent,
@@ -125,8 +125,8 @@ def load_events(
     allow_processed_nexus: bool
         When true, allows loading processed Nexus files (e.g., saved with SaveNexusProcessed)
         in addition to event Nexus files. This is useful for live reduction where events
-        are saved to a temporary file. If LoadEventNexus fails, falls back to Mantid's
-        generic Load algorithm which can handle both file types.
+        are saved to a temporary file. If LoadEventNexus fails, falls back to
+        LoadNexusProcessed algorithm for processed Nexus files.
     kwargs: dict
         Additional positional arguments for loading algorithm;
         :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`,
@@ -171,17 +171,17 @@ def load_events(
                 LoadEventAsWorkspace2D(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
             else:
                 # Try LoadEventNexus first; if allow_processed_nexus is True and it fails,
-                # fall back to Mantid's generic Load algorithm which can handle processed Nexus files
+                # fall back to LoadNexusProcessed which can handle processed Nexus files
                 # (e.g., files created by SaveNexusProcessed during live reduction)
                 if allow_processed_nexus:
                     try:
                         LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
                     except RuntimeError as e:
-                        logger.notice(f"LoadEventNexus failed for {filename}, trying generic Load algorithm: {str(e)}")
-                        # Fall back to generic Load algorithm which auto-detects file type
-                        # Note: some kwargs specific to LoadEventNexus may not be valid for Load
+                        logger.notice(f"LoadEventNexus failed for {filename}, trying LoadNexusProcessed: {str(e)}")
+                        # Fall back to LoadNexusProcessed for processed Nexus files
+                        # Note: some kwargs specific to LoadEventNexus may not be valid for LoadNexusProcessed
                         load_kwargs = {k: v for k, v in kwargs.items() if k not in ["LoadNexusInstrumentXML"]}
-                        Load(Filename=filename, OutputWorkspace=output_workspace, **load_kwargs)
+                        LoadNexusProcessed(Filename=filename, OutputWorkspace=output_workspace, **load_kwargs)
                 else:
                     LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
 

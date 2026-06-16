@@ -321,7 +321,7 @@ def reduce_non_sample(events: EventWorkspace):
 
 
 def reduce_sample(
-    events: EventWorkspace, output_dir: str, logger: logging.Logger, temp_sample_file: str = None
+    events: EventWorkspace, output_dir: str, logger: logging.Logger, temp_sample_file: str | None = None
 ) -> str:
     """Reduce events from a sample run and generate comprehensive output files and plots.
 
@@ -520,7 +520,7 @@ def match_run_number(path: str) -> str:
 
 
 def reduce_events(
-    events: EventWorkspace, output_dir: str, log_context: LogContext, temp_sample_file: str = None
+    events: EventWorkspace, output_dir: str, log_context: LogContext, temp_sample_file: str | None = None
 ) -> str:
     """Execute the reduction workflow and generate an HTML report.
 

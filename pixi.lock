@@ -1540,8 +1540,8 @@ packages:
   timestamp: 1765193127016
 - pypi: ./
   name: drtsans
-  version: 1.31.0.dev20260612004016
-  sha256: 9b0a19349ab132c66120437010f8cac16f09dd070c071acdc5745658624830fa
+  version: 1.32.0.dev20260616134216
+  sha256: 6c777be05c2ee44a83e25563c6429e8089c0547f4995d51e870a991de01cc69a
   requires_python: '>=3.12'
 - conda: https://conda.anaconda.org/conda-forge/linux-64/epoxy-1.5.10-hb03c661_2.conda
   sha256: a5b51e491fec22bcc1765f5b2c8fff8a97428e9a5a7ee6730095fb9d091b0747

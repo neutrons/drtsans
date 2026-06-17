@@ -399,15 +399,16 @@ def test_correct_emission_time_30Hz(clean_workspace):
         (5.0, 126.578),
         # small positive λ — polynomial branch must not return a negative delay
         (0.1, "non_negative"),
-        # non-positive wavelengths must raise ValueError
-        (0.0, ValueError),
+        # zero wavelength returns 0 µs (linear segment)
+        (0.0, 0.0),
+        # negative wavelengths must raise ValueError
         (-1.0, ValueError),
         (-0.001, ValueError),
     ],
 )
 def test_emission_delay(wavelength, expected):
     if expected is ValueError:
-        with pytest.raises(ValueError, match="wavelength must be positive"):
+        with pytest.raises(ValueError, match="wavelength must be non-negative"):
             correct_frame.emission_delay(wavelength)
     elif expected == "non_negative":
         assert correct_frame.emission_delay(wavelength) >= 0

@@ -431,7 +431,8 @@ def correct_monitor_frame(input_workspace):
 
 # Delayed emission time of a neutron from the moderator as a function of wavelength, in microseconds.
 DELAY_FIT = (
-    "(x < 2.0) ? 0.5*(1280.5-7448.4*x+16509*x^2-17872*x^3+10445*x^4-3169.3*x^5+392.31*x^6) :"
+    "(x < 0.5) ? 9.451719*x :"
+    " (x < 2.0) ? 0.5*(1280.5-7448.4*x+16509*x^2-17872*x^3+10445*x^4-3169.3*x^5+392.31*x^6) :"
     " 0.5*(231.99+6.4797*x-0.5233*x^2+0.0148*x^3)"
 )
 
@@ -443,7 +444,7 @@ def emission_delay(wavelength: float) -> float:
     Parameters
     ----------
     wavelength
-        Wavelength of the neutron, in Angstroms. Must be positive.
+        Wavelength of the neutron, in Angstroms. Must be non-negative.
 
     Returns
     -------
@@ -452,13 +453,23 @@ def emission_delay(wavelength: float) -> float:
     Raises
     ------
     ValueError
-        If ``wavelength`` is not positive, or if the empirical fit yields a negative
+        If ``wavelength`` is negative, or if the empirical fit yields a negative
         delay (which would indicate the input is outside the valid fitted range).
+
+    Notes
+    -----
+    Three piecewise segments are used:
+
+    * 0 ≤ λ < 0.5 Å: linear, anchored at (0, 0) and continuous with the polynomial at 0.5 Å.
+    * 0.5 ≤ λ < 2 Å: degree-6 polynomial empirical fit.
+    * λ ≥ 2 Å: degree-3 polynomial empirical fit.
     """
-    if wavelength <= 0:
-        raise ValueError(f"wavelength must be positive (got {wavelength} Å)")
+    if wavelength < 0:
+        raise ValueError(f"wavelength must be non-negative (got {wavelength} Å)")
     w = wavelength
-    if w < 2.0:
+    if w < 0.5:
+        result = 9.451719 * w
+    elif w < 2.0:
         result = 0.5 * (
             1280.5 - 7448.4 * w + 16509 * w**2 - 17872 * w**3 + 10445 * w**4 - 3169.3 * w**5 + 392.31 * w**6
         )

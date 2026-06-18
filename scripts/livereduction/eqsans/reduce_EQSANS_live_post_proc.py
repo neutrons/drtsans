@@ -69,10 +69,10 @@ def livereduce(events: EventWorkspace, publish=True):
                 # This is necessary because the reduction pipeline expects to load the sample
                 # data from a file, but during live reduction the permanent event file
                 # doesn't exist yet.
-                temp_sample_file = os.path.join(temp_dir, f"EQSANS_{run}_live.nxs")
+                sample_file = os.path.join(temp_dir, f"EQSANS_{run}_live.nxs")
                 try:
-                    logger.info(f"Saving live events to temporary file: {temp_sample_file}")
-                    SaveNexusProcessed(InputWorkspace=events, Filename=temp_sample_file)
+                    logger.info(f"Saving live events to temporary file: {sample_file}")
+                    SaveNexusProcessed(InputWorkspace=events, Filename=sample_file)
                 except Exception as e:
                     error_msg = f"Failed to save live events to temporary file: {str(e)}"
                     logger.error(error_msg)
@@ -85,7 +85,7 @@ def livereduce(events: EventWorkspace, publish=True):
                     return
 
                 # Reduce the events using the temporary file
-                report = reduce_events(events, temp_dir, log_context, temp_sample_file=temp_sample_file)
+                report = reduce_events(events, temp_dir, log_context, sample_file=sample_file)
                 report += footer(events, output_dir, log_context)  # notice we pass output_dir here
                 save_report(report, os.path.join(temp_dir, f"EQSANS_{run}.html"), logger)  # save to disk
                 if events_file_exists(events):

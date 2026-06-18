@@ -138,12 +138,12 @@ def test_livereduce(simulated_events, tmp_path):
         # Verify the temp file path contains the run number
         assert "EQSANS_12345_live.nxs" in save_call_args[1]["Filename"]
 
-        # Verify reduce_events was called with temp_sample_file parameter
+        # Verify reduce_events was called with sample_file parameter
         reduce_events_call = mock_reduce_module.reduce_events
         assert reduce_events_call.called
         call_kwargs = reduce_events_call.call_args[1]
-        assert "temp_sample_file" in call_kwargs
-        assert "EQSANS_12345_live.nxs" in call_kwargs["temp_sample_file"]
+        assert "sample_file" in call_kwargs
+        assert "EQSANS_12345_live.nxs" in call_kwargs["sample_file"]
 
         assert (tmp_path / "EQSANS_12345.html").read_text() == "<report><footer>"
     finally:  # Clean up

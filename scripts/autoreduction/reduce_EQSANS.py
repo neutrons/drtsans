@@ -321,7 +321,7 @@ def reduce_non_sample(events: EventWorkspace):
 
 
 def reduce_sample(
-    events: EventWorkspace, output_dir: str, logger: logging.Logger, temp_sample_file: str | None = None
+    events: EventWorkspace, output_dir: str, logger: logging.Logger, sample_file: str | None = None
 ) -> str:
     """Reduce events from a sample run and generate comprehensive output files and plots.
 
@@ -338,10 +338,10 @@ def reduce_sample(
         autoreduce directory, a subdirectory with the run number will be created for outputs.
     logger
         Logger for logging reduction status and errors.
-    temp_sample_file : str, optional
-        Path to a temporary processed Nexus file containing the sample events. When provided
-        (e.g., during live reduction), this file will be used instead of loading from the
-        archive. The file should be created with SaveNexusProcessed.
+    sample_file : str, optional
+        Path to a processed Nexus file containing the sample events. When provided
+        (e.g., during live reduction with a temporary file), this file will be used instead
+        of loading from the archive. The file should be created with SaveNexusProcessed.
 
     Returns
     -------
@@ -359,25 +359,23 @@ def reduce_sample(
     - Automatically amends reduction parameters with run-specific information
     - Saves reduced data files, HDF5 log, and plots (*.png) to the output directory
     - Saves the final comprehensive reduction options to `reduction_options_{run_number}.json`
-    - When temp_sample_file is provided, the sample is loaded from this file instead of the archive,
+    - When sample_file is provided, the sample is loaded from this file instead of the archive,
       enabling live reduction before the permanent event file is written.
     """
     run_number = str(events.getRunNumber())  # e.g. "105584"
     ipts = SampleLogs(events).experiment_identifier.value[5:]  # e.g. "12345" when having IPTS-12345
 
-    # Determine if we're doing live reduction (temp_sample_file provided)
-    is_live_reduction = temp_sample_file is not None
+    # Determine if we're doing live reduction (sample_file provided)
+    is_live_reduction = sample_file is not None
 
     # find most appropriate reduction options and amend if necessary
     amendment = {}
     # Example: reduction_options_path == /SNS/EQSANS/IPTS-12345/shared/autoreduce/105584/reduction_options_105584.json
     reduction_options_path = os.path.join(output_dir, f"reduction_options_{run_number}.json")
     if os.path.exists(reduction_options_path) is False:
-        # For live reduction, use the temp file path as the sample runNumber
-        sample_run = temp_sample_file if is_live_reduction else run_number
         amendment = {
             "iptsNumber": ipts,
-            "sample": {"runNumber": sample_run},
+            "sample": {"runNumber": run_number or sample_file},
             "outputFileName": f"EQSANS_{run_number}",  # prefix for all output files
             "configuration": {"outputDir": output_dir},
         }
@@ -402,6 +400,12 @@ def reduce_sample(
         raw_options = json.load(f)
     input_config = reduction_parameters(raw_options, validate=False, permissible=True)
     input_config = update_reduction_parameters(input_config, amendment, validate=True, permissible=True)
+
+    # For live reduction, ensure normalization is not set to 'Monitor' (not supported)
+    if is_live_reduction and input_config.get("normalization") == "Monitor":
+        logger.warning("Normalization by Monitor is not supported during live reduction. Switching to 'Total charge'.")
+        input_config["normalization"] = "Total charge"
+
     final_input_config = deepcopy(input_config)  # input_config will be modified during reduction
 
     # load files and reduce
@@ -520,7 +524,7 @@ def match_run_number(path: str) -> str:
 
 
 def reduce_events(
-    events: EventWorkspace, output_dir: str, log_context: LogContext, temp_sample_file: str | None = None
+    events: EventWorkspace, output_dir: str, log_context: LogContext, sample_file: str | None = None
 ) -> str:
     """Execute the reduction workflow and generate an HTML report.
 
@@ -539,10 +543,10 @@ def reduce_events(
         - logger: Logger instance for logging reduction progress and errors
         - logfile: Path to the log file
         - error_buffer: StringIO buffer capturing error-level messages
-    temp_sample_file : str, optional
-        Path to a temporary processed Nexus file containing the sample events. When provided
-        (e.g., during live reduction), this file will be used instead of loading from the
-        archive.
+    sample_file : str, optional
+        Path to a processed Nexus file containing the sample events. When provided
+        (e.g., during live reduction with a temporary file), this file will be used instead
+        of loading from the archive.
 
     Raises
     ------
@@ -565,7 +569,7 @@ def reduce_events(
     report = ""
     try:
         if is_sample_run(events):
-            report += reduce_sample(events, output_dir, logger, temp_sample_file=temp_sample_file)
+            report += reduce_sample(events, output_dir, logger, sample_file=sample_file)
         else:
             report += reduce_non_sample(events)
     except Exception:

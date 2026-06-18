@@ -175,16 +175,48 @@ jobs:
         id: env_name
         with:
           prefix: drtsans
-
       - name: Trigger Dev Deploy
-        # use https://github.com/eic/trigger-gitlab-ci/pull/14 until merged
-        uses: eic/trigger-gitlab-ci@d984d8d53d871d2fdc1325639d94322da6e8747f
         id: trigger
-        with:
-          url: https://code.ornl.gov
-          project_id: 18099
-          ref_name: main
-          token: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
+        env:
+          GITLAB_URL: https://code.ornl.gov
+          PROJECT_ID: 18099
+          REF_NAME: main
+          TOKEN: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          endpoint="${GITLAB_URL}/api/v4/projects/${PROJECT_ID}/trigger/pipeline"
+          max_attempts=5
+          delay=10
+
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "Attempt ${attempt}/${max_attempts}: triggering GitLab pipeline..."
+            http_code=$(curl -sS -o response.txt -w "%{http_code}" \
+              -X POST \
+              -F "token=${TOKEN}" \
+              -F "ref=${REF_NAME}" \
+              "$endpoint" || true)
+
+            if [[ "$http_code" =~ ^2 ]]; then
+              echo "Trigger succeeded (HTTP ${http_code})"
+              if jq -e . >/dev/null 2>&1 < response.txt; then
+                web_url=$(jq -r '.web_url // empty' response.txt)
+                echo "web_url=${web_url}" >> "$GITHUB_OUTPUT"
+              fi
+              exit 0
+            fi
+
+            echo "Trigger failed (HTTP ${http_code}). Response:"
+            cat response.txt || true
+
+            if [[ "$http_code" =~ ^5 ]] && [[ "$attempt" -lt "$max_attempts" ]]; then
+              sleep "$delay"
+              continue
+            fi
+
+            echo "::error ::GitLab trigger failed with HTTP ${http_code}"
+            exit 1
+          done
 
       - name: Annotate commit
         uses: peter-evans/commit-comment@v4

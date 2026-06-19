@@ -112,7 +112,7 @@ def _get_configuration_file_parameters(sample_run, directory=None):
 
 
 @namedtuplefy
-def load_all_files(reduction_input, prefix="", load_params=None):
+def load_all_files(reduction_input, prefix="", load_params=None, allow_processed_nexus=False):
     r"""
     overwrites metadata for sample workspace
 
@@ -125,6 +125,19 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     -  output: load_params, reduction_input
     5. load and optionally slice sample runs
     6. load other runs: bkgd, empty, sample_trans, bkgd_trans
+
+    Parameters
+    ----------
+    reduction_input : dict
+        Dictionary containing all reduction parameters
+    prefix : str
+        Prefix for workspace names
+    load_params : dict, optional
+        Parameters for loading workspaces
+    allow_processed_nexus : bool
+        When true, allows loading processed Nexus files (e.g., saved with SaveNexusProcessed)
+        for the sample run. This is useful for live reduction where events are saved to a
+        temporary file.
 
     Returned namedtuple:
         - sample, background, empty, sample_transmission, background_transmission: namedtuple(data[ws], monitor[ws])
@@ -214,6 +227,8 @@ def load_all_files(reduction_input, prefix="", load_params=None):
     # check for time/log slicing
     timeslice, logslice, polarized = resolve_slicing(reduction_input)
     load_params_sample = {**sample_load_options, **load_params}
+    # Enable loading of processed Nexus files for sample (used in live reduction)
+    load_params_sample["allow_processed_nexus"] = allow_processed_nexus
     # Load (and optionally slice) sample runs
     # special loading case for sample to allow the slicing options
     logslice_data_dict = {}

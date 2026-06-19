@@ -13,7 +13,7 @@ from os import makedirs
 from shutil import copytree
 import tempfile
 
-from mantid.simpleapi import LoadEmptyInstrument
+from mantid.simpleapi import LoadEmptyInstrument, SaveNexusProcessed
 from mantid.dataobjects import EventWorkspace
 
 from drtsans.path import add_to_sys_path
@@ -65,7 +65,27 @@ def livereduce(events: EventWorkspace, publish=True):
         with configure_error_buffer() as error_buffer:
             log_context = LogContext(logger=logger, logfile=LOG_FILE, error_buffer=error_buffer)
             with tempfile.TemporaryDirectory(prefix="livereduce_") as temp_dir:
-                report = reduce_events(events, temp_dir, log_context)
+                # Save the EventWorkspace to a temporary processed Nexus file.
+                # This is necessary because the reduction pipeline expects to load the sample
+                # data from a file, but during live reduction the permanent event file
+                # doesn't exist yet.
+                sample_file = os.path.join(temp_dir, f"EQSANS_{run}_live.nxs")
+                try:
+                    logger.info(f"Saving live events to temporary file: {sample_file}")
+                    SaveNexusProcessed(InputWorkspace=events, Filename=sample_file)
+                except Exception as e:
+                    error_msg = f"Failed to save live events to temporary file: {str(e)}"
+                    logger.error(error_msg)
+                    # Create an error report so live reduction service has a diagnostic artifact
+                    report = f"<h1>Live Reduction Error</h1><p>{error_msg}</p><pre>{str(e)}</pre>"
+                    report += footer(events, output_dir, log_context)
+                    save_report(report, os.path.join(temp_dir, f"EQSANS_{run}.html"), logger)
+                    if publish:
+                        upload_report(temp_dir, output_dir, logger)
+                    return
+
+                # Reduce the events using the temporary file
+                report = reduce_events(events, temp_dir, log_context, sample_file=sample_file)
                 report += footer(events, output_dir, log_context)  # notice we pass output_dir here
                 save_report(report, os.path.join(temp_dir, f"EQSANS_{run}.html"), logger)  # save to disk
                 if events_file_exists(events):

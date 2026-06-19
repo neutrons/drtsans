@@ -11,6 +11,7 @@ from mantid.simpleapi import (
     FilterEvents,
     LoadEventNexus,
     LoadEventAsWorkspace2D,
+    LoadNexusProcessed,
     MergeRuns,
     mtd,
     ScaleInstrumentComponent,
@@ -40,6 +41,16 @@ from drtsans.filterevents.factory import create_filter_strategy
 __all__ = ["load_events", "sum_data", "load_and_split", "move_instrument"]
 
 logger = Logger("drtsans.load")
+
+# Valid arguments for LoadNexusProcessed algorithm
+LOAD_NEXUS_PROCESSED_ARGS = {
+    "SpectrumMin",
+    "SpectrumMax",
+    "SpectrumList",
+    "EntryNumber",
+    "LoadHistory",
+    "FastMultiPeriod",
+}
 
 
 def __monitor_counts(filename, monitor_name="monitor1"):
@@ -83,6 +94,7 @@ def load_events(
     detector_offset=0.0,
     sample_offset=0.0,
     reuse_workspace=False,
+    allow_processed_nexus=False,
     **kwargs,
 ):
     r"""
@@ -120,6 +132,11 @@ def load_events(
         at the origin of coordinates. Positive moves the sample downstream.
     reuse_workspace: bool
         When true, return the ``output_workspace`` if it already exists
+    allow_processed_nexus: bool
+        When true, allows loading processed Nexus files (e.g., saved with SaveNexusProcessed)
+        in addition to event Nexus files. This is useful for live reduction for time-of-flight
+        instruments where events are saved to a temporary file. If LoadEventNexus fails, falls
+        back to LoadNexusProcessed algorithm for processed Nexus files.
     kwargs: dict
         Additional positional arguments for loading algorithm;
         :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`,
@@ -163,7 +180,15 @@ def load_events(
                 # LoadEventAsWorkspace2D does not have MetaDataOnly as an argument parameter  "MetaDataOnly"
                 LoadEventAsWorkspace2D(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
             else:
-                LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
+                if allow_processed_nexus:
+                    try:
+                        LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
+                    except RuntimeError as e:
+                        logger.notice(f"LoadEventNexus failed for {filename}, trying LoadNexusProcessed: {str(e)}")
+                        load_kwargs = {k: v for k, v in kwargs.items() if k in LOAD_NEXUS_PROCESSED_ARGS}
+                        LoadNexusProcessed(Filename=filename, OutputWorkspace=output_workspace, **load_kwargs)
+                else:
+                    LoadEventNexus(Filename=filename, OutputWorkspace=output_workspace, **kwargs)
 
         if isinstance(scale_components, dict):
             for component, scalings in scale_components.items():

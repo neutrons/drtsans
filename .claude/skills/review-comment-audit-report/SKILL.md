@@ -23,6 +23,9 @@ Use this skill when asked to verify whether a pull request author addressed revi
    - Look for commits after the review comments.
    - Prefer commit messages such as `address comments`, `fix review comments`, or similar.
    - Use `git show --unified=8 <commit> -- <file>` to capture before/after code.
+   - Use `nl -ba` or equivalent on the relevant before and after file revisions so snippets include line numbers:
+     - `Before` snippets use line numbers from the revision before the addressing change.
+     - `After` snippets use line numbers from the revision after the addressing change, or the final inspected PR/head state.
    - Inspect the current file with `nl -ba <file>` to provide current line-number links.
 
 4. Inspect current code or docs.
@@ -33,6 +36,16 @@ Use this skill when asked to verify whether a pull request author addressed revi
    - Include the comment number in the section title.
    - Use a short descriptive title, not only the file name.
    - Keep the explanation grounded in concrete code or documentation changes.
+
+6. Output the report.
+   Mandatory order:
+   1. First, post the full report body in the chat.
+   2. Then save the exact same report body to a Markdown file under `/tmp`.
+   3. Finally, tell the user the saved file path.
+
+   Do not replace the chat report with a summary, excerpt, or file link.
+   Do not rely on a concise final answer when this skill is active; the full report is the final answer.
+
 
 ## Section Format
 
@@ -52,13 +65,15 @@ Where:
 - GitHub thread state: resolved/unresolved, outdated/current.
 
 Before:
-```diff
-- old code
+```text
+123  old code
+124  old code
 ```
 
 After:
-```diff
-+ new code
+```text
+145  new code
+146  new code
 ```
 
 Explanation:
@@ -67,9 +82,16 @@ Explain exactly how the change responds to the comment. If the thread is marked 
 
 ## Reporting Rules
 
+- The complete report must appear in the chat, even if it is long.
+- A saved `/tmp/*.md` file is required but is not a substitute for posting the report.
+- The final response should contain the full report first, followed by the saved file path.
 - Do not use a table for detailed audits unless the user explicitly requests one.
 - Use one numbered section per reviewer comment.
-- Include file names and current line numbers for every code reference.
+- Include file names and actively look up the current line number for every reference.
+- Before/after code snippets must include line numbers inside the snippet.
+- `Before` snippet line numbers must come from the file revision before the addressing change.
+- `After` snippet line numbers must come from the file revision after the addressing change, or from the final inspected PR/head state when that is what the report is evaluating.
+- Do not use `diff` fences for numbered snippets unless the line numbers remain clear; prefer `text` fences for numbered before/after excerpts.
 - Show before/after code snippets when a code or documentation change exists.
 - If the author addressed the comment only in discussion, say `resolved by discussion, not by code change`.
 - If a thread is resolved but the implementation is incomplete, say `partially addressed` and explain the gap.

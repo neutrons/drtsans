@@ -375,7 +375,7 @@ def reduce_sample(
     if os.path.exists(reduction_options_path) is False:
         amendment = {
             "iptsNumber": ipts,
-            "sample": {"runNumber": run_number or sample_file},
+            "sample": {"runNumber": sample_file or run_number},
             "outputFileName": f"EQSANS_{run_number}",  # prefix for all output files
             "configuration": {"outputDir": output_dir},
         }

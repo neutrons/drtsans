@@ -17,7 +17,7 @@ outputs or compare to expected data.
 
 2. Determine the instrument from the configuration.
    - Prefer `instrumentName`.
-   - Treat `EQSANS` as `tests/integration/drtsans/tof/eqsans/`.
+   - Treat `EQSANS` or `EQ-SANS` as `tests/integration/drtsans/tof/eqsans/`.
    - Treat `GPSANS` or `CG2` as `tests/integration/drtsans/mono/gpsans/`.
    - Treat `BIOSANS` or `CG3` as `tests/integration/drtsans/mono/biosans/`.
    - If the instrument is missing or unsupported, ask the user which supported instrument path to use.

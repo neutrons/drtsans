@@ -1,6 +1,6 @@
 ---
 name: pixi-python
-description: Use when working in a Python repository managed by Pixi, including projects with pixi.toml, pixi.lock, .pixi/, or [tool.pixi] sections in pyproject.toml.
+description: Use whenever running Python tooling in a Pixi-managed repository, including python, pytest, ruff, mypy, pip, or similar commands; this environment skill applies alongside task-specific skills when pixi.toml, pixi.lock, .pixi/, or [tool.pixi] sections in pyproject.toml are present.
 ---
 
 # Pixi Python Repositories

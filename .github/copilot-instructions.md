@@ -23,6 +23,7 @@
 
 ## Technology Stack
 
+- **pixi-python**: load the pixi-python skill when attempting to run any Python-related tool, including python, pytest, ruff, mypy, pip
 - **Mantid**: use `mantid.simpleapi` for algorithms, `mantid.kernel` for logging/configuration, and `mantid.api` for workspace types.
 - **Testing**: pytest with pytest-cov, pytest-qt, pytest-mock, pytest-xvfb, and pytest-xdist.
 - **Linting/formatting**: ruff, configured in `pyproject.toml`.

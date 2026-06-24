@@ -1,7 +1,9 @@
 ignore:
   - package:
       name: python
+      version: "3.12.*"
       type: binary
+    reason: "Python 3.12.x binary detection; vulnerabilities tracked upstream."
 
   - package:
       name: gstreamer

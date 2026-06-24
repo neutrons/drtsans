@@ -1,0 +1,18 @@
+ignore:
+  - package:
+      name: python
+      version: "3.12.*"
+      type: binary
+    reason: "Python 3.12.x binary detection; vulnerabilities tracked upstream."
+
+  - package:
+      name: gstreamer
+      version: "1.26.11"
+      type: conda
+    reason: "gstreamer 1.26.11 has multiple CVEs with no fix available yet; ignored until conda-forge ships a patched version."
+
+  - package:
+      name: pyo3
+      version: "0.28.3"
+      type: rust-crate
+    reason: "Transitive pyo3 vulnerability reported via rpds; awaiting dependency update to pyo3 >= 0.29.0."

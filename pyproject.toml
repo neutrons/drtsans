@@ -72,10 +72,10 @@ file = "src/drtsans/_version.py"
 name = "drtsans"
 platforms = ["linux-64"]
 channels = [
+    "https://prefix.dev/pixi-build-backends",
     "conda-forge",
     "mantid-ornl/label/main",
     "neutrons",
-    "https://prefix.dev/pixi-build-backends",
 ]
 # Required until the build feature becomes stable
 preview = ["pixi-build"]

@@ -2,10 +2,10 @@ version: 6
 environments:
   build:
     channels:
+    - url: https://prefix.dev/pixi-build-backends/
     - url: https://conda.anaconda.org/conda-forge/
     - url: https://conda.anaconda.org/mantid-ornl/label/main/
     - url: https://conda.anaconda.org/neutrons/
-    - url: https://prefix.dev/pixi-build-backends/
     indexes:
     - https://pypi.org/simple
     options:
@@ -143,10 +143,10 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/d2/b8/f0b9b880c03a3db8eaff63d76ca751ac7d8e45483fb7a0bb9f8e5c6ce433/toml_cli-0.8.2-py3-none-any.whl
   default:
     channels:
+    - url: https://prefix.dev/pixi-build-backends/
     - url: https://conda.anaconda.org/conda-forge/
     - url: https://conda.anaconda.org/mantid-ornl/label/main/
     - url: https://conda.anaconda.org/neutrons/
-    - url: https://prefix.dev/pixi-build-backends/
     indexes:
     - https://pypi.org/simple
     options:
@@ -556,10 +556,10 @@ environments:
       - pypi: ./
   docs:
     channels:
+    - url: https://prefix.dev/pixi-build-backends/
     - url: https://conda.anaconda.org/conda-forge/
     - url: https://conda.anaconda.org/mantid-ornl/label/main/
     - url: https://conda.anaconda.org/neutrons/
-    - url: https://prefix.dev/pixi-build-backends/
     indexes:
     - https://pypi.org/simple
     options:
@@ -1544,8 +1544,8 @@ packages:
   timestamp: 1765193127016
 - pypi: ./
   name: drtsans
-  version: 1.32.0.dev20260622183700
-  sha256: b2677624b346242b567aa76e64e71de71f3e9bd5e6dcf584d2f5e0485dbe7683
+  version: 1.32.0.dev20260624153922
+  sha256: a0f4f6f3615974a7b4cd99b31cb3f8b2c768f72871e8cebc9c9e1e176227a5a6
   requires_python: '>=3.12'
 - conda: https://conda.anaconda.org/conda-forge/linux-64/epoxy-1.5.10-hb03c661_2.conda
   sha256: a5b51e491fec22bcc1765f5b2c8fff8a97428e9a5a7ee6730095fb9d091b0747

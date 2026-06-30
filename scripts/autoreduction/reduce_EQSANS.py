@@ -1,5 +1,12 @@
 #!/usr/bin/env python
-"""Autoreduction script for EQSANS"""
+"""
+EDIT THIS FILE ONLY IN THE drtsans REPOSITORY (https://github.com/neutrons/drtsans)
+
+To make changes to this file:
+- open a feature branch in the `drtsans` repository
+- make your changes and submit a pull request for review.
+- after the pull request is merged, deploy the updated script in /SNS/EQSANS/shared/autoreduce
+"""
 
 import argparse
 from copy import deepcopy
@@ -49,7 +56,7 @@ except ImportError:
 # silently ignore all types of numerical errors (like divide by zero, overflow, etc.)
 np.seterr(all="ignore")
 warnings.filterwarnings("ignore", module="numpy")
-CONDA_ENV = "sans-qa"
+CONDA_ENV = "sans_qa"
 
 LOG_NAME = "autoreduce"
 AUTOREDUCE_DIR = "/SNS/EQSANS/shared/autoreduce"
@@ -430,7 +437,7 @@ def reduce_sample(
 
     # Generate GPR analysis plots
     if GPR_AVAILABLE:
-        logger.info("reduce_sample: generating GPR analysis plots")
+        logger.info("reduce_sample: generating Gaussian Process Regression (GPR) analysis plots")
         gpr_report = autoreduction_plots(
             reduction_output=output,
             output_dir=output_dir,
@@ -439,6 +446,8 @@ def reduce_sample(
         )
         if gpr_report:
             report += gpr_report + "<hr>\n"
+    else:
+        logger.warning("Gaussian Process Regression (GPR) analysis plots not available")
 
     # Save the input reduction options
     logger.info("reduce_sample: saving final input reduction options to JSON file")
@@ -573,7 +582,7 @@ def reduce_events(
         else:
             report += reduce_non_sample(events)
     except Exception:
-        logger.error("Reduction failed")
+        logger.error("Reduction failed", exc_info=True)
 
     # If reduction failed, include error log messages and traceback in the HTML report
     error_messages = error_buffer.getvalue()

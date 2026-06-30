@@ -18,6 +18,7 @@ from collections import namedtuple
 import os
 import re
 import requests
+import stat
 import sys
 import time
 from typing import Union
@@ -56,7 +57,7 @@ except ImportError:
 # silently ignore all types of numerical errors (like divide by zero, overflow, etc.)
 np.seterr(all="ignore")
 warnings.filterwarnings("ignore", module="numpy")
-CONDA_ENV = "sans_qa"
+CONDA_ENV = "sans_dev"
 
 LOG_NAME = "autoreduce"
 AUTOREDUCE_DIR = "/SNS/EQSANS/shared/autoreduce"
@@ -642,6 +643,9 @@ def autoreduce(args: argparse.Namespace):
     if output_dir == AUTOREDUCE_IPTS_DIR.format(ipts=ipts):  # e.g. /SNS/EQSANS/IPTS-12345/shared/autoreduce/
         output_dir = os.path.join(args.outdir, run)  # e.g. /SNS/EQSANS/IPTS-12345/shared/autoreduce/198434/
     os.makedirs(output_dir, exist_ok=True)
+    # Give write access to group so that the autoreduction service can overwrite any output files generated
+    # by one of the developers when manually running the reduction, for instance for debugging purposes
+    os.chmod(output_dir, os.stat(output_dir).st_mode | stat.S_IWGRP)
 
     # instantiate the logging context
     run_number = str(events.getRunNumber())  # e.g. "105584"

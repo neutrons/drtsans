@@ -1287,8 +1287,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     else:
         sample_trans_ws = None
 
-    output = []
-    detectordata = {}
+    # Apply corrections and normalizations to each sample workspace (one per time/log/spin slice).
+    # Results are collected into processed_samples for downstream Q-conversion and binning.
+    processed_samples = []
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         name = "_slice_{}".format(i + 1)
         if len(loaded_ws.sample) > 1:
@@ -1329,14 +1330,25 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
                 continue
             else:
                 raise
+        processed_samples.append((name, output_suffix, processed_data_main))
 
-        # binning
-        subpixel_kwargs = dict()
-        if reduction_config["useSubpixels"] is True:
-            subpixel_kwargs = {
-                "n_horizontal": reduction_config["subpixelsX"],
-                "n_vertical": reduction_config["subpixelsY"],
-            }
+    if not processed_samples:
+        raise NoDataProcessedError
+
+    # Subpixel binning
+    subpixel_kwargs = dict()
+    if reduction_config["useSubpixels"] is True:
+        subpixel_kwargs = {
+            "n_horizontal": reduction_config["subpixelsX"],
+            "n_vertical": reduction_config["subpixelsY"],
+        }
+
+    #
+    # Convert each processed workspace to Q-space and bin into 1D/2D profiles.
+    #
+    output = []
+    detectordata = {}
+    for name, output_suffix, processed_data_main in processed_samples:
         iq1d_main_in = convert_to_q(processed_data_main, mode="scalar", **subpixel_kwargs)
         iq2d_main_in = convert_to_q(processed_data_main, mode="azimuthal", **subpixel_kwargs)
         if bool(autoWedgeOpts):  # determine wedges automatically
@@ -1387,11 +1399,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         output.append(current_output)
 
         detectordata[name] = {"main": {"i1d": i1d_main_out, "iqxqy": iq2d_main_out}}
-
-    try:
-        processed_data_main
-    except NameError:
-        raise NoDataProcessedError
 
     # save reduction log
 

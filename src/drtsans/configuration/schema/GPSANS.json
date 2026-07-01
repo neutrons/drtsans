@@ -106,7 +106,40 @@
         "smearingPixelSizeY": {"$ref":  "common.json#/configuration/smearingPixelSizeY"},
         "useSubpixels":      {"$ref":  "common.json#/configuration/useSubpixels", "default": true},
         "subpixelsX":        {"$ref":  "common.json#/configuration/subpixelsX", "default": 5},
-        "subpixelsY":        {"$ref":  "common.json#/configuration/subpixelsY", "default": 5}
+        "subpixelsY":        {"$ref":  "common.json#/configuration/subpixelsY", "default": 5},
+
+        "polarization": {
+          "type": "object",
+          "properties": {
+            "polarizer": {
+              "type": "object",
+              "properties": {
+                "polarization": {
+                  "$ref": "common.json#/definitions/polarizationDeviceProperty",
+                  "description": "wavelength-dependent polarization function of the incident neutron (wavelength in Å). Default is '1'"
+                },
+                "efficiency": {
+                  "$ref": "common.json#/definitions/polarizationDeviceProperty",
+                  "description": "wavelength-dependent efficiency function of the spin flipper (wavelength in Å). Default is '1'"
+                }
+              }
+            },
+            "analyzer": {
+              "type": "object",
+              "properties": {
+                "polarizationZero": {
+                  "$ref": "common.json#/definitions/polarizationDeviceProperty",
+                  "description": "wavelength-dependent polarization function of the 3He spin filter in its 0° state (wavelength in Å). Default is '1'"
+                },
+                "polarizationPi": {
+                  "$ref": "common.json#/definitions/polarizationDeviceProperty",
+                  "description": "wavelength-dependent polarization function of the 3He spin filter in its π° state (wavelength in Å). Default is '1'"
+                }
+              }
+            }
+          }
+        }
+
       },
       "required": ["outputDir", "wavelength", "wavelengthSpread", "useTimeSlice", "timeSliceInterval",
         "timeSliceOffset", "timeSlicePeriod", "useLogSlice", "logSliceName", "logSliceInterval",
@@ -121,7 +154,7 @@
         "autoWedgeQmin", "autoWedgeQmax", "autoWedgeQdelta", "autoWedgeAzimuthalDelta",
         "autoWedgePeakWidth", "autoWedgeBackgroundWidth", "autoWedgeSignalToNoiseMin", "AnnularAngleBin",
         "Qmin", "Qmax", "useErrorWeighting", "smearingPixelSizeX", "smearingPixelSizeY",
-        "useSubpixels", "subpixelsX", "subpixelsY"]
+        "useSubpixels", "subpixelsX", "subpixelsY", "polarization"]
     }
   },
   "required": ["schemaStamp", "instrumentName", "iptsNumber", "dataDirectories", "sample", "background",

@@ -107,8 +107,9 @@ pyqt = ">=5,<6"
 qtpy = ">=2.4.3"
 matplotlib = "*"
 requests = "*"
-tinydb = "*"
 sortedcontainers = "*"
+sympy = "*"
+tinydb = "*"
 
 [tool.pixi.pypi-dependencies]
 drtsans = { path = ".", editable = true }
@@ -130,8 +131,9 @@ pyqt = ">=5,<6"
 qtpy = ">=2.4.3"
 matplotlib = "*"
 requests = "*"
-tinydb = "*"
 sortedcontainers = "*"
+sympy = "*"
+tinydb = "*"
 
 # Environments and features
 

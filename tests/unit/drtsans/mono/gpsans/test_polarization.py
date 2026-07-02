@@ -1,11 +1,14 @@
 import h5py
+import numpy as np
 from mantid.kernel import amend_config
-from mantid.simpleapi import CreateSingleValuedWorkspace, mtd
+from mantid.simpleapi import CreateSingleValuedWorkspace, CreateWorkspace, DeleteWorkspace, mtd
 from numpy.testing import assert_equal, assert_array_almost_equal
 import pytest
 
 from drtsans.instruments import empty_instrument_workspace
 from drtsans.polarization import (
+    HalfPolarizationDecoder,
+    PolarizationDecoder,
     PolarizationLevel,
     PolarizationCrossSection,
     PolarizationState,
@@ -370,6 +373,173 @@ class TestSimulatedLogs:
         assert "T00:04:59.5" in str(sample_logs[PV_POLARIZER_VETO].times[-1])
         assert "T00:04:00.0" in str(sample_logs[PV_ANALYZER_FLIPPER].times[-1])
         assert (PV_ANALYZER_VETO in sample_logs) is False
+
+
+@pytest.fixture
+def half_pol_workspaces():
+    """Two Workspace2D objects tagged with OFF/ON cross-section logs and wavelength=6."""
+    names, ws_list = [], []
+    for cross_section, y_val in [
+        (PolarizationCrossSection.OFF, 10.0),
+        (PolarizationCrossSection.ON, 8.0),
+    ]:
+        name = mtd.unique_hidden_name()
+        ws = CreateWorkspace(DataX=[5.0, 7.0], DataY=[y_val], DataE=[0.1], OutputWorkspace=name)
+        SampleLogs(ws).insert("wavelength", 6.0)
+        cross_section.log(ws)
+        names.append(name)
+        ws_list.append(ws)
+    yield ws_list
+    for name in names:
+        if mtd.doesExist(name):
+            DeleteWorkspace(name)
+
+
+class TestPolarizationDecoder:
+    def test_constant_polarization_and_efficiency(self):
+        config = {"polarization": {"polarizer": {"polarization": "0.9", "efficiency": "0.8"}}}
+        decoder = PolarizationDecoder(config)
+        assert decoder.p(6.0) == pytest.approx(0.9)
+        assert decoder.e(6.0) == pytest.approx(0.8)
+
+    def test_linear_polarization(self):
+        config = {"polarization": {"polarizer": {"polarization": "0.95 - 0.01*(x - 16)", "efficiency": "1"}}}
+        decoder = PolarizationDecoder(config)
+        assert decoder.p(16.0) == pytest.approx(0.95)
+        assert decoder.p(6.0) == pytest.approx(0.95 - 0.01 * (6.0 - 16.0))
+
+    def test_numeric_value_coercion(self):
+        config = {"polarization": {"polarizer": {"polarization": 0.9, "efficiency": 0.8}}}
+        decoder = PolarizationDecoder(config)
+        assert decoder.p(10.0) == pytest.approx(0.9)
+        assert decoder.e(10.0) == pytest.approx(0.8)
+
+    def test_defaults_are_unity(self):
+        decoder = PolarizationDecoder({})
+        for wavelength in [5.0, 10.0, 16.0]:
+            assert decoder.p(wavelength) == pytest.approx(1.0)
+            assert decoder.e(wavelength) == pytest.approx(1.0)
+
+    def test_decode_not_implemented(self):
+        with pytest.raises(NotImplementedError):
+            PolarizationDecoder({}).decode([])
+
+
+class TestHalfPolarizationDecoder:
+    def _make_decoder(self, polarization, efficiency):
+        config = {"polarization": {"polarizer": {"polarization": str(polarization), "efficiency": str(efficiency)}}}
+        return HalfPolarizationDecoder(config)
+
+    # --- Group A: decoding_matrix (pure numpy) ---
+
+    def test_identity_at_perfect_polarization(self):
+        """P=1, e=1 → perfect instrument → decoding matrix is the identity."""
+        decoder = self._make_decoder(polarization=1.0, efficiency=1.0)
+        M = decoder.decoding_matrix(wavelength=6.0)
+        np.testing.assert_array_almost_equal(M, np.eye(2))
+
+    def test_matrix_shape(self):
+        decoder = self._make_decoder(polarization=0.9, efficiency=0.95)
+        assert decoder.decoding_matrix(wavelength=6.0).shape == (2, 2)
+
+    def test_matrix_values_known_case(self):
+        """P=1/3, e=1 → dl=1, ul=2 → M = [[2,-1],[-1,2]]."""
+        decoder = self._make_decoder(polarization=1.0 / 3.0, efficiency=1.0)
+        M = decoder.decoding_matrix(wavelength=6.0)
+        np.testing.assert_array_almost_equal(M, [[2, -1], [-1, 2]])
+
+    def test_zero_polarization_raises(self):
+        decoder = self._make_decoder(polarization=0.0, efficiency=1.0)
+        with pytest.raises(ValueError, match="Polarization must be greater than zero"):
+            decoder.decoding_matrix(wavelength=6.0)
+
+    def test_zero_efficiency_raises(self):
+        decoder = self._make_decoder(polarization=0.9, efficiency=0.0)
+        with pytest.raises(ValueError, match="Flipper efficiency must be greater than zero"):
+            decoder.decoding_matrix(wavelength=6.0)
+
+    def test_matrix_inverts_encoding(self):
+        """Decoding matrix M_dec is the inverse of the physical encoding matrix M_enc."""
+
+        def encoding_matrix(p, e):
+            # Row 0: flipper off — fraction of S↑ and S↓ that pass the polarizer
+            # Row 1: flipper on  — flipper flips spin with efficiency e before analysis
+            return np.array(
+                [
+                    [(1 + p) / 2, (1 - p) / 2],
+                    [
+                        (1 - e) * (1 + p) / 2 + e * (1 - p) / 2,
+                        (1 - e) * (1 - p) / 2 + e * (1 + p) / 2,
+                    ],
+                ]
+            )
+
+        for p, e in [(0.9, 0.95), (0.5, 0.8), (1.0 / 3.0, 1.0), (0.95, 0.998)]:
+            decoder = self._make_decoder(polarization=p, efficiency=e)
+            M_dec = decoder.decoding_matrix(wavelength=6.0)
+            M_enc = encoding_matrix(p, e)
+            np.testing.assert_array_almost_equal(M_dec @ M_enc, np.eye(2), decimal=10)
+
+    # --- Group B: decode (Mantid workspaces) ---
+
+    def test_returns_two_workspaces(self, half_pol_workspaces, clean_workspace):
+        decoder = self._make_decoder(polarization=0.9, efficiency=0.95)
+        result = decoder.decode(half_pol_workspaces)
+        for ws in result:
+            clean_workspace(ws)
+        assert len(result) == 2
+
+    def test_output_logs_have_polarization_state(self, half_pol_workspaces, clean_workspace):
+        decoder = self._make_decoder(polarization=0.9, efficiency=0.95)
+        result = decoder.decode(half_pol_workspaces)
+        for ws in result:
+            clean_workspace(ws)
+        assert PolarizationState.get(result[0]) == PolarizationState.UP
+        assert PolarizationState.get(result[1]) == PolarizationState.DOWN
+
+    def test_output_logs_lack_cross_section(self, half_pol_workspaces, clean_workspace):
+        decoder = self._make_decoder(polarization=0.9, efficiency=0.95)
+        result = decoder.decode(half_pol_workspaces)
+        for ws in result:
+            clean_workspace(ws)
+        for ws in result:
+            assert PolarizationCrossSection.logname not in SampleLogs(ws)
+
+    def test_wrong_count_raises(self, half_pol_workspaces):
+        decoder = self._make_decoder(polarization=0.9, efficiency=0.95)
+        with pytest.raises(ValueError, match="exactly 2 device cross-sections"):
+            decoder.decode([half_pol_workspaces[0]])
+        with pytest.raises(ValueError, match="exactly 2 device cross-sections"):
+            decoder.decode(half_pol_workspaces + half_pol_workspaces)
+
+    def test_order_invariant(self, half_pol_workspaces, clean_workspace):
+        """Passing [s0, s1] or [s1, s0] yields the same decoded spin states."""
+        decoder = self._make_decoder(polarization=0.9, efficiency=0.95)
+        result_normal = decoder.decode(half_pol_workspaces)
+        result_reversed = decoder.decode(list(reversed(half_pol_workspaces)))
+        for ws in result_normal + result_reversed:
+            clean_workspace(ws)
+        np.testing.assert_array_almost_equal(result_normal[0].readY(0), result_reversed[0].readY(0))
+        np.testing.assert_array_almost_equal(result_normal[1].readY(0), result_reversed[1].readY(0))
+
+    def test_intensity_at_perfect_polarization(self, half_pol_workspaces, clean_workspace):
+        """P=1, e=1: identity decoding → S↑ = S⁰ and S↓ = S¹."""
+        decoder = self._make_decoder(polarization=1.0, efficiency=1.0)
+        ws_off, ws_on = half_pol_workspaces
+        result = decoder.decode(half_pol_workspaces)
+        for ws in result:
+            clean_workspace(ws)
+        np.testing.assert_array_almost_equal(result[0].readY(0), ws_off.readY(0))
+        np.testing.assert_array_almost_equal(result[1].readY(0), ws_on.readY(0))
+
+    def test_intensity_known_case(self, half_pol_workspaces, clean_workspace):
+        """P=1/3, e=1: M=[[2,-1],[-1,2]] → S↑=2*10-8=12, S↓=-10+2*8=6."""
+        decoder = self._make_decoder(polarization=1.0 / 3.0, efficiency=1.0)
+        result = decoder.decode(half_pol_workspaces)
+        for ws in result:
+            clean_workspace(ws)
+        np.testing.assert_array_almost_equal(result[0].readY(0), [12.0])
+        np.testing.assert_array_almost_equal(result[1].readY(0), [6.0])
 
 
 if __name__ == "__main__":

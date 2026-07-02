@@ -9,8 +9,9 @@ from typing import ClassVar, Generator, List, Optional, Union
 import h5py
 from mantid.api import AnalysisDataService
 from mantid.dataobjects import EventWorkspace
-from mantid.simpleapi import CreateSingleValuedWorkspace, DeleteWorkspace, logger, mtd, RenameWorkspace
+from mantid.simpleapi import CreateSingleValuedWorkspace, DeleteLog, DeleteWorkspace, logger, mtd, RenameWorkspace
 import numpy as np
+import sympy as sp
 
 # drtsans imports
 from drtsans.api import _set_uncertainty_from_numpy
@@ -104,13 +105,13 @@ class PolarizationLevel(StrEnum):
 class PolarizationCrossSection(StrEnum):
     """Enumerate the possible spin cross-section states based on flipper and analyzer status."""
 
-    NONE = "none"  # no polarizer and no analyzer
-    OFF = "off"  # flipper off, no analyzer
-    ON = "on"  # flipper on, no analyzer
-    OFF_OFF = "off_off"  # flipper off, analyzer off
-    OFF_ON = "off_on"  # flipper off, analyzer on
-    ON_OFF = "on_off"  # flipper on, analyzer off
-    ON_ON = "on_on"  # flipper on, analyzer on
+    NONE = "none"  # polarizer and analyzer disengaged
+    OFF = "off"  # polarizer flipper off, analyzer disengaged
+    ON = "on"  # polarizer flipper on, analyzer disengaged
+    OFF_OFF = "off_off"  # polarizer flipper off, analyzer at Zero state
+    OFF_ON = "off_on"  # polarizer flipper off, analyzer at Pi state
+    ON_OFF = "on_off"  # polarizer flipper on, analyzer at Zero state
+    ON_ON = "on_on"  # polarizer flipper on, analyzer at Pi state
 
     @classmethod
     def get(cls, workspace: MantidWorkspace) -> "PolarizationCrossSection":
@@ -413,6 +414,87 @@ def half_polarization(
     DeleteWorkspace(flipping_ratio)
 
     return (spin_up_workspace, spin_down_workspace)
+
+
+class PolarizationDecoder:
+    """Base class for polarization decoders."""
+
+    _x = sp.Symbol("x")  # wavelength symbol used in all sympy expressions
+
+    @classmethod
+    def _sympify(cls, value) -> sp.Expr:
+        """Parse a config value (string or number) into a sympy expression in x (wavelength)."""
+        return sp.sympify(str(value))
+
+    @classmethod
+    def _lambdify(cls, expr: sp.Expr):
+        """Convert a sympy expression in x into a numpy-callable function."""
+        return sp.lambdify(cls._x, expr, "numpy")
+
+    def __init__(self, reduction_config: dict):
+        polarizer = reduction_config.get("polarization", {}).get("polarizer", {})
+        self.p = self._lambdify(self._sympify(polarizer.get("polarization", "1")))
+        self.e = self._lambdify(self._sympify(polarizer.get("efficiency", "1")))
+
+    def decode(self, device_cross_sections):
+        raise NotImplementedError("Subclasses must implement the decode method.")
+
+
+class HalfPolarizationDecoder(PolarizationDecoder):
+    """Decoder for half polarization data."""
+
+    def decoding_matrix(self, wavelength: float) -> np.ndarray:
+        p = self.p(wavelength)
+        if p <= 0:
+            raise ValueError("Polarization must be greater than zero.")
+        e = self.e(wavelength)
+        if e <= 0:
+            raise ValueError("Flipper efficiency must be greater than zero.")
+        dl = (1 - p) / (2 * e * p)  # spin-down leakage
+        ul = (1 + p) / (2 * e * p)  # spin-up leakage
+        return np.array(
+            [
+                [1 + dl, -dl],
+                [1 - ul, ul],
+            ]
+        )
+
+    def decode(self, device_cross_sections: list[MantidWorkspace]):
+        if len(device_cross_sections) != 2:
+            raise ValueError(
+                f"Half polarization requires exactly 2 device cross-sections, got {len(device_cross_sections)}."
+            )
+
+        # Find out which cross-section is S⁰ and which is S¹
+        by_state = {PolarizationCrossSection.get(ws): ws for ws in device_cross_sections}
+        s0 = by_state[PolarizationCrossSection.OFF]  # flipper off → S⁰
+        s1 = by_state[PolarizationCrossSection.ON]  # flipper on  → S¹
+        spinor = np.array([s0, s1], dtype=object)
+
+        # Find the decoding matrix
+        wavelength = SampleLogs(s0).single_value("wavelength")
+        M = self.decoding_matrix(wavelength).astype(object)
+
+        # Find the spin states from the device cross-sections, then inject the spin state as a sample-log
+        spin_cross_sections = list(M @ spinor)
+        for ws, state in zip(spin_cross_sections, [PolarizationState.UP, PolarizationState.DOWN]):
+            DeleteLog(Workspace=ws, Name=PolarizationCrossSection.logname)  # delete the device cross-section samplelog
+            state.log(ws)  # inject the spin state samplelog
+        return spin_cross_sections
+
+
+class FullPolarizationDecoder(PolarizationDecoder):
+    """Pass-through placeholder for full polarization data."""
+
+    def decode(self, device_cross_sections: list[MantidWorkspace]):
+        return device_cross_sections
+
+
+def polarization_decoder(device_cross_sections, reduction_config):
+    decoders = {"half": HalfPolarizationDecoder, "full": FullPolarizationDecoder}
+    polarization_level = reduction_config["polarization"]["level"]
+    decoder = decoders[polarization_level](reduction_config)
+    return decoder.decode(device_cross_sections)
 
 
 # A simple way to encode the name and specifications for one of the time generators methods of class SimulatedLogs

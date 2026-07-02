@@ -13,6 +13,7 @@ from mantid.simpleapi import (
     mtd,
     MaskDetectors,
     MoveInstrumentComponent,
+    RenameWorkspace,
     SaveNexusProcessed,
     RemoveWorkspaceHistory,
 )
@@ -47,6 +48,7 @@ from drtsans.mono.normalization import (
     NoMonitorMetadataError,
 )
 from drtsans.path import allow_overwrite
+from drtsans.polarization import polarized_sample, polarization_decoder
 from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
 from drtsans.path import abspath, abspaths, registered_workspace
 from drtsans.plots import plot_detector, plot_IQazimuthal, plot_i1d
@@ -1330,10 +1332,22 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
                 continue
             else:
                 raise
-        processed_samples.append((name, output_suffix, processed_data_main))
+        processed_workspace_name = f"processed_data_main{output_suffix}"
+        processed_data_main = RenameWorkspace(
+            InputWorkspace=processed_data_main,
+            OutputWorkspace=processed_workspace_name,
+        )
+        processed_samples.append((processed_data_main, name, output_suffix))
 
     if not processed_samples:
         raise NoDataProcessedError
+
+    if polarized_sample(reduction_config):
+        device_cross_sections = [ws for ws, _, _ in processed_samples]  # (S^0, S^1) or (S^00, S^0pi, S^10, S^1pi)
+        spin_states = polarization_decoder(device_cross_sections, reduction_config)  # (S^up, S^down),...
+        processed_samples = [
+            (ws, name, output_suffix) for (_, name, output_suffix), ws in zip(processed_samples, spin_states)
+        ]
 
     # Subpixel binning
     subpixel_kwargs = dict()
@@ -1348,7 +1362,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     #
     output = []
     detectordata = {}
-    for name, output_suffix, processed_data_main in processed_samples:
+    for processed_data_main, name, output_suffix in processed_samples:
         iq1d_main_in = convert_to_q(processed_data_main, mode="scalar", **subpixel_kwargs)
         iq2d_main_in = convert_to_q(processed_data_main, mode="azimuthal", **subpixel_kwargs)
         if bool(autoWedgeOpts):  # determine wedges automatically

@@ -14,6 +14,7 @@ from mantid.simpleapi import CreateEmptyTableWorkspace, GenerateEventsFilter, lo
 
 from drtsans.filterevents.basefilter import FilterStrategy
 from drtsans.polarization import (
+    PolarizationCrossSection,
     PV_POLARIZER_FLIPPER,
     PV_ANALYZER_FLIPPER,
     PV_POLARIZER,
@@ -116,7 +117,7 @@ def create_table(
         A table with columns:
         - 'start' (float): Start time of the interval in seconds
         - 'stop' (float): Stop time of the interval in seconds
-        - 'target' (str): Cross-section label (e.g., 'On_Off', 'Off_On')
+        - 'target' (str): Cross-section label (e.g., 'on_off', 'off_on')
 
     Notes
     -----
@@ -125,10 +126,14 @@ def create_table(
     - Neither polarizer nor analyzer veto is active
 
     Cross-section labels follow the format '{polarizer_state}_{analyzer_state}'
-    where each state is either 'On' or 'Off'.
+    where each state is either 'on' or 'off'. If only one polarization device
+    is active, the label contains only that device state.
 
     Time intervals before start_time are discarded or truncated.
     """
+    if has_analyzer and not has_polarizer:
+        raise ValueError("Analyzer polarization requires an active polarizer.")
+
     split_table_ws = SplittersWorkspace()  # Table-like object with columns "start", "stop", and "workspacegroup"
     mtd.addOrReplace(output_splitter_workspace, split_table_ws)
     info_table_ws = CreateEmptyTableWorkspace(OutputWorkspace=output_info_workspace)
@@ -149,7 +154,13 @@ def create_table(
 
     def _add_cross_section_row(start_ns: int, stop_ns: int):
         """Add a row to the table workspace for the current state."""
-        xs_label = "%s_%s" % ("On" if current_state[POLARIZER] else "Off", "On" if current_state[ANALYZER] else "Off")
+        state_labels = []
+        on, off = str(PolarizationCrossSection.ON), str(PolarizationCrossSection.OFF)
+        if has_polarizer:
+            state_labels.append(on if current_state[POLARIZER] else off)
+            if has_analyzer:
+                state_labels.append(on if current_state[ANALYZER] else off)
+        xs_label = "_".join(state_labels)
         start = int(start_ns - start_time)
         stop = stop_ns - start_time
 
@@ -241,12 +252,13 @@ class SpinFilter(FilterStrategy):
     rather than using Mantid's standard time or log interval filters. This allows
     for complex state combinations and veto handling.
 
-    Cross-section workspaces are labeled as '{polarizer}_{analyzer}' where each
-    is either 'On' or 'Off'. For example:
-    - 'On_On': Both polarizer and analyzer ON
-    - 'On_Off': Polarizer ON, analyzer OFF
-    - 'Off_On': Polarizer OFF, analyzer ON
-    - 'Off_Off': Both polarizer and analyzer OFF
+    Cross-section workspaces are labeled with lowercase device states. Half
+    polarization uses one state, ``"off"`` or ``"on"``. Full polarization uses
+    ``"{polarizer}_{analyzer}"`` labels, for example:
+    - ``"on_on"``: both polarizer and analyzer ON
+    - ``"on_off"``: polarizer ON, analyzer OFF
+    - ``"off_on"``: polarizer OFF, analyzer ON
+    - ``"off_off"``: both polarizer and analyzer OFF
     """
 
     def __init__(
@@ -498,7 +510,7 @@ class SpinFilter(FilterStrategy):
             The workspace group (or its name) containing the filtered cross-sections
         """
         for _, samplelogs, cross_section in self._inject_common_metadata(workspace):
-            samplelogs.insert("slice_parameter", "polarization.cross_section")
-            samplelogs.insert("polarization.cross_section", cross_section)
+            samplelogs.insert("slice_parameter", PolarizationCrossSection.logname)
+            samplelogs.insert(PolarizationCrossSection.logname, cross_section)
             samplelogs.insert("polarization.active_polarizer", int(self._active_polarizer))
             samplelogs.insert("polarization.active_analyzer", int(self._active_analyzer))

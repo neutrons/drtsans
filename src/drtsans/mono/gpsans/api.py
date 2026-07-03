@@ -1333,6 +1333,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             else:
                 raise
         processed_workspace_name = f"processed_data_main{output_suffix}"
+        # Single-slice reductions already use this name; Mantid rejects renaming a workspace to itself.
         if str(processed_data_main) != processed_workspace_name:
             processed_data_main = RenameWorkspace(
                 InputWorkspace=processed_data_main,

@@ -7,6 +7,7 @@ import pytest
 
 from drtsans.instruments import empty_instrument_workspace
 from drtsans.polarization import (
+    FullPolarizationDecoder,
     HalfPolarizationDecoder,
     PolarizationDecoder,
     PolarizationLevel,
@@ -395,6 +396,40 @@ def half_pol_workspaces():
             DeleteWorkspace(name)
 
 
+@pytest.fixture
+def full_pol_workspaces():
+    """Four Workspace2D objects tagged with full-polarization cross-section logs and wavelength=6."""
+    config = {
+        "polarization": {
+            "polarizer": {"polarization": str(1.0 / 3.0), "efficiency": "1.0"},
+            "analyzer": {"polarizationZero": "0.5", "polarizationPi": "0.25"},
+        }
+    }
+    spin_values = np.array([13.0, 17.0, 19.0, 23.0])
+    device_values = FullPolarizationDecoder(config).encoding_matrix(wavelength=6.0) @ spin_values
+
+    names, ws_list = [], []
+    for cross_section, y_val in zip(
+        [
+            PolarizationCrossSection.OFF_OFF,
+            PolarizationCrossSection.ON_OFF,
+            PolarizationCrossSection.OFF_ON,
+            PolarizationCrossSection.ON_ON,
+        ],
+        device_values,
+    ):
+        name = mtd.unique_hidden_name()
+        ws = CreateWorkspace(DataX=[5.0, 7.0], DataY=[y_val], DataE=[0.1], OutputWorkspace=name)
+        SampleLogs(ws).insert("wavelength", 6.0)
+        cross_section.log(ws)
+        names.append(name)
+        ws_list.append(ws)
+    yield ws_list, spin_values, config
+    for name in names:
+        if mtd.doesExist(name):
+            DeleteWorkspace(name)
+
+
 class TestPolarizationDecoder:
     def test_constant_polarization_and_efficiency(self):
         config = {"polarization": {"polarizer": {"polarization": "0.9", "efficiency": "0.8"}}}
@@ -450,12 +485,17 @@ class TestHalfPolarizationDecoder:
 
     def test_zero_polarization_raises(self):
         decoder = self._make_decoder(polarization=0.0, efficiency=1.0)
-        with pytest.raises(ValueError, match="Polarization must be greater than zero"):
+        with pytest.raises(ValueError, match="Polarization must be in the interval"):
             decoder.decoding_matrix(wavelength=6.0)
 
     def test_zero_efficiency_raises(self):
         decoder = self._make_decoder(polarization=0.9, efficiency=0.0)
-        with pytest.raises(ValueError, match="Flipper efficiency must be greater than zero"):
+        with pytest.raises(ValueError, match="Flipper efficiency must be in the interval"):
+            decoder.decoding_matrix(wavelength=6.0)
+
+    def test_efficiency_above_one_raises(self):
+        decoder = self._make_decoder(polarization=0.9, efficiency=1.1)
+        with pytest.raises(ValueError, match="Flipper efficiency must be in the interval"):
             decoder.decoding_matrix(wavelength=6.0)
 
     def test_matrix_inverts_encoding(self):
@@ -540,6 +580,169 @@ class TestHalfPolarizationDecoder:
             clean_workspace(ws)
         np.testing.assert_array_almost_equal(result[0].readY(0), [12.0])
         np.testing.assert_array_almost_equal(result[1].readY(0), [6.0])
+
+
+class TestFullPolarizationDecoder:
+    def test_loads_polarizer_and_analyzer_values(self):
+        config = {
+            "polarization": {
+                "polarizer": {"polarization": "0.9", "efficiency": "0.8"},
+                "analyzer": {"polarizationZero": "0.7", "polarizationPi": "0.6"},
+            }
+        }
+        decoder = FullPolarizationDecoder(config)
+
+        assert decoder.p(6.0) == pytest.approx(0.9)
+        assert decoder.e(6.0) == pytest.approx(0.8)
+        assert decoder.a_0(6.0) == pytest.approx(0.7)
+        assert decoder.a_pi(6.0) == pytest.approx(0.6)
+
+    def test_loads_wavelength_dependent_analyzer_values(self):
+        config = {
+            "polarization": {
+                "analyzer": {
+                    "polarizationZero": "0.95 - 0.01*(x - 16)",
+                    "polarizationPi": "0.90 - 0.02*(x - 16)",
+                }
+            }
+        }
+        decoder = FullPolarizationDecoder(config)
+
+        assert decoder.a_0(16.0) == pytest.approx(0.95)
+        assert decoder.a_0(6.0) == pytest.approx(0.95 - 0.01 * (6.0 - 16.0))
+        assert decoder.a_pi(16.0) == pytest.approx(0.90)
+        assert decoder.a_pi(6.0) == pytest.approx(0.90 - 0.02 * (6.0 - 16.0))
+
+    def test_analyzer_defaults_are_unity(self):
+        decoder = FullPolarizationDecoder({})
+
+        for wavelength in [5.0, 10.0, 16.0]:
+            assert decoder.a_0(wavelength) == pytest.approx(1.0)
+            assert decoder.a_pi(wavelength) == pytest.approx(1.0)
+
+    def test_encoding_matrix_shape(self):
+        config = {
+            "polarization": {
+                "polarizer": {"polarization": "0.9", "efficiency": "0.95"},
+                "analyzer": {"polarizationZero": "0.5", "polarizationPi": "0.25"},
+            }
+        }
+        decoder = FullPolarizationDecoder(config)
+
+        assert decoder.encoding_matrix(wavelength=6.0).shape == (4, 4)
+
+    def test_encoding_matrix_values_known_case(self):
+        config = {
+            "polarization": {
+                "polarizer": {"polarization": str(1.0 / 3.0), "efficiency": "1.0"},
+                "analyzer": {"polarizationZero": "0.5", "polarizationPi": "0.25"},
+            }
+        }
+        decoder = FullPolarizationDecoder(config)
+
+        expected = np.array(
+            [
+                [2.0 / 9.0, 4.0 / 9.0, 1.0 / 9.0, 2.0 / 9.0],
+                [1.0 / 9.0, 2.0 / 9.0, 2.0 / 9.0, 4.0 / 9.0],
+                [8.0 / 15.0, 2.0 / 15.0, 4.0 / 15.0, 1.0 / 15.0],
+                [4.0 / 15.0, 1.0 / 15.0, 8.0 / 15.0, 2.0 / 15.0],
+            ]
+        )
+
+        np.testing.assert_array_almost_equal(decoder.encoding_matrix(wavelength=6.0), expected)
+
+    def test_encoding_matrix_allows_perfect_polarizer(self):
+        config = {
+            "polarization": {
+                "polarizer": {"polarization": "1.0", "efficiency": "1.0"},
+                "analyzer": {"polarizationZero": "0.5", "polarizationPi": "0.25"},
+            }
+        }
+        decoder = FullPolarizationDecoder(config)
+
+        expected = np.array(
+            [
+                [1.0 / 3.0, 2.0 / 3.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0 / 3.0, 2.0 / 3.0],
+                [4.0 / 5.0, 1.0 / 5.0, 0.0, 0.0],
+                [0.0, 0.0, 4.0 / 5.0, 1.0 / 5.0],
+            ]
+        )
+
+        np.testing.assert_array_almost_equal(decoder.encoding_matrix(wavelength=6.0), expected)
+
+    @pytest.mark.parametrize(
+        "polarization_config, match",
+        [
+            ({"polarizer": {"polarization": "0"}}, "Polarizer polarization"),
+            ({"polarizer": {"efficiency": "1.1"}}, "Flipper efficiency"),
+            ({"analyzer": {"polarizationZero": "0"}}, "Analyzer zero-state polarization"),
+            ({"analyzer": {"polarizationPi": "0"}}, "Analyzer pi-state polarization"),
+        ],
+    )
+    def test_encoding_matrix_rejects_nonpositive_polarization(self, polarization_config, match):
+        config = {"polarization": polarization_config}
+        decoder = FullPolarizationDecoder(config)
+
+        with pytest.raises(ValueError, match=match):
+            decoder.encoding_matrix(wavelength=6.0)
+
+    def test_decode_returns_four_workspaces(self, full_pol_workspaces, clean_workspace):
+        device_cross_sections, _, config = full_pol_workspaces
+        decoder = FullPolarizationDecoder(config)
+
+        result = decoder.decode(device_cross_sections)
+        for ws in result:
+            clean_workspace(ws)
+
+        assert len(result) == 4
+
+    def test_decode_output_logs_have_polarization_state(self, full_pol_workspaces, clean_workspace):
+        device_cross_sections, _, config = full_pol_workspaces
+        decoder = FullPolarizationDecoder(config)
+
+        result = decoder.decode(device_cross_sections)
+        for ws in result:
+            clean_workspace(ws)
+
+        assert PolarizationState.get(result[0]) == PolarizationState.UP_UP
+        assert PolarizationState.get(result[1]) == PolarizationState.UP_DOWN
+        assert PolarizationState.get(result[2]) == PolarizationState.DOWN_UP
+        assert PolarizationState.get(result[3]) == PolarizationState.DOWN_DOWN
+        for ws in result:
+            assert PolarizationCrossSection.logname not in SampleLogs(ws)
+
+    def test_decode_wrong_count_raises(self, full_pol_workspaces):
+        device_cross_sections, _, config = full_pol_workspaces
+        decoder = FullPolarizationDecoder(config)
+
+        with pytest.raises(ValueError, match="exactly 4 device cross-sections"):
+            decoder.decode(device_cross_sections[:3])
+        with pytest.raises(ValueError, match="exactly 4 device cross-sections"):
+            decoder.decode(device_cross_sections + device_cross_sections)
+
+    def test_decode_order_invariant(self, full_pol_workspaces, clean_workspace):
+        device_cross_sections, _, config = full_pol_workspaces
+        decoder = FullPolarizationDecoder(config)
+
+        result_normal = decoder.decode(device_cross_sections)
+        result_reversed = decoder.decode(list(reversed(device_cross_sections)))
+        for ws in result_normal + result_reversed:
+            clean_workspace(ws)
+
+        for normal, reversed_ in zip(result_normal, result_reversed):
+            np.testing.assert_array_almost_equal(normal.readY(0), reversed_.readY(0))
+
+    def test_decode_intensity_known_case(self, full_pol_workspaces, clean_workspace):
+        device_cross_sections, spin_values, config = full_pol_workspaces
+        decoder = FullPolarizationDecoder(config)
+
+        result = decoder.decode(device_cross_sections)
+        for ws in result:
+            clean_workspace(ws)
+
+        for ws, expected in zip(result, spin_values):
+            np.testing.assert_array_almost_equal(ws.readY(0), [expected])
 
 
 if __name__ == "__main__":

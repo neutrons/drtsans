@@ -417,7 +417,23 @@ def half_polarization(
 
 
 class PolarizationDecoder:
-    """Base class for polarization decoders."""
+    """
+    Base class for converting measured device cross-sections into spin-state cross-sections.
+
+    Parameters
+    ----------
+    reduction_config : dict
+        Reduction configuration containing optional ``polarization.polarizer`` entries.
+        The polarizer ``polarization`` and flipper ``efficiency`` values may be numeric
+        constants or expressions in wavelength symbol ``x``.
+
+    Attributes
+    ----------
+    p : callable
+        Wavelength-dependent incident-beam polarization, bounded in ``(0, 1]``.
+    e : callable
+        Wavelength-dependent polarizer flipper efficiency, bounded in ``(0, 1]``.
+    """
 
     _x = sp.Symbol("x")  # wavelength symbol used in all sympy expressions
 
@@ -431,25 +447,93 @@ class PolarizationDecoder:
         """Convert a sympy expression in x into a numpy-callable function."""
         return sp.lambdify(cls._x, expr, "numpy")
 
+    @staticmethod
+    def _validate_unit_interval(name: str, value: float):
+        """
+        Validate that a polarization or efficiency value is physically meaningful.
+
+        Parameters
+        ----------
+        name : str
+            Human-readable name used in the exception message.
+        value : float
+            Value to validate.
+
+        Raises
+        ------
+        ValueError
+            If ``value`` is not in the interval ``(0, 1]``.
+        """
+        if not 0 < value <= 1:
+            raise ValueError(f"{name} must be in the interval (0, 1].")
+
     def __init__(self, reduction_config: dict):
+        """
+        Load polarizer properties from the reduction configuration.
+
+        Parameters
+        ----------
+        reduction_config : dict
+            Reduction configuration containing optional ``polarization.polarizer``
+            entries for ``polarization`` and ``efficiency``. Missing values default
+            to perfect polarization and perfect flipper efficiency.
+        """
         polarizer = reduction_config.get("polarization", {}).get("polarizer", {})
         self.p = self._lambdify(self._sympify(polarizer.get("polarization", "1")))
         self.e = self._lambdify(self._sympify(polarizer.get("efficiency", "1")))
 
     def decode(self, device_cross_sections):
+        """
+        Decode measured device cross-sections into spin-state cross-sections.
+
+        Parameters
+        ----------
+        device_cross_sections : list
+            Workspaces corresponding to measured polarizer/analyzer device states.
+
+        Raises
+        ------
+        NotImplementedError
+            Always raised by the base class. Subclasses implement the instrument
+            geometry for half or full polarization.
+        """
         raise NotImplementedError("Subclasses must implement the decode method.")
 
 
 class HalfPolarizationDecoder(PolarizationDecoder):
-    """Decoder for half polarization data."""
+    """
+    Decoder for half-polarization data.
+
+    Half polarization uses two measured device cross-sections: polarizer flipper
+    off (``S0``) and on (``S1``). The decoder applies the inverse of the 2 x 2
+    encoding matrix from Section 9.1 of the master requirements document to
+    recover spin-up and spin-down cross-sections.
+    """
 
     def decoding_matrix(self, wavelength: float) -> np.ndarray:
+        """
+        Return the half-polarization decoding matrix at a wavelength.
+
+        Parameters
+        ----------
+        wavelength : float
+            Neutron wavelength in Angstrom.
+
+        Returns
+        -------
+        numpy.ndarray
+            A 2 x 2 matrix transforming measured ``[S0, S1]`` device
+            cross-sections into spin-state ``[S_up, S_down]`` cross-sections.
+
+        Raises
+        ------
+        ValueError
+            If polarizer polarization or flipper efficiency is outside ``(0, 1]``.
+        """
         p = self.p(wavelength)
-        if p <= 0:
-            raise ValueError("Polarization must be greater than zero.")
+        self._validate_unit_interval("Polarization", p)
         e = self.e(wavelength)
-        if e <= 0:
-            raise ValueError("Flipper efficiency must be greater than zero.")
+        self._validate_unit_interval("Flipper efficiency", e)
         dl = (1 - p) / (2 * e * p)  # spin-down leakage
         ul = (1 + p) / (2 * e * p)  # spin-up leakage
         return np.array(
@@ -460,6 +544,26 @@ class HalfPolarizationDecoder(PolarizationDecoder):
         )
 
     def decode(self, device_cross_sections: list[MantidWorkspace]):
+        """
+        Decode two half-polarization device cross-sections into spin states.
+
+        Parameters
+        ----------
+        device_cross_sections : list of MantidWorkspace
+            Workspaces tagged with ``PolarizationCrossSection.OFF`` and
+            ``PolarizationCrossSection.ON`` sample logs.
+
+        Returns
+        -------
+        list of MantidWorkspace
+            Decoded spin-up and spin-down workspaces, tagged with
+            ``PolarizationState.UP`` and ``PolarizationState.DOWN``.
+
+        Raises
+        ------
+        ValueError
+            If exactly two device cross-section workspaces are not supplied.
+        """
         if len(device_cross_sections) != 2:
             raise ValueError(
                 f"Half polarization requires exactly 2 device cross-sections, got {len(device_cross_sections)}."
@@ -484,10 +588,159 @@ class HalfPolarizationDecoder(PolarizationDecoder):
 
 
 class FullPolarizationDecoder(PolarizationDecoder):
-    """Pass-through placeholder for full polarization data."""
+    """
+    Decoder for full-polarization data.
+
+    Full polarization uses four measured device cross-sections formed from the
+    polarizer flipper state and the analyzer state. The decoder numerically
+    inverts the wavelength-dependent 4 x 4 encoding matrix from Section 9.2 of
+    the master requirements document to recover the four spin-state
+    cross-sections.
+    """
+
+    def __init__(self, reduction_config: dict):
+        """
+        Load polarizer and analyzer properties from the reduction configuration.
+
+        Parameters
+        ----------
+        reduction_config : dict
+            Reduction configuration containing optional ``polarization.polarizer``
+            and ``polarization.analyzer`` entries. Analyzer ``polarizationZero``
+            and ``polarizationPi`` values may be numeric constants or expressions
+            in wavelength symbol ``x``. Missing values default to 1.
+        """
+        super().__init__(reduction_config)
+        analyzer = reduction_config.get("polarization", {}).get("analyzer", {})
+        self.a_0 = self._lambdify(self._sympify(analyzer.get("polarizationZero", "1")))
+        self.a_pi = self._lambdify(self._sympify(analyzer.get("polarizationPi", "1")))
+
+    def encoding_matrix(self, wavelength: float) -> np.ndarray:
+        """
+        Return the full-polarization encoding matrix at a wavelength.
+
+        The matrix maps spin-state cross-sections ordered as
+        ``[S_up_up, S_up_down, S_down_up, S_down_down]`` to measured device
+        cross-sections ordered as ``[S00, S10, S0pi, S1pi]``.
+
+        Parameters
+        ----------
+        wavelength : float
+            Neutron wavelength in Angstrom.
+
+        Returns
+        -------
+        numpy.ndarray
+            A 4 x 4 encoding matrix built from polarizer polarization, flipper
+            efficiency, and analyzer zero/pi-state polarizations.
+
+        Raises
+        ------
+        ValueError
+            If any polarization or efficiency value is outside ``(0, 1]``.
+        """
+        p = self.p(wavelength)
+        self._validate_unit_interval("Polarizer polarization", p)
+        e = self.e(wavelength)
+        self._validate_unit_interval("Flipper efficiency", e)
+        a_0 = self.a_0(wavelength)
+        self._validate_unit_interval("Analyzer zero-state polarization", a_0)
+        a_pi = self.a_pi(wavelength)
+        self._validate_unit_interval("Analyzer pi-state polarization", a_pi)
+
+        polarizer_up_fraction = (1 + p) / 2
+        polarizer_down_fraction = (1 - p) / 2
+
+        flipper_on_up_fraction = e * polarizer_down_fraction + (1 - e) * polarizer_up_fraction
+        flipper_on_down_fraction = e * polarizer_up_fraction + (1 - e) * polarizer_down_fraction
+
+        analyzer_0_up_fraction = a_0 / (1 + a_0)
+        analyzer_0_down_fraction = 1 / (1 + a_0)
+        analyzer_pi_up_fraction = 1 / (1 + a_pi)
+        analyzer_pi_down_fraction = a_pi / (1 + a_pi)
+
+        return np.array(
+            [
+                [
+                    polarizer_up_fraction * analyzer_0_up_fraction,
+                    polarizer_up_fraction * analyzer_0_down_fraction,
+                    polarizer_down_fraction * analyzer_0_up_fraction,
+                    polarizer_down_fraction * analyzer_0_down_fraction,
+                ],
+                [
+                    flipper_on_up_fraction * analyzer_0_up_fraction,
+                    flipper_on_up_fraction * analyzer_0_down_fraction,
+                    flipper_on_down_fraction * analyzer_0_up_fraction,
+                    flipper_on_down_fraction * analyzer_0_down_fraction,
+                ],
+                [
+                    polarizer_up_fraction * analyzer_pi_up_fraction,
+                    polarizer_up_fraction * analyzer_pi_down_fraction,
+                    polarizer_down_fraction * analyzer_pi_up_fraction,
+                    polarizer_down_fraction * analyzer_pi_down_fraction,
+                ],
+                [
+                    flipper_on_up_fraction * analyzer_pi_up_fraction,
+                    flipper_on_up_fraction * analyzer_pi_down_fraction,
+                    flipper_on_down_fraction * analyzer_pi_up_fraction,
+                    flipper_on_down_fraction * analyzer_pi_down_fraction,
+                ],
+            ]
+        )
 
     def decode(self, device_cross_sections: list[MantidWorkspace]):
-        return device_cross_sections
+        """
+        Decode four full-polarization device cross-sections into spin states.
+
+        Parameters
+        ----------
+        device_cross_sections : list of MantidWorkspace
+            Workspaces tagged with ``OFF_OFF``, ``ON_OFF``, ``OFF_ON``, and
+            ``ON_ON`` device cross-section sample logs.
+
+        Returns
+        -------
+        list of MantidWorkspace
+            Decoded spin-state workspaces ordered as ``UP_UP``, ``UP_DOWN``,
+            ``DOWN_UP``, and ``DOWN_DOWN``. Device cross-section logs are removed
+            and replaced with polarization state logs.
+
+        Raises
+        ------
+        ValueError
+            If exactly four device cross-section workspaces are not supplied.
+        numpy.linalg.LinAlgError
+            If the encoding matrix is singular at the workspace wavelength.
+        """
+        if len(device_cross_sections) != 4:
+            raise ValueError(
+                f"Full polarization requires exactly 4 device cross-sections, got {len(device_cross_sections)}."
+            )
+
+        # Find out which cross-section is S00, S10, S0pi, and S1pi.
+        by_state = {PolarizationCrossSection.get(ws): ws for ws in device_cross_sections}
+        s00 = by_state[PolarizationCrossSection.OFF_OFF]
+        s10 = by_state[PolarizationCrossSection.ON_OFF]
+        s0pi = by_state[PolarizationCrossSection.OFF_ON]
+        s1pi = by_state[PolarizationCrossSection.ON_ON]
+        spinor = np.array([s00, s10, s0pi, s1pi], dtype=object)
+
+        wavelength = SampleLogs(s00).single_value("wavelength")
+        M = np.linalg.inv(self.encoding_matrix(wavelength)).astype(object)
+
+        spin_cross_sections = list(M @ spinor)
+        for ws, state in zip(
+            spin_cross_sections,
+            [
+                PolarizationState.UP_UP,
+                PolarizationState.UP_DOWN,
+                PolarizationState.DOWN_UP,
+                PolarizationState.DOWN_DOWN,
+            ],
+        ):
+            DeleteLog(Workspace=ws, Name=PolarizationCrossSection.logname)
+            state.log(ws)
+        return spin_cross_sections
 
 
 def polarization_decoder(device_cross_sections, reduction_config):

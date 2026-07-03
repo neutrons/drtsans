@@ -1333,10 +1333,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             else:
                 raise
         processed_workspace_name = f"processed_data_main{output_suffix}"
-        processed_data_main = RenameWorkspace(
-            InputWorkspace=processed_data_main,
-            OutputWorkspace=processed_workspace_name,
-        )
+        if str(processed_data_main) != processed_workspace_name:
+            processed_data_main = RenameWorkspace(
+                InputWorkspace=processed_data_main,
+                OutputWorkspace=processed_workspace_name,
+            )
         processed_samples.append((processed_data_main, name, output_suffix))
 
     if not processed_samples:

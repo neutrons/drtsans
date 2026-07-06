@@ -13,7 +13,6 @@ from mantid.simpleapi import (
     mtd,
     MaskDetectors,
     MoveInstrumentComponent,
-    RenameWorkspace,
     SaveNexusProcessed,
     RemoveWorkspaceHistory,
 )
@@ -1315,7 +1314,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
                 mask_panel=mask_panel,
                 solid_angle=solid_angle,
                 sensitivity_workspace=loaded_ws.sensitivity,
-                output_workspace="processed_data_main",
+                output_workspace=f"processed_data_main{output_suffix}",
                 output_suffix=output_suffix,
                 thickness=thickness,
                 absolute_scale_method=absolute_scale_method,
@@ -1332,13 +1331,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
                 continue
             else:
                 raise
-        processed_workspace_name = f"processed_data_main{output_suffix}"
-        # Single-slice reductions already use this name; Mantid rejects renaming a workspace to itself.
-        if str(processed_data_main) != processed_workspace_name:
-            processed_data_main = RenameWorkspace(
-                InputWorkspace=processed_data_main,
-                OutputWorkspace=processed_workspace_name,
-            )
         processed_samples.append((processed_data_main, name, output_suffix))
 
     if not processed_samples:

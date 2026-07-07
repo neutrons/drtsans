@@ -115,12 +115,13 @@
               "type": "object",
               "properties": {
                 "polarization": {
-                  "$ref": "common.json#/definitions/polarizationDeviceProperty",
-                  "description": "wavelength-dependent polarization function of the incident neutron (wavelength in Å). Default is '1'"
+                  "$ref": "common.json#/definitions/polarizationPropertyPolarization",
+                  "default": "1",
+                  "description": "wavelength-dependent polarization of the incident neutron (in Å) expressed as f(x) or a float in [-1, 1]. Default is '1'."
                 },
                 "efficiency": {
-                  "$ref": "common.json#/definitions/polarizationDeviceProperty",
-                  "description": "wavelength-dependent efficiency function of the spin flipper (wavelength in Å). Default is '1'"
+                  "$ref": "common.json#/definitions/polarizationPropertyEfficiency",
+                  "description": "wavelength-dependent efficiency of the spin flipper (in Å) expressed as f(x) or a float in [0, 1]. Default is '1'."
                 }
               }
             },
@@ -128,12 +129,14 @@
               "type": "object",
               "properties": {
                 "polarizationZero": {
-                  "$ref": "common.json#/definitions/polarizationDeviceProperty",
-                  "description": "wavelength-dependent polarization function of the 3He spin filter in its 0° state (wavelength in Å). Default is '1'"
+                  "$ref": "common.json#/definitions/polarizationPropertyPolarization",
+                  "default": "1",
+                  "description": "wavelength-dependent polarization of the 3He spin filter in its 0° state (in Å) expressed as f(x) or a float in [-1, 1]. Default is '1'."
                 },
                 "polarizationPi": {
-                  "$ref": "common.json#/definitions/polarizationDeviceProperty",
-                  "description": "wavelength-dependent polarization function of the 3He spin filter in its π° state (wavelength in Å). Default is '1'"
+                  "$ref": "common.json#/definitions/polarizationPropertyPolarization",
+                  "default": "-1",
+                  "description": "wavelength-dependent polarization function of the 3He spin filter in its π° state (in Å) expressed as f(x) or a float in [-1, 1]. Default is '-1'."
                 }
               }
             }

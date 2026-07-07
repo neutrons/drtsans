@@ -459,6 +459,24 @@ class TestPolarizationDecoder:
         with pytest.raises(NotImplementedError):
             PolarizationDecoder({}).decode([])
 
+    @pytest.mark.parametrize("value", [-1.0, 0.0, 1.0])
+    def test_polarization_interval_includes_signed_bounds(self, value):
+        PolarizationDecoder._validate_polarization_interval("Polarization", value)
+
+    @pytest.mark.parametrize("value", [-1.1, 1.1])
+    def test_polarization_interval_rejects_outside_signed_bounds(self, value):
+        with pytest.raises(ValueError, match=r"Polarization must be in the interval \[-1, 1\]"):
+            PolarizationDecoder._validate_polarization_interval("Polarization", value)
+
+    @pytest.mark.parametrize("value", [0.0, 1.0])
+    def test_efficiency_interval_includes_bounds(self, value):
+        PolarizationDecoder._validate_efficiency_interval("Flipper efficiency", value)
+
+    @pytest.mark.parametrize("value", [-0.1, 1.1])
+    def test_efficiency_interval_rejects_outside_unit_bounds(self, value):
+        with pytest.raises(ValueError, match=r"Flipper efficiency must be in the interval \[0, 1\]"):
+            PolarizationDecoder._validate_efficiency_interval("Flipper efficiency", value)
+
 
 class TestHalfPolarizationDecoder:
     def _make_decoder(self, polarization, efficiency):
@@ -483,13 +501,13 @@ class TestHalfPolarizationDecoder:
         M = decoder.decoding_matrix(wavelength=6.0)
         np.testing.assert_array_almost_equal(M, [[2, -1], [-1, 2]])
 
-    def test_zero_polarization_raises(self):
-        decoder = self._make_decoder(polarization=0.0, efficiency=1.0)
+    def test_polarization_below_negative_one_raises(self):
+        decoder = self._make_decoder(polarization=-1.1, efficiency=1.0)
         with pytest.raises(ValueError, match="Polarization must be in the interval"):
             decoder.decoding_matrix(wavelength=6.0)
 
-    def test_zero_efficiency_raises(self):
-        decoder = self._make_decoder(polarization=0.9, efficiency=0.0)
+    def test_efficiency_below_zero_raises(self):
+        decoder = self._make_decoder(polarization=0.9, efficiency=-0.1)
         with pytest.raises(ValueError, match="Flipper efficiency must be in the interval"):
             decoder.decoding_matrix(wavelength=6.0)
 
@@ -497,6 +515,10 @@ class TestHalfPolarizationDecoder:
         decoder = self._make_decoder(polarization=0.9, efficiency=1.1)
         with pytest.raises(ValueError, match="Flipper efficiency must be in the interval"):
             decoder.decoding_matrix(wavelength=6.0)
+
+    def test_negative_polarization_is_in_valid_range(self):
+        decoder = self._make_decoder(polarization=-0.5, efficiency=0.8)
+        assert decoder.decoding_matrix(wavelength=6.0).shape == (2, 2)
 
     def test_matrix_inverts_encoding(self):
         """Decoding matrix M_dec is the inverse of the physical encoding matrix M_enc."""
@@ -594,8 +616,8 @@ class TestFullPolarizationDecoder:
 
         assert decoder.p(6.0) == pytest.approx(0.9)
         assert decoder.e(6.0) == pytest.approx(0.8)
-        assert decoder.a_0(6.0) == pytest.approx(0.7)
-        assert decoder.a_pi(6.0) == pytest.approx(0.6)
+        assert decoder.p_0(6.0) == pytest.approx(0.7)
+        assert decoder.p_pi(6.0) == pytest.approx(0.6)
 
     def test_loads_wavelength_dependent_analyzer_values(self):
         config = {
@@ -608,17 +630,17 @@ class TestFullPolarizationDecoder:
         }
         decoder = FullPolarizationDecoder(config)
 
-        assert decoder.a_0(16.0) == pytest.approx(0.95)
-        assert decoder.a_0(6.0) == pytest.approx(0.95 - 0.01 * (6.0 - 16.0))
-        assert decoder.a_pi(16.0) == pytest.approx(0.90)
-        assert decoder.a_pi(6.0) == pytest.approx(0.90 - 0.02 * (6.0 - 16.0))
+        assert decoder.p_0(16.0) == pytest.approx(0.95)
+        assert decoder.p_0(6.0) == pytest.approx(0.95 - 0.01 * (6.0 - 16.0))
+        assert decoder.p_pi(16.0) == pytest.approx(0.90)
+        assert decoder.p_pi(6.0) == pytest.approx(0.90 - 0.02 * (6.0 - 16.0))
 
-    def test_analyzer_defaults_are_unity(self):
+    def test_analyzer_defaults_select_ideal_opposite_states(self):
         decoder = FullPolarizationDecoder({})
 
         for wavelength in [5.0, 10.0, 16.0]:
-            assert decoder.a_0(wavelength) == pytest.approx(1.0)
-            assert decoder.a_pi(wavelength) == pytest.approx(1.0)
+            assert decoder.p_0(wavelength) == pytest.approx(1.0)
+            assert decoder.p_pi(wavelength) == pytest.approx(-1.0)
 
     def test_encoding_matrix_shape(self):
         config = {
@@ -642,10 +664,10 @@ class TestFullPolarizationDecoder:
 
         expected = np.array(
             [
-                [2.0 / 9.0, 4.0 / 9.0, 1.0 / 9.0, 2.0 / 9.0],
-                [1.0 / 9.0, 2.0 / 9.0, 2.0 / 9.0, 4.0 / 9.0],
-                [8.0 / 15.0, 2.0 / 15.0, 4.0 / 15.0, 1.0 / 15.0],
-                [4.0 / 15.0, 1.0 / 15.0, 8.0 / 15.0, 2.0 / 15.0],
+                [1.0 / 2.0, 1.0 / 6.0, 1.0 / 4.0, 1.0 / 12.0],
+                [1.0 / 4.0, 1.0 / 12.0, 1.0 / 2.0, 1.0 / 6.0],
+                [5.0 / 12.0, 1.0 / 4.0, 5.0 / 24.0, 1.0 / 8.0],
+                [5.0 / 24.0, 1.0 / 8.0, 5.0 / 12.0, 1.0 / 4.0],
             ]
         )
 
@@ -662,25 +684,54 @@ class TestFullPolarizationDecoder:
 
         expected = np.array(
             [
-                [1.0 / 3.0, 2.0 / 3.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0 / 3.0, 2.0 / 3.0],
-                [4.0 / 5.0, 1.0 / 5.0, 0.0, 0.0],
-                [0.0, 0.0, 4.0 / 5.0, 1.0 / 5.0],
+                [3.0 / 4.0, 1.0 / 4.0, 0.0, 0.0],
+                [0.0, 0.0, 3.0 / 4.0, 1.0 / 4.0],
+                [5.0 / 8.0, 3.0 / 8.0, 0.0, 0.0],
+                [0.0, 0.0, 5.0 / 8.0, 3.0 / 8.0],
             ]
         )
 
         np.testing.assert_array_almost_equal(decoder.encoding_matrix(wavelength=6.0), expected)
 
+    def test_encoding_matrix_defaults_are_finite_and_select_distinct_spin_states(self):
+        decoder = FullPolarizationDecoder({})
+
+        expected = np.array(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ]
+        )
+
+        np.testing.assert_array_almost_equal(decoder.encoding_matrix(wavelength=6.0), expected)
+
+    def test_encoding_matrix_allows_signed_polarization_values(self):
+        config = {
+            "polarization": {
+                "polarizer": {"polarization": "-0.5", "efficiency": "0.8"},
+                "analyzer": {"polarizationZero": "0", "polarizationPi": "-0.25"},
+            }
+        }
+        decoder = FullPolarizationDecoder(config)
+
+        matrix = decoder.encoding_matrix(wavelength=6.0)
+        assert matrix.shape == (4, 4)
+        assert np.all(np.isfinite(matrix))
+
     @pytest.mark.parametrize(
         "polarization_config, match",
         [
-            ({"polarizer": {"polarization": "0"}}, "Polarizer polarization"),
+            ({"polarizer": {"polarization": "-1.1"}}, "Polarizer polarization"),
+            ({"polarizer": {"polarization": "1.1"}}, "Polarizer polarization"),
+            ({"polarizer": {"efficiency": "-0.1"}}, "Flipper efficiency"),
             ({"polarizer": {"efficiency": "1.1"}}, "Flipper efficiency"),
-            ({"analyzer": {"polarizationZero": "0"}}, "Analyzer zero-state polarization"),
-            ({"analyzer": {"polarizationPi": "0"}}, "Analyzer pi-state polarization"),
+            ({"analyzer": {"polarizationZero": "-1.1"}}, "Analyzer zero-state polarization"),
+            ({"analyzer": {"polarizationPi": "1.1"}}, "Analyzer pi-state polarization"),
         ],
     )
-    def test_encoding_matrix_rejects_nonpositive_polarization(self, polarization_config, match):
+    def test_encoding_matrix_rejects_out_of_range_values(self, polarization_config, match):
         config = {"polarization": polarization_config}
         decoder = FullPolarizationDecoder(config)
 

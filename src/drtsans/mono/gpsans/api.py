@@ -15,6 +15,7 @@ from mantid.simpleapi import (
     MoveInstrumentComponent,
     SaveNexusProcessed,
     RemoveWorkspaceHistory,
+    RenameWorkspace,
 )
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
@@ -47,7 +48,7 @@ from drtsans.mono.normalization import (
     NoMonitorMetadataError,
 )
 from drtsans.path import allow_overwrite
-from drtsans.polarization import polarized_sample, polarization_decoder
+from drtsans.polarization import PolarizationState, polarized_sample, polarization_decoder
 from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
 from drtsans.path import abspath, abspaths, registered_workspace
 from drtsans.plots import plot_detector, plot_IQazimuthal, plot_i1d
@@ -1339,9 +1340,11 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     if polarized_sample(reduction_config):
         device_cross_sections = [ws for ws, _, _ in processed_samples]  # (S^0, S^1) or (S^00, S^0pi, S^10, S^1pi)
         spin_states = polarization_decoder(device_cross_sections, reduction_config)  # (S^up, S^down),...
-        processed_samples = [
-            (ws, name, output_suffix) for (_, name, output_suffix), ws in zip(processed_samples, spin_states)
-        ]
+        processed_samples = list()
+        for ws in spin_states:
+            suffix = str(PolarizationState.get(ws))  # "up", "down", "up_down", "up_up",...
+            renamed = RenameWorkspace(InputWorkspace=ws, OutputWorkspace=f"processed_data_main_{suffix}")
+            processed_samples.append((renamed, f"_slice_{suffix}", f"_{suffix}"))
 
     # Subpixel binning
     subpixel_kwargs = dict()

@@ -430,9 +430,9 @@ class PolarizationDecoder:
     Attributes
     ----------
     p : callable
-        Wavelength-dependent incident-beam polarization, bounded in ``(0, 1]``.
+        Wavelength-dependent incident-beam polarization, bounded in ``[-1, 1]``.
     e : callable
-        Wavelength-dependent polarizer flipper efficiency, bounded in ``(0, 1]``.
+        Wavelength-dependent polarizer flipper efficiency, bounded in ``[0, 1]``.
     """
 
     _x = sp.Symbol("x")  # wavelength symbol used in all sympy expressions
@@ -448,9 +448,9 @@ class PolarizationDecoder:
         return sp.lambdify(cls._x, expr, "numpy")
 
     @staticmethod
-    def _validate_unit_interval(name: str, value: float):
+    def _validate_polarization_interval(name: str, value: float):
         """
-        Validate that a polarization or efficiency value is physically meaningful.
+        Validate that a polarization value is physically meaningful.
 
         Parameters
         ----------
@@ -462,10 +462,30 @@ class PolarizationDecoder:
         Raises
         ------
         ValueError
-            If ``value`` is not in the interval ``(0, 1]``.
+            If ``value`` is not in the interval ``[-1, 1]``.
         """
-        if not 0 < value <= 1:
-            raise ValueError(f"{name} must be in the interval (0, 1].")
+        if not -1 <= value <= 1:
+            raise ValueError(f"{name} must be in the interval [-1, 1].")
+
+    @staticmethod
+    def _validate_efficiency_interval(name: str, value: float):
+        """
+        Validate that an efficiency value is physically meaningful.
+
+        Parameters
+        ----------
+        name : str
+            Human-readable name used in the exception message.
+        value : float
+            Value to validate.
+
+        Raises
+        ------
+        ValueError
+            If ``value`` is not in the interval ``[0, 1]``.
+        """
+        if not 0 <= value <= 1:
+            raise ValueError(f"{name} must be in the interval [0, 1].")
 
     def __init__(self, reduction_config: dict):
         """
@@ -528,12 +548,13 @@ class HalfPolarizationDecoder(PolarizationDecoder):
         Raises
         ------
         ValueError
-            If polarizer polarization or flipper efficiency is outside ``(0, 1]``.
+            If polarizer polarization is outside ``[-1, 1]`` or flipper
+            efficiency is outside ``[0, 1]``.
         """
         p = self.p(wavelength)
-        self._validate_unit_interval("Polarization", p)
+        self._validate_polarization_interval("Polarization", p)
         e = self.e(wavelength)
-        self._validate_unit_interval("Flipper efficiency", e)
+        self._validate_efficiency_interval("Flipper efficiency", e)
         dl = (1 - p) / (2 * e * p)  # spin-down leakage
         ul = (1 + p) / (2 * e * p)  # spin-up leakage
         return np.array(
@@ -608,12 +629,13 @@ class FullPolarizationDecoder(PolarizationDecoder):
             Reduction configuration containing optional ``polarization.polarizer``
             and ``polarization.analyzer`` entries. Analyzer ``polarizationZero``
             and ``polarizationPi`` values may be numeric constants or expressions
-            in wavelength symbol ``x``. Missing values default to 1.
+            in wavelength symbol ``x``. Missing values default to 1 and -1,
+            respectively.
         """
         super().__init__(reduction_config)
         analyzer = reduction_config.get("polarization", {}).get("analyzer", {})
-        self.a_0 = self._lambdify(self._sympify(analyzer.get("polarizationZero", "1")))
-        self.a_pi = self._lambdify(self._sympify(analyzer.get("polarizationPi", "1")))
+        self.p_0 = self._lambdify(self._sympify(analyzer.get("polarizationZero", "1")))
+        self.p_pi = self._lambdify(self._sympify(analyzer.get("polarizationPi", "-1")))
 
     def encoding_matrix(self, wavelength: float) -> np.ndarray:
         """
@@ -637,27 +659,31 @@ class FullPolarizationDecoder(PolarizationDecoder):
         Raises
         ------
         ValueError
-            If any polarization or efficiency value is outside ``(0, 1]``.
+            If any polarization value is outside ``[-1, 1]`` or efficiency
+            value is outside ``[0, 1]``.
         """
         p = self.p(wavelength)
-        self._validate_unit_interval("Polarizer polarization", p)
+        self._validate_polarization_interval("Polarizer polarization", p)
         e = self.e(wavelength)
-        self._validate_unit_interval("Flipper efficiency", e)
-        a_0 = self.a_0(wavelength)
-        self._validate_unit_interval("Analyzer zero-state polarization", a_0)
-        a_pi = self.a_pi(wavelength)
-        self._validate_unit_interval("Analyzer pi-state polarization", a_pi)
+        self._validate_efficiency_interval("Flipper efficiency", e)
+        p_0 = self.p_0(wavelength)
+        self._validate_polarization_interval("Analyzer zero-state polarization", p_0)
+        p_pi = self.p_pi(wavelength)
+        self._validate_polarization_interval("Analyzer pi-state polarization", p_pi)
 
+        # Eq. 9.3 of the Master document converts signed polarization to the ratio terms used by Eqs. 9.16-9.19.
+        # For the pi analyzer state, the Master ratio multiplies spin-down transmission terms,
+        # so its ratio is reciprocal to the signed up/down polarization convention used here.
         polarizer_up_fraction = (1 + p) / 2
         polarizer_down_fraction = (1 - p) / 2
 
         flipper_on_up_fraction = e * polarizer_down_fraction + (1 - e) * polarizer_up_fraction
         flipper_on_down_fraction = e * polarizer_up_fraction + (1 - e) * polarizer_down_fraction
 
-        analyzer_0_up_fraction = a_0 / (1 + a_0)
-        analyzer_0_down_fraction = 1 / (1 + a_0)
-        analyzer_pi_up_fraction = 1 / (1 + a_pi)
-        analyzer_pi_down_fraction = a_pi / (1 + a_pi)
+        analyzer_0_up_fraction = (1 + p_0) / 2
+        analyzer_0_down_fraction = (1 - p_0) / 2
+        analyzer_pi_up_fraction = (1 + p_pi) / 2
+        analyzer_pi_down_fraction = (1 - p_pi) / 2
 
         return np.array(
             [

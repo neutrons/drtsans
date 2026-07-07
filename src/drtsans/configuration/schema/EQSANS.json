@@ -180,7 +180,7 @@
         "QbinType": {
           "$ref": "common.json#/configuration/QbinType",
           "default": "log",
-          "evaluateCondition": "('{this}' == 'linear' and {#configuration/numQBins} is not None) or ('{this}' == 'log' and (({#configuration/numQBins} is None) ^ ({#configuration/LogQBinsPerDecade} is None)))"
+          "evaluateCondition": "('{this}' == 'linear' and {#configuration/numQBins} != None) or ('{this}' == 'log' and (({#configuration/numQBins} == None) ^ ({#configuration/LogQBinsPerDecade} == None)))"
         },
         "numQBins": { "$ref": "common.json#/configuration/numQBins" },
         "LogQBinsPerDecade": { "$ref": "common.json#/configuration/LogQBinsPerDecade" },

@@ -91,11 +91,11 @@
         "QbinType":             {"$ref":  "common.json#/configuration/QbinType"},
         "numMainQBins": {
           "$ref":  "common.json#/configuration/numQBins",
-          "evaluateCondition": "('{#configuration/QbinType}' == 'linear' and {this} is not None) or ('{#configuration/QbinType}' == 'log' and (({this} is None) ^ ({#configuration/LogQBinsPerDecadeMain} is None)))"
+          "evaluateCondition": "('{#configuration/QbinType}' == 'linear' and {this} != None) or ('{#configuration/QbinType}' == 'log' and (({this} == None) ^ ({#configuration/LogQBinsPerDecadeMain} == None)))"
         },
         "numWingQBins": {
           "$ref":  "common.json#/configuration/numQBins",
-          "evaluateCondition": "('{#configuration/QbinType}' == 'linear' and {this} is not None) or ('{#configuration/QbinType}' == 'log' and (({this} is None) ^ ({#configuration/LogQBinsPerDecadeWing} is None)))"
+          "evaluateCondition": "('{#configuration/QbinType}' == 'linear' and {this} != None) or ('{#configuration/QbinType}' == 'log' and (({this} == None) ^ ({#configuration/LogQBinsPerDecadeWing} == None)))"
         },
         "numMidrangeQBins": {
           "$ref":  "common.json#/configuration/numQBins"

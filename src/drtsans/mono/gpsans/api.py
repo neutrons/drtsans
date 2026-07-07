@@ -18,7 +18,6 @@ from mantid.simpleapi import (
     RenameWorkspace,
 )
 from matplotlib.colors import LogNorm
-import matplotlib.pyplot as plt
 
 from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
 from drtsans.beam_finder import center_detector, fbc_options_json, find_beam_center
@@ -1520,9 +1519,8 @@ def plot_reduction_output(
             symmetric_wedges=symmetric_wedges,
             qmin=qmin,
             qmax=qmax,
+            close_figures=close_figures,
         )
-        if close_figures:
-            plt.clf()
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
@@ -1534,11 +1532,8 @@ def plot_reduction_output(
                 log_scale=loglog,
                 backend="mpl",
                 errorbar_kwargs={"label": "main"},
+                close_figures=close_figures,
             )
-            if close_figures:
-                plt.clf()
-        if close_figures:
-            plt.close()
     # allow overwrite
     allow_overwrite(os.path.join(output_dir, "1D"))
     allow_overwrite(os.path.join(output_dir, "2D"))

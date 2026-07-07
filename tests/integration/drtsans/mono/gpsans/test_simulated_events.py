@@ -725,32 +725,42 @@ def test_full_polarization(three_rings_pattern: dict, temp_directory: Callable[[
     # do the actual reduction
     reduction_output = reduce_single_configuration(loaded, config)
 
-    # Cross-sections appear in the order they are first encountered by the splitter:
-    #   reduction_output[0] → off_off  (ring 1°, 20 pulses)
-    #   reduction_output[1] → on_off   (ring 3°, 10 pulses — half the full ring)
-    #   reduction_output[2] → on_on    (ring 5°, 20 pulses)
-    #   reduction_output[3] → off_on   (ring 3°, 10 pulses — half the full ring)
+    # Outputs are Spin States, not Device Cross Sections !
+    # This test uses default values for polarizer and analyzer polarization and efficiencies,
+    # which result in a one-to-one correspondence between Device Cross Sections and Spin States.
+    #
+    #     Device Cross Section   |  Spin State
+    #     ---------------------  |  -----------
+    #     off_off (pol=0, ana=0) |  up_up
+    #     off_on  (pol=0, ana=1) |  up_down
+    #     on_off  (pol=1, ana=0) |  down_up
+    #     on_on   (pol=1, ana=1) |  down_down
+    #
+    #   reduction_output[0] → up_up      (off_off, ring 1°, 20 pulses)
+    #   reduction_output[1] → up_down    (off_on, ring 3°, 10 pulses — half the full ring)
+    #   reduction_output[2] → down_up    (on_off, ring 3°, 10 pulses — half the full ring)
+    #   reduction_output[3] → down_down  (on_on, ring 5°, 20 pulses)
 
     minimum_peak_intensity = 800.0
 
-    # off_off: only the small-angle ring (1°) should be visible
+    # up_up (off_off): only the small-angle ring (1°) should be visible
     i_vs_qmod: IQmod = reduction_output[0].I1D_main[0]
     closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][0]))
     assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
-    # on_off: half of the middle ring (3°) — intensity roughly halved relative to a full ring
+    # up_down: half of the middle ring (3°) — intensity roughly halved relative to a full ring
     i_vs_qmod: IQmod = reduction_output[1].I1D_main[0]
     closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][1]))
     assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
-    # on_on: only the large-angle ring (5°) should be visible
+    # down_up: the other half of the middle ring (3°)
     i_vs_qmod: IQmod = reduction_output[2].I1D_main[0]
-    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][2]))
+    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][1]))
     assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
-    # off_on: the other half of the middle ring (3°)
+    # down_down: only the large-angle ring (5°) should be visible
     i_vs_qmod: IQmod = reduction_output[3].I1D_main[0]
-    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][1]))
+    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][2]))
     assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
 

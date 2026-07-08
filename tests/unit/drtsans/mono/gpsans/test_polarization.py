@@ -169,18 +169,38 @@ def test_polarized_sample(tmp_path):
         with h5py.File(nexus_file, "a") as write_handle:
             group = write_handle.require_group(f"/entry/DASlogs/{PV_POLARIZER}")
             group.create_dataset("value", data=1)
-        reduction_input["configuration"]["polarization"] = {"extra_key": "extra_value"}  # clear "level""
+        # "level" is unset (must be auto-detected) but polarizer calibration values are present
+        reduction_input["configuration"]["polarization"] = {
+            "polarizer": {"polarization": "0.9", "efficiency": "0.95"},
+        }
         assert polarized_sample(reduction_input) is True
         assert reduction_input["configuration"]["polarization"]["level"] == "half"
-        assert "extra_key" not in reduction_input["configuration"]["polarization"]  # deleted obsolete key
+        # regression: polarizer calibration values must survive the level auto-detection
+        assert reduction_input["configuration"]["polarization"]["polarizer"] == {
+            "polarization": "0.9",
+            "efficiency": "0.95",
+        }
 
         # case: single sample run with full polarization
         with h5py.File(nexus_file, "a") as write_handle:
             group = write_handle.require_group(f"/entry/DASlogs/{PV_ANALYZER}")
             group.create_dataset("value", data=1)
-        reduction_input["configuration"]["polarization"] = {}  # clear the polarization entry
+        # "level" is unset (must be auto-detected) but polarizer/analyzer calibration values are present
+        reduction_input["configuration"]["polarization"] = {
+            "polarizer": {"polarization": "0.9", "efficiency": "0.95"},
+            "analyzer": {"polarizationZero": "0.8", "polarizationPi": "-0.7"},
+        }
         assert polarized_sample(reduction_input) is True
         assert reduction_input["configuration"]["polarization"]["level"] == "full"
+        # regression: polarizer/analyzer calibration values must survive the level auto-detection
+        assert reduction_input["configuration"]["polarization"]["polarizer"] == {
+            "polarization": "0.9",
+            "efficiency": "0.95",
+        }
+        assert reduction_input["configuration"]["polarization"]["analyzer"] == {
+            "polarizationZero": "0.8",
+            "polarizationPi": "-0.7",
+        }
 
         # case: multiple sample runs when all are unpolarized
         for run_num in ["12349", "12350", "12351"]:

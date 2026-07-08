@@ -229,7 +229,7 @@ def polarized_sample(reduction_parameters: dict) -> bool:
     if reduction_config.get("polarization", {}).get("level", None) is None:
         if reduction_config == reduction_parameters:
             logger.warning("Unable to resolve polarization level. Setting to NONE by default.")
-            reduction_config["polarization"] = {"level": str(PolarizationLevel.NONE)}
+            reduction_config.setdefault("polarization", {})["level"] = str(PolarizationLevel.NONE)
         else:
             sample = reduction_parameters["sample"]["runNumber"].strip()
             multiple_samples = len(sample.split(",")) > 1
@@ -245,7 +245,7 @@ def polarized_sample(reduction_parameters: dict) -> bool:
             level = PolarizationLevel.get(sample_filepath)
             if multiple_samples and level != PolarizationLevel.NONE:
                 raise ValueError("Can't do polarization reduction on summed data sets")
-            reduction_config["polarization"] = {"level": str(level)}
+            reduction_config.setdefault("polarization", {})["level"] = str(level)
 
     return reduction_config["polarization"]["level"] != PolarizationLevel.NONE
 

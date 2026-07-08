@@ -85,9 +85,9 @@ Wedge reduction is enabled by selecting wedge binning for the 1D output:
 The wedge angles can be provided manually with ``WedgeMinAngles`` and ``WedgeMaxAngles``,
 or they can be found automatically from an azimuthal intensity profile, :math:`I(\phi)`.
 Manual wedge definitions take precedence when ``WedgeMinAngles`` and ``WedgeMaxAngles``
-are provided. Automatic wedge finding is used when ``1DQbinType`` is ``"wedge"`` and
-the manual wedge angle lists are not supplied by the reduction input. Depending on the
-instrument and input template, this may be represented as ``null`` or as an empty list.
+are non-empty. Automatic wedge finding is used when ``1DQbinType`` is ``"wedge"`` and
+the manual wedge angle lists are not supplied by the reduction input. Use ``null`` for
+unset manual wedge angles with BIOSANS and GPSANS. Use empty lists, ``[]``, with EQSANS.
 
 .. list-table::
    :header-rows: 1
@@ -177,8 +177,8 @@ the corresponding symmetric wedges are included in each profile.
 An automatic wedge reduction leaves the manual wedge angle lists unset and provides the
 :math:`q` range and binning used to build the azimuthal profiles. The reduction finds the
 wedge angles from the peaks in :math:`I(\phi)` and stores the resulting wedge selections in
-the reduction output. The example below uses ``null`` for the unset manual wedge angles;
-some templates use empty lists for the same purpose.
+the reduction output. For BIOSANS and GPSANS, use ``null`` for the unset manual wedge
+angles:
 
 .. code-block:: json
 
@@ -199,6 +199,27 @@ some templates use empty lists for the same purpose.
       }
     }
 
+For EQSANS, use empty manual wedge angle lists instead:
+
+.. code-block:: json
+
+    {
+      "configuration": {
+        "1DQbinType": "wedge",
+        "QbinType": "log",
+        "LogQBinsPerDecade": 25,
+        "WedgeMinAngles": [],
+        "WedgeMaxAngles": [],
+        "autoWedgeQmin": 0.003,
+        "autoWedgeQmax": 0.04,
+        "autoWedgeQdelta": 0.01,
+        "autoWedgeAzimuthalDelta": 1.0,
+        "autoWedgePeakWidth": 0.25,
+        "autoWedgeBackgroundWidth": 1.5,
+        "autoWedgeSignalToNoiseMin": 2.0
+      }
+    }
+
 For BIOSANS, wedge reduction commonly also sets detector-specific :math:`q` ranges and
 overlap stitching ranges for each wedge:
 
@@ -208,18 +229,28 @@ overlap stitching ranges for each wedge:
       "configuration": {
         "1DQbinType": "wedge",
         "QbinType": "log",
+        "numMainQBins": 33,
+        "numWingQBins": 33,
+        "numMidrangeQBins": 33,
+        "LogQBinsPerDecadeMain": null,
+        "LogQBinsPerDecadeWing": null,
+        "LogQBinsPerDecadeMidrange": null,
         "WedgeMinAngles": [-30, 60],
         "WedgeMaxAngles": [30, 120],
         "wedge1QminMain": 0.02,
         "wedge1QmaxMain": 0.09,
         "wedge1QminWing": 0.08,
         "wedge1QmaxWing": 0.09,
+        "wedge1QminMidrange": 0.04,
+        "wedge1QmaxMidrange": 0.05,
         "wedge1overlapStitchQmin": 0.0825,
         "wedge1overlapStitchQmax": 0.0875,
         "wedge2QminMain": 0.02,
         "wedge2QmaxMain": 0.125,
         "wedge2QminWing": 0.06,
         "wedge2QmaxWing": 1.0,
+        "wedge2QminMidrange": 0.05,
+        "wedge2QmaxMidrange": 0.7,
         "wedge2overlapStitchQmin": 0.075,
         "wedge2overlapStitchQmax": 0.095
       }

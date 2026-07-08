@@ -68,6 +68,24 @@ def test_IQmod(backend, filename):
     fileCheckAndRemove(filename)
 
 
+def test_IQmod_close_figures_option():
+    """Test that plot_IQmod keeps or closes pyplot figures as requested."""
+    plt.close("all")
+    x = np.linspace(1.0, 2.0, 5)
+    data = IQmod(intensity=x, error=np.ones_like(x), mod_q=x)
+
+    retained_filename = "test_IQmod_retained.png"
+    plot_IQmod([data], filename=retained_filename, backend="mpl")
+    assert plt.get_fignums()
+    plt.close("all")
+    fileCheckAndRemove(retained_filename)
+
+    closed_filename = "test_IQmod_closed.png"
+    plot_IQmod([data], filename=closed_filename, backend="mpl", close_figures=True)
+    assert plt.get_fignums() == []
+    fileCheckAndRemove(closed_filename)
+
+
 @pytest.mark.parametrize(
     "backend, filename",
     [("mpl", "test_IQmod_multi.png"), ("d3", "test_IQmod_multi.json")],

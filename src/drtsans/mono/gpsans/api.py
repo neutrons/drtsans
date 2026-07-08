@@ -15,9 +15,9 @@ from mantid.simpleapi import (
     MoveInstrumentComponent,
     SaveNexusProcessed,
     RemoveWorkspaceHistory,
+    RenameWorkspace,
 )
 from matplotlib.colors import LogNorm
-import matplotlib.pyplot as plt
 
 from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
 from drtsans.beam_finder import center_detector, fbc_options_json, find_beam_center
@@ -47,6 +47,7 @@ from drtsans.mono.normalization import (
     NoMonitorMetadataError,
 )
 from drtsans.path import allow_overwrite
+from drtsans.polarization import PolarizationState, polarized_sample, polarization_decoder
 from drtsans.mono.transmission import apply_transmission_correction, calculate_transmission
 from drtsans.path import abspath, abspaths, registered_workspace
 from drtsans.plots import plot_detector, plot_IQazimuthal, plot_i1d
@@ -1287,8 +1288,9 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     else:
         sample_trans_ws = None
 
-    output = []
-    detectordata = {}
+    # Apply corrections and normalizations to each sample workspace (one per time/log/spin slice).
+    # Results are collected into processed_samples for downstream Q-conversion and binning.
+    processed_samples = []
     for i, raw_sample_ws in enumerate(loaded_ws.sample):
         name = "_slice_{}".format(i + 1)
         if len(loaded_ws.sample) > 1:
@@ -1312,7 +1314,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
                 mask_panel=mask_panel,
                 solid_angle=solid_angle,
                 sensitivity_workspace=loaded_ws.sensitivity,
-                output_workspace="processed_data_main",
+                output_workspace=f"processed_data_main{output_suffix}",
                 output_suffix=output_suffix,
                 thickness=thickness,
                 absolute_scale_method=absolute_scale_method,
@@ -1329,14 +1331,34 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
                 continue
             else:
                 raise
+        processed_samples.append((processed_data_main, name, output_suffix))
 
-        # binning
-        subpixel_kwargs = dict()
-        if reduction_config["useSubpixels"] is True:
-            subpixel_kwargs = {
-                "n_horizontal": reduction_config["subpixelsX"],
-                "n_vertical": reduction_config["subpixelsY"],
-            }
+    if not processed_samples:
+        raise NoDataProcessedError
+
+    if polarized_sample(reduction_config):
+        device_cross_sections = [ws for ws, _, _ in processed_samples]  # (S^0, S^1) or (S^00, S^0pi, S^10, S^1pi)
+        spin_states = polarization_decoder(device_cross_sections, reduction_config)  # (S^up, S^down),...
+        processed_samples = list()
+        for ws in spin_states:
+            suffix = str(PolarizationState.get(ws))  # "up", "down", "up_down", "up_up",...
+            renamed = RenameWorkspace(InputWorkspace=ws, OutputWorkspace=f"processed_data_main_{suffix}")
+            processed_samples.append((renamed, f"_slice_{suffix}", f"_{suffix}"))
+
+    # Subpixel binning
+    subpixel_kwargs = dict()
+    if reduction_config["useSubpixels"] is True:
+        subpixel_kwargs = {
+            "n_horizontal": reduction_config["subpixelsX"],
+            "n_vertical": reduction_config["subpixelsY"],
+        }
+
+    #
+    # Convert each processed workspace to Q-space and bin into 1D/2D profiles.
+    #
+    output = []
+    detectordata = {}
+    for processed_data_main, name, output_suffix in processed_samples:
         iq1d_main_in = convert_to_q(processed_data_main, mode="scalar", **subpixel_kwargs)
         iq2d_main_in = convert_to_q(processed_data_main, mode="azimuthal", **subpixel_kwargs)
         if bool(autoWedgeOpts):  # determine wedges automatically
@@ -1387,11 +1409,6 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         output.append(current_output)
 
         detectordata[name] = {"main": {"i1d": i1d_main_out, "iqxqy": iq2d_main_out}}
-
-    try:
-        processed_data_main
-    except NameError:
-        raise NoDataProcessedError
 
     # save reduction log
 
@@ -1502,9 +1519,8 @@ def plot_reduction_output(
             symmetric_wedges=symmetric_wedges,
             qmin=qmin,
             qmax=qmax,
+            close_figures=close_figures,
         )
-        if close_figures:
-            plt.clf()
         for j in range(len(out.I1D_main)):
             add_suffix = ""
             if len(out.I1D_main) > 1:
@@ -1516,11 +1532,8 @@ def plot_reduction_output(
                 log_scale=loglog,
                 backend="mpl",
                 errorbar_kwargs={"label": "main"},
+                close_figures=close_figures,
             )
-            if close_figures:
-                plt.clf()
-        if close_figures:
-            plt.close()
     # allow overwrite
     allow_overwrite(os.path.join(output_dir, "1D"))
     allow_overwrite(os.path.join(output_dir, "2D"))

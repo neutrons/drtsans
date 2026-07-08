@@ -2,7 +2,6 @@
 
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 import drtsans  # noqa E402
 from mantid.simpleapi import mtd, LoadEmptyInstrument, MaskBTP, ExtractMask
 from drtsans.iq import (
@@ -114,11 +113,9 @@ def get_Iq(
     save_ascii_binned_1D(filename, "I(Q)", iq_output)
 
     filename = os.path.join(output_dir, output_file + label + "_Iq.png")
-    plot_IQmod([iq_output], filename, backend="mpl")
-    plt.clf()
+    plot_IQmod([iq_output], filename, backend="mpl", close_figures=True)
     filename = os.path.join(output_dir, output_file + label + "_Iq.json")
-    plot_IQmod([iq_output], filename, backend="d3")
-    plt.close()
+    plot_IQmod([iq_output], filename, backend="d3", close_figures=True)
     return iq_output
 
 
@@ -143,10 +140,8 @@ def get_Iqxqy(q_data, output_dir, output_file, label="", weighting=False, nbins=
     save_ascii_binned_2D(filename, "I(Qx,Qy)", iq_output)
 
     filename = os.path.join(output_dir, output_file + label + "_Iqxqy.png")
-    plot_IQazimuthal(iq_output, filename, backend="mpl")
-    plt.clf()
+    plot_IQazimuthal(iq_output, filename, backend="mpl", close_figures=True)
     filename = os.path.join(output_dir, output_file + label + "_Iqxqy.json")
-    plot_IQazimuthal(iq_output, filename, backend="d3")
-    plt.close()
+    plot_IQazimuthal(iq_output, filename, backend="d3", close_figures=True)
 
     return iq_output

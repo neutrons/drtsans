@@ -17,7 +17,6 @@ from mantid.simpleapi import (
     RemoveWorkspaceHistory,
 )
 from matplotlib.colors import LogNorm
-import matplotlib.pyplot as plt
 
 import drtsans
 from drtsans import getWedgeSelection, subtract_background, NoDataProcessedError
@@ -1093,6 +1092,7 @@ def plot_reduction_output(
     reduction_input: dict,
     loglog: bool = True,
     imshow_kwargs: dict = {},
+    close_figures: bool = True,
 ):
     """
     Generate reduction plot per slice per detector.
@@ -1107,6 +1107,8 @@ def plot_reduction_output(
         Whether to plot in loglog scale, by default True.
     imshow_kwargs:
         Keyword arguments to pass to imshow, by default {}.
+    close_figures:
+        Close pyplot-managed figures after saving, by default True.
     """
     reduction_config = reduction_input["configuration"]
     output_dir = reduction_config["outputDir"]
@@ -1155,8 +1157,8 @@ def plot_reduction_output(
             symmetric_wedges=symmetric_wedges,
             qmin=qmin_main,
             qmax=qmax_main,
+            close_figures=close_figures,
         )
-        plt.clf()
 
         # wing detector
         filename = os.path.join(output_dir, "2D", f"{outputFilename}{output_suffix}_2D_wing.png")
@@ -1170,8 +1172,8 @@ def plot_reduction_output(
             symmetric_wedges=symmetric_wedges,
             qmin=qmin_wing,
             qmax=qmax_wing,
+            close_figures=close_figures,
         )
-        plt.clf()
 
         # special case for mid-range detector
         if has_midrange_detector:
@@ -1186,8 +1188,8 @@ def plot_reduction_output(
                 symmetric_wedges=symmetric_wedges,
                 qmin=qmin_midrange,
                 qmax=qmax_midrange,
+                close_figures=close_figures,
             )
-            plt.clf()
 
         for j in range(len(out.I1D_main)):
             add_suffix = ""
@@ -1201,6 +1203,7 @@ def plot_reduction_output(
                     log_scale=loglog,
                     backend="mpl",
                     errorbar_kwargs={"label": "main,wing,midrange,both"},
+                    close_figures=close_figures,
                 )
             else:
                 plot_i1d(
@@ -1209,10 +1212,8 @@ def plot_reduction_output(
                     log_scale=loglog,
                     backend="mpl",
                     errorbar_kwargs={"label": "main,wing,both"},
+                    close_figures=close_figures,
                 )
-            plt.clf()
-
-    plt.close()
 
     # allow overwrite
     allow_overwrite(os.path.join(output_dir, "1D"))

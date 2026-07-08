@@ -509,7 +509,7 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 def test_half_polarization(three_rings_pattern: dict, temp_directory: Callable[[Any], str]):
     r"""
-    Split the three_rings_pattern into Off_Off and On_Off cross-sections.
+    Split the three_rings_pattern into off and on cross-sections.
 
     The sample run in the "three_rings_pattern" fixture is 1 second long, thus containing 60 pulses in total.
     During a pulse, neutrons scattered by the sample are set to scatter at a particular two_theta value.
@@ -518,8 +518,8 @@ def test_half_polarization(three_rings_pattern: dict, temp_directory: Callable[[
 
     We insert a time-series for PV_POLARIZER_FLIPPER. During the first two seconds it will take a value of 0,
     and a value of 1 during the third second. This will be repeated 20 times to span the 60 pulses.
-    Thus, we expect the Off_Off intensity to contain the first two rings,
-    and the On_Off intensity to contain the third ring.
+    Thus, we expect the off intensity to contain the first two rings,
+    and the on intensity to contain the third ring.
     We do not include a PV_POLARIZER_VETO log. The code should be resilient to this missing log.
 
     We'll be changing the sample logs of the sample Nexus file.
@@ -621,7 +621,7 @@ def test_half_polarization(three_rings_pattern: dict, temp_directory: Callable[[
 @mock_patch("drtsans.load.LoadEventNexus", new=_mock_LoadEventNexus)
 def test_full_polarization(three_rings_pattern: dict, temp_directory: Callable[[Any], str]):
     r"""
-    Split the three_rings_pattern into Off_Off, On_Off, Off_On, and On_On cross-sections.
+    Split the three_rings_pattern into off_off, on_off, off_on, and on_on cross-sections.
 
     The sample run is 1 second long (60 pulses). Neutrons cycle through three two_theta values every
     three pulses, imprinting three rings on the detector.
@@ -631,18 +631,18 @@ def test_full_polarization(three_rings_pattern: dict, temp_directory: Callable[[
 
     The flipper states follow a 6-pulse super-cycle (period = 6/60 s):
 
-        Pulse 0  [0,     1/60) : pol=Off, ana=Off  →  Off_Off  (ring 1°)
-        Pulse 1  [1/60,  2/60) : pol=On,  ana=Off  →  On_Off   (ring 3°)
-        Pulse 2  [2/60,  3/60) : pol=On,  ana=On   →  On_On    (ring 5°)
-        Pulse 3  [3/60,  4/60) : pol=Off, ana=Off  →  Off_Off  (ring 1°)
-        Pulse 4  [4/60,  5/60) : pol=Off, ana=On   →  Off_On   (ring 3°)
-        Pulse 5  [5/60,  6/60) : pol=On,  ana=On   →  On_On    (ring 5°)
+        Pulse 0  [0,     1/60) : pol=off, ana=off  →  off_off  (ring 1°)
+        Pulse 1  [1/60,  2/60) : pol=on,  ana=off  →  on_off   (ring 3°)
+        Pulse 2  [2/60,  3/60) : pol=on,  ana=on   →  on_on    (ring 5°)
+        Pulse 3  [3/60,  4/60) : pol=off, ana=off  →  off_off  (ring 1°)
+        Pulse 4  [4/60,  5/60) : pol=off, ana=on   →  off_on   (ring 3°)
+        Pulse 5  [5/60,  6/60) : pol=on,  ana=on   →  on_on    (ring 5°)
 
     The polarizer flipper uses cycled_intervals [1/60, 2/60, 2/60, 1/60], and the analyzer
     flipper uses cycled_intervals [2/60, 1/60, 1/60, 2/60]. Every interval is >= 1/60 s.
 
-    Over 60 pulses (10 super-cycles) ring 3° contributes equally to On_Off and Off_On
-    (10 pulses each), while rings 1° and 5° contribute 20 pulses each to Off_Off and On_On.
+    Over 60 pulses (10 super-cycles) ring 3° contributes equally to on_off and off_on
+    (10 pulses each), while rings 1° and 5° contribute 20 pulses each to off_off and on_on.
 
     We'll be changing the sample logs of the sample Nexus file.
     Other tests will also try to access the Nexus files, thus we'll copy the files to a temporary
@@ -725,32 +725,42 @@ def test_full_polarization(three_rings_pattern: dict, temp_directory: Callable[[
     # do the actual reduction
     reduction_output = reduce_single_configuration(loaded, config)
 
-    # Cross-sections appear in the order they are first encountered by the splitter:
-    #   reduction_output[0] → Off_Off  (ring 1°, 20 pulses)
-    #   reduction_output[1] → On_Off   (ring 3°, 10 pulses — half the full ring)
-    #   reduction_output[2] → On_On    (ring 5°, 20 pulses)
-    #   reduction_output[3] → Off_On   (ring 3°, 10 pulses — half the full ring)
+    # Outputs are Spin States, not Device Cross Sections !
+    # This test uses default values for polarizer and analyzer polarization and efficiencies,
+    # which result in a one-to-one correspondence between Device Cross Sections and Spin States.
+    #
+    #     Device Cross Section   |  Spin State
+    #     ---------------------  |  -----------
+    #     off_off (pol=0, ana=0) |  up_up
+    #     off_on  (pol=0, ana=1) |  up_down
+    #     on_off  (pol=1, ana=0) |  down_up
+    #     on_on   (pol=1, ana=1) |  down_down
+    #
+    #   reduction_output[0] → up_up      (off_off, ring 1°, 20 pulses)
+    #   reduction_output[1] → up_down    (off_on, ring 3°, 10 pulses — half the full ring)
+    #   reduction_output[2] → down_up    (on_off, ring 3°, 10 pulses — half the full ring)
+    #   reduction_output[3] → down_down  (on_on, ring 5°, 20 pulses)
 
     minimum_peak_intensity = 800.0
 
-    # Off_Off: only the small-angle ring (1°) should be visible
+    # up_up (off_off): only the small-angle ring (1°) should be visible
     i_vs_qmod: IQmod = reduction_output[0].I1D_main[0]
     closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][0]))
     assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
-    # On_Off: half of the middle ring (3°) — intensity roughly halved relative to a full ring
+    # up_down: half of the middle ring (3°) — intensity roughly halved relative to a full ring
     i_vs_qmod: IQmod = reduction_output[1].I1D_main[0]
     closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][1]))
     assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
-    # On_On: only the large-angle ring (5°) should be visible
+    # down_up: the other half of the middle ring (3°)
     i_vs_qmod: IQmod = reduction_output[2].I1D_main[0]
-    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][2]))
+    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][1]))
     assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
-    # Off_On: the other half of the middle ring (3°)
+    # down_down: only the large-angle ring (5°) should be visible
     i_vs_qmod: IQmod = reduction_output[3].I1D_main[0]
-    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][1]))
+    closest_index = np.argmin(np.abs(i_vs_qmod.mod_q - metadata["Q_at_max_I"][2]))
     assert i_vs_qmod.intensity[closest_index] > minimum_peak_intensity
 
 

@@ -74,9 +74,11 @@ class TestSpinFilter:
 
     @pytest.mark.datarepo
     def test_analyzer(self, gpsans_workspace):
-        """Test splitting events based on analyzer state only."""
+        """Test splitting events based on analyzer state with an active polarizer."""
         workspace = gpsans_workspace
         logs = SimulatedPolarizationLogs(
+            polarizer=1,
+            polarizer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 400.0}),
             analyzer=2,
             analyzer_flipper=TimesGeneratorSpecs("heartbeat", {"interval": 120}),
             analyzer_veto=TimesGeneratorSpecs("binary_pulse", {"interval": 120.0, "alive_duration": 2.0}),

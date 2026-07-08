@@ -8,7 +8,6 @@ from datetime import datetime
 from typing import Dict, List, Optional, Set, Tuple
 
 # third party imports
-import matplotlib.pyplot as plt
 from mantid.simpleapi import mtd, logger, RebinToWorkspace, SaveNexus, RemoveWorkspaceHistory
 
 # local imports
@@ -1186,7 +1185,7 @@ def parse_auto_wedge_setup(reduction_config: Dict, bin1d_type: str, wedges_min) 
     return autoWedgeOpts, symmetric_wedges
 
 
-def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None):
+def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None, close_figures=True):
     reduction_config = reduction_input["configuration"]
     output_dir = reduction_config["outputDir"]
     outputFilename = reduction_input["outputFileName"]
@@ -1217,8 +1216,8 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
             symmetric_wedges=symmetric_wedges,
             qmin=qmin,
             qmax=qmax,
+            close_figures=close_figures,
         )
-        plt.clf()
         binning_suffix = "Iq"
         if isinstance(out.I1D_main[0], I1DAnnular):
             binning_suffix = "Iphi"
@@ -1233,9 +1232,8 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None)
                 log_scale=True,
                 backend="mpl",
                 errorbar_kwargs={"label": "main"},
+                close_figures=close_figures,
             )
-            plt.clf()
-    plt.close()
     # change permissions to all files to allow overwrite
     allow_overwrite(output_dir)
 

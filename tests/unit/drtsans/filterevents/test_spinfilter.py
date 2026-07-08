@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from drtsans.filterevents.spinfilter import SpinFilter, extract_times, create_table
 from drtsans.polarization import (
+    PolarizationCrossSection,
     PV_POLARIZER,
     PV_ANALYZER,
     PV_POLARIZER_FLIPPER,
@@ -24,7 +25,7 @@ def _make_workspace_group(xs_ids):
 def _make_samplelogs(xs_id):
     """Return a SampleLogs mock that exposes cross_section_id."""
     sl = MagicMock()
-    sl.__contains__ = MagicMock(side_effect=lambda key: key == "polarization.cross_section")
+    sl.__contains__ = MagicMock(side_effect=lambda key: key == PolarizationCrossSection.logname)
     sl.get = MagicMock(return_value=MagicMock(value=xs_id))
     return sl
 
@@ -85,7 +86,7 @@ def test_extract_times_empty_list_of_times():
 def test_create_table():
     """
     create_table discards the interval predating start_time and produces
-    a first row starting at start_time for the Off_Off cross-section.
+    a first row starting at start_time for the off cross-section.
 
     SplittersWorkspace stores absolute nanosecond timestamps and uses the
     column name 'workspacegroup' (int index).
@@ -105,12 +106,17 @@ def test_create_table():
     table = create_table(changes, start_time=start_time, has_polarizer=True, has_analyzer=False)
 
     row = table.row(0)
-    # The first valid interval is Off_Off; its start is clamped to start_time.
+    # The first valid interval is off; its start is clamped to start_time.
     assert row["start"] == pytest.approx(start_time, rel=1e-9)
     # The stop is the next change event (~73.9 s after start_time in nanoseconds).
     assert row["stop"] == pytest.approx(1114104949939068067, rel=1e-9)
-    # workspacegroup index 0 corresponds to the first cross-section encountered ("Off_Off").
+    # workspacegroup index 0 corresponds to the first cross-section encountered ("off").
     assert row["workspacegroup"] == 0
+
+
+def test_create_table_rejects_analyzer_without_polarizer():
+    with pytest.raises(ValueError, match="Analyzer polarization requires an active polarizer"):
+        create_table([], start_time=0, has_polarizer=False, has_analyzer=True)
 
 
 @patch("drtsans.filterevents.spinfilter.SampleLogs")
@@ -120,7 +126,7 @@ def test_spin_filter_inject_metadata_common_fields(mock_base_sl_cls, mock_worksp
     """inject_metadata inserts slice, number_of_slices, and slice_info for every cross-section."""
     mock_spin_sl_cls.return_value = _make_device_sample_logs(has_polarizer=True, has_analyzer=True)
 
-    xs_ids = ["On_On", "Off_Off"]
+    xs_ids = ["on_on", "off_off"]
     mock_workspace_handle.return_value = _make_workspace_group(xs_ids)
     samplelogs_instances = [_make_samplelogs(xs_id) for xs_id in xs_ids]
     mock_base_sl_cls.side_effect = samplelogs_instances
@@ -130,10 +136,10 @@ def test_spin_filter_inject_metadata_common_fields(mock_base_sl_cls, mock_worksp
     sl0, sl1 = samplelogs_instances
     sl0.insert.assert_any_call("slice", 1)
     sl0.insert.assert_any_call("number_of_slices", 2)
-    sl0.insert.assert_any_call("slice_info", "On_On")
+    sl0.insert.assert_any_call("slice_info", "on_on")
     sl1.insert.assert_any_call("slice", 2)
     sl1.insert.assert_any_call("number_of_slices", 2)
-    sl1.insert.assert_any_call("slice_info", "Off_Off")
+    sl1.insert.assert_any_call("slice_info", "off_off")
 
 
 @patch("drtsans.filterevents.spinfilter.SampleLogs")
@@ -143,7 +149,7 @@ def test_spin_filter_inject_metadata_polarization_fields(mock_base_sl_cls, mock_
     """inject_metadata inserts slice_parameter, cross_section, has_polarizer, has_analyzer, and slice_info."""
     mock_spin_sl_cls.return_value = _make_device_sample_logs(has_polarizer=True, has_analyzer=True)
 
-    xs_ids = ["On_On", "On_Off"]
+    xs_ids = ["on_on", "on_off"]
     mock_workspace_handle.return_value = _make_workspace_group(xs_ids)
     samplelogs_instances = [_make_samplelogs(xs_id) for xs_id in xs_ids]
     mock_base_sl_cls.side_effect = samplelogs_instances
@@ -154,13 +160,13 @@ def test_spin_filter_inject_metadata_polarization_fields(mock_base_sl_cls, mock_
     spin_filter.inject_metadata("output_ws")
 
     sl0, sl1 = samplelogs_instances
-    sl0.insert.assert_any_call("slice_info", "On_On")
-    sl0.insert.assert_any_call("slice_parameter", "polarization.cross_section")
-    sl0.insert.assert_any_call("polarization.cross_section", "On_On")
+    sl0.insert.assert_any_call("slice_info", "on_on")
+    sl0.insert.assert_any_call("slice_parameter", PolarizationCrossSection.logname)
+    sl0.insert.assert_any_call(PolarizationCrossSection.logname, "on_on")
     sl0.insert.assert_any_call("polarization.active_polarizer", 1)
     sl0.insert.assert_any_call("polarization.active_analyzer", 1)
-    sl1.insert.assert_any_call("slice_info", "On_Off")
-    sl1.insert.assert_any_call("polarization.cross_section", "On_Off")
+    sl1.insert.assert_any_call("slice_info", "on_off")
+    sl1.insert.assert_any_call(PolarizationCrossSection.logname, "on_off")
 
 
 @patch("drtsans.filterevents.spinfilter.SampleLogs")
@@ -170,15 +176,15 @@ def test_spin_filter_inject_metadata_unknown_cross_section(mock_base_sl_cls, moc
     """inject_metadata falls back to slice_info when cross_section_id log is absent, or 'Unknown' if also empty."""
     mock_spin_sl_cls.return_value = _make_device_sample_logs(has_polarizer=True, has_analyzer=True)
 
-    mock_workspace_handle.return_value = _make_workspace_group(["On_On"])
+    mock_workspace_handle.return_value = _make_workspace_group(["on_on"])
     sl = MagicMock()
     sl.__contains__ = MagicMock(return_value=False)  # cross_section_id not present
     mock_base_sl_cls.return_value = sl
 
     SpinFilter(MagicMock()).inject_metadata("output_ws")
 
-    sl.insert.assert_any_call("slice_info", "On_On")
-    sl.insert.assert_any_call("polarization.cross_section", "On_On")
+    sl.insert.assert_any_call("slice_info", "on_on")
+    sl.insert.assert_any_call(PolarizationCrossSection.logname, "on_on")
 
 
 @patch("drtsans.filterevents.spinfilter.SampleLogs")
@@ -190,8 +196,8 @@ def test_spin_filter_inject_metadata_no_devices(mock_base_sl_cls, mock_workspace
     # then override the flags after construction.
     mock_spin_sl_cls.return_value = _make_device_sample_logs(has_polarizer=True, has_analyzer=False)
 
-    mock_workspace_handle.return_value = _make_workspace_group(["Off_Off"])
-    samplelogs_instances = [_make_samplelogs("Off_Off")]
+    mock_workspace_handle.return_value = _make_workspace_group(["off_off"])
+    samplelogs_instances = [_make_samplelogs("off_off")]
     mock_base_sl_cls.side_effect = samplelogs_instances
 
     spin_filter = SpinFilter(MagicMock())
@@ -200,7 +206,7 @@ def test_spin_filter_inject_metadata_no_devices(mock_base_sl_cls, mock_workspace
     spin_filter.inject_metadata("output_ws")
 
     sl = samplelogs_instances[0]
-    sl.insert.assert_any_call("slice_info", "Off_Off")
+    sl.insert.assert_any_call("slice_info", "off_off")
     sl.insert.assert_any_call("polarization.active_polarizer", 0)
     sl.insert.assert_any_call("polarization.active_analyzer", 0)
 

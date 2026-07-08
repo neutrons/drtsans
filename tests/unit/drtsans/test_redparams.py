@@ -723,6 +723,12 @@ class TestReductionParametersGPSANS:
         )
         reduction_parameters(parameters_new, permissible=True)
 
+    def test_polarization_defaults(self):
+        assert self.parameters_all["configuration"]["polarization"] == {
+            "polarizer": {"polarization": "1", "efficiency": "1"},
+            "analyzer": {"polarizationZero": "1", "polarizationPi": "-1"},
+        }
+
 
 class TestReductionParametersBIOSANS:
     parameters_common = {

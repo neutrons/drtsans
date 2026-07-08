@@ -142,6 +142,21 @@
           "maxItems": 2
         }
       ]
+    },
+    "polarizationPropertyPolarization": {
+      "anyOf": [
+        {"type": "string"},
+        {"type": "number", "minimum": -1, "maximum": 1}
+      ],
+      "examples": ["0.95", "-0.95","0.95-0.01*(x-16)", 0.95, -0.95]
+    },
+    "polarizationPropertyEfficiency": {
+      "anyOf": [
+        {"type": "string"},
+        {"type": "number", "minimum": 0, "maximum": 1}
+      ],
+      "default": "1",
+      "examples": ["0.95", "0.95-0.01*(x-16)", 0.95]
     }
   },
 

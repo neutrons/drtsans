@@ -132,7 +132,15 @@ def _q_label(backend: str, subscript=""):
         return label + " (1/{})".format("\u212b")
 
 
-def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_kwargs=None, **kwargs):
+def plot_IQmod(
+    workspaces,
+    filename,
+    loglog=True,
+    backend: str = "d3",
+    errorbar_kwargs=None,
+    close_figures=False,
+    **kwargs,
+):
     """Save a plot representative of the supplied workspaces
 
     Parameters
@@ -150,6 +158,9 @@ def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_
         Optional arguments to :py:obj:`matplotlib.axes.Axes.errorbar`
         Can be a comma separated list for each workspace
         e.g. ``{'label':'main,wing,both', 'color':'r,b,g', 'marker':'o,v,.'}``
+    close_figures: bool
+        Close the matplotlib figure after saving. By default, keep pyplot-managed figures available for callers
+        that inspect or display them after plotting.
     kwargs: dict
         Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
 
@@ -166,25 +177,31 @@ def plot_IQmod(workspaces, filename, loglog=True, backend: str = "d3", errorbar_
             raise RuntimeError('Do not know how to plot type="{}"'.format(datatype))
 
     fig, ax = plt.subplots()
-    for n, workspace in enumerate(workspaces):
-        eb, _, _ = ax.errorbar(workspace.mod_q, workspace.intensity, yerr=workspace.error)
-        for key in errorbar_kwargs:
-            value = [v.strip() for v in errorbar_kwargs[key].split(",")]
-            plt.setp(eb, key, value[min(n, len(value) - 1)])
-    ax.set_xlabel(_q_label(backend))
-    ax.set_ylabel("Intensity")
-    if loglog:
-        ax.set_xscale("log")
-        ax.set_yscale("log")
+    saved = False
+    try:
+        for n, workspace in enumerate(workspaces):
+            eb, _, _ = ax.errorbar(workspace.mod_q, workspace.intensity, yerr=workspace.error)
+            for key in errorbar_kwargs:
+                value = [v.strip() for v in errorbar_kwargs[key].split(",")]
+                plt.setp(eb, key, value[min(n, len(value) - 1)])
+        ax.set_xlabel(_q_label(backend))
+        ax.set_ylabel("Intensity")
+        if loglog:
+            ax.set_xscale("log")
+            ax.set_yscale("log")
 
-    handles, labels = ax.get_legend_handles_labels()
-    if handles:
-        ax.legend(handles, labels)
+        handles, labels = ax.get_legend_handles_labels()
+        if handles:
+            ax.legend(handles, labels)
 
-    if kwargs:
-        plt.setp(ax, **kwargs)
+        if kwargs:
+            plt.setp(ax, **kwargs)
 
-    _save_file(fig, filename, backend)
+        _save_file(fig, filename, backend)
+        saved = True
+    finally:
+        if close_figures or not saved:
+            plt.close(fig)
 
 
 def plotly_IQmod(
@@ -280,7 +297,9 @@ def plotly_i1d(
     return plotly_IQmod(profiles, labels, title=title, loglog=loglog)
 
 
-def plot_I1DAnnular(workspaces, filename, logy=True, backend: str = "d3", errorbar_kwargs=None, **kwargs):
+def plot_I1DAnnular(
+    workspaces, filename, logy=True, backend: str = "d3", errorbar_kwargs=None, close_figures=False, **kwargs
+):
     """Save a plot representative of the supplied I(phi) workspaces
 
     Parameters
@@ -298,6 +317,9 @@ def plot_I1DAnnular(workspaces, filename, logy=True, backend: str = "d3", errorb
         Optional arguments to :py:obj:`matplotlib.axes.Axes.errorbar`
         Can be a comma separated list for each workspace
         e.g. ``{'label':'main,wing,both', 'color':'r,b,g', 'marker':'o,v,.'}``
+    close_figures: bool
+        Close the matplotlib figure after saving. By default, keep pyplot-managed figures available for callers
+        that inspect or display them after plotting.
     kwargs: dict
         Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
 
@@ -315,28 +337,42 @@ def plot_I1DAnnular(workspaces, filename, logy=True, backend: str = "d3", errorb
             raise RuntimeError('Do not know how to plot type="{}"'.format(datatype))
 
     fig, ax = plt.subplots()
-    for n, workspace in enumerate(workspaces):
-        eb, _, _ = ax.errorbar(workspace.phi, workspace.intensity, yerr=workspace.error)
-        for key in errorbar_kwargs:
-            value = [v.strip() for v in errorbar_kwargs[key].split(",")]
-            plt.setp(eb, key, value[min(n, len(value) - 1)])
-    ax.set_xlabel("$\\phi$ (degrees)")
-    ax.set_ylabel("Intensity")
-    if logy:
-        # only setting log for y scale, since log scale for the x axis (annular angle) doesn't make sense
-        ax.set_yscale("log")
+    saved = False
+    try:
+        for n, workspace in enumerate(workspaces):
+            eb, _, _ = ax.errorbar(workspace.phi, workspace.intensity, yerr=workspace.error)
+            for key in errorbar_kwargs:
+                value = [v.strip() for v in errorbar_kwargs[key].split(",")]
+                plt.setp(eb, key, value[min(n, len(value) - 1)])
+        ax.set_xlabel("$\\phi$ (degrees)")
+        ax.set_ylabel("Intensity")
+        if logy:
+            # only setting log for y scale, since log scale for the x axis (annular angle) doesn't make sense
+            ax.set_yscale("log")
 
-    handles, labels = ax.get_legend_handles_labels()
-    if handles:
-        ax.legend(handles, labels)
+        handles, labels = ax.get_legend_handles_labels()
+        if handles:
+            ax.legend(handles, labels)
 
-    if kwargs:
-        plt.setp(ax, **kwargs)
+        if kwargs:
+            plt.setp(ax, **kwargs)
 
-    _save_file(fig, filename, backend)
+        _save_file(fig, filename, backend)
+        saved = True
+    finally:
+        if close_figures or not saved:
+            plt.close(fig)
 
 
-def plot_i1d(workspaces, filename, log_scale=True, backend: str = "d3", errorbar_kwargs=None, **kwargs):
+def plot_i1d(
+    workspaces,
+    filename,
+    log_scale=True,
+    backend: str = "d3",
+    errorbar_kwargs=None,
+    close_figures=False,
+    **kwargs,
+):
     """Save a plot representative of the supplied workspaces
 
     Parameters
@@ -357,6 +393,9 @@ def plot_i1d(workspaces, filename, log_scale=True, backend: str = "d3", errorbar
         e.g. ``{'label':'main,wing,both', 'color':'r,b,g', 'marker':'o,v,.'}``
     kwargs: dict
         Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
+    close_figures: bool
+        Close the matplotlib figure after saving. By default, keep pyplot-managed figures available for callers
+        that inspect or display them after plotting.
 
     """
     if not isinstance(workspaces, (list, tuple)):
@@ -373,9 +412,9 @@ def plot_i1d(workspaces, filename, log_scale=True, backend: str = "d3", errorbar
         raise RuntimeError(f"Cannot plot different data types in the same plot={datatypes}")
 
     if datatypes[0] == DataType.IQ_MOD:
-        plot_IQmod(workspaces, filename, log_scale, backend, errorbar_kwargs, **kwargs)
+        plot_IQmod(workspaces, filename, log_scale, backend, errorbar_kwargs, close_figures, **kwargs)
     else:  # can only be DataType.I_ANNULAR
-        plot_I1DAnnular(workspaces, filename, log_scale, backend, errorbar_kwargs, **kwargs)
+        plot_I1DAnnular(workspaces, filename, log_scale, backend, errorbar_kwargs, close_figures, **kwargs)
 
 
 def _create_ring_roi(iq2d, q_min, q_max, input_roi) -> np.ndarray:
@@ -567,6 +606,7 @@ def plot_IQazimuthal(
     symmetric_wedges: bool = True,
     mask_alpha=0.6,
     imshow_kwargs: Dict = {},
+    close_figures=False,
     **kwargs,
 ):
     """Save a plot of I(Qx, Qy).
@@ -597,6 +637,9 @@ def plot_IQazimuthal(
         Which backend to save the file using
     imshow_kwargs: ~dict
         Optional arguments to :py:obj:`matplotlib.axes.Axes.imshow` e.g. ``{"norm": LogNorm()}``
+    close_figures: bool
+        Close the matplotlib figure after saving. By default, keep pyplot-managed figures available for callers
+        that inspect or display them after plotting.
     kwargs: ~dict
         Additional key word arguments for :py:obj:`matplotlib.axes.Axes`
     """
@@ -627,42 +670,48 @@ def plot_IQazimuthal(
 
     # put together the plot
     fig, ax = plt.subplots()
-    current_cmap = matplotlib.colormaps.get_cmap("viridis")
-    current_cmap.set_bad(color="grey")
-    qxmin = workspace.qx.min()
-    qxmax = workspace.qx.max()
-    qymin = workspace.qy.min()
-    qymax = workspace.qy.max()
-    pcm = ax.imshow(
-        intensity,
-        extent=(qxmin, qxmax, qymin, qymax),
-        origin="lower",
-        aspect="auto",
-        **imshow_kwargs,
-    )
+    saved = False
+    try:
+        current_cmap = matplotlib.colormaps.get_cmap("viridis")
+        current_cmap.set_bad(color="grey")
+        qxmin = workspace.qx.min()
+        qxmax = workspace.qx.max()
+        qymin = workspace.qy.min()
+        qymax = workspace.qy.max()
+        pcm = ax.imshow(
+            intensity,
+            extent=(qxmin, qxmax, qymin, qymax),
+            origin="lower",
+            aspect="auto",
+            **imshow_kwargs,
+        )
 
-    # add calculated region of interest
-    ax.imshow(
-        roi,
-        alpha=mask_alpha,
-        extent=(qxmin, qxmax, qymin, qymax),
-        cmap="gray",
-        vmax=roi.max(),
-        interpolation="none",
-        origin="lower",
-        aspect="auto",
-    )
-    pcm.cmap.set_bad(alpha=0.5)
+        # add calculated region of interest
+        ax.imshow(
+            roi,
+            alpha=mask_alpha,
+            extent=(qxmin, qxmax, qymin, qymax),
+            cmap="gray",
+            vmax=roi.max(),
+            interpolation="none",
+            origin="lower",
+            aspect="auto",
+        )
+        pcm.cmap.set_bad(alpha=0.5)
 
-    # rest of plotting arguments
-    fig.colorbar(pcm, ax=ax)
-    ax.set_xlabel(_q_label(backend, "x"))
-    ax.set_ylabel(_q_label(backend, "y"))
+        # rest of plotting arguments
+        fig.colorbar(pcm, ax=ax)
+        ax.set_xlabel(_q_label(backend, "x"))
+        ax.set_ylabel(_q_label(backend, "y"))
 
-    if kwargs:
-        plt.setp(ax, **kwargs)
+        if kwargs:
+            plt.setp(ax, **kwargs)
 
-    _save_file(fig, filename, backend)
+        _save_file(fig, filename, backend)
+        saved = True
+    finally:
+        if close_figures or not saved:
+            plt.close(fig)
 
 
 def plot_detector(

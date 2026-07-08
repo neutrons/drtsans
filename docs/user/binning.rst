@@ -71,6 +71,160 @@ the azimuthal limits for one or more wedges. For instance, the two wedges
    :alt: User defined wedges
    :width: 800px
 
+Wedge JSON Settings
++++++++++++++++++++
+
+Wedge reduction is enabled by selecting wedge binning for the 1D output:
+
+.. code-block:: json
+
+    {
+      "1DQbinType": "wedge"
+    }
+
+The wedge angles can be provided manually with ``WedgeMinAngles`` and ``WedgeMaxAngles``,
+or they can be found automatically from an azimuthal intensity profile, :math:`I(\phi)`.
+Manual wedge definitions take precedence when ``WedgeMinAngles`` and ``WedgeMaxAngles``
+are provided. Automatic wedge finding is used when ``1DQbinType`` is ``"wedge"`` and
+the manual wedge angle lists are not supplied by the reduction input. Depending on the
+instrument and input template, this may be represented as ``null`` or as an empty list.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 24 18 58
+
+   * - Setting
+     - Used for
+     - Meaning
+   * - ``1DQbinType``
+     - Manual and automatic
+     - Selects the 1D binning mode. Use ``"wedge"`` to output one :math:`I(q)` profile per wedge group.
+   * - ``QbinType``
+     - Manual and automatic
+     - Selects linear or logarithmic :math:`q` bins for the wedge :math:`I(q)` output.
+   * - ``numQBins`` or instrument-specific ``num*QBins``
+     - Manual and automatic
+     - Number of :math:`q` bins when ``QbinType`` is ``"linear"``. For BIOSANS, use the detector-specific settings such as ``numMainQBins`` and ``numWingQBins``.
+   * - ``LogQBinsPerDecade`` or instrument-specific ``LogQBinsPerDecade*``
+     - Manual and automatic
+     - Number of :math:`q` bins per decade when ``QbinType`` is ``"log"``.
+   * - ``Qmin`` / ``Qmax`` or detector-specific ``Qmin*`` / ``Qmax*``
+     - Manual and automatic
+     - Optional :math:`q` range for the final wedge :math:`I(q)` output. BIOSANS uses detector-specific ranges such as ``QminMain`` and ``QmaxWing``.
+   * - ``WedgeMinAngles``
+     - Manual
+     - List of lower azimuthal-angle bounds in degrees. Values are in the range ``[-90, 270)``.
+   * - ``WedgeMaxAngles``
+     - Manual
+     - List of upper azimuthal-angle bounds in degrees. This list must have the same length as ``WedgeMinAngles``.
+   * - ``autoWedgeQmin``
+     - Automatic
+     - Minimum :math:`q` value used to build the :math:`I(\phi)` profiles for wedge finding.
+   * - ``autoWedgeQmax``
+     - Automatic
+     - Maximum :math:`q` value used to build the :math:`I(\phi)` profiles for wedge finding.
+   * - ``autoWedgeQdelta``
+     - Automatic
+     - Width of each :math:`q` ring used during automatic wedge finding.
+   * - ``autoWedgeAzimuthalDelta``
+     - Automatic
+     - Azimuthal bin width, in degrees, used to build each :math:`I(\phi)` profile.
+   * - ``autoWedgePeakWidth``
+     - Automatic
+     - Fraction of the peak full-width-half-maximum (FWHM) used to define the signal wedge.
+   * - ``autoWedgeBackgroundWidth``
+     - Automatic
+     - Fraction of the peak FWHM used to define the background wedge.
+   * - ``autoWedgeSignalToNoiseMin``
+     - Automatic
+     - Minimum signal-to-noise ratio required for the azimuthal profile to be considered fittable.
+   * - ``autoWedgePhiMin`` / ``autoWedgePhiMax``
+     - Automatic
+     - Optional azimuthal search range, in degrees. This is useful when part of the detector should be excluded from the search.
+   * - ``autoSymmetricWedges``
+     - Automatic
+     - If ``true``, find the wedge only inside the requested azimuthal search range, then add its symmetric counterpart.
+   * - ``autoWedgePeakSearchWindowSizeFactor``
+     - Automatic
+     - Optional peak-search window scale used by GPSANS automatic wedge finding.
+   * - ``wedge1Qmin*`` / ``wedge1Qmax*`` and ``wedge2Qmin*`` / ``wedge2Qmax*``
+     - BIOSANS
+     - Detector-specific :math:`q` ranges for BIOSANS wedge 1 and wedge 2 outputs. Suffixes include ``Main``, ``Wing``, and ``Midrange``.
+   * - ``wedge1overlapStitchQmin`` / ``wedge1overlapStitchQmax`` and ``wedge2overlapStitchQmin`` / ``wedge2overlapStitchQmax``
+     - BIOSANS
+     - Wedge-specific overlap ranges used when stitching BIOSANS detector panels.
+
+Wedge Reduction Examples
+++++++++++++++++++++++++
+
+A manual wedge reduction specifies the wedge angles directly. The following example produces
+two wedge :math:`I(q)` profiles, one for :math:`(-30, 30)` degrees and one for
+:math:`(75, 105)` degrees. Because ``drtsans`` assumes achiral features for manual wedges,
+the corresponding symmetric wedges are included in each profile.
+
+.. code-block:: json
+
+    {
+      "configuration": {
+        "1DQbinType": "wedge",
+        "QbinType": "log",
+        "LogQBinsPerDecade": 25,
+        "WedgeMinAngles": [-30, 75],
+        "WedgeMaxAngles": [30, 105]
+      }
+    }
+
+An automatic wedge reduction leaves the manual wedge angle lists unset and provides the
+:math:`q` range and binning used to build the azimuthal profiles. The reduction finds the
+wedge angles from the peaks in :math:`I(\phi)` and stores the resulting wedge selections in
+the reduction output. The example below uses ``null`` for the unset manual wedge angles;
+some templates use empty lists for the same purpose.
+
+.. code-block:: json
+
+    {
+      "configuration": {
+        "1DQbinType": "wedge",
+        "QbinType": "log",
+        "LogQBinsPerDecade": 25,
+        "WedgeMinAngles": null,
+        "WedgeMaxAngles": null,
+        "autoWedgeQmin": 0.003,
+        "autoWedgeQmax": 0.04,
+        "autoWedgeQdelta": 0.01,
+        "autoWedgeAzimuthalDelta": 1.0,
+        "autoWedgePeakWidth": 0.25,
+        "autoWedgeBackgroundWidth": 1.5,
+        "autoWedgeSignalToNoiseMin": 2.0
+      }
+    }
+
+For BIOSANS, wedge reduction commonly also sets detector-specific :math:`q` ranges and
+overlap stitching ranges for each wedge:
+
+.. code-block:: json
+
+    {
+      "configuration": {
+        "1DQbinType": "wedge",
+        "QbinType": "log",
+        "WedgeMinAngles": [-30, 60],
+        "WedgeMaxAngles": [30, 120],
+        "wedge1QminMain": 0.02,
+        "wedge1QmaxMain": 0.09,
+        "wedge1QminWing": 0.08,
+        "wedge1QmaxWing": 0.09,
+        "wedge1overlapStitchQmin": 0.0825,
+        "wedge1overlapStitchQmax": 0.0875,
+        "wedge2QminMain": 0.02,
+        "wedge2QmaxMain": 0.125,
+        "wedge2QminWing": 0.06,
+        "wedge2QmaxWing": 1.0,
+        "wedge2overlapStitchQmin": 0.075,
+        "wedge2overlapStitchQmax": 0.095
+      }
+    }
+
 Automatic Finding of the Wedge
 +++++++++++++++++++++++++++++++
 

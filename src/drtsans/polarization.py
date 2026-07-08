@@ -3,7 +3,7 @@ from collections import namedtuple
 from enum import StrEnum
 from dataclasses import dataclass
 from math import fsum
-from typing import ClassVar, Generator, List, Optional, Union
+from typing import Any, ClassVar, Generator, List, Optional, Union
 
 # third party imports
 import h5py
@@ -769,7 +769,39 @@ class FullPolarizationDecoder(PolarizationDecoder):
         return spin_cross_sections
 
 
-def polarization_decoder(device_cross_sections, reduction_config):
+def polarization_decoder(
+    device_cross_sections: list[MantidWorkspace],
+    reduction_config: dict[str, Any],
+) -> list[MantidWorkspace]:
+    """
+    Decode measured polarization device cross-sections into spin-state workspaces.
+
+    Parameters
+    ----------
+    device_cross_sections : list of MantidWorkspace
+        Workspaces tagged with polarization device cross-section sample logs.
+        Half-polarization data must contain the ``OFF`` and ``ON`` states; full
+        polarization data must contain ``OFF_OFF``, ``ON_OFF``, ``OFF_ON``, and
+        ``ON_ON`` states.
+    reduction_config : dict
+        Reduction configuration containing ``polarization.level``. Supported
+        levels are ``"half"`` and ``"full"`` and select the corresponding
+        decoder implementation.
+
+    Returns
+    -------
+    list of MantidWorkspace
+        Spin-state workspaces returned by the selected polarization decoder.
+
+    Raises
+    ------
+    KeyError
+        If the polarization level is missing or is not one of the supported
+        decoder levels.
+    ValueError
+        If the selected decoder receives an invalid number of device
+        cross-section workspaces or invalid polarization properties.
+    """
     decoders = {"half": HalfPolarizationDecoder, "full": FullPolarizationDecoder}
     polarization_level = reduction_config["polarization"]["level"]
     decoder = decoders[polarization_level](reduction_config)

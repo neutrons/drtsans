@@ -74,7 +74,7 @@ class TestSpinFilter:
 
     @pytest.mark.datarepo
     def test_analyzer(self, gpsans_workspace):
-        """Test splitting events based on analyzer state only."""
+        """Test splitting events based on analyzer state with an active polarizer."""
         workspace = gpsans_workspace
         logs = SimulatedPolarizationLogs(
             polarizer=1,

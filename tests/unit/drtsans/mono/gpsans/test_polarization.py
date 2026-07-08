@@ -459,23 +459,22 @@ class TestPolarizationDecoder:
         with pytest.raises(NotImplementedError):
             PolarizationDecoder({}).decode([])
 
-    @pytest.mark.parametrize("value", [-1.0, 0.0, 1.0])
-    def test_polarization_interval_includes_signed_bounds(self, value):
-        PolarizationDecoder._validate_polarization_interval("Polarization", value)
+    @pytest.mark.parametrize("value", [-1.0, 1.0])
+    def test_polarization_includes_signed_bounds(self, value):
+        PolarizationDecoder._validate_polarization("Polarization", value)
 
-    @pytest.mark.parametrize("value", [-1.1, 1.1])
-    def test_polarization_interval_rejects_outside_signed_bounds(self, value):
-        with pytest.raises(ValueError, match=r"Polarization must be in the interval \[-1, 1\]"):
-            PolarizationDecoder._validate_polarization_interval("Polarization", value)
+    @pytest.mark.parametrize("value", [-1.1, 0.0, 1.1])
+    def test_polarization_rejects_zero_and_outside_signed_bounds(self, value):
+        with pytest.raises(ValueError, match=r"Polarization must be non-zero and in the interval \[-1, 1\]"):
+            PolarizationDecoder._validate_polarization("Polarization", value)
 
-    @pytest.mark.parametrize("value", [0.0, 1.0])
-    def test_efficiency_interval_includes_bounds(self, value):
-        PolarizationDecoder._validate_efficiency_interval("Flipper efficiency", value)
+    def test_efficiency_includes_upper_bound(self):
+        PolarizationDecoder._validate_efficiency("Flipper efficiency", 1.0)
 
-    @pytest.mark.parametrize("value", [-0.1, 1.1])
-    def test_efficiency_interval_rejects_outside_unit_bounds(self, value):
-        with pytest.raises(ValueError, match=r"Flipper efficiency must be in the interval \[0, 1\]"):
-            PolarizationDecoder._validate_efficiency_interval("Flipper efficiency", value)
+    @pytest.mark.parametrize("value", [-0.1, 0.0, 1.1])
+    def test_efficiency_rejects_zero_and_outside_unit_bounds(self, value):
+        with pytest.raises(ValueError, match=r"Flipper efficiency must be in the interval \(0, 1\]"):
+            PolarizationDecoder._validate_efficiency("Flipper efficiency", value)
 
 
 class TestHalfPolarizationDecoder:
@@ -503,17 +502,22 @@ class TestHalfPolarizationDecoder:
 
     def test_polarization_below_negative_one_raises(self):
         decoder = self._make_decoder(polarization=-1.1, efficiency=1.0)
-        with pytest.raises(ValueError, match="Polarization must be in the interval"):
+        with pytest.raises(ValueError, match="Polarization must be non-zero and in the interval"):
             decoder.decoding_matrix(wavelength=6.0)
 
     def test_efficiency_below_zero_raises(self):
         decoder = self._make_decoder(polarization=0.9, efficiency=-0.1)
-        with pytest.raises(ValueError, match="Flipper efficiency must be in the interval"):
+        with pytest.raises(ValueError, match=r"Flipper efficiency must be in the interval \(0, 1\]"):
+            decoder.decoding_matrix(wavelength=6.0)
+
+    def test_efficiency_zero_raises(self):
+        decoder = self._make_decoder(polarization=0.9, efficiency=0.0)
+        with pytest.raises(ValueError, match=r"Flipper efficiency must be in the interval \(0, 1\]"):
             decoder.decoding_matrix(wavelength=6.0)
 
     def test_efficiency_above_one_raises(self):
         decoder = self._make_decoder(polarization=0.9, efficiency=1.1)
-        with pytest.raises(ValueError, match="Flipper efficiency must be in the interval"):
+        with pytest.raises(ValueError, match=r"Flipper efficiency must be in the interval \(0, 1\]"):
             decoder.decoding_matrix(wavelength=6.0)
 
     def test_negative_polarization_is_in_valid_range(self):
@@ -711,7 +715,7 @@ class TestFullPolarizationDecoder:
         config = {
             "polarization": {
                 "polarizer": {"polarization": "-0.5", "efficiency": "0.8"},
-                "analyzer": {"polarizationZero": "0", "polarizationPi": "-0.25"},
+                "analyzer": {"polarizationZero": "0.25", "polarizationPi": "-0.25"},
             }
         }
         decoder = FullPolarizationDecoder(config)
@@ -724,10 +728,14 @@ class TestFullPolarizationDecoder:
         "polarization_config, match",
         [
             ({"polarizer": {"polarization": "-1.1"}}, "Polarizer polarization"),
+            ({"polarizer": {"polarization": "0"}}, "Polarizer polarization"),
             ({"polarizer": {"polarization": "1.1"}}, "Polarizer polarization"),
             ({"polarizer": {"efficiency": "-0.1"}}, "Flipper efficiency"),
+            ({"polarizer": {"efficiency": "0"}}, "Flipper efficiency"),
             ({"polarizer": {"efficiency": "1.1"}}, "Flipper efficiency"),
             ({"analyzer": {"polarizationZero": "-1.1"}}, "Analyzer zero-state polarization"),
+            ({"analyzer": {"polarizationZero": "0"}}, "Analyzer zero-state polarization"),
+            ({"analyzer": {"polarizationPi": "0"}}, "Analyzer pi-state polarization"),
             ({"analyzer": {"polarizationPi": "1.1"}}, "Analyzer pi-state polarization"),
         ],
     )

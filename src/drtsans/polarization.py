@@ -448,7 +448,7 @@ class PolarizationDecoder:
         return sp.lambdify(cls._x, expr, "numpy")
 
     @staticmethod
-    def _validate_polarization_interval(name: str, value: float):
+    def _validate_polarization(name: str, value: float):
         """
         Validate that a polarization value is physically meaningful.
 
@@ -462,13 +462,13 @@ class PolarizationDecoder:
         Raises
         ------
         ValueError
-            If ``value`` is not in the interval ``[-1, 1]``.
+            If ``value`` is zero or not in the interval ``[-1, 1]``.
         """
-        if not -1 <= value <= 1:
-            raise ValueError(f"{name} must be in the interval [-1, 1].")
+        if value == 0 or not -1 <= value <= 1:
+            raise ValueError(f"{name} must be non-zero and in the interval [-1, 1].")
 
     @staticmethod
-    def _validate_efficiency_interval(name: str, value: float):
+    def _validate_efficiency(name: str, value: float):
         """
         Validate that an efficiency value is physically meaningful.
 
@@ -482,10 +482,10 @@ class PolarizationDecoder:
         Raises
         ------
         ValueError
-            If ``value`` is not in the interval ``[0, 1]``.
+            If ``value`` is not in the interval ``(0, 1]``.
         """
-        if not 0 <= value <= 1:
-            raise ValueError(f"{name} must be in the interval [0, 1].")
+        if not 0 < value <= 1:
+            raise ValueError(f"{name} must be in the interval (0, 1].")
 
     def __init__(self, reduction_config: dict):
         """
@@ -552,9 +552,9 @@ class HalfPolarizationDecoder(PolarizationDecoder):
             efficiency is outside ``[0, 1]``.
         """
         p = self.p(wavelength)
-        self._validate_polarization_interval("Polarization", p)
+        self._validate_polarization("Polarization", p)
         e = self.e(wavelength)
-        self._validate_efficiency_interval("Flipper efficiency", e)
+        self._validate_efficiency("Flipper efficiency", e)
         dl = (1 - p) / (2 * e * p)  # spin-down leakage
         ul = (1 + p) / (2 * e * p)  # spin-up leakage
         return np.array(
@@ -663,13 +663,13 @@ class FullPolarizationDecoder(PolarizationDecoder):
             value is outside ``[0, 1]``.
         """
         p = self.p(wavelength)
-        self._validate_polarization_interval("Polarizer polarization", p)
+        self._validate_polarization("Polarizer polarization", p)
         e = self.e(wavelength)
-        self._validate_efficiency_interval("Flipper efficiency", e)
+        self._validate_efficiency("Flipper efficiency", e)
         p_0 = self.p_0(wavelength)
-        self._validate_polarization_interval("Analyzer zero-state polarization", p_0)
+        self._validate_polarization("Analyzer zero-state polarization", p_0)
         p_pi = self.p_pi(wavelength)
-        self._validate_polarization_interval("Analyzer pi-state polarization", p_pi)
+        self._validate_polarization("Analyzer pi-state polarization", p_pi)
 
         # Eq. 9.3 of the Master document converts signed polarization to the ratio terms used by Eqs. 9.16-9.19.
         # For the pi analyzer state, the Master ratio multiplies spin-down transmission terms,

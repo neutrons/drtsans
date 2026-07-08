@@ -197,7 +197,7 @@ Full polarization - polarized beam with polarization analysis
 
 When full polarization is employed, a :math:`^3`\ He spin filter is inserted between the sample and
 the detector. The filter is also a spin flipper that rotates the spin by 0° or 180° and the
-polarizations of the two states of the :math:`^3`\ He spin filter are denoted by :math:`A^0(\lambda)`
+flipping ratios of the two states of the :math:`^3`\ He spin filter are denoted by :math:`A^0(\lambda)`
 and :math:`A^{\pi}(\lambda)`. The 0° state is assumed to preferentially pass the spin-up state, but
 the software must allow for the reverse to be true. The four possible flipper states are related to
 the four spin states through Equations :eq:`full-s-off-zero` through :eq:`full-s-on-pi`.
@@ -413,3 +413,25 @@ During reduction, we'll use Mantid's filtering capabilities to discount events c
 .. figure:: media/polarization_2.png
    :alt: Relation between flipper and veto logs
    :width: 800px
+
+
+drtsans Implementation Notes
+----------------------------
+
+The implementation of polarization corrections in drtsans is based on the equations presented above.
+However, polarizations :math:`P(\lambda)` are used instead of flipping ratios :math:`R(\lambda)`
+because polarizations are bounded between -1 and 1, while flipping ratios are unbounded.
+The relationship between the two is given by:
+
+.. math::
+    P(\lambda) = \frac{R(\lambda) - 1}{R(\lambda) + 1}
+
+Using polarizations avoids numerical issues when the flipping ratio is very large.
+
+The input configuration (JSON file) allows for the specification of the polarizer's polarization
+and the efficiency of the flipper.
+It also allows for the specification of analyzer's polarizations for the two states of the analyzer.
+These values can be specified as either a single value or as a string expression representing
+a wavelength-dependent function :math:`f(x)`.
+See the "polarization" entry in the :doc:`reduction parameters reference </drtsans/reduction_parameters>`
+for the full JSON configuration schema.

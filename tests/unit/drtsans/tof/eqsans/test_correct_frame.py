@@ -23,10 +23,11 @@ BandsTuple = namedtuple("BandsTuple", "lead skip")
         # four chopper configuration (before 2026)
         ("EQSANS_101595.nxs.h5", (1.95, 6.16), None),
         ("EQSANS_86217.nxs.h5", (2.45, 6.78), (10.96, 15.23)),  # frame skipping mode
-        # six chopper configuration (starting 2026)
-        ("EQSANS_176973.nxs.h5", (11.95, 14.98), None),
-        ("EQSANS_176937.nxs.h5", (2.45, 6.13), None),
-        ("EQSANS_178264.nxs.h5", (2.45, 6.13), (9.66, 13.38)),  # frame skipping mode
+        # six chopper configuration, offsets effective 2026-03-04 onward
+        # (no test data currently covers the 2026-01-01..2026-03-03 sub-era)
+        ("EQSANS_176973.nxs.h5", (12.04, 15.02), None),
+        ("EQSANS_176937.nxs.h5", (2.57, 6.17), None),
+        ("EQSANS_178264.nxs.h5", (2.50, 6.38), (10.34, 13.47)),  # frame skipping mode
     ],
 )
 def test_transmitted_bands(datarepo_dir, clean_workspace, filename, lead_range, skip_range):

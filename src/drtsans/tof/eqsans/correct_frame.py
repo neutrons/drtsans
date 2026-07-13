@@ -620,7 +620,9 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
         Output of running `transmitted_bands_clipped` on the workspace. If None, the
         band structure will be read from the logs.
     bin_width: float
-        Bin width in Angstroms
+        Bin width in Angstroms. Ignored if the workspace is in monochromatic mode (sample log
+        ``monochromatic`` is ``True``), in which case a single bin spanning the transmitted band
+        is used instead.
     events: bool
         Do we preserve events?
     Returns
@@ -638,7 +640,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
         OutputWorkspace=output_workspace,
     )
 
-    # Rebin to the clipped bands
+    # Elucidate the band structure
     is_frame_skipping = _is_frame_skipping(input_workspace)
     w_min, w_max = None, None
     if bands is None:
@@ -650,7 +652,26 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
     else:
         w_min = bands.lead.min
         w_max = bands.skip.max if is_frame_skipping else bands.lead.max
+
+    # If in monochromatic mode, override `bin_width`
+    sample_logs = SampleLogs(input_workspace)
+    if "monochromatic" in sample_logs.keys():
+        is_monochromatic = bool(sample_logs.single_value("monochromatic"))
+    else:
+        is_monochromatic = False
+    if is_monochromatic:
+        if is_frame_skipping:
+            raise ValueError("Monochromatic mode is incompatible with frame-skipping mode")
+        if bands is None:
+            raise ValueError("Monochromatic mode requires the wavelength bands to be known")
+        bin_width = w_max - w_min
+        logger.notice(
+            f"Monochromatic mode detected: overriding bin_width to {bin_width} "
+            f"(single bin spanning [{w_min}, {w_max}])"
+        )
+
     if bin_width:
+        # Rebin to the clipped bands
         if w_min is not None and w_max is not None:
             params = (w_min, bin_width, w_max)
         else:

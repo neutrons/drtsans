@@ -4,6 +4,10 @@
 from collections import namedtuple
 from typing import List, Union
 
+import numpy as np
+from mantid.kernel import logger
+
+from drtsans.dataobjects import IQmod
 from drtsans.iq import bin_all  # noqa E402
 from drtsans.tof.eqsans.inelastic_correction import (
     CorrectedI1D,
@@ -329,6 +333,49 @@ def listify_incohfit_parameter(parameter):
             return parameter
     else:  # if parameter is a single value, coerce and return as list of two
         return [parameter, parameter]
+
+
+def bypass_correction_for_single_wavelength_bin(
+    iq1d: IQmod,
+    correction_setup: CorrectionConfiguration,
+    frameskip_frame: int,
+) -> None:
+    """Disable elastic and/or inelastic correction in-place, with a warning, if only one
+    wavelength bin is present (e.g. monochromatic mode).
+
+    Both corrections characterize how I(Q) varies with wavelength relative to a reference
+    wavelength; with a single wavelength bin, the reference wavelength collapses onto the
+    only available bin, making the correction mathematically trivial (K=1, B=0) while still
+    perturbing the propagated uncertainty.
+
+    Parameters
+    ----------
+    iq1d: ~drtsans.dataobjects.IQmod
+        Unbinned 1D data for this frame, used to determine the number of wavelength bins
+    correction_setup: CorrectionConfiguration
+        Correction configuration, modified in-place to bypass any requested correction
+    frameskip_frame: int
+        Index of the frame being processed in ``correction_setup.do_inelastic_correction``
+    """
+    num_wavelength_bins = len(np.unique(iq1d.wavelength))
+    if num_wavelength_bins > 1:
+        return
+
+    if correction_setup.do_elastic_correction:
+        logger.warning(
+            f"Only {num_wavelength_bins} wavelength bin present in frame {frameskip_frame}: "
+            "bypassing elastic reference normalization correction."
+        )
+        correction_setup.do_elastic_correction = False
+
+    if correction_setup.do_inelastic_correction[frameskip_frame]:
+        logger.warning(
+            f"Only {num_wavelength_bins} wavelength bin present in frame {frameskip_frame}: "
+            "bypassing inelastic incoherence correction."
+        )
+        updated_flags = list(correction_setup.do_inelastic_correction)
+        updated_flags[frameskip_frame] = False
+        correction_setup.do_inelastic_correction = updated_flags
 
 
 # Define named tuple for elastic scattering normalization factor

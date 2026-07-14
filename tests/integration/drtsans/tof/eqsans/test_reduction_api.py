@@ -1,6 +1,7 @@
 import pytest
 import os
 import tempfile
+import h5py
 from drtsans.tof.eqsans import reduction_parameters, update_reduction_parameters
 from drtsans.tof.eqsans.api import (
     load_all_files,
@@ -339,7 +340,7 @@ def test_timeslice(has_sns_mount, run_config, basename, temp_directory, referenc
 
 
 @pytest.mark.datarepo
-def test_monochromatic(datarepo_dir, mocker):
+def test_monochromatic(datarepo_dir, temp_directory, mocker):
     """Reduce a monochromatic-mode run (single wavelength bin after loading) and verify
     that elastic reference normalization and inelastic incoherence correction, both
     requested in the configuration, are bypassed with a warning instead of silently
@@ -348,8 +349,7 @@ def test_monochromatic(datarepo_dir, mocker):
     """
     run_number = "177103"
     datadir = os.path.join(datarepo_dir.eqsans, "test_corrections")
-    output_dir = "/tmp/test_monochromatic"
-    os.makedirs(output_dir, exist_ok=True)
+    output_dir = temp_directory()
 
     common_config = {
         "iptsNumber": "37425",
@@ -414,6 +414,17 @@ def test_monochromatic(datarepo_dir, mocker):
     assert any("bypassing inelastic incoherence correction" in msg for msg in warning_messages), (
         f"Expected inelastic-bypass warning not found in: {warning_messages}"
     )
+
+    # Verify the monochromatic path was taken: correct_frame.py overrides bin_width to a single
+    # value spanning the whole (single) wavelength band when monochromatic mode is detected.
+    reduction_log_file = os.path.join(output_dir, "EQSANS_177103_monochromatic_reduction_log.hdf")
+    with h5py.File(reduction_log_file, "r") as h5file:
+        raw_value = h5file["reduction_information/sample_logs/main/wavelength_bin_width"][()]
+    wavelength_bin_widths = [float(v) for v in raw_value.decode().split(",")]
+    assert len(wavelength_bin_widths) == 1, (
+        f"Expected a single wavelength_bin_width value, got: {wavelength_bin_widths}"
+    )
+    assert round(wavelength_bin_widths[0], 3) == 0.386
 
     # clean up
     DeleteWorkspace("processed_data_main")

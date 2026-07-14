@@ -430,7 +430,7 @@ def test_monochromatic(datarepo_dir, temp_directory, mocker):
     DeleteWorkspace("processed_data_main")
     DeleteWorkspace("processed_elastic_ref")
     for ws in mtd.getObjectNames():
-        if str(ws).startswith("_EQSANS_"):
+        if str(ws).startswith("_EQSANS_177103"):
             DeleteWorkspace(ws)
 
 

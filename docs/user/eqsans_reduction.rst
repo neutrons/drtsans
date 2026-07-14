@@ -9,10 +9,10 @@ Monochromatic Mode
 -------------------
 
 EQSANS can be operated in monochromatic mode, for runs
-where the chopper system is phased to transmit a tipically narrow wavelength band,
+where the chopper system is phased to transmit a typically narrow wavelength band,
 instead of the broad time-of-flight spectrum used in normal operation.
 This mode is recorded in the raw data file through the ``"monochromatic"`` sample log,
-set by the instrument's data acquisitionsystem — it is not a setting in the reduction configuration.
+set by the instrument's data acquisition system — it is not a setting in the reduction configuration.
 
 When `drtsans` detects that a run has collapsed to a single wavelength bin, as is always the
 case in monochromatic mode, it overrides the wavelength bin width passed in the configuration file

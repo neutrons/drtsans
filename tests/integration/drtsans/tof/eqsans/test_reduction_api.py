@@ -338,6 +338,91 @@ def test_timeslice(has_sns_mount, run_config, basename, temp_directory, referenc
     assert "No data was processed. Check the input data." in str(e.value)
 
 
+@pytest.mark.datarepo
+def test_monochromatic(datarepo_dir, mocker):
+    """Reduce a monochromatic-mode run (single wavelength bin after loading) and verify
+    that elastic reference normalization and inelastic incoherence correction, both
+    requested in the configuration, are bypassed with a warning instead of silently
+    applied -- a single wavelength bin makes both corrections mathematically trivial
+    while still perturbing the propagated uncertainty.
+    """
+    run_number = "177103"
+    datadir = os.path.join(datarepo_dir.eqsans, "test_corrections")
+    output_dir = "/tmp/test_monochromatic"
+    os.makedirs(output_dir, exist_ok=True)
+
+    common_config = {
+        "iptsNumber": "37425",
+        "sample": {
+            "runNumber": run_number,
+            "thickness": 1,
+            "transmission": {"runNumber": "", "value": "1"},
+        },
+        "background": {"runNumber": "", "transmission": {"runNumber": "", "value": ""}},
+        "emptyTransmission": {"runNumber": "", "value": ""},
+        "beamCenter": {"runNumber": run_number},
+        "dataDirectories": datarepo_dir.eqsans,
+        "configuration": {
+            "outputDir": output_dir,
+            "instrumentConfigurationDir": os.path.join(datarepo_dir.eqsans, "instrument_configuration"),
+            "useDefaultMask": True,
+            "darkFileName": "/bin/true",  # placeholder to pass validation; cleared below
+            "sensitivityFileName": None,
+            "normalization": "Total charge",
+            "fluxMonitorRatioFile": None,
+            "beamFluxFileName": os.path.join(datadir, "bl6_flux_at_sample"),
+            "absoluteScaleMethod": "standard",
+            "detectorOffset": 0,
+            "sampleOffset": 0,
+            "mmRadiusForTransmission": 25,
+            "numQxQyBins": 80,
+            "1DQbinType": "scalar",
+            "QbinType": "linear",
+            "useErrorWeighting": False,
+            "numQBins": 100,
+            "AnnularAngleBin": 5,
+            "wavelengthStepType": "constant Delta lambda",
+            "wavelengthStep": 0.1,
+            # Request both corrections; the single wavelength bin should bypass them.
+            "fitInelasticIncoh": True,
+            "elasticReference": {
+                "runNumber": run_number,
+                "thickness": 1.0,
+                "transmission": {"runNumber": "", "value": "1"},
+            },
+            "elasticReferenceBkgd": {"runNumber": "", "transmission": {"runNumber": "", "value": "0.9"}},
+            "selectMinIncoh": True,
+        },
+        "outputFileName": "EQSANS_177103_monochromatic",
+    }
+
+    input_config = reduction_parameters(common_config, "EQSANS", validate=True)
+    input_config["configuration"]["darkFileName"] = None
+
+    mock_logger = mocker.patch("drtsans.tof.eqsans.correction_api.logger")
+
+    with amend_config(data_dir=datarepo_dir.eqsans):
+        loaded = load_all_files(input_config)
+        reduction_output = reduce_single_configuration(loaded, input_config)
+
+    assert len(reduction_output) == 1
+
+    warning_messages = [call.args[0] for call in mock_logger.warning.call_args_list]
+    assert any("bypassing elastic reference normalization correction" in msg for msg in warning_messages), (
+        f"Expected elastic-bypass warning not found in: {warning_messages}"
+    )
+    assert any("bypassing inelastic incoherence correction" in msg for msg in warning_messages), (
+        f"Expected inelastic-bypass warning not found in: {warning_messages}"
+    )
+
+    # clean up
+    DeleteWorkspace("processed_data_main")
+    DeleteWorkspace("processed_elastic_ref")
+    for ws in mtd.getObjectNames():
+        if str(ws).startswith("_EQSANS_"):
+            DeleteWorkspace(ws)
+
+
 def verify_binned_iq(gold_file_dict: Dict[Tuple, str], reduction_output):
     """Verify reduced I(Q1D) and I(qx, qy) by expected/gold data
 

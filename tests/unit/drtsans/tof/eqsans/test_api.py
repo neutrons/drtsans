@@ -9,8 +9,10 @@ import pytest
 
 from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (
+    I_output,
     load_all_files,
     prepare_data_workspaces,
+    plot_reduction_output,
     plotly_reduction_output,
     pre_process_single_configuration,
 )
@@ -356,6 +358,72 @@ def test_process_single_configuration_thickness_absolute_scale(generic_workspace
         thickness=0.1,
     )
     assert_equal(output.extractY(), [[15], [30], [45], [60]])
+
+
+@mock.patch("drtsans.tof.eqsans.api.allow_overwrite")
+@mock.patch("drtsans.tof.eqsans.api.plot_i1d")
+@mock.patch("drtsans.tof.eqsans.api.plot_IQazimuthal")
+def test_plot_reduction_output(mock_plot_IQazimuthal, mock_plot_i1d, mock_allow_overwrite):
+    """Test that plot_reduction_output uses slice and frame labels in output filenames."""
+    reduction_input = {
+        "outputFileName": "test",
+        "configuration": {
+            "outputDir": "/tmp",
+            "1DQbinType": "wedge",
+            "wedges": None,
+            "symmetric_wedges": True,
+            "Qmin": None,
+            "Qmax": None,
+        },
+    }
+    reduction_output = [
+        I_output(
+            I2D_main="2d-slice0-frame0",
+            I1D_main=["1d-wedge0", "1d-wedge1"],
+            slice_label="_0",
+            frame_label="_frame_0",
+        ),
+        I_output(
+            I2D_main="2d-slice0-frame1",
+            I1D_main=["1d-wedge0", "1d-wedge1"],
+            slice_label="_0",
+            frame_label="_frame_1",
+        ),
+        I_output(
+            I2D_main="2d-slice1-frame0",
+            I1D_main=["1d-wedge0", "1d-wedge1"],
+            slice_label="_1",
+            frame_label="_frame_0",
+        ),
+    ]
+
+    plot_reduction_output(reduction_output, reduction_input, close_figures=False)
+
+    assert [call.args[1] for call in mock_plot_IQazimuthal.call_args_list] == [
+        "/tmp/test_0_frame_0_Iqxqy.png",
+        "/tmp/test_0_frame_1_Iqxqy.png",
+        "/tmp/test_1_frame_0_Iqxqy.png",
+    ]
+    assert [call.args[1] for call in mock_plot_i1d.call_args_list] == [
+        "/tmp/test_0_wedge_0_frame_0_Iq.png",
+        "/tmp/test_0_wedge_1_frame_0_Iq.png",
+        "/tmp/test_0_wedge_0_frame_1_Iq.png",
+        "/tmp/test_0_wedge_1_frame_1_Iq.png",
+        "/tmp/test_1_wedge_0_frame_0_Iq.png",
+        "/tmp/test_1_wedge_1_frame_0_Iq.png",
+    ]
+    mock_allow_overwrite.assert_called_once_with("/tmp")
+
+    mock_plot_IQazimuthal.reset_mock()
+    mock_plot_i1d.reset_mock()
+    mock_allow_overwrite.reset_mock()
+    reduction_input["configuration"]["1DQbinType"] = "scalar"
+
+    plot_reduction_output([I_output(I2D_main="2d", I1D_main=["1d"])], reduction_input, close_figures=False)
+
+    assert [call.args[1] for call in mock_plot_IQazimuthal.call_args_list] == ["/tmp/test_Iqxqy.png"]
+    assert [call.args[1] for call in mock_plot_i1d.call_args_list] == ["/tmp/test_Iq.png"]
+    mock_allow_overwrite.assert_called_once_with("/tmp")
 
 
 @mock.patch("drtsans.tof.eqsans.api.plotly_IQazimuthal")

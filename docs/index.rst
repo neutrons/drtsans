@@ -16,7 +16,6 @@ User Guide
    /user/corrections/index
    /user/slicing
    /user/binning
-   /user/gpr_analysis
    /user/polarization
    /user/eqsans_reduction
    /user/reduction_output

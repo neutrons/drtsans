@@ -13,11 +13,13 @@ where the chopper system is phased to transmit a typically narrow wavelength ban
 instead of the broad time-of-flight spectrum used in normal operation.
 This mode is recorded in the raw data file through the ``"monochromatic"`` sample log,
 set by the instrument's data acquisition system — it is not a setting in the reduction configuration.
+The behavior described below is triggered by the *value* of this boolean sample log; the mere
+presence of the log in the file is not enough to trigger monochromatic mode.
 
-When `drtsans` detects that a run has collapsed to a single wavelength bin, as is always the
-case in monochromatic mode, it overrides the wavelength bin width passed in the configuration file
-so that the entire band is treated as one bin spanning the full range of wavelengths present in the data.
-Monochromatic mode is incompatible with frame-skipping mode.
+When the ``"monochromatic"`` sample log evaluates to ``True``, `drtsans` overrides the wavelength bin width
+passed in the configuration file so that the entire transmitted band is treated as one bin spanning
+the full range of wavelengths present in the data. Monochromatic mode is incompatible with
+frame-skipping mode.
 
 Effect on wavelength-dependent corrections
 ++++++++++++++++++++++++++++++++++++++++++
@@ -45,3 +47,13 @@ file, under ``reduction_information/sample_logs/main/wavelength_bin_width``. For
 monochromatic-mode reduction, this dataset contains a single value equal to the width of the
 whole wavelength band, rather than one value per ``"wavelengthStep"``-sized bin, which can be
 used to confirm that the monochromatic path was taken.
+
+
+Other EQSANS-specific documentation
+------------------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   /user/corrections/inelastic_incoherent
+   /user/gpr_analysis

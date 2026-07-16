@@ -7,4 +7,3 @@ Corrections
    :maxdepth: 2
 
    /user/corrections/transmission
-   /user/corrections/inelastic_incoherent

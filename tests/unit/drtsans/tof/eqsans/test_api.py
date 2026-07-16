@@ -425,6 +425,26 @@ def test_plot_reduction_output(mock_plot_IQazimuthal, mock_plot_i1d, mock_allow_
     assert [call.args[1] for call in mock_plot_i1d.call_args_list] == ["/tmp/test_Iq.png"]
     mock_allow_overwrite.assert_called_once_with("/tmp")
 
+    mock_plot_IQazimuthal.reset_mock()
+    mock_plot_i1d.reset_mock()
+    mock_allow_overwrite.reset_mock()
+
+    reduction_output = [
+        I_output(I2D_main="2d-slice0", I1D_main=["1d-slice0"]),
+        I_output(I2D_main="2d-slice1", I1D_main=["1d-slice1"]),
+    ]
+    plot_reduction_output(reduction_output, reduction_input, close_figures=False)
+
+    assert [call.args[1] for call in mock_plot_IQazimuthal.call_args_list] == [
+        "/tmp/test_0_Iqxqy.png",
+        "/tmp/test_1_Iqxqy.png",
+    ]
+    assert [call.args[1] for call in mock_plot_i1d.call_args_list] == [
+        "/tmp/test_0_Iq.png",
+        "/tmp/test_1_Iq.png",
+    ]
+    mock_allow_overwrite.assert_called_once_with("/tmp")
+
 
 @mock.patch("drtsans.tof.eqsans.api.plotly_IQazimuthal")
 @mock.patch("drtsans.tof.eqsans.api.plotly_i1d")

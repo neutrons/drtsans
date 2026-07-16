@@ -8,7 +8,7 @@ reduction is performed separately on each slice according to the specified reduc
 The output files will have a slice index appended to the configured ``"outputFileName"``, e.g.
 ``myFileName_0_Iq.dat``, ``myFileName_1_Iq.dat``, etc.
 
-For EQSANS run in frame skip mode, each frame will have their own time slices.
+For EQSANS run in frame-skip mode, each frame will have its own time slices.
 Thus, output files will also contain the frame index, e.g.
 ``myFileName_0_frame_0_Iq.dat`` and ``myFileName_0_frame_1_Iq.dat``.
 If wedge binning is selected, the wedge label appears between the slice and frame labels,

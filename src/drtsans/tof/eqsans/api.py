@@ -1214,7 +1214,7 @@ def plot_reduction_output(
     if imshow_kwargs is None:
         imshow_kwargs = {}
     for i, out in enumerate(reduction_output):
-        slice_label = getattr(out, "slice_label", f"_{i}" if len(reduction_output) > 1 else "")
+        slice_label = getattr(out, "slice_label", "") or (f"_{i}" if len(reduction_output) > 1 else "")
         frame_label = getattr(out, "frame_label", "")
 
         wedges = reduction_config["wedges"] if bin1d_type == "wedge" else None

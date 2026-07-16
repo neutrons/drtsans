@@ -649,7 +649,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
         except RuntimeError:
             # metadata not set get from the workspace
             pass
-    else:
+    if bands is not None:
         w_min = bands.lead.min
         w_max = bands.skip.max if is_frame_skipping else bands.lead.max
 

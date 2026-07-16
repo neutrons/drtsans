@@ -81,7 +81,11 @@ __all__ = [
     "plot_reduction_output",
 ]
 
-I_output = namedtuple("I_output", ["I2D_main", "I1D_main"])
+I_output = namedtuple(
+    "I_output",
+    ["I2D_main", "I1D_main", "slice_label", "frame_label"],
+    defaults=("", ""),
+)
 
 
 def _get_configuration_file_parameters(sample_run, directory=None):
@@ -682,7 +686,7 @@ def reduce_single_configuration(
     Returns
     -------
     ~list
-        list of I_output: ['I2D_main', 'I1D_main']
+        list of I_output: ['I2D_main', 'I1D_main', 'slice_label', 'frame_label']
 
     """
     # Process reduction input: configuration and etc.
@@ -1045,7 +1049,12 @@ def reduce_single_configuration(
                 )
                 save_i1d(i1d_main_out[j], f"{ascii_1D_filename}.dat", skip_nan=skip_nan)
 
-            current_output = I_output(I2D_main=iq2d_main_out, I1D_main=i1d_main_out)
+            current_output = I_output(
+                I2D_main=iq2d_main_out,
+                I1D_main=i1d_main_out,
+                slice_label=output_suffix,
+                frame_label=fr_label,
+            )
             output.append(current_output)
         # END binning loop over frame
 
@@ -1185,19 +1194,28 @@ def parse_auto_wedge_setup(reduction_config: Dict, bin1d_type: str, wedges_min) 
     return autoWedgeOpts, symmetric_wedges
 
 
-def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None, close_figures=True):
+def plot_reduction_output(
+    reduction_output: List[I_output],
+    reduction_input: dict,
+    imshow_kwargs: Optional[dict] = None,
+    close_figures: bool = True,
+) -> None:
+    """Save PNG plots for EQSANS reduction output.
+
+    Filenames use the slice and frame labels generated with the reduced data so
+    PNG names stay synchronized with the corresponding ASCII and NXcanSAS files.
+    """
     reduction_config = reduction_input["configuration"]
     output_dir = reduction_config["outputDir"]
     outputFilename = reduction_input["outputFileName"]
-    output_suffix = ""
 
     bin1d_type = reduction_config["1DQbinType"]
 
     if imshow_kwargs is None:
         imshow_kwargs = {}
     for i, out in enumerate(reduction_output):
-        if len(reduction_output) > 1:
-            output_suffix = f"_{i}"
+        slice_label = getattr(out, "slice_label", "") or (f"_{i}" if len(reduction_output) > 1 else "")
+        frame_label = getattr(out, "frame_label", "")
 
         wedges = reduction_config["wedges"] if bin1d_type == "wedge" else None
         symmetric_wedges = reduction_config.get("symmetric_wedges", True)
@@ -1205,7 +1223,7 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None,
         qmin = reduction_config["Qmin"]
         qmax = reduction_config["Qmax"]
 
-        filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}_Iqxqy.png")
+        filename = os.path.join(output_dir, f"{outputFilename}{slice_label}{frame_label}_Iqxqy.png")
         plot_IQazimuthal(
             out.I2D_main,
             filename,
@@ -1225,7 +1243,10 @@ def plot_reduction_output(reduction_output, reduction_input, imshow_kwargs=None,
             add_suffix = ""
             if len(out.I1D_main) > 1:
                 add_suffix = f"_wedge_{j}"
-            filename = os.path.join(output_dir, f"{outputFilename}{output_suffix}{add_suffix}_{binning_suffix}.png")
+            filename = os.path.join(
+                output_dir,
+                f"{outputFilename}{slice_label}{add_suffix}{frame_label}_{binning_suffix}.png",
+            )
             plot_i1d(
                 [out.I1D_main[j]],
                 filename,

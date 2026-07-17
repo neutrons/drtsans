@@ -21,6 +21,7 @@ from drtsans.mask_utils import apply_mask  # noqa E402
 from drtsans.thickness_normalization import normalize_by_thickness  # noqa E402
 from drtsans.tof.eqsans.blocked_beam import subtract_blocked_beam  # noqa E402
 from drtsans.tof.eqsans.correction_api import (
+    bypass_correction_for_single_wavelength_bin,
     CorrectionConfiguration,
 )
 from drtsans.tof.eqsans.dark_current import subtract_dark_current  # noqa E402
@@ -301,6 +302,8 @@ def bin_i_with_correction(
     # EWM-13940: Preserve original errors for binning consistency
     iq2d_orig_errors = iq2d.error.copy()
     iq1d_orig_errors = iq1d.error.copy()
+
+    bypass_correction_for_single_wavelength_bin(iq1d, correction_setup, frameskip_frame)
 
     # Apply elastic correction if requested
     if correction_setup.do_elastic_correction and iq1d_elastic_ref_fr and iq2d_elastic_ref_fr:

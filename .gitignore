@@ -6,6 +6,7 @@ BIOSANS_Definition.xml
 CG3_Definition.xml
 BIOSANS_*_flood.nxs
 /*.png
+local-channel/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

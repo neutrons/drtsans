@@ -112,7 +112,7 @@ name = "drtsans"
 version = "0.0.0"
 
 [tool.pixi.package.build]
-backend = { name = "pixi-build-python", version = "0.8.*"}
+backend = { name = "pixi-build-python", version = "0.8.*" }
 
 [tool.pixi.package.run-dependencies]
 docutils = "*"
@@ -149,22 +149,21 @@ build = { features = ["build"], no-default-feature = true }
 [tool.pixi.package.host-dependencies]
 python = ">=3.12,<3.13"
 hatchling = "*"
-versioningit = "*"
+versioningit = ">=3.3.0"
 
 [tool.pixi.feature.build.dependencies]
 hatchling = "*"
-versioningit = ">=3.2.0"
+versioningit = ">=3.3.0"
 
 [tool.pixi.feature.build.pypi-dependencies]
 toml-cli = "*"
 
 [tool.pixi.feature.dev.dependencies]
+argcomplete = "*"
 git-lfs = ">=3.7.0"
 pip = ">=26.1"
 pre-commit = ">=4.2.0"
 ruff = "*"
-versioningit = ">=3.2.0"
-argcomplete = "*"
 
 [tool.pixi.feature.dev.pypi-dependencies]
 argparse-tui = "*"
@@ -199,7 +198,7 @@ test-docs = { cmd = "sphinx-build -M doctest docs docs/_build/html", description
 test = { description = "Run the test suite", cmd = "pytest" }
 unit-test = { description = "Run the unit tests", cmd = "pytest -vv -m 'not mount_eqsans' --cov=src --cov-report=xml:unit_test_coverage.xml --cov-report=term-missing --junitxml=unit_test_results.xml tests/unit/" }
 integration-test = { description = "Run the integration tests", cmd = "pytest -vv -m 'not mount_eqsans' --dist loadscope -n 2 --cov=src --cov-report=xml:integration_test_coverage.xml --cov-report=term-missing --junitxml=integration_test_results.xml tests/integration/" }
-manual-test = {description = "Run tests requiring the SNS mount", cmd = "pytest -vv -m mount_eqsans --dist loadscope -n 2 ./tests/unit/ ./tests/integration/"}
+manual-test = { description = "Run tests requiring the SNS mount", cmd = "pytest -vv -m mount_eqsans --dist loadscope -n 2 ./tests/unit/ ./tests/integration/" }
 # Packaging
 conda-build-command = { cmd = "pixi publish --target-channel ./local-channel", description = "Build the conda package command" }
 conda-build = { description = "Build the conda package", depends-on = [
@@ -261,13 +260,13 @@ extend-exclude = ["notebooks", "tests/examples"]
 # Full pylint PL = PLC, PLE, PLR (~500 issues), PLW. Enable most
 select = ["A", "ARG", "E", "F", "PLC", "PLE", "PLW"]
 ignore = [
-    "A002",   # Function name shadowing a python built-in
-    "A003",   # Class attribute name shadowing python built-ins
-    "ARG001", # Unused function argument
-    "ARG002", # Unused class method argument
-    "E402",   # Import not at the top of the file
-    "E712",   # Comparison to false
-    "E741",   # Ambiguous variable name
-    "PLC0415",# Import should be at top
-    "PLW1641" # Object does not implement __hash__
+    "A002",    # Function name shadowing a python built-in
+    "A003",    # Class attribute name shadowing python built-ins
+    "ARG001",  # Unused function argument
+    "ARG002",  # Unused class method argument
+    "E402",    # Import not at the top of the file
+    "E712",    # Comparison to false
+    "E741",    # Ambiguous variable name
+    "PLC0415", # Import should be at top
+    "PLW1641", # Object does not implement __hash__
 ]

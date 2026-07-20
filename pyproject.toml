@@ -206,7 +206,7 @@ conda-build = { description = "Build the conda package", depends-on = [
     "conda-build-command",
     "reset-version",
 ] }
-conda-publish = { cmd = "anaconda upload *.conda", description = "Publish the .conda package to anaconda.org", depends-on = [
+conda-publish = { cmd = "pixi upload anaconda --owner neutrons *.conda", description = "Publish the .conda package to anaconda.org", depends-on = [
     "conda-build",
 ] }
 # Misc

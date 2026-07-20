@@ -104,7 +104,6 @@ tinydb = "*"
 
 [tool.pixi.pypi-dependencies]
 drtsans = { path = ".", editable = true }
-toml-cli = "*"
 
 ### Pixi build configuration
 
@@ -139,17 +138,21 @@ tinydb = "*"
 
 [tool.pixi.environments]
 default = { features = [
+    "build",
     "dev",
     "docs",
     "test",
-    "build",
 ], solve-group = "default" }
 docs = { features = ["dev", "docs"], no-default-feature = true }
 build = { features = ["build"], no-default-feature = true }
 
+[tool.pixi.package.host-dependencies]
+python = ">=3.12,<3.13"
+hatchling = "*"
+versioningit = "*"
+
 [tool.pixi.feature.build.dependencies]
-anaconda-client = ">=1.13.0"
-check-wheel-contents = ">=0.6.2"
+hatchling = "*"
 versioningit = ">=3.2.0"
 
 [tool.pixi.feature.build.pypi-dependencies]

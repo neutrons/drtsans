@@ -80,16 +80,7 @@ channels = [
 # Required until the build feature becomes stable
 preview = ["pixi-build"]
 
-[tool.pixi.package]
-name = "drtsans"
-version = "0.0.0"
-
-[tool.pixi.package.build]
-backend = { name = "pixi-build-python", version = "0.6.*"}
-
-[tool.pixi.package.host-dependencies]
-hatchling = "*"
-versioningit = "*"
+### Dependency tables
 
 [tool.pixi.dependencies]
 docutils = "*"
@@ -115,6 +106,15 @@ tinydb = "*"
 drtsans = { path = ".", editable = true }
 toml-cli = "*"
 
+### Pixi build configuration
+
+[tool.pixi.package]
+name = "drtsans"
+version = "0.0.0"
+
+[tool.pixi.package.build]
+backend = { name = "pixi-build-python", version = "0.8.*"}
+
 [tool.pixi.package.run-dependencies]
 docutils = "*"
 ipywidgets = "*"
@@ -135,7 +135,7 @@ sortedcontainers = "*"
 sympy = "*"
 tinydb = "*"
 
-# Environments and features
+### Environments and features
 
 [tool.pixi.environments]
 default = { features = [
@@ -184,6 +184,8 @@ pytest-mock = ">=3.14.1"
 pytest-xvfb = ">=3.1.1"
 pytest-xdist = "*"
 
+### Tasks
+
 [tool.pixi.tasks]
 # Scripts
 generate_report = "python scripts/generate_report"
@@ -196,7 +198,7 @@ unit-test = { description = "Run the unit tests", cmd = "pytest -vv -m 'not moun
 integration-test = { description = "Run the integration tests", cmd = "pytest -vv -m 'not mount_eqsans' --dist loadscope -n 2 --cov=src --cov-report=xml:integration_test_coverage.xml --cov-report=term-missing --junitxml=integration_test_results.xml tests/integration/" }
 manual-test = {description = "Run tests requiring the SNS mount", cmd = "pytest -vv -m mount_eqsans --dist loadscope -n 2 ./tests/unit/ ./tests/integration/"}
 # Packaging
-conda-build-command = { cmd = "pixi build", description = "Wrapper for building the conda package - used by `conda-build`" }
+conda-build-command = { cmd = "pixi publish --target-channel ./local-channel", description = "Build the conda package command" }
 conda-build = { description = "Build the conda package", depends-on = [
     "sync-version",
     "conda-build-command",
@@ -252,17 +254,17 @@ extend-exclude = ["notebooks", "tests/examples"]
 
 [tool.ruff.lint]
 # https://beta.ruff.rs/docs/rules/
-# suggestions: BLE blind exceptions, I sorts imports
+# suggestions: BLE blind exceptions, isorts imports
 # Full pylint PL = PLC, PLE, PLR (~500 issues), PLW. Enable most
 select = ["A", "ARG", "E", "F", "PLC", "PLE", "PLW"]
 ignore = [
-    "A002",
-    "A003",   # shadowing python built-ins
-    "ARG001",
-    "ARG002", # unused argument
-    "E402",   # import not at the top of the file
-    "E712",   # comparison to false
-    "E741",   # ambiguous variable name
-    "PLC0415",# import should be at top
-    "PLW1641" # object does not implement __hash__
+    "A002",   # Function name shadowing a python built-in
+    "A003",   # Class attribute name shadowing python built-ins
+    "ARG001", # Unused function argument
+    "ARG002", # Unused class method argument
+    "E402",   # Import not at the top of the file
+    "E712",   # Comparison to false
+    "E741",   # Ambiguous variable name
+    "PLC0415",# Import should be at top
+    "PLW1641" # Object does not implement __hash__
 ]

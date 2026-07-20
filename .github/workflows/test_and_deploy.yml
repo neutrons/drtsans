@@ -36,7 +36,7 @@ jobs:
         run: |
           echo "chromium enables testing HTML reports"
           pixi run playwright install chromium --with-deps
-          
+
       - name: Configure Git credentials for code.ornl.gov
         env:
           TOKEN: ${{ secrets.DRTSANS_DATA_READ_TOKEN }}
@@ -60,7 +60,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-
   ##############################
   ### Package and Deployment ###
   ##############################
@@ -68,9 +67,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read          # for actions/checkout
-      security-events: write  # for github/codeql-action/upload-sarif to upload results
-      actions: read           # for upload-sarif to read run status (private repos)
+      contents: read # for actions/checkout
+      security-events: write # for github/codeql-action/upload-sarif to upload results
+      actions: read # for upload-sarif to read run status (private repos)
     defaults:
       run:
         shell: bash -el {0}
@@ -88,24 +87,25 @@ jobs:
       - name: Build Conda package
         run: |
           pixi run conda-build
-          mkdir -p /tmp/local-channel/linux-64
-          cp *.conda /tmp/local-channel/linux-64
+
+          # Copy conda package to workspace root so it can be uploaded as an artifact.
+          find local-channel -name "*.conda" -exec cp {} . \;
 
       # pkg-verify requires a conda env that already has the package
       # installed (and micromamba on PATH); pkg-install sets both up.
       - name: Install built conda package
         id: install
-        uses: neutrons/conda-actions/pkg-install@v2
+        uses: neutrons/gh-actions/pkg-install@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
         with:
           package-name: ${{ env.PKG_NAME }}
           local-channel: /tmp/local-channel
           extra-channels: mantid-ornl neutrons
-          
+
       - name: Verify Conda Package
-        uses: neutrons/conda-actions/pkg-verify@v2
+        uses: neutrons/gh-actions/pkg-verify@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
         with:
           package-name: ${{ env.PKG_NAME }}
-          conda-env-name: ${{ steps.install.outputs.conda_env }}
+          conda-env-name: ${{ steps.install.outputs.conda-env }}
           extra-commands: |
             python -c "import drtsans"
             python -c "import mantid"
@@ -114,10 +114,10 @@ jobs:
       # results are uploaded to GitHub code scanning by the grype action.
       - name: Scan installed environment with Grype
         if: github.ref == 'refs/heads/next'
-        uses: neutrons/conda-actions/grype@v2
+        uses: neutrons/gh-actions/grype@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
         with:
-          path: ${{ steps.install.outputs.conda_install_dir }}
-            
+          path: ${{ steps.install.outputs.conda-install-dir }}
+
       - name: Upload conda package as artifact
         uses: actions/upload-artifact@v7
         with:
@@ -146,9 +146,9 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: artifact-conda-package
-          
+
       - name: Upload package to anaconda
-        uses: neutrons/conda-actions/publish@v1.3
+        uses: neutrons/gh-actions/publish@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
         with:
           anaconda-token: ${{ secrets.ANACONDA_TOKEN }}
           organization: neutrons
@@ -156,11 +156,11 @@ jobs:
 
       - name: Remove old packages
         if: github.ref == 'refs/heads/next'
-        uses: neutrons/conda-actions/pkg-remove@v1.3
+        uses: neutrons/gh-actions/pkg-remove@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
         with:
-          anaconda_token: ${{ secrets.ANACONDA_TOKEN }}
+          anaconda-token: ${{ secrets.ANACONDA_TOKEN }}
           organization: neutrons
-          package_name: ${{ env.PKG_NAME }}
+          package-name: ${{ env.PKG_NAME }}
           label: ${{ env.CONDA_LABEL }}
           keep: 5
 
@@ -171,52 +171,19 @@ jobs:
     if: github.ref == 'refs/heads/next'
     steps:
       - name: Get Environment Name
-        uses: neutrons/branch-mapper@main
+        uses: neutrons/gh-actions/branch-mapper@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
         id: env_name
         with:
           prefix: drtsans
+
       - name: Trigger Dev Deploy
+        uses: eic/trigger-gitlab-ci@v3.3
         id: trigger
-        env:
-          GITLAB_URL: https://code.ornl.gov
-          PROJECT_ID: 18099
-          REF_NAME: main
-          TOKEN: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          endpoint="${GITLAB_URL}/api/v4/projects/${PROJECT_ID}/trigger/pipeline"
-          max_attempts=5
-          delay=10
-
-          for attempt in $(seq 1 "$max_attempts"); do
-            echo "Attempt ${attempt}/${max_attempts}: triggering GitLab pipeline..."
-            http_code=$(curl -sS -o response.txt -w "%{http_code}" \
-              -X POST \
-              -F "token=${TOKEN}" \
-              -F "ref=${REF_NAME}" \
-              "$endpoint" || true)
-
-            if [[ "$http_code" =~ ^2 ]]; then
-              echo "Trigger succeeded (HTTP ${http_code})"
-              if jq -e . >/dev/null 2>&1 < response.txt; then
-                web_url=$(jq -r '.web_url // empty' response.txt)
-                echo "web_url=${web_url}" >> "$GITHUB_OUTPUT"
-              fi
-              exit 0
-            fi
-
-            echo "Trigger failed (HTTP ${http_code}). Response:"
-            cat response.txt || true
-
-            if [[ "$http_code" =~ ^5 ]] && [[ "$attempt" -lt "$max_attempts" ]]; then
-              sleep "$delay"
-              continue
-            fi
-
-            echo "::error ::GitLab trigger failed with HTTP ${http_code}"
-            exit 1
-          done
+        with:
+          url: https://code.ornl.gov
+          project_id: 18088
+          ref_name: main
+          token: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
 
       - name: Annotate commit
         uses: peter-evans/commit-comment@v4

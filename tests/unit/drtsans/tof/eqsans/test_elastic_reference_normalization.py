@@ -3,8 +3,10 @@ import pytest
 from drtsans.dataobjects import IQmod
 
 from drtsans.tof.eqsans.elastic_correction import (
+    calculate_elastic_reference_k_factors,
     determine_common_domain_range_mesh,
     normalize_by_elastic_reference_1d,
+    save_wavelength_dependent_profiles,
 )
 from drtsans.tof.eqsans.elastic_correction import (
     calculate_scale_factor_mesh_grid,
@@ -180,6 +182,77 @@ def test_workflow_q1d(temp_directory):
         assert os.path.exists(filename)
         data = np.loadtxt(filename)
         assert len(data) == expected_len[n]
+
+
+def test_save_wavelength_dependent_profiles_numeric_output(temp_directory):
+    """Test saving wavelength-dependent profiles before and after K correction."""
+    test_i_of_q, gold_k_vec, gold_k_error_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
+    output_dir = temp_directory()
+
+    save_wavelength_dependent_profiles(
+        test_i_of_q,
+        gold_k_vec,
+        gold_k_error_vec,
+        output_dir,
+    )
+
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_intensity_domain_meshgrid(test_i_of_q)
+    gold_intensity_array = gold_intensity_vec.reshape(i_array.shape)
+    gold_error_array = gold_error_vec.reshape(error_array.shape)
+
+    for wl_index, wl in enumerate(wl_vec):
+        before_file = os.path.join(output_dir, f"IQ_{wl:.3f}_before_k_correction.dat")
+        before_data = np.loadtxt(before_file)
+        before_finite = np.isfinite(i_array[:, wl_index])
+
+        np.testing.assert_allclose(before_data[:, 0], q_vec[before_finite], rtol=1e-6)
+        np.testing.assert_allclose(before_data[:, 1], i_array[before_finite, wl_index], rtol=1e-6)
+        np.testing.assert_allclose(before_data[:, 2], error_array[before_finite, wl_index], rtol=1e-6)
+        np.testing.assert_allclose(before_data[:, 3], dq_array[before_finite, wl_index], rtol=1e-6)
+
+        after_file = os.path.join(output_dir, f"IQ_{wl:.3f}_after_k_correction.dat")
+        after_data = np.loadtxt(after_file)
+        after_finite = np.isfinite(gold_intensity_array[:, wl_index])
+
+        np.testing.assert_allclose(after_data[:, 0], q_vec[after_finite], rtol=1e-6)
+        np.testing.assert_allclose(after_data[:, 1], gold_intensity_array[after_finite, wl_index], rtol=8e-4)
+        np.testing.assert_allclose(after_data[:, 2], gold_error_array[after_finite, wl_index], rtol=1e-3)
+        np.testing.assert_allclose(after_data[:, 3], dq_array[after_finite, wl_index], rtol=1e-6)
+
+
+def test_calculate_elastic_reference_k_factors(temp_directory):
+    """Test K-only elastic reference helper."""
+    test_i_of_q, gold_k_vec, gold_k_error_vec, _, _ = create_testing_iq1d()
+    output_dir = temp_directory()
+
+    k_vec, k_error_vec = calculate_elastic_reference_k_factors(
+        test_i_of_q,
+        test_i_of_q,
+        output_wavelength_dependent_profile=True,
+        output_dir=output_dir,
+    )
+
+    np.testing.assert_allclose(k_vec, gold_k_vec, rtol=1e-5)
+    np.testing.assert_allclose(k_error_vec, gold_k_error_vec, rtol=1e-5)
+
+    for wl in np.unique(test_i_of_q.wavelength):
+        assert os.path.exists(os.path.join(output_dir, f"IQ_{wl:.3f}_before_k_correction.dat"))
+        assert os.path.exists(os.path.join(output_dir, f"IQ_{wl:.3f}_after_k_correction.dat"))
+
+
+def test_calculate_elastic_reference_k_factors_rejects_mismatched_bins():
+    """Test K-only helper rejects sample/reference 1D profiles with different bins."""
+    test_i_of_q, _, _, _, _ = create_testing_iq1d()
+    mismatched_i_of_q = IQmod(
+        intensity=test_i_of_q.intensity,
+        error=test_i_of_q.error,
+        mod_q=test_i_of_q.mod_q + 0.01,
+        delta_mod_q=test_i_of_q.delta_mod_q,
+        wavelength=test_i_of_q.wavelength,
+    )
+
+    with pytest.raises(RuntimeError, match="Input I\\(1D\\) and elastic reference I\\(1D\\) have different binning"):
+        calculate_elastic_reference_k_factors(test_i_of_q, mismatched_i_of_q)
 
 
 def test_normalize_i_of_q1d():

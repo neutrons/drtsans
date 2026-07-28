@@ -291,6 +291,31 @@ def test_normalize_i_of_q1d():
     np.testing.assert_allclose(normalized_error, gold_error_vec, rtol=1e-3, equal_nan=True)
 
 
+def test_normalize_i_of_q1d_rejects_two_dimensional_k_vector():
+    """A column-shaped K vector broadcasts along the Q axis instead of the wavelength axis,
+    silently scaling each Q bin, so it must be rejected"""
+    test_i_of_q = create_testing_iq1d()[0]
+    wl_vec, q_vec, i_array, error_array, _ = reshape_intensity_domain_meshgrid(test_i_of_q)
+
+    column_shaped_k_vec = np.ones((wl_vec.shape[0], 1))
+    k_error_vec = np.zeros(wl_vec.shape[0])
+
+    with pytest.raises(ValueError, match="k_vec must be a 1D vector"):
+        normalize_intensity_1d(wl_vec, q_vec, i_array, error_array, column_shaped_k_vec, k_error_vec)
+
+
+def test_normalize_i_of_q1d_rejects_k_vector_of_wrong_length():
+    """Exactly one K factor and one K error is required per wavelength"""
+    test_i_of_q = create_testing_iq1d()[0]
+    wl_vec, q_vec, i_array, error_array, _ = reshape_intensity_domain_meshgrid(test_i_of_q)
+
+    k_vec = np.ones(wl_vec.shape[0])
+    truncated_k_error_vec = np.zeros(wl_vec.shape[0] - 1)
+
+    with pytest.raises(ValueError, match="k_error_vec must have one entry per wavelength"):
+        normalize_intensity_1d(wl_vec, q_vec, i_array, error_array, k_vec, truncated_k_error_vec)
+
+
 def create_testing_iq1d():
     """Create a test data I(Q, wavelength) as the attached EXCEL spreadsheet attached in gitlab story
     Returns

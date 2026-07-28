@@ -103,5 +103,27 @@ def test_normalize_by_elastic_reference2d():
     np.testing.assert_allclose(normalized_i_of_q.error, expected_normalized_i_of_q.error, rtol=1e-5)
 
 
+def test_normalize_by_elastic_reference2d_rejects_overlong_k_vector():
+    """A K vector longer than the wavelength grid would have its trailing factors silently
+    left unread, applying the remaining factors to the wrong wavelengths"""
+    i_of_q, _, k_vec, k_error_vec = create_testing_iq2d()
+
+    overlong_k_vec = list(k_vec) + [1.1]
+
+    with pytest.raises(ValueError, match="k_vec must have one entry per wavelength"):
+        normalize_by_elastic_reference_2d(i_of_q, overlong_k_vec, k_error_vec)
+
+
+def test_normalize_by_elastic_reference2d_rejects_two_dimensional_k_vector():
+    """K factors are indexed by wavelength alone, so a 2D array is not a valid input even
+    where it happens to broadcast correctly"""
+    i_of_q, _, k_vec, k_error_vec = create_testing_iq2d()
+
+    column_shaped_k_vec = np.array(k_vec).reshape(len(k_vec), 1)
+
+    with pytest.raises(ValueError, match="k_vec must be a 1D vector"):
+        normalize_by_elastic_reference_2d(i_of_q, column_shaped_k_vec, k_error_vec)
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

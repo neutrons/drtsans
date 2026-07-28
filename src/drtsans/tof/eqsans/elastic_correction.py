@@ -358,12 +358,23 @@ def normalize_by_elastic_reference_2d(i_of_q, k_vec, k_error_vec):
     -------
     ~drtsans.dataobjects.IQazimuthal
         normalized I(Q2D)
+
+    Raises
+    ------
+    ValueError
+        If ``k_vec`` or ``k_error_vec`` is not a 1D vector with one entry per wavelength
+        bin of ``i_of_q``
     """
     intensity_array = i_of_q.intensity
     error_array = i_of_q.error
 
     # Reshape vectors to be easily indexed by wavelength
     num_wl = len(np.unique(i_of_q.wavelength))
+
+    # The loops below are bounded by this data's wavelength count, not by the length of the
+    # supplied factors, so a longer k_vec would have its trailing entries silently left unread.
+    _validate_k_vectors(num_wl, k_vec, k_error_vec)
+
     sizeX = i_of_q.qx.shape[0]
     sizeY = i_of_q.qy.shape[0]
     intensity_3d = intensity_array.transpose().reshape((num_wl, sizeX, sizeY))
@@ -668,6 +679,37 @@ def determine_reference_wavelength_intensity_mesh(
     return ReferenceWavelengths(x_vec, min_wl_vec, min_intensity_vec, min_error_vec)
 
 
+def _validate_k_vectors(num_wavelengths: int, k_vec, k_error_vec) -> None:
+    """Reject K factor vectors that are not one entry per wavelength.
+
+    Both the 1D and 2D normalizations take caller-supplied K factors indexed by wavelength
+    alone. In the 1D path a 2D array silently broadcasts along the Q axis, scaling each Q bin
+    instead of each wavelength; in the 2D path a vector longer than the wavelength grid has its
+    trailing factors silently left unread. Validate the contract before either is used.
+
+    Parameters
+    ----------
+    num_wavelengths: int
+        Number of wavelength bins the factors must cover
+    k_vec: ~numpy.ndarray
+        Elastic reference normalization factors
+    k_error_vec: ~numpy.ndarray
+        Elastic reference normalization factor errors
+
+    Raises
+    ------
+    ValueError
+        If either vector is not a 1D vector with exactly ``num_wavelengths`` entries
+    """
+    for name, vec in (("k_vec", k_vec), ("k_error_vec", k_error_vec)):
+        if np.ndim(vec) != 1:
+            raise ValueError(f"{name} must be a 1D vector, got {np.ndim(vec)} dimension(s)")
+        if np.size(vec) != num_wavelengths:
+            raise ValueError(
+                f"{name} must have one entry per wavelength: expected {num_wavelengths}, got {np.size(vec)}"
+            )
+
+
 def normalize_intensity_1d(
     wl_vec,
     x_vec,
@@ -698,12 +740,19 @@ def normalize_intensity_1d(
     tuple
         normalized I(1D), normalized error(1D)
 
+    Raises
+    ------
+    ValueError
+        If ``k_vec`` or ``k_error_vec`` is not a 1D vector with one entry per wavelength
+
     """
 
     # Sanity check
     assert wl_vec.shape[0] == intensity_array.shape[1]  # wavelength as lambda
     assert x_vec.shape[0] == error_array.shape[0]  # points as Q or phi
     assert intensity_array.shape == error_array.shape
+
+    _validate_k_vectors(wl_vec.shape[0], k_vec, k_error_vec)
 
     # Normalized intensities
     normalized_intensity_array = intensity_array * k_vec

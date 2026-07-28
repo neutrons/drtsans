@@ -257,7 +257,7 @@ def calculate_elastic_reference_k_factors(
         Elastic reference run I(Q, wavelength) or I(phi, wavelength)
     output_wavelength_dependent_profile: bool
         If True then output I for each wavelength before and after k correction
-    output_dir: str
+    output_dir: str, optional
         Output directory for intensity profiles
 
     Returns
@@ -802,6 +802,12 @@ def apply_elastic_normalization_to_unbinned_data(
     -------
     tuple[IQazimuthal, IQmod]
         Normalized unbinned I(Qx, Qy, λ) and I(Q, λ)
+
+    Raises
+    ------
+    ValueError
+        If ``k_vec`` or ``k_error_vec`` is not a 1D vector with one entry per ``wl_vec``
+        wavelength
     """
 
     # Helper function to create numpy-based interpolation with edge handling
@@ -831,6 +837,10 @@ def apply_elastic_normalization_to_unbinned_data(
             return np.interp(new_x, x, y, left=left, right=right)
 
         return _interp
+
+    # np.interp below already rejects a mismatched or multi-dimensional factor vector, but with
+    # a message about its own internals. Fail with the same contract as the binned normalizations.
+    _validate_k_vectors(np.size(wl_vec), k_vec, k_error_vec)
 
     # Create interpolation functions for k and k_error
     k_interp = _make_interp_fn(wl_vec, k_vec)

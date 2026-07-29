@@ -179,14 +179,7 @@ def test_parse_invalid_json(datarepo_dir):
     "fitInelasticIncoh, elastic_reference_run",
     [
         (False, False),
-        pytest.param(
-            True,
-            False,
-            marks=pytest.mark.skip(
-                reason="EWM-13940: Gold files need regeneration after SNS cluster validation. "
-                "This test compares new correct output against old buggy gold files."
-            ),
-        ),
+        (True, False),
         pytest.param(
             False,
             True,
@@ -347,6 +340,7 @@ def test_incoherence_correction_elastic_normalization(
         np.testing.assert_allclose(
             np.loadtxt(test_b_file, delimiter=",", skiprows=1),
             np.loadtxt(os.path.join(reference_data_dir, b_base_name), delimiter=",", skiprows=1),
+            rtol=1e-6,  # gold generated on one machine; absorbs least-significant-digit platform differences
         )
 
     # cleanup

@@ -181,14 +181,7 @@ def test_parse_invalid_json(datarepo_dir):
         (False, False),
         (True, False),
         (False, True),
-        pytest.param(
-            True,
-            True,
-            marks=pytest.mark.skip(
-                reason="EWM-13940: Gold files need regeneration after SNS cluster validation. "
-                "This test compares new correct output against old buggy gold files."
-            ),
-        ),
+        (True, True),
     ],
 )
 def test_incoherence_correction_elastic_normalization(

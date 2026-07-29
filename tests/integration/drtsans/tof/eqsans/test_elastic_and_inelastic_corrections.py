@@ -180,14 +180,7 @@ def test_parse_invalid_json(datarepo_dir):
     [
         (False, False),
         (True, False),
-        pytest.param(
-            False,
-            True,
-            marks=pytest.mark.skip(
-                reason="EWM-13940: Gold files need regeneration after one-rebin-only implementation. "
-                "Elastic correction now applied to unbinned data, producing different (correct) results."
-            ),
-        ),
+        (False, True),
         pytest.param(
             True,
             True,
@@ -330,6 +323,7 @@ def test_incoherence_correction_elastic_normalization(
         np.testing.assert_allclose(
             np.loadtxt(test_k_file, delimiter=",", skiprows=1),
             np.loadtxt(os.path.join(reference_data_dir, k_base_name), delimiter=",", skiprows=1),
+            rtol=1e-6,  # gold generated on one machine; absorbs least-significant-digit platform differences
         )
 
     # check the b factor file, if inelastic correction is enabled

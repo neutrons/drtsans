@@ -112,8 +112,8 @@ def normalize_by_elastic_reference_all(
         Input I(Q1D, wavelength) or I(phi, wavelength) as elastic reference run
     output_wavelength_dependent_profile: bool
         If True then output I(1D) for each wavelength before and after k correction
-    output_dir: str
-        output directory for I(1D) profiles
+    output_dir: str, optional
+        Output directory for I(1D) profiles. If None, no profile files are written.
 
     Returns
     -------
@@ -258,7 +258,7 @@ def calculate_elastic_reference_k_factors(
     output_wavelength_dependent_profile: bool
         If True then output I for each wavelength before and after k correction
     output_dir: str, optional
-        Output directory for intensity profiles
+        Output directory for intensity profiles. If None, no profile files are written.
 
     Returns
     -------
@@ -303,8 +303,8 @@ def normalize_by_elastic_reference_1d(
         Elastic reference normalization factor errors (one for each wavelength)
     output_wavelength_dependent_profile: bool
         If True then output I for each wavelength before and after k correction
-    output_dir: str
-        output directory for intensity profiles
+    output_dir: str, optional
+        Output directory for intensity profiles. If None, no profile files are written.
 
     Returns
     -------

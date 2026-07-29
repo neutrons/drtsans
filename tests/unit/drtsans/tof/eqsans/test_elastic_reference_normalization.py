@@ -3,6 +3,7 @@ import pytest
 from drtsans.dataobjects import IQmod
 
 from drtsans.tof.eqsans.elastic_correction import (
+    apply_elastic_normalization_to_unbinned_data,
     calculate_elastic_reference_k_factors,
     determine_common_domain_range_mesh,
     normalize_by_elastic_reference_1d,
@@ -314,6 +315,24 @@ def test_normalize_i_of_q1d_rejects_k_vector_of_wrong_length():
 
     with pytest.raises(ValueError, match="k_error_vec must have one entry per wavelength"):
         normalize_intensity_1d(wl_vec, q_vec, i_array, error_array, k_vec, truncated_k_error_vec)
+
+
+def test_apply_elastic_normalization_rejects_k_vector_of_wrong_length():
+    """One K factor per wavelength is required before the factors are interpolated onto the
+    unbinned wavelengths. The K vectors are validated ahead of the data, so no unbinned
+    workspaces are needed to exercise the contract"""
+    wl_vec = np.array([3.0, 4.0, 5.0])
+
+    with pytest.raises(ValueError, match="k_vec must have one entry per wavelength"):
+        apply_elastic_normalization_to_unbinned_data(None, None, wl_vec, np.ones(4), np.zeros(3))
+
+
+def test_apply_elastic_normalization_rejects_two_dimensional_k_vector():
+    """K factors are indexed by wavelength alone, so a 2D array is not a valid input"""
+    wl_vec = np.array([3.0, 4.0, 5.0])
+
+    with pytest.raises(ValueError, match="k_vec must be a 1D vector"):
+        apply_elastic_normalization_to_unbinned_data(None, None, wl_vec, np.ones((3, 1)), np.zeros(3))
 
 
 def create_testing_iq1d():

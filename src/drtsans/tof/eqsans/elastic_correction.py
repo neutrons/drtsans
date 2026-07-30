@@ -112,8 +112,8 @@ def normalize_by_elastic_reference_all(
         Input I(Q1D, wavelength) or I(phi, wavelength) as elastic reference run
     output_wavelength_dependent_profile: bool
         If True then output I(1D) for each wavelength before and after k correction
-    output_dir: str
-        output directory for I(1D) profiles
+    output_dir: str, optional
+        Output directory for I(1D) profiles. If None, no profile files are written.
 
     Returns
     -------
@@ -183,6 +183,107 @@ def calculate_elastic_reference_normalization(wl_vec, x_vec, ref_i_1d):
     return k_vec, k_error_vec
 
 
+def save_wavelength_dependent_profiles(
+    i1d: IQmod | I1DAnnular,
+    k_vec: np.ndarray,
+    k_error_vec: np.ndarray,
+    output_dir: str,
+) -> None:
+    """Save I(1D) profiles before and after elastic K correction for each wavelength.
+
+    Parameters
+    ----------
+    i1d: IQmod | I1DAnnular
+        Input I(Q, wavelength) or I(phi, wavelength) to write profiles from
+    k_vec: ~numpy.ndarray
+        Elastic reference normalization factors (one for each wavelength)
+    k_error_vec: ~numpy.ndarray
+        Elastic reference normalization factor errors (one for each wavelength)
+    output_dir: str
+        Output directory for wavelength-dependent intensity profiles
+    """
+    wl_vec, x_vec, i_array, error_array, dq_array = reshape_intensity_domain_meshgrid(i1d)
+    i1d_type = getDataType(i1d)
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    for wl_index, wl in enumerate(wl_vec):
+        before_path = os.path.join(output_dir, f"IQ_{wl:.3f}_before_k_correction.dat")
+        before_i1d = build_i1d_one_wl_from_intensity_domain_meshgrid(
+            x_vec,
+            i_array,
+            error_array,
+            dq_array,
+            wl_index,
+            i1d_type,
+        )
+        save_i1d(before_i1d, before_path)
+
+    normalized_intensity, normalized_error = normalize_intensity_1d(
+        wl_vec,
+        x_vec,
+        i_array,
+        error_array,
+        k_vec,
+        k_error_vec,
+    )
+
+    for wl_index, wl in enumerate(wl_vec):
+        after_path = os.path.join(output_dir, f"IQ_{wl:.3f}_after_k_correction.dat")
+        after_i1d = build_i1d_one_wl_from_intensity_domain_meshgrid(
+            x_vec,
+            normalized_intensity,
+            normalized_error,
+            dq_array,
+            wl_index,
+            i1d_type,
+        )
+        save_i1d(after_i1d, after_path)
+
+
+def calculate_elastic_reference_k_factors(
+    i1d: IQmod | I1DAnnular,
+    ref_i1d: IQmod | I1DAnnular,
+    output_wavelength_dependent_profile: bool = False,
+    output_dir: Optional[str] = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Calculate elastic reference K factors without normalizing temporary products.
+
+    Parameters
+    ----------
+    i1d: IQmod | I1DAnnular
+        Input I(Q, wavelength) or I(phi, wavelength), used for bin validation and optional profiles
+    ref_i1d: IQmod | I1DAnnular
+        Elastic reference run I(Q, wavelength) or I(phi, wavelength)
+    output_wavelength_dependent_profile: bool
+        If True then output I for each wavelength before and after k correction
+    output_dir: str, optional
+        Output directory for intensity profiles. If None, no profile files are written.
+
+    Returns
+    -------
+    tuple
+        K vector and delta K vector
+    """
+    if not verify_same_q_bins(i1d, ref_i1d, False, tolerance=1e-3):
+        raise RuntimeError("Input I(1D) and elastic reference I(1D) have different binning")
+
+    wl_vec = np.unique(i1d.wavelength)
+    x_vec = np.unique(i1d.x)
+
+    k_vec, k_error_vec = calculate_elastic_reference_normalization(wl_vec, x_vec, ref_i1d)
+
+    if output_wavelength_dependent_profile and output_dir:
+        save_wavelength_dependent_profiles(
+            i1d,
+            k_vec,
+            k_error_vec,
+            output_dir,
+        )
+
+    return k_vec, k_error_vec
+
+
 def normalize_by_elastic_reference_1d(
     i1d: IQmod | I1DAnnular,
     k_vec: np.ndarray,
@@ -202,8 +303,8 @@ def normalize_by_elastic_reference_1d(
         Elastic reference normalization factor errors (one for each wavelength)
     output_wavelength_dependent_profile: bool
         If True then output I for each wavelength before and after k correction
-    output_dir: str
-        output directory for intensity profiles
+    output_dir: str, optional
+        Output directory for intensity profiles. If None, no profile files are written.
 
     Returns
     -------
@@ -216,13 +317,12 @@ def normalize_by_elastic_reference_1d(
 
     i1d_type = getDataType(i1d)
     if output_wavelength_dependent_profile and output_dir:
-        os.makedirs(output_dir, exist_ok=True)
-        for tmpwlii, wl in enumerate(wl_vec):
-            tmpfn = os.path.join(output_dir, f"IQ_{wl:.3f}_before_k_correction.dat")
-            i1d_wl = build_i1d_one_wl_from_intensity_domain_meshgrid(
-                x_vec, i_array, error_array, dq_array, tmpwlii, i1d_type
-            )
-            save_i1d(i1d_wl, tmpfn)
+        save_wavelength_dependent_profiles(
+            i1d,
+            k_vec,
+            k_error_vec,
+            output_dir,
+        )
 
     # Normalize
     normalized = normalize_intensity_1d(
@@ -238,14 +338,6 @@ def normalize_by_elastic_reference_1d(
     normalized_i1d = build_i1d_from_intensity_domain_meshgrid(
         wl_vec, x_vec, normalized[0], normalized[1], dq_array, i1d_type
     )
-
-    if output_wavelength_dependent_profile and output_dir:
-        for tmpwlii, wl in enumerate(wl_vec):
-            tmpfn = os.path.join(output_dir, f"IQ_{wl:.3f}_after_k_correction.dat")
-            i1d_wl = build_i1d_one_wl_from_intensity_domain_meshgrid(
-                x_vec, normalized[0], normalized[1], dq_array, tmpwlii, i1d_type
-            )
-            save_i1d(i1d_wl, tmpfn)
 
     return normalized_i1d
 
@@ -266,12 +358,23 @@ def normalize_by_elastic_reference_2d(i_of_q, k_vec, k_error_vec):
     -------
     ~drtsans.dataobjects.IQazimuthal
         normalized I(Q2D)
+
+    Raises
+    ------
+    ValueError
+        If ``k_vec`` or ``k_error_vec`` is not a 1D vector with one entry per wavelength
+        bin of ``i_of_q``
     """
     intensity_array = i_of_q.intensity
     error_array = i_of_q.error
 
     # Reshape vectors to be easily indexed by wavelength
     num_wl = len(np.unique(i_of_q.wavelength))
+
+    # The loops below are bounded by this data's wavelength count, not by the length of the
+    # supplied factors, so a longer k_vec would have its trailing entries silently left unread.
+    _validate_k_vectors(num_wl, k_vec, k_error_vec)
+
     sizeX = i_of_q.qx.shape[0]
     sizeY = i_of_q.qy.shape[0]
     intensity_3d = intensity_array.transpose().reshape((num_wl, sizeX, sizeY))
@@ -576,6 +679,37 @@ def determine_reference_wavelength_intensity_mesh(
     return ReferenceWavelengths(x_vec, min_wl_vec, min_intensity_vec, min_error_vec)
 
 
+def _validate_k_vectors(num_wavelengths: int, k_vec, k_error_vec) -> None:
+    """Reject K factor vectors that are not one entry per wavelength.
+
+    Both the 1D and 2D normalizations take caller-supplied K factors indexed by wavelength
+    alone. In the 1D path a 2D array silently broadcasts along the Q axis, scaling each Q bin
+    instead of each wavelength; in the 2D path a vector longer than the wavelength grid has its
+    trailing factors silently left unread. Validate the contract before either is used.
+
+    Parameters
+    ----------
+    num_wavelengths: int
+        Number of wavelength bins the factors must cover
+    k_vec: ~numpy.ndarray
+        Elastic reference normalization factors
+    k_error_vec: ~numpy.ndarray
+        Elastic reference normalization factor errors
+
+    Raises
+    ------
+    ValueError
+        If either vector is not a 1D vector with exactly ``num_wavelengths`` entries
+    """
+    for name, vec in (("k_vec", k_vec), ("k_error_vec", k_error_vec)):
+        if np.ndim(vec) != 1:
+            raise ValueError(f"{name} must be a 1D vector, got {np.ndim(vec)} dimension(s)")
+        if np.size(vec) != num_wavelengths:
+            raise ValueError(
+                f"{name} must have one entry per wavelength: expected {num_wavelengths}, got {np.size(vec)}"
+            )
+
+
 def normalize_intensity_1d(
     wl_vec,
     x_vec,
@@ -606,12 +740,19 @@ def normalize_intensity_1d(
     tuple
         normalized I(1D), normalized error(1D)
 
+    Raises
+    ------
+    ValueError
+        If ``k_vec`` or ``k_error_vec`` is not a 1D vector with one entry per wavelength
+
     """
 
     # Sanity check
     assert wl_vec.shape[0] == intensity_array.shape[1]  # wavelength as lambda
     assert x_vec.shape[0] == error_array.shape[0]  # points as Q or phi
     assert intensity_array.shape == error_array.shape
+
+    _validate_k_vectors(wl_vec.shape[0], k_vec, k_error_vec)
 
     # Normalized intensities
     normalized_intensity_array = intensity_array * k_vec
@@ -661,6 +802,12 @@ def apply_elastic_normalization_to_unbinned_data(
     -------
     tuple[IQazimuthal, IQmod]
         Normalized unbinned I(Qx, Qy, λ) and I(Q, λ)
+
+    Raises
+    ------
+    ValueError
+        If ``k_vec`` or ``k_error_vec`` is not a 1D vector with one entry per ``wl_vec``
+        wavelength
     """
 
     # Helper function to create numpy-based interpolation with edge handling
@@ -690,6 +837,10 @@ def apply_elastic_normalization_to_unbinned_data(
             return np.interp(new_x, x, y, left=left, right=right)
 
         return _interp
+
+    # np.interp below already rejects a mismatched or multi-dimensional factor vector, but with
+    # a message about its own internals. Fail with the same contract as the binned normalizations.
+    _validate_k_vectors(np.size(wl_vec), k_vec, k_error_vec)
 
     # Create interpolation functions for k and k_error
     k_interp = _make_interp_fn(wl_vec, k_vec)
@@ -840,7 +991,7 @@ def elastic_correction(
 
     # Temporarily bin sample data to calculate k(λ) factors
     # These binned results are ONLY used for factor calculation, then discarded
-    iq2d_temp_binned, iq1d_temp_binned = bin_all(
+    _, iq1d_temp_binned = bin_all(
         iq2d_unbinned,
         iq1d_unbinned,
         num_x_bins,
@@ -862,7 +1013,7 @@ def elastic_correction(
     )
 
     # Temporarily bin elastic reference data
-    iq2d_elastic_temp, iq1d_elastic_temp = bin_all(
+    _, iq1d_elastic_temp = bin_all(
         iq2d_elastic_ref,
         iq1d_elastic_ref,
         num_x_bins,
@@ -890,8 +1041,7 @@ def elastic_correction(
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
-    _, _, k_vec, k_error_vec = normalize_by_elastic_reference_all(
-        iq2d_temp_binned,
+    k_vec, k_error_vec = calculate_elastic_reference_k_factors(
         iq1d_temp_binned[0],
         iq1d_elastic_temp[0],
         output_wavelength_profile,

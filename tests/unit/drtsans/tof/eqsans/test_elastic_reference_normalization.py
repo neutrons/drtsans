@@ -3,8 +3,11 @@ import pytest
 from drtsans.dataobjects import IQmod
 
 from drtsans.tof.eqsans.elastic_correction import (
+    apply_elastic_normalization_to_unbinned_data,
+    calculate_elastic_reference_k_factors,
     determine_common_domain_range_mesh,
     normalize_by_elastic_reference_1d,
+    save_wavelength_dependent_profiles,
 )
 from drtsans.tof.eqsans.elastic_correction import (
     calculate_scale_factor_mesh_grid,
@@ -182,6 +185,77 @@ def test_workflow_q1d(temp_directory):
         assert len(data) == expected_len[n]
 
 
+def test_save_wavelength_dependent_profiles_numeric_output(temp_directory):
+    """Test saving wavelength-dependent profiles before and after K correction."""
+    test_i_of_q, gold_k_vec, gold_k_error_vec, gold_intensity_vec, gold_error_vec = create_testing_iq1d()
+    output_dir = temp_directory()
+
+    save_wavelength_dependent_profiles(
+        test_i_of_q,
+        gold_k_vec,
+        gold_k_error_vec,
+        output_dir,
+    )
+
+    wl_vec, q_vec, i_array, error_array, dq_array = reshape_intensity_domain_meshgrid(test_i_of_q)
+    gold_intensity_array = gold_intensity_vec.reshape(i_array.shape)
+    gold_error_array = gold_error_vec.reshape(error_array.shape)
+
+    for wl_index, wl in enumerate(wl_vec):
+        before_file = os.path.join(output_dir, f"IQ_{wl:.3f}_before_k_correction.dat")
+        before_data = np.loadtxt(before_file)
+        before_finite = np.isfinite(i_array[:, wl_index])
+
+        np.testing.assert_allclose(before_data[:, 0], q_vec[before_finite], rtol=1e-6)
+        np.testing.assert_allclose(before_data[:, 1], i_array[before_finite, wl_index], rtol=1e-6)
+        np.testing.assert_allclose(before_data[:, 2], error_array[before_finite, wl_index], rtol=1e-6)
+        np.testing.assert_allclose(before_data[:, 3], dq_array[before_finite, wl_index], rtol=1e-6)
+
+        after_file = os.path.join(output_dir, f"IQ_{wl:.3f}_after_k_correction.dat")
+        after_data = np.loadtxt(after_file)
+        after_finite = np.isfinite(gold_intensity_array[:, wl_index])
+
+        np.testing.assert_allclose(after_data[:, 0], q_vec[after_finite], rtol=1e-6)
+        np.testing.assert_allclose(after_data[:, 1], gold_intensity_array[after_finite, wl_index], rtol=8e-4)
+        np.testing.assert_allclose(after_data[:, 2], gold_error_array[after_finite, wl_index], rtol=1e-3)
+        np.testing.assert_allclose(after_data[:, 3], dq_array[after_finite, wl_index], rtol=1e-6)
+
+
+def test_calculate_elastic_reference_k_factors(temp_directory):
+    """Test K-only elastic reference helper."""
+    test_i_of_q, gold_k_vec, gold_k_error_vec, _, _ = create_testing_iq1d()
+    output_dir = temp_directory()
+
+    k_vec, k_error_vec = calculate_elastic_reference_k_factors(
+        test_i_of_q,
+        test_i_of_q,
+        output_wavelength_dependent_profile=True,
+        output_dir=output_dir,
+    )
+
+    np.testing.assert_allclose(k_vec, gold_k_vec, rtol=1e-5)
+    np.testing.assert_allclose(k_error_vec, gold_k_error_vec, rtol=1e-5)
+
+    for wl in np.unique(test_i_of_q.wavelength):
+        assert os.path.exists(os.path.join(output_dir, f"IQ_{wl:.3f}_before_k_correction.dat"))
+        assert os.path.exists(os.path.join(output_dir, f"IQ_{wl:.3f}_after_k_correction.dat"))
+
+
+def test_calculate_elastic_reference_k_factors_rejects_mismatched_bins():
+    """Test K-only helper rejects sample/reference 1D profiles with different bins."""
+    test_i_of_q, _, _, _, _ = create_testing_iq1d()
+    mismatched_i_of_q = IQmod(
+        intensity=test_i_of_q.intensity,
+        error=test_i_of_q.error,
+        mod_q=test_i_of_q.mod_q + 0.01,
+        delta_mod_q=test_i_of_q.delta_mod_q,
+        wavelength=test_i_of_q.wavelength,
+    )
+
+    with pytest.raises(RuntimeError, match="Input I\\(1D\\) and elastic reference I\\(1D\\) have different binning"):
+        calculate_elastic_reference_k_factors(test_i_of_q, mismatched_i_of_q)
+
+
 def test_normalize_i_of_q1d():
     """Test the refined method to normalize I(Q1D)"""
     # Get testing data and gold data
@@ -216,6 +290,49 @@ def test_normalize_i_of_q1d():
 
     np.testing.assert_allclose(normalized_intensity, gold_intensity_vec, rtol=8e-4, equal_nan=True)
     np.testing.assert_allclose(normalized_error, gold_error_vec, rtol=1e-3, equal_nan=True)
+
+
+def test_normalize_i_of_q1d_rejects_two_dimensional_k_vector():
+    """A column-shaped K vector broadcasts along the Q axis instead of the wavelength axis,
+    silently scaling each Q bin, so it must be rejected"""
+    test_i_of_q = create_testing_iq1d()[0]
+    wl_vec, q_vec, i_array, error_array, _ = reshape_intensity_domain_meshgrid(test_i_of_q)
+
+    column_shaped_k_vec = np.ones((wl_vec.shape[0], 1))
+    k_error_vec = np.zeros(wl_vec.shape[0])
+
+    with pytest.raises(ValueError, match="k_vec must be a 1D vector"):
+        normalize_intensity_1d(wl_vec, q_vec, i_array, error_array, column_shaped_k_vec, k_error_vec)
+
+
+def test_normalize_i_of_q1d_rejects_k_vector_of_wrong_length():
+    """Exactly one K factor and one K error is required per wavelength"""
+    test_i_of_q = create_testing_iq1d()[0]
+    wl_vec, q_vec, i_array, error_array, _ = reshape_intensity_domain_meshgrid(test_i_of_q)
+
+    k_vec = np.ones(wl_vec.shape[0])
+    truncated_k_error_vec = np.zeros(wl_vec.shape[0] - 1)
+
+    with pytest.raises(ValueError, match="k_error_vec must have one entry per wavelength"):
+        normalize_intensity_1d(wl_vec, q_vec, i_array, error_array, k_vec, truncated_k_error_vec)
+
+
+def test_apply_elastic_normalization_rejects_k_vector_of_wrong_length():
+    """One K factor per wavelength is required before the factors are interpolated onto the
+    unbinned wavelengths. The K vectors are validated ahead of the data, so no unbinned
+    workspaces are needed to exercise the contract"""
+    wl_vec = np.array([3.0, 4.0, 5.0])
+
+    with pytest.raises(ValueError, match="k_vec must have one entry per wavelength"):
+        apply_elastic_normalization_to_unbinned_data(None, None, wl_vec, np.ones(4), np.zeros(3))
+
+
+def test_apply_elastic_normalization_rejects_two_dimensional_k_vector():
+    """K factors are indexed by wavelength alone, so a 2D array is not a valid input"""
+    wl_vec = np.array([3.0, 4.0, 5.0])
+
+    with pytest.raises(ValueError, match="k_vec must be a 1D vector"):
+        apply_elastic_normalization_to_unbinned_data(None, None, wl_vec, np.ones((3, 1)), np.zeros(3))
 
 
 def create_testing_iq1d():

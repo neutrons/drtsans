@@ -160,10 +160,11 @@ def test_convert_to_wavelength_monochromatic(generic_workspace, clean_workspace)
 
 @pytest.mark.parametrize("generic_workspace", [MONOCHROMATIC_WORKSPACE], indirect=True)
 def test_convert_to_wavelength_not_monochromatic(generic_workspace, clean_workspace):
-    """Without the MCON16 sample log, the requested bin width is honored"""
+    """Without a true MCON16 sample log, the requested bin width is honored"""
     ws = generic_workspace
     clean_workspace(ws)
     add_frame_skipping_log(ws)
+    add_monochromatic_log(ws, value=0)
 
     bands = TransmittedBands(lead=MONOCHROMATIC_BAND, skip=None)
     ws = convert_to_wavelength(ws, bands=bands, bin_width=0.1)

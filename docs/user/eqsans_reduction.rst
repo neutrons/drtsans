@@ -11,12 +11,14 @@ Monochromatic Mode
 EQSANS can be operated in monochromatic mode, for runs
 where the chopper system is phased to transmit a typically narrow wavelength band,
 instead of the broad time-of-flight spectrum used in normal operation.
-This mode is recorded in the raw data file through the ``"monochromatic"`` sample log,
+This mode is recorded in the raw data file through the process variable ``BL6:Chop:Skf16:MCON``,
 set by the instrument's data acquisition system — it is not a setting in the reduction configuration.
+This process variable has the associated alias ``MCON16``, which is the name under which it appears
+in the sample logs of the raw data file, and thus the name `drtsans` looks up.
 The behavior described below is triggered by the *value* of this boolean sample log; the mere
 presence of the log in the file is not enough to trigger monochromatic mode.
 
-When the ``"monochromatic"`` sample log evaluates to ``True``, `drtsans` overrides the wavelength bin width
+When the ``MCON16`` sample log evaluates to ``True``, `drtsans` overrides the wavelength bin width
 passed in the configuration file so that the entire transmitted band is treated as one bin spanning
 the full range of wavelengths present in the data. Monochromatic mode is incompatible with
 frame-skipping mode.

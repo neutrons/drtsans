@@ -35,6 +35,10 @@ __all__ = ["transform_to_wavelength"]
 # maximum difference between wavelength bands of runs to be summed
 WAVELENGTH_BAND_DIFF_TOLERANCE = 0.1  # Angstrom
 
+# Alias of DAS process variable "BL6:Chop:Skf16:MCON", recording whether the run was taken in
+# monochromatic mode. The alias is the name under which the variable appears in the sample logs.
+MONOCHROMATIC_PV = "MCON16"
+
 # Default TOF clipping values from EQSANS.json schema (in microseconds)
 _eqsans_defaults = default_reduction_parameters("EQSANS")["configuration"]
 DEFAULT_LOW_TOF_CLIP = _eqsans_defaults["cutTOFmin"]  # 500.0 µs
@@ -621,7 +625,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
         band structure will be read from the logs.
     bin_width: float
         Bin width in Angstroms. Ignored if the workspace is in monochromatic mode (sample log
-        ``monochromatic`` is ``True``), in which case a single bin spanning the transmitted band
+        ``MCON16`` is ``True``), in which case a single bin spanning the transmitted band
         is used instead.
     events: bool
         Do we preserve events?
@@ -655,8 +659,8 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
 
     # If in monochromatic mode, override `bin_width`
     sample_logs = SampleLogs(input_workspace)
-    if "monochromatic" in sample_logs.keys():
-        is_monochromatic = bool(sample_logs.single_value("monochromatic"))
+    if MONOCHROMATIC_PV in sample_logs.keys():
+        is_monochromatic = bool(sample_logs.single_value(MONOCHROMATIC_PV))
     else:
         is_monochromatic = False
     if is_monochromatic:

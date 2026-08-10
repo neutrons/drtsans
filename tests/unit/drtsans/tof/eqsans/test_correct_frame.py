@@ -103,6 +103,64 @@ def test_transmitted_bands_clipped(datarepo_dir, clean_workspace):
         assert (b1, b2) == approx((b1_0 + lwc, b2_0 - hwc), 0.01)
 
 
+def test_is_monochromatic(temp_workspace_name):
+    """It is the value of the MCON16 log, not its presence, that flags monochromatic mode"""
+    ws = CreateWorkspace([0], [0], OutputWorkspace=temp_workspace_name())
+    # runs predating the process variable carry no such log
+    assert correct_frame.is_monochromatic(ws) is False
+    SampleLogs(ws).insert(correct_frame.MONOCHROMATIC_PV, 0)
+    assert correct_frame.is_monochromatic(ws) is False
+    SampleLogs(ws).insert(correct_frame.MONOCHROMATIC_PV, 1)
+    assert correct_frame.is_monochromatic(ws) is True
+
+
+@pytest.mark.datarepo
+def test_transform_to_wavelength_clips_polychromatic(datarepo_dir, clean_workspace):
+    """In the usual polychromatic mode the TOF clippings trim both edges of the band"""
+    with amend_config(data_dir=datarepo_dir.eqsans):
+        ws = Load(Filename="EQSANS_176937.nxs.h5")  # no MCON16 sample log
+        clean_workspace(ws)
+        assert correct_frame.is_monochromatic(ws) is False
+
+        unclipped = correct_frame.transmitted_bands(ws)
+        sdd = source_detector_distance(ws, unit="m")
+        low_clip = sans_wavelength.from_tof(500.0, distance=sdd)  # Angstrom
+        high_clip = sans_wavelength.from_tof(2000.0, distance=sdd)  # Angstrom
+
+        _, bands = correct_frame.transform_to_wavelength(ws, low_tof_clip=500, high_tof_clip=2000)
+
+        assert bands.lead.min == approx(unclipped.lead.min + low_clip, abs=1.0e-4)
+        assert bands.lead.max == approx(unclipped.lead.max - high_clip, abs=1.0e-4)
+        # the clippings actually used are recorded in the logs
+        sample_logs = SampleLogs(ws)
+        assert sample_logs.single_value("low_tof_clip") == approx(500.0)
+        assert sample_logs.single_value("high_tof_clip") == approx(2000.0)
+
+
+@pytest.mark.datarepo
+def test_transform_to_wavelength_monochromatic_ignores_clips(datarepo_dir, clean_workspace):
+    """In monochromatic mode the TOF clippings are discarded, preserving the narrow band.
+
+    Clipping this run by the schema defaults of 500 and 2000 micro seconds would leave only
+    9.59-9.94 Angstrom, a third of the transmitted band.
+    """
+    with amend_config(data_dir=datarepo_dir.eqsans):
+        ws = Load(Filename="EQSANS_177103.nxs.h5")
+        clean_workspace(ws)
+        assert correct_frame.is_monochromatic(ws) is True
+
+        _, bands = correct_frame.transform_to_wavelength(ws, low_tof_clip=500, high_tof_clip=2000)
+
+        assert_almost_equal((bands.lead.min, bands.lead.max), (9.446, 10.500), decimal=2)
+        assert bands.skip is None
+        # the clipped band would be 0.354 Angstrom wide
+        assert bands.lead.max - bands.lead.min > 1.0
+        # the override is recorded in the logs, whatever the configuration asked for
+        sample_logs = SampleLogs(ws)
+        assert sample_logs.single_value("low_tof_clip") == approx(0.0)
+        assert sample_logs.single_value("high_tof_clip") == approx(0.0)
+
+
 @pytest.mark.datarepo
 def test_log_tof_structure(datarepo_dir, temp_workspace_name):
     # reuse the same file

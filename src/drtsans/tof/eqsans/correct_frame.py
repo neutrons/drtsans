@@ -98,6 +98,28 @@ def _is_frame_skipping(input_workspace):
         return EQSANSDiskChopperSet(input_workspace).frame_mode == FrameMode.skip
 
 
+def is_monochromatic(input_workspace) -> bool:
+    r"""
+    Find whether the run was taken in monochromatic mode, according to sample log
+    :const:`~drtsans.tof.eqsans.correct_frame.MONOCHROMATIC_PV`.
+
+    It is the *value* of the log that decides the mode. A run whose file predates the process
+    variable lacks the log altogether, and is taken to be polychromatic.
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+
+    Returns
+    -------
+    bool
+    """
+    sample_logs = SampleLogs(input_workspace)
+    if MONOCHROMATIC_PV not in sample_logs.keys():
+        return False
+    return bool(sample_logs.single_value(MONOCHROMATIC_PV))
+
+
 def transmitted_bands(input_workspace):
     r"""
     Wavelength bands of the lead and skipped pulses transmitted by the choppers of the workspace.
@@ -658,12 +680,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
         w_max = bands.skip.max if is_frame_skipping else bands.lead.max
 
     # If in monochromatic mode, override `bin_width`
-    sample_logs = SampleLogs(input_workspace)
-    if MONOCHROMATIC_PV in sample_logs.keys():
-        is_monochromatic = bool(sample_logs.single_value(MONOCHROMATIC_PV))
-    else:
-        is_monochromatic = False
-    if is_monochromatic:
+    if is_monochromatic(input_workspace):
         if is_frame_skipping:
             raise ValueError("Monochromatic mode is incompatible with frame-skipping mode")
         if bands is None:
@@ -750,10 +767,12 @@ def transform_to_wavelength(
         Bin width for the output workspace, in Angstroms.
     low_tof_clip: float
         Ignore events with a time-of-flight (TOF) smaller than the minimal
-        TOF plus this quantity.
+        TOF plus this quantity. Overridden with zero in monochromatic mode (sample log
+        ``MCON16`` is ``True``).
     high_tof_clip: float
         Ignore events with a time-of-flight (TOF) bigger than the maximal
-        TOF minus this quantity.
+        TOF minus this quantity. Overridden with zero in monochromatic mode (sample log
+        ``MCON16`` is ``True``).
     keep_events: bool
         The final histogram will be an EventsWorkspace if True.
     interior_clip: bool
@@ -772,6 +791,16 @@ def transform_to_wavelength(
     input_workspace = mtd[str(input_workspace)]
     if output_workspace is None:
         output_workspace = str(input_workspace)
+
+    # Clippings sized for the wide band of polychromatic operation would remove most, or all, of
+    # the narrow band transmitted in monochromatic mode, so discard them.
+    if is_monochromatic(input_workspace) and (low_tof_clip > 0.0 or high_tof_clip > 0.0):
+        logger.notice(
+            f"Monochromatic mode detected: overriding TOF clippings "
+            f"({low_tof_clip}, {high_tof_clip}) micro seconds with zero, to preserve the whole "
+            f"transmitted wavelength band"
+        )
+        low_tof_clip, high_tof_clip = 0.0, 0.0
 
     # generate bands from input workspace
     if low_tof_clip > 0.0 or high_tof_clip > 0.0:

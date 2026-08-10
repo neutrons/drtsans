@@ -45,6 +45,48 @@ override is reported in the reduction log:
 
    Monochromatic mode detected: overriding TOF clippings (500.0, 2000.0) micro seconds with zero, to preserve the whole transmitted wavelength band
 
+Cross-check against the requested band
+++++++++++++++++++++++++++++++++++++++
+
+The data acquisition system records the band it was asked to deliver in two more process
+variables, ``MCWL16`` (the middle of the band, in Angstrom) and ``MCWLSpread16`` (the width of
+the band, as a percent of the middle). The requested band therefore spans
+
+.. math::
+
+   \left[ \left(1 - \frac{p}{200}\right) \lambda_0, \left(1 + \frac{p}{200}\right) \lambda_0 \right]
+
+for a center :math:`\lambda_0` and a spread :math:`p`. `drtsans` derives the transmitted band
+independently, from the chopper phases, and compares the two so that a mis-phased chopper set
+cannot pass unnoticed. The figure of merit is the fraction of the *requested* band that the
+choppers deliver:
+
+.. code-block:: text
+
+   overlap = |requested band intersect transmitted band| / |requested band|
+
+The transmitted band is legitimately *wider* than the requested one, by roughly 0.05 Angstrom,
+because the calculation corrects the fast edge for the delayed emission of neutrons from the
+moderator. A healthy run therefore overlaps fully, rather than matching the requested band edge
+for edge. What the comparison detects is a transmitted band displaced from the requested one.
+
+============================ ==========================================================
+Overlap                      Behavior
+============================ ==========================================================
+90% or more                  reported at information level; the reduction proceeds
+between 80% and 90%          reported as a warning; the reduction proceeds
+less than 80%                reported as an error, and the reduction stops with a
+                             ``ValueError``
+============================ ==========================================================
+
+Runs taken before these two process variables were introduced carry neither log, even when
+flagged as monochromatic. Such a run cannot be checked; the omission is reported as a warning
+and the reduction proceeds:
+
+.. code-block:: text
+
+   Monochromatic mode: cannot verify the transmitted wavelength band because sample log(s) MCWL16, MCWLSpread16 not found. Skipping the check.
+
 Effect on wavelength-dependent corrections
 ++++++++++++++++++++++++++++++++++++++++++
 

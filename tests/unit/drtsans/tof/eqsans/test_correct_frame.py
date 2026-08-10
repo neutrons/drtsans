@@ -114,6 +114,97 @@ def test_is_monochromatic(temp_workspace_name):
     assert correct_frame.is_monochromatic(ws) is True
 
 
+def insert_monochromatic_band_logs(ws, center, spread):
+    """Emulate the DAS recording the wavelength band requested of the chopper controller
+
+    Parameters
+    ----------
+    center: float
+        middle of the band, in Angstrom
+    spread: float
+        width of the band, as a percent of `center`
+    """
+    SampleLogs(ws).insert(correct_frame.MONOCHROMATIC_CENTER_PV, center)
+    SampleLogs(ws).insert(correct_frame.MONOCHROMATIC_SPREAD_PV, spread)
+
+
+@pytest.mark.parametrize(
+    "center, spread, expected",
+    [
+        (2.5, 15.0, (2.3125, 2.6875)),
+        (1.0, 3.0, (0.985, 1.015)),
+    ],
+)
+def test_band_from_logs(temp_workspace_name, center, spread, expected):
+    """The requested band spans center * (1 -+ spread / 200)"""
+    ws = CreateWorkspace([0], [0], OutputWorkspace=temp_workspace_name())
+    insert_monochromatic_band_logs(ws, center, spread)
+
+    band = correct_frame.band_from_logs(ws)
+
+    assert (band.min, band.max) == approx(expected, abs=1.0e-9)
+
+
+@pytest.mark.parametrize("present", [None, "center", "spread"])
+def test_band_from_logs_missing_logs(temp_workspace_name, present):
+    """Runs predating the two process variables carry neither, even when flagged monochromatic"""
+    ws = CreateWorkspace([0], [0], OutputWorkspace=temp_workspace_name())
+    if present == "center":
+        SampleLogs(ws).insert(correct_frame.MONOCHROMATIC_CENTER_PV, 2.5)
+    elif present == "spread":
+        SampleLogs(ws).insert(correct_frame.MONOCHROMATIC_SPREAD_PV, 15.0)
+
+    with pytest.raises(correct_frame.MissingMonochromaticLogs, match="not found"):
+        correct_frame.band_from_logs(ws)
+
+
+# Requested band for a 2.5 Angstrom center and a 10% spread, hence 2.375-2.625 Angstrom and
+# 0.25 Angstrom wide. The transmitted bands below deliver a known fraction of it.
+@pytest.mark.parametrize(
+    "transmitted, expected_overlap, severity",
+    [
+        # the emission-delay correction makes the transmitted band wider on the fast edge
+        (sans_wavelength.Wband(2.3245, 2.6251), 1.00, "information"),
+        (sans_wavelength.Wband(2.375, 2.625), 1.00, "information"),  # exact match
+        (sans_wavelength.Wband(2.4125, 2.625), 0.85, "warning"),  # 0.2125 of 0.25
+        (sans_wavelength.Wband(2.5, 2.625), 0.50, "error"),  # 0.125 of 0.25
+        (sans_wavelength.Wband(3.421, 3.562), 0.00, "error"),  # disjoint, as in run 186249
+    ],
+)
+def test_verify_monochromatic_band(temp_workspace_name, mocker, transmitted, expected_overlap, severity):
+    """The overlap is the fraction of the requested band that the choppers deliver, and it is
+    reported at a severity increasing with the disagreement"""
+    ws = CreateWorkspace([0], [0], OutputWorkspace=temp_workspace_name())
+    insert_monochromatic_band_logs(ws, 2.5, 10.0)
+    bands = BandsTuple(transmitted, None)
+    mock_logger = mocker.patch("drtsans.tof.eqsans.correct_frame.logger")
+
+    if severity == "error":
+        with pytest.raises(ValueError, match="of the requested"):
+            correct_frame.verify_monochromatic_band(ws, bands)
+    else:
+        overlap = correct_frame.verify_monochromatic_band(ws, bands)
+        assert overlap == approx(expected_overlap, abs=1.0e-3)
+
+    # the severity itself is part of the contract, not just whether the call raised
+    assert getattr(mock_logger, severity).call_count == 1
+    for other in {"information", "warning", "error"} - {severity}:
+        assert getattr(mock_logger, other).call_count == 0
+
+
+def test_verify_monochromatic_band_unverifiable(temp_workspace_name, mocker):
+    """Without the two process variables the check is skipped with a warning, not an exception"""
+    ws = CreateWorkspace([0], [0], OutputWorkspace=temp_workspace_name())
+    bands = BandsTuple(sans_wavelength.Wband(2.375, 2.625), None)
+    mock_logger = mocker.patch("drtsans.tof.eqsans.correct_frame.logger")
+
+    assert correct_frame.verify_monochromatic_band(ws, bands) is None
+
+    assert mock_logger.warning.call_count == 1
+    assert "cannot verify" in mock_logger.warning.call_args.args[0]
+    assert mock_logger.error.call_count == 0
+
+
 @pytest.mark.datarepo
 def test_transform_to_wavelength_clips_polychromatic(datarepo_dir, clean_workspace):
     """In the usual polychromatic mode the TOF clippings trim both edges of the band"""
@@ -159,6 +250,28 @@ def test_transform_to_wavelength_monochromatic_ignores_clips(datarepo_dir, clean
         sample_logs = SampleLogs(ws)
         assert sample_logs.single_value("low_tof_clip") == approx(0.0)
         assert sample_logs.single_value("high_tof_clip") == approx(0.0)
+
+
+@pytest.mark.datarepo
+def test_transform_to_wavelength_monochromatic_unverifiable(datarepo_dir, clean_workspace, mocker):
+    """A monochromatic run predating MCWL16 reduces normally, with the band check skipped.
+
+    This run is flagged monochromatic but carries neither MCWL16 nor MCWLSpread16, so there is
+    no requested band to compare the chopper settings against.
+    """
+    with amend_config(data_dir=datarepo_dir.eqsans):
+        ws = Load(Filename="EQSANS_177103.nxs.h5")
+        clean_workspace(ws)
+        assert correct_frame.is_monochromatic(ws) is True
+        with pytest.raises(correct_frame.MissingMonochromaticLogs):
+            correct_frame.band_from_logs(ws)
+
+        mock_logger = mocker.patch("drtsans.tof.eqsans.correct_frame.logger")
+        _, bands = correct_frame.transform_to_wavelength(ws, low_tof_clip=500, high_tof_clip=2000)
+
+        assert_almost_equal((bands.lead.min, bands.lead.max), (9.446, 10.500), decimal=2)
+        warnings = [call.args[0] for call in mock_logger.warning.call_args_list]
+        assert any("cannot verify" in message for message in warnings), f"no skip warning in {warnings}"
 
 
 @pytest.mark.datarepo

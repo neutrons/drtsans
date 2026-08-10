@@ -39,6 +39,16 @@ WAVELENGTH_BAND_DIFF_TOLERANCE = 0.1  # Angstrom
 # monochromatic mode. The alias is the name under which the variable appears in the sample logs.
 MONOCHROMATIC_PV = "MCON16"
 
+# Aliases of the DAS process variables recording the wavelength band requested of the
+# monochromatic chopper controller. Runs predating these variables lack the logs altogether.
+MONOCHROMATIC_CENTER_PV = "MCWL16"  # middle of the band, in Angstrom
+MONOCHROMATIC_SPREAD_PV = "MCWLSpread16"  # width of the band, as a percent of the center
+
+# Fraction of the requested wavelength band that the choppers must deliver. Below the first
+# threshold the disagreement is reported as a warning, below the second it is an error.
+BAND_OVERLAP_WARNING = 0.90
+BAND_OVERLAP_ERROR = 0.80
+
 # Default TOF clipping values from EQSANS.json schema (in microseconds)
 _eqsans_defaults = default_reduction_parameters("EQSANS")["configuration"]
 DEFAULT_LOW_TOF_CLIP = _eqsans_defaults["cutTOFmin"]  # 500.0 µs
@@ -47,6 +57,10 @@ DEFAULT_HIGH_TOF_CLIP = _eqsans_defaults["cutTOFmax"]  # 2000.0 µs
 
 class IncompatibleWavelengthBandsError(ValueError):
     """Raised when the desired wavelength band is incompatible with the data"""
+
+
+class MissingMonochromaticLogs(RuntimeError):
+    """Raised when the sample logs do not record the requested monochromatic wavelength band"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,6 +132,102 @@ def is_monochromatic(input_workspace) -> bool:
     if MONOCHROMATIC_PV not in sample_logs.keys():
         return False
     return bool(sample_logs.single_value(MONOCHROMATIC_PV))
+
+
+def band_from_logs(input_workspace) -> wlg.Wband:
+    r"""
+    Wavelength band requested of the monochromatic chopper controller, as recorded in the logs.
+
+    Sample log :const:`~drtsans.tof.eqsans.correct_frame.MONOCHROMATIC_CENTER_PV` holds the
+    middle of the band :math:`\lambda_0` in Angstroms, and
+    :const:`~drtsans.tof.eqsans.correct_frame.MONOCHROMATIC_SPREAD_PV` holds the width of the
+    band as a percent :math:`p` of the center, so that the band spans
+
+    .. math::
+
+        \left[ \left(1 - \frac{p}{200}\right) \lambda_0,\ \left(1 + \frac{p}{200}\right) \lambda_0 \right]
+
+    This is the band the instrument was *asked* to deliver, not the band derived from the
+    chopper phases by :func:`~drtsans.tof.eqsans.correct_frame.transmitted_bands`.
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+
+    Returns
+    -------
+    ~drtsans.wavelength.Wband
+        Requested wavelength band, in Angstroms.
+
+    Raises
+    ------
+    MissingMonochromaticLogs
+        If either log is absent. Runs predating the two process variables carry neither, even
+        when flagged as monochromatic.
+    """
+    sample_logs = SampleLogs(input_workspace)
+    missing = [pv for pv in (MONOCHROMATIC_CENTER_PV, MONOCHROMATIC_SPREAD_PV) if pv not in sample_logs.keys()]
+    if missing:
+        raise MissingMonochromaticLogs(f"sample log(s) {', '.join(missing)} not found")
+    center = float(sample_logs.single_value(MONOCHROMATIC_CENTER_PV))  # Angstrom
+    spread = float(sample_logs.single_value(MONOCHROMATIC_SPREAD_PV))  # percent of the center
+    return wlg.Wband((1.0 - spread / 200.0) * center, (1.0 + spread / 200.0) * center)
+
+
+def verify_monochromatic_band(input_workspace, bands) -> float | None:
+    r"""
+    Check the wavelength band derived from the chopper settings against the band requested in
+    the logs, and report any disagreement.
+
+    The overlap is the fraction of the *requested* band that the choppers deliver. The band
+    derived from the chopper settings is legitimately wider than the requested one, because
+    :meth:`~drtsans.chopper.DiskChopper.transmission_bands` corrects the fast edge for the
+    delayed neutron emission from the moderator, so a healthy run overlaps fully rather than
+    matching the requested band edge for edge.
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+    bands: TransmittedBands
+        Bands derived from the chopper settings. Only the lead band is compared, monochromatic
+        mode being incompatible with frame skipping.
+
+    Returns
+    -------
+    float or None
+        Fraction of the requested band transmitted by the choppers, or :py:obj:`None` if the
+        logs do not record the requested band.
+
+    Raises
+    ------
+    ValueError
+        If the choppers deliver less than
+        :const:`~drtsans.tof.eqsans.correct_frame.BAND_OVERLAP_ERROR` of the requested band.
+    """
+    try:
+        requested = band_from_logs(input_workspace)
+    except MissingMonochromaticLogs as error:
+        logger.warning(
+            f"Monochromatic mode: cannot verify the transmitted wavelength band because {error}. Skipping the check."
+        )
+        return None
+
+    transmitted = bands.lead
+    overlap_width = max(0.0, min(requested.max, transmitted.max) - max(requested.min, transmitted.min))
+    overlap = overlap_width / (requested.max - requested.min)
+
+    report = (
+        f"Monochromatic mode: the choppers transmit {100 * overlap:.1f}% of the requested "
+        f"wavelength band. Requested {requested}, transmitted {transmitted}."
+    )
+    if overlap >= BAND_OVERLAP_WARNING:
+        logger.information(report)
+    elif overlap >= BAND_OVERLAP_ERROR:
+        logger.warning(report)
+    else:
+        logger.error(report)
+        raise ValueError(report)
+    return overlap
 
 
 def transmitted_bands(input_workspace):
@@ -808,6 +918,10 @@ def transform_to_wavelength(
         bands_from_ws = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip, high_tof_clip)
     else:
         bands_from_ws = transmitted_bands(input_workspace)
+
+    # cross-check this run's chopper settings against the band the instrument was asked for
+    if is_monochromatic(input_workspace):
+        verify_monochromatic_band(input_workspace, bands_from_ws)
 
     # use generated bands if not given
     if bands is None:

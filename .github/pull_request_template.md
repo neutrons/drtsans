@@ -3,8 +3,8 @@
 **Check all that apply:**
 - [ ] updated documentation and checked that it looks correct in the [pull request preview](https://docs.readthedocs.com/platform/stable/pull-requests.html)
 - [ ] Source added/refactored
-- [ ] Added unit tests
-- [ ] Added integration tests
+- [ ] Unit tests added/refactored
+- [ ] Integration tests added/refactored
 - [ ] Included a manual test for the reviewer
 - [ ] Verified that tests requiring the /SNS and /HFIR filesystems pass without fail
 

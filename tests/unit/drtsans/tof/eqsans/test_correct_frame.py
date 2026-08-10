@@ -25,9 +25,9 @@ BandsTuple = namedtuple("BandsTuple", "lead skip")
         ("EQSANS_86217.nxs.h5", (2.45, 6.78), (10.96, 15.23)),  # frame skipping mode
         # six chopper configuration, offsets effective 2026-03-04 onward
         # (no test data currently covers the 2026-01-01..2026-03-03 sub-era)
-        ("EQSANS_176973.nxs.h5", (12.04, 15.02), None),
-        ("EQSANS_176937.nxs.h5", (2.57, 6.17), None),
-        ("EQSANS_178264.nxs.h5", (2.50, 6.38), (10.34, 13.47)),  # frame skipping mode
+        ("EQSANS_176973.nxs.h5", (11.95, 14.98), None),
+        ("EQSANS_176937.nxs.h5", (2.45, 6.13), None),
+        ("EQSANS_178264.nxs.h5", (2.45, 6.13), (9.66, 13.38)),  # frame skipping mode
     ],
 )
 def test_transmitted_bands(datarepo_dir, clean_workspace, filename, lead_range, skip_range):
@@ -52,7 +52,7 @@ def test_transmitted_bands_zero_speed_choppers(datarepo_dir, clean_workspace):
         AddSampleLog(ws, "Speed6", "0", LogType="Number Series")
         AddSampleLog(ws, "Phase6", "0", LogType="Number Series")
         # overwrite start_time log to simulate run with new chopper configuration
-        AddSampleLog(ws, "start_time", "2026-01-02T05:49:47.754251666", LogType="String")
+        AddSampleLog(ws, "start_time", "2026-03-05T05:49:47.754251666", LogType="String")
         clean_workspace(ws)
 
         run = ws.mutableRun()
@@ -71,8 +71,6 @@ def test_transmitted_bands_zero_speed_choppers(datarepo_dir, clean_workspace):
             run.addProperty(phase_log_name, new_phase_log, True)
 
         bands = correct_frame.transmitted_bands(ws)
-        # The small difference in bands compared to test_transmitted_bands is due to
-        # slightly different distances to the source in the new chopper configuration
         assert_almost_equal((bands.lead.min, bands.lead.max), (2.45, 6.80), decimal=2)
         assert_almost_equal((bands.skip.min, bands.skip.max), (11.01, 15.28), decimal=2)
 

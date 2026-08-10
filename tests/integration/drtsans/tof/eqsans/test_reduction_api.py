@@ -424,7 +424,7 @@ def test_monochromatic(datarepo_dir, temp_directory, mocker):
     assert len(wavelength_bin_widths) == 1, (
         f"Expected a single wavelength_bin_width value, got: {wavelength_bin_widths}"
     )
-    assert round(wavelength_bin_widths[0], 3) == 0.386
+    assert round(wavelength_bin_widths[0], 3) == 0.508
 
     # clean up
     DeleteWorkspace("processed_data_main")

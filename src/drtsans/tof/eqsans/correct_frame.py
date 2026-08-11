@@ -63,6 +63,10 @@ class MissingMonochromaticLogs(RuntimeError):
     """Raised when the sample logs do not record the requested monochromatic wavelength band"""
 
 
+class DegenerateMonochromaticBand(RuntimeError):
+    """Raised when the requested monochromatic wavelength band is recorded but unusable"""
+
+
 @dataclass(frozen=True, slots=True)
 class TransmittedBands:
     """Represents wavelength bands of the lead and skipped pulses transmitted by the choppers
@@ -164,6 +168,12 @@ def band_from_logs(input_workspace) -> wlg.Wband:
     MissingMonochromaticLogs
         If either log is absent. Runs predating the two process variables carry neither, even
         when flagged as monochromatic.
+    DegenerateMonochromaticBand
+        If the logged values do not describe a usable band, namely when a boundary is not
+        finite, the lower boundary is negative (a spread above 200 percent), or the lower
+        boundary is not below the upper one (a spread of zero, or a negative spread inverting
+        them). A spread of exactly 200 percent is usable: the band spans from zero to twice the
+        center.
     """
     sample_logs = SampleLogs(input_workspace)
     missing = [pv for pv in (MONOCHROMATIC_CENTER_PV, MONOCHROMATIC_SPREAD_PV) if pv not in sample_logs.keys()]
@@ -171,7 +181,16 @@ def band_from_logs(input_workspace) -> wlg.Wband:
         raise MissingMonochromaticLogs(f"sample log(s) {', '.join(missing)} not found")
     center = float(sample_logs.single_value(MONOCHROMATIC_CENTER_PV))  # Angstrom
     spread = float(sample_logs.single_value(MONOCHROMATIC_SPREAD_PV))  # percent of the center
-    return wlg.Wband((1.0 - spread / 200.0) * center, (1.0 + spread / 200.0) * center)
+
+    minimum, maximum = (1.0 - spread / 200.0) * center, (1.0 + spread / 200.0) * center
+    # validate the boundaries, which is what Wband and the overlap fraction actually require,
+    # rather than the spread against a percentage that would have to be kept in step with them
+    if not (np.isfinite(minimum) and np.isfinite(maximum)) or minimum < 0.0 or minimum >= maximum:
+        raise DegenerateMonochromaticBand(
+            f"{MONOCHROMATIC_CENTER_PV}={center} Angstrom and {MONOCHROMATIC_SPREAD_PV}={spread} percent "
+            f"give the unusable band [{minimum}, {maximum}]"
+        )
+    return wlg.Wband(minimum, maximum)
 
 
 def geometric_band(input_workspace) -> wlg.Wband:
@@ -229,7 +248,8 @@ def verify_monochromatic_band(input_workspace, band) -> float | None:
     -------
     float or None
         Fraction of the requested band covered by `band`, or :py:obj:`None` if the logs do not
-        record the requested band.
+        record a usable requested band, in which case the check is skipped with a warning
+        instead of failing the reduction.
 
     Raises
     ------
@@ -239,7 +259,7 @@ def verify_monochromatic_band(input_workspace, band) -> float | None:
     """
     try:
         requested = band_from_logs(input_workspace)
-    except MissingMonochromaticLogs as error:
+    except (MissingMonochromaticLogs, DegenerateMonochromaticBand) as error:
         logger.warning(
             f"Monochromatic mode: cannot verify the transmitted wavelength band because {error}. Skipping the check."
         )

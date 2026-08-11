@@ -427,9 +427,9 @@ def test_monochromatic(datarepo_dir, temp_directory, mocker):
     assert len(wavelength_bin_widths) == 1, (
         f"Expected a single wavelength_bin_width value, got: {wavelength_bin_widths}"
     )
-    # the whole transmitted band, 9.446-10.500 Angstrom. The schema default clippings of 500 and
-    # 2000 micro seconds are overridden in monochromatic mode; applying them would leave 0.508
-    assert round(wavelength_bin_widths[0], 3) == 1.054
+    # the whole transmitted band, 9.446-10.410 Angstrom. The schema default clippings of 500 and
+    # 2000 micro seconds are overridden in monochromatic mode; applying them would leave 0.263
+    assert round(wavelength_bin_widths[0], 3) == 0.963
     assert (low_tof_clip, high_tof_clip) == (0.0, 0.0)
 
     # clean up

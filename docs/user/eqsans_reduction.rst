@@ -5,6 +5,22 @@ EQSANS Reduction
 
 This page collects reduction behavior that is specific to EQSANS.
 
+The transmitted wavelength band
+-------------------------------
+
+The band of wavelengths reaching the sample is derived from the phases of the disk choppers. A
+neutron of wavelength :math:`\lambda` leaves the moderator :math:`t_0(\lambda)` after the pulse
+and reaches a chopper at distance :math:`D` at time :math:`t_0(\lambda) + D / v(\lambda)`; it is
+transmitted when that time falls inside the aperture's opening window. Both edges of the band
+therefore carry this emission-delay correction, which displaces the band towards shorter
+wavelengths by an amount inversely proportional to the chopper's distance to the source,
+typically 0.05 to 0.09 Angstrom.
+
+The data acquisition system phases the choppers using the purely geometric calculation, which
+ignores the emission delay, so the band that reaches the sample is displaced from the nominal
+setpoint. Run 177103, for example, is phased for a round 9.500-10.500 Angstrom and transmits
+9.446-10.410 Angstrom.
+
 Monochromatic Mode
 -------------------
 
@@ -31,8 +47,8 @@ the time-of-flight frame, where the transmitted intensity tails off. Their defau
 and 2000 microseconds, are chosen for the broad wavelength band of normal operation. The
 narrow band of monochromatic mode is comparable to, or smaller than, the span those clippings
 remove, so applying them would discard most of the measured signal. For instance, run 177103
-transmits the band 9.446-10.500 Angstrom; the default clippings amount to 0.140 Angstrom
-below and 0.560 Angstrom above, leaving 9.586-9.940 Angstrom, barely a third of the band.
+transmits the band 9.446-10.410 Angstrom; the default clippings amount to 0.140 Angstrom
+below and 0.560 Angstrom above, leaving 9.586-9.849 Angstrom, barely a quarter of the band.
 For a still narrower band the clippings exceed the band width altogether and the reduction
 fails outright.
 
@@ -56,19 +72,21 @@ the band, as a percent of the middle). The requested band therefore spans
 
    \left[ \left(1 - \frac{p}{200}\right) \lambda_0, \left(1 + \frac{p}{200}\right) \lambda_0 \right]
 
-for a center :math:`\lambda_0` and a spread :math:`p`. `drtsans` derives the transmitted band
-independently, from the chopper phases, and compares the two so that a mis-phased chopper set
-cannot pass unnoticed. The figure of merit is the fraction of the *requested* band that the
-choppers deliver:
+for a center :math:`\lambda_0` and a spread :math:`p`. `drtsans` derives the band from the
+chopper phases independently, and compares the two so that a mis-phased chopper set cannot pass
+unnoticed. The figure of merit is the fraction of the *requested* band that the choppers are
+phased for:
 
 .. code-block:: text
 
-   overlap = |requested band intersect transmitted band| / |requested band|
+   overlap = |requested band intersect geometric band| / |requested band|
 
-The transmitted band is legitimately *wider* than the requested one, by roughly 0.05 Angstrom,
-because the calculation corrects the fast edge for the delayed emission of neutrons from the
-moderator. A healthy run therefore overlaps fully, rather than matching the requested band edge
-for edge. What the comparison detects is a transmitted band displaced from the requested one.
+The comparison uses the *geometric* band, computed from the chopper phases with no
+emission-delay correction, because that is the quantity the data acquisition system phases the
+choppers against. The band that actually reaches the sample is shifted towards shorter
+wavelengths by the delayed emission of neutrons from the moderator, by up to 0.09 Angstrom, so
+comparing the request against it would report a disagreement on every run. What the comparison
+detects is chopper phases set for a band other than the one requested.
 
 ============================ ==========================================================
 Overlap                      Behavior

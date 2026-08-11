@@ -174,34 +174,67 @@ def band_from_logs(input_workspace) -> wlg.Wband:
     return wlg.Wband((1.0 - spread / 200.0) * center, (1.0 + spread / 200.0) * center)
 
 
-def verify_monochromatic_band(input_workspace, bands) -> float | None:
+def geometric_band(input_workspace) -> wlg.Wband:
     r"""
-    Check the wavelength band derived from the chopper settings against the band requested in
-    the logs, and report any disagreement.
+    Wavelength band the choppers are phased for, ignoring the delayed neutron emission from the
+    moderator.
 
-    The overlap is the fraction of the *requested* band that the choppers deliver. The band
-    derived from the chopper settings is legitimately wider than the requested one, because
-    :meth:`~drtsans.chopper.DiskChopper.transmission_bands` corrects the fast edge for the
-    delayed neutron emission from the moderator, so a healthy run overlaps fully rather than
-    matching the requested band edge for edge.
+    This is the band the data acquisition system computes when it is given a center and a
+    spread, and hence the one to compare
+    :func:`~drtsans.tof.eqsans.correct_frame.band_from_logs` against. The band that actually
+    reaches the sample, returned by
+    :func:`~drtsans.tof.eqsans.correct_frame.transmitted_bands`, is shifted towards shorter
+    wavelengths by the emission delay.
 
     Parameters
     ----------
     input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
-    bands: TransmittedBands
-        Bands derived from the chopper settings. Only the lead band is compared, monochromatic
-        mode being incompatible with frame skipping.
 
     Returns
     -------
-    float or None
-        Fraction of the requested band transmitted by the choppers, or :py:obj:`None` if the
-        logs do not record the requested band.
+    ~drtsans.wavelength.Wband
+        Lead band, in Angstroms.
 
     Raises
     ------
     ValueError
-        If the choppers deliver less than
+        If the choppers have no wavelength in common.
+    """
+    bands = EQSANSDiskChopperSet(input_workspace).transmission_bands()  # no emission delay
+    if len(bands) == 0:
+        raise ValueError("the choppers have no wavelength in common")
+    return bands[0]
+
+
+def verify_monochromatic_band(input_workspace, band) -> float | None:
+    r"""
+    Check the band the choppers are phased for against the band requested in the logs, and
+    report any disagreement.
+
+    The figure of merit is the fraction of the requested band that `band` covers. Pass the
+    geometric band from
+    :func:`~drtsans.tof.eqsans.correct_frame.geometric_band`, not the emission-delay corrected
+    band that reaches the sample: the latter is shifted towards shorter wavelengths and would
+    report a disagreement on every run.
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+        Workspace whose logs record the requested band.
+    band: ~drtsans.wavelength.Wband
+        Band the choppers are phased for. Only one band is compared, monochromatic mode being
+        incompatible with frame skipping.
+
+    Returns
+    -------
+    float or None
+        Fraction of the requested band covered by `band`, or :py:obj:`None` if the logs do not
+        record the requested band.
+
+    Raises
+    ------
+    ValueError
+        If `band` covers less than
         :const:`~drtsans.tof.eqsans.correct_frame.BAND_OVERLAP_ERROR` of the requested band.
     """
     try:
@@ -212,13 +245,12 @@ def verify_monochromatic_band(input_workspace, bands) -> float | None:
         )
         return None
 
-    transmitted = bands.lead
-    overlap_width = max(0.0, min(requested.max, transmitted.max) - max(requested.min, transmitted.min))
+    overlap_width = max(0.0, min(requested.max, band.max) - max(requested.min, band.min))
     overlap = overlap_width / (requested.max - requested.min)
 
     report = (
-        f"Monochromatic mode: the choppers transmit {100 * overlap:.1f}% of the requested "
-        f"wavelength band. Requested {requested}, transmitted {transmitted}."
+        f"Monochromatic mode: the choppers cover {100 * overlap:.1f}% of the requested "
+        f"wavelength band. Requested {requested}, phased for {band}."
     )
     if overlap >= BAND_OVERLAP_WARNING:
         logger.information(report)
@@ -919,9 +951,9 @@ def transform_to_wavelength(
     else:
         bands_from_ws = transmitted_bands(input_workspace)
 
-    # cross-check this run's chopper settings against the band the instrument was asked for
+    # cross-check this run's chopper phases against the band the instrument was asked for
     if is_monochromatic(input_workspace):
-        verify_monochromatic_band(input_workspace, bands_from_ws)
+        verify_monochromatic_band(input_workspace, geometric_band(input_workspace))
 
     # use generated bands if not given
     if bands is None:

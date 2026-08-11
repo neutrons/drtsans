@@ -292,7 +292,7 @@ def test_incoherence_correction_elastic_normalization(
     )
 
     # Check that the wavelength dependent profiles are created
-    number_of_wavelengths = 31
+    number_of_wavelengths = 30
     if correction_case in ["elastic_correction", "elastic_inelastic_correction"]:
         assert (
             len(glob.glob(os.path.join(elastic_output_dir, "IQ_*_before_k_correction.dat"))) == number_of_wavelengths

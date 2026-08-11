@@ -21,13 +21,13 @@ BandsTuple = namedtuple("BandsTuple", "lead skip")
     "filename, lead_range, skip_range",
     [
         # four chopper configuration (before 2026)
-        ("EQSANS_101595.nxs.h5", (1.95, 6.16), None),
-        ("EQSANS_86217.nxs.h5", (2.45, 6.78), (10.96, 15.23)),  # frame skipping mode
+        ("EQSANS_101595.nxs.h5", (1.95, 6.08), None),
+        ("EQSANS_86217.nxs.h5", (2.45, 6.71), (10.96, 15.16)),  # frame skipping mode
         # six chopper configuration, offsets effective 2026-03-04 onward
         # (no test data currently covers the 2026-01-01..2026-03-03 sub-era)
-        ("EQSANS_176973.nxs.h5", (11.95, 14.98), None),
-        ("EQSANS_176937.nxs.h5", (2.45, 6.13), None),
-        ("EQSANS_178264.nxs.h5", (2.45, 6.13), (9.66, 13.38)),  # frame skipping mode
+        ("EQSANS_176973.nxs.h5", (11.95, 14.89), None),
+        ("EQSANS_176937.nxs.h5", (2.45, 6.04), None),
+        ("EQSANS_178264.nxs.h5", (2.45, 6.06), (9.66, 13.32)),  # frame skipping mode
     ],
 )
 def test_transmitted_bands(datarepo_dir, clean_workspace, filename, lead_range, skip_range):
@@ -71,8 +71,8 @@ def test_transmitted_bands_zero_speed_choppers(datarepo_dir, clean_workspace):
             run.addProperty(phase_log_name, new_phase_log, True)
 
         bands = correct_frame.transmitted_bands(ws)
-        assert_almost_equal((bands.lead.min, bands.lead.max), (2.45, 6.80), decimal=2)
-        assert_almost_equal((bands.skip.min, bands.skip.max), (11.01, 15.28), decimal=2)
+        assert_almost_equal((bands.lead.min, bands.lead.max), (2.45, 6.73), decimal=2)
+        assert_almost_equal((bands.skip.min, bands.skip.max), (11.01, 15.21), decimal=2)
 
 
 @pytest.mark.datarepo
@@ -159,31 +159,29 @@ def test_band_from_logs_missing_logs(temp_workspace_name, present):
 
 
 # Requested band for a 2.5 Angstrom center and a 10% spread, hence 2.375-2.625 Angstrom and
-# 0.25 Angstrom wide. The transmitted bands below deliver a known fraction of it.
+# 0.25 Angstrom wide. The geometric bands below cover a known fraction of it.
 @pytest.mark.parametrize(
-    "transmitted, expected_overlap, severity",
+    "phased_for, expected_overlap, severity",
     [
-        # the emission-delay correction makes the transmitted band wider on the fast edge
-        (sans_wavelength.Wband(2.3245, 2.6251), 1.00, "information"),
         (sans_wavelength.Wband(2.375, 2.625), 1.00, "information"),  # exact match
+        (sans_wavelength.Wband(2.3, 2.7), 1.00, "information"),  # requested band fully inside
         (sans_wavelength.Wband(2.4125, 2.625), 0.85, "warning"),  # 0.2125 of 0.25
         (sans_wavelength.Wband(2.5, 2.625), 0.50, "error"),  # 0.125 of 0.25
         (sans_wavelength.Wband(3.421, 3.562), 0.00, "error"),  # disjoint, as in run 186249
     ],
 )
-def test_verify_monochromatic_band(temp_workspace_name, mocker, transmitted, expected_overlap, severity):
-    """The overlap is the fraction of the requested band that the choppers deliver, and it is
+def test_verify_monochromatic_band(temp_workspace_name, mocker, phased_for, expected_overlap, severity):
+    """The overlap is the fraction of the requested band the choppers are phased for, and it is
     reported at a severity increasing with the disagreement"""
     ws = CreateWorkspace([0], [0], OutputWorkspace=temp_workspace_name())
     insert_monochromatic_band_logs(ws, 2.5, 10.0)
-    bands = BandsTuple(transmitted, None)
     mock_logger = mocker.patch("drtsans.tof.eqsans.correct_frame.logger")
 
     if severity == "error":
         with pytest.raises(ValueError, match="of the requested"):
-            correct_frame.verify_monochromatic_band(ws, bands)
+            correct_frame.verify_monochromatic_band(ws, phased_for)
     else:
-        overlap = correct_frame.verify_monochromatic_band(ws, bands)
+        overlap = correct_frame.verify_monochromatic_band(ws, phased_for)
         assert overlap == approx(expected_overlap, abs=1.0e-3)
 
     # the severity itself is part of the contract, not just whether the call raised
@@ -195,10 +193,9 @@ def test_verify_monochromatic_band(temp_workspace_name, mocker, transmitted, exp
 def test_verify_monochromatic_band_unverifiable(temp_workspace_name, mocker):
     """Without the two process variables the check is skipped with a warning, not an exception"""
     ws = CreateWorkspace([0], [0], OutputWorkspace=temp_workspace_name())
-    bands = BandsTuple(sans_wavelength.Wband(2.375, 2.625), None)
     mock_logger = mocker.patch("drtsans.tof.eqsans.correct_frame.logger")
 
-    assert correct_frame.verify_monochromatic_band(ws, bands) is None
+    assert correct_frame.verify_monochromatic_band(ws, sans_wavelength.Wband(2.375, 2.625)) is None
 
     assert mock_logger.warning.call_count == 1
     assert "cannot verify" in mock_logger.warning.call_args.args[0]
@@ -242,10 +239,17 @@ def test_transform_to_wavelength_monochromatic_ignores_clips(datarepo_dir, clean
 
         _, bands = correct_frame.transform_to_wavelength(ws, low_tof_clip=500, high_tof_clip=2000)
 
-        assert_almost_equal((bands.lead.min, bands.lead.max), (9.446, 10.500), decimal=2)
+        assert_almost_equal((bands.lead.min, bands.lead.max), (9.446, 10.410), decimal=2)
         assert bands.skip is None
-        # the clipped band would be 0.354 Angstrom wide
-        assert bands.lead.max - bands.lead.min > 1.0
+        # the clipped band would be 0.26 Angstrom wide
+        assert bands.lead.max - bands.lead.min > 0.9
+        # the choppers are phased for a round 9.5-10.5 Angstrom; the emission delay shifts the
+        # band that reaches the sample towards shorter wavelengths
+        assert_almost_equal(
+            (correct_frame.geometric_band(ws).min, correct_frame.geometric_band(ws).max),
+            (9.500, 10.500),
+            decimal=2,
+        )
         # the override is recorded in the logs, whatever the configuration asked for
         sample_logs = SampleLogs(ws)
         assert sample_logs.single_value("low_tof_clip") == approx(0.0)
@@ -269,7 +273,7 @@ def test_transform_to_wavelength_monochromatic_unverifiable(datarepo_dir, clean_
         mock_logger = mocker.patch("drtsans.tof.eqsans.correct_frame.logger")
         _, bands = correct_frame.transform_to_wavelength(ws, low_tof_clip=500, high_tof_clip=2000)
 
-        assert_almost_equal((bands.lead.min, bands.lead.max), (9.446, 10.500), decimal=2)
+        assert_almost_equal((bands.lead.min, bands.lead.max), (9.446, 10.410), decimal=2)
         warnings = [call.args[0] for call in mock_logger.warning.call_args_list]
         assert any("cannot verify" in message for message in warnings), f"no skip warning in {warnings}"
 

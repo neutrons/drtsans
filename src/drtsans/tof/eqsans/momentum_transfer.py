@@ -199,8 +199,7 @@ def retrieve_instrument_setup(input_workspace):
 
 
 def moderator_time_uncertainty(wl):
-    """Relative Q uncertainty due to emission time jitter
-    in the neutron moderator.
+    """Relative Q uncertainty due to emission time jitter in the neutron moderator.
     :param wl: float (or ndarray) wavelength [Angstrom]
     :return: float or ~np.array (same shape to wave_length_array) of emission error time
     """
@@ -230,9 +229,10 @@ def moderator_time_uncertainty(wl):
     # clean up memory
     del mask
 
-    # convert from zero-dimensional nparray to float
+    # convert the one-element array back to a scalar. Beware `float(time_error)`: numpy 2 rejects
+    # converting an array with ndim > 0, however few elements it holds.
     if original_float:
-        time_error = float(time_error)
+        time_error = time_error.item()
 
     return time_error
 

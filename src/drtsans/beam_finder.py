@@ -19,10 +19,15 @@ from scipy import constants
 from typing import Union
 
 __all__ = [
+    "BeamCenterNotFound",
     "center_detector",
     "find_beam_center",
     "fbc_options_json",
 ]  # exports to the drtsans namespace
+
+
+class BeamCenterNotFound(RuntimeError):
+    """Raised when the beam center fit yields a non-finite coordinate and no fallback is given"""
 
 
 def _results_to_dict(params):
@@ -168,6 +173,7 @@ def find_beam_center(
     mask_options={},
     centering_options={},
     solid_angle_method="VerticalTube",
+    fallback_center=(None, None),
 ):
     r"""
     Calculate absolute coordinates of beam impinging on the detector.
@@ -191,11 +197,23 @@ def find_beam_center(
     centering_options: dict
         Arguments to be passed on to the centering method.
     solid_angle_method: bool, str, specify which solid angle correction is needed
+    fallback_center: tuple
+        Coordinates (in meters) to assume when the fit yields a non-finite value, one entry per
+        axis. An entry of :py:obj:`None` makes a failure on that axis fatal. A fit can fail to
+        converge when the beam center run has no direct beam, for instance a sample measurement
+        taken with the beamstop in.
 
     Returns
     -------
     tuple
-        (X, Y, results) coordinates of the beam center (units in meters), dictionary of special parameters
+        (X, Y, center_type, results): coordinates of the beam center (units in meters), either
+        ``"calculated"`` or ``"fallback"`` according to whether every coordinate was fitted or one
+        was assumed, and a dictionary of special parameters.
+
+    Raises
+    ------
+    BeamCenterNotFound
+        If a coordinate is not finite and `fallback_center` offers no value for that axis.
     """
     if method not in ["center_of_mass", "gaussian"]:
         raise NotImplementedError()  # (f'{method} is not implemented')
@@ -217,9 +235,32 @@ def find_beam_center(
         fit_results = {}
     else:  # method == 'gaussian':
         x, y, fit_results = _find_beam_center_gaussian(flat_ws, centering_options)
-    logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(x, y))
     DeleteWorkspace(flat_ws)
-    return x, y, fit_results
+
+    # A fit that did not converge yields a non-finite coordinate. Left alone it would translate the
+    # detector to a non-finite position, from where every wavelength, and then every intensity,
+    # becomes unusable far away from here.
+    coordinates, reports, fatal = [x, y], [], False
+    for index, (axis, value, fallback) in enumerate(zip("XY", (x, y), fallback_center)):
+        if np.isfinite(value):
+            continue
+        reports.append(f"beam center {axis} from method '{method}' is not finite ({value})")
+        if fallback is None:
+            reports.append(f"no fallback value is available for {axis}")
+            fatal = True
+        else:
+            coordinates[index] = fallback
+            reports.append(f"assuming {axis}={fallback} m, so the detector is positioned on that assumption")
+    if reports:
+        report = "; ".join(reports)
+        if fatal:
+            raise BeamCenterNotFound(report)
+        logger.error(report)
+    x, y = coordinates
+    center_type = "fallback" if reports else "calculated"
+
+    logger.information("Found beam position: X={:.3} m, Y={:.3} m.".format(x, y))
+    return x, y, center_type, fit_results
 
 
 def center_detector(input_workspace, center_x, center_y, component="detector1"):

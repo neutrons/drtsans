@@ -81,6 +81,11 @@ __all__ = [
     "plot_reduction_output",
 ]
 
+#: Beam center assumed when no beam center run is configured, and when the fit for one fails.
+#: Coordinates in meters on the detector XY-plane.
+DEFAULT_BEAM_CENTER_X = 0.025239
+DEFAULT_BEAM_CENTER_Y = 0.0170801
+
 I_output = namedtuple(
     "I_output",
     ["I2D_main", "I1D_main", "slice_label", "frame_label"],
@@ -1340,17 +1345,18 @@ def set_beam_center(
             if reduction_config["useDefaultMask"]:
                 apply_mask(center_ws_name, mask=default_mask)
         fbc_options = fbc_options_json(reduction_input)
-        center_x, center_y, fit_results = find_beam_center(center_ws_name, **fbc_options)
-        logger.notice(f"calculated center ({center_x}, {center_y})")
-        beam_center_type = "calculated"
+        center_x, center_y, beam_center_type, fit_results = find_beam_center(
+            center_ws_name,
+            fallback_center=(DEFAULT_BEAM_CENTER_X, DEFAULT_BEAM_CENTER_Y),
+            **fbc_options,
+        )
     else:
-        # use default EQSANS center
-        # TODO - it is better to have these hard code value defined outside of this method
-        center_x = 0.025239
-        center_y = 0.0170801
-        logger.notice(f"use default center ({center_x}, {center_y})")
-        beam_center_type = "default"
+        # no beam center run was configured, so no fit was ever attempted
+        center_x, center_y = DEFAULT_BEAM_CENTER_X, DEFAULT_BEAM_CENTER_Y
+        beam_center_type = "preset"
         fit_results = None
+
+    logger.notice(f"{beam_center_type} beam center ({center_x}, {center_y})")
 
     # set beam center to reduction configuration
     reduction_input["beam_center"] = {

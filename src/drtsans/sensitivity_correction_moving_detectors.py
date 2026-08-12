@@ -329,7 +329,7 @@ def mask_beam_center(data_ws, beam_center_ws, beam_center_radius):
 
     """
     # Use beam center ws to find beam center
-    xc, yc = gp.find_beam_center(beam_center_ws)
+    xc, yc, _, _ = gp.find_beam_center(beam_center_ws, fallback_center=(None, None))
 
     # Center detector to the data workspace (change in geometry)
     gp.center_detector(data_ws, xc, yc)

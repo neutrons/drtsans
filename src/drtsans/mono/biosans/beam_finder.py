@@ -77,7 +77,7 @@ def find_beam_center(
     sample_det_cent_wing_detector=None,
     sample_det_cent_midrange_detector=None,
     solid_angle_method="VerticalTube",
-) -> Tuple[float, float, float, float, dict]:
+) -> Tuple[float, float, float, float, str, dict]:
     """Finds the beam center in a 2D SANS data set.
 
     This is based on (and uses) :func:`drtsans.find_beam_center`
@@ -101,22 +101,25 @@ def find_beam_center(
 
     Returns
     -------
-    ``(center_x, center_y, center_y_wing, center_y_midrange, fit_results)`` where
+    ``(center_x, center_y, center_y_wing, center_y_midrange, center_type, fit_results)`` where
     - ``center_y_wing`` is used to correct BIOSANS wing detector Y position.
     - ``center_y_midrange`` is used to correct BIOSANS midrange detector Y position.
       if sample_det_cent_midrange_detector is specified then a float number is returned, else None.
+    - ``center_type`` is ``"calculated"`` or ``"fallback"``, describing the *main* detector fit only.
+      The wing and midrange coordinates are derived from it and are not covered by this flag.
     - ``fit_results`` produced by fitting the beam center intensities to a 2D Gaussian model of the lmfit package
     """
     ws = mtd[str(input_workspace)]
 
     # find the center on the main detector
-    center_x, center_y, fit_results = bf.find_beam_center(
+    center_x, center_y, center_type, fit_results = bf.find_beam_center(
         ws,
         method,
         mask,
         mask_options=mask_options,
         centering_options=centering_options,
         solid_angle_method=solid_angle_method,
+        fallback_center=(None, None),
     )
 
     if sample_det_cent_main_detector is None or sample_det_cent_main_detector == 0.0:
@@ -160,7 +163,7 @@ def find_beam_center(
             center_x, center_y, center_y_wing, center_y_midrange
         )
     )
-    return center_x, center_y, center_y_wing, center_y_midrange, fit_results
+    return center_x, center_y, center_y_wing, center_y_midrange, center_type, fit_results
 
 
 def center_detector(input_workspace, center_x, center_y, center_y_wing, center_y_midrange=None):

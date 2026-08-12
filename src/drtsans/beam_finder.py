@@ -255,7 +255,7 @@ def find_beam_center(
         report = "; ".join(reports)
         if fatal:
             raise BeamCenterNotFound(report)
-        logger.error(report)
+        logger.warning(report)
     x, y = coordinates
     center_type = "fallback" if reports else "calculated"
 

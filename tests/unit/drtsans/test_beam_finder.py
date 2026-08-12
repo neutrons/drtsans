@@ -66,8 +66,10 @@ def test_find_beam_center_fallback_substituted(fitted_center, coordinates):
         assert value == pytest.approx(expected), f"unexpected {axis}"
     assert center_type == "fallback"
     # a single composite message, not one per offending axis
-    assert mock_logger.error.call_count == 1
-    assert "not finite" in mock_logger.error.call_args.args[0]
+    assert mock_logger.warning.call_count == 1
+    assert "not finite" in mock_logger.warning.call_args.args[0]
+    # a substitution is a caveat, not a failure: an error would fail the whole autoreduction
+    assert mock_logger.error.call_count == 0
 
 
 def test_find_beam_center_fallback_only_for_one_axis(fitted_center):
@@ -78,7 +80,8 @@ def test_find_beam_center_fallback_only_for_one_axis(fitted_center):
 
     assert (x, y) == pytest.approx((FALLBACK[0], 0.3))
     assert center_type == "fallback"
-    assert mock_logger.error.call_count == 1
+    assert mock_logger.warning.call_count == 1
+    assert mock_logger.error.call_count == 0
 
 
 def test_find_beam_center_fallback_missing_for_failing_axis(fitted_center):

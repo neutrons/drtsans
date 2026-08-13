@@ -586,6 +586,27 @@ def test_fbc_options_json():
     assert fbc_options["centering_options"] == {"CenterX": {"val": 0.0}}
 
 
+def test_fbc_options_json_fallback_center():
+    r"""The assumed beam center is passed on only when the user opts in"""
+    # an absent flag leaves find_beam_center to its own default, which makes a failed fit fatal
+    reduction_input = {"beamCenter": {"method": "center_of_mass"}}
+    assert "fallback_center" not in fbc_options_json(reduction_input)
+
+    reduction_input = {
+        "beamCenter": {
+            "method": "center_of_mass",
+            "useFallbackBeamCenter": False,
+            "fallbackBeamCenter": [0.025239, 0.0170801],
+        }
+    }
+    assert "fallback_center" not in fbc_options_json(reduction_input)
+
+    reduction_input["beamCenter"]["useFallbackBeamCenter"] = True
+    fbc_options = fbc_options_json(reduction_input)
+    # a tuple, because find_beam_center unpacks one entry per axis
+    assert fbc_options["fallback_center"] == (0.025239, 0.0170801)
+
+
 @pytest.mark.mount_eqsans
 def test_find_beam_center_midrange(has_sns_mount, reference_dir):
     """

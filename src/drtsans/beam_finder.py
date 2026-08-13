@@ -152,7 +152,22 @@ def _find_beam_center_gaussian(ws, parameters={}):
     )
 
 
-def fbc_options_json(reduction_input):
+def fbc_options_json(reduction_input: dict) -> dict:
+    r"""
+    Collect the entries of the reduction parameters that ~drtsans.beam_finder.find_beam_center accepts.
+
+    Parameters
+    ----------
+    reduction_input: dict
+        Reduction parameters, holding the "beamCenter" entry.
+
+    Returns
+    -------
+    dict
+        Keyword arguments for ~drtsans.beam_finder.find_beam_center. Entry `fallback_center` is
+        present only when "useFallbackBeamCenter" is true. When it is absent, `find_beam_center`
+        assumes no coordinates of its own and a fit that does not converge is fatal.
+    """
     fbc_options = {}
     if "method" in reduction_input["beamCenter"].keys():
         method = reduction_input["beamCenter"]["method"]
@@ -163,6 +178,8 @@ def fbc_options_json(reduction_input):
         elif method == "center_of_mass":
             if "com_centering_options" in reduction_input["beamCenter"].keys():
                 fbc_options["centering_options"] = reduction_input["beamCenter"]["com_centering_options"]
+    if reduction_input["beamCenter"].get("useFallbackBeamCenter", False):
+        fbc_options["fallback_center"] = tuple(reduction_input["beamCenter"]["fallbackBeamCenter"])
     return fbc_options
 
 

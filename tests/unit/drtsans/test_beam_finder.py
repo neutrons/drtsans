@@ -1,5 +1,7 @@
 # local imports
-from drtsans.beam_finder import BeamCenterNotFound, _calculate_neutron_drop, find_beam_center
+from drtsans.beam_finder import BeamCenterNotFound, _calculate_neutron_drop, fbc_options_json, find_beam_center
+from drtsans.mono.biosans.beam_finder import find_beam_center as biosans_find_beam_center
+from drtsans.redparams import reduction_parameters
 
 # third party imports
 import numpy as np
@@ -102,6 +104,48 @@ def test_find_beam_center_finite_untouched(fitted_center, fallback_center):
     assert (x, y) == pytest.approx((0.5, 0.3))
     assert center_type == "calculated"
     assert mock_logger.error.call_count == 0
+
+
+@pytest.mark.parametrize(
+    "instrument_name, expected",
+    [("EQSANS", FALLBACK), ("GPSANS", (0.0, 0.0)), ("BIOSANS", (0.0, 0.0))],
+)
+def test_fbc_options_json_instrument_defaults(instrument_name, expected):
+    """Opting in hands find_beam_center the coordinates carried by the instrument's own schema"""
+    parameters = reduction_parameters(
+        {
+            "instrumentName": instrument_name,
+            "iptsNumber": 42,
+            "beamCenter": {"runNumber": 1, "useFallbackBeamCenter": True},
+        },
+        validate=False,
+    )
+
+    assert fbc_options_json(parameters)["fallback_center"] == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("fallback_center", [None, FALLBACK])
+def test_biosans_find_beam_center_forwards_fallback(mocker, fallback_center):
+    """BIOSANS derives the wing and midrange centers from the main detector, so it must relay the fallback"""
+    mocker.patch("drtsans.mono.biosans.beam_finder.mtd")
+    mocker.patch("drtsans.mono.biosans.beam_finder._beam_center_gravitational_drop", return_value=0.1)
+    mock_find = mocker.patch(
+        "drtsans.mono.biosans.beam_finder.bf.find_beam_center",
+        return_value=(0.5, 0.3, "calculated", {}),
+    )
+    # non-zero distances keep the instrument geometry out of this test
+    distances = dict(
+        sample_det_cent_main_detector=1.0,
+        sample_det_cent_wing_detector=1.1,
+        sample_det_cent_midrange_detector=1.2,
+    )
+    options = {} if fallback_center is None else {"fallback_center": fallback_center}
+
+    biosans_find_beam_center("unused", **distances, **options)
+
+    # an omitted fallback must reach drtsans.find_beam_center as the fatal (None, None)
+    expected = (None, None) if fallback_center is None else fallback_center
+    assert mock_find.call_args.kwargs["fallback_center"] == expected
 
 
 if __name__ == "__main__":

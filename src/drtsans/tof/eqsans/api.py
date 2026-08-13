@@ -81,11 +81,6 @@ __all__ = [
     "plot_reduction_output",
 ]
 
-#: Beam center assumed when no beam center run is configured, and when the fit for one fails.
-#: Coordinates in meters on the detector XY-plane.
-DEFAULT_BEAM_CENTER_X = 0.025239
-DEFAULT_BEAM_CENTER_Y = 0.0170801
-
 I_output = namedtuple(
     "I_output",
     ["I2D_main", "I1D_main", "slice_label", "frame_label"],
@@ -1345,14 +1340,11 @@ def set_beam_center(
             if reduction_config["useDefaultMask"]:
                 apply_mask(center_ws_name, mask=default_mask)
         fbc_options = fbc_options_json(reduction_input)
-        center_x, center_y, beam_center_type, fit_results = find_beam_center(
-            center_ws_name,
-            fallback_center=(DEFAULT_BEAM_CENTER_X, DEFAULT_BEAM_CENTER_Y),
-            **fbc_options,
-        )
+        center_x, center_y, beam_center_type, fit_results = find_beam_center(center_ws_name, **fbc_options)
     else:
-        # no beam center run was configured, so no fit was ever attempted
-        center_x, center_y = DEFAULT_BEAM_CENTER_X, DEFAULT_BEAM_CENTER_Y
+        # no beam center run was configured, so no fit was ever attempted. The assumed coordinates
+        # are used irrespective of "useFallbackBeamCenter", which gates a failed fit, not a missing run
+        center_x, center_y = reduction_input["beamCenter"]["fallbackBeamCenter"]
         beam_center_type = "preset"
         fit_results = None
 

@@ -77,6 +77,7 @@ def find_beam_center(
     sample_det_cent_wing_detector=None,
     sample_det_cent_midrange_detector=None,
     solid_angle_method="VerticalTube",
+    fallback_center=(None, None),
 ) -> Tuple[float, float, float, float, str, dict]:
     """Finds the beam center in a 2D SANS data set.
 
@@ -98,6 +99,11 @@ def find_beam_center(
         :ref:`sample to detector center distance <devdocs-standardnames>`,
         in meters, of the wing detector.
     solid_angle_method: bool, str specify which solid angle correction is needed
+    fallback_center: tuple
+        Coordinates (in meters) to assume for the main detector when the fit yields a non-finite
+        value, one entry per axis. An entry of :py:obj:`None` makes a failure on that axis fatal.
+        The wing and midrange coordinates are derived from the main detector `center_y`, so they
+        rest on the assumed value whenever one is substituted.
 
     Returns
     -------
@@ -119,7 +125,7 @@ def find_beam_center(
         mask_options=mask_options,
         centering_options=centering_options,
         solid_angle_method=solid_angle_method,
-        fallback_center=(None, None),
+        fallback_center=fallback_center,
     )
 
     if sample_det_cent_main_detector is None or sample_det_cent_main_detector == 0.0:

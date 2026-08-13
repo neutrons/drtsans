@@ -274,7 +274,7 @@
       "fallbackBeamCenter": {
         "$ref": "common.json#/definitions/beamCenterCoordinates",
         "default": [0.0, 0.0],
-        "description": "Beam center coordinates (X, Y) in meters on the detector XY-plane, assumed when the centering calculation cannot supply one and when useFallbackBeamCenter is true.",
+        "description": "Beam center coordinates (X, Y) in meters on the detector XY-plane, assumed when no beam center run is configured, and when the centering calculation cannot supply one and useFallbackBeamCenter is true.",
         "examples": [[0.0, 0.0], [0.025239, 0.0170801]]
       },
       "useFallbackBeamCenter": {

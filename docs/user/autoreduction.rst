@@ -45,6 +45,11 @@ in the following order of precedence:
    the script will look for ``/SNS/EQSANS/IPTS-20196/shared/autoreduce/reduction_options.json``.
 3. File ``/SNS/EQSANS/shared/autoreduce/reduction_options.json``.
 
+Whichever file is chosen, the script overrides ``beamCenter/useFallbackBeamCenter`` and sets it to ``true``,
+even if the file asks for ``false``. An unattended reduction should produce a report rather than stop, so when
+the beam center calculation fails to converge, the coordinates in ``beamCenter/fallbackBeamCenter`` are assumed
+instead and the substitution is reported as a warning.
+
 Output Files
 ------------
 For IPTS-20196 and run number 89157, all reduction files are saved under directory

@@ -1,3 +1,5 @@
+from copy import deepcopy
+import json
 import os
 import pathlib
 import tempfile
@@ -150,6 +152,63 @@ def test_intensity_array(simulated_events):
     # event count in the first pixel, but all pixels should have the same count
     count = np.sum(simulated_events.readY(0))
     assert_almost_equal(np.average(z.data[~z.mask]), np.log(count), decimal=3)
+
+
+@pytest.mark.parametrize("options_location", ["output_dir", "ipts", "shared"])
+def test_reduce_sample_forces_fallback_beam_center(simulated_events, tmp_path, monkeypatch, mocker, options_location):
+    """An unattended reduction turns the fallback beam center on, whichever input JSON it settles on
+
+    The input file below asks for `false`, so a passing test also shows the amendment overrides it.
+    """
+    monkeypatch.chdir(tmp_path)  # the script chdir's to AUTOREDUCE_DIR; restore the cwd afterwards
+    run_number = str(simulated_events.getRunNumber())
+    output_dir, shared_dir, ipts_dir = tmp_path / "output", tmp_path / "shared", tmp_path / "IPTS-12345"
+    for directory in (output_dir, shared_dir, ipts_dir):
+        directory.mkdir()
+    monkeypatch.setattr(reduce_EQSANS, "AUTOREDUCE_DIR", str(shared_dir))
+    monkeypatch.setattr(reduce_EQSANS, "AUTOREDUCE_IPTS_DIR", str(tmp_path / "IPTS-{ipts}"))
+
+    raw_options = {
+        "instrumentName": "EQSANS",
+        "iptsNumber": 12345,
+        "sample": {"runNumber": run_number, "thickness": 1.0},
+        "outputFileName": f"EQSANS_{run_number}",
+        "configuration": {"outputDir": str(output_dir)},
+        "beamCenter": {"runNumber": run_number, "useFallbackBeamCenter": False},
+    }
+    options_file = {
+        "output_dir": output_dir / f"reduction_options_{run_number}.json",
+        "ipts": ipts_dir / "reduction_options.json",
+        "shared": shared_dir / "reduction_options.json",
+    }[options_location]
+    options_file.write_text(json.dumps(raw_options))
+
+    # record the amendment, and skip validation because the dataSource validators need files on /SNS
+    amendments = []
+    real_update = reduce_EQSANS.update_reduction_parameters
+
+    def record_amendment(parameters_original, parameter_changes, **kwargs):
+        amendments.append(deepcopy(parameter_changes))
+        return real_update(parameters_original, parameter_changes, validate=False, permissible=True)
+
+    mocker.patch.object(reduce_EQSANS, "update_reduction_parameters", side_effect=record_amendment)
+    mocker.patch.object(reduce_EQSANS, "load_all_files")
+    mocker.patch.object(reduce_EQSANS, "reduce_single_configuration")
+    mocker.patch.object(reduce_EQSANS, "plot_reduction_output")
+    mocker.patch.object(reduce_EQSANS, "plotly_reduction_output", return_value="")
+    mocker.patch.object(reduce_EQSANS, "reduce_non_sample", return_value="")
+    mocker.patch.object(reduce_EQSANS, "GPR_AVAILABLE", False)
+
+    reduce_EQSANS.reduce_sample(simulated_events, str(output_dir), MagicMock())
+
+    assert amendments[0]["beamCenter"]["useFallbackBeamCenter"] is True
+    if options_location == "shared":
+        # the beam center run number joins the flag rather than replacing it
+        assert amendments[0]["beamCenter"]["runNumber"] == run_number
+
+    # the comprehensive options saved for the record carry the forced value, not the requested `false`
+    saved = json.loads((output_dir / f"reduction_options_{run_number}.json").read_text())
+    assert saved["beamCenter"]["useFallbackBeamCenter"] is True
 
 
 if __name__ == "__main__":

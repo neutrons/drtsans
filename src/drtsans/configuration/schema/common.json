@@ -50,6 +50,13 @@
       },
       "preferredType": "[float]"
     },
+    "beamCenterCoordinates": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 2,
+      "maxItems": 2,
+      "preferredType": "[float]"
+    },
     "safeStringNonNegativeFloat": {
       "anyOf": [
         { "type": "string", "pattern": "^$|^[0-9]*.[0-9]*$" },
@@ -263,6 +270,18 @@
         "$ref": "common.json#/definitions/runNumberOptionalTypes",
         "description": "The run number(s) for the beam center calculation. More than one run number can be specified by passing a list or by passing a string containing the run numbers separated by commas.",
         "examples": ["12345", 12345]
+      },
+      "fallbackBeamCenter": {
+        "$ref": "common.json#/definitions/beamCenterCoordinates",
+        "default": [0.0, 0.0],
+        "description": "Beam center coordinates (X, Y) in meters on the detector XY-plane, assumed when the centering calculation cannot supply one and when useFallbackBeamCenter is true.",
+        "examples": [[0.0, 0.0], [0.025239, 0.0170801]]
+      },
+      "useFallbackBeamCenter": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, substitute a nominal beam center when the centering calculation yields a non-finite coordinate, and report the substitution as a warning. If false, a non-finite coordinate is a fatal error.",
+        "examples": [true, false]
       }
     },
     "additionalProperties": {
@@ -334,7 +353,7 @@
       }
     },
     "minProperties": 1,
-    "maxProperties": 3,
+    "maxProperties": 5,
     "required": ["runNumber"]
   },
   "emptyTransmission": {

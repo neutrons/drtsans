@@ -419,12 +419,18 @@ def test_monochromatic(datarepo_dir, temp_directory, mocker):
     # value spanning the whole (single) wavelength band when monochromatic mode is detected.
     reduction_log_file = os.path.join(output_dir, "EQSANS_177103_monochromatic_reduction_log.hdf")
     with h5py.File(reduction_log_file, "r") as h5file:
-        raw_value = h5file["reduction_information/sample_logs/main/wavelength_bin_width"][()]
+        sample_logs = h5file["reduction_information/sample_logs/main"]
+        raw_value = sample_logs["wavelength_bin_width"][()]
+        low_tof_clip = float(sample_logs["low_tof_clip"][()])
+        high_tof_clip = float(sample_logs["high_tof_clip"][()])
     wavelength_bin_widths = [float(v) for v in raw_value.decode().split(",")]
     assert len(wavelength_bin_widths) == 1, (
         f"Expected a single wavelength_bin_width value, got: {wavelength_bin_widths}"
     )
-    assert round(wavelength_bin_widths[0], 3) == 0.386
+    # the whole transmitted band, 9.446-10.410 Angstrom. The schema default clippings of 500 and
+    # 2000 micro seconds are overridden in monochromatic mode; applying them would leave 0.263
+    assert round(wavelength_bin_widths[0], 3) == 0.963
+    assert (low_tof_clip, high_tof_clip) == (0.0, 0.0)
 
     # clean up
     DeleteWorkspace("processed_data_main")

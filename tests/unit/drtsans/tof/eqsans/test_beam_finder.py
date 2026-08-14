@@ -18,7 +18,7 @@ def test_find_beam_center(datarepo_dir, temp_workspace_name):
     """
     with amend_config(data_dir=datarepo_dir.eqsans):
         w = LoadEventNexus(Filename="EQSANS_92160.nxs.h5", OutputWorkspace=temp_workspace_name())
-    assert find_beam_center(w)[:-1] == approx((0.02997, 0.01379), abs=1e-3)
+    assert find_beam_center(w)[:2] == approx((0.02997, 0.01379), abs=1e-3)
 
 
 @pytest.mark.datarepo
@@ -36,7 +36,7 @@ def test_center_detector(datarepo_dir, temp_workspace_name):
     with amend_config(data_dir=datarepo_dir.eqsans):
         w = LoadEventNexus(Filename="EQSANS_92160.nxs.h5", OutputWorkspace=temp_workspace_name())
     r = find_beam_center(w, method="center_of_mass")
-    assert r[:-1] == approx((0.02997, 0.0138), abs=1e-3)
+    assert r[:2] == approx((0.02997, 0.0138), abs=1e-3)
     pos_old = w.getInstrument().getDetector(0).getPos()
     expected = np.array([0.52164, -0.54785, -0.02559])
     assert pos_old == approx(expected, abs=1e-5)

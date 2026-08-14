@@ -100,10 +100,10 @@ def test_merge_data(datarepo_dir):
 
     # Check integrated intensity increases as the total sum
     # Note: Values reflect FullBinsOnly=True behavior in GitHub CI environment
-    assert mtd[str(ws0)].extractY().sum() == 289403
-    assert mtd[str(ws1)].extractY().sum() == 1325211
-    assert mtd[str(ws2)].extractY().sum() == 65694
-    assert mtd[str(merged_workspaces)].extractY().sum() == 289403 + 1325211 + 65694
+    assert mtd[str(ws0)].extractY().sum() == 288690
+    assert mtd[str(ws1)].extractY().sum() == 1268755
+    assert mtd[str(ws2)].extractY().sum() == 62440
+    assert mtd[str(merged_workspaces)].extractY().sum() == 288690 + 1268755 + 62440
 
     mtd.remove(str(ws0))
     mtd.remove(str(ws1))

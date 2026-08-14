@@ -92,7 +92,7 @@ def test_gaussian_fit(datarepo_dir, temp_directory):
     params["theta"].vary = False
     results = model.fit(intes, x1=x, y1=y, weights=1.0 / intes_err, params=params)
 
-    x0, y0, fit_results = sans.find_beam_center(
+    x0, y0, _, fit_results = sans.find_beam_center(
         ws,
         method="gaussian",
         centering_options={"theta": {"value": np.pi / 2.0, "vary": False}},
@@ -108,7 +108,7 @@ def test_gaussian_fit(datarepo_dir, temp_directory):
 
     params["theta"].value = 0.0
     results = model.fit(intes, x1=x, y1=y, weights=1.0 / intes_err, params=params)
-    x0, y0, fit_results = sans.find_beam_center(
+    x0, y0, _, fit_results = sans.find_beam_center(
         ws,
         method="gaussian",
         centering_options={"theta": {"value": 0.0, "vary": False}},

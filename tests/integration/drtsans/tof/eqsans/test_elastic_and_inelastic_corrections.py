@@ -292,7 +292,7 @@ def test_incoherence_correction_elastic_normalization(
     )
 
     # Check that the wavelength dependent profiles are created
-    number_of_wavelengths = 31
+    number_of_wavelengths = 30
     if correction_case in ["elastic_correction", "elastic_inelastic_correction"]:
         assert (
             len(glob.glob(os.path.join(elastic_output_dir, "IQ_*_before_k_correction.dat"))) == number_of_wavelengths
@@ -515,8 +515,9 @@ def test_incoherence_correction_elastic_normalization_slices_frames(
     print(f"Output directory: {test_dir}")
 
     # check that the wavelength-dependent profiles are created in subdirectories for slices and frames
-    # FullBinsOnly=True reduces wavelength bins: frame_0 from 28 to 27, frame_1 stays at 28
-    wavelength_count = [27, 28]  # number of wavelengths for each frame
+    # FullBinsOnly=True reduces wavelength bins.  Mantid 6.15 produces 27 bins
+    # for both frames in this configuration.
+    wavelength_count = [27, 27]  # number of wavelengths for each frame
     for islice in range(3):
         for iframe in range(2):
             if isinstance(fitInelasticIncoh, list) and fitInelasticIncoh[iframe] is False:

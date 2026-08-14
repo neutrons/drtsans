@@ -315,6 +315,14 @@ class DiskChopper:
         Wavelength bands transmitted by the chopper aperture. The number of bands is determined by the
         slowest neutrons emitted from the moderator.
 
+        A neutron of wavelength :math:`\lambda` reaches the chopper at time
+        :math:`t_0(\lambda) + D / v(\lambda)`, and is transmitted when that time falls inside the
+        aperture's opening window. Both edges of each band therefore carry the emission-delay
+        correction, which shifts the band towards shorter wavelengths by an amount inversely
+        proportional to the chopper's distance to the source. Omitting ``emission_delay`` yields
+        instead the purely geometric band, which is what the data acquisition system phases the
+        choppers against.
+
         Parameters
         ----------
         cutoff_wl: float
@@ -338,9 +346,9 @@ class DiskChopper:
         # shortest wavelength, corrected for emission delay if provided
         opening_wl = self.wavelength(t_opening, delay, emission_delay)
         while opening_wl < cutoff_wl:
-            # slowest wavelength, no emission delay correction on the closing edge
+            # slowest wavelength, corrected for emission delay if provided
             t = t_opening + self.transmission_duration
-            closing_wl = self.wavelength(t, delay)
+            closing_wl = self.wavelength(t, delay, emission_delay)
             if closing_wl > cutoff_wl:
                 closing_wl = cutoff_wl
             wb += Wband(opening_wl, closing_wl)

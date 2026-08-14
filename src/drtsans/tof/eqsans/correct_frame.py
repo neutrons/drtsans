@@ -39,6 +39,16 @@ WAVELENGTH_BAND_DIFF_TOLERANCE = 0.1  # Angstrom
 # monochromatic mode. The alias is the name under which the variable appears in the sample logs.
 MONOCHROMATIC_PV = "MCON16"
 
+# Aliases of the DAS process variables recording the wavelength band requested of the
+# monochromatic chopper controller. Runs predating these variables lack the logs altogether.
+MONOCHROMATIC_CENTER_PV = "MCWL16"  # middle of the band, in Angstrom
+MONOCHROMATIC_SPREAD_PV = "MCWLSpread16"  # width of the band, as a percent of the center
+
+# Fraction of the requested wavelength band that the choppers must deliver. Below the first
+# threshold the disagreement is reported as a warning, below the second it is an error.
+BAND_OVERLAP_WARNING = 0.90
+BAND_OVERLAP_ERROR = 0.80
+
 # Default TOF clipping values from EQSANS.json schema (in microseconds)
 _eqsans_defaults = default_reduction_parameters("EQSANS")["configuration"]
 DEFAULT_LOW_TOF_CLIP = _eqsans_defaults["cutTOFmin"]  # 500.0 µs
@@ -47,6 +57,14 @@ DEFAULT_HIGH_TOF_CLIP = _eqsans_defaults["cutTOFmax"]  # 2000.0 µs
 
 class IncompatibleWavelengthBandsError(ValueError):
     """Raised when the desired wavelength band is incompatible with the data"""
+
+
+class MissingMonochromaticLogs(RuntimeError):
+    """Raised when the sample logs do not record the requested monochromatic wavelength band"""
+
+
+class DegenerateMonochromaticBand(RuntimeError):
+    """Raised when the requested monochromatic wavelength band is recorded but unusable"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,6 +114,172 @@ def _is_frame_skipping(input_workspace):
         return bool(sample_logs.is_frame_skipping.value)
     else:
         return EQSANSDiskChopperSet(input_workspace).frame_mode == FrameMode.skip
+
+
+def is_monochromatic(input_workspace) -> bool:
+    r"""
+    Find whether the run was taken in monochromatic mode, according to sample log
+    :const:`~drtsans.tof.eqsans.correct_frame.MONOCHROMATIC_PV`.
+
+    It is the *value* of the log that decides the mode. A run whose file predates the process
+    variable lacks the log altogether, and is taken to be polychromatic.
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+
+    Returns
+    -------
+    bool
+    """
+    sample_logs = SampleLogs(input_workspace)
+    if MONOCHROMATIC_PV not in sample_logs.keys():
+        return False
+    return bool(sample_logs.single_value(MONOCHROMATIC_PV))
+
+
+def band_from_logs(input_workspace) -> wlg.Wband:
+    r"""
+    Wavelength band requested of the monochromatic chopper controller, as recorded in the logs.
+
+    Sample log :const:`~drtsans.tof.eqsans.correct_frame.MONOCHROMATIC_CENTER_PV` holds the
+    middle of the band :math:`\lambda_0` in Angstroms, and
+    :const:`~drtsans.tof.eqsans.correct_frame.MONOCHROMATIC_SPREAD_PV` holds the width of the
+    band as a percent :math:`p` of the center, so that the band spans
+
+    .. math::
+
+        \left[ \left(1 - \frac{p}{200}\right) \lambda_0,\ \left(1 + \frac{p}{200}\right) \lambda_0 \right]
+
+    This is the band the instrument was *asked* to deliver, not the band derived from the
+    chopper phases by :func:`~drtsans.tof.eqsans.correct_frame.transmitted_bands`.
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+
+    Returns
+    -------
+    ~drtsans.wavelength.Wband
+        Requested wavelength band, in Angstroms.
+
+    Raises
+    ------
+    MissingMonochromaticLogs
+        If either log is absent. Runs predating the two process variables carry neither, even
+        when flagged as monochromatic.
+    DegenerateMonochromaticBand
+        If the logged values do not describe a usable band, namely when a boundary is not
+        finite, the lower boundary is negative (a spread above 200 percent), or the lower
+        boundary is not below the upper one (a spread of zero, or a negative spread inverting
+        them). A spread of exactly 200 percent is usable: the band spans from zero to twice the
+        center.
+    """
+    sample_logs = SampleLogs(input_workspace)
+    missing = [pv for pv in (MONOCHROMATIC_CENTER_PV, MONOCHROMATIC_SPREAD_PV) if pv not in sample_logs.keys()]
+    if missing:
+        raise MissingMonochromaticLogs(f"sample log(s) {', '.join(missing)} not found")
+    center = float(sample_logs.single_value(MONOCHROMATIC_CENTER_PV))  # Angstrom
+    spread = float(sample_logs.single_value(MONOCHROMATIC_SPREAD_PV))  # percent of the center
+
+    minimum, maximum = (1.0 - spread / 200.0) * center, (1.0 + spread / 200.0) * center
+    # validate the boundaries, which is what Wband and the overlap fraction actually require,
+    # rather than the spread against a percentage that would have to be kept in step with them
+    if not (np.isfinite(minimum) and np.isfinite(maximum)) or minimum < 0.0 or minimum >= maximum:
+        raise DegenerateMonochromaticBand(
+            f"{MONOCHROMATIC_CENTER_PV}={center} Angstrom and {MONOCHROMATIC_SPREAD_PV}={spread} percent "
+            f"give the unusable band [{minimum}, {maximum}]"
+        )
+    return wlg.Wband(minimum, maximum)
+
+
+def geometric_band(input_workspace) -> wlg.Wband:
+    r"""
+    Wavelength band the choppers are phased for, ignoring the delayed neutron emission from the
+    moderator.
+
+    This is the band the data acquisition system computes when it is given a center and a
+    spread, and hence the one to compare
+    :func:`~drtsans.tof.eqsans.correct_frame.band_from_logs` against. The band that actually
+    reaches the sample, returned by
+    :func:`~drtsans.tof.eqsans.correct_frame.transmitted_bands`, is shifted towards shorter
+    wavelengths by the emission delay.
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+
+    Returns
+    -------
+    ~drtsans.wavelength.Wband
+        Lead band, in Angstroms.
+
+    Raises
+    ------
+    ValueError
+        If the choppers have no wavelength in common.
+    """
+    bands = EQSANSDiskChopperSet(input_workspace).transmission_bands()  # no emission delay
+    if len(bands) == 0:
+        raise ValueError("the choppers have no wavelength in common")
+    return bands[0]
+
+
+def verify_monochromatic_band(input_workspace, band) -> float | None:
+    r"""
+    Check the band the choppers are phased for against the band requested in the logs, and
+    report any disagreement.
+
+    The figure of merit is the fraction of the requested band that `band` covers. Pass the
+    geometric band from
+    :func:`~drtsans.tof.eqsans.correct_frame.geometric_band`, not the emission-delay corrected
+    band that reaches the sample: the latter is shifted towards shorter wavelengths and would
+    report a disagreement on every run.
+
+    Parameters
+    ----------
+    input_workspace: str, ~mantid.api.MatrixWorkspace, ~mantid.api.IEventWorkspace
+        Workspace whose logs record the requested band.
+    band: ~drtsans.wavelength.Wband
+        Band the choppers are phased for. Only one band is compared, monochromatic mode being
+        incompatible with frame skipping.
+
+    Returns
+    -------
+    float or None
+        Fraction of the requested band covered by `band`, or :py:obj:`None` if the logs do not
+        record a usable requested band, in which case the check is skipped with a warning
+        instead of failing the reduction.
+
+    Raises
+    ------
+    ValueError
+        If `band` covers less than
+        :const:`~drtsans.tof.eqsans.correct_frame.BAND_OVERLAP_ERROR` of the requested band.
+    """
+    try:
+        requested = band_from_logs(input_workspace)
+    except (MissingMonochromaticLogs, DegenerateMonochromaticBand) as error:
+        logger.warning(
+            f"Monochromatic mode: cannot verify the transmitted wavelength band because {error}. Skipping the check."
+        )
+        return None
+
+    overlap_width = max(0.0, min(requested.max, band.max) - max(requested.min, band.min))
+    overlap = overlap_width / (requested.max - requested.min)
+
+    report = (
+        f"Monochromatic mode: the choppers cover {100 * overlap:.1f}% of the requested "
+        f"wavelength band. Requested {requested}, phased for {band}."
+    )
+    if overlap >= BAND_OVERLAP_WARNING:
+        logger.information(report)
+    elif overlap >= BAND_OVERLAP_ERROR:
+        logger.warning(report)
+    else:
+        logger.error(report)
+        raise ValueError(report)
+    return overlap
 
 
 def transmitted_bands(input_workspace):
@@ -658,12 +842,7 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
         w_max = bands.skip.max if is_frame_skipping else bands.lead.max
 
     # If in monochromatic mode, override `bin_width`
-    sample_logs = SampleLogs(input_workspace)
-    if MONOCHROMATIC_PV in sample_logs.keys():
-        is_monochromatic = bool(sample_logs.single_value(MONOCHROMATIC_PV))
-    else:
-        is_monochromatic = False
-    if is_monochromatic:
+    if is_monochromatic(input_workspace):
         if is_frame_skipping:
             raise ValueError("Monochromatic mode is incompatible with frame-skipping mode")
         if bands is None:
@@ -750,10 +929,12 @@ def transform_to_wavelength(
         Bin width for the output workspace, in Angstroms.
     low_tof_clip: float
         Ignore events with a time-of-flight (TOF) smaller than the minimal
-        TOF plus this quantity.
+        TOF plus this quantity. Overridden with zero in monochromatic mode (sample log
+        ``MCON16`` is ``True``).
     high_tof_clip: float
         Ignore events with a time-of-flight (TOF) bigger than the maximal
-        TOF minus this quantity.
+        TOF minus this quantity. Overridden with zero in monochromatic mode (sample log
+        ``MCON16`` is ``True``).
     keep_events: bool
         The final histogram will be an EventsWorkspace if True.
     interior_clip: bool
@@ -773,12 +954,26 @@ def transform_to_wavelength(
     if output_workspace is None:
         output_workspace = str(input_workspace)
 
+    # Clippings sized for the wide band of polychromatic operation would remove most, or all, of
+    # the narrow band transmitted in monochromatic mode, so discard them.
+    if is_monochromatic(input_workspace) and (low_tof_clip > 0.0 or high_tof_clip > 0.0):
+        logger.notice(
+            f"Monochromatic mode detected: overriding TOF clippings "
+            f"({low_tof_clip}, {high_tof_clip}) micro seconds with zero, to preserve the whole "
+            f"transmitted wavelength band"
+        )
+        low_tof_clip, high_tof_clip = 0.0, 0.0
+
     # generate bands from input workspace
     if low_tof_clip > 0.0 or high_tof_clip > 0.0:
         sdd = source_detector_distance(input_workspace, unit="m")
         bands_from_ws = transmitted_bands_clipped(input_workspace, sdd, low_tof_clip, high_tof_clip)
     else:
         bands_from_ws = transmitted_bands(input_workspace)
+
+    # cross-check this run's chopper phases against the band the instrument was asked for
+    if is_monochromatic(input_workspace):
+        verify_monochromatic_band(input_workspace, geometric_band(input_workspace))
 
     # use generated bands if not given
     if bands is None:

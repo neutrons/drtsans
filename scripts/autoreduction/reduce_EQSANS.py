@@ -377,22 +377,24 @@ def reduce_sample(
     is_live_reduction = sample_file is not None
 
     # find most appropriate reduction options and amend if necessary
-    amendment = {}
+    amendment = {"beamCenter": {"useFallbackBeamCenter": True}}  # in case the beam center fit fails to converge
     # Example: reduction_options_path == /SNS/EQSANS/IPTS-12345/shared/autoreduce/105584/reduction_options_105584.json
     reduction_options_path = os.path.join(output_dir, f"reduction_options_{run_number}.json")
     if os.path.exists(reduction_options_path) is False:
-        amendment = {
-            "iptsNumber": ipts,
-            "sample": {"runNumber": sample_file or run_number},
-            "outputFileName": f"EQSANS_{run_number}",  # prefix for all output files
-            "configuration": {"outputDir": output_dir},
-        }
+        amendment.update(
+            {
+                "iptsNumber": ipts,
+                "sample": {"runNumber": sample_file or run_number},
+                "outputFileName": f"EQSANS_{run_number}",  # prefix for all output files
+                "configuration": {"outputDir": output_dir},
+            }
+        )
         # Example: reduction_options_path == /SNS/EQSANS/IPTS-12345/shared/autoreduce/reduction_options.json
         reduction_options_path = os.path.join(AUTOREDUCE_IPTS_DIR.format(ipts=ipts), "reduction_options.json")
         if os.path.exists(reduction_options_path) is False:
             #  Fallback: /SNS/EQSANS/shared/autoreduce/reduction_options.json
             reduction_options_path = os.path.join(AUTOREDUCE_DIR, "reduction_options.json")
-            amendment["beamCenter"] = {"runNumber": run_number}
+            amendment["beamCenter"]["runNumber"] = run_number
     logger.info(f"reduce_sample: Loading reduction options from {reduction_options_path}")
 
     footer = (

@@ -341,11 +341,12 @@ def load_events_and_histogram(
         )
 
         if center_x is None or center_y is None:
-            center_x, center_y, _ = find_beam_center(
+            center_x, center_y, _, _ = find_beam_center(
                 ws,
                 mask=mask,
                 method=centering_method,
                 centering_options=centering_options,
+                fallback_center=(None, None),
             )
         center_detector(ws, center_x=center_x, center_y=center_y)  # operates in-place
 
@@ -401,11 +402,12 @@ def load_events_and_histogram(
                 **kwargs,
             )
             if center_x is None or center_y is None:
-                center_x, center_y, _ = find_beam_center(
+                center_x, center_y, _, _ = find_beam_center(
                     temp_workspace_name,
                     mask=mask,
                     method=centering_method,
                     centering_options=centering_options,
+                    fallback_center=(None, None),
                 )
             center_detector(temp_workspace_name, center_x=center_x, center_y=center_y)  # operates in-place
             if n == 0:
@@ -630,11 +632,12 @@ def load_and_split_and_histogram(
     bands = None
     for _w in ws_group:
         if center_x is None or center_y is None:
-            center_x, center_y, _ = find_beam_center(
+            center_x, center_y, _, _ = find_beam_center(
                 _w,
                 mask=mask,
                 method=centering_method,
                 centering_options=centering_options,
+                fallback_center=(None, None),
             )
         center_detector(_w, center_x=center_x, center_y=center_y)  # operates in-place
         ws_i, c_bands = transform_to_wavelength(

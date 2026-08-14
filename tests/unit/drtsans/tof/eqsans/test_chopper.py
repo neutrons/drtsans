@@ -20,11 +20,11 @@ class TestEQSANSDiskChopperSet:
         # prompt pulse
         wb = chs.transmission_bands(emission_delay=emission_delay)
         assert len(wb) == 1
-        assert_almost_equal((wb[0].min, wb[0].max), (2.45, 6.14), decimal=2)
+        assert_almost_equal((wb[0].min, wb[0].max), (2.45, 6.07), decimal=2)
         # skipped pulse has a delay of chs.period/2 (16666.6 micro-sec)
         wb = chs.transmission_bands(delay=chs.period / 2, emission_delay=emission_delay)
         assert len(wb) == 1
-        assert_almost_equal((wb[0].min, wb[0].max), (9.69, 13.41), decimal=2)
+        assert_almost_equal((wb[0].min, wb[0].max), (9.69, 13.36), decimal=2)
 
         # Test transmitted bands in non-skipping mode
         #
@@ -34,7 +34,7 @@ class TestEQSANSDiskChopperSet:
         assert chs.frame_mode == FrameMode.not_skip
         wb = chs.transmission_bands(emission_delay=emission_delay)
         assert len(wb) == 1  # there's a small leakage, the second band
-        assert_almost_equal((wb[0].min, wb[0].max), (2.45, 6.66), decimal=2)
+        assert_almost_equal((wb[0].min, wb[0].max), (2.45, 6.58), decimal=2)
         # previous pulse has a delay of chs.period (16666.6 micro-sec)
         wb = chs.transmission_bands(delay=chs.period, emission_delay=emission_delay)
         assert len(wb) == 0  # the small leakage from the previous pulse
@@ -45,11 +45,11 @@ class TestEQSANSDiskChopperSet:
         assert chs.frame_mode == FrameMode.not_skip
         wb = chs.transmission_bands(emission_delay=emission_delay)
         assert len(wb) == 1
-        assert_almost_equal((wb[0].min, wb[0].max), (9.94, 13.64), decimal=2)
+        assert_almost_equal((wb[0].min, wb[0].max), (9.94, 13.55), decimal=2)
         # skipped pulse has a delay of chs.period (16666.6 micro-sec)
         wb = chs.transmission_bands(delay=chs.period, emission_delay=emission_delay)
         assert len(wb) == 1  # we are working in the second frame
-        assert_almost_equal((wb[0].min, wb[0].max), (9.95, 13.64), decimal=2)
+        assert_almost_equal((wb[0].min, wb[0].max), (9.95, 13.55), decimal=2)
         #
         # porasil 8m
         file_name = pjn(datarepo_dir.eqsans, "test_chopper", "EQSANS_92144_no_events.nxs")
@@ -57,11 +57,11 @@ class TestEQSANSDiskChopperSet:
         assert chs.frame_mode == FrameMode.not_skip
         wb = chs.transmission_bands(emission_delay=emission_delay)
         assert len(wb) == 1
-        assert_almost_equal((wb[0].min, wb[0].max), (11.94, 14.98), decimal=2)
+        assert_almost_equal((wb[0].min, wb[0].max), (11.94, 14.89), decimal=2)
         # skipped pulse has a delay of chs.period (16666.6 micro-sec)
         wb = chs.transmission_bands(delay=chs.period, emission_delay=emission_delay)
         assert len(wb) == 1  # we are working in the second frame
-        assert_almost_equal((wb[0].min, wb[0].max), (11.95, 14.98), decimal=2)
+        assert_almost_equal((wb[0].min, wb[0].max), (11.95, 14.89), decimal=2)
 
 
 if __name__ == "__main__":

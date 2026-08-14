@@ -166,7 +166,7 @@ def test_process_single_configuration(biosans_synthetic_dataset, clean_workspace
 
     # Find the beam center
     ws_beam_center = _load_synthetic_run("beam_center")
-    center_x, center_y, center_y_wing, center_y_midrange, _ = find_beam_center(
+    center_x, center_y, center_y_wing, center_y_midrange, _, _ = find_beam_center(
         ws_beam_center, centering_options={"IntegrationRadius": 0.03}
     )
 

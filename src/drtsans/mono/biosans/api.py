@@ -1342,7 +1342,7 @@ def reduce_single_configuration(
         symmetric_wedges = False
 
     fbc_options = biosans.fbc_options_json(reduction_input)
-    xc, yc, yw, ym, fit_results = biosans.find_beam_center(loaded_ws.center, **fbc_options)
+    xc, yc, yw, ym, center_type, fit_results = biosans.find_beam_center(loaded_ws.center, **fbc_options)
     logger.notice(f"Find beam center  = {xc}, {yc}, {yw}, {ym}")
 
     # does the run include the midrange detector? check the geometry of the first sample

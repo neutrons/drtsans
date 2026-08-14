@@ -68,7 +68,7 @@ def test_beam_finder_excel(generic_workspace, clean_workspace):
     _verify_pixel(ws, 88, [0.5115, 0.5625, 15.5], 64)
 
     # run the function to calculate the beam center
-    x, y, y_wing, y_midrange, _ = beam_finder.find_beam_center(
+    x, y, y_wing, y_midrange, _, _ = beam_finder.find_beam_center(
         ws,
         sample_det_cent_main_detector=15.5,
         sample_det_cent_wing_detector=1.13,
@@ -131,7 +131,7 @@ def test_beam_finder_excel2(generic_workspace, clean_workspace):
     _verify_pixel(ws, 88, [-0.0085, 0.0055, 15.5], 64)
 
     # run the function to calculate the beam center
-    x, y, y_wing, y_midrange, _ = beam_finder.find_beam_center(
+    x, y, y_wing, y_midrange, _, _ = beam_finder.find_beam_center(
         ws,
         sample_det_cent_main_detector=15.5,
         sample_det_cent_wing_detector=1.13,
@@ -161,7 +161,7 @@ def test_beam_finder_wing(biosans_f, clean_workspace):
     clean_workspace(ws)
 
     # 0.00144037741238 -0.0243732351545 -0.0267
-    x, y, y_wing, y_midrange, _ = beam_finder.find_beam_center(ws)
+    x, y, y_wing, y_midrange, _, _ = beam_finder.find_beam_center(ws)
 
     assert x == pytest.approx(0.00214, abs=1e-4)
     assert y == pytest.approx(-0.02445, abs=1e-4)
@@ -202,7 +202,9 @@ def test_beam_finder_wing(biosans_f, clean_workspace):
     assert y1 == pytest.approx(0.0, abs=1e-4)
 
     # let's the test our wrap function. The results should be the same.
-    x2, y2, y_wing2, y_midrange2, _ = beam_finder.find_beam_center(ws, centering_options=dict(CenterX=-x, CenterY=-y))
+    x2, y2, y_wing2, y_midrange2, _, _ = beam_finder.find_beam_center(
+        ws, centering_options=dict(CenterX=-x, CenterY=-y)
+    )
 
     assert x2 == pytest.approx(0.0, abs=1e-3) == x1
     assert y2 == pytest.approx(0.0, abs=1e-4) == y1
@@ -230,7 +232,7 @@ def test_beam_finder_midrange(reference_dir, has_sns_mount):
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
     ws = update_idf(ws)
 
-    x, y, y_wing, y_midrange, _ = beam_finder.find_beam_center(ws, centering_options=dict(IntegrationRadius=0.07))
+    x, y, y_wing, y_midrange, _, _ = beam_finder.find_beam_center(ws, centering_options=dict(IntegrationRadius=0.07))
 
     # -0.0130 -0.0136
     assert x == pytest.approx(-0.0130, abs=1e-4)
@@ -271,7 +273,7 @@ def test_beam_finder_midrange(reference_dir, has_sns_mount):
     assert y1 == pytest.approx(0.0, abs=1e-4)
 
     # let's the test our wrap function. The results should be the same.
-    x2, y2, y_wing2, y_midrange2, _ = beam_finder.find_beam_center(
+    x2, y2, y_wing2, y_midrange2, _, _ = beam_finder.find_beam_center(
         ws, centering_options=dict(CenterX=-x, CenterY=-y, IntegrationRadius=0.07)
     )
     assert x2 == pytest.approx(0.0, abs=1e-3) == x1

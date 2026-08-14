@@ -77,7 +77,7 @@ def test_beam_finder_trivial(generic_workspace):
     assert inst.getDetector(6).getPos() == approx([2, 2, 5], abs=1e-5)
     assert inst.getDetector(9).getPos() == approx([1, 1, 5], abs=1e-5)
     assert inst.getDetector(10).getPos() == approx([1, 2, 5], abs=1e-5)
-    x_cen, y_cen, _ = find_beam_center(ws)
+    x_cen, y_cen, _, _ = find_beam_center(ws)
     assert x_cen == approx(1.328293, abs=1e-5)
     assert y_cen == approx(1.421136, abs=1e-5)
 
@@ -138,7 +138,7 @@ def test_beam_finder_larger_workspace(generic_workspace):
     for i in mask:
         assert spec.isMasked(i)
     # test functions
-    x_cen, y_cen, _ = find_beam_center(ws)
+    x_cen, y_cen, _, _ = find_beam_center(ws)
     assert x_cen == approx(5.594458, abs=1e-5)
     assert y_cen == approx(6.098827, abs=1e-5)
     #
@@ -545,7 +545,7 @@ def test_find_beam_center_arbitrary_assembly(arbitrary_assembly_IDF):
     )
 
     # Finding the beam center
-    x_cen, y_cen, _ = find_beam_center(sensitivity_corrected_counts, solid_angle_method="GenericShape")
+    x_cen, y_cen, _, _ = find_beam_center(sensitivity_corrected_counts, solid_angle_method="GenericShape")
     assert x_cen * 1000 == approx(27.41, abs=0.9)
     assert y_cen * 1000 == approx(22.5, abs=0.9)
 
@@ -586,6 +586,27 @@ def test_fbc_options_json():
     assert fbc_options["centering_options"] == {"CenterX": {"val": 0.0}}
 
 
+def test_fbc_options_json_fallback_center():
+    r"""The assumed beam center is passed on only when the user opts in"""
+    # an absent flag leaves find_beam_center to its own default, which makes a failed fit fatal
+    reduction_input = {"beamCenter": {"method": "center_of_mass"}}
+    assert "fallback_center" not in fbc_options_json(reduction_input)
+
+    reduction_input = {
+        "beamCenter": {
+            "method": "center_of_mass",
+            "useFallbackBeamCenter": False,
+            "fallbackBeamCenter": [0.025239, 0.0170801],
+        }
+    }
+    assert "fallback_center" not in fbc_options_json(reduction_input)
+
+    reduction_input["beamCenter"]["useFallbackBeamCenter"] = True
+    fbc_options = fbc_options_json(reduction_input)
+    # a tuple, because find_beam_center unpacks one entry per axis
+    assert fbc_options["fallback_center"] == (0.025239, 0.0170801)
+
+
 @pytest.mark.mount_eqsans
 def test_find_beam_center_midrange(has_sns_mount, reference_dir):
     """
@@ -609,7 +630,7 @@ def test_find_beam_center_midrange(has_sns_mount, reference_dir):
     # collect values before adding the midrange_detector
     ws = load_events("CG3_957.nxs.h5", data_dir=reference_dir.biosans, overwrite_instrument=True)
     assert ws.getInstrument().getComponentByName("midrange_detector") is None
-    x_initial, y_initial, fit_results_initial = find_beam_center(
+    x_initial, y_initial, _, fit_results_initial = find_beam_center(
         ws,
         method,
         mask,
@@ -623,7 +644,7 @@ def test_find_beam_center_midrange(has_sns_mount, reference_dir):
     assert ws.getInstrument().getComponentByName("midrange_detector")
 
     # collect values
-    x_final, y_final, fit_results_final = find_beam_center(
+    x_final, y_final, _, fit_results_final = find_beam_center(
         ws,
         method,
         mask,

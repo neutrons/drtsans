@@ -62,7 +62,23 @@
     },
     "background": { "$ref": "common.json#/background" },
     "emptyTransmission": { "$ref": "common.json#/emptyTransmission" },
-    "beamCenter": { "$ref": "common.json#/beamCenter" },
+    "beamCenter": {
+      "type": "object",
+      "properties": {
+        "runNumber": { "$ref": "common.json#/beamCenter/properties/runNumber" },
+        "fallbackBeamCenter": {
+          "$ref": "common.json#/definitions/beamCenterCoordinates",
+          "default": [0.025239, 0.0170801],
+          "description": "Beam center coordinates (X, Y) in meters on the detector XY-plane, assumed when no beam center run is configured, and when the centering calculation cannot supply one and useFallbackBeamCenter is true.",
+          "examples": [[0.0, 0.0], [0.025239, 0.0170801]]
+        },
+        "useFallbackBeamCenter": { "$ref": "common.json#/beamCenter/properties/useFallbackBeamCenter" }
+      },
+      "additionalProperties": { "$ref": "common.json#/beamCenter/additionalProperties" },
+      "minProperties": 1,
+      "maxProperties": 5,
+      "required": ["runNumber"]
+    },
     "outputFileName": { "$ref": "common.json#/outputFileName" },
 
     "configuration": {

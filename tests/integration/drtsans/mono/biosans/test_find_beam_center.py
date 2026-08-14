@@ -35,7 +35,7 @@ def test_biosans_find_beam_center(mock_monitor_counts, biosans_synthetic_dataset
         output_workspace=mtd.unique_hidden_name(),
         sample_thickness=0.1,
     )
-    center_x, center_y, center_y_wing, center_y_midrange, _ = find_beam_center(beam_center_ws)
+    center_x, center_y, center_y_wing, center_y_midrange, _, _ = find_beam_center(beam_center_ws)
     assert_allclose([center_x, center_y], [-0.008, -0.023], atol=0.004)
     DeleteWorkspace(beam_center_ws)
 

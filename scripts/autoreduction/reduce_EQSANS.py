@@ -638,6 +638,8 @@ def autoreduce(args: argparse.Namespace):
     logger = logging.getLogger(LOG_NAME)
     logger.info(f"Loading events from {args.events_file}")
     events = LoadEventNexus(Filename=args.events_file, OutputWorkspace=mtd.unique_hidden_name())
+    if events.getNumberEvents() == 0:
+        raise RuntimeError(f"File {args.events_file} has no events after loading with LoadEventNexus")
 
     # amend the output directory, if necessary
     ipts = SampleLogs(events).experiment_identifier.value[5:]  # e.g. "12345" when having IPTS-12345

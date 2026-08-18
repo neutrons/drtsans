@@ -251,6 +251,7 @@ def load_all_files(reduction_input, prefix="", load_params=None, allow_processed
                     time_interval=reduction_config["timeSliceInterval"],
                     time_offset=reduction_config["timeSliceOffset"],
                     time_period=reduction_config["timeSlicePeriod"],
+                    raise_on_empty=True,
                     **load_params_sample,
                 )
             elif logslice:
@@ -260,6 +261,7 @@ def load_all_files(reduction_input, prefix="", load_params=None, allow_processed
                     output_workspace=ws_name,
                     log_name=logslicename,
                     log_value_interval=reduction_config["logSliceInterval"],
+                    raise_on_empty=True,
                     **load_params_sample,
                 )
             for _w in mtd[ws_name]:
@@ -284,7 +286,9 @@ def load_all_files(reduction_input, prefix="", load_params=None, allow_processed
             )
             print(f"Loading filename {filename}")
             filenames.add(filename)
-            loaded_sample_tup = load_events_and_histogram(filename, output_workspace=ws_name, **load_params_sample)
+            loaded_sample_tup = load_events_and_histogram(
+                filename, output_workspace=ws_name, raise_on_empty=True, **load_params_sample
+            )
             sample_bands = loaded_sample_tup.bands
             if default_mask:
                 apply_mask(ws_name, mask=default_mask)

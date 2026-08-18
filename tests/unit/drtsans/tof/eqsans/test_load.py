@@ -4,7 +4,7 @@ import pytest
 from pytest import approx
 import numpy as np
 
-from mantid.simpleapi import Rebin, SumSpectra, mtd
+from mantid.simpleapi import CreateSampleWorkspace, Rebin, SumSpectra, mtd
 from mantid.kernel import amend_config
 from drtsans.tof.eqsans.load import (
     load_events,
@@ -20,6 +20,38 @@ from drtsans.tof.eqsans.correct_frame import (
     set_init_uncertainties,
 )
 from drtsans.samplelogs import SampleLogs
+
+
+def test_load_events_raises_for_empty_workspace(mocker, clean_workspace):
+    empty_workspace = CreateSampleWorkspace(
+        OutputWorkspace="empty", WorkspaceType="Event", NumBanks=1, BankPixelWidth=1, NumEvents=0
+    )
+    mocker.patch("drtsans.tof.eqsans.load.generic_load_events", return_value="empty")
+
+    with pytest.raises(RuntimeError, match="No detector events were loaded for sample 'sample.nxs'"):
+        load_events("sample.nxs", raise_on_empty=True)
+    clean_workspace(empty_workspace)
+
+
+def test_load_events_does_not_raise_for_empty_workspace_by_default(mocker, clean_workspace):
+    empty_workspace = CreateSampleWorkspace(
+        OutputWorkspace="empty", WorkspaceType="Event", NumBanks=1, BankPixelWidth=1, NumEvents=0
+    )
+    mocker.patch("drtsans.tof.eqsans.load.generic_load_events", return_value="empty")
+    mocker.patch("drtsans.tof.eqsans.load.correct_detector_frame")
+    mocker.patch("drtsans.tof.eqsans.load.correct_emission_time")
+
+    assert load_events("sample.nxs").name() == empty_workspace.name()
+    clean_workspace(empty_workspace)
+
+
+def test_load_and_split_and_histogram_raises_only_when_all_slices_are_empty(mocker):
+    empty_group = mocker.Mock()
+    empty_group.getNumberOfEntries.return_value = 0
+    mocker.patch("drtsans.tof.eqsans.load.load_and_split", return_value=empty_group)
+
+    with pytest.raises(RuntimeError, match="No detector events remained for sample 'sample.nxs' after slicing"):
+        load_and_split_and_histogram("sample.nxs", time_interval=10, raise_on_empty=True)
 
 
 @pytest.mark.datarepo

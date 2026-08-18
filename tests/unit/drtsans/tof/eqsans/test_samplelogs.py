@@ -43,6 +43,16 @@ def test_get_frequency_uses_fallback_when_primary_is_zero(clean_workspace):
     assert get_frequency(workspace) == pytest.approx(60.0)
 
 
+def test_get_frequency_uses_fallback_when_primary_is_empty(clean_workspace):
+    workspace = CreateWorkspace(DataX=[0.0, 1.0], DataY=[1.0])
+    clean_workspace(workspace)
+    empty_log = FloatTimeSeriesProperty(FREQUENCY_LOG)
+    workspace.mutableRun().addProperty(FREQUENCY_LOG, empty_log, True)
+    add_frequency_log(workspace, FALLBACK_FREQUENCY_LOG, [59.0, 61.0])
+
+    assert get_frequency(workspace) == pytest.approx(60.0)
+
+
 def test_get_frequency_uses_default_when_both_logs_are_unusable(clean_workspace):
     workspace = CreateWorkspace(DataX=[0.0, 1.0], DataY=[1.0])
     clean_workspace(workspace)

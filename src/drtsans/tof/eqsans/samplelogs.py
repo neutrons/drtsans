@@ -1,5 +1,9 @@
 """Helpers for reading EQSANS-specific sample logs."""
 
+from typing import Union
+
+from mantid.api import MatrixWorkspace, Run
+
 from drtsans.samplelogs import SampleLogs
 
 
@@ -8,7 +12,7 @@ FREQUENCY_LOG = "frequency"
 FALLBACK_FREQUENCY_LOG = "BL6:Det:TH:BL:Frequency"
 
 
-def get_frequency(input_workspace) -> float:
+def get_frequency(input_workspace: Union[str, Run, MatrixWorkspace, SampleLogs]) -> float:
     r"""Return the EQSANS pulse frequency in Hz.
 
     The primary ``frequency`` log is used when it contains a positive value.
@@ -32,7 +36,7 @@ def get_frequency(input_workspace) -> float:
     for log_name in (FREQUENCY_LOG, FALLBACK_FREQUENCY_LOG):
         try:
             frequency = sample_logs.single_value(log_name)
-        except (AttributeError, KeyError, RuntimeError):
+        except (AssertionError, AttributeError, KeyError, RuntimeError):
             continue
         if frequency > 0.0:
             return frequency

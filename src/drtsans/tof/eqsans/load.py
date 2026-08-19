@@ -120,6 +120,8 @@ def load_events(
     output_workspace=None,
     output_suffix="",
     allow_processed_nexus=False,
+    # Disabled by default because auxiliary workspaces may legitimately be empty.
+    raise_on_empty=False,
     **kwargs,
 ):
     r"""
@@ -165,6 +167,8 @@ def load_events(
         When true, allows loading processed Nexus files (e.g., saved with SaveNexusProcessed)
         in addition to event Nexus files. This is useful for live reduction where events
         are saved to a temporary file.
+    raise_on_empty: bool
+        Raise an exception when no detector events are loaded.
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
@@ -189,6 +193,14 @@ def load_events(
 
     # EQSANS specific part benefits from converting workspace to a string
     output_workspace = str(output_workspace)
+
+    if raise_on_empty and mtd[output_workspace].getNumberEvents() == 0:
+        raise RuntimeError(
+            f"No detector events were loaded for sample '{run}'. "
+            "The file may contain no detector events, or the requested "
+            "LoadEventNexus filtering excluded all events. Check "
+            "FilterByTimeStart, FilterByTimeStop, and other load options."
+        )
 
     # Correct TOF of detector
     correct_detector_frame(output_workspace, path_to_pixel=path_to_pixel)
@@ -221,6 +233,7 @@ def load_events_and_histogram(
     keep_events=True,
     sample_bands=None,
     allow_processed_nexus=False,
+    raise_on_empty=False,
     **kwargs,
 ):
     r"""Load events from one or more NeXus files with initial corrections
@@ -297,6 +310,8 @@ def load_events_and_histogram(
         When true, allows loading processed Nexus files (e.g., saved with SaveNexusProcessed)
         in addition to event Nexus files. This is useful for live reduction where events
         are saved to a temporary file.
+    raise_on_empty: bool
+        Raise an exception when no detector events are loaded.
     kwargs: dict
         Additional positional arguments for :ref:`LoadEventNexus <algm-LoadEventNexus-v1>`.
 
@@ -337,6 +352,7 @@ def load_events_and_histogram(
             output_workspace=output_workspace,
             output_suffix=output_suffix,
             allow_processed_nexus=allow_processed_nexus,
+            raise_on_empty=raise_on_empty,
             **kwargs,
         )
 
@@ -571,6 +587,7 @@ def load_and_split_and_histogram(
     log_name=None,
     log_value_interval=None,
     reuse_workspace=False,
+    raise_on_empty=False,
     **kwargs,
 ):
     r"""Load an event NeXus file and filter into a WorkspaceGroup depending
@@ -604,6 +621,9 @@ def load_and_split_and_histogram(
         A multiple integer of the time interval. If specified, it indicates that the time
         slicing is periodic so that events in time intervals separated by one (or more) period
         should be reduced together.
+    raise_on_empty: bool
+        Raise an exception when no sliced detector workspaces remain. Empty individual
+        slices are removed and do not cause an exception.
 
     Returns
     -------
@@ -629,6 +649,14 @@ def load_and_split_and_histogram(
         reuse_workspace=reuse_workspace,
         **kwargs,
     )
+
+    if raise_on_empty and ws_group.getNumberOfEntries() == 0:
+        raise RuntimeError(
+            f"No detector events remained for sample '{run}' after slicing. "
+            "Check the requested time/log slice and any LoadEventNexus "
+            "filtering options."
+        )
+
     bands = None
     for _w in ws_group:
         if center_x is None or center_y is None:

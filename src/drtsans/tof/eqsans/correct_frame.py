@@ -22,6 +22,7 @@ from mantid.simpleapi import (
 )
 from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.chopper import EQSANSDiskChopperSet
+from drtsans.tof.eqsans.samplelogs import get_frequency
 from drtsans.frame_mode import FrameMode
 from drtsans import wavelength as wlg
 from drtsans.geometry import source_detector_distance
@@ -298,12 +299,8 @@ def transmitted_bands(input_workspace):
         - lead, WBand object for the wavelength band of the lead pulse
         - skipped, Wband for the skipped pulse. None if not operating in the skipped frame mode
     """
-    sample_logs = SampleLogs(input_workspace)
-    try:
-        # 10^6/60 micro-seconds
-        pulse_period = 1.0e6 / sample_logs.single_value("frequency")
-    except RuntimeError:
-        pulse_period = 1.0e6 / 60.0  # reasonable default
+    # 10^6/60 micro-seconds
+    pulse_period = 1.0e6 / get_frequency(input_workspace)
     ch = EQSANSDiskChopperSet(input_workspace)  # object representing the choppers (four or six)
     # Wavelength band of neutrons from the leading pulse transmitted
     # by the chopper system
@@ -572,7 +569,7 @@ def correct_tof_frame(input_workspace, source_to_component_distance, path_to_pix
     """
     ws = mtd[str(input_workspace)]
     sl = SampleLogs(ws)
-    pulse_period = 1.0e6 / sl.frequency.value.mean()  # 10^6/60 micro-seconds
+    pulse_period = 1.0e6 / get_frequency(sl)  # 10^6/60 micro-seconds
     ch = EQSANSDiskChopperSet(ws)  # object representing the choppers (four or six)
     # The TOF values recorded are never bigger than the frame width,
     # which is also the choppers' rotational period.

@@ -146,6 +146,18 @@ def test_parse_all_arguments():
     assert args.no_publish is True
 
 
+def test_autoreduce_rejects_empty_event_workspace(tmp_path, mocker):
+    events_file = tmp_path / "EQSANS_186603.nxs.h5"
+    events_file.touch()
+    empty_events = MagicMock()
+    empty_events.getNumberEvents.return_value = 0
+    mocker.patch.object(reduce_EQSANS, "LoadEventNexus", return_value=empty_events)
+
+    args = MagicMock(events_file=str(events_file), outdir=str(tmp_path), no_publish=True)
+    with pytest.raises(RuntimeError, match="has no events after loading with LoadEventNexus"):
+        reduce_EQSANS.autoreduce(args)
+
+
 def test_intensity_array(simulated_events):
     x, y, z = reduce_EQSANS.intensity_array(simulated_events)
     assert z.shape == (reduce_EQSANS.PIXELS_PER_TUBE, reduce_EQSANS.TUBES_IN_DETECTOR1)

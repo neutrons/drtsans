@@ -17,6 +17,7 @@ from mantid.simpleapi import CreateWorkspace, DeleteWorkspace, LoadEmptyInstrume
 from mantid.kernel import amend_config
 from numpy.testing import assert_almost_equal
 import pytest
+import requests
 from os.path import join as path_join
 
 # standard imports
@@ -125,6 +126,37 @@ def test_copy_to_newest_instrument(fetch_idf, datarepo_dir, clean_workspace):
 def test_fetch_idf(tmpdir):
     instruments_fetch_idf("BIOSANS_Definition_2019_2023.xml", output_directory=tmpdir)
     instruments_fetch_idf("BIOSANS_Definition.xml", output_directory=tmpdir)
+    with pytest.raises(FileNotFoundError) as excinfo:
+        instruments_fetch_idf("nonexisting.xml", output_directory=tmpdir)
+    assert "nonexisting.xml" in str(excinfo.value)
+
+
+def test_fetch_idf_http_error_falls_back_to_local(tmpdir, mocker):
+    r"""A rate-limited download must fall back to the local IDF instead of saving the error response body."""
+    response = mocker.Mock(status_code=429, content=b"429: Too Many Requests")
+    mocker.patch("drtsans.instruments.requests.get", return_value=response)
+
+    idf = instruments_fetch_idf("BIOSANS_Definition.xml", output_directory=tmpdir)
+
+    with open(idf) as file_handle:
+        assert file_handle.read(5) == "<?xml"
+
+
+def test_fetch_idf_network_error_falls_back_to_local(tmpdir, mocker):
+    r"""A connection failure must be handled by the local fallback rather than propagating."""
+    mocker.patch("drtsans.instruments.requests.get", side_effect=requests.ConnectionError("no route to host"))
+
+    idf = instruments_fetch_idf("BIOSANS_Definition.xml", output_directory=tmpdir)
+
+    with open(idf) as file_handle:
+        assert file_handle.read(5) == "<?xml"
+
+
+def test_fetch_idf_http_error_and_no_local_copy(tmpdir, mocker):
+    r"""When the download fails and no local copy exists, the error must name the missing IDF."""
+    response = mocker.Mock(status_code=429, content=b"429: Too Many Requests")
+    mocker.patch("drtsans.instruments.requests.get", return_value=response)
+
     with pytest.raises(FileNotFoundError) as excinfo:
         instruments_fetch_idf("nonexisting.xml", output_directory=tmpdir)
     assert "nonexisting.xml" in str(excinfo.value)

@@ -1,5 +1,5 @@
 # third party imports
-from mantid.kernel import ConfigService
+from mantid.kernel import ConfigService, Logger
 from mantid.api import mtd, MatrixWorkspace
 from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import (
@@ -10,12 +10,12 @@ from mantid.simpleapi import (
     RemoveSpectra,
     RenameWorkspace,
 )
+import requests
 
 # standard imports
 import enum
 import os
 import shutil
-import subprocess
 from typing import Optional, Union
 
 
@@ -27,6 +27,8 @@ __all__ = [
 ]
 
 INSTRUMENT_LABELS = ["CG3", "BIOSANS", "EQ-SANS", "EQSANS", "CG2", "GPSANS"]
+
+logger = Logger("drtsans.instruments")
 
 
 @enum.unique
@@ -200,10 +202,14 @@ def is_time_of_flight(input_query):
     return instrument_enum_name(input_query) is InstrumentEnumName.EQSANS  # we only have one, for the moment
 
 
-def fetch_idf(idf_xml: str, output_directory: str = os.getcwd()):
+def fetch_idf(idf_xml: str, output_directory: str = os.getcwd()) -> str:
     r"""
     Download an IDF from the Mantid GitHub repository to a temporary directory. If the download fails, attempt to
     find the IDF in the local instrument directories and copy to the temporary directory.
+
+    A download is considered failed unless the server responds with HTTP status 200. Checking the status is
+    necessary because an error response body, such as the one served when GitHub rate-limits the request with
+    status 429, would otherwise be written to disk and later rejected by Mantid as malformed XML.
 
     Parameters
     ----------
@@ -215,28 +221,34 @@ def fetch_idf(idf_xml: str, output_directory: str = os.getcwd()):
     -------
     str
         absolute path to the downloaded IDF file.
+
+    Raises
+    ------
+    FileNotFoundError
+        The download failed and the IDF is absent from the local instrument directories.
     """
-
-    def _empty_download(filepath):
-        r"""The curl command may return and exit code of 0, signaling success, yet the file may contain only the
-        string '404: Not Found'. This function checks for this scenario."""
-        return "404: Not Found" in open(filepath).read()
-
     idf = os.path.join(str(output_directory), idf_xml)
     url = f"https://raw.githubusercontent.com/mantidproject/mantid/main/instrument/{idf_xml}"
-    result = subprocess.run(f"curl -o {idf} {url}", shell=True, capture_output=True, text=True, check=False)
-    if result.returncode == 0 and not _empty_download(idf):
-        return idf
+
+    try:
+        response = requests.get(url, timeout=30)
+    except requests.RequestException as error:
+        logger.warning(f"Downloading {idf_xml} failed with error: {error}.")
     else:
-        print(f"Dowloading {idf_xml} failed with error: {result.stderr}.")
-        print("Attempting to find the IDF in the local instrument directories.")
-        local_dirs = config.getInstrumentDirectories()
-        for instrument_directory in local_dirs:
-            idf_local = os.path.join(instrument_directory, idf_xml)
-            if os.path.isfile(idf_local):
-                shutil.copy(idf_local, idf)
-                return idf
-        raise FileNotFoundError(f"IDF {idf_xml} not found in the local instrument directories {local_dirs}.")
+        if response.status_code == 200:
+            with open(idf, "wb") as file_handle:
+                file_handle.write(response.content)
+            return idf
+        logger.warning(f"Downloading {idf_xml} failed with HTTP status {response.status_code}.")
+
+    logger.notice("Attempting to find the IDF in the local instrument directories.")
+    local_dirs = config.getInstrumentDirectories()
+    for instrument_directory in local_dirs:
+        idf_local = os.path.join(instrument_directory, idf_xml)
+        if os.path.isfile(idf_local):
+            shutil.copy(idf_local, idf)
+            return idf
+    raise FileNotFoundError(f"IDF {idf_xml} not found in the local instrument directories {local_dirs}.")
 
 
 def empty_instrument_workspace(

@@ -19,6 +19,7 @@ from mantid.simpleapi import LoadNexusProcessed, mtd
 
 from drtsans.type_hints import EmissionDelay
 from drtsans.wavelength import Wbands
+from drtsans.tof.eqsans.samplelogs import get_frequency
 
 
 class EQSANSDiskChopperSet:
@@ -61,7 +62,7 @@ class EQSANSDiskChopperSet:
         # Determine period and if frame skipping mode from the first chopper
         ch = self._choppers[0]
         # example of frame skipping: chopper speed 30 Hz, pulse frequency 60 Hz: abs(30 - 60) / 2 = 15
-        condition = abs(ch.speed - sample_logs.frequency.value.mean()) / 2 > 1
+        condition = abs(ch.speed - get_frequency(sample_logs)) / 2 > 1
         self.frame_mode = FrameMode.skip if condition else FrameMode.not_skip
 
         # Select appropriate offsets, based on the frame-skip mode.

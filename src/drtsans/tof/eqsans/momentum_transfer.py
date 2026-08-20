@@ -7,6 +7,9 @@ import drtsans.momentum_transfer
 # https://github.com/neutrons/drtsans/blob/next/src/drtsans/resolution.py
 import drtsans.resolution
 
+# https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/correct_frame.py
+from drtsans.tof.eqsans.correct_frame import DELAY_FIT_CROSSOVER
+
 # https://github.com/neutrons/drtsans/blob/next/src/drtsans/tof/eqsans/geometry.py
 from drtsans.tof.eqsans.geometry import (
     sample_aperture_diameter,
@@ -200,6 +203,11 @@ def retrieve_instrument_setup(input_workspace):
 
 def moderator_time_uncertainty(wl):
     """Relative Q uncertainty due to emission time jitter in the neutron moderator.
+
+    The two polynomial branches are those of
+    :py:func:`~drtsans.tof.eqsans.correct_frame.emission_delay` at twice the scale, and they hand
+    over at the same crossover wavelength :py:const:`DELAY_FIT_CROSSOVER`, where they intersect.
+
     :param wl: float (or ndarray) wavelength [Angstrom]
     :return: float or ~np.array (same shape to wave_length_array) of emission error time
     """
@@ -210,12 +218,12 @@ def moderator_time_uncertainty(wl):
     # init output array to zeros
     time_error = np.zeros_like(wl)
 
-    # formula for lambda >= 2
-    mask = wl >= 2.0
+    # formula for lambda >= DELAY_FIT_CROSSOVER
+    mask = wl >= DELAY_FIT_CROSSOVER
     time_error[mask] = 0.0148 * wl[mask] ** 3 - 0.5233 * wl[mask] ** 2 + 6.4797 * wl[mask] + 231.99
 
-    # formula for lambda < 2
-    mask = wl < 2.0
+    # formula for lambda < DELAY_FIT_CROSSOVER
+    mask = wl < DELAY_FIT_CROSSOVER
     time_error[mask] = (
         392.31 * wl[mask] ** 6
         - 3169.3 * wl[mask] ** 5

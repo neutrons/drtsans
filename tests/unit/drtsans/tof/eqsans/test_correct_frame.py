@@ -379,7 +379,7 @@ def test_correct_emission_time_60Hz(clean_workspace):
         6572.86455843483,
         6967.671528804,
         7362.0002659363,
-        7757.14799863174,
+        7754.517831269949,
         8146.18938057224,
         8537.85660707455,
         8929.51955517686,
@@ -623,10 +623,12 @@ def test_correct_emission_time_30Hz(clean_workspace):
 @pytest.mark.parametrize(
     "wavelength, expected",
     [
-        # λ < 2 Å branch
+        # degree-6 branch, below the crossover
         (1.0, 68.555),
-        # λ >= 2 Å branch
+        # degree-3 branch, above the crossover
         (5.0, 126.578),
+        # the crossover itself: both polynomial branches intersect here
+        (correct_frame.DELAY_FIT_CROSSOVER, 121.208748),
         # small positive λ — polynomial branch must not return a negative delay
         (0.1, "non_negative"),
         # zero wavelength returns 0 µs (linear segment)
@@ -644,6 +646,31 @@ def test_emission_delay(wavelength, expected):
         assert correct_frame.emission_delay(wavelength) >= 0
     else:
         assert correct_frame.emission_delay(wavelength) == pytest.approx(expected, abs=1e-3)
+
+
+def test_emission_delay_is_continuous():
+    """The piecewise branches must join without a step.
+
+    The two polynomial branches were fitted independently, so they only agree at the wavelength
+    where they intersect. Handing over anywhere else (a round 2 Å, as was done previously) leaves a
+    5.48 µs discontinuity, which can stall the fixed-point wavelength solver in
+    ``drtsans.wavelength.from_tof`` as it iterates across the boundary.
+    """
+    # Arrange: a fine sweep spanning all three branches, plus both branch boundaries
+    wavelengths = np.arange(0.001, 20.0, 0.001)
+
+    # Act
+    delays = np.array([correct_frame.emission_delay(w) for w in wavelengths])
+
+    for boundary in (0.5, correct_frame.DELAY_FIT_CROSSOVER):
+        below = correct_frame.emission_delay(boundary - 1e-9)
+        above = correct_frame.emission_delay(boundary + 1e-9)
+        # Assert: the one-sided limits agree to far better than the 1e-3 µs precision of the fit
+        assert above == pytest.approx(below, abs=1e-6), f"discontinuity at {boundary} Å"
+
+    # Assert: no step anywhere exceeds what the steepest branch can accumulate over one 0.001 Å
+    # increment (the degree-6 branch peaks near 0.76 Å at roughly 0.164 µs per increment)
+    assert np.abs(np.diff(delays)).max() < 0.2
 
 
 if __name__ == "__main__":

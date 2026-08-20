@@ -614,10 +614,20 @@ def correct_monitor_frame(input_workspace):
     correct_tof_frame(ws, source_monitor_distance(ws, unit="m"), path_to_pixel=False)
 
 
+# Wavelength (in Angstroms) at which the degree-6 and degree-3 branches of the emission-delay fit
+# intersect, both yielding 121.208748095 microseconds. The two branches were fitted independently
+# over different wavelength ranges, so handing over at their intersection rather than at a round
+# 2 Angstroms makes the piecewise fit continuous without altering any fitted coefficient. Handing
+# over at 2 Angstroms instead leaves a 5.48 microsecond discontinuity.
+DELAY_FIT_CROSSOVER = 1.879329786923
+
 # Delayed emission time of a neutron from the moderator as a function of wavelength, in microseconds.
+# Note: `correct_emission_time` substitutes "x" for the muparser variable name, so this expression
+# must not contain the letter "x" anywhere other than as the variable itself.
 DELAY_FIT = (
     "(x < 0.5) ? 9.451719*x :"
-    " (x < 2.0) ? 0.5*(1280.5-7448.4*x+16509*x^2-17872*x^3+10445*x^4-3169.3*x^5+392.31*x^6) :"
+    f" (x < {DELAY_FIT_CROSSOVER}) ?"
+    " 0.5*(1280.5-7448.4*x+16509*x^2-17872*x^3+10445*x^4-3169.3*x^5+392.31*x^6) :"
     " 0.5*(231.99+6.4797*x-0.5233*x^2+0.0148*x^3)"
 )
 
@@ -646,15 +656,19 @@ def emission_delay(wavelength: float) -> float:
     Three piecewise segments are used:
 
     * 0 ≤ λ < 0.5 Å: linear, anchored at (0, 0) and continuous with the polynomial at 0.5 Å.
-    * 0.5 ≤ λ < 2 Å: degree-6 polynomial empirical fit.
-    * λ ≥ 2 Å: degree-3 polynomial empirical fit.
+    * 0.5 ≤ λ < :py:const:`DELAY_FIT_CROSSOVER` Å: degree-6 polynomial empirical fit.
+    * λ ≥ :py:const:`DELAY_FIT_CROSSOVER` Å: degree-3 polynomial empirical fit.
+
+    The two polynomial branches were fitted independently over different wavelength ranges. They
+    are handed over at :py:const:`DELAY_FIT_CROSSOVER` = 1.879329786923 Å, the wavelength at which
+    they intersect (both giving 121.208748095 µs), so that the fit is continuous by construction.
     """
     if wavelength < 0:
         raise ValueError(f"wavelength must be non-negative (got {wavelength} Å)")
     w = wavelength
     if w < 0.5:
         result = 9.451719 * w
-    elif w < 2.0:
+    elif w < DELAY_FIT_CROSSOVER:
         result = 0.5 * (
             1280.5 - 7448.4 * w + 16509 * w**2 - 17872 * w**3 + 10445 * w**4 - 3169.3 * w**5 + 392.31 * w**6
         )
@@ -678,13 +692,10 @@ def correct_emission_time(input_workspace):
         Data workspace
     """
 
-    # set the t0 formula, this equation first converts the
-    # incidentEnergy value in wavelength the calculates one of two
-    # equations depending if the wavelength is greater than or less
-    # than 2.
-    #
-    # if λ>=2 then 0.5*(231.99+6.4787λ-0.5233λ^2+0.0148λ^3)
-    # else 0.5*(1280.5-7448.4*λ+16509*λ^2-17872*λ^3+10445*λ^4-3169.3*λ^5+392.31*λ^6)
+    # Set the t0 formula. Mantid passes the neutron energy in the variable `incidentEnergy`, so the
+    # expression first converts that energy (in meV) to a wavelength (in Angstroms), then evaluates
+    # the three-branch emission-delay fit `DELAY_FIT`. See `emission_delay` for the branches and for
+    # the crossover wavelength `DELAY_FIT_CROSSOVER` separating the two polynomial branches.
     SetInstrumentParameter(
         Workspace=input_workspace,
         ParameterName="t0_formula",

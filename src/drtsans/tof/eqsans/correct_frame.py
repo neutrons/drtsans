@@ -660,8 +660,8 @@ def emission_delay(wavelength: float) -> float:
     * λ ≥ :py:const:`DELAY_FIT_CROSSOVER` Å: degree-3 polynomial empirical fit.
 
     The two polynomial branches were fitted independently over different wavelength ranges. They
-    are handed over at :py:const:`DELAY_FIT_CROSSOVER` = 1.879329786923 Å, the wavelength at which
-    they intersect (both giving 121.208748095 µs), so that the fit is continuous by construction.
+    are handed over at :py:const:`DELAY_FIT_CROSSOVER`, the wavelength at which they intersect and
+    yield the same delay, so that the fit is continuous by construction.
     """
     if wavelength < 0:
         raise ValueError(f"wavelength must be non-negative (got {wavelength} Å)")

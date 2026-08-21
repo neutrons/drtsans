@@ -134,10 +134,53 @@ def fit_band(
         Fields of the namedtuple:
         - fitted_workspace: ~mantid.api.MatrixWorkspace, transmission values within the band,
           zero elsewhere. The name of this workspace is `output_workspace`
-        - mantid_fit_output: namedtuple, output of calling Mantid's Fit algorithm
+        - mantid_fit_output: namedtuple, output of calling Mantid's Fit algorithm, or ``None`` when
+          the band contains one valid transmission point and fitting is bypassed
     """
     if output_workspace is None:
         output_workspace = mtd.unique_hidden_name()
+
+    # Read the raw transmission values, uncertainties, and wavelength coordinates.
+    input_handle = mtd[str(input_workspace)]
+    input_y = np.array(input_handle.readY(0), copy=True)
+    input_e = np.array(input_handle.readE(0), copy=True)
+    input_x = input_handle.readX(0)
+
+    # Convert histogram bin edges, or point coordinates, into wavelength values for each transmission value.
+    if input_x.size == input_y.size + 1:
+        wavelength_values = 0.5 * (input_x[:-1] + input_x[1:])
+    elif input_x.size == input_y.size:
+        wavelength_values = input_x
+    else:
+        raise RuntimeError("Transmission workspace has incompatible wavelength and value arrays")
+
+    # Select finite transmission values and uncertainties that fall inside the requested wavelength band.
+    valid_points = (
+        (wavelength_values >= band.min)
+        & (wavelength_values <= band.max)
+        & np.isfinite(input_y)
+        & np.isfinite(input_e)
+    )
+    number_of_valid_points = int(np.count_nonzero(valid_points))
+
+    # Reject a wavelength band that contains no usable transmission data.
+    if number_of_valid_points == 0:
+        raise RuntimeError(
+            f"No valid transmission points found in wavelength band [{band.min}, {band.max}]"
+        )
+
+    # Preserve a single raw transmission point instead of fitting an underdetermined model.
+    if number_of_valid_points == 1:
+        logger.notice(
+            f"Skipping transmission fit for single-point wavelength band [{band.min}, {band.max}]"
+        )
+        CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
+        output_handle = mtd[output_workspace]
+        output_handle.dataY(0)[:] = 0.0
+        output_handle.dataE(0)[:] = 0.0
+        output_handle.dataY(0)[valid_points] = input_y[valid_points]
+        output_handle.dataE(0)[valid_points] = input_e[valid_points]
+        return dict(fitted_workspace=output_handle, mantid_fit_output=None)
 
     # We require IgnoreInvalidData=True for the boundary cases when band.min or band.max picks a `nan`
     # value from the neighboring band gap (only for skip frame mode)
@@ -194,13 +237,13 @@ def fit_raw_transmission(
           of this workspace is the value of ``output_workspace``
         - lead_transmission: ~mantid.api.MatrixWorkspace containing the fitted transmission values and
           errors of the lead pulse
-        - lead_mantid_fit: return value of running Mantid's Fit algorithm when
-          fitting the raw transmission over the lead pulse wavelength range
+        - lead_mantid_fit: return value of running Mantid's Fit algorithm when fitting the raw transmission
+          over the lead pulse wavelength range, or ``None`` when that band contains one valid point
         - skip_transmission: workspace containing the fitted transmission values and
           errors of the skip pulse. None if not working in frame skipping mode
-        - skip_mantid_fit: return value of running Mantid's Fit algorithm when
-          fitting the raw transmission over the skip pulse wavelength range
-          None if not working in frame skipping mode
+        - skip_mantid_fit: return value of running Mantid's Fit algorithm when fitting the raw transmission
+          over the skip pulse wavelength range, or ``None`` when that band contains one valid point or when
+          not working in frame skipping mode
     """
     if output_workspace is None:
         output_workspace = str(input_workspace)

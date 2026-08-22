@@ -115,18 +115,47 @@ def test_fit_band_bypasses_fit_for_single_valid_point(clean_workspace):
         UnitX="Wavelength",
         OutputWorkspace=mtd.unique_hidden_name(),
     )
+    output_workspace = None
+    try:
+        output_workspace, mantid_fit_output = fit_band(
+            input_workspace,
+            Wband(2.45, 2.55),
+            output_workspace=mtd.unique_hidden_name(),
+        )
 
-    output_workspace, mantid_fit_output = fit_band(
-        input_workspace,
-        Wband(2.45, 2.55),
-        output_workspace=mtd.unique_hidden_name(),
+        assert mantid_fit_output is None
+        assert output_workspace.readY(0).tolist() == pytest.approx([0.873])
+        assert output_workspace.readE(0).tolist() == pytest.approx([0.012])
+    finally:
+        clean_workspace(input_workspace)
+        if output_workspace is not None:
+            clean_workspace(output_workspace)
+
+
+def test_fit_band_bypasses_fit_for_single_point_coordinate(clean_workspace):
+    input_workspace = CreateWorkspace(
+        DataX=[2.50],
+        DataY=[0.873],
+        DataE=[0.012],
+        UnitX="Wavelength",
+        OutputWorkspace=mtd.unique_hidden_name(),
     )
+    output_workspace = None
+    try:
+        output_workspace, mantid_fit_output = fit_band(
+            input_workspace,
+            Wband(2.45, 2.55),
+            output_workspace=mtd.unique_hidden_name(),
+        )
 
-    assert mantid_fit_output is None
-    assert output_workspace.readY(0).tolist() == pytest.approx([0.873])
-    assert output_workspace.readE(0).tolist() == pytest.approx([0.012])
-    clean_workspace(input_workspace)
-    clean_workspace(output_workspace)
+        assert mantid_fit_output is None
+        assert output_workspace.readX(0).tolist() == pytest.approx([2.50])
+        assert output_workspace.readY(0).tolist() == pytest.approx([0.873])
+        assert output_workspace.readE(0).tolist() == pytest.approx([0.012])
+    finally:
+        clean_workspace(input_workspace)
+        if output_workspace is not None:
+            clean_workspace(output_workspace)
 
 
 def test_fit_band_rejects_empty_band(clean_workspace):
@@ -138,9 +167,27 @@ def test_fit_band_rejects_empty_band(clean_workspace):
         OutputWorkspace=mtd.unique_hidden_name(),
     )
 
-    with pytest.raises(RuntimeError, match="No valid transmission points"):
-        fit_band(input_workspace, Wband(2.45, 2.55), output_workspace=mtd.unique_hidden_name())
-    clean_workspace(input_workspace)
+    try:
+        with pytest.raises(RuntimeError, match="No valid transmission points"):
+            fit_band(input_workspace, Wband(2.45, 2.55), output_workspace=mtd.unique_hidden_name())
+    finally:
+        clean_workspace(input_workspace)
+
+
+def test_fit_band_rejects_non_wavelength_axis(clean_workspace):
+    input_workspace = CreateWorkspace(
+        DataX=[2.45, 2.55],
+        DataY=[0.873],
+        DataE=[0.012],
+        UnitX="TOF",
+        OutputWorkspace=mtd.unique_hidden_name(),
+    )
+
+    try:
+        with pytest.raises(RuntimeError, match="Wavelength X-axis"):
+            fit_band(input_workspace, Wband(2.45, 2.55), output_workspace=mtd.unique_hidden_name())
+    finally:
+        clean_workspace(input_workspace)
 
 
 def test_fit_raw_handles_lead_and_skip_bands_independently(monkeypatch, clean_workspace):
@@ -157,21 +204,25 @@ def test_fit_raw_handles_lead_and_skip_bands_independently(monkeypatch, clean_wo
         lambda _: TransmittedBands(Wband(1.0, 2.0), Wband(2.0, 4.0)),
     )
 
-    fitting_results = transmission_module.fit_raw_transmission(
-        input_workspace,
-        output_workspace=mtd.unique_hidden_name(),
-    )
+    fitting_results = None
+    try:
+        fitting_results = transmission_module.fit_raw_transmission(
+            input_workspace,
+            output_workspace=mtd.unique_hidden_name(),
+        )
 
-    assert fitting_results.lead_mantid_fit is None
-    assert fitting_results.skip_mantid_fit is not None
-    assert fitting_results.lead_transmission.readY(0).tolist() == pytest.approx([0.5, 0.0, 0.0])
-    clean_workspace(input_workspace)
-    clean_workspace(fitting_results.transmission)
-    clean_workspace(fitting_results.lead_transmission)
-    clean_workspace(fitting_results.skip_transmission)
-    clean_workspace(fitting_results.skip_mantid_fit.OutputWorkspace)
-    clean_workspace(fitting_results.skip_mantid_fit.OutputNormalisedCovarianceMatrix)
-    clean_workspace(fitting_results.skip_mantid_fit.OutputParameters)
+        assert fitting_results.lead_mantid_fit is None
+        assert fitting_results.skip_mantid_fit is not None
+        assert fitting_results.lead_transmission.readY(0).tolist() == pytest.approx([0.5, 0.0, 0.0])
+    finally:
+        clean_workspace(input_workspace)
+        if fitting_results is not None:
+            clean_workspace(fitting_results.transmission)
+            clean_workspace(fitting_results.lead_transmission)
+            clean_workspace(fitting_results.skip_transmission)
+            clean_workspace(fitting_results.skip_mantid_fit.OutputWorkspace)
+            clean_workspace(fitting_results.skip_mantid_fit.OutputNormalisedCovarianceMatrix)
+            clean_workspace(fitting_results.skip_mantid_fit.OutputParameters)
 
 
 if __name__ == "__main__":

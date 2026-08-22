@@ -119,7 +119,7 @@ def fit_band(
     input_workspace: str, ~mantid.api.MatrixWorkspace
         Input workspace containing the raw transmission values
     band: Wband
-        Wavelength band over which to carry out the fit
+        Wavelength band in Angstroms over which to carry out the fit
     fit_function: str
         String representation of the fit function. See Mantid's
         `UserFunction` or any of Mantid's fit functions
@@ -140,8 +140,15 @@ def fit_band(
     if output_workspace is None:
         output_workspace = mtd.unique_hidden_name()
 
-    # Read the raw transmission values, uncertainties, and wavelength coordinates.
+    # The wavelength band boundaries are in Angstroms, so reject workspaces with another X-axis unit.
     input_handle = mtd[str(input_workspace)]
+    axis_unit = input_handle.getAxis(0).getUnit().unitID()
+    if axis_unit != "Wavelength":
+        raise RuntimeError(
+            f"Input transmission workspace must use Wavelength X-axis units, but uses {axis_unit!r}"
+        )
+
+    # Read the raw transmission values, uncertainties, and wavelength coordinates.
     input_y = np.array(input_handle.readY(0), copy=True)
     input_e = np.array(input_handle.readE(0), copy=True)
     input_x = input_handle.readX(0)

@@ -1,13 +1,13 @@
 ---
-name: explore-defect
-description: Use when the user asks to create a drtsans integration test from, with, or using a JSON file path, especially prompts like "create a test with JSON file /path/to/config.json"; generates a no-assertion exploratory reduction test that loads all files and reduces one configuration.
+name: reduction-config-test
+description: Use when the user asks to create a drtsans integration test from, with, or using a JSON file path, especially prompts like "create a test with JSON file /path/to/config.json"; generates a no-assertion reduction test that loads all files and reduces one configuration.
 ---
 
-# Explore Defect
+# Reduction Config Test
 
-Use this skill to turn a JSON reduction configuration into a focused integration test for
-exploring a defect. The generated test is for reproducing behavior only; it must not assert on
-outputs or compare to expected data.
+Use this skill to turn a JSON reduction configuration into a focused integration test that loads
+all files and reduces that one configuration. The generated test reproduces behavior only; it must
+not assert on outputs or compare to expected data.
 
 ## Workflow
 
@@ -23,14 +23,14 @@ outputs or compare to expected data.
    - If the instrument is missing or unsupported, ask the user which supported instrument path to use.
 
 3. Propose the test file path.
-   - Default filename: `test_explore_defect.py`.
-   - Default full path: the instrument directory plus `test_explore_defect.py`.
+   - Default filename: `test_reduction_config.py`.
+   - Default full path: the instrument directory plus `test_reduction_config.py`.
    - Show the user the full path and ask them to confirm or provide a different filename.
    - If the user provides only a filename, keep it in the selected instrument directory.
    - Use a pytest-compatible filename matching this repository's `python_files = ["test*.py"]` configuration.
 
 4. Propose the output directory amendment.
-   - Default output directory: `/tmp/explore_defect`.
+   - Default output directory: `/tmp/reduction_config_test`.
    - Ask the user to confirm this path or provide another output directory.
    - Ensure the generated test sets `reduction_input["configuration"]["outputDir"]` to the confirmed path.
    - If the parsed JSON has no `configuration` dictionary, create one before assigning `outputDir`.
@@ -42,7 +42,7 @@ outputs or compare to expected data.
      - BIOSANS/CG3: `from drtsans.mono.biosans import load_all_files, reduction_parameters, reduce_single_configuration`
    - Include `import pytest`.
    - Mark the test with `@pytest.mark.datarepo`.
-   - Name the function `test_explore_defect`.
+   - Name the function `test_reduction_config`.
    - The body must contain, in this order:
      1. `reduction_input = {...}` using the parsed JSON dictionary literal.
      2. The `configuration.outputDir` amendment.
@@ -68,12 +68,12 @@ from drtsans.tof.eqsans import load_all_files, reduction_parameters, reduce_sing
 
 
 @pytest.mark.datarepo
-def test_explore_defect():
+def test_reduction_config():
     reduction_input = {
         # parsed JSON dictionary literal
     }
     reduction_input.setdefault("configuration", {})
-    reduction_input["configuration"]["outputDir"] = "/tmp/explore_defect"
+    reduction_input["configuration"]["outputDir"] = "/tmp/reduction_config_test"
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=True)
 
     loaded = load_all_files(reduction_input)

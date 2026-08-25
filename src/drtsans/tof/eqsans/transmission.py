@@ -167,6 +167,7 @@ def fit_band(
         & (wavelength_values <= band.max)
         & np.isfinite(input_y)
         & np.isfinite(input_e)
+        & (input_e > 0)
     )
     number_of_valid_points = int(np.count_nonzero(valid_points))
 
@@ -189,14 +190,24 @@ def fit_band(
         output_handle.dataE(0)[valid_points] = input_e[valid_points]
         return dict(fitted_workspace=output_handle, mantid_fit_output=None)
 
-    # We require IgnoreInvalidData=True for the boundary cases when band.min or band.max picks a `nan`
-    # value from the neighboring band gap (only for skip frame mode)
+    # Match Mantid's fit range to the valid-point mask. Mantid selects histogram bins by their
+    # left edges, while the mask above selects histogram data by bin centers.
+    valid_indexes = np.flatnonzero(valid_points)
+    if input_x.size == input_y.size + 1:
+        fit_start_x = input_x[valid_indexes[0]]
+        fit_end_x = input_x[valid_indexes[-1]]
+    else:
+        fit_start_x = wavelength_values[valid_indexes[0]]
+        fit_end_x = wavelength_values[valid_indexes[-1]]
+
+    # Ignore invalid values between the first and last selected points, such as gaps between
+    # the lead and skipped wavelength bands.
     mantid_fit = Fit(
         Function=fit_function,
         InputWorkspace=input_workspace,
         WorkspaceIndex=0,
-        StartX=band.min,
-        EndX=band.max,
+        StartX=fit_start_x,
+        EndX=fit_end_x,
         IgnoreInvalidData=True,
         Output=mtd.unique_hidden_name(),
     )

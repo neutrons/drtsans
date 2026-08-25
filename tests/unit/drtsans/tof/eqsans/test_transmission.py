@@ -174,6 +174,53 @@ def test_fit_band_rejects_empty_band(clean_workspace):
         clean_workspace(input_workspace)
 
 
+@pytest.mark.parametrize("error", [0.0, -0.1])
+def test_fit_band_rejects_non_positive_error(clean_workspace, error):
+    input_workspace = CreateWorkspace(
+        DataX=[2.45, 2.55],
+        DataY=[0.873],
+        DataE=[error],
+        UnitX="Wavelength",
+        OutputWorkspace=mtd.unique_hidden_name(),
+    )
+
+    try:
+        with pytest.raises(RuntimeError, match="No valid transmission points"):
+            fit_band(input_workspace, Wband(2.45, 2.55), output_workspace=mtd.unique_hidden_name())
+    finally:
+        clean_workspace(input_workspace)
+
+
+def test_fit_band_uses_valid_histogram_bin_edges(clean_workspace):
+    input_workspace = CreateWorkspace(
+        DataX=[1.0, 2.0, 3.0, 4.0],
+        DataY=[0.5, 0.6, 0.7],
+        DataE=[0.01, 0.01, 0.01],
+        UnitX="Wavelength",
+        OutputWorkspace=mtd.unique_hidden_name(),
+    )
+    output_workspace = None
+    mantid_fit_output = None
+
+    try:
+        output_workspace, mantid_fit_output = fit_band(
+            input_workspace,
+            Wband(1.2, 2.8),
+            output_workspace=mtd.unique_hidden_name(),
+        )
+
+        assert mantid_fit_output is not None
+        assert output_workspace.readY(0).tolist() == pytest.approx([0.5, 0.6, 0.0])
+    finally:
+        clean_workspace(input_workspace)
+        if output_workspace is not None:
+            clean_workspace(output_workspace)
+        if mantid_fit_output is not None:
+            clean_workspace(mantid_fit_output.OutputWorkspace)
+            clean_workspace(mantid_fit_output.OutputNormalisedCovarianceMatrix)
+            clean_workspace(mantid_fit_output.OutputParameters)
+
+
 def test_fit_band_rejects_non_wavelength_axis(clean_workspace):
     input_workspace = CreateWorkspace(
         DataX=[2.45, 2.55],

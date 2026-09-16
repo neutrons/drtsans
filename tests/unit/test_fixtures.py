@@ -263,9 +263,9 @@ def test_generate_workspace_defaults(generic_workspace):
     assert ws.getAxis(0).getUnit().caption() == "Wavelength"
     assert ws.getNumberHistograms() == 9
     for i in range(ws.getNumberHistograms()):
-        assert ws.readX(i).tolist() == [0.0]
-        assert ws.readY(i).tolist() == [0.0]
-        assert ws.readE(i).tolist() == [1.0]  # SANS default
+        assert ws.x(i).tolist() == [0.0]
+        assert ws.y(i).tolist() == [0.0]
+        assert ws.e(i).tolist() == [1.0]  # SANS default
 
 
 @pytest.mark.parametrize("generic_workspace", [{"Nx": 2, "Ny": 3}], indirect=True)
@@ -275,9 +275,9 @@ def test_generate_workspace_mono_no_data(generic_workspace):
     assert ws.getAxis(0).getUnit().caption() == "Wavelength"
     assert ws.getNumberHistograms() == 6
     for i in range(ws.getNumberHistograms()):
-        assert ws.readX(i).tolist() == [0.0]
-        assert ws.readY(i).tolist() == [0.0]
-        assert ws.readE(i).tolist() == [1.0]  # SANS default
+        assert ws.x(i).tolist() == [0.0]
+        assert ws.y(i).tolist() == [0.0]
+        assert ws.e(i).tolist() == [1.0]  # SANS default
 
 
 @pytest.mark.parametrize(
@@ -291,15 +291,15 @@ def test_generate_workspace_monochromatic(generic_workspace):
     assert ws.getAxis(0).getUnit().caption() == "Wavelength"
     assert ws.getNumberHistograms() == 6
     for i in range(ws.getNumberHistograms()):
-        assert ws.readX(i).tolist() == [42.0]
+        assert ws.x(i).tolist() == [42.0]
     # supplied y-values
     assert ws.extractY().ravel().tolist() == [1.0, 4.0, 9.0, 16.0, 25.0, 36.0]
     # e-values is sqrt of y
     assert ws.extractE().ravel().tolist() == [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
 
     # verify particular pixels
-    assert ws.readY(1) == 4.0
-    assert ws.readY(3) == 16.0
+    assert ws.y(1) == 4.0
+    assert ws.y(3) == 16.0
     specInfo = ws.spectrumInfo()
     assert specInfo.position(0) == V3D(1.0, -0.5, 5.0)  # row=0, col=0
     assert specInfo.position(3) == V3D(0.0, 0.5, 5.0)  # row=1, col=0
@@ -326,7 +326,7 @@ def test_generate_workspace_tof(generic_workspace):
     assert ws.getAxis(0).getUnit().caption() == "Time-of-flight"
     assert ws.getNumberHistograms() == 6
     for i in range(ws.getNumberHistograms()):
-        assert ws.readX(i).tolist() == [100.0, 8000.0, 16000.0]
+        assert ws.x(i).tolist() == [100.0, 8000.0, 16000.0]
     # supplied y-values
     assert ws.extractY().ravel().tolist() == [
         1.0,
@@ -359,8 +359,8 @@ def test_generate_workspace_tof(generic_workspace):
     ]
 
     # verify particular pixels
-    assert ws.readY(1).tolist() == [4.0, 4.0]
-    assert ws.readY(3).tolist() == [16.0, 16.0]
+    assert ws.y(1).tolist() == [4.0, 4.0]
+    assert ws.y(3).tolist() == [16.0, 16.0]
     specInfo = ws.spectrumInfo()
     assert specInfo.position(0) == V3D(1.0, -0.5, 5.0)  # row=0, col=0
     assert specInfo.position(3) == V3D(0.0, 0.5, 5.0)  # row=1, col=0
@@ -374,18 +374,18 @@ class TestWorkspaceWithInstrument(object):
         assert ws.getAxis(0).getUnit().caption() == "Wavelength"
         assert ws.getNumberHistograms() == 9
         for i in range(ws.getNumberHistograms()):
-            assert ws.readX(i).tolist() == [0.0]
-            assert ws.readY(i).tolist() == [0.0]
-            assert ws.readE(i).tolist() == [1.0]  # SANS default
+            assert ws.x(i).tolist() == [0.0]
+            assert ws.y(i).tolist() == [0.0]
+            assert ws.e(i).tolist() == [1.0]  # SANS default
 
         x, y = np.arange(9).reshape((3, 3)), np.abs(np.random.random((3, 3)))
         ws2 = workspace_with_instrument(axis_values=x, intensities=y, view="pixel")
         assert ws != ws2
         x, y = x.flatten(), y.flatten()
         for i in range(ws.getNumberHistograms()):
-            assert ws2.readX(i).tolist() == x[i]
-            assert ws2.readY(i).tolist() == y[i]
-            assert ws2.readE(i).tolist() == np.sqrt(y[i])
+            assert ws2.x(i).tolist() == x[i]
+            assert ws2.y(i).tolist() == y[i]
+            assert ws2.e(i).tolist() == np.sqrt(y[i])
 
     @pytest.mark.parametrize(
         "workspace_with_instrument",
@@ -408,9 +408,9 @@ class TestWorkspaceWithInstrument(object):
         assert ws.getAxis(0).getUnit().caption() == "Wavelength"
         assert ws.getNumberHistograms() == 6
         for i in range(ws.getNumberHistograms()):
-            assert ws.readX(i).tolist() == [0.0]
-            assert ws.readY(i).tolist() == [0.0]
-            assert ws.readE(i).tolist() == [1.0]  # SANS default
+            assert ws.x(i).tolist() == [0.0]
+            assert ws.y(i).tolist() == [0.0]
+            assert ws.e(i).tolist() == [1.0]  # SANS default
 
         ws2 = workspace_with_instrument(
             axis_values=[42.0],
@@ -421,15 +421,15 @@ class TestWorkspaceWithInstrument(object):
         assert ws2.getAxis(0).getUnit().caption() == "Wavelength"
         assert ws2.getNumberHistograms() == 6
         for i in range(ws2.getNumberHistograms()):
-            assert ws2.readX(i).tolist() == [42.0]
+            assert ws2.x(i).tolist() == [42.0]
         # supplied y-values
         assert ws2.extractY().ravel() == approx([1.0, 4.0, 9.0, 16.0, 25.0, 36.0])
         # e-values is sqrt of y
         assert ws2.extractE().ravel() == approx([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
 
         # verify particular pixels
-        assert ws2.readY(1) == 4.0
-        assert ws2.readY(3) == 16.0
+        assert ws2.y(1) == 4.0
+        assert ws2.y(3) == 16.0
         spectum_info = ws.spectrumInfo()
         assert spectum_info.position(0) == V3D(1.0, -1.0, 0.0)  # row=0, col=0
         assert spectum_info.position(3) == V3D(0.0, 0.0, 0.0)  # row=1, col=0
@@ -450,15 +450,15 @@ class TestWorkspaceWithInstrument(object):
         assert ws.getAxis(0).getUnit().caption() == "Time-of-flight"
         assert ws.getNumberHistograms() == 6
         for i in range(ws.getNumberHistograms()):
-            assert ws.readX(i).tolist() == [100.0, 8000.0, 16000.0]
+            assert ws.x(i).tolist() == [100.0, 8000.0, 16000.0]
         # supplied y-values
         assert ws.extractY().ravel() == approx([1.0, 1.0, 4.0, 4.0, 9.0, 9.0, 16.0, 16.0, 25.0, 25.0, 36.0, 36.0])
         # e-values is sqrt of y
         assert ws.extractE().ravel() == approx([1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, 5.0, 5.0, 6.0, 6.0])
 
         # verify particular pixels
-        assert ws.readY(1).tolist() == [4.0, 4.0]
-        assert ws.readY(3).tolist() == [16.0, 16.0]
+        assert ws.y(1).tolist() == [4.0, 4.0]
+        assert ws.y(3).tolist() == [16.0, 16.0]
         spectrum_info = ws.spectrumInfo()
         assert spectrum_info.position(0) == V3D(1.0, -0.5, 5.0)  # row=0, col=0
         assert spectrum_info.position(3) == V3D(0.0, 0.5, 5.0)  # row=1, col=0

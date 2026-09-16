@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import patch as mock_patch
+import h5py
 import os
 import warnings
 from mantid.api import AnalysisDataService
@@ -8,7 +9,7 @@ from drtsans.mono.spice_data import SpiceRun
 from drtsans.mono.biosans.prepare_sensitivities_correction import (
     prepare_spice_sensitivities_correction,
 )
-from mantid.simpleapi import LoadNexusProcessed, Load
+from mantid.simpleapi import LoadEventNexus, LoadNexusProcessed
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -25,8 +26,14 @@ workspaces = [
 
 
 def _mock_LoadEventAsWorkspace2D(*args, **kwargs):
-    # Substitute LoadEventAsWorkspace2D with Load because some of the data was reduced in size and saved with SaveNexus
-    return Load(Filename=kwargs["Filename"], OutputWorkspace=kwargs["OutputWorkspace"])
+    # Substitute the loading algorithm, because some of the data was reduced in size and saved with SaveNexus.
+    # Algorithm Load cannot dispatch here: it parses the run number out of the file name and the run numbers of
+    # SPICE converted files (e.g. CG3_054900090001) overflow the 32-bit integer parsing of its Filename property.
+    filename, output_workspace = kwargs["Filename"], kwargs["OutputWorkspace"]
+    with h5py.File(filename, "r") as handle:
+        is_processed = "mantid_workspace_1" in handle
+    loader = LoadNexusProcessed if is_processed else LoadEventNexus
+    return loader(Filename=filename, OutputWorkspace=output_workspace)
 
 
 @mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D)

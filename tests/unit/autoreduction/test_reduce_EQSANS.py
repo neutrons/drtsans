@@ -162,7 +162,7 @@ def test_intensity_array(simulated_events):
     x, y, z = reduce_EQSANS.intensity_array(simulated_events)
     assert z.shape == (reduce_EQSANS.PIXELS_PER_TUBE, reduce_EQSANS.TUBES_IN_DETECTOR1)
     # event count in the first pixel, but all pixels should have the same count
-    count = np.sum(simulated_events.readY(0))
+    count = np.sum(simulated_events.y(0))
     assert_almost_equal(np.average(z.data[~z.mask]), np.log(count), decimal=3)
 
 

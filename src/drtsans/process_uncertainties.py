@@ -67,13 +67,13 @@ def set_init_uncertainties(input_workspace, output_workspace=None):
     # Set nan as the uncertainty for all nan-intensity - check that there are nans first
     if output_ws.findY(numpy.nan) != (-1, -1):
         for ws_index in range(output_ws.getNumberHistograms()):
-            vec_y = output_ws.readY(ws_index)
+            vec_y = output_ws.y(ws_index)
             if numpy.count_nonzero(numpy.isnan(vec_y)):
                 nan_indexes = numpy.argwhere(numpy.isnan(vec_y))
 
                 # There existing nan
                 if len(nan_indexes) > 0:
-                    vec_e = output_ws.dataE(ws_index)
+                    vec_e = output_ws.mutableE(ws_index)
                     vec_e[nan_indexes] = numpy.nan
                 # END-IF
         # END-FOR (spectra)

@@ -72,7 +72,7 @@ def test_william(generic_workspace, clean_workspace):
 
         # With FullBinsOnly=True, bin edges are adjusted for complete bins
         # Allow small tolerance for bin grid adjustments
-        assert ws.dataX(i)[0] == pytest.approx(expected_wavelength, rel=0.02)
+        assert ws.x(i)[0] == pytest.approx(expected_wavelength, rel=0.02)
 
 
 TOF = [12345.0, 12346.0]
@@ -121,10 +121,10 @@ def test_shuo(generic_workspace, clean_workspace):
 
         # With FullBinsOnly=True, bin edges are adjusted for complete bins
         # Check the first bin edge matches the expected conversion from TOF
-        assert ws.dataX(i)[0] == pytest.approx(expected_wavelength_0, rel=0.02)
+        assert ws.x(i)[0] == pytest.approx(expected_wavelength_0, rel=0.02)
 
         # Verify wavelength values are in reasonable range (monotonically increasing)
-        assert ws.dataX(i)[0] < ws.dataX(i)[1]
+        assert ws.x(i)[0] < ws.x(i)[1]
 
 
 # Workspace spanning, after conversion to wavelength, a range wider than `MONOCHROMATIC_BAND`
@@ -153,7 +153,7 @@ def test_convert_to_wavelength_monochromatic(generic_workspace, clean_workspace)
     bands = TransmittedBands(lead=MONOCHROMATIC_BAND, skip=None)
     ws = convert_to_wavelength(ws, bands=bands, bin_width=0.1)
 
-    assert ws.dataX(0) == pytest.approx([MONOCHROMATIC_BAND.min, MONOCHROMATIC_BAND.max])
+    assert ws.x(0) == pytest.approx([MONOCHROMATIC_BAND.min, MONOCHROMATIC_BAND.max])
     band_width = MONOCHROMATIC_BAND.max - MONOCHROMATIC_BAND.min  # Angstrom
     assert SampleLogs(ws).single_value("wavelength_bin_width") == pytest.approx(band_width)
 
@@ -169,7 +169,7 @@ def test_convert_to_wavelength_not_monochromatic(generic_workspace, clean_worksp
     bands = TransmittedBands(lead=MONOCHROMATIC_BAND, skip=None)
     ws = convert_to_wavelength(ws, bands=bands, bin_width=0.1)
 
-    wavelength_bin_edges = ws.dataX(0)
+    wavelength_bin_edges = ws.mutableX(0)
     assert len(wavelength_bin_edges) > 2  # more than a single bin
     assert wavelength_bin_edges[1] - wavelength_bin_edges[0] == pytest.approx(0.1)
 

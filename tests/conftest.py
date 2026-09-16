@@ -1622,7 +1622,7 @@ def biosans_synthetic_dataset(datarepo_dir, tmp_path_factory) -> dict:
     workspace = mtd[ws_sensitivity]
     pixel_count = workspace.getNumberHistograms()
     for workspace_index in range(pixel_count):
-        workspace.dataY(workspace_index)[:] = [float("nan")]
+        workspace.mutableY(workspace_index)[:] = [float("nan")]
     for component in ["detector1", "wing_detector", "midrange_detector"]:
         workspace = CloneWorkspace(InputWorkspace=ws_sensitivity, OutputWorkspace=mtd.unique_hidden_name())
         # set the sensitivity values for each tube to 1.0, except the first and last 16 pixels
@@ -1632,7 +1632,7 @@ def biosans_synthetic_dataset(datarepo_dir, tmp_path_factory) -> dict:
         current_index = first_index
         while current_index < next_to_last_index:
             for workspace_index in range(current_index + start, current_index + end):
-                workspace.dataY(workspace_index)[:] = [1.0]
+                workspace.mutableY(workspace_index)[:] = [1.0]
             current_index += PIXELS_IN_TUBE
         SaveNexus(InputWorkspace=workspace, Filename=pjoin(runs_directory, kit["sensitivity"][component]))
         DeleteWorkspace(workspace)

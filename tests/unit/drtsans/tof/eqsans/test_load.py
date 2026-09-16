@@ -73,7 +73,7 @@ def test_load_events(datarepo_dir, clean_workspace, temp_workspace_name):
     ws = Rebin(ws, Params=[10000, 1000, 62000], PreserveEvents=False)
     ws = SumSpectra(ws)
     clean_workspace(ws)
-    assert len(np.nonzero(ws.dataY(0))[0]) == 35
+    assert len(np.nonzero(ws.y(0))[0]) == 35
 
 
 @pytest.mark.datarepo

@@ -39,7 +39,7 @@ def test_load_with_time_filtering(datarepo_dir):
     # Verify time filtering was applied by checking event count
     ws_summed = SumSpectra(ws)
     # Verify we have events loaded
-    event_count = ws_summed.dataY(0)[0]
+    event_count = ws_summed.mutableY(0)[0]
     assert event_count > 0, "Should have some events in the filtered range"
     # Note: Actual event count verification would require knowing the exact count
     # for this specific run with the given time filter parameters

@@ -742,7 +742,7 @@ class Table:
             workspace = CloneWorkspace(InputWorkspace=reference, OutputWorkspace=output_workspace)
             # substitute the intensity in this histogram with the calibration datum for the detector pixel
             for wi, ri in wi_to_ri:
-                workspace.dataY(wi)[:] = property_values[ri]
+                workspace.mutableY(wi)[:] = property_values[ri]
             return mtd[output_workspace]
 
         calibration_properties = (
@@ -1772,7 +1772,7 @@ def as_intensities(input_workspace, component="detector1", views=["positions", "
         intensities[workspace_indexes] = pixel_prop
         workspace = Integration(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
         for index in range(number_histograms):
-            workspace.dataY(index)[:] = intensities[index]
+            workspace.mutableY(index)[:] = intensities[index]
         returned_views[cal_prop] = mtd[output_workspace]
 
     return returned_views

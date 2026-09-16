@@ -545,8 +545,8 @@ class TestHalfPolarizationDecoder:
         result_reversed = decoder.decode(list(reversed(half_pol_workspaces)))
         for ws in result_normal + result_reversed:
             clean_workspace(ws)
-        np.testing.assert_array_almost_equal(result_normal[0].readY(0), result_reversed[0].readY(0))
-        np.testing.assert_array_almost_equal(result_normal[1].readY(0), result_reversed[1].readY(0))
+        np.testing.assert_array_almost_equal(result_normal[0].y(0), result_reversed[0].y(0))
+        np.testing.assert_array_almost_equal(result_normal[1].y(0), result_reversed[1].y(0))
 
     def test_intensity_at_perfect_polarization(self, half_pol_workspaces, clean_workspace):
         """P=1, e=1: identity decoding → S↑ = S⁰ and S↓ = S¹."""
@@ -555,8 +555,8 @@ class TestHalfPolarizationDecoder:
         result = decoder.decode(half_pol_workspaces)
         for ws in result:
             clean_workspace(ws)
-        np.testing.assert_array_almost_equal(result[0].readY(0), ws_off.readY(0))
-        np.testing.assert_array_almost_equal(result[1].readY(0), ws_on.readY(0))
+        np.testing.assert_array_almost_equal(result[0].y(0), ws_off.y(0))
+        np.testing.assert_array_almost_equal(result[1].y(0), ws_on.y(0))
 
     def test_intensity_known_case(self, half_pol_workspaces, clean_workspace):
         """P=1/3, e=1: M=[[2,-1],[-1,2]] → S↑=2*10-8=12, S↓=-10+2*8=6."""
@@ -564,8 +564,8 @@ class TestHalfPolarizationDecoder:
         result = decoder.decode(half_pol_workspaces)
         for ws in result:
             clean_workspace(ws)
-        np.testing.assert_array_almost_equal(result[0].readY(0), [12.0])
-        np.testing.assert_array_almost_equal(result[1].readY(0), [6.0])
+        np.testing.assert_array_almost_equal(result[0].y(0), [12.0])
+        np.testing.assert_array_almost_equal(result[1].y(0), [6.0])
 
 
 class TestFullPolarizationDecoder:
@@ -750,7 +750,7 @@ class TestFullPolarizationDecoder:
             clean_workspace(ws)
 
         for normal, reversed_ in zip(result_normal, result_reversed):
-            np.testing.assert_array_almost_equal(normal.readY(0), reversed_.readY(0))
+            np.testing.assert_array_almost_equal(normal.y(0), reversed_.y(0))
 
     def test_decode_intensity_known_case(self, full_pol_workspaces, clean_workspace):
         device_cross_sections, spin_values, config = full_pol_workspaces
@@ -761,7 +761,7 @@ class TestFullPolarizationDecoder:
             clean_workspace(ws)
 
         for ws, expected in zip(result, spin_values):
-            np.testing.assert_array_almost_equal(ws.readY(0), [expected])
+            np.testing.assert_array_almost_equal(ws.y(0), [expected])
 
 
 if __name__ == "__main__":

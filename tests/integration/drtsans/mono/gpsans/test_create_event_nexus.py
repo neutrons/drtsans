@@ -601,11 +601,11 @@ def verify_histogram(source_nexus, test_nexus):
     # Compare counts
     error_message = ""
     for i in range(src_ws.getNumberHistograms()):
-        if src_ws.readY(i)[0] != test_ws.readY(i)[0]:
+        if src_ws.y(i)[0] != test_ws.y(i)[0]:
             error_message += (
                 f"Workspace-index {i} / detector ID {src_ws.getDetector(i).getID()}/"
-                f"{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.readY(i)},"
-                f"Actual counts = {test_ws.readY(i)}\n"
+                f"{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.y(i)},"
+                f"Actual counts = {test_ws.y(i)}\n"
             )
     if error_message:
         raise AssertionError(error_message)
@@ -740,7 +740,7 @@ def test_convert_spice_to_nexus(datarepo_dir, temp_directory, clean_workspace):
 
     # compare histograms
     for iws in range(0, test_nexus_ws.getNumberHistograms()):
-        assert test_nexus_ws.readY(iws)[0] == pytest.approx(spice_ws.readY(iws + 2)[0], abs=1e-3)
+        assert test_nexus_ws.y(iws)[0] == pytest.approx(spice_ws.y(iws + 2)[0], abs=1e-3)
 
     # compare DAS logs (partial)
     for log_name in [

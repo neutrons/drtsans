@@ -38,7 +38,7 @@ def test_load_with_time_filtering(datarepo_dir):
 
     # Verify time filtering was applied by checking event count
     ws_summed = SumSpectra(ws)
-    assert ws_summed.dataY(0)[0] == 2283  # number of events in the first 10 seconds
+    assert ws_summed.y(0)[0] == 2283  # number of events in the first 10 seconds
 
 
 @pytest.mark.datarepo

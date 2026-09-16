@@ -62,7 +62,7 @@ def test_integrate_detector_roi(generic_IDF, cleanfile, clean_workspace):
     data_y = counts_array.transpose().flatten()
     assert counts_array.shape == (9, 9)
     for iws in range(data_y.shape[0]):
-        ws.dataY(iws)[0] = data_y[iws]
+        ws.mutableY(iws)[0] = data_y[iws]
         # Set uncertainty
         if data_y[iws] == 0:
             error_i = 1.0
@@ -70,7 +70,7 @@ def test_integrate_detector_roi(generic_IDF, cleanfile, clean_workspace):
             error_i = np.nan
         else:
             error_i = np.sqrt(data_y[iws])
-        ws.dataE(iws)[0] = error_i
+        ws.mutableE(iws)[0] = error_i
     # END-FOR
 
     # Set mask

@@ -20,8 +20,8 @@ def test_clone_component_intensities(reference_dir, reuse, temp_workspace_name):
     golden_value = 42
     in_first, in_last = spectrum_info_ranges(workspace, "wing_detector")
     out_first, out_last = spectrum_info_ranges(workspace, "midrange_detector")
-    workspace.dataY(in_first)[:] = golden_value
-    workspace.dataY(in_first + (out_last - out_first) - 1)[:] = golden_value
+    workspace.mutableY(in_first)[:] = golden_value
+    workspace.mutableY(in_first + (out_last - out_first) - 1)[:] = golden_value
 
     output_workspace = temp_workspace_name() if reuse is False else None
     output_workspace = clone_component_intensities(
@@ -32,8 +32,8 @@ def test_clone_component_intensities(reference_dir, reuse, temp_workspace_name):
     )
 
     # assert
-    assert output_workspace.readY(out_first) == golden_value
-    assert output_workspace.readY(out_last - 1) == golden_value
+    assert output_workspace.y(out_first) == golden_value
+    assert output_workspace.y(out_last - 1) == golden_value
 
 
 if __name__ == "__main__":

@@ -40,9 +40,9 @@ def test_dark_current_workspace(gpsans_f):
     duration_log_key = SampleLogs(normalized_dark_current).normalizing_duration.value
     sample_duration = duration(sample_workspace, log_key=duration_log_key).value
 
-    sample_sample_value = mtd[sample_workspace].dataY(612)[0]
-    normalized_dark_current_sample_value = mtd[normalized_dark_current].dataY(612)[0]
-    sample_subtracted_sample_value = mtd[sample_subtracted].dataY(612)[0]
+    sample_sample_value = mtd[sample_workspace].mutableY(612)[0]
+    normalized_dark_current_sample_value = mtd[normalized_dark_current].mutableY(612)[0]
+    sample_subtracted_sample_value = mtd[sample_subtracted].mutableY(612)[0]
 
     test_value = sample_sample_value - sample_duration * normalized_dark_current_sample_value
     assert sample_subtracted_sample_value == pytest.approx(test_value, abs=1.0e-6)
@@ -79,9 +79,9 @@ def test_dark_current_filename(gpsans_f):
     duration_log_key = SampleLogs(normalized_dark_current).normalizing_duration.value
     sample_duration = duration(sample_workspace, log_key=duration_log_key).value
 
-    sample_sample_value = mtd[sample_workspace].dataY(612)[0]
-    normalized_dark_current_sample_value = mtd[normalized_dark_current].dataY(612)[0]
-    sample_subtracted_sample_value = mtd[sample_subtracted].dataY(612)[0]
+    sample_sample_value = mtd[sample_workspace].mutableY(612)[0]
+    normalized_dark_current_sample_value = mtd[normalized_dark_current].mutableY(612)[0]
+    sample_subtracted_sample_value = mtd[sample_subtracted].mutableY(612)[0]
 
     test_value = sample_sample_value - sample_duration * normalized_dark_current_sample_value
     assert sample_subtracted_sample_value == pytest.approx(test_value, abs=1.0e-6)

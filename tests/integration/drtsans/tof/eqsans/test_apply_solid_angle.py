@@ -25,11 +25,11 @@ def test_solid_angle(generic_workspace, clean_workspace):
     clean_workspace(ws)
 
     # set intensity and error to match test document
-    ws.dataY(4)[0] = 156.0
-    ws.dataE(4)[0] = np.sqrt(156.0)
+    ws.mutableY(4)[0] = 156.0
+    ws.mutableE(4)[0] = np.sqrt(156.0)
 
-    assert ws.dataY(4)[0] == 156.0
-    assert ws.dataE(4)[0] == np.sqrt(156.0)
+    assert ws.y(4)[0] == 156.0
+    assert ws.e(4)[0] == np.sqrt(156.0)
 
     d_info = ws.detectorInfo()
     s_info = ws.spectrumInfo()
@@ -57,14 +57,14 @@ def test_solid_angle(generic_workspace, clean_workspace):
     # calculate solid angle with Mantid and verify result
     ws2 = SolidAngle(InputWorkspace=str(ws), Method="VerticalTube")
     clean_workspace(ws2)
-    assert ws2.dataY(4)[0] == pytest.approx(9.2976320958e-07)
+    assert ws2.y(4)[0] == pytest.approx(9.2976320958e-07)
 
     # calculate and apply solid angle correction to workspace
     # and verify result
     ws = eqsans.apply_solid_angle_correction(str(ws))
 
-    assert ws.dataY(4)[0] == pytest.approx(167784655.70)
-    assert ws.dataE(4)[0] == pytest.approx(13433523.577)
+    assert ws.y(4)[0] == pytest.approx(167784655.70)
+    assert ws.e(4)[0] == pytest.approx(13433523.577)
 
 
 if __name__ == "__main__":

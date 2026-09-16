@@ -271,7 +271,7 @@ def normalize_by_monitor(input_workspace, flux_to_monitor, monitor_workspace, ou
     )
 
     # if the neutron flux is zero we don't want to continue, raise an error
-    if np.count_nonzero(mtd[flux_workspace].readY(0)) == 0:
+    if np.count_nonzero(mtd[flux_workspace].y(0)) == 0:
         raise ZeroNeutronFluxError(f"Zero neutron flux for workspace: {output_workspace}")
 
     # Normalize our input workspace

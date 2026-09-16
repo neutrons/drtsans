@@ -224,9 +224,9 @@ def main():
     # exit()
     f.write("\n".join(" ".join(map(str, x)) for x in (data)))
 
-    #    for i in range(len(w_f.readY(0))):
+    #    for i in range(len(w_f.y(0))):
     #        for j in range(w_f.getNumberHistograms()):
-    #            f.write('{:.6E}\t'.format(w_f.readY(j)[i]))
+    #            f.write('{:.6E}\t'.format(w_f.y(j)[i]))
 
     f.close()
 

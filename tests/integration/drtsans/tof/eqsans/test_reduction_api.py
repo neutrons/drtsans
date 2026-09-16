@@ -718,11 +718,11 @@ def verify_processed_workspace(
         assert gold_ws.getNumberHistograms() == test_ws.getNumberHistograms(), (
             f"Histograms: {gold_ws.getNumberHistograms()} != {test_ws.getNumberHistograms()}"
         )
-        assert gold_ws.readY(0).shape == test_ws.readY(0).shape, (
-            f"Number of wavelength: {gold_ws.readY(0).shape} != {test_ws.readY(0).shape}"
+        assert gold_ws.y(0).shape == test_ws.y(0).shape, (
+            f"Number of wavelength: {gold_ws.y(0).shape} != {test_ws.y(0).shape}"
         )
-        assert gold_ws.readX(0).shape == test_ws.readX(0).shape, (
-            f"Histogram or point data: {gold_ws.readX(0).shape} != {test_ws.readX(0).shape}"
+        assert gold_ws.x(0).shape == test_ws.x(0).shape, (
+            f"Histogram or point data: {gold_ws.x(0).shape} != {test_ws.x(0).shape}"
         )
         gold_x_array = gold_ws.extractX()
         test_x_array = test_ws.extractX()

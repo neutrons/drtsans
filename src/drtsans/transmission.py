@@ -139,8 +139,8 @@ def calculate_transmission(
     # RebinToWorkspace may spill some intensity in the reference workspace in the region of wavelengths
     # corresponding to the gap between the lead and skip pulses. We have to harmonize the gap of the
     # reference workspace to that of the sample workspace
-    gap_indexes = np.where(sample_intensity_workspace.dataY(0) == 0.0)
-    reference_intensity_workspace.dataY(0)[gap_indexes] = 0.0
+    gap_indexes = np.where(sample_intensity_workspace.mutableY(0) == 0.0)
+    reference_intensity_workspace.mutableY(0)[gap_indexes] = 0.0
 
     # calculate zero angle transmission coefficient(s)
     zero_angle_transmission_workspace = Divide(
@@ -151,22 +151,22 @@ def calculate_transmission(
 
     # Notify of incorrect calculation of zero angle transmission
     # Will happen if the beam centers have been totally masked
-    if bool(np.all(np.isnan(zero_angle_transmission_workspace.readY(0)))) is True:
+    if bool(np.all(np.isnan(zero_angle_transmission_workspace.y(0)))) is True:
         raise TransmissionNanError("Transmission at zero-angle is NaN")
 
-    non_gap_indexes = np.isfinite(zero_angle_transmission_workspace.readY(0))
+    non_gap_indexes = np.isfinite(zero_angle_transmission_workspace.y(0))
 
     if transmission_error_tolerance:
         # Verify that errors are below the transmission error tolerance
         transmission_relative_error = (
-            zero_angle_transmission_workspace.readE(0)[non_gap_indexes]
-            / zero_angle_transmission_workspace.readY(0)[non_gap_indexes]
+            zero_angle_transmission_workspace.e(0)[non_gap_indexes]
+            / zero_angle_transmission_workspace.y(0)[non_gap_indexes]
         )
         if not np.all(transmission_relative_error < transmission_error_tolerance):
             i_max = np.argmax(transmission_relative_error)
             rel_error = transmission_relative_error[i_max]
-            transmission = zero_angle_transmission_workspace.readY(0)[non_gap_indexes][i_max]
-            abs_error = zero_angle_transmission_workspace.readE(0)[non_gap_indexes][i_max]
+            transmission = zero_angle_transmission_workspace.y(0)[non_gap_indexes][i_max]
+            abs_error = zero_angle_transmission_workspace.e(0)[non_gap_indexes][i_max]
             raise TransmissionErrorToleranceError(
                 f"transmission_error / transmission_value ({abs_error:.4f} / {transmission:.4f} = "
                 f"{rel_error:.4f}) > transmission_relative_error_tolerance "
@@ -174,8 +174,8 @@ def calculate_transmission(
             )
 
     # Notify of average transmission value
-    average_zero_angle_transmission = np.mean(zero_angle_transmission_workspace.readY(0)[non_gap_indexes])
-    average_zero_angle_transmission_error = np.linalg.norm(zero_angle_transmission_workspace.readE(0)[non_gap_indexes])
+    average_zero_angle_transmission = np.mean(zero_angle_transmission_workspace.y(0)[non_gap_indexes])
+    average_zero_angle_transmission_error = np.linalg.norm(zero_angle_transmission_workspace.e(0)[non_gap_indexes])
     message = "Average zero angle transmission = {0} +/- {1}".format(
         average_zero_angle_transmission, average_zero_angle_transmission_error
     )

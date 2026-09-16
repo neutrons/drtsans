@@ -147,18 +147,18 @@ class PrepareSensitivityCorrection(object):
         for i in range(num_spec):
             if total_mask_array[i][0] and use_moving_detector_method:
                 # Moving detector algorithm.  Any masked detector pixel is set to NaN
-                flood_workspace.dataY(i)[0] = np.nan
-                flood_workspace.dataE(i)[0] = np.nan
+                flood_workspace.mutableY(i)[0] = np.nan
+                flood_workspace.mutableE(i)[0] = np.nan
             elif total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
                 # Patch detector method: Masked as the bad pixels and thus set to NaN
-                flood_workspace.dataY(i)[0] = np.nan
-                flood_workspace.dataE(i)[0] = np.nan
+                flood_workspace.mutableY(i)[0] = np.nan
+                flood_workspace.mutableE(i)[0] = np.nan
             elif total_mask_array[i][0]:
                 # Patch detector method: Pixels that have not been masked as bad pixels, but have been
                 # identified as needing to have values set by the patch applied. To identify them, the
                 # value is set to -INF.
-                flood_workspace.dataY(i)[0] = -np.inf
-                flood_workspace.dataE(i)[0] = -np.inf
+                flood_workspace.mutableY(i)[0] = -np.inf
+                flood_workspace.mutableE(i)[0] = -np.inf
             elif not total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
                 # Logic error: impossible case
                 problematic_pixels.append(i)
@@ -206,7 +206,7 @@ class PrepareSensitivityCorrection(object):
         cloned = CloneWorkspace(InputWorkspace=flood_workspaces[0], OutputWorkspace="FloodSum")
 
         for iws in range(cloned.getNumberHistograms()):
-            cloned.dataY(iws)[0] = nan_sum_matrix[iws][0]
+            cloned.mutableY(iws)[0] = nan_sum_matrix[iws][0]
 
         # output
         SaveNexusProcessed(InputWorkspace=cloned, Filename="SummedFlood.nxs")
@@ -648,14 +648,14 @@ class PrepareSensitivityCorrection(object):
         mask_ws_indexes = list()
         for iws in range(new_sensitivity_ws.getNumberHistograms()):
             # get the workspace with -infinity or NaN for masking
-            if np.isnan(new_sensitivity_ws.readY(iws)[0]) or np.isinf(new_sensitivity_ws.readY(iws)[0]):
+            if np.isnan(new_sensitivity_ws.y(iws)[0]) or np.isinf(new_sensitivity_ws.y(iws)[0]):
                 mask_ws_indexes.append(iws)
         MaskDetectors(Workspace=new_sensitivity_ws, WorkspaceIndexList=mask_ws_indexes)
 
         # Set all the mask values to NaN
         new_sensitivity_ws = mtd[new_sens_name]
         for iws in mask_ws_indexes:
-            new_sensitivity_ws.dataY(iws)[0] = np.nan
+            new_sensitivity_ws.mutableY(iws)[0] = np.nan
 
         # Save
         SaveNexusProcessed(InputWorkspace=new_sensitivity_ws, Filename=output_nexus_name)

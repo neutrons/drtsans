@@ -794,11 +794,11 @@ def test_reduce_three_rings(three_rings_pattern: dict, temp_directory: Callable[
         # necessary when the neutron flux is monochromatic
         workspace = mtd[output_workspace]
         for i in range(workspace.getNumberHistograms()):
-            intensities = workspace.readY(i)
+            intensities = workspace.y(i)
             int_rand_max = 0.01 * max(intensities)
             int_rand = np.random.uniform(low=0.0, high=int_rand_max, size=len(intensities))
-            workspace.dataY(i)[:] += int_rand
-            workspace.dataE(i)[:] += np.sqrt(int_rand)
+            workspace.mutableY(i)[:] += int_rand
+            workspace.mutableE(i)[:] += np.sqrt(int_rand)
 
         # log wavelength relevant info
         sample_logs = SampleLogs(output_workspace)
@@ -907,11 +907,11 @@ def test_split_three_rings(three_rings_pattern: dict, temp_directory: Callable[[
         # necessary when the neutron flux is monochromatic
         workspace = mtd[output_workspace]
         for i in range(workspace.getNumberHistograms()):
-            intensities = workspace.readY(i)
+            intensities = workspace.y(i)
             int_rand_max = 0.01 * max(intensities)
             int_rand = np.random.uniform(low=0.0, high=int_rand_max, size=len(intensities))
-            workspace.dataY(i)[:] += int_rand
-            workspace.dataE(i)[:] += np.sqrt(int_rand)
+            workspace.mutableY(i)[:] += int_rand
+            workspace.mutableE(i)[:] += np.sqrt(int_rand)
 
         # log wavelength relevant info
         sample_logs = SampleLogs(output_workspace)

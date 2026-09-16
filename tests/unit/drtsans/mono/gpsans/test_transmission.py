@@ -41,8 +41,8 @@ def test_calculate_transmission(gpsans_full_dataset, sample_scattering_sum_ws, d
     MoveInstrumentComponent(Workspace=input_reference_ws, ComponentName="detector1", X=-x, Y=-y)
     trans = calculate_transmission(input_sample_ws, input_reference_ws)
     clean_workspace(trans)
-    assert trans.readY(0)[0] == approx(0.1024, abs=1e-4)
-    assert trans.readE(0)[0] == approx(0.0130, abs=1e-4)
+    assert trans.y(0)[0] == approx(0.1024, abs=1e-4)
+    assert trans.e(0)[0] == approx(0.0130, abs=1e-4)
 
 
 @pytest.mark.datarepo
@@ -58,8 +58,8 @@ def test_apply_transmission_correction(
     ws_c = apply_transmission_correction(
         ws, trans_workspace=trans_ws, theta_dependent=False, output_workspace=temp_workspace_name()
     )
-    assert ws.readY(9100)[0] == approx(25.0, abs=1e-3)
-    assert ws_c.readY(9100)[0] == approx(25.0 / trans_value, abs=1e-3)
+    assert ws.y(9100)[0] == approx(25.0, abs=1e-3)
+    assert ws_c.y(9100)[0] == approx(25.0 / trans_value, abs=1e-3)
 
 
 @pytest.mark.datarepo
@@ -78,8 +78,8 @@ def test_apply_transmission_with_values(
         theta_dependent=False,
         output_workspace=temp_workspace_name(),
     )
-    assert ws.readY(9100)[0] == approx(25.0, abs=1e-3)
-    assert ws_c.readY(9100)[0] == approx(25.0 / trans_value, abs=1e-3)
+    assert ws.y(9100)[0] == approx(25.0, abs=1e-3)
+    assert ws_c.y(9100)[0] == approx(25.0 / trans_value, abs=1e-3)
 
 
 @pytest.mark.datarepo
@@ -92,8 +92,8 @@ def test_apply_transmission_correction_ws(
     trans_ws = CreateWorkspace(DataX=[0, 1], DataY=[0.08224400871459694], DataE=[0.012671053121947698])
     clean_workspace(trans_ws)
     ws_c = apply_transmission_correction(ws, trans_ws, theta_dependent=False, output_workspace=temp_workspace_name())
-    assert ws_c.readY(9100)[0] == approx(303.97, abs=1e-2)
-    assert ws_c.readE(9100)[0] == approx(77.70, abs=1e-2)
+    assert ws_c.y(9100)[0] == approx(303.97, abs=1e-2)
+    assert ws_c.e(9100)[0] == approx(77.70, abs=1e-2)
 
 
 @pytest.mark.datarepo
@@ -109,8 +109,8 @@ def test_apply_transmission_correction_value(gpsans_full_dataset, sample_scatter
         output_workspace=temp_workspace_name(),
     )
     # Note the corrected values are the same as above
-    assert ws_c.readY(9100)[0] == approx(303.97, abs=1e-2)
-    assert ws_c.readE(9100)[0] == approx(77.70, abs=1e-2)
+    assert ws_c.y(9100)[0] == approx(303.97, abs=1e-2)
+    assert ws_c.e(9100)[0] == approx(77.70, abs=1e-2)
 
 
 if __name__ == "__main__":

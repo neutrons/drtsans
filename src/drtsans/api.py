@@ -154,6 +154,6 @@ def _set_uncertainty_from_numpy(wksp, uncertainty):
     # TODO add support for more workspace types / dimensions
     # this works well for single value workspaces
     for i in range(uncertainty.shape[0]):
-        wksp.setE(i, np.array([uncertainty[i]]))
+        wksp.setSharedE(i, np.array([uncertainty[i]]))
 
     return wksp

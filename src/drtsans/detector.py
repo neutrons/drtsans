@@ -158,7 +158,7 @@ class Detector:
             :py:obj:`False` otherwise.
         """
         return np.array(
-            [self._workspace.readY(int(idx))[0] == Property.EMPTY_DBL for idx in self.get_current_ws_indices_range()]
+            [self._workspace.y(int(idx))[0] == Property.EMPTY_DBL for idx in self.get_current_ws_indices_range()]
         )
 
     def get_y_coordinates(self):

@@ -82,7 +82,7 @@ def normalize_dark_current(dark_workspace, data_workspace, output_workspace=None
         wavelength_range += bands.skip.max - bands.skip.min  # add the wavelength range from the skipped pulse
 
     # Find out the binning of the sample run
-    bin_boundaries = mtd[data_workspace_name].readX(0)
+    bin_boundaries = mtd[data_workspace_name].x(0)
     bin_widths = bin_boundaries[1:] - bin_boundaries[0:-1]
 
     # Gather all factors into a "rescaling" array, of size len(bin_widths)

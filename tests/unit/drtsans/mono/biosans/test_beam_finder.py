@@ -16,7 +16,7 @@ import numpy as np
 
 
 def _verify_pixel(wksp, index, position, counts):
-    assert wksp.readY(index)[0] == counts, "wksp_index={}".format(index)
+    assert wksp.y(index)[0] == counts, "wksp_index={}".format(index)
     assert wksp.detectorInfo().position(index) == pytest.approx(position), "wksp_index={}".format(index)
 
 

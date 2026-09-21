@@ -168,18 +168,33 @@ def fbc_options_json(reduction_input: dict) -> dict:
         present only when "useFallbackBeamCenter" is true. When it is absent, `find_beam_center`
         assumes no coordinates of its own and a fit that does not converge is fatal.
     """
+    beam_center = reduction_input["beamCenter"]
     fbc_options = {}
-    if "method" in reduction_input["beamCenter"].keys():
-        method = reduction_input["beamCenter"]["method"]
+    # find_beam_center defaults to center_of_mass when no method is specified;
+    # use the same effective method when constructing its optional arguments.
+    method = beam_center.get("method", "center_of_mass")
+    if "method" in beam_center:
         fbc_options["method"] = method
-        if method == "gaussian":
-            if "gaussian_centering_options" in reduction_input["beamCenter"].keys():
-                fbc_options["centering_options"] = reduction_input["beamCenter"]["gaussian_centering_options"]
-        elif method == "center_of_mass":
-            if "com_centering_options" in reduction_input["beamCenter"].keys():
-                fbc_options["centering_options"] = reduction_input["beamCenter"]["com_centering_options"]
-    if reduction_input["beamCenter"].get("useFallbackBeamCenter", False):
-        fbc_options["fallback_center"] = tuple(reduction_input["beamCenter"]["fallbackBeamCenter"])
+
+    if method == "gaussian":
+        if "gaussian_centering_options" in beam_center:
+            fbc_options["centering_options"] = beam_center["gaussian_centering_options"]
+    elif method == "center_of_mass":
+        centering_options = dict(beam_center.get("com_centering_options", {}))
+        if beam_center.get("useFallbackBeamCenter", False):
+            fallback_x, fallback_y = beam_center["fallbackBeamCenter"]
+            # The COM calculation is sensitive to its starting point. Use the
+            # fallback as a physically plausible initial estimate, but retain
+            # any explicit coordinate supplied by the user.
+            centering_options.setdefault("CenterX", fallback_x)
+            centering_options.setdefault("CenterY", fallback_y)
+        if centering_options:
+            fbc_options["centering_options"] = centering_options
+
+    if beam_center.get("useFallbackBeamCenter", False):
+        # Keep this separate from the initial estimate: fallback_center is
+        # still only applied when the fitted result contains a non-finite axis.
+        fbc_options["fallback_center"] = tuple(beam_center["fallbackBeamCenter"])
     return fbc_options
 
 

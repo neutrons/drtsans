@@ -274,7 +274,7 @@
       "fallbackBeamCenter": {
         "$ref": "common.json#/definitions/beamCenterCoordinates",
         "default": [0.0, 0.0],
-        "description": "Beam center coordinates (X, Y) in meters on the detector XY-plane, assumed when no beam center run is configured, and when the centering calculation cannot supply one and useFallbackBeamCenter is true.",
+        "description": "Beam center coords (X, Y) in meters. When useFallbackBeamCenter=true, they're used as initial guess unless CenterX/CenterY are supplied; Also used when no beam center run is configured, or when the centering calculation fails.",
         "examples": [[0.0, 0.0], [0.025239, 0.0170801]]
       },
       "useFallbackBeamCenter": {
@@ -326,11 +326,11 @@
         "additionalProperties": {
           "CenterX": {
             "type": "number",
-            "description": "Estimate for the beam center in X [m]. Default: 0"
+            "description": "Initial estimate for the beam center in X [m]. If omitted and useFallbackBeamCenter is true, fallbackBeamCenter[0] is used."
           },
           "CenterY": {
             "type": "number",
-            "description": "Estimate for the beam center in Y [m]. Default: 0"
+            "description": "Initial estimate for the beam center in Y [m]. If omitted and useFallbackBeamCenter is true, fallbackBeamCenter[1] is used."
           },
           "Tolerance": {
             "$ref": "common.json#/definitions/safeStringPositiveFloat",

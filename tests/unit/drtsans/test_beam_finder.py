@@ -129,7 +129,7 @@ def test_fbc_options_json_instrument_defaults(instrument_name, expected):
     }
 
 
-def test_fbc_options_json_fallback_initial_guess_preserves_explicit_coordinates():
+def test_fbc_options_json_fallback_initial_guess_preserves_explicit_coordinates() -> None:
     parameters = {
         "beamCenter": {
             "method": "center_of_mass",
@@ -148,7 +148,7 @@ def test_fbc_options_json_fallback_initial_guess_preserves_explicit_coordinates(
     }
 
 
-def test_fbc_options_json_does_not_seed_gaussian_from_fallback():
+def test_fbc_options_json_does_not_seed_gaussian_from_fallback() -> None:
     parameters = {
         "beamCenter": {
             "method": "gaussian",

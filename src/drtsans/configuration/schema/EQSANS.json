@@ -69,7 +69,7 @@
         "fallbackBeamCenter": {
           "$ref": "common.json#/definitions/beamCenterCoordinates",
           "default": [0.025239, 0.0170801],
-          "description": "Beam center coords (X, Y) in meters. When useFallbackBeamCenter=true, they're used as initial guess unless CenterX/CenterY are supplied; Also used when no beam center run is configured, or when the centering calculation fails.",
+          "description": "Beam center coords (X, Y) in meters. When useFallbackBeamCenter=true, they are used as the initial guess for center_of_mass unless CenterX/CenterY are supplied, and replace any non-finite coordinate from the centering calculation. When no beam center run is configured, they are used directly regardless of useFallbackBeamCenter. When useFallbackBeamCenter=false, a non-finite centering result is fatal.",
           "examples": [[0.0, 0.0], [0.025239, 0.0170801]]
         },
         "useFallbackBeamCenter": { "$ref": "common.json#/beamCenter/properties/useFallbackBeamCenter" }

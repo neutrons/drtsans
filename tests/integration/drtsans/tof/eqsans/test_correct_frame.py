@@ -73,9 +73,9 @@ def compare_to_eqsans_load(ws, wo, dl, s2d, ltc, htc):
         ws_l = ConvertUnits(ws, Target="Wavelength", Emode="Elastic")
         ws_l = RebinToWorkspace(ws_l, sm, PreserveEvents=False)
         ws_l = SumSpectra(ws_l)
-        non_zero = np.where((sm.dataY(0) > 0) & (ws_l.dataY(0) > 0))[0]
-        a = sm.dataY(0)[non_zero]
-        b = ws_l.dataY(0)[non_zero]
+        non_zero = np.where((sm.mutableY(0) > 0) & (ws_l.mutableY(0) > 0))[0]
+        a = sm.mutableY(0)[non_zero]
+        b = ws_l.mutableY(0)[non_zero]
         assert abs(1.0 - np.mean(b / a)) < 0.1
     finally:
         for w in (eq_out.OutputWorkspace, ws_l, sm):
@@ -99,7 +99,7 @@ def test_smash_monitor_spikes(datarepo_dir):
     # Smash two spikes
     w = load_events_monitor("EQSANS_88565.nxs.h5", data_dir=datarepo_dir.eqsans)
     w = smash_monitor_spikes(w)
-    assert max(w.dataY(0)) < 1e3
+    assert max(w.y(0)) < 1e3
     DeleteWorkspace(w)
 
     # Monitor data is crap

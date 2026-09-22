@@ -141,7 +141,7 @@ def test_calculate_transmission_single_bin(
         view="array",
         output_workspace=reference_workspace,
     )
-    assert mtd[reference_workspace].readY(44)[0] == 128
+    assert mtd[reference_workspace].y(44)[0] == 128
 
     # Load the sample into a workspace
     sample_counts = np.array(data.sample, dtype=float).reshape((10, 10, 1))
@@ -153,7 +153,7 @@ def test_calculate_transmission_single_bin(
         view="array",
         output_workspace=sample_workspace,
     )
-    assert mtd[sample_workspace].readY(44)[0] == 96
+    assert mtd[sample_workspace].y(44)[0] == 96
 
     # Find the beam center using the empty reference, and then center both reference and sample runs
     # We pass centering options to the underlying Mantid algorithm finding the center of the beam
@@ -175,8 +175,8 @@ def test_calculate_transmission_single_bin(
     )
 
     # Verify transmission and associated uncertainty
-    assert transmission.readY(0)[0] == pytest.approx(data.transmission, abs=data.precision)
-    assert transmission.readE(0)[0] == pytest.approx(data.transmission_uncertainty, abs=data.precision)
+    assert transmission.y(0)[0] == pytest.approx(data.transmission, abs=data.precision)
+    assert transmission.e(0)[0] == pytest.approx(data.transmission_uncertainty, abs=data.precision)
 
 
 @pytest.fixture(scope="module")
@@ -277,8 +277,8 @@ def test_fit_transmission_and_calc(test_data_9a_part_2, temp_workspace_name):
     fit_results = fit_raw_transmission(raw_transmission_workspace, output_workspace=fitted_transmission_workspace)
 
     # Verify fitted transmission values
-    assert mtd[fitted_transmission_workspace].readY(0) == pytest.approx(data.fitted_transmissions, abs=data.precision)
-    assert mtd[fitted_transmission_workspace].readE(0) == pytest.approx(data.fitted_uncertainties, abs=data.precision)
+    assert mtd[fitted_transmission_workspace].y(0) == pytest.approx(data.fitted_transmissions, abs=data.precision)
+    assert mtd[fitted_transmission_workspace].e(0) == pytest.approx(data.fitted_uncertainties, abs=data.precision)
 
     # Verify values for the fit parameters
     parameter_table_workspace = fit_results.lead_mantid_fit.OutputParameters

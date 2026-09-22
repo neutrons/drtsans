@@ -230,14 +230,14 @@ def save_ascii_2D(q2, q2x, q2y, title, filename):
     f.write("# " + title + "\n")
     f.write("#Qx (1/A)       Qy (1/A)        I (1/cm)        dI (1/cm)" + "       dQx (1/A)       dQy (1/A)\n")
     f.write("#ASCII data\n\n")
-    for i in range(len(q2.readY(0))):
+    for i in range(len(q2.y(0))):
         for j in range(q2.getNumberHistograms()):
             qy = float(q2.getAxis(1).label(j))
-            x = 0.5 * (q2.readX(j)[i] + q2.readX(j)[i + 1])
+            x = 0.5 * (q2.x(j)[i] + q2.x(j)[i + 1])
             f.write("{:.6E}\t".format(x))
             f.write("{:.6E}\t".format(qy))
-            f.write("{:.6E}\t".format(q2.readY(j)[i]))
-            f.write("{:.6E}\t".format(q2.readE(j)[i]))
-            f.write("{:.6E}\t".format(q2x.readY(j)[i]))
-            f.write("{:.6E}\n".format(q2y.readY(j)[i]))
+            f.write("{:.6E}\t".format(q2.y(j)[i]))
+            f.write("{:.6E}\t".format(q2.e(j)[i]))
+            f.write("{:.6E}\t".format(q2x.y(j)[i]))
+            f.write("{:.6E}\n".format(q2y.y(j)[i]))
     f.close()

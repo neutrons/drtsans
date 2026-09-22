@@ -124,8 +124,8 @@ def test_fit_band_bypasses_fit_for_single_valid_point(clean_workspace):
         )
 
         assert mantid_fit_output is None
-        assert output_workspace.readY(0).tolist() == pytest.approx([0.873])
-        assert output_workspace.readE(0).tolist() == pytest.approx([0.012])
+        assert output_workspace.y(0).tolist() == pytest.approx([0.873])
+        assert output_workspace.e(0).tolist() == pytest.approx([0.012])
     finally:
         clean_workspace(input_workspace)
         if output_workspace is not None:
@@ -149,9 +149,9 @@ def test_fit_band_bypasses_fit_for_single_point_coordinate(clean_workspace):
         )
 
         assert mantid_fit_output is None
-        assert output_workspace.readX(0).tolist() == pytest.approx([2.50])
-        assert output_workspace.readY(0).tolist() == pytest.approx([0.873])
-        assert output_workspace.readE(0).tolist() == pytest.approx([0.012])
+        assert output_workspace.x(0).tolist() == pytest.approx([2.50])
+        assert output_workspace.y(0).tolist() == pytest.approx([0.873])
+        assert output_workspace.e(0).tolist() == pytest.approx([0.012])
     finally:
         clean_workspace(input_workspace)
         if output_workspace is not None:
@@ -210,7 +210,7 @@ def test_fit_band_uses_valid_histogram_bin_edges(clean_workspace):
         )
 
         assert mantid_fit_output is not None
-        assert output_workspace.readY(0).tolist() == pytest.approx([0.5, 0.6, 0.0])
+        assert output_workspace.y(0).tolist() == pytest.approx([0.5, 0.6, 0.0])
     finally:
         clean_workspace(input_workspace)
         if output_workspace is not None:
@@ -260,7 +260,7 @@ def test_fit_raw_handles_lead_and_skip_bands_independently(monkeypatch, clean_wo
 
         assert fitting_results.lead_mantid_fit is None
         assert fitting_results.skip_mantid_fit is not None
-        assert fitting_results.lead_transmission.readY(0).tolist() == pytest.approx([0.5, 0.0, 0.0])
+        assert fitting_results.lead_transmission.y(0).tolist() == pytest.approx([0.5, 0.0, 0.0])
     finally:
         clean_workspace(input_workspace)
         if fitting_results is not None:

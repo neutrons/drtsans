@@ -134,8 +134,8 @@ def test_empty_beam_scaling(workspace_with_instrument, test_data_15b, temp_works
         uncertainties=np.sqrt(data_intensities),
         output_workspace=data_workspace,
     )
-    mtd[data_workspace].dataY(center_pixel_id)[0] = 100000
-    mtd[data_workspace].dataE(center_pixel_id)[0] = np.sqrt(100000)
+    mtd[data_workspace].mutableY(center_pixel_id)[0] = 100000
+    mtd[data_workspace].mutableE(center_pixel_id)[0] = np.sqrt(100000)
 
     # Use drtsans to scale the data with the empty beam method
     empty_beam_scaling(
@@ -148,10 +148,10 @@ def test_empty_beam_scaling(workspace_with_instrument, test_data_15b, temp_works
     )
 
     # Check computed intensity and error of the first pixel against test data
-    assert mtd[data_workspace].readY(center_pixel_id)[0] == pytest.approx(
+    assert mtd[data_workspace].y(center_pixel_id)[0] == pytest.approx(
         test_data_15b.scaled_intensity, abs=test_data_15b.precision
     )
-    assert mtd[data_workspace].readE(center_pixel_id)[0] == pytest.approx(
+    assert mtd[data_workspace].e(center_pixel_id)[0] == pytest.approx(
         test_data_15b.scaled_uncertainty, abs=test_data_15b.precision
     )
 

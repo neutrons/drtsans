@@ -31,7 +31,7 @@ def test_benchmark_spice(datarepo_dir, clean_workspace):
         det_pos_x = spice_ws.getDetector(det_id).getPos().X()
         det_pos_y = spice_ws.getDetector(det_id).getPos().Y()
         # get count
-        count = int(spice_ws.readY(det_id)[0])
+        count = int(spice_ws.y(det_id)[0])
         main_det_tuple.append((det_pos_x, det_pos_y, count))
 
     # Verify the positions
@@ -62,7 +62,7 @@ def test_benchmark_spice(datarepo_dir, clean_workspace):
         det_pos_x = spice_ws.getDetector(det_id).getPos().X()
         det_pos_y = spice_ws.getDetector(det_id).getPos().Y()
         # get count
-        count = int(spice_ws.readY(det_id)[0])
+        count = int(spice_ws.y(det_id)[0])
         main_det_tuple.append((det_pos_x, det_pos_y, count))
 
     # Verify the positions
@@ -139,7 +139,7 @@ def test_spice_conversion(datarepo_dir, cleanfile, clean_workspace):
         det_pos_x = nexus_ws.getDetector(det_id).getPos().X()
         det_pos_y = nexus_ws.getDetector(det_id).getPos().Y()
         # get count
-        count = int(nexus_ws.readY(det_id)[0])
+        count = int(nexus_ws.y(det_id)[0])
         main_det_tuple.append((det_pos_x, det_pos_y, count, det_id))
 
     # Verify the positions
@@ -172,7 +172,7 @@ def test_spice_conversion(datarepo_dir, cleanfile, clean_workspace):
         det_2theta = math.atan(abs(pos_x) / pos_z) * 180.0 / math.pi
         det_pos_y = det_pos.Y()
         # get count
-        count = int(nexus_ws.readY(det_id)[0])
+        count = int(nexus_ws.y(det_id)[0])
         # will sort by counts
         main_det_tuple.append((count, det_2theta, det_pos_y, det_id))
 

@@ -35,15 +35,15 @@ def test_normalize_by_time(datarepo_dir, clean_workspace, temp_workspace_name):
     time_duration = SampleLogs(output_workspace).duration.value
 
     # Let's pick one spectrum (spectrum 42) and verify we are dividing its intensity by the time duration
-    intensity, uncertainty = np.copy(workspace.readY(42)), np.copy(workspace.readE(42))
+    intensity, uncertainty = np.copy(workspace.y(42)), np.copy(workspace.e(42))
     workspace_normalized = normalize_by_time(output_workspace)
     clean_workspace(workspace_normalized)
 
     # Verify we selected 'duration' as the log entry to find out the duration of the run
     assert SampleLogs(output_workspace).normalizing_duration.value == "duration"
 
-    assert workspace_normalized.readY(42) == pytest.approx(intensity / time_duration, abs=1.0e-6)
-    assert workspace_normalized.readE(42) == pytest.approx(uncertainty / time_duration)
+    assert workspace_normalized.y(42) == pytest.approx(intensity / time_duration, abs=1.0e-6)
+    assert workspace_normalized.e(42) == pytest.approx(uncertainty / time_duration)
 
     workspace_normalized.delete()  # some cleanup
 

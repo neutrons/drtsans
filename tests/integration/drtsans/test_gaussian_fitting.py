@@ -67,9 +67,9 @@ def test_gaussian_fit(datarepo_dir, temp_directory):
         pos = si.position
         x[i] = pos.X()
         y[i] = pos.Y()
-        keep[i] = not si.isMasked and np.isfinite(ws.readY(i)[0])
-        intes[i] = ws.readY(i)[0]
-        intes_err[i] = ws.readE(i)[0]
+        keep[i] = not si.isMasked and np.isfinite(ws.y(i)[0])
+        intes[i] = ws.y(i)[0]
+        intes_err[i] = ws.e(i)[0]
 
     x = x[keep]
     y = y[keep]

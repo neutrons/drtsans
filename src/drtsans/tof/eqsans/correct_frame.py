@@ -751,8 +751,8 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
     )
 
     # Find intensities in the range of valid time-of-flight
-    intensity = w.dataY(0)
-    tofs = w.dataX(0)
+    intensity = w.mutableY(0)
+    tofs = w.mutableX(0)
     smd = source_monitor_distance(w, unit="m")
     tof_min, tof_max = limiting_tofs(w, smd).lead
     valid_idx = np.where(np.logical_and(tofs >= tof_min, tofs <= tof_max))[0]
@@ -765,7 +765,7 @@ def smash_monitor_spikes(input_workspace, output_workspace=None):
         raise RuntimeError("Monitor spectrum is flat")
 
     remove_spikes(intensity)
-    w.dataY(0)[valid_idx] = intensity
+    w.mutableY(0)[valid_idx] = intensity
 
     # reset the uncertainties now that the data has been modified
     w = set_init_uncertainties(w)
@@ -779,7 +779,7 @@ def band_gap_indexes(input_workspace, bands):
 
     For runs in skipped frame mode, there is a wavelength band in between
     the bands of the lead and skipped pulse. This range has zero neutron
-    counts. This function returns the indexes of `ws.dataY(0)` array
+    counts. This function returns the indexes of `ws.mutableY(0)` array
     corresponding to the band gap.
 
     Parameters
@@ -791,14 +791,14 @@ def band_gap_indexes(input_workspace, bands):
     Returns
     -------
     list
-        Indexes of array `ws.dataY(i)` where intensity is zero. Empty list if
+        Indexes of array `ws.mutableY(i)` where intensity is zero. Empty list if
         working frame mode is not skipped-mode
     """
     ws = mtd[str(input_workspace)]
     if bands.skip is None:
         return list()
     else:
-        wavelength_bins = (np.where((ws.dataX(0) > bands.lead.max) & (ws.dataX(0) < bands.skip.min))[0]).tolist()
+        wavelength_bins = (np.where((ws.mutableX(0) > bands.lead.max) & (ws.mutableX(0) < bands.skip.min))[0]).tolist()
         intensity_indexes = [wavelength_bins[0] - 1] + wavelength_bins
         return intensity_indexes
 
@@ -901,8 +901,8 @@ def convert_to_wavelength(input_workspace, bands=None, bin_width=0.1, events=Tru
             to_zero = band_gap_indexes(_ws, bands)
             if to_zero:
                 for i in range(_ws.getNumberHistograms()):
-                    _ws.dataY(i)[to_zero] = 0.0
-                    _ws.dataE(i)[to_zero] = 1.0
+                    _ws.mutableY(i)[to_zero] = 0.0
+                    _ws.mutableE(i)[to_zero] = 1.0
 
     # convert to a histogram if requested
     if (mtd[output_workspace].id() == "EventWorkspace") and (not events):

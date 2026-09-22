@@ -131,8 +131,8 @@ def test_transform_to_wavelength(run_infoset):
     assert sl.wavelength_max.value == approx(run_infoset.w_max, abs=0.05)
     # assert zero uncertainty assignment
     for i in range(ws.getNumberHistograms()):
-        zci = np.where(ws.readY(i) == 0)[0]  # zero count indices
-        np.testing.assert_equal(ws.readE(i)[zci], np.ones(len(zci)))
+        zci = np.where(ws.y(i) == 0)[0]  # zero count indices
+        np.testing.assert_equal(ws.e(i)[zci], np.ones(len(zci)))
 
 
 @pytest.mark.datarepo
@@ -145,7 +145,7 @@ def test_normalize_by_flux(run_infoset, flux_file):
         output_workspace=mtd.unique_hidden_name(),
     )
     normalized_data_workspace = SumSpectra(normalized_data_workspace)
-    assert 1.0e6 * np.average(normalized_data_workspace.readY(0)) == approx(run_infoset.flux_normalized, abs=1.0)
+    assert 1.0e6 * np.average(normalized_data_workspace.y(0)) == approx(run_infoset.flux_normalized, abs=1.0)
     # clean up
     DeleteWorkspace(normalized_data_workspace)
 
@@ -158,7 +158,7 @@ def test_subtract_background(datarepo_dir):
     wb = LoadNexus(pj(data_dir, "background.nxs"), OutputWorkspace=mtd.unique_hidden_name())
     ws_wb = eqsans.subtract_background(ws, wb, scale=0.42)
     assert ws_wb.name() == ws_name
-    assert max(ws_wb.readY(0)) < 1.0e-09
+    assert max(ws_wb.y(0)) < 1.0e-09
 
 
 @pytest.mark.datarepo

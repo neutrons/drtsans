@@ -67,6 +67,6 @@ def test_standard_sample_measurement(temp_workspace_name):
     # by design, adding it to list
 
     # check results
-    assert Iq_ws.dataY(0)[0] == pytest.approx(Iq)
-    assert Iq_abs_ws.dataY(0)[0] == pytest.approx(Iq_abs)
-    assert Iq_abs_ws.dataE(0)[0] == pytest.approx(Iq_abs_err)
+    assert Iq_ws.y(0)[0] == pytest.approx(Iq)
+    assert Iq_abs_ws.y(0)[0] == pytest.approx(Iq_abs)
+    assert Iq_abs_ws.e(0)[0] == pytest.approx(Iq_abs_err)

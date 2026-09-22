@@ -144,11 +144,11 @@ def verify_histogram(source_nexus, test_nexus):
     # Compare with raw counts
     error_message = ""
     for i in range(src_ws.getNumberHistograms()):
-        if src_ws.readY(i).sum() != test_ws.readY(i)[0]:
+        if src_ws.y(i).sum() != test_ws.y(i)[0]:
             error_message += (
                 f"Workspace-index {i} / detector ID {src_ws.getDetector(i).getID()}/"
-                f"{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.readY(i)},"
-                f"Actual counts = {test_ws.readY(i)}\n"
+                f"{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.y(i)},"
+                f"Actual counts = {test_ws.y(i)}\n"
             )
 
     # report error
@@ -164,11 +164,11 @@ def verify_histogram(source_nexus, test_nexus):
     # Compare counts
     error_message = ""
     for i in range(src_ws.getNumberHistograms()):
-        if src_ws.readY(i)[0] != test_ws.readY(i)[0]:
+        if src_ws.y(i)[0] != test_ws.y(i)[0]:
             error_message += (
                 f"Workspace-index {i} / detector ID {src_ws.getDetector(i).getID()}/"
-                f"{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.readY(i)},"
-                f"Actual counts = {test_ws.readY(i)}\n"
+                f"{test_ws.getDetector(i).getID()}: Expected counts = {src_ws.y(i)},"
+                f"Actual counts = {test_ws.y(i)}\n"
             )
 
     # write the error message to disk

@@ -95,7 +95,7 @@ class SpectrumInfo:
         Example: function ~mantid.api.SpectrumInfo.isMasked(index) becomes simple attribute SpectrumInfo.isMasked.
 
         The class contains additional methods for SpectrumInfo that are wrappers to methods
-        of ~mantid.api.Workspace. For example, function ~mantid.api.Workspace.readY(index) become simple
+        of ~mantid.api.Workspace. For example, function ~mantid.api.Workspace.y(index) become simple
         attribute SpectrumInfo.readY.
 
         Parameters
@@ -170,15 +170,15 @@ class SpectrumInfo:
 
     @property
     def readX(self):
-        return self._iterate_with_indexes("readX")
+        return self._iterate_with_indexes("x")
 
     @property
     def readY(self):
-        return self._iterate_with_indexes("readY")
+        return self._iterate_with_indexes("y")
 
     @property
     def readE(self):
-        return self._iterate_with_indexes("readE")
+        return self._iterate_with_indexes("e")
 
 
 class ElementComponentInfo:

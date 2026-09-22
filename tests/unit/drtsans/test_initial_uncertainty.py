@@ -45,9 +45,9 @@ def test_initial_uncertainty(generic_IDF, cleanfile, clean_workspace):
     ws.getAxis(0).setUnit("Wavelength")
     # assume that the TOF is already frame corrected
     for i in range(4):
-        ws.dataX(i)[:] = wave_length_range  # A
-        ws.dataY(i)[0] = intensity[i]
-        ws.dataE(i)[0] = init_delta_intensity[i]
+        ws.mutableX(i)[:] = wave_length_range  # A
+        ws.mutableY(i)[0] = intensity[i]
+        ws.mutableE(i)[0] = init_delta_intensity[i]
     # #### ABOVE THIS POINT WILL BE A TEST FIXTURE
 
     # Set uncertainties
@@ -56,9 +56,9 @@ def test_initial_uncertainty(generic_IDF, cleanfile, clean_workspace):
     print("[TEST INFO] Workspace {} has {} spectra".format(ws, ws.getNumberHistograms()))
     for ws_index in range(4):
         if np.isnan(gold_delta_intensity[ws_index]):
-            assert np.isnan(ws.dataE(ws_index)[0])
+            assert np.isnan(ws.e(ws_index)[0])
         else:
-            assert abs(ws.readE(ws_index)[0] - gold_delta_intensity[ws_index]) < 1.0e-10
+            assert abs(ws.e(ws_index)[0] - gold_delta_intensity[ws_index]) < 1.0e-10
         # END-IF
     # END-FOR
 

@@ -62,9 +62,9 @@ def test_apply_mask_single_bin(generic_IDF, temp_workspace_name):
     # check the value of a masked detector is irrelevant when doing
     # operations on the whole workspace
     big_value = 1.0e6
-    ws.setY(3, [big_value])
+    ws.setSharedY(3, [big_value])
     ws_sum = SumSpectra(ws, OutputWorkspace=temp_workspace_name())
-    assert ws_sum.dataY(0)[0] == sum(intensities_after_mask)
+    assert ws_sum.y(0)[0] == sum(intensities_after_mask)
     intensities_after_mask[3] = big_value
 
     # Now apply an additional mask mimicking the trap beam
@@ -125,9 +125,9 @@ def test_apply_mask_simple_histogram(generic_IDF, temp_workspace_name):
     # check the value of a masked detector is irrelevant when doing
     # operations on the whole workspace
     big_value = 1.0e6
-    ws.setY(2, [big_value] * 3)
+    ws.setSharedY(2, [big_value] * 3)
     ws_sum = SumSpectra(ws, OutputWorkspace=temp_workspace_name())
-    assert ws_sum.dataY(0) == approx(np.sum(intensities_after_mask, axis=0))
+    assert ws_sum.y(0) == approx(np.sum(intensities_after_mask, axis=0))
     intensities_after_mask[2] = big_value
 
     # Now apply an additional mask mimicking the trap beam

@@ -321,8 +321,8 @@ class PrepareSensitivityCorrection(PrepareBase):
 
         # Zero-Angle Transmission Co-efficients
         transmission_corr_ws = calculate_transmission(transmission_flood_ws, transmission_workspace)
-        average_zero_angle = np.mean(transmission_corr_ws.readY(0))
-        average_zero_angle_error = np.linalg.norm(transmission_corr_ws.readE(0))
+        average_zero_angle = np.mean(transmission_corr_ws.y(0))
+        average_zero_angle_error = np.linalg.norm(transmission_corr_ws.e(0))
         logger.notice(
             f"Transmission Coefficient is {average_zero_angle:.3f} +/- "
             f"{average_zero_angle_error:.3f}."

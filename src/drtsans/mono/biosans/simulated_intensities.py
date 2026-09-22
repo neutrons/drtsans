@@ -80,8 +80,8 @@ def clone_component_intensities(
     out_first, out_last = spectrum_info_ranges(output_workspace, output_component)
     assert in_last - in_first >= out_last - out_first, "Not enough pixels to clone"
 
-    readers = [getattr(mtd[str(input_workspace)], reader) for reader in ("readX", "readY", "readE")]
-    writers = [getattr(mtd[str(output_workspace)], writer) for writer in ("dataX", "dataY", "dataE")]
+    readers = [getattr(mtd[str(input_workspace)], reader) for reader in ("x", "y", "e")]
+    writers = [getattr(mtd[str(output_workspace)], writer) for writer in ("mutableX", "mutableY", "mutableE")]
     for in_wi, out_wi in zip(range(in_first, in_last), range(out_first, out_last)):
         for reader, writer in zip(readers, writers):
             writer(out_wi)[:] = reader(in_wi)

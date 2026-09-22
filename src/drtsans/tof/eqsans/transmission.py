@@ -144,14 +144,12 @@ def fit_band(
     input_handle = mtd[str(input_workspace)]
     axis_unit = input_handle.getAxis(0).getUnit().unitID()
     if axis_unit != "Wavelength":
-        raise RuntimeError(
-            f"Input transmission workspace must use Wavelength X-axis units, but uses {axis_unit!r}"
-        )
+        raise RuntimeError(f"Input transmission workspace must use Wavelength X-axis units, but uses {axis_unit!r}")
 
     # Read the raw transmission values, uncertainties, and wavelength coordinates.
-    input_y = np.array(input_handle.readY(0), copy=True)
-    input_e = np.array(input_handle.readE(0), copy=True)
-    input_x = input_handle.readX(0)
+    input_y = np.array(input_handle.y(0), copy=True)
+    input_e = np.array(input_handle.e(0), copy=True)
+    input_x = input_handle.x(0)
 
     # Convert histogram bin edges, or point coordinates, into wavelength values for each transmission value.
     if input_x.size == input_y.size + 1:
@@ -173,21 +171,17 @@ def fit_band(
 
     # Reject a wavelength band that contains no usable transmission data.
     if number_of_valid_points == 0:
-        raise RuntimeError(
-            f"No valid transmission points found in wavelength band [{band.min}, {band.max}]"
-        )
+        raise RuntimeError(f"No valid transmission points found in wavelength band [{band.min}, {band.max}]")
 
     # Preserve a single raw transmission point instead of fitting an underdetermined model.
     if number_of_valid_points == 1:
-        logger.notice(
-            f"Skipping transmission fit for single-point wavelength band [{band.min}, {band.max}]"
-        )
+        logger.notice(f"Skipping transmission fit for single-point wavelength band [{band.min}, {band.max}]")
         CloneWorkspace(InputWorkspace=input_workspace, OutputWorkspace=output_workspace)
         output_handle = mtd[output_workspace]
-        output_handle.dataY(0)[:] = 0.0
-        output_handle.dataE(0)[:] = 0.0
-        output_handle.dataY(0)[valid_points] = input_y[valid_points]
-        output_handle.dataE(0)[valid_points] = input_e[valid_points]
+        output_handle.mutableY(0)[:] = 0.0
+        output_handle.mutableE(0)[:] = 0.0
+        output_handle.mutableY(0)[valid_points] = input_y[valid_points]
+        output_handle.mutableE(0)[valid_points] = input_e[valid_points]
         return dict(fitted_workspace=output_handle, mantid_fit_output=None)
 
     # Match Mantid's fit range to the valid-point mask. Mantid selects histogram bins by their
@@ -333,7 +327,7 @@ def insert_fitted(input_workspace, mantid_fit_workspace):
     """
     # Find the range of fitted wavelengths
     mantid_fit_handle = mtd[str(mantid_fit_workspace)]
-    fitting_wavelength_range = mantid_fit_handle.readX(0)
+    fitting_wavelength_range = mantid_fit_handle.x(0)
     first_fitted_wavelength, last_fitted_wavelength = (
         fitting_wavelength_range[0],
         fitting_wavelength_range[-1],
@@ -341,19 +335,19 @@ def insert_fitted(input_workspace, mantid_fit_workspace):
 
     # Find the array indexes enclosing the range of fitted wavelengths
     input_handle = mtd[str(input_workspace)]
-    input_wavelength_range = input_handle.readX(0)
+    input_wavelength_range = input_handle.x(0)
     first_insertion_index = np.where(input_wavelength_range == first_fitted_wavelength)[0][0]
     last_insertion_index = np.where(input_wavelength_range == last_fitted_wavelength)[0][0]
 
     # Insert the fitted transmission values, and set zero elsewhere.
-    fitted_transmission_values = mantid_fit_handle.readY(1)  # fitted values reside at workspace index 1
-    input_handle.dataY(0)[:] = np.zeros(input_handle.dataY(0).size)
-    input_handle.dataY(0)[first_insertion_index:last_insertion_index] = fitted_transmission_values
+    fitted_transmission_values = mantid_fit_handle.y(1)  # fitted values reside at workspace index 1
+    input_handle.mutableY(0)[:] = np.zeros(input_handle.mutableY(0).size)
+    input_handle.mutableY(0)[first_insertion_index:last_insertion_index] = fitted_transmission_values
 
     # Insert the fitted transmission values and errors, and set zero elsewhere
     for target, fitted_values in (
-        (input_handle.dataY(0), mantid_fit_handle.readY(1)),
-        (input_handle.dataE(0), mantid_fit_handle.readE(1)),
+        (input_handle.mutableY(0), mantid_fit_handle.y(1)),
+        (input_handle.mutableE(0), mantid_fit_handle.e(1)),
     ):
         target[:] = np.zeros(target.size)
         target[first_insertion_index:last_insertion_index] = fitted_values

@@ -121,7 +121,46 @@ def test_fbc_options_json_instrument_defaults(instrument_name, expected):
         validate=False,
     )
 
-    assert fbc_options_json(parameters)["fallback_center"] == pytest.approx(expected)
+    fbc_options = fbc_options_json(parameters)
+    assert fbc_options["fallback_center"] == pytest.approx(expected)
+    assert fbc_options["centering_options"] == {
+        "CenterX": expected[0],
+        "CenterY": expected[1],
+    }
+
+
+def test_fbc_options_json_fallback_initial_guess_preserves_explicit_coordinates() -> None:
+    parameters = {
+        "beamCenter": {
+            "method": "center_of_mass",
+            "fallbackBeamCenter": [0.025239, 0.0170801],
+            "useFallbackBeamCenter": True,
+            "com_centering_options": {"CenterX": 0.1, "IntegrationRadius": 0.1},
+        }
+    }
+
+    fbc_options = fbc_options_json(parameters)
+
+    assert fbc_options["centering_options"] == {
+        "CenterX": 0.1,
+        "CenterY": 0.0170801,
+        "IntegrationRadius": 0.1,
+    }
+
+
+def test_fbc_options_json_does_not_seed_gaussian_from_fallback() -> None:
+    parameters = {
+        "beamCenter": {
+            "method": "gaussian",
+            "fallbackBeamCenter": [0.025239, 0.0170801],
+            "useFallbackBeamCenter": True,
+        }
+    }
+
+    fbc_options = fbc_options_json(parameters)
+
+    assert "centering_options" not in fbc_options
+    assert fbc_options["fallback_center"] == pytest.approx((0.025239, 0.0170801))
 
 
 @pytest.mark.parametrize("fallback_center", [None, FALLBACK])

@@ -46,9 +46,13 @@ in the following order of precedence:
 3. File ``/SNS/EQSANS/shared/autoreduce/reduction_options.json``.
 
 Whichever file is chosen, the script overrides ``beamCenter/useFallbackBeamCenter`` and sets it to ``true``,
-even if the file asks for ``false``. An unattended reduction should produce a report rather than stop, so when
-the beam center calculation fails to converge, the coordinates in ``beamCenter/fallbackBeamCenter`` are assumed
-instead and the substitution is reported as a warning.
+even if the file asks for ``false``. When center-of-mass beam finding is used, the coordinates in
+``beamCenter/fallbackBeamCenter`` are also used as the initial estimate unless explicit ``CenterX`` and
+``CenterY`` values are provided through ``beamCenter/com_centering_options``. This gives the iterative search a
+physically plausible starting point. An unattended reduction should produce a report rather than stop, so when
+the beam center calculation fails to converge or returns a non-finite coordinate, the fallback coordinates are
+assumed instead and the substitution is reported as a warning. The initial estimate does not constrain the search;
+for asymmetric or background-dominated detector data, configure a finite ``IntegrationRadius`` as needed.
 
 Output Files
 ------------

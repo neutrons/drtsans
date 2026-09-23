@@ -103,7 +103,6 @@ tinydb = "*"
 
 [tool.pixi.pypi-dependencies]
 drtsans = { path = ".", editable = true }
-pyinotify = "*"
 
 ### Pixi build configuration
 
@@ -125,7 +124,6 @@ mpld3 = "==0.5.10"
 numexpr = "*"
 pandas = "*"
 plot-publisher = ">=1.4.0"
-pyinotify = "*"
 pyqt = ">=5,<6"
 qtpy = ">=2.4.3"
 matplotlib = "*"

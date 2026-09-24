@@ -176,8 +176,8 @@ The reduction stops with an error if:
 - the ``attenuator`` log value of the empty beam run is positive and not an integer from 0 to 8. This includes
   runs converted from SPICE files with the attenuator open, whose log holds a positive stage position in mm.
 
-With ``"direct_beam"`` scaling, the coefficients file is read before any output file is written, even when the
-beam is not attenuated, so an invalid file stops the reduction early.
+With ``"direct_beam"`` scaling, the coefficients file is read before any reduced I(Q) output is written, even when
+the beam is not attenuated, so an invalid file stops the reduction early.
 
 Attenuation coefficients in the reduction log
 ---------------------------------------------

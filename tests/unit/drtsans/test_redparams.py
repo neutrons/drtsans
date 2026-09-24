@@ -656,6 +656,28 @@ class TestReductionParametersGPSANS:
             assert validator_name in str(error_info.schema.keys())
 
     @pytest.mark.datarepo
+    def test_attenuation_coefficients_file_name(self, datarepo_dir, tmp_path):
+        r"""Test the validation of the AttenuationCoefficientsFileName parameter"""
+        parameters = deepcopy(self.parameters_all)
+        # default value selects the coefficients file packaged with drtsans
+        assert parameters["configuration"]["AttenuationCoefficientsFileName"] is None
+        with amend_config(data_dir=datarepo_dir.gpsans):
+            validate_reduction_parameters(parameters)
+
+        # existing custom file
+        coefficients_file = tmp_path / "custom_coefficients.txt"
+        coefficients_file.write_text("x2k,0.02,0.001,0.5,0.01,0.0001,0.000002\n")
+        parameters["configuration"]["AttenuationCoefficientsFileName"] = str(coefficients_file)
+        with amend_config(data_dir=datarepo_dir.gpsans):
+            validate_reduction_parameters(parameters)
+
+        # nonexistent file
+        parameters["configuration"]["AttenuationCoefficientsFileName"] = str(tmp_path / "nonexistent.txt")
+        with pytest.raises(ReductionParameterError, match="nonexistent.txt"):
+            with amend_config(data_dir=datarepo_dir.gpsans):
+                validate_reduction_parameters(parameters)
+
+    @pytest.mark.datarepo
     def test_scale_components(self, datarepo_dir):
         r"""Test the validation of the scaleComponents parameter"""
 

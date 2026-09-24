@@ -31,7 +31,12 @@ from drtsans.mono import meta_data
 from drtsans.mono.absolute_units import empty_beam_scaling
 from drtsans.mono.dark_current import subtract_dark_current
 from drtsans.mono.gpsans import convert_to_q
-from drtsans.mono.gpsans.attenuation import attenuation_factor
+from drtsans.mono.gpsans.attenuation import (
+    attenuation_factor,
+    _attenuator_name,
+    _attenuator_transmission,
+    _load_attenuation_coefficients,
+)
 from drtsans.mono.load import (
     load_and_split,
     load_events,
@@ -917,6 +922,8 @@ def process_single_configuration(
     empty_beam_ws=None,
     beam_radius=None,
     absolute_scale=1.0,
+    attenuator_coefficient=None,
+    attenuator_error=None,
     keep_processed_workspaces=True,
     debug=False,
     remove_algorithm_history=False,
@@ -977,6 +984,13 @@ def process_single_configuration(
         beam radius for absolute scaling
     absolute_scale: float
         absolute scaling value for standard method
+    attenuator_coefficient: float
+        fraction of the neutrons transmitted by the attenuator of the empty beam run, used by the direct_beam
+        method. If :py:obj:`None`, it is calculated from the empty beam sample logs and the default attenuation
+        coefficients file packaged with drtsans.
+    attenuator_error: float
+        uncertainty of ``attenuator_coefficient``. Ignored if ``attenuator_coefficient`` is :py:obj:`None`,
+        and taken as 0 if :py:obj:`None` while ``attenuator_coefficient`` is given.
     keep_processed_workspaces: bool
         flag to keep the processed blocked beam and background workspaces
     debug: bool
@@ -1101,14 +1115,17 @@ def process_single_configuration(
         except KeyError:
             raise ValueError(f"Could not find empty beam {str(empty_beam_ws)}")
 
-        ac, ace = attenuation_factor(empty)
+        if attenuator_coefficient is None:
+            attenuator_coefficient, attenuator_error = attenuation_factor(empty)
+        elif attenuator_error is None:
+            attenuator_error = 0.0
         empty_beam_scaling(
             sample_ws,
             empty,
             beam_radius=beam_radius,
             unit="mm",
-            attenuator_coefficient=ac,
-            attenuator_error=ace,
+            attenuator_coefficient=attenuator_coefficient,
+            attenuator_error=attenuator_error,
             output_workspace=output_workspace,
         )
     else:
@@ -1151,6 +1168,7 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
     absolute_scale_method = reduction_config["absoluteScaleMethod"]
     beam_radius = reduction_config["DBScalingBeamRadius"]
     absolute_scale = reduction_config["StandardAbsoluteScale"]
+    attenuation_coefficients_file = reduction_config["AttenuationCoefficientsFileName"]
     time_slice = reduction_config["useTimeSlice"]
 
     output_dir = reduction_config["outputDir"]
@@ -1213,8 +1231,22 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             output_workspace_name=processed_center_ws_name,
             debug=debug_output,
         )
+
+        # Read the attenuation coefficients before any output is written, so that an invalid file stops the
+        # reduction early. The file is searched as during the validation of the reduction parameters.
+        if attenuation_coefficients_file is not None:
+            attenuation_coefficients_file = abspath(
+                attenuation_coefficients_file, directory=reduction_input.get("dataDirectories")
+            )
+        attenuation_coefficients = _load_attenuation_coefficients(attenuation_coefficients_file)
+        # all the time slices share the same empty beam run, thus the same attenuator
+        attenuator = _attenuator_name(processed_center_ws)
+        attenuator_coefficient, attenuator_error = _attenuator_transmission(
+            processed_center_ws, attenuator, attenuation_coefficients, attenuation_coefficients_file
+        )
     else:
         processed_center_ws = None
+        attenuator_coefficient = attenuator_error = None
 
     # empty beam transmission workspace
     if loaded_ws.empty is not None:
@@ -1321,6 +1353,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
                 empty_beam_ws=processed_center_ws,
                 beam_radius=beam_radius,
                 absolute_scale=absolute_scale,
+                attenuator_coefficient=attenuator_coefficient,
+                attenuator_error=attenuator_error,
                 keep_processed_workspaces=False,
                 debug=debug_output,
                 remove_algorithm_history=remove_algorithm_history,
@@ -1451,6 +1485,19 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
 
         specialparameters["absolute_scale"]["factor"]["value"] = factor_value
         specialparameters["absolute_scale"]["factor"]["error"] = factor_error
+
+        # attenuator of the empty beam run, and all the coefficients of the attenuation coefficients file
+        specialparameters["absolute_scale"]["attenuation"] = {
+            "attenuator": attenuator,
+            "coefficients": {
+                name: {
+                    "A": {"value": a, "error": a_error},
+                    "B": {"value": b, "error": b_error},
+                    "C": {"value": c, "error": c_error},
+                }
+                for name, (a, a_error, b, b_error, c, c_error) in attenuation_coefficients.items()
+            },
+        }
 
         logger.notice(f"Direct Beam Scaling: {factor_value}\tError: {factor_error}")
 

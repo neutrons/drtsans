@@ -262,6 +262,21 @@ def test_writing_metadata_with_direct_beam_absolute_scale(cleanfile):
         "absolute_scale": {
             "method": "direct_beam",
             "factor": {"value": 1.23, "error": 4.56},
+            "attenuation": {
+                "attenuator": "x2k",
+                "coefficients": {
+                    "x30": {
+                        "A": {"value": 0.117, "error": 0.0063},
+                        "B": {"value": 0.250, "error": 0.0101},
+                        "C": {"value": 0.0037, "error": 0.00032},
+                    },
+                    "x2k": {
+                        "A": {"value": 0.0155, "error": 0.00083},
+                        "B": {"value": 0.584, "error": 0.0103},
+                        "C": {"value": 6.97e-05, "error": 2.26e-06},
+                    },
+                },
+            },
         }
     }
 
@@ -282,6 +297,16 @@ def test_writing_metadata_with_direct_beam_absolute_scale(cleanfile):
         assert absolute_scale_group["method"][()].decode() == "direct_beam"
         assert factor_group["value"][()] == pytest.approx(1.23)
         assert factor_group["error"][()] == pytest.approx(4.56)
+
+        attenuation_group = _getGroup(absolute_scale_group, "attenuation", "NXnote")
+        assert attenuation_group["attenuator"][()].decode() == "x2k"
+        coefficients_group = _getGroup(attenuation_group, "coefficients", "NXnote")
+        assert set(coefficients_group.keys()) == {"x30", "x2k"}
+        x2k_group = _getGroup(coefficients_group, "x2k", "NXnote")
+        assert set(x2k_group.keys()) == {"A", "B", "C"}
+        assert x2k_group["A"]["value"][()] == pytest.approx(0.0155)
+        assert x2k_group["B"]["error"][()] == pytest.approx(0.0103)
+        assert x2k_group["C"]["value"][()] == pytest.approx(6.97e-05)
 
 
 def test_writing_iq_wedge_mode(cleanfile):

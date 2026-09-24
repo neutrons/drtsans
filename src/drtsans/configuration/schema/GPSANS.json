@@ -74,6 +74,12 @@
                                        "default":  "direct_beam"},
         "StandardAbsoluteScale":        {"$ref":  "common.json#/configuration/StandardAbsoluteScale",
                                        "default": 1.0},
+        "AttenuationCoefficientsFileName": {
+          "$ref": "common.json#/definitions/safeString",
+          "dataSource": "file",
+          "default": null,
+          "description": "Path to the file of attenuator fit coefficients used by the direct_beam absolute scaling method. If null, the default file packaged with drtsans is used."
+        },
 
         "numQxQyBins":             {"$ref":  "common.json#/configuration/numQxQyBins"},
         "1DQbinType":              {"$ref":  "common.json#/configuration/1DQbinType", "default": "scalar"},
@@ -152,7 +158,8 @@
         "useMaskBackTubes", "darkFileName", "normalization", "normalizationResortToTime",
         "sensitivityFileName", "useSolidAngleCorrection", "blockedBeamRunNumber",
         "useThetaDepTransCorrection", "DBScalingBeamRadius", "mmRadiusForTransmission", "absoluteScaleMethod",
-        "StandardAbsoluteScale", "numQxQyBins", "1DQbinType", "QbinType", "numQBins", "LogQBinsPerDecade",
+        "StandardAbsoluteScale", "AttenuationCoefficientsFileName", "numQxQyBins", "1DQbinType", "QbinType",
+        "numQBins", "LogQBinsPerDecade",
         "useLogQBinsDecadeCenter", "useLogQBinsEvenDecade", "WedgeMinAngles", "WedgeMaxAngles",
         "autoWedgeQmin", "autoWedgeQmax", "autoWedgeQdelta", "autoWedgeAzimuthalDelta",
         "autoWedgePeakWidth", "autoWedgeBackgroundWidth", "autoWedgeSignalToNoiseMin", "AnnularAngleBin",

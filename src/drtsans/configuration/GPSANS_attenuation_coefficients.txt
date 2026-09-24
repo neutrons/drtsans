@@ -1,4 +1,8 @@
-# attenuator position, Amp, Amp Err, exp const, exp const err,  bkgd, bkgd err
+# GPSANS attenuator fit coefficients.
+# Transmitted fraction of each attenuator: f(wavelength) = A * exp(-B * wavelength) + C,
+# with the wavelength in Angstrom, B in 1/Angstrom, and A, C dimensionless.
+# Provided by Lisa Debeer-Schmitt, 2020-02-26.
+# Columns: attenuator name, A, A error, B, B error, C, C error
 x3,0.3733459538730628,0.008609717163831113,0.08056544906925872,0.008241433507695071,0.0724341919138054,0.01125160779959418
 x30,0.11696573514650677,0.006304060228295941,0.25014801934427583,0.01012469612884642,0.003696051816711061,0.0003197928933191539
 x300,0.028719247985112162,0.0019190523738874328,0.3884993528348815,0.010600714703684273,0.00017081815634872129,9.055642884664314e-06

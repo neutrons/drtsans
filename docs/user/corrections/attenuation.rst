@@ -106,6 +106,9 @@ empty beam run, not of the sample run. The ``attenuator`` log value identifies t
    * - negative
      - Undefined
      - :math:`f = 1`, :math:`\delta f = 0`, with a warning
+   * - between 0 and 3, not an integer
+     - Undefined
+     - :math:`f = 1`, :math:`\delta f = 0`, with a warning
 
 As a guide to which attenuator a direct beam measurement uses, the Master Requirements Document (section 7.1)
 reports that on GPSANS the beam is attenuated by a factor of about 10k or 2k at a wavelength of 4.75 Å. For
@@ -173,7 +176,7 @@ The reduction stops with an error if:
 - a line of the file does not have seven comma-separated fields, its attenuator name is empty or repeated, or one
   of the six coefficients is not a finite number;
 - the attenuator of the empty beam run is not listed in the file;
-- the ``attenuator`` log value of the empty beam run is positive and not an integer from 0 to 8. This includes
+- the ``attenuator`` log value of the empty beam run is 3 or more and not an integer from 3 to 8. This includes
   runs converted from SPICE files with the attenuator open, whose log holds a positive stage position in mm.
 
 With ``"direct_beam"`` scaling, the coefficients file is read before any reduced I(Q) output is written, even when
@@ -211,7 +214,7 @@ coefficients file used in the reduction. They are saved next to the absolute sca
 
 - ``attenuator`` is the name of the attenuator given by the ``attenuator`` log value of the empty beam run, as in
   the table above. It is ``"Undefined"``, ``"Close"`` or ``"Open"`` when the beam is not attenuated, and
-  ``"Undefined"`` for a negative log value.
+  ``"Undefined"`` for a negative log value or a non-integer log value between 0 and 3.
 - ``coefficients`` holds one group for every line of the coefficients file, named after the attenuator,
   including attenuators not used in the reduction. With a custom file, only the attenuators listed in that file
   appear.

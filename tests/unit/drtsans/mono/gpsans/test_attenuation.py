@@ -256,5 +256,16 @@ def test_attenuator_name_negative(generic_workspace, clean_workspace):
     assert attenuation_factor(ws) == (1, 0)
 
 
+@pytest.mark.parametrize("log_value", [0.5, 1.5, 2.5])
+def test_attenuator_name_non_integer_below_three(generic_workspace, clean_workspace, log_value):
+    """A non-integer log value below 3, the average of Undefined, Close and Open entries, is Undefined"""
+    ws = generic_workspace
+    clean_workspace(ws)
+    SampleLogs(ws).insert("wavelength", 4.75, "Angstrom")
+    SampleLogs(ws).insert("attenuator", log_value)
+    assert _attenuator_name(ws) == "Undefined"
+    assert attenuation_factor(ws) == (1, 0)
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

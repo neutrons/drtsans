@@ -65,7 +65,7 @@ def attenuation_factor(
 
     If the attenuator is one of Undefined, Close or Open then a
     attenuation factor of 1 with uncertainty 0 is returned. A negative log value, as found in runs converted from
-    SPICE files, is taken as Undefined, with a warning.
+    SPICE files, and a non-integer log value between 0 and 3 are taken as Undefined, with a warning.
 
     Parameters
     ----------
@@ -155,15 +155,15 @@ def _attenuator_name(input_workspace: Union[str, MatrixWorkspace]) -> str:
     Returns
     -------
     str
-        One of "Undefined", "Close", "Open", "x3", "x30", "x300", "x2k", "x10k", "x100k". A negative log value
-        is taken as "Undefined", with a warning.
+        One of "Undefined", "Close", "Open", "x3", "x30", "x300", "x2k", "x10k", "x100k". A negative log value,
+        or a non-integer log value between 0 and 3, is taken as "Undefined", with a warning.
 
     Raises
     ------
     RuntimeError
         If the workspace has no "attenuator" sample log
     ValueError
-        If the log value is positive and not an integer from 0 to 8, for instance when the attenuator changed
+        If the log value is 3 or more and not an integer from 3 to 8, for instance when the attenuator changed
         during the run
     """
     attenuator = SampleLogs(input_workspace).single_value("attenuator")
@@ -172,6 +172,15 @@ def _attenuator_name(input_workspace: Union[str, MatrixWorkspace]) -> str:
         logger.warning(
             f"Negative attenuator log value {attenuator}, probably an attenuator stage position (mm) "
             "from a SPICE file. The attenuator is taken as Undefined and no attenuation correction is applied"
+        )
+        return _ATTENUATOR_NAMES[0]
+    if attenuator < 3 and attenuator not in _ATTENUATOR_NAMES:
+        # The log is averaged over the run: a non-integer value below 3 means the attenuator moved between the
+        # Undefined, Close and Open positions, none of which attenuates the beam
+        logger.warning(
+            f"Non-integer attenuator log value {attenuator}, probably the attenuator moved between the Undefined, "
+            "Close and Open positions during the run. The attenuator is taken as Undefined and no attenuation "
+            "correction is applied"
         )
         return _ATTENUATOR_NAMES[0]
     if attenuator not in _ATTENUATOR_NAMES:

@@ -1232,8 +1232,8 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             debug=debug_output,
         )
 
-        # Read the attenuation coefficients before any output is written, so that an invalid file stops the
-        # reduction early. The file is searched as during the validation of the reduction parameters.
+        # Read the attenuation coefficients before any reduced I(Q) output is written, so that an invalid file
+        # stops the reduction early. The file is searched as during the validation of the reduction parameters.
         if attenuation_coefficients_file is not None:
             attenuation_coefficients_file = abspath(
                 attenuation_coefficients_file, directory=reduction_input.get("dataDirectories")

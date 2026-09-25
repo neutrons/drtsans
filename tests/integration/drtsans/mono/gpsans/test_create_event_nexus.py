@@ -29,6 +29,7 @@ from drtsans.files.event_nexus_rw import (
     EventNeXusWriter,
 )
 from drtsans.mono.gpsans.cg2_spice_to_nexus import CG2EventNexusConvert
+from drtsans.mono.gpsans.attenuation import _load_attenuation_coefficients
 from drtsans.files.log_h5_reader import verify_cg2_reduction_results
 from mantid.simpleapi import mtd
 from mantid.simpleapi import ConvertToMatrixWorkspace
@@ -156,6 +157,15 @@ def test_reduction(datarepo_dir, temp_directory):
             "useSubpixels": False,
         },
     }
+    # Custom attenuation coefficients file: the default coefficients, so that the results are unchanged,
+    # plus one additional attenuator that shows the custom file is the one saved in the reduction log
+    default_coefficients = _load_attenuation_coefficients()
+    coefficients_file = os.path.join(output_dir, "custom_attenuation_coefficients.txt")
+    with open(coefficients_file, "w") as file:
+        for name, values in default_coefficients.items():
+            file.write(",".join([name] + [repr(value) for value in values]) + "\n")
+        file.write("x_test,1.0,0.1,2.0,0.2,3.0,0.3\n")
+    specs["configuration"]["AttenuationCoefficientsFileName"] = coefficients_file
     reduction_input = reduction_parameters(specs, "GPSANS", validate=False)  # add defaults and defer validation
     reduce_gpsans_data(
         datarepo_dir.gpsans,
@@ -186,6 +196,21 @@ def test_reduction(datarepo_dir, temp_directory):
     assert absolute_scale["method"][()].decode() == "direct_beam"
     assert absolute_scale["factor"]["value"][()]
     assert absolute_scale["factor"]["error"][()]
+    attenuation = absolute_scale["attenuation"]
+    assert attenuation["attenuator"][()].decode() == "x30"
+    # all the attenuators of the custom attenuation coefficients file are saved
+    assert set(attenuation["coefficients"].keys()) == set(default_coefficients) | {"x_test"}
+    x_test = attenuation["coefficients"]["x_test"]
+    assert x_test["B"]["value"][()] == pytest.approx(2.0)
+    assert x_test["C"]["error"][()] == pytest.approx(0.3)
+    a, a_error, b, b_error, c, c_error = default_coefficients["x2k"]
+    x2k = attenuation["coefficients"]["x2k"]
+    assert x2k["A"]["value"][()] == pytest.approx(a)
+    assert x2k["A"]["error"][()] == pytest.approx(a_error)
+    assert x2k["B"]["value"][()] == pytest.approx(b)
+    assert x2k["B"]["error"][()] == pytest.approx(b_error)
+    assert x2k["C"]["value"][()] == pytest.approx(c)
+    assert x2k["C"]["error"][()] == pytest.approx(c_error)
 
     # NOTE:
     # mysterious leftover workspaces in memory

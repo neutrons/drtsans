@@ -1009,7 +1009,10 @@ def _ast_to_sympy(
         arguments = [
             _ast_to_sympy(argument, symbols, wavelength_symbol, source, line_number) for argument in node.args
         ]
-        return _SUPPORTED_FUNCTIONS[node.func.id](*arguments)
+        try:
+            return _SUPPORTED_FUNCTIONS[node.func.id](*arguments)
+        except (TypeError, ValueError) as error:
+            _raise_parse_error(source, line_number, f"invalid call to {node.func.id}: {error}")
     _raise_parse_error(source, line_number, "formula contains unsupported syntax")
 
 

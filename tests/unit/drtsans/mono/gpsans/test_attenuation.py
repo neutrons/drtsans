@@ -413,6 +413,7 @@ def test_additional_supported_functions(tmp_path):
             "formula = A + B\n[attenuator x2k]\nA = 0.1, 0.01\nB = 0.2, 0.02\n[attenuator x30]\nA = 0.3, 0.03\n",
             "does not define the same parameters",
         ),
+        ("formula = exp()\n[attenuator x2k]\nA = 0.1, 0.01\n", "invalid call to exp"),
         ("x2k,0.1,0.01,0.5,0.01,0.001,0.0001\n", "old comma-separated attenuation coefficients"),
     ],
 )

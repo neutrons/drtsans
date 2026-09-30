@@ -6,8 +6,27 @@ Absolute Scaling with an Attenuated Direct Beam (GPSANS)
 This correction applies only to GPSANS. BIOSANS and EQSANS do not implement the ``"direct_beam"`` absolute
 scaling method.
 
-Method
-------
+.. |br| raw:: html
+
+   <br />
+
+.. topic:: On this page
+
+   - `Methods`_ |br|
+     How the attenuated direct beam is used for absolute scaling.
+   - `Attenuator Transmission`_ |br|
+     How the attenuation factor and its uncertainty are computed.
+   - `Attenuation Coefficients File`_ |br|
+     Format of the default calibration-history file and custom override files.
+   - `Using a Custom Coefficients File`_ |br|
+     How to point a GPSANS reduction at user-supplied attenuation coefficients.
+   - `Attenuation Coefficients in the Reduction Log`_ |br|
+     Where the selected formula and coefficients are recorded in reduction output.
+   - `Parameters`_ |br|
+     Reduction parameters that control attenuated direct-beam scaling.
+
+Methods
+-------
 
 The Master Requirements Document (section 12.2) describes two methods to scale the measured intensity into
 absolute units (1/cm): measuring a calibrated standard sample, or measuring the attenuated empty (direct)
@@ -48,7 +67,7 @@ intensity scaling factor :math:`\chi` for the attenuator. The two notations are 
 Finally, the sample intensity, already normalized by the sample thickness, is divided by :math:`I_T`
 (Eqs. 12.9 and 12.10), with the relative uncertainties added in quadrature.
 
-Attenuator transmission
+Attenuator Transmission
 -----------------------
 
 The transmitted fraction of each attenuator may depend on the wavelength. The model is read from the attenuation
@@ -119,7 +138,7 @@ reports that on GPSANS the beam is attenuated by a factor of about 10k or 2k at 
 wavelengths of 12 Å and longer, it is attenuated by a factor of about 30 with the 40 mm source aperture, and
 not attenuated with the 20 mm source aperture.
 
-Attenuation coefficients file
+Attenuation Coefficients File
 -----------------------------
 
 The formula and fitted parameter values are read from a text file:
@@ -156,7 +175,7 @@ The location of the default file in the installed package is given by
 A copy of the parameter blocks in this file is a good starting point for a custom file. Custom files do not use
 ``[effective ...]`` sections, because they are explicit overrides for the reduction.
 
-Using a custom coefficients file
+Using a Custom Coefficients File
 --------------------------------
 
 To reduce data with a custom coefficients file, set the reduction parameter
@@ -198,7 +217,7 @@ The reduction stops with an error if:
 With ``"direct_beam"`` scaling, the coefficients file is read before any reduced I(Q) output is written, even when
 the beam is not attenuated, so an invalid file stops the reduction early.
 
-Attenuation coefficients in the reduction log
+Attenuation Coefficients in the Reduction Log
 ---------------------------------------------
 
 When ``"absoluteScaleMethod"`` is ``"direct_beam"``, the reduction log (the ``*_reduction_log.hdf`` file in the

@@ -812,10 +812,12 @@ class ReductionParameters:
         ----------
         validator: ~jsonschema.IValidator
         value: str
-            One of 'file' or 'events'.
+            One of 'file', 'events', or 'attenuation_file'.
             - 'file' triggers a call to os.path.exists for a search of `instance` in the local file system.
             - 'events' triggers a call to ~drtsans.path.abspath to search the nexus events file associated
             to `instance`. Preconditions are that the JSON files contains entries 'iptsNumber' and 'instrumentName'.
+            - 'attenuation_file' resolves `instance` as for 'file', then validates the GPSANS attenuation
+            coefficients file contents.
         instance: str
             file path or run number to be validated.
         schema: dict
@@ -835,6 +837,18 @@ class ReductionParameters:
                     abspath(instance, directory=data_directories)
                 except RuntimeError:
                     yield jsonschema.ValidationError(f"Cannot find file {instance}")
+            elif value == "attenuation_file":
+                try:
+                    filename = abspath(instance, directory=data_directories)
+                except RuntimeError:
+                    yield jsonschema.ValidationError(f"Cannot find file {instance}")
+                    return
+                try:
+                    from drtsans.mono.gpsans.attenuation import _load_custom_attenuation_coefficients
+
+                    _load_custom_attenuation_coefficients(filename)
+                except ValueError as error:
+                    yield jsonschema.ValidationError(str(error))
             elif value == "events":  # run number(s)
                 instrument_name = instrument_filesystem_name(self["instrumentName"])
                 try:
@@ -849,7 +863,7 @@ class ReductionParameters:
                 except RuntimeError:
                     yield jsonschema.ValidationError(f"Cannot find events file associated to {instance}")
             else:
-                sources = ("file", "events")
+                sources = ("file", "events", "attenuation_file")
                 yield jsonschema.ValidationError(f"{value} is not valid data source. Try one of {sources}")
 
     def _validate_evaluate_condition(self, validator, value, instance, schema):

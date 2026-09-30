@@ -264,6 +264,7 @@ def test_writing_metadata_with_direct_beam_absolute_scale(cleanfile):
             "factor": {"value": 1.23, "error": 4.56},
             "attenuation": {
                 "attenuator": "x2k",
+                "fit_function": "A * exp(-B * wavelength) + C",
                 "coefficients": {
                     "x30": {
                         "A": {"value": 0.117, "error": 0.0063},
@@ -300,6 +301,7 @@ def test_writing_metadata_with_direct_beam_absolute_scale(cleanfile):
 
         attenuation_group = _getGroup(absolute_scale_group, "attenuation", "NXnote")
         assert attenuation_group["attenuator"][()].decode() == "x2k"
+        assert attenuation_group["fit_function"][()].decode() == "A * exp(-B * wavelength) + C"
         coefficients_group = _getGroup(attenuation_group, "coefficients", "NXnote")
         assert set(coefficients_group.keys()) == {"x30", "x2k"}
         x2k_group = _getGroup(coefficients_group, "x2k", "NXnote")

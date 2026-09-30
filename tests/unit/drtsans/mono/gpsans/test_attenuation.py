@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from datetime import date
 import importlib.resources
+import math
 import textwrap
 
 import numpy as np
@@ -236,6 +237,7 @@ def test_attenuation_factor_custom_file(generic_workspace, clean_workspace, tmp_
         ("formula = A\n\n[attenuator x2k]\nA = half, 0.01", "could not convert string to float"),
         ("formula = A\n\n[attenuator x2k]\nA = nan, 0.01", "finite numbers"),
         ("formula = A\n\n[attenuator x2k]\nA = 0.1, inf", "finite numbers"),
+        ("formula = A\n\n[attenuator x2k]\nA = 0.1, -0.01", "uncertainties must be non-negative"),
     ],
 )
 def test_malformed_coefficients_file(tmp_path, contents, message):
@@ -401,6 +403,34 @@ def test_additional_supported_functions(tmp_path):
     )
     assert value == pytest.approx(expected_value)
     assert error == pytest.approx(expected_error)
+
+
+def test_erf_formula_value_and_uncertainty(tmp_path):
+    coefficients_file = tmp_path / "erf.txt"
+    _write_formula_file(
+        coefficients_file,
+        formula="erf(A)",
+        attenuators={"x2k": {"A": (0.5, 0.1)}},
+    )
+    formula_block = _load_custom_attenuation_coefficients(coefficients_file)
+    value, error = attenuation_factor_from_block(formula_block, "x2k", 4.0)
+    assert value == pytest.approx(math.erf(0.5))
+    assert error == pytest.approx((2.0 / math.sqrt(math.pi)) * math.exp(-(0.5**2)) * 0.1)
+
+
+@pytest.mark.parametrize(
+    "formula, parameters, message",
+    [
+        ("sqrt(A)", {"A": (-1.0, 0.1)}, "evaluated to non-finite value"),
+        ("sqrt(A)", {"A": (0.0, 0.1)}, "uncertainty.*evaluated to non-finite value"),
+    ],
+)
+def test_formula_evaluation_rejects_non_finite_results(tmp_path, formula, parameters, message):
+    coefficients_file = tmp_path / "non-finite-result.txt"
+    _write_formula_file(coefficients_file, formula=formula, attenuators={"x2k": parameters})
+    formula_block = _load_custom_attenuation_coefficients(coefficients_file)
+    with pytest.raises(ValueError, match=message):
+        attenuation_factor_from_block(formula_block, "x2k", 4.0)
 
 
 @pytest.mark.parametrize(

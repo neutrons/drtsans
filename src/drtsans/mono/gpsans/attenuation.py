@@ -57,6 +57,7 @@ _SUPPORTED_FUNCTIONS = {
 }
 _SUPPORTED_CONSTANTS = {"pi": sympy.pi}
 _RESERVED_NAMES = frozenset({"wavelength", *_SUPPORTED_FUNCTIONS, *_SUPPORTED_CONSTANTS})
+_LAMBDIFY_MODULES = [{"erf": math.erf}, "numpy"]
 
 
 @dataclass(frozen=True)
@@ -638,6 +639,8 @@ def _parse_parameter_line(source: Union[str, Path], line: str, line_number: int)
         _raise_parse_error(source, line_number, str(error))
     if not math.isfinite(value) or not math.isfinite(error):
         _raise_parse_error(source, line_number, "parameter values and uncertainties must be finite numbers")
+    if error < 0:
+        _raise_parse_error(source, line_number, "parameter uncertainties must be non-negative")
     return parameter, _ParameterValue(value=value, error=error, line_number=line_number)
 
 
@@ -757,9 +760,9 @@ def _compile_formula(
         _raise_parse_error(source, line_number, f"unknown formula symbols: {sorted(unknown_symbols)}")
 
     arguments = [symbols[parameter] for parameter in parameters] + [wavelength_symbol]
-    value_function = sympy.lambdify(arguments, expression, modules="numpy")
+    value_function = sympy.lambdify(arguments, expression, modules=_LAMBDIFY_MODULES)
     derivative_functions = {
-        parameter: sympy.lambdify(arguments, sympy.diff(expression, symbols[parameter]), modules="numpy")
+        parameter: sympy.lambdify(arguments, sympy.diff(expression, symbols[parameter]), modules=_LAMBDIFY_MODULES)
         for parameter in parameters
     }
     return _CompiledFormula(
@@ -793,12 +796,23 @@ def _evaluate_formula_with_error(
     parameter_values = formula_block.coefficients[attenuator_name]
     values = [parameter_values[parameter].value for parameter in formula_block.parameters]
     arguments = values + [wavelength]
-    value = float(formula_block.compiled.value_function(*arguments))
+    with np.errstate(all="ignore"):
+        value = float(formula_block.compiled.value_function(*arguments))
     variance = 0.0
     for parameter in formula_block.parameters:
-        derivative = float(formula_block.compiled.derivative_functions[parameter](*arguments))
+        with np.errstate(all="ignore"):
+            derivative = float(formula_block.compiled.derivative_functions[parameter](*arguments))
         variance += (derivative * parameter_values[parameter].error) ** 2
-    return value, float(np.sqrt(variance))
+    uncertainty = float(np.sqrt(variance))
+    if not math.isfinite(value):
+        message = f"Attenuation formula for {attenuator_name} evaluated to non-finite value {value}"
+        logger.error(message)
+        raise ValueError(message)
+    if not math.isfinite(uncertainty):
+        message = f"Attenuation formula uncertainty for {attenuator_name} evaluated to non-finite value {uncertainty}"
+        logger.error(message)
+        raise ValueError(message)
+    return value, uncertainty
 
 
 def _select_effective_block(blocks: Tuple[_FormulaBlock, ...], run_start: Union[str, datetime]) -> _FormulaBlock:

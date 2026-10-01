@@ -35,7 +35,9 @@ from drtsans.mono.gpsans.attenuation import (
     attenuation_factor,
     _attenuator_name,
     _attenuator_transmission,
-    _load_attenuation_coefficients,
+    _load_custom_attenuation_coefficients,
+    _load_default_attenuation_coefficients,
+    _run_start_time,
 )
 from drtsans.mono.load import (
     load_and_split,
@@ -1238,7 +1240,10 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
             attenuation_coefficients_file = abspath(
                 attenuation_coefficients_file, directory=reduction_input.get("dataDirectories")
             )
-        attenuation_coefficients = _load_attenuation_coefficients(attenuation_coefficients_file)
+        if attenuation_coefficients_file is None:
+            attenuation_coefficients = _load_default_attenuation_coefficients(_run_start_time(processed_center_ws))
+        else:
+            attenuation_coefficients = _load_custom_attenuation_coefficients(attenuation_coefficients_file)
         # all the time slices share the same empty beam run, thus the same attenuator
         attenuator = _attenuator_name(processed_center_ws)
         attenuator_coefficient, attenuator_error = _attenuator_transmission(
@@ -1489,15 +1494,13 @@ def reduce_single_configuration(loaded_ws, reduction_input, prefix="", skip_nan=
         # attenuator of the empty beam run, and all the coefficients of the attenuation coefficients file
         specialparameters["absolute_scale"]["attenuation"] = {
             "attenuator": attenuator,
-            "coefficients": {
-                name: {
-                    "A": {"value": a, "error": a_error},
-                    "B": {"value": b, "error": b_error},
-                    "C": {"value": c, "error": c_error},
-                }
-                for name, (a, a_error, b, b_error, c, c_error) in attenuation_coefficients.items()
-            },
+            "fit_function": attenuation_coefficients.formula,
+            "coefficients": attenuation_coefficients.coefficients_for_log(),
         }
+        if attenuation_coefficients.effective_date is not None:
+            specialparameters["absolute_scale"]["attenuation"]["effective_date"] = (
+                attenuation_coefficients.effective_date.isoformat()
+            )
 
         logger.notice(f"Direct Beam Scaling: {factor_value}\tError: {factor_error}")
 

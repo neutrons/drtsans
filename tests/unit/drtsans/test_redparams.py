@@ -666,10 +666,22 @@ class TestReductionParametersGPSANS:
 
         # existing custom file
         coefficients_file = tmp_path / "custom_coefficients.txt"
-        coefficients_file.write_text("x2k,0.02,0.001,0.5,0.01,0.0001,0.000002\n")
+        coefficients_file.write_text(
+            "formula = A * exp(-B * wavelength) + C\n\n"
+            "[attenuator x2k]\n"
+            "A = 0.02, 0.001\n"
+            "B = 0.5, 0.01\n"
+            "C = 0.0001, 0.000002\n"
+        )
         parameters["configuration"]["AttenuationCoefficientsFileName"] = str(coefficients_file)
         with amend_config(data_dir=datarepo_dir.gpsans):
             validate_reduction_parameters(parameters)
+
+        # malformed custom file
+        coefficients_file.write_text("x2k,0.02,0.001,0.5,0.01,0.0001,0.000002\n")
+        with pytest.raises(ReductionParameterError, match="old comma-separated attenuation coefficients"):
+            with amend_config(data_dir=datarepo_dir.gpsans):
+                validate_reduction_parameters(parameters)
 
         # nonexistent file
         parameters["configuration"]["AttenuationCoefficientsFileName"] = str(tmp_path / "nonexistent.txt")

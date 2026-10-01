@@ -1,6 +1,10 @@
 #!/usr/bin/env python
+from datetime import date
 import importlib.resources
+import math
+import textwrap
 
+import numpy as np
 import pytest
 
 # https://github.com/neutrons/drtsans/blob/next/src/drtsans/mono/gpsans/attenuation.py
@@ -10,7 +14,12 @@ from drtsans.mono.gpsans.attenuation import (
     _NO_ATTENUATION,
     _attenuation_factor,
     _attenuator_name,
+    _load_custom_attenuation_coefficients,
+    _load_default_attenuation_coefficients,
     _load_attenuation_coefficients,
+    _parse_timestamped_formula_blocks,
+    _run_start_time,
+    _select_effective_block,
 )
 
 # https://github.com/neutrons/drtsans/blob/next/src/drtsans/samplelogs.py
@@ -30,6 +39,7 @@ def test_attenuation_factor(generic_workspace, clean_workspace):
     # Add sample logs
     SampleLogs(ws).insert("wavelength", wavelength, "Angstrom")
     SampleLogs(ws).insert("attenuator", attenuator)
+    SampleLogs(ws).insert("run_start", "2000-01-01T00:00:00")
 
     value, error = attenuation_factor(ws)
     assert value == pytest.approx(expected_value)
@@ -73,6 +83,7 @@ def test_attenuation_factor_missing_logs(generic_workspace, clean_workspace):
 
     # Add in attenuator so only missing wavelength log
     SampleLogs(ws).insert("attenuator", 4)
+    SampleLogs(ws).insert("run_start", "2000-01-01T00:00:00")
     with pytest.raises(RuntimeError) as excinfo:
         attenuation_factor(ws)
     assert "wavelength" in str(excinfo.value)  # Should complain about missing wavelength
@@ -131,14 +142,57 @@ REFERENCE_COEFFICIENTS = {
 }
 
 
+def _write_formula_file(path, formula="A * exp(-B * wavelength) + C", effective=None, attenuators=None):
+    attenuators = attenuators or {
+        "x2k": {
+            "A": (0.02, 0.001),
+            "B": (0.5, 0.01),
+            "C": (1.0e-4, 2.0e-6),
+        }
+    }
+    lines = []
+    if effective is not None:
+        lines.append(f"[effective {effective}]")
+    lines.append(f"formula = {formula}")
+    lines.append("")
+    for attenuator, parameters in attenuators.items():
+        lines.append(f"[attenuator {attenuator}]")
+        for parameter, (value, error) in parameters.items():
+            lines.append(f"{parameter} = {value}, {error}")
+        lines.append("")
+    path.write_text("\n".join(lines))
+    return path
+
+
+def _coefficients_as_tuples(formula_block):
+    return {
+        attenuator: tuple(
+            value
+            for parameter in formula_block.parameters
+            for value in (
+                parameter_values[parameter].value,
+                parameter_values[parameter].error,
+            )
+        )
+        for attenuator, parameter_values in formula_block.coefficients.items()
+    }
+
+
 def test_default_coefficients_file():
     default_file = importlib.resources.files("drtsans.configuration") / "GPSANS_attenuation_coefficients.txt"
     with importlib.resources.as_file(default_file) as filename:
-        coefficients = _load_attenuation_coefficients(filename)
-    assert coefficients == REFERENCE_COEFFICIENTS
-    assert set(coefficients) == set(_ATTENUATOR_NAMES.values()) - _NO_ATTENUATION
+        coefficients = _parse_timestamped_formula_blocks(filename)[0]
+    assert coefficients.effective_date == date(1990, 1, 1)
+    assert coefficients.formula == "A * exp(-B * wavelength) + C"
+    assert coefficients.parameters == ("A", "B", "C")
+    assert _coefficients_as_tuples(coefficients) == REFERENCE_COEFFICIENTS
+    assert set(coefficients.coefficients) == set(_ATTENUATOR_NAMES.values()) - _NO_ATTENUATION
     # the default file is used when no file is given
-    assert _load_attenuation_coefficients() == REFERENCE_COEFFICIENTS
+    assert _coefficients_as_tuples(_load_attenuation_coefficients()) == REFERENCE_COEFFICIENTS
+    assert (
+        _coefficients_as_tuples(_load_default_attenuation_coefficients("2000-01-01T00:00:00"))
+        == REFERENCE_COEFFICIENTS
+    )
 
 
 def test_attenuation_factor_custom_file(generic_workspace, clean_workspace, tmp_path):
@@ -147,12 +201,20 @@ def test_attenuation_factor_custom_file(generic_workspace, clean_workspace, tmp_
     wavelength = 4.75
     SampleLogs(ws).insert("wavelength", wavelength, "Angstrom")
     SampleLogs(ws).insert("attenuator", 6)  # x2k
+    SampleLogs(ws).insert("run_start", "2000-01-01T00:00:00")
 
     # Custom file with x2k coefficients differing from the default ones
     custom_coefficients = (0.02, 0.001, 0.5, 0.01, 1.0e-4, 2.0e-6)
     coefficients_file = tmp_path / "custom_coefficients.txt"
-    coefficients_file.write_text(
-        "# attenuator name, A, A error, B, B error, C, C error\n\nx2k, " + ", ".join(map(str, custom_coefficients))
+    _write_formula_file(
+        coefficients_file,
+        attenuators={
+            "x2k": {
+                "A": custom_coefficients[0:2],
+                "B": custom_coefficients[2:4],
+                "C": custom_coefficients[4:6],
+            }
+        },
     )
 
     value, error = attenuation_factor(ws, coefficients_file)
@@ -169,29 +231,28 @@ def test_attenuation_factor_custom_file(generic_workspace, clean_workspace, tmp_
 
 
 @pytest.mark.parametrize(
-    "line, message",
+    "contents, message",
     [
-        ("x2k,0.1,0.01,0.5,0.01,0.001", "expected 7 comma-separated fields, found 6"),
-        ("x2k,0.1,0.01,0.5,0.01,0.001,0.0001,0.1", "expected 7 comma-separated fields, found 8"),
-        ("x2k,0.1,0.01,half,0.01,0.001,0.0001", "could not convert string to float"),
-        (",0.1,0.01,0.5,0.01,0.001,0.0001", "empty attenuator name"),
-        ("x2k,nan,0.01,0.5,0.01,0.001,0.0001", "coefficients must be finite numbers"),
-        ("x2k,0.1,0.01,inf,0.01,0.001,0.0001", "coefficients must be finite numbers"),
+        ("formula = A\n\n[attenuator x2k]\nA = 0.1", "parameter lines must have the form"),
+        ("formula = A\n\n[attenuator x2k]\nA = half, 0.01", "could not convert string to float"),
+        ("formula = A\n\n[attenuator x2k]\nA = nan, 0.01", "finite numbers"),
+        ("formula = A\n\n[attenuator x2k]\nA = 0.1, inf", "finite numbers"),
+        ("formula = A\n\n[attenuator x2k]\nA = 0.1, -0.01", "uncertainties must be non-negative"),
     ],
 )
-def test_malformed_coefficients_file(tmp_path, line, message):
+def test_malformed_coefficients_file(tmp_path, contents, message):
     coefficients_file = tmp_path / "malformed_coefficients.txt"
-    coefficients_file.write_text("# header\n" + line + "\n")
-    with pytest.raises(ValueError, match="Invalid line 2") as excinfo:
-        _load_attenuation_coefficients(coefficients_file)
+    coefficients_file.write_text(contents)
+    with pytest.raises(ValueError) as excinfo:
+        _load_custom_attenuation_coefficients(coefficients_file)
     assert message in str(excinfo.value)
 
 
 def test_repeated_attenuator_in_coefficients_file(tmp_path):
     coefficients_file = tmp_path / "repeated_coefficients.txt"
-    coefficients_file.write_text("x2k,0.1,0.01,0.5,0.01,0.001,0.0001\nx2k,0.2,0.01,0.5,0.01,0.001,0.0001\n")
-    with pytest.raises(ValueError, match="Invalid line 2") as excinfo:
-        _load_attenuation_coefficients(coefficients_file)
+    coefficients_file.write_text("formula = A\n\n[attenuator x2k]\nA = 0.1, 0.01\n\n[attenuator x2k]\nA = 0.2, 0.01\n")
+    with pytest.raises(ValueError) as excinfo:
+        _load_custom_attenuation_coefficients(coefficients_file)
     assert "attenuator x2k is repeated" in str(excinfo.value)
 
 
@@ -200,6 +261,7 @@ def test_attenuation_factor_nonexistent_file(generic_workspace, clean_workspace,
     clean_workspace(ws)
     SampleLogs(ws).insert("wavelength", 4.75, "Angstrom")
     SampleLogs(ws).insert("attenuator", 6)  # x2k
+    SampleLogs(ws).insert("run_start", "2000-01-01T00:00:00")
     with pytest.raises(FileNotFoundError):
         attenuation_factor(ws, tmp_path / "nonexistent.txt")
     # the file is not read when the beam is not attenuated
@@ -214,6 +276,206 @@ def test_attenuation_factor_unknown_attenuator(generic_workspace, clean_workspac
     SampleLogs(ws).insert("attenuator", 9)
     with pytest.raises(ValueError, match="Unknown attenuator log value 9"):
         attenuation_factor(ws)
+
+
+def test_timestamp_selection_uses_most_recent_effective_block(tmp_path):
+    coefficients_file = tmp_path / "timestamped.txt"
+    coefficients_file.write_text(
+        textwrap.dedent(
+            """
+            [effective 1990-01-01]
+            formula = A
+            [attenuator x2k]
+            A = 1.0, 0.1
+
+            [effective 2026-05-01]
+            formula = A
+            [attenuator x2k]
+            A = 2.0, 0.2
+            """
+        )
+    )
+    blocks = _parse_timestamped_formula_blocks(coefficients_file)
+    assert _select_effective_block(blocks, "2026-04-30T23:59:59").coefficients["x2k"]["A"].value == pytest.approx(1.0)
+    assert _select_effective_block(blocks, "2026-05-01T00:00:00").coefficients["x2k"]["A"].value == pytest.approx(2.0)
+
+
+def test_run_start_time_uses_start_time_before_run_start_and_run_begin(generic_workspace, clean_workspace):
+    ws = generic_workspace
+    clean_workspace(ws)
+    SampleLogs(ws).insert("run_begin", "2025-01-01T00:00:00")
+    SampleLogs(ws).insert("run_start", "2026-01-01T00:00:00")
+    SampleLogs(ws).insert("start_time", "2027-01-01T00:00:00")
+    assert _run_start_time(ws).year == 2027
+
+
+def test_run_start_time_uses_run_start_before_run_begin(generic_workspace, clean_workspace):
+    ws = generic_workspace
+    clean_workspace(ws)
+    SampleLogs(ws).insert("run_begin", "2025-01-01T00:00:00")
+    SampleLogs(ws).insert("run_start", "2026-01-01T00:00:00")
+    assert _run_start_time(ws).year == 2026
+
+
+def test_run_start_time_uses_run_begin_fallback(generic_workspace, clean_workspace):
+    ws = generic_workspace
+    clean_workspace(ws)
+    SampleLogs(ws).insert("run_begin", "2025-01-01T00:00:00")
+    assert _run_start_time(ws).year == 2025
+
+
+def test_default_coefficients_missing_run_timestamp_raises(generic_workspace, clean_workspace):
+    ws = generic_workspace
+    clean_workspace(ws)
+    SampleLogs(ws).insert("wavelength", 4.75, "Angstrom")
+    SampleLogs(ws).insert("attenuator", 6)
+    with pytest.raises(RuntimeError, match="start_time, run_start or run_begin"):
+        attenuation_factor(ws)
+
+
+def test_default_coefficients_before_earliest_effective_date_raises():
+    with pytest.raises(ValueError, match="earlier than the earliest attenuation calibration"):
+        _load_default_attenuation_coefficients("1989-12-31T23:59:59")
+
+
+def test_alternate_formula_value_and_uncertainty(tmp_path):
+    coefficients_file = tmp_path / "alternate.txt"
+    _write_formula_file(
+        coefficients_file,
+        formula="A + B * wavelength + C * exp(-D * wavelength)",
+        attenuators={
+            "x2k": {
+                "A": (1.0, 0.1),
+                "B": (2.0, 0.2),
+                "C": (3.0, 0.3),
+                "D": (0.5, 0.05),
+            }
+        },
+    )
+    formula_block = _load_custom_attenuation_coefficients(coefficients_file)
+    value, error = formula_block.compiled.value_function(1.0, 2.0, 3.0, 0.5, 4.0), None
+    expected_value = 1.0 + 2.0 * 4.0 + 3.0 * np.exp(-0.5 * 4.0)
+    expected_error = np.sqrt(
+        0.1**2 + (4.0 * 0.2) ** 2 + (np.exp(-0.5 * 4.0) * 0.3) ** 2 + ((-4.0 * 3.0 * np.exp(-0.5 * 4.0)) * 0.05) ** 2
+    )
+    evaluated_value, error = attenuation_factor_from_block(formula_block, "x2k", 4.0)
+    assert value == pytest.approx(expected_value)
+    assert evaluated_value == pytest.approx(expected_value)
+    assert error == pytest.approx(expected_error)
+
+
+def attenuation_factor_from_block(formula_block, attenuator_name, wavelength):
+    from drtsans.mono.gpsans.attenuation import _evaluate_formula_with_error
+
+    return _evaluate_formula_with_error(formula_block, attenuator_name, wavelength)
+
+
+def test_formula_without_wavelength_is_wavelength_independent(generic_workspace, clean_workspace, tmp_path):
+    coefficients_file = tmp_path / "constant.txt"
+    _write_formula_file(
+        coefficients_file,
+        formula="A + B",
+        attenuators={"x2k": {"A": (0.2, 0.01), "B": (0.3, 0.02)}},
+    )
+    ws = generic_workspace
+    clean_workspace(ws)
+    SampleLogs(ws).insert("attenuator", 6)
+    value, error = attenuation_factor(ws, coefficients_file)
+    assert value == pytest.approx(0.5)
+    assert error == pytest.approx(np.sqrt(0.01**2 + 0.02**2))
+
+
+def test_additional_supported_functions(tmp_path):
+    coefficients_file = tmp_path / "additional-functions.txt"
+    _write_formula_file(
+        coefficients_file,
+        formula="log10(A) + sinh(B) + tanh(C) + abs(D)",
+        attenuators={"x2k": {"A": (100.0, 1.0), "B": (0.5, 0.01), "C": (0.25, 0.02), "D": (-0.3, 0.03)}},
+    )
+    formula_block = _load_custom_attenuation_coefficients(coefficients_file)
+    value, error = attenuation_factor_from_block(formula_block, "x2k", 4.0)
+    expected_value = np.log10(100.0) + np.sinh(0.5) + np.tanh(0.25) + abs(-0.3)
+    expected_error = np.sqrt(
+        (1.0 / (100.0 * np.log(10.0)) * 1.0) ** 2
+        + (np.cosh(0.5) * 0.01) ** 2
+        + ((1.0 / np.cosh(0.25) ** 2) * 0.02) ** 2
+        + ((-1.0) * 0.03) ** 2
+    )
+    assert value == pytest.approx(expected_value)
+    assert error == pytest.approx(expected_error)
+
+
+def test_erf_formula_value_and_uncertainty(tmp_path):
+    coefficients_file = tmp_path / "erf.txt"
+    _write_formula_file(
+        coefficients_file,
+        formula="erf(A)",
+        attenuators={"x2k": {"A": (0.5, 0.1)}},
+    )
+    formula_block = _load_custom_attenuation_coefficients(coefficients_file)
+    value, error = attenuation_factor_from_block(formula_block, "x2k", 4.0)
+    assert value == pytest.approx(math.erf(0.5))
+    assert error == pytest.approx((2.0 / math.sqrt(math.pi)) * math.exp(-(0.5**2)) * 0.1)
+
+
+@pytest.mark.parametrize(
+    "formula, parameters, message",
+    [
+        ("sqrt(A)", {"A": (-1.0, 0.1)}, "evaluated to non-finite value"),
+        ("sqrt(A)", {"A": (0.0, 0.1)}, "uncertainty.*evaluated to non-finite value"),
+        ("A / B", {"A": (1.0, 0.1), "B": (0.0, 0.1)}, "evaluated to non-finite value"),
+        ("A ** 0.5", {"A": (-1.0, 0.1)}, "evaluated to non-finite value"),
+        ("A ** 0.5", {"A": (0.0, 0.1)}, "uncertainty.*evaluated to non-finite value"),
+    ],
+)
+def test_formula_evaluation_rejects_non_finite_results(tmp_path, formula, parameters, message):
+    coefficients_file = tmp_path / "non-finite-result.txt"
+    _write_formula_file(coefficients_file, formula=formula, attenuators={"x2k": parameters})
+    formula_block = _load_custom_attenuation_coefficients(coefficients_file)
+    with pytest.raises(ValueError, match=message):
+        attenuation_factor_from_block(formula_block, "x2k", 4.0)
+
+
+@pytest.mark.parametrize(
+    "contents, message",
+    [
+        ("formula = A + D\n[attenuator x2k]\nA = 0.1, 0.01\n", "D is not a parameter"),
+        ("formula = A\n[attenuator x2k]\nA = 0.1, 0.01\nB = 0.2, 0.02\n", "parameters not used"),
+        ("formula = A\n[attenuator x2k]\nA = 0.1, 0.01\nA = 0.2, 0.02\n", "parameter A is repeated"),
+        (
+            "formula = A + B\n[attenuator x2k]\nA = 0.1, 0.01\nB = 0.2, 0.02\n[attenuator x30]\nA = 0.3, 0.03\n",
+            "does not define the same parameters",
+        ),
+        ("formula = exp()\n[attenuator x2k]\nA = 0.1, 0.01\n", "invalid call to exp"),
+        ("x2k,0.1,0.01,0.5,0.01,0.001,0.0001\n", "old comma-separated attenuation coefficients"),
+    ],
+)
+def test_invalid_formula_blocks(tmp_path, contents, message):
+    coefficients_file = tmp_path / "invalid.txt"
+    coefficients_file.write_text(contents)
+    with pytest.raises(ValueError, match=message):
+        _load_custom_attenuation_coefficients(coefficients_file)
+
+
+def test_duplicate_effective_date_raises(tmp_path):
+    coefficients_file = tmp_path / "duplicate-effective.txt"
+    coefficients_file.write_text(
+        textwrap.dedent(
+            """
+            [effective 1990-01-01]
+            formula = A
+            [attenuator x2k]
+            A = 1.0, 0.1
+
+            [effective 1990-01-01]
+            formula = A
+            [attenuator x2k]
+            A = 2.0, 0.2
+            """
+        )
+    )
+    with pytest.raises(ValueError, match="effective date 1990-01-01 is repeated"):
+        _parse_timestamped_formula_blocks(coefficients_file)
 
 
 @pytest.mark.parametrize(

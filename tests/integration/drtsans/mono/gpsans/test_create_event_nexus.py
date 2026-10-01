@@ -162,9 +162,17 @@ def test_reduction(datarepo_dir, temp_directory):
     default_coefficients = _load_attenuation_coefficients()
     coefficients_file = os.path.join(output_dir, "custom_attenuation_coefficients.txt")
     with open(coefficients_file, "w") as file:
-        for name, values in default_coefficients.items():
-            file.write(",".join([name] + [repr(value) for value in values]) + "\n")
-        file.write("x_test,1.0,0.1,2.0,0.2,3.0,0.3\n")
+        file.write(f"formula = {default_coefficients.formula}\n\n")
+        for name, values in default_coefficients.coefficients.items():
+            file.write(f"[attenuator {name}]\n")
+            for parameter in default_coefficients.parameters:
+                parameter_value = values[parameter]
+                file.write(f"{parameter} = {parameter_value.value!r}, {parameter_value.error!r}\n")
+            file.write("\n")
+        file.write("[attenuator x_test]\n")
+        file.write("A = 1.0, 0.1\n")
+        file.write("B = 2.0, 0.2\n")
+        file.write("C = 3.0, 0.3\n")
     specs["configuration"]["AttenuationCoefficientsFileName"] = coefficients_file
     reduction_input = reduction_parameters(specs, "GPSANS", validate=False)  # add defaults and defer validation
     reduce_gpsans_data(
@@ -198,19 +206,20 @@ def test_reduction(datarepo_dir, temp_directory):
     assert absolute_scale["factor"]["error"][()]
     attenuation = absolute_scale["attenuation"]
     assert attenuation["attenuator"][()].decode() == "x30"
+    assert attenuation["fit_function"][()].decode() == default_coefficients.formula
     # all the attenuators of the custom attenuation coefficients file are saved
-    assert set(attenuation["coefficients"].keys()) == set(default_coefficients) | {"x_test"}
+    assert set(attenuation["coefficients"].keys()) == set(default_coefficients.coefficients) | {"x_test"}
     x_test = attenuation["coefficients"]["x_test"]
     assert x_test["B"]["value"][()] == pytest.approx(2.0)
     assert x_test["C"]["error"][()] == pytest.approx(0.3)
-    a, a_error, b, b_error, c, c_error = default_coefficients["x2k"]
+    default_x2k = default_coefficients.coefficients["x2k"]
     x2k = attenuation["coefficients"]["x2k"]
-    assert x2k["A"]["value"][()] == pytest.approx(a)
-    assert x2k["A"]["error"][()] == pytest.approx(a_error)
-    assert x2k["B"]["value"][()] == pytest.approx(b)
-    assert x2k["B"]["error"][()] == pytest.approx(b_error)
-    assert x2k["C"]["value"][()] == pytest.approx(c)
-    assert x2k["C"]["error"][()] == pytest.approx(c_error)
+    assert x2k["A"]["value"][()] == pytest.approx(default_x2k["A"].value)
+    assert x2k["A"]["error"][()] == pytest.approx(default_x2k["A"].error)
+    assert x2k["B"]["value"][()] == pytest.approx(default_x2k["B"].value)
+    assert x2k["B"]["error"][()] == pytest.approx(default_x2k["B"].error)
+    assert x2k["C"]["value"][()] == pytest.approx(default_x2k["C"].value)
+    assert x2k["C"]["error"][()] == pytest.approx(default_x2k["C"].error)
 
     # NOTE:
     # mysterious leftover workspaces in memory

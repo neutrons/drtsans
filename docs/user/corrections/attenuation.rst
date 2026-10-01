@@ -6,8 +6,27 @@ Absolute Scaling with an Attenuated Direct Beam (GPSANS)
 This correction applies only to GPSANS. BIOSANS and EQSANS do not implement the ``"direct_beam"`` absolute
 scaling method.
 
-Method
-------
+.. |br| raw:: html
+
+   <br />
+
+.. topic:: On this page
+
+   - `Methods`_ |br|
+     How the attenuated direct beam is used for absolute scaling.
+   - `Attenuator Transmission`_ |br|
+     How the attenuation factor and its uncertainty are computed.
+   - `Attenuation Coefficients File`_ |br|
+     Format of the default calibration-history file and custom override files.
+   - `Using a Custom Coefficients File`_ |br|
+     How to point a GPSANS reduction at user-supplied attenuation coefficients.
+   - `Attenuation Coefficients in the Reduction Log`_ |br|
+     Where the selected formula and coefficients are recorded in reduction output.
+   - `Parameters`_ |br|
+     Reduction parameters that control attenuated direct-beam scaling.
+
+Methods
+-------
 
 The Master Requirements Document (section 12.2) describes two methods to scale the measured intensity into
 absolute units (1/cm): measuring a calibrated standard sample, or measuring the attenuated empty (direct)
@@ -48,26 +67,30 @@ intensity scaling factor :math:`\chi` for the attenuator. The two notations are 
 Finally, the sample intensity, already normalized by the sample thickness, is divided by :math:`I_T`
 (Eqs. 12.9 and 12.10), with the relative uncertainties added in quadrature.
 
-Attenuator transmission
+Attenuator Transmission
 -----------------------
 
-The transmitted fraction of each attenuator depends on the wavelength. It is modeled as
+The transmitted fraction of each attenuator may depend on the wavelength. The model is read from the attenuation
+coefficients file. The current default calibration uses
 
 .. math::
 
     f(\lambda) = A e^{-B \lambda} + C
 
-with :math:`\lambda` in Å, :math:`B` in 1/Å, and :math:`A`, :math:`C` dimensionless. The uncertainties
-:math:`\delta A`, :math:`\delta B` and :math:`\delta C` of the fitted coefficients are treated as uncorrelated:
+with :math:`\lambda` in Å, :math:`B` in 1/Å, and :math:`A`, :math:`C` dimensionless. More generally, the file
+contains a formula using fitted parameter names and the optional reserved variable ``wavelength``. If
+``wavelength`` is omitted, the attenuation is wavelength independent.
+
+The uncertainties of the fitted parameters are treated as uncorrelated and propagated automatically:
 
 .. math::
 
-    \delta f = \sqrt{\left(e^{-B \lambda}\,\delta A\right)^2
-    + \left(A \lambda e^{-B \lambda}\,\delta B\right)^2
-    + \left(\delta C\right)^2}
+    \delta f = \sqrt{\sum_p \left(\frac{\partial f}{\partial p}\delta p\right)^2}
 
-The attenuator and the wavelength are read from the ``attenuator`` and ``wavelength`` sample logs of the
-empty beam run, not of the sample run. The ``attenuator`` log value identifies the attenuator:
+where :math:`p` runs over the fitted parameters in the formula. No wavelength uncertainty is included.
+
+The attenuator and, when needed, the wavelength are read from the ``attenuator`` and ``wavelength`` sample logs
+of the empty beam run, not of the sample run. The ``attenuator`` log value identifies the attenuator:
 
 .. list-table::
    :widths: 20 30 50
@@ -115,20 +138,27 @@ reports that on GPSANS the beam is attenuated by a factor of about 10k or 2k at 
 wavelengths of 12 Å and longer, it is attenuated by a factor of about 30 with the 40 mm source aperture, and
 not attenuated with the 20 mm source aperture.
 
-Attenuation coefficients file
+Attenuation Coefficients File
 -----------------------------
 
-The coefficients :math:`A`, :math:`B`, :math:`C` and their uncertainties are read from a comma-separated text
-file:
+The formula and fitted parameter values are read from a text file:
 
 - lines that are blank or start with ``#`` are ignored;
-- every other line holds the attenuator name (as in the table above) followed by six finite numbers:
-  :math:`A`, :math:`\delta A`, :math:`B`, :math:`\delta B`, :math:`C`, :math:`\delta C`;
-- each attenuator name appears only once;
-- only the attenuators used in the reduction need to be present.
+- ``formula =`` declares the SymPy-style attenuation formula;
+- parameter lines use ``parameter = value, uncertainty``;
+- the first attenuator block declares the fitted parameter names, and every later attenuator block must define
+  the same parameter names;
+- supported formula syntax is numbers, fitted parameter names, ``wavelength``, arithmetic operators,
+  parentheses, and the functions ``abs``, ``acos``, ``asin``, ``atan``, ``cos``, ``cosh``, ``erf``, ``exp``,
+  ``log``, ``log10``, ``sin``, ``sinh``, ``sqrt``, ``tan`` and ``tanh``;
+- the constant ``pi`` is supported;
+- each attenuator name appears only once.
 
-drtsans includes a default file, ``GPSANS_attenuation_coefficients.txt``, with the coefficients provided by
-the GPSANS instrument team in 2020:
+drtsans includes a timestamped default file, ``GPSANS_attenuation_coefficients.txt``. Each calibration block
+starts with ``[effective YYYY-MM-DD]``. During reduction, the block is selected from the empty beam timestamp,
+using ``start_time`` first, then ``run_start``, then ``run_begin``. The most recent block whose effective date is
+not later than the run date is used. The existing packaged coefficients are effective ``1990-01-01``:
+
 
 .. literalinclude:: ../../../src/drtsans/configuration/GPSANS_attenuation_coefficients.txt
    :language: text
@@ -142,9 +172,10 @@ The location of the default file in the installed package is given by
 
     print(os.path.join(drtsans.configdir, "GPSANS_attenuation_coefficients.txt"))
 
-A copy of this file is a good starting point for a custom file.
+A copy of the parameter blocks in this file is a good starting point for a custom file. Custom files do not use
+``[effective ...]`` sections, because they are explicit overrides for the reduction.
 
-Using a custom coefficients file
+Using a Custom Coefficients File
 --------------------------------
 
 To reduce data with a custom coefficients file, set the reduction parameter
@@ -173,8 +204,12 @@ The attenuation factor of an empty beam workspace can also be computed directly:
 The reduction stops with an error if:
 
 - the file does not exist (reported when the reduction parameters are validated);
-- a line of the file does not have seven comma-separated fields, its attenuator name is empty or repeated, or one
-  of the six coefficients is not a finite number;
+- the custom file uses the old seven-column comma-separated format;
+- the file has malformed formula, attenuator, or parameter lines;
+- the attenuator blocks do not all define the same fitted parameter names;
+- a value or uncertainty is not a finite number;
+- all default-file run timestamp logs, ``start_time``, ``run_start`` and ``run_begin``, are missing, or the
+  selected timestamp is earlier than the earliest effective calibration block;
 - the attenuator of the empty beam run is not listed in the file;
 - the ``attenuator`` log value of the empty beam run is 3 or more and not an integer from 3 to 8. This includes
   runs converted from SPICE files with the attenuator open, whose log holds a positive stage position in mm.
@@ -182,7 +217,7 @@ The reduction stops with an error if:
 With ``"direct_beam"`` scaling, the coefficients file is read before any reduced I(Q) output is written, even when
 the beam is not attenuated, so an invalid file stops the reduction early.
 
-Attenuation coefficients in the reduction log
+Attenuation Coefficients in the Reduction Log
 ---------------------------------------------
 
 When ``"absoluteScaleMethod"`` is ``"direct_beam"``, the reduction log (the ``*_reduction_log.hdf`` file in the
@@ -198,6 +233,8 @@ coefficients file used in the reduction. They are saved next to the absolute sca
             error
         attenuation/
             attenuator          attenuator of the empty beam run
+            fit_function        attenuation formula
+            effective_date      selected default block date, omitted for custom files
             coefficients/
                 x3/
                     A/
@@ -218,8 +255,8 @@ coefficients file used in the reduction. They are saved next to the absolute sca
 - ``coefficients`` holds one group for every line of the coefficients file, named after the attenuator,
   including attenuators not used in the reduction. With a custom file, only the attenuators listed in that file
   appear.
-- Each coefficient is a group with its ``value`` and ``error``. The HDF5 datasets carry no units: the values
-  and errors of :math:`B` are in 1/Å, and :math:`A` and :math:`C` are dimensionless.
+- Each coefficient is a group with its ``value`` and ``error``. Parameter names come from the selected formula
+  block. The HDF5 datasets carry no units; interpret units from the formula.
 
 No ``attenuation`` group is written when ``"absoluteScaleMethod"`` is ``"standard"``.
 
@@ -232,10 +269,12 @@ For example, to read the attenuator and its coefficients with ``h5py``:
     with h5py.File("/path/to/output/sample_reduction_log.hdf", "r") as log:
         attenuation = log["reduction_information/special_parameters/absolute_scale/attenuation"]
         attenuator = attenuation["attenuator"][()].decode()
+        formula = attenuation["fit_function"][()].decode()
         print(f"Attenuator: {attenuator}")
+        print(f"Formula: {formula}")
         if attenuator in attenuation["coefficients"]:
             coefficients = attenuation["coefficients"][attenuator]
-            for name in ("A", "B", "C"):
+            for name in coefficients:
                 value = coefficients[name]["value"][()]
                 error = coefficients[name]["error"][()]
                 print(f"{name} = {value} +/- {error}")

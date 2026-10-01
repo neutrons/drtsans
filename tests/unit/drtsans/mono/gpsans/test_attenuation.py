@@ -423,6 +423,9 @@ def test_erf_formula_value_and_uncertainty(tmp_path):
     [
         ("sqrt(A)", {"A": (-1.0, 0.1)}, "evaluated to non-finite value"),
         ("sqrt(A)", {"A": (0.0, 0.1)}, "uncertainty.*evaluated to non-finite value"),
+        ("A / B", {"A": (1.0, 0.1), "B": (0.0, 0.1)}, "evaluated to non-finite value"),
+        ("A ** 0.5", {"A": (-1.0, 0.1)}, "evaluated to non-finite value"),
+        ("A ** 0.5", {"A": (0.0, 0.1)}, "uncertainty.*evaluated to non-finite value"),
     ],
 )
 def test_formula_evaluation_rejects_non_finite_results(tmp_path, formula, parameters, message):

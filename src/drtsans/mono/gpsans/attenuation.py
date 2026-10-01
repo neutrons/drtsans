@@ -795,7 +795,10 @@ def _evaluate_formula_with_error(
     """
     parameter_values = formula_block.coefficients[attenuator_name]
     values = [parameter_values[parameter].value for parameter in formula_block.parameters]
-    arguments = values + [wavelength]
+    # Lambdify emits plain operators for division and powers. With NumPy scalars, division by zero and fractional
+    # powers of negative numbers yield inf or nan, which the finite checks below report, instead of raising
+    # ZeroDivisionError or returning a complex number as Python floats do.
+    arguments = [np.float64(argument) for argument in values + [wavelength]]
     with np.errstate(all="ignore"):
         value = float(formula_block.compiled.value_function(*arguments))
     variance = 0.0

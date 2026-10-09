@@ -1,5 +1,10 @@
-import pytest
+import json
 
+import numpy as np
+import pytest
+from mantid.simpleapi import CreateWorkspace, MaskDetectors
+
+from drtsans import prepare_sensivities_correction as common_sensitivity
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
 from drtsans.tof.eqsans import prepare_sensitivities_correction as eqsans_sensitivity
 from drtsans.tof.eqsans.prepare_sensitivities_correction import PrepareSensitivityCorrection
@@ -253,3 +258,108 @@ def test_eqsans_transmission_requires_an_empty_cell_run():
 
     with pytest.raises(ValueError, match="empty_cell_runs"):
         preparer._prepare_flood_data(1, [0.0, 0.0], None)
+
+
+@pytest.mark.parametrize("workspace_with_instrument", [dict(name="EQSANS", Nx=2, Ny=1)], indirect=True)
+def test_mask_detection_uses_detector_mask_state_not_uncertainty(workspace_with_instrument, clean_workspace):
+    workspace = workspace_with_instrument(
+        axis_values=[1.0, 2.0],
+        intensities=[[1.0], [1.0]],
+        uncertainties=[[1.0e-8], [1.0e-8]],
+    )
+    clean_workspace(workspace)
+    MaskDetectors(Workspace=workspace, WorkspaceIndexList=[1])
+
+    masked = PrepareBase._get_masked_detectors(workspace)
+
+    np.testing.assert_array_equal(masked, [[False], [True]])
+
+
+@pytest.mark.parametrize("workspace_with_instrument", [dict(name="EQSANS", Nx=3, Ny=1)], indirect=True)
+def test_set_mask_value_preserves_unmasked_uncertainty(workspace_with_instrument, clean_workspace):
+    workspace = workspace_with_instrument(
+        axis_values=[1.0, 2.0],
+        intensities=[[1.0], [1.0], [1.0]],
+        uncertainties=[[0.25], [0.5], [0.75]],
+    )
+    clean_workspace(workspace)
+    MaskDetectors(Workspace=workspace, WorkspaceIndexList=[0, 1])
+
+    PrepareBase._set_mask_value(workspace, np.array([[True], [False], [False]]), False)
+
+    assert np.isnan(workspace.y(0)[0])
+    assert np.isnan(workspace.e(0)[0])
+    assert np.isneginf(workspace.y(1)[0])
+    assert np.isneginf(workspace.e(1)[0])
+    assert workspace.y(2)[0] == 1.0
+    assert workspace.e(2)[0] == 0.75
+
+
+def test_masking_beam_center_does_not_reset_propagated_uncertainties(monkeypatch, clean_workspace):
+    workspace = CreateWorkspace(
+        DataX=[1.0, 2.0],
+        DataY=[2.0, 3.0],
+        DataE=[0.2, 0.3],
+        NSpec=2,
+        OutputWorkspace="eqsans_beam_center_uncertainty_test",
+    )
+    clean_workspace(workspace)
+    preparer = PrepareSensitivityCorrection()
+    monkeypatch.setattr(common_sensitivity, "circular_mask_from_beam_center", lambda *_: [])
+    monkeypatch.setattr(common_sensitivity, "apply_mask", lambda *_args, **_kwargs: None)
+
+    result = preparer._mask_beam_center(workspace, (0.0, 0.0))
+
+    assert result is workspace
+    np.testing.assert_allclose(result.extractE().flatten(), [0.2, 0.3])
+
+
+def test_eqsans_sensitivity_provenance_logs(clean_workspace):
+    workspace = CreateWorkspace(
+        DataX=[1.0, 2.0],
+        DataY=[1.0],
+        DataE=[0.1],
+        NSpec=1,
+        OutputWorkspace="eqsans_provenance_test",
+    )
+    flood_workspace = CreateWorkspace(
+        DataX=[1.0, 2.0],
+        DataY=[1.0],
+        DataE=[0.1],
+        NSpec=1,
+        OutputWorkspace="eqsans_provenance_flood_test",
+    )
+    clean_workspace(workspace)
+    clean_workspace(flood_workspace)
+    preparer = PrepareSensitivityCorrection()
+    preparer.set_flood_runs([1, 2])
+    preparer.set_direct_beam_runs([3, 4])
+    preparer.set_dark_current_runs([5, 6])
+    preparer.set_blocked_beam_runs([7, 8])
+    preparer.set_empty_cell_runs([9, 10])
+    preparer.set_transmission_correction([11, 12], [13, 14], [15, 16])
+    preparer.set_sample_detector_offsets(12.0, 34.0)
+    preparer.set_tof_cuts(500.0, 2000.0)
+    preparer.set_beam_center_radius(6.0)
+    preparer.set_masks("default.xml", "1-4")
+    preparer.scale_components = {"detector1": [1.0, 2.0, 1.0]}
+    preparer._last_beam_centers = [(0.1, 0.2), (0.3, 0.4)]
+    preparer._last_flood_workspace = flood_workspace
+    preparer._last_sensitivity_options = {
+        "use_moving_detector_method": False,
+        "min_threshold": 0.5,
+        "max_threshold": 2.0,
+        "polynomial_order": 2,
+        "min_detectors_per_tube": 50,
+    }
+
+    preparer._add_sensitivity_provenance(workspace)
+
+    run = workspace.getRun()
+    assert run.getProperty("sensitivity_method").value == "patch"
+    assert json.loads(run.getProperty("flood_runs").value) == [1, 2]
+    assert run.getProperty("beam_center_x").value == "[0.1, 0.3]"
+    assert run.getProperty("sample_offset").value == 12.0
+    assert json.loads(run.getProperty("scale_components").value) == {"detector1": [1.0, 2.0, 1.0]}
+    assert run.getProperty("theta_dependent_transmission").value
+    assert run.getProperty("wavelength_weighting").value == "counts"

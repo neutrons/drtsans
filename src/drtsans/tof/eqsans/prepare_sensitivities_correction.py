@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Optional, Sequence, Union
 
 from mantid.simpleapi import Integration, NormaliseByCurrent, mtd
 
+from drtsans import __version__
 from drtsans import subtract_background
 from drtsans.prepare_sensivities_correction import (
     PREPARE_DATA,
     PrepareSensitivityCorrection as PrepareBase,
 )
+from drtsans.samplelogs import SampleLogs
 from drtsans.tof.eqsans.transmission import calculate_transmission
 from drtsans.transmission import apply_transmission_correction
 
@@ -46,6 +49,149 @@ class PrepareSensitivityCorrection(PrepareBase):
         self._transmission_flood_runs: Optional[list[Run]] = None
         self._transmission_empty_cell_runs: Optional[list[Run]] = None
         self._transmission_reference_runs: Optional[list[Run]] = None
+
+    @staticmethod
+    def _json_log_value(value) -> str:
+        """Serialize a provenance value for a Mantid string log.
+
+        Parameters
+        ----------
+        value : object
+            JSON-compatible value, or a run/configuration value that can be
+            represented as text.
+
+        Returns
+        -------
+        str
+            JSON representation, or an empty string for ``None``.
+        """
+        if value is None:
+            return ""
+        return json.dumps(value, default=str, sort_keys=True)
+
+    @staticmethod
+    def _single_or_json(values):
+        """Represent one value directly and multiple values as JSON.
+
+        Parameters
+        ----------
+        values : sequence
+            Values associated with the configured flood runs.
+
+        Returns
+        -------
+        object
+            The only value in ``values``, or a JSON string containing all
+            values.
+        """
+        if not values:
+            return ""
+        if len(values) == 1:
+            return values[0]
+        return PrepareSensitivityCorrection._json_log_value(values)
+
+    @staticmethod
+    def _workspace_log_value(workspace, name):
+        """Read an optional scalar log from a prepared workspace.
+
+        Parameters
+        ----------
+        workspace : ~mantid.api.MatrixWorkspace or None
+            Workspace containing the reduction logs.
+        name : str
+            Log name to retrieve.
+
+        Returns
+        -------
+        object
+            Log value, or an empty string when the workspace or log is absent.
+        """
+        if workspace is None:
+            return ""
+        logs = SampleLogs(workspace)
+        if name not in logs:
+            return ""
+        value = logs[name].value
+        if hasattr(value, "item"):
+            value = value.item()
+        return value
+
+    def _add_sensitivity_provenance(self, sensitivity_ws):
+        """Record EQSANS preparation settings in the sensitivity workspace.
+
+        Parameters
+        ----------
+        sensitivity_ws : ~mantid.api.MatrixWorkspace
+            Export workspace whose sample logs will contain the provenance.
+
+        Notes
+        -----
+        Values that can contain several runs or beam centers are stored as JSON
+        strings so the exported NeXus file remains self-describing.
+        """
+        options = getattr(self, "_last_sensitivity_options", {})
+        beam_centers = getattr(self, "_last_beam_centers", [])
+        flood_workspace = getattr(self, "_last_flood_workspace", None)
+        beam_center_x = [float(center[0]) for center in beam_centers]
+        beam_center_y = [float(center[1]) for center in beam_centers]
+        if hasattr(self, "_last_wavelength_min"):
+            wavelength_min = self._last_wavelength_min
+            wavelength_max = self._last_wavelength_max
+        else:
+            wavelength_min = self._workspace_log_value(flood_workspace, "wavelength_min")
+            wavelength_max = self._workspace_log_value(flood_workspace, "wavelength_max")
+
+        logs = SampleLogs(sensitivity_ws)
+
+        def insert(name, value, unit=None):
+            if value is None:
+                value = ""
+            logs.insert(name, value, unit=unit)
+
+        insert("drtsans_version", __version__)
+        insert(
+            "sensitivity_method",
+            "moving_detectors" if options.get("use_moving_detector_method") else "patch",
+        )
+        insert("flood_runs", self._json_log_value(self._flood_runs))
+        insert("beam_center_runs", self._json_log_value(self._direct_beam_center_runs))
+        insert("beam_center_x", self._single_or_json(beam_center_x), "m")
+        insert("beam_center_y", self._single_or_json(beam_center_y), "m")
+        insert("beam_center_mask_radius", self._beam_center_radius, "mm")
+        insert("sample_offset", self._sample_offset, "mm")
+        insert("detector_offset", self._detector_offset, "mm")
+        insert("scale_components", self._json_log_value(self._scale_components))
+        insert("solid_angle_correction", int(bool(self._solid_angle_correction)))
+        insert("flux_method", "proton charge")
+        insert("dark_current_runs", self._json_log_value(self._dark_current_runs))
+        insert("blocked_beam_runs", self._json_log_value(self._blocked_beam_runs))
+        insert("background_runs", self._json_log_value(self._empty_cell_runs))
+        insert("flood_transmission_runs", self._json_log_value(self._transmission_flood_runs))
+        insert("background_transmission_runs", self._json_log_value(self._transmission_empty_cell_runs))
+        insert("empty_beam_transmission_run", self._json_log_value(self._transmission_reference_runs))
+        insert("theta_dependent_transmission", int(self._transmission_reference_runs is not None))
+        insert("low_tof_clip", self._low_tof_clip, "microsecond")
+        insert("high_tof_clip", self._high_tof_clip, "microsecond")
+        insert("wavelength_min", wavelength_min, "Angstrom")
+        insert("wavelength_max", wavelength_max, "Angstrom")
+        insert("wavelength_weighting", "counts")
+        insert("min_threshold", options.get("min_threshold", ""))
+        insert("max_threshold", options.get("max_threshold", ""))
+        insert("poly_order", options.get("polynomial_order", ""))
+        insert("min_detectors_per_tube", options.get("min_detectors_per_tube", ""))
+        insert("masked_pixels", self._json_log_value(self._extra_mask_dict))
+        insert("default_mask", "" if self._default_mask is None else str(self._default_mask))
+
+    def _capture_sensitivity_input_provenance(self, flood_workspace):
+        """Capture wavelength logs before sensitivity export reloads the flood run.
+
+        Parameters
+        ----------
+        flood_workspace : ~mantid.api.MatrixWorkspace
+            Prepared EQSANS flood workspace.
+        """
+        self._last_wavelength_min = self._workspace_log_value(flood_workspace, "wavelength_min")
+        self._last_wavelength_max = self._workspace_log_value(flood_workspace, "wavelength_max")
 
     @staticmethod
     def _as_run_list(runs: Optional[RunInput], name: str) -> Optional[list[Run]]:

@@ -18,10 +18,9 @@ import numpy as np
 from drtsans.load import load_events
 from drtsans.geometry import panel_names
 from drtsans.instruments import extract_run_number
-from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
+from drtsans.mask_utils import apply_mask, circular_mask_from_beam_center
 import drtsans.mono.gpsans
 import drtsans.mono.biosans
-from drtsans.process_uncertainties import set_init_uncertainties
 from drtsans.sensitivity_correction_moving_detectors import (
     calculate_sensitivity_correction as calculate_sensitivity_correction_moving,
 )
@@ -112,10 +111,13 @@ class PrepareSensitivityCorrection(object):
             (N, 1) bool array, True for being masked
 
         """
-        # The masked pixels after `set_uncertainties()` will have zero uncertainty.
-        # Thus, it is an efficient way to identify them by check uncertainties (E) close to zero
-        masked_array = workspace.extractE() < 1e-5
-        return masked_array
+        # Do not infer masking from uncertainties. Mantid algorithms propagate
+        # non-zero uncertainties through the preparation workflow, and a valid
+        # detector can legitimately have a small uncertainty.
+        return np.asarray(
+            [workspace.spectrumInfo().isMasked(index) for index in range(workspace.getNumberHistograms())],
+            dtype=bool,
+        ).reshape(-1, 1)
 
     @staticmethod
     def _set_mask_value(flood_workspace, det_mask_array, use_moving_detector_method=True):
@@ -136,30 +138,37 @@ class PrepareSensitivityCorrection(object):
         -------
 
         """
-        # Complete mask array.  Flood workspace has been processed by set_uncertainties.  Therefore all the masked
-        # pixels' uncertainties are zero, which is different from other pixels
-        total_mask_array = flood_workspace.extractE() < 1e-6
+        # The detector mask records both configured masks and the beam-center
+        # mask. It is independent of the propagated data uncertainties.
+        total_mask_array = np.asarray(
+            [flood_workspace.spectrumInfo().isMasked(index) for index in range(flood_workspace.getNumberHistograms())],
+            dtype=bool,
+        )
+        if det_mask_array is None:
+            det_mask_array = np.zeros_like(total_mask_array, dtype=bool)
+        else:
+            det_mask_array = np.asarray(det_mask_array, dtype=bool).reshape(-1)
 
         # Loop through each detector pixel to check its masking state to determine whether its value shall be
         # set to NaN, -infinity or not changed (i.e., for pixels without mask)
         num_spec = flood_workspace.getNumberHistograms()
         problematic_pixels = list()
         for i in range(num_spec):
-            if total_mask_array[i][0] and use_moving_detector_method:
+            if total_mask_array[i] and use_moving_detector_method:
                 # Moving detector algorithm.  Any masked detector pixel is set to NaN
-                flood_workspace.mutableY(i)[0] = np.nan
-                flood_workspace.mutableE(i)[0] = np.nan
-            elif total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
+                flood_workspace.mutableY(i)[:] = np.nan
+                flood_workspace.mutableE(i)[:] = np.nan
+            elif total_mask_array[i] and not use_moving_detector_method and det_mask_array[i]:
                 # Patch detector method: Masked as the bad pixels and thus set to NaN
-                flood_workspace.mutableY(i)[0] = np.nan
-                flood_workspace.mutableE(i)[0] = np.nan
-            elif total_mask_array[i][0]:
+                flood_workspace.mutableY(i)[:] = np.nan
+                flood_workspace.mutableE(i)[:] = np.nan
+            elif total_mask_array[i]:
                 # Patch detector method: Pixels that have not been masked as bad pixels, but have been
                 # identified as needing to have values set by the patch applied. To identify them, the
                 # value is set to -INF.
-                flood_workspace.mutableY(i)[0] = -np.inf
-                flood_workspace.mutableE(i)[0] = -np.inf
-            elif not total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
+                flood_workspace.mutableY(i)[:] = -np.inf
+                flood_workspace.mutableE(i)[:] = -np.inf
+            elif not total_mask_array[i] and not use_moving_detector_method and det_mask_array[i]:
                 # Logic error: impossible case
                 problematic_pixels.append(i)
         # END-FOR
@@ -619,11 +628,38 @@ class PrepareSensitivityCorrection(object):
             masking = list(circular_mask_from_beam_center(flood_ws, self._beam_center_radius))
             apply_mask(flood_ws, mask=masking)  # data_ws reference shall not be invalidated here!
 
-        # Set uncertainties
-        # output: masked are zero intensity and zero error
-        masked_flood_ws = set_init_uncertainties(flood_ws)
+        return flood_ws
 
-        return masked_flood_ws
+    def _add_sensitivity_provenance(self, sensitivity_ws):
+        """Add instrument-specific provenance to an exported sensitivity.
+
+        Parameters
+        ----------
+        sensitivity_ws : ~mantid.api.MatrixWorkspace
+            Sensitivity workspace that is about to be written.
+
+        Notes
+        -----
+        Instrument subclasses may override this hook when their workflow has
+        additional configuration that must be recorded.
+        """
+        return None
+
+    def _capture_sensitivity_input_provenance(self, flood_workspace):
+        """Capture input-workspace provenance before export can invalidate it.
+
+        Parameters
+        ----------
+        flood_workspace : ~mantid.api.MatrixWorkspace
+            Prepared flood workspace whose logs may be needed during export.
+
+        Notes
+        -----
+        The common preparer has no input-specific provenance fields. Instrument
+        subclasses may override this hook when export loads a workspace with a
+        name that can replace the prepared flood workspace.
+        """
+        return None
 
     def _export_sensitivity(self, sensitivity_ws, output_nexus_name, parent_flood_run):
         """Process and export sensitivities to a processed NeXus file
@@ -676,6 +712,8 @@ class PrepareSensitivityCorrection(object):
         new_sensitivity_ws = mtd[new_sens_name]
         for iws in mask_ws_indexes:
             new_sensitivity_ws.mutableY(iws)[0] = np.nan
+
+        self._add_sensitivity_provenance(new_sensitivity_ws)
 
         # Save
         SaveNexusProcessed(InputWorkspace=new_sensitivity_ws, Filename=output_nexus_name)
@@ -736,6 +774,8 @@ class PrepareSensitivityCorrection(object):
             beam_centers.append(beam_center_i)
             logger.notice("Calculated beam center ({}-th) = {}".format(i, beam_center_i))
 
+        self._last_beam_centers = beam_centers
+
         # Set default value to dark current runs
         if self._dark_current_runs is None:
             self._dark_current_runs = [None] * num_workspaces_set
@@ -782,6 +822,8 @@ class PrepareSensitivityCorrection(object):
                 f"Number of NaNs = {len(np.where(np.isnan(fws.extractY()))[0])}\n"
             )
         logger.notice(info)
+        self._last_flood_workspace = flood_workspaces[0]
+        self._capture_sensitivity_input_provenance(self._last_flood_workspace)
 
         # Debug output
         if debug_mode:
@@ -825,6 +867,14 @@ class PrepareSensitivityCorrection(object):
                 min_detectors_per_tube=50,
                 component_name=self._component,
             )
+
+        self._last_sensitivity_options = {
+            "use_moving_detector_method": use_moving_detector_method,
+            "min_threshold": min_threshold,
+            "max_threshold": max_threshold,
+            "polynomial_order": None if use_moving_detector_method else polynomial_order,
+            "min_detectors_per_tube": None if use_moving_detector_method else 50,
+        }
 
         # Export
         self._export_sensitivity(sens_ws, output_nexus_name, self._flood_runs[0])

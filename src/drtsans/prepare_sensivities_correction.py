@@ -450,6 +450,26 @@ class PrepareSensitivityCorrection(object):
             opts["enforce_use_nexus_idf"] = self._enforce_use_nexus_idf
         return opts
 
+    def _prepare_beam_center_data_opts(self, beam_center):
+        """Set options for loading a beam-center workspace.
+
+        This hook is deliberately separate from :meth:`_prepare_data_opts`.
+        Instrument-specific preparers may add geometry or TOF options to their
+        flood-data loads, while the beam-center load must retain the same
+        unshifted geometry used by the reduction workflow.
+
+        Parameters
+        ----------
+        beam_center : list
+            Beam-center coordinates passed to the instrument loader.
+
+        Returns
+        -------
+        dict
+            Options for the instrument's ``prepare_data`` function.
+        """
+        return self._prepare_data_opts(beam_center)
+
     def _get_beam_center_workspace(self, beam_center_run):
         r"""
         Load and prepare the beam center run with customary corrections
@@ -476,7 +496,7 @@ class PrepareSensitivityCorrection(object):
             btp=self._extra_mask_dict,
             solid_angle=False,
             output_workspace=output_workspace,
-            **self._prepare_data_opts(beam_center=[0.0, 0.0]),
+            **self._prepare_beam_center_data_opts(beam_center=[0.0, 0.0]),
         )
 
         return beam_center_workspace

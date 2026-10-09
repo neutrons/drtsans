@@ -8,6 +8,9 @@ import numpy as np
 import os
 from os.path import join as path_join
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection
+from drtsans.tof.eqsans.prepare_sensitivities_correction import (
+    PrepareSensitivityCorrection as PrepareSensitivityCorrectionEQSANS,
+)
 from drtsans.mono.biosans.prepare_sensitivities_correction import (
     PrepareSensitivityCorrection as PrepareSensitivityCorrectionBiosans,
 )
@@ -67,9 +70,6 @@ def test_eqsans_prepare_sensitivities(has_sns_mount, reference_dir, cleanfile):
     if not has_sns_mount:
         pytest.skip("SNS mount is not available")
 
-    # INSTRUMENT = 'CG2'  # 'CG2'  # From 'EQSANS', 'CG3'
-    INSTRUMENT = "EQSANS"  # Main
-
     # Input Flood Runs
     FLOOD_RUNS = os.path.join(reference_dir.eqsans, "EQSANS_111030.nxs.h5")
 
@@ -94,7 +94,7 @@ def test_eqsans_prepare_sensitivities(has_sns_mount, reference_dir, cleanfile):
     MIN_THRESHOLD = 0.5
     MAX_THRESHOLD = 2.0
 
-    preparer = PrepareSensitivityCorrection(INSTRUMENT)
+    preparer = PrepareSensitivityCorrectionEQSANS()
 
     # Load flood runs
     preparer.set_flood_runs(FLOOD_RUNS)

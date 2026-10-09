@@ -12,6 +12,8 @@ from drtsans.prepare_sensivities_correction import (
     PREPARE_DATA,
     PrepareSensitivityCorrection as PrepareBase,
 )
+from drtsans.tof.eqsans.transmission import calculate_transmission
+from drtsans.transmission import apply_transmission_correction
 
 
 Run = Union[int, str]
@@ -24,7 +26,8 @@ class PrepareSensitivityCorrection(PrepareBase):
     EQSANS-specific preparation options are kept here instead of being added
     to the common sensitivity-preparation interface. Flood data is normalized
     by proton charge and corrected for configured blocked-beam and empty-cell
-    backgrounds before wavelength summation.
+    backgrounds and wavelength-dependent transmission corrections before
+    wavelength summation.
 
     Parameters
     ----------
@@ -303,7 +306,14 @@ class PrepareSensitivityCorrection(PrepareBase):
             return run
         raise ValueError(f"{name} {run!r} is not recognized")
 
-    def _prepare_eqsans_workspace(self, run: Run, beam_center, dark_current_run, name: str):
+    def _prepare_eqsans_workspace(
+        self,
+        run: Run,
+        beam_center,
+        dark_current_run,
+        name: str,
+        solid_angle: Optional[bool] = None,
+    ):
         """Load and prepare one EQSANS workspace without wavelength summation.
 
         Parameters
@@ -316,6 +326,9 @@ class PrepareSensitivityCorrection(PrepareBase):
             Optional dark-current run associated with the workspace.
         name : str
             Name of the run configuration, used in validation errors.
+        solid_angle : bool or None, optional
+            Whether to apply solid-angle correction. If ``None``, use the
+            preparer's configured value.
 
         Returns
         -------
@@ -333,7 +346,7 @@ class PrepareSensitivityCorrection(PrepareBase):
             mask=self._default_mask,
             btp=self._extra_mask_dict,
             dark_current=resolved_dark_current,
-            solid_angle=self._solid_angle_correction,
+            solid_angle=self._solid_angle_correction if solid_angle is None else solid_angle,
             **self._prepare_data_opts(beam_center),
         )
         if name != "flood_run":
@@ -358,6 +371,49 @@ class PrepareSensitivityCorrection(PrepareBase):
         if workspace.blocksize() != 1:
             return Integration(InputWorkspace=workspace, OutputWorkspace=str(workspace))
         return workspace
+
+    @staticmethod
+    def _delete_workspace(workspace) -> None:
+        """Delete a temporary workspace when it is registered.
+
+        Parameters
+        ----------
+        workspace : ~mantid.api.MatrixWorkspace or None
+            Workspace to remove from the Mantid analysis data service.
+        """
+        if workspace is not None and mtd.doesExist(str(workspace)):
+            mtd.remove(str(workspace))
+
+    def _apply_transmission_pair(self, input_workspace, transmission_sample, transmission_reference):
+        """Apply a fitted EQSANS transmission calculated from two runs.
+
+        Parameters
+        ----------
+        input_workspace : ~mantid.api.MatrixWorkspace
+            Workspace to correct.
+        transmission_sample : ~mantid.api.MatrixWorkspace
+            Charge-normalized transmission sample workspace.
+        transmission_reference : ~mantid.api.MatrixWorkspace
+            Charge-normalized empty-beam transmission workspace.
+
+        Returns
+        -------
+        ~mantid.api.MatrixWorkspace
+            Transmission-corrected input workspace.
+        """
+        transmission_workspace = calculate_transmission(
+            transmission_sample,
+            transmission_reference,
+        )
+        try:
+            return apply_transmission_correction(
+                input_workspace,
+                trans_workspace=transmission_workspace,
+                theta_dependent=True,
+                output_workspace=str(input_workspace),
+            )
+        finally:
+            self._delete_workspace(transmission_workspace)
 
     def _flood_run_index(self, flood_run: Run) -> int:
         """Find the configured index for a flood run.
@@ -401,6 +457,9 @@ class PrepareSensitivityCorrection(PrepareBase):
             Corrected flood workspace with one integrated bin per spectrum.
         """
         run_index = self._flood_run_index(flood_run)
+        if self._transmission_reference_runs is not None and self._empty_cell_runs is None:
+            raise ValueError("empty_cell_runs must be configured for transmission correction")
+
         flood_workspace = self._prepare_eqsans_workspace(
             flood_run,
             beam_center,
@@ -410,6 +469,9 @@ class PrepareSensitivityCorrection(PrepareBase):
 
         blocked_workspace = None
         empty_cell_workspace = None
+        transmission_reference_workspace = None
+        transmission_flood_workspace = None
+        transmission_empty_cell_workspace = None
         try:
             if self._blocked_beam_runs is not None:
                 blocked_workspace = self._prepare_eqsans_workspace(
@@ -437,17 +499,76 @@ class PrepareSensitivityCorrection(PrepareBase):
                         blocked_workspace,
                         output_workspace=str(empty_cell_workspace),
                     )
+
+                if self._transmission_reference_runs is not None:
+                    transmission_reference_workspace = self._prepare_eqsans_workspace(
+                        self._transmission_reference_runs[run_index],
+                        beam_center,
+                        dark_current_run,
+                        "transmission_reference_run",
+                        solid_angle=False,
+                    )
+                    transmission_flood_workspace = self._prepare_eqsans_workspace(
+                        self._transmission_flood_runs[run_index],
+                        beam_center,
+                        dark_current_run,
+                        "transmission_flood_run",
+                        solid_angle=False,
+                    )
+                    transmission_empty_cell_workspace = self._prepare_eqsans_workspace(
+                        self._transmission_empty_cell_runs[run_index],
+                        beam_center,
+                        dark_current_run,
+                        "transmission_empty_cell_run",
+                        solid_angle=False,
+                    )
+                    flood_workspace = self._apply_transmission_pair(
+                        flood_workspace,
+                        transmission_flood_workspace,
+                        transmission_reference_workspace,
+                    )
+                    empty_cell_workspace = self._apply_transmission_pair(
+                        empty_cell_workspace,
+                        transmission_empty_cell_workspace,
+                        transmission_reference_workspace,
+                    )
+
                 flood_workspace = subtract_background(
                     flood_workspace,
                     empty_cell_workspace,
                     output_workspace=str(flood_workspace),
                 )
         finally:
-            for workspace in (empty_cell_workspace, blocked_workspace):
-                if workspace is not None and mtd.doesExist(str(workspace)):
-                    mtd.remove(str(workspace))
+            self._delete_workspace(empty_cell_workspace)
+            self._delete_workspace(blocked_workspace)
+            self._delete_workspace(transmission_flood_workspace)
+            self._delete_workspace(transmission_empty_cell_workspace)
+            self._delete_workspace(transmission_reference_workspace)
 
         return self._integrate_workspace(flood_workspace)
+
+    def _apply_transmission_correction(self, input_workspace, *args):
+        """Return the workspace after EQSANS transmission correction.
+
+        EQSANS transmission is applied to the flood and empty-cell workspaces
+        in :meth:`_prepare_flood_data`, while they still contain wavelength
+        bins. The common executor calls this hook afterward for historical
+        compatibility; applying a second correction there would be incorrect.
+
+        Parameters
+        ----------
+        input_workspace : ~mantid.api.MatrixWorkspace
+            Already transmission-corrected workspace.
+        *args
+            Legacy common-preparer transmission arguments, intentionally
+            ignored.
+
+        Returns
+        -------
+        ~mantid.api.MatrixWorkspace
+            The unchanged input workspace.
+        """
+        return input_workspace
 
     def _prepare_beam_center_data_opts(self, beam_center):
         """Set options for loading a beam-center workspace.

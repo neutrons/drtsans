@@ -174,3 +174,82 @@ def test_eqsans_workspace_preparation_propagates_missing_proton_charge(monkeypat
 
     with pytest.raises(RuntimeError, match="proton charge"):
         preparer._prepare_eqsans_workspace(123, [0.0, 0.0], None, "flood_run")
+
+
+def test_eqsans_transmission_is_applied_to_flood_and_empty_cell_before_subtraction(monkeypatch):
+    preparer = PrepareSensitivityCorrection()
+    preparer.set_flood_runs(1)
+    preparer.set_blocked_beam_runs(2)
+    preparer.set_empty_cell_runs(3)
+    preparer.set_transmission_correction(4, 5, 6)
+
+    class FakeWorkspace:
+        def __init__(self, name):
+            self.name = name
+
+        def __str__(self):
+            return self.name
+
+        def blocksize(self):
+            return 2
+
+    prepared = []
+    subtractions = []
+    transmissions = []
+    calculated_transmissions = []
+    integrations = []
+
+    def fake_prepare_workspace(run, beam_center, dark_current_run, name, solid_angle=None):
+        prepared.append((run, name, solid_angle))
+        return FakeWorkspace(name)
+
+    def fake_subtract_background(input_workspace, background, output_workspace=None):
+        subtractions.append((input_workspace.name, background.name))
+        return input_workspace
+
+    def fake_calculate_transmission(sample, reference):
+        calculated_transmissions.append((sample.name, reference.name))
+        return FakeWorkspace(f"{sample.name}_transmission")
+
+    def fake_apply_transmission(input_workspace, trans_workspace, theta_dependent, output_workspace):
+        transmissions.append((input_workspace.name, trans_workspace.name, theta_dependent, output_workspace))
+        return input_workspace
+
+    def fake_integration(**kwargs):
+        integrations.append(kwargs)
+        return kwargs["InputWorkspace"]
+
+    monkeypatch.setattr(preparer, "_prepare_eqsans_workspace", fake_prepare_workspace)
+    monkeypatch.setattr(eqsans_sensitivity, "subtract_background", fake_subtract_background)
+    monkeypatch.setattr(eqsans_sensitivity, "calculate_transmission", fake_calculate_transmission)
+    monkeypatch.setattr(eqsans_sensitivity, "apply_transmission_correction", fake_apply_transmission)
+    monkeypatch.setattr(eqsans_sensitivity, "Integration", fake_integration)
+
+    result = preparer._prepare_flood_data(1, [0.1, 0.2], None)
+
+    assert result.name == "flood_run"
+    assert [run for run, _, _ in prepared] == [1, 2, 3, 6, 4, 5]
+    assert [solid_angle for _, _, solid_angle in prepared] == [None, None, None, False, False, False]
+    assert subtractions == [
+        ("flood_run", "blocked_beam_run"),
+        ("empty_cell_run", "blocked_beam_run"),
+        ("flood_run", "empty_cell_run"),
+    ]
+    assert calculated_transmissions == [
+        ("transmission_flood_run", "transmission_reference_run"),
+        ("transmission_empty_cell_run", "transmission_reference_run"),
+    ]
+    assert transmissions == [
+        ("flood_run", "transmission_flood_run_transmission", True, "flood_run"),
+        ("empty_cell_run", "transmission_empty_cell_run_transmission", True, "empty_cell_run"),
+    ]
+    assert len(integrations) == 1
+
+
+def test_eqsans_transmission_requires_an_empty_cell_run():
+    preparer = PrepareSensitivityCorrection()
+    preparer.set_flood_runs(1)
+    preparer.set_transmission_correction(2, 3, 4)
+
+    with pytest.raises(ValueError, match="empty_cell_runs"):
+        preparer._prepare_flood_data(1, [0.0, 0.0], None)

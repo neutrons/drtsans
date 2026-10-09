@@ -1,6 +1,7 @@
 import pytest
 
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
+from drtsans.tof.eqsans import prepare_sensitivities_correction as eqsans_sensitivity
 from drtsans.tof.eqsans.prepare_sensitivities_correction import PrepareSensitivityCorrection
 
 
@@ -68,3 +69,108 @@ def test_eqsans_tof_cuts_must_be_non_negative():
 
     with pytest.raises(ValueError, match="non-negative"):
         preparer.set_tof_cuts(low_tof_clip=-1.0, high_tof_clip=2000.0)
+
+
+def test_eqsans_workspace_preparation_uses_charge_only_normalization(monkeypatch):
+    preparer = PrepareSensitivityCorrection()
+    preparer.set_sample_detector_offsets(sample_offset=12.0, detector_offset=34.0)
+    preparer.set_tof_cuts(low_tof_clip=1650.0, high_tof_clip=3150.0)
+
+    class FakeWorkspace:
+        def __str__(self):
+            return "flood_workspace"
+
+    prepared = []
+    normalized = []
+
+    def fake_prepare_data(**kwargs):
+        prepared.append(kwargs)
+        return FakeWorkspace()
+
+    def fake_normalise_by_current(**kwargs):
+        normalized.append(kwargs)
+        return kwargs["InputWorkspace"]
+
+    monkeypatch.setitem(eqsans_sensitivity.PREPARE_DATA, "EQSANS", fake_prepare_data)
+    monkeypatch.setattr(eqsans_sensitivity, "NormaliseByCurrent", fake_normalise_by_current)
+
+    workspace = preparer._prepare_eqsans_workspace(123, [0.1, 0.2], None, "flood_run")
+
+    assert str(workspace) == "flood_workspace"
+    assert prepared[0]["data"] == 123
+    assert prepared[0]["flux_method"] is None
+    assert prepared[0]["sample_offset"] == 12.0
+    assert prepared[0]["detector_offset"] == 34.0
+    assert prepared[0]["low_tof_clip"] == 1650.0
+    assert prepared[0]["high_tof_clip"] == 3150.0
+    assert normalized[0]["InputWorkspace"] is workspace
+    assert normalized[0]["OutputWorkspace"] == "flood_workspace"
+
+
+def test_eqsans_flood_subtracts_blocked_beam_and_empty_cell_before_integration(monkeypatch):
+    preparer = PrepareSensitivityCorrection()
+    preparer.set_flood_runs(1)
+    preparer.set_blocked_beam_runs(2)
+    preparer.set_empty_cell_runs(3)
+
+    class FakeWorkspace:
+        def __init__(self, name):
+            self.name = name
+
+        def __str__(self):
+            return self.name
+
+        def blocksize(self):
+            return 2
+
+    prepared = []
+    subtractions = []
+    integrations = []
+
+    def fake_prepare_workspace(run, beam_center, dark_current_run, name):
+        prepared.append((run, beam_center, dark_current_run, name))
+        return FakeWorkspace(name)
+
+    def fake_subtract_background(input_workspace, background, output_workspace=None):
+        subtractions.append((input_workspace.name, background.name, output_workspace))
+        return input_workspace
+
+    def fake_integration(**kwargs):
+        integrations.append(kwargs)
+        return kwargs["InputWorkspace"]
+
+    monkeypatch.setattr(preparer, "_prepare_eqsans_workspace", fake_prepare_workspace)
+    monkeypatch.setattr(eqsans_sensitivity, "subtract_background", fake_subtract_background)
+    monkeypatch.setattr(eqsans_sensitivity, "Integration", fake_integration)
+
+    result = preparer._prepare_flood_data(1, [0.1, 0.2], "EQSANS_10")
+
+    assert result.name == "flood_run"
+    assert [run for run, _, _, _ in prepared] == [1, 2, 3]
+    assert all(dark_current_run == "EQSANS_10" for _, _, dark_current_run, _ in prepared)
+    assert [(left, right) for left, right, _ in subtractions] == [
+        ("flood_run", "blocked_beam_run"),
+        ("empty_cell_run", "blocked_beam_run"),
+        ("flood_run", "empty_cell_run"),
+    ]
+    assert len(integrations) == 1
+
+
+def test_eqsans_workspace_preparation_propagates_missing_proton_charge(monkeypatch):
+    preparer = PrepareSensitivityCorrection()
+
+    class FakeWorkspace:
+        def __str__(self):
+            return "flood_workspace"
+
+    def fake_prepare_data(**kwargs):
+        return FakeWorkspace()
+
+    def fake_normalise_by_current(**kwargs):
+        raise RuntimeError("proton charge log is missing")
+
+    monkeypatch.setitem(eqsans_sensitivity.PREPARE_DATA, "EQSANS", fake_prepare_data)
+    monkeypatch.setattr(eqsans_sensitivity, "NormaliseByCurrent", fake_normalise_by_current)
+
+    with pytest.raises(RuntimeError, match="proton charge"):
+        preparer._prepare_eqsans_workspace(123, [0.0, 0.0], None, "flood_run")

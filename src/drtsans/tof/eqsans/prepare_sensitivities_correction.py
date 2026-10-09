@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
+import os
 from typing import Optional, Sequence, Union
 
-from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
+from mantid.simpleapi import Integration, NormaliseByCurrent, mtd
+
+from drtsans import subtract_background
+from drtsans.prepare_sensivities_correction import (
+    PREPARE_DATA,
+    PrepareSensitivityCorrection as PrepareBase,
+)
 
 
 Run = Union[int, str]
@@ -15,8 +22,9 @@ class PrepareSensitivityCorrection(PrepareBase):
     """Prepare EQSANS sensitivity corrections.
 
     EQSANS-specific preparation options are kept here instead of being added
-    to the common sensitivity-preparation interface.  The correction pipeline
-    itself will be implemented in later stages.
+    to the common sensitivity-preparation interface. Flood data is normalized
+    by proton charge and corrected for configured blocked-beam and empty-cell
+    backgrounds before wavelength summation.
 
     Parameters
     ----------
@@ -265,6 +273,181 @@ class PrepareSensitivityCorrection(PrepareBase):
             high_tof_clip=self._high_tof_clip,
         )
         return options
+
+    @staticmethod
+    def _resolve_run(run: Run, name: str) -> Run:
+        """Resolve a configured run value for the EQSANS loader.
+
+        Parameters
+        ----------
+        run : int or str
+            Run number or path to a NeXus file.
+        name : str
+            Name of the configured run, used in validation errors.
+
+        Returns
+        -------
+        int or str
+            Integer run number or validated run path.
+
+        Raises
+        ------
+        ValueError
+            If the run value is not recognized or a file path does not exist.
+        """
+        if isinstance(run, str) and run.isdigit():
+            return int(run)
+        if isinstance(run, int):
+            return run
+        if isinstance(run, str) and (run.startswith("EQSANS") or os.path.exists(run)):
+            return run
+        raise ValueError(f"{name} {run!r} is not recognized")
+
+    def _prepare_eqsans_workspace(self, run: Run, beam_center, dark_current_run, name: str):
+        """Load and prepare one EQSANS workspace without wavelength summation.
+
+        Parameters
+        ----------
+        run : int or str
+            Run number or path to a NeXus file.
+        beam_center : list
+            Beam-center coordinates passed to the EQSANS loader.
+        dark_current_run : int, str, or None
+            Optional dark-current run associated with the workspace.
+        name : str
+            Name of the run configuration, used in validation errors.
+
+        Returns
+        -------
+        ~mantid.api.MatrixWorkspace
+            Prepared, proton-charge-normalized workspace with wavelength bins.
+        """
+        resolved_run = self._resolve_run(run, name)
+        resolved_dark_current = (
+            None if dark_current_run is None else self._resolve_run(dark_current_run, "dark_current_run")
+        )
+        options = dict(
+            data=resolved_run,
+            scale_components=self.scale_components,
+            pixel_calibration=self._apply_calibration,
+            mask=self._default_mask,
+            btp=self._extra_mask_dict,
+            dark_current=resolved_dark_current,
+            solid_angle=self._solid_angle_correction,
+            **self._prepare_data_opts(beam_center),
+        )
+        if name != "flood_run":
+            options["output_workspace"] = mtd.unique_hidden_name()
+        workspace = PREPARE_DATA["EQSANS"](**options)
+        return NormaliseByCurrent(InputWorkspace=workspace, OutputWorkspace=str(workspace))
+
+    @staticmethod
+    def _integrate_workspace(workspace):
+        """Sum all wavelength bins in a prepared workspace.
+
+        Parameters
+        ----------
+        workspace : ~mantid.api.MatrixWorkspace
+            Workspace whose wavelength bins should be summed.
+
+        Returns
+        -------
+        ~mantid.api.MatrixWorkspace
+            Workspace containing one integrated bin per detector spectrum.
+        """
+        if workspace.blocksize() != 1:
+            return Integration(InputWorkspace=workspace, OutputWorkspace=str(workspace))
+        return workspace
+
+    def _flood_run_index(self, flood_run: Run) -> int:
+        """Find the configured index for a flood run.
+
+        Parameters
+        ----------
+        flood_run : int or str
+            Flood run currently being prepared.
+
+        Returns
+        -------
+        int
+            Index of ``flood_run`` in the configured flood-run list.
+        """
+        for index, configured_run in enumerate(self._flood_runs):
+            if configured_run == flood_run or str(configured_run) == str(flood_run):
+                return index
+        raise ValueError(f"Flood run {flood_run!r} is not configured")
+
+    def _prepare_flood_data(self, flood_run, beam_center, dark_current_run):
+        """Prepare an EQSANS flood with charge normalization and backgrounds.
+
+        The flood, blocked-beam, and empty-cell workspaces are prepared with
+        the same geometry and wavelength cuts. Each is normalized by proton
+        charge without using a beam-flux spectrum. Backgrounds are subtracted
+        before the flood is integrated over wavelength.
+
+        Parameters
+        ----------
+        flood_run : int or str
+            Flood run number or path to a NeXus file.
+        beam_center : list
+            Beam-center coordinates used to center all loaded workspaces.
+        dark_current_run : int, str, or None
+            Optional dark-current run associated with the flood and auxiliary
+            workspaces.
+
+        Returns
+        -------
+        ~mantid.api.MatrixWorkspace
+            Corrected flood workspace with one integrated bin per spectrum.
+        """
+        run_index = self._flood_run_index(flood_run)
+        flood_workspace = self._prepare_eqsans_workspace(
+            flood_run,
+            beam_center,
+            dark_current_run,
+            "flood_run",
+        )
+
+        blocked_workspace = None
+        empty_cell_workspace = None
+        try:
+            if self._blocked_beam_runs is not None:
+                blocked_workspace = self._prepare_eqsans_workspace(
+                    self._blocked_beam_runs[run_index],
+                    beam_center,
+                    dark_current_run,
+                    "blocked_beam_run",
+                )
+                flood_workspace = subtract_background(
+                    flood_workspace,
+                    blocked_workspace,
+                    output_workspace=str(flood_workspace),
+                )
+
+            if self._empty_cell_runs is not None:
+                empty_cell_workspace = self._prepare_eqsans_workspace(
+                    self._empty_cell_runs[run_index],
+                    beam_center,
+                    dark_current_run,
+                    "empty_cell_run",
+                )
+                if blocked_workspace is not None:
+                    empty_cell_workspace = subtract_background(
+                        empty_cell_workspace,
+                        blocked_workspace,
+                        output_workspace=str(empty_cell_workspace),
+                    )
+                flood_workspace = subtract_background(
+                    flood_workspace,
+                    empty_cell_workspace,
+                    output_workspace=str(flood_workspace),
+                )
+        finally:
+            for workspace in (empty_cell_workspace, blocked_workspace):
+                if workspace is not None and mtd.doesExist(str(workspace)):
+                    mtd.remove(str(workspace))
+
+        return self._integrate_workspace(flood_workspace)
 
     def _prepare_beam_center_data_opts(self, beam_center):
         """Set options for loading a beam-center workspace.

@@ -424,7 +424,7 @@ class PrepareSensitivityCorrection(PrepareBase):
         return options
 
     @staticmethod
-    def _resolve_run(run: Run, name: str) -> Run:
+    def _resolve_run(run: Run, name: str) -> str:
         """Resolve a configured run value for the EQSANS loader.
 
         Parameters
@@ -436,8 +436,8 @@ class PrepareSensitivityCorrection(PrepareBase):
 
         Returns
         -------
-        int or str
-            Integer run number or validated run path.
+        str
+            Instrument-qualified run name or validated run path.
 
         Raises
         ------
@@ -445,9 +445,9 @@ class PrepareSensitivityCorrection(PrepareBase):
             If the run value is not recognized or a file path does not exist.
         """
         if isinstance(run, str) and run.isdigit():
-            return int(run)
+            run = int(run)
         if isinstance(run, int):
-            return run
+            return f"EQSANS_{run}"
         if isinstance(run, str) and (run.startswith("EQSANS") or os.path.exists(run)):
             return run
         raise ValueError(f"{name} {run!r} is not recognized")

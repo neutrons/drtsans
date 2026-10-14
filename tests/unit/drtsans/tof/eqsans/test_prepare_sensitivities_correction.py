@@ -102,7 +102,7 @@ def test_eqsans_workspace_preparation_uses_charge_only_normalization(monkeypatch
     workspace = preparer._prepare_eqsans_workspace(123, [0.1, 0.2], None, "flood_run")
 
     assert str(workspace) == "flood_workspace"
-    assert prepared[0]["data"] == 123
+    assert prepared[0]["data"] == "EQSANS_123"
     assert prepared[0]["flux_method"] is None
     assert prepared[0]["sample_offset"] == 12.0
     assert prepared[0]["detector_offset"] == 34.0

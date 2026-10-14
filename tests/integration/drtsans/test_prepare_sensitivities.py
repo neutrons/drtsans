@@ -1,5 +1,5 @@
 """
-Test EASANS sensitivities preparation algorithm
+Test EQSANS sensitivities preparation algorithm
 """
 
 import pytest

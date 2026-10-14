@@ -24,6 +24,7 @@ BugTracker = "https://github.com/neutrons/drtsans/issues"
 [project.scripts]
 grasp_cg2 = "drtsans.mono.gpsans.export_to_grasp:main"
 gpr = "drtsans.extensions.gpr:main"
+prepare_sensitivities_eqsans = "drtsans.tof.eqsans.scripts.prepare_sensitivities_eqsans:main"
 
 ####################
 ### Build config ###
@@ -41,6 +42,7 @@ artifacts = ["*.yml", "*.yaml", "*.ini", "*.gx", "*.json", "*.ui"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "extensions" = "drtsans/extensions"
+"scripts/prepare_sensitivities_eqsans.py" = "drtsans/tof/eqsans/scripts/prepare_sensitivities_eqsans.py"
 
 [tool.hatch.build.hooks.versioningit-onbuild]
 source-file = "src/drtsans/_version.py"

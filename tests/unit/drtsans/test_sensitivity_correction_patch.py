@@ -583,3 +583,41 @@ def test_patch_fit_uses_inverse_uncertainty_weights_and_supports_cubic_covarianc
         np.testing.assert_allclose(weights, expected_weights)
         assert np.all(np.isfinite(weights))
         assert np.all(weights > 0.0)
+
+
+@pytest.mark.parametrize("workspace_with_instrument", [dict(name="EQSANS", Nx=8, Ny=20)], indirect=True)
+def test_patch_skips_tube_without_residual_degrees_of_freedom(workspace_with_instrument, clean_workspace):
+    # Arrange: every tube has a beam-center pixel (-inf) to patch. Tube 0 keeps exactly
+    # poly_order + 1 fittable pixels, which leaves no residual degree of freedom for the
+    # scaled covariance. The remaining tubes keep all their pixels.
+    poly_order = 2
+    counts = 100.0 + np.arange(160.0).reshape(20, 8)
+    uncertainties = np.sqrt(counts)
+    counts[0, :] = -np.inf
+    uncertainties[0, :] = -np.inf
+    counts[poly_order + 2 :, 0] = np.nan
+    uncertainties[poly_order + 2 :, 0] = np.nan
+    workspace = workspace_with_instrument(
+        axis_values=[1.0, 2.0],
+        intensities=counts,
+        uncertainties=uncertainties,
+        view="array",
+    )
+    clean_workspace(workspace)
+
+    # Act
+    sensitivity = calculate_sensitivity_correction(
+        workspace,
+        min_threshold=0.1,
+        max_threshold=10.0,
+        poly_order=poly_order,
+        min_detectors_per_tube=0,
+    )
+    clean_workspace(sensitivity)
+
+    # Assert: tube 0 is skipped, so its beam-center pixel is left unpatched,
+    # while the beam-center pixel of every other tube is filled by the fit.
+    # Array-view row 0 is the last pixel of each tube.
+    beam_center_pixels = sensitivity.extractY().reshape(8, 20)[:, -1]
+    assert np.isneginf(beam_center_pixels[0])
+    assert np.all(np.isfinite(beam_center_pixels[1:]))

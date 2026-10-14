@@ -164,8 +164,10 @@ Sensitivity calculation and output
 Processing order
 ----------------
 
-Each EQSANS workspace is normalized by proton charge. No beam-flux spectrum is
-used for sensitivity preparation. Flood, blocked-beam, empty-cell, and
+Flood, blocked-beam, empty-cell, and transmission workspaces are normalized by
+proton charge. The beam-center run is not normalized because it is used only to
+locate the beam center. No beam-flux spectrum is used for sensitivity
+preparation. Flood, blocked-beam, empty-cell, and
 transmission workspaces use the same configured geometry and TOF limits. The
 blocked-beam and empty-cell backgrounds are subtracted before wavelength bins
 are summed.

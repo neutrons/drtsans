@@ -167,7 +167,9 @@ def calculate_sensitivity_correction(
         yy = np.asarray(yy, dtype=float)
         ee = np.asarray(ee, dtype=float)
         valid_fit = np.isfinite(ee) & (ee > 0.0)
-        if np.count_nonzero(valid_fit) <= poly_order:
+        # The scaled covariance divides by the residual degrees of freedom,
+        # n - (poly_order + 1), so at least poly_order + 2 points are required.
+        if np.count_nonzero(valid_fit) <= poly_order + 1:
             logger.error(
                 "Skipping tube with indices {} because it has too few finite, positive "
                 "uncertainties for fitting.".format(j)

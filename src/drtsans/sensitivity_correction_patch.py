@@ -157,29 +157,38 @@ def calculate_sensitivity_correction(
             )
             continue
 
-        # Do poly fit
+        # Do a weighted polynomial fit. ``numpy.polyfit`` expects weights that
+        # multiply the residual, so inverse standard deviations are required.
         num_interpolated_tubes += 1
-        # the weights in a real sensitivity measurement are all going to be very similar,
-        # so it should not really matter in practice.
         # covariance matrix is calculated differently from numpy 1.6
         # Refer to: https://numpy.org/devdocs/release/
         #                   1.16.0-notes.html#the-scaling-of-the-covariance-matrix-in-np-polyfit-is-different
-        polynomial_coeffs, cov_matrix = np.polyfit(xx, yy, poly_order, w=np.array(ee), cov=True)
-
-        # Errors in the least squares is the sqrt of the covariance matrix
-        # (correlation between the coefficients)
-        e_coeffs = np.sqrt(np.diag(cov_matrix))
+        xx = np.asarray(xx, dtype=float)
+        yy = np.asarray(yy, dtype=float)
+        ee = np.asarray(ee, dtype=float)
+        valid_fit = np.isfinite(ee) & (ee > 0.0)
+        # The scaled covariance divides by the residual degrees of freedom,
+        # n - (poly_order + 1), so at least poly_order + 2 points are required.
+        if np.count_nonzero(valid_fit) <= poly_order + 1:
+            logger.error(
+                "Skipping tube with indices {} because it has too few finite, positive "
+                "uncertainties for fitting.".format(j)
+            )
+            continue
+        polynomial_coeffs, cov_matrix = np.polyfit(
+            xx[valid_fit], yy[valid_fit], poly_order, w=1.0 / ee[valid_fit], cov=True
+        )
 
         beam_center_masked_pixels = np.array(beam_center_masked_pixels)
 
         # The patch is applied to the results of the previous step to produce S2(m,n).
         y_new = np.polyval(polynomial_coeffs, beam_center_masked_pixels[:, 0])
-        # errors of the polynomial
-        e_new = np.sqrt(
-            e_coeffs[2] ** 2
-            + (e_coeffs[1] * beam_center_masked_pixels[:, 0]) ** 2
-            + (e_coeffs[0] * beam_center_masked_pixels[:, 0] ** 2) ** 2
-        )
+        # Propagate the complete coefficient covariance matrix to each patched
+        # value. The Vandermonde rows use the same descending-power ordering as
+        # ``polynomial_coeffs`` for every supported polynomial order.
+        design = np.vander(beam_center_masked_pixels[:, 0], N=poly_order + 1)
+        predicted_variance = np.einsum("ij,jk,ik->i", design, cov_matrix, design)
+        e_new = np.sqrt(np.maximum(predicted_variance, 0.0))
         for i, index in enumerate(beam_center_masked_pixels[:, 1]):
             II[index] = y_new[i]
             dI[index] = e_new[i]

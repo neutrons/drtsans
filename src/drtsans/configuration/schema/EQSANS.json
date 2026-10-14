@@ -154,8 +154,8 @@
           "anyOf": [{ "type": "string", "enum": ["Monitor", "Total charge", "Time"] }, { "type": "null" }],
           "description": "Normalization type. Allowed values 'Total charge', 'Time', 'Monitor'",
           "fluxfiletof": {
-            "Monitor": "#configuratin/fluxMonitorRatioFile",
-            "Total Charge": "#configuration/beamFluxFileName"
+            "Monitor": "#configuration/fluxMonitorRatioFile",
+            "Total charge": "#configuration/beamFluxFileName"
           },
           "examples": ["Monitor", "Total charge", "Time"],
           "default": "Total charge"

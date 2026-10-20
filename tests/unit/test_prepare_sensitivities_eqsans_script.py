@@ -24,12 +24,12 @@ def test_configuration_accepts_scalar_and_sequence_run_inputs():
 def test_configuration_preserves_named_runs_and_paths():
     configuration = _SCRIPT.merge_configuration(
         {
-            "FLOOD_RUNS": ["EQSANS_1234", "/path/to/EQSANS_1235.nxs.h5"],
+            "FLOOD_RUNS": ["/path/to/EQSANS_1235.nxs.h5"],
             "DIRECT_BEAM_RUNS": "EQSANS_1236",
         }
     )
 
-    assert configuration["FLOOD_RUNS"] == ("EQSANS_1234", "/path/to/EQSANS_1235.nxs.h5")
+    assert configuration["FLOOD_RUNS"] == ("/path/to/EQSANS_1235.nxs.h5",)
     assert configuration["DIRECT_BEAM_RUNS"] == ("EQSANS_1236",)
 
 
@@ -53,14 +53,48 @@ SCALE_COMPONENTS = { detector1 = [1.0, 1.1, 1.0] }
     assert configuration["SCALE_COMPONENTS"] == {"detector1": [1.0, 1.1, 1.0]}
 
 
-def test_configuration_validates_auxiliary_run_lengths():
-    with pytest.raises(ValueError, match="BLOCKED_BEAM_RUNS"):
+@pytest.mark.parametrize(
+    "option_name",
+    [
+        "FLOOD_RUNS",
+        "DIRECT_BEAM_RUNS",
+        "DARK_CURRENT_RUNS",
+        "BLOCKED_BEAM_RUNS",
+        "EMPTY_CELL_RUNS",
+    ],
+)
+def test_configuration_rejects_more_than_one_run(option_name):
+    with pytest.raises(ValueError, match=f"{option_name} must contain exactly one run"):
+        _SCRIPT.merge_configuration({option_name: [1, 2]})
+
+
+def test_configuration_rejects_more_than_one_transmission_run():
+    with pytest.raises(ValueError, match="TRANSMISSION_REFERENCE_RUNS must contain exactly one run"):
         _SCRIPT.merge_configuration(
             {
-                "FLOOD_RUNS": [1, 2],
-                "BLOCKED_BEAM_RUNS": [3, 4, 5],
+                "TRANSMISSION_FLOOD_RUNS": 1,
+                "TRANSMISSION_EMPTY_CELL_RUNS": 2,
+                "TRANSMISSION_REFERENCE_RUNS": [3, 4],
             }
         )
+
+
+def test_configuration_rejects_moving_detectors():
+    with pytest.raises(ValueError, match="MOVING_DETECTORS must be false"):
+        _SCRIPT.merge_configuration({"MOVING_DETECTORS": True})
+
+
+def test_configuration_accepts_independent_tof_clipping_widths():
+    configuration = _SCRIPT.merge_configuration({"LOW_TOF_CLIP": 2000.0, "HIGH_TOF_CLIP": 500.0})
+
+    assert configuration["LOW_TOF_CLIP"] == 2000.0
+    assert configuration["HIGH_TOF_CLIP"] == 500.0
+
+
+@pytest.mark.parametrize("option_name", ["LOW_TOF_CLIP", "HIGH_TOF_CLIP"])
+def test_configuration_rejects_negative_tof_clipping_widths(option_name):
+    with pytest.raises(ValueError, match=f"{option_name} must be non-negative"):
+        _SCRIPT.merge_configuration({option_name: -1.0})
 
 
 def test_configuration_requires_transmission_settings_together():
@@ -164,10 +198,10 @@ def test_main_maps_configuration_to_preparer(monkeypatch, tmp_path):
     configuration_file = tmp_path / "sensitivity.toml"
     configuration_file.write_text(
         """
-FLOOD_RUNS = [1234, "EQSANS_1235"]
+FLOOD_RUNS = ["EQSANS_1234"]
 DIRECT_BEAM_RUNS = "1236"
 DARK_CURRENT_RUNS = 1237
-BLOCKED_BEAM_RUNS = [1238, 1239]
+BLOCKED_BEAM_RUNS = [1238]
 EMPTY_CELL_RUNS = 1240
 TRANSMISSION_FLOOD_RUNS = 1241
 TRANSMISSION_EMPTY_CELL_RUNS = 1242
@@ -182,7 +216,7 @@ MASK_BEAM_CENTER_RADIUS = 40.0
 PIXEL_CALIBRATION = true
 SCALE_COMPONENTS = { detector1 = [1.0, 1.1, 1.0] }
 SOLID_ANGLE_CORRECTION = false
-MOVING_DETECTORS = true
+MOVING_DETECTORS = false
 MIN_THRESHOLD = 0.1
 MAX_THRESHOLD = 3.0
 """
@@ -200,7 +234,7 @@ MAX_THRESHOLD = 3.0
     assert preparer.component == "detector1"
     assert preparer.scale_components == {"detector1": [1.0, 1.1, 1.0]}
     assert preparer.calls == [
-        ("set_flood_runs", (1234, "EQSANS_1235")),
+        ("set_flood_runs", ("EQSANS_1234",)),
         ("set_direct_beam_runs", (1236,)),
         ("set_masks", "/path/to/mask.xml", "1-15,242-256"),
         ("set_beam_center_radius", 40.0),
@@ -209,10 +243,10 @@ MAX_THRESHOLD = 3.0
         ("set_sample_detector_offsets", 285.0, 66.714),
         ("set_tof_cuts", 1650.0, 3150.0),
         ("set_dark_current_runs", (1237,)),
-        ("set_blocked_beam_runs", (1238, 1239)),
+        ("set_blocked_beam_runs", (1238,)),
         ("set_empty_cell_runs", (1240,)),
         ("set_transmission_correction", (1241,), (1242,), (1243,)),
-        ("execute", True, 0.1, 3.0, str(tmp_path / "sensitivity.nxs")),
+        ("execute", False, 0.1, 3.0, str(tmp_path / "sensitivity.nxs")),
     ]
 
 

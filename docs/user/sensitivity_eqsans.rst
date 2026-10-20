@@ -63,33 +63,33 @@ below in the same order as they appear in the source script.
 Configuration settings
 ----------------------
 
-Run settings accept one integer, one string, or a TOML array containing either
-form. Numeric strings are converted to integers. Other strings are preserved as
+Each run setting contains exactly one run: one integer, one string, or a
+one-element TOML array containing either form. Numeric strings are converted to integers. Other strings are preserved as
 run identifiers or NeXus paths. For example, all of the following are valid:
 ``12345``, ``"12345"``, ``[12345]``, and ``["12345"]``.
 
 ``FLOOD_RUNS``
-   Flood measurements used to calculate the detector response. Default:
+   Flood measurement used to calculate the detector response. Default:
    ``[0]``; provide the experiment's flood run for a real reduction.
 
 ``DIRECT_BEAM_RUNS``
-   Measurements used to determine the beam center. Provide one run or one run
-   per flood run. Default: ``[0]``.
+   Measurement used to determine the beam center. Default: ``[0]``.
 
 ``DARK_CURRENT_RUNS``
-   Optional dark-current measurements. Omit this setting when no dark-current
+   Optional dark-current measurement. Omit this setting when no dark-current
    subtraction is required. Default: omitted.
 
 ``BLOCKED_BEAM_RUNS``
-   Optional blocked-beam measurements. Omit this setting when this background
+   Optional blocked-beam measurement. Omit this setting when this background
    is not required. Default: omitted.
 
 ``EMPTY_CELL_RUNS``
-   Optional empty-cell measurements. Omit this setting when this background is
+   Optional empty-cell measurement. Omit this setting when this background is
    not required. Default: omitted.
 
-An auxiliary run setting may contain one run, which is broadcast to all flood
-runs, or one run per flood run. The command validates these pairings.
+The EQSANS sensitivity is computed with the detector-patch method, which uses a
+single flood image. The command therefore accepts exactly one flood run, and
+rejects any run setting that contains more than one run.
 
 Transmission settings
 ---------------------
@@ -98,16 +98,16 @@ Configure all three settings together to apply wavelength-dependent
 transmission. Omitting all three disables this correction:
 
 ``TRANSMISSION_FLOOD_RUNS``
-   Flood measurements used to determine transmission.
+   Flood measurement used to determine transmission.
 
 ``TRANSMISSION_EMPTY_CELL_RUNS``
-   Empty-cell transmission measurements.
+   Empty-cell transmission measurement.
 
 ``TRANSMISSION_REFERENCE_RUNS``
-   Empty-beam reference measurements.
+   Empty-beam reference measurement.
 
-Each setting accepts one run or one run per flood run. Providing only some of
-the three settings is invalid.
+Each setting contains exactly one run. Providing only some of the three
+settings is invalid.
 
 Geometry and data preparation
 -----------------------------
@@ -118,8 +118,12 @@ Geometry and data preparation
    inferred from the Nexus logs by this command. Defaults: ``0.0``.
 
 ``LOW_TOF_CLIP`` and ``HIGH_TOF_CLIP``
-   Float lower and upper time-of-flight limits in microseconds. Defaults:
-   ``500.0`` and ``2000.0``.
+   Non-negative time-of-flight clipping widths in microseconds, as in the
+   EQSANS reduction configuration. ``LOW_TOF_CLIP`` trims the fast-neutron end
+   of each transmitted wavelength band, measured from the band's minimum TOF;
+   ``HIGH_TOF_CLIP`` trims the slow-neutron end, measured back from the band's
+   maximum TOF. The two widths are independent, so ``LOW_TOF_CLIP`` may exceed
+   ``HIGH_TOF_CLIP``. Defaults: ``500.0`` and ``2000.0``.
 
 ``UNIVERSAL_MASK``
    A mask file path or a TOML array of detector IDs. Omit this setting when no
@@ -153,8 +157,12 @@ Sensitivity calculation and output
 ----------------------------------
 
 ``MOVING_DETECTORS``
-   Boolean selecting the moving-detector method (``true``) or detector-patch
-   method (``false``). Default: ``false``.
+   Must be ``false``. EQSANS sensitivities are calculated with the
+   detector-patch method, which fills the beam-stop region of a single flood by
+   fitting the surrounding pixels of each tube. The moving-detector method,
+   which combines floods with the beam-stop shadow on different pixels, is
+   available only for GPSANS and BIOSANS. The command rejects ``true``.
+   Default: ``false``.
 
 ``MIN_THRESHOLD`` and ``MAX_THRESHOLD``
    Floating-point lower and upper limits for normalized detector response.
@@ -168,7 +176,7 @@ Flood, blocked-beam, empty-cell, and transmission workspaces are normalized by
 proton charge. The beam-center run is not normalized because it is used only to
 locate the beam center. No beam-flux spectrum is used for sensitivity
 preparation. Flood, blocked-beam, empty-cell, and
-transmission workspaces use the same configured geometry and TOF limits. The
+transmission workspaces use the same configured geometry and TOF clipping widths. The
 blocked-beam and empty-cell backgrounds are subtracted before wavelength bins
 are summed.
 
@@ -211,5 +219,5 @@ in the original requirements.
 
 The exported processed NeXus file retains nominal output geometry and records
 the processing choices in sample logs, including the drtsans version, flood
-and auxiliary runs, beam centers, offsets, TOF limits, masking, normalization,
-transmission, thresholds, and preparation method.
+and auxiliary runs, beam centers, offsets, TOF clipping widths, masking,
+normalization, transmission, thresholds, and preparation method.

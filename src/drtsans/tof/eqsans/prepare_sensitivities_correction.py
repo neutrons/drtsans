@@ -32,6 +32,11 @@ class PrepareSensitivityCorrection(PrepareBase):
     backgrounds and wavelength-dependent transmission corrections before
     wavelength summation.
 
+    The sensitivity is computed with the detector-patch method, which uses a
+    single flood image. Exactly one flood run is therefore accepted, and each
+    direct-beam, dark-current, background, and transmission input must also
+    contain exactly one run.
+
     Parameters
     ----------
     component : str, optional
@@ -231,14 +236,45 @@ class PrepareSensitivityCorrection(PrepareBase):
             raise TypeError(f"{name} must contain only run numbers or paths")
         return normalized
 
+    @classmethod
+    def _as_single_run_list(cls, runs: Optional[RunInput], name: str) -> Optional[list[Run]]:
+        """Normalize a run input that must contain exactly one run.
+
+        The EQSANS sensitivity is computed with the detector-patch method,
+        which operates on a single flood image. Every run input therefore
+        refers to that one flood measurement.
+
+        Parameters
+        ----------
+        runs : int, str, sequence of int or str, or None
+            Run number, run path, or one-element sequence of runs.
+        name : str
+            Name of the input, used in validation error messages.
+
+        Returns
+        -------
+        list of int or str or None
+            One-element run list, or ``None`` when no runs were supplied.
+
+        Raises
+        ------
+        TypeError
+            If the input contains an invalid run value.
+        ValueError
+            If the input does not contain exactly one run.
+        """
+        normalized = cls._as_run_list(runs, name)
+        if normalized is not None and len(normalized) != 1:
+            raise ValueError(f"{name} must contain exactly one run for EQSANS; got {len(normalized)}")
+        return normalized
+
     def _validate_run_lists(self) -> None:
-        """Validate and broadcast optional run lists after flood runs are known.
+        """Validate that transmission runs are configured together.
 
         Raises
         ------
         ValueError
-            If transmission runs are only partially supplied, or an auxiliary
-            run list does not contain one run or one run per flood run.
+            If transmission runs are only partially supplied.
         """
         transmission_runs = (
             self._transmission_flood_runs,
@@ -251,46 +287,57 @@ class PrepareSensitivityCorrection(PrepareBase):
                 "transmission_reference_runs must be supplied together"
             )
 
-        if self._flood_runs is None:
-            return
-
-        number_of_flood_runs = len(self._flood_runs)
-        attributes = (
-            "_blocked_beam_runs",
-            "_empty_cell_runs",
-            "_transmission_flood_runs",
-            "_transmission_empty_cell_runs",
-            "_transmission_reference_runs",
-        )
-        for attribute in attributes:
-            runs = getattr(self, attribute)
-            if runs is None:
-                continue
-            if len(runs) == 1 and number_of_flood_runs > 1:
-                setattr(self, attribute, runs * number_of_flood_runs)
-            elif len(runs) != number_of_flood_runs:
-                raise ValueError(
-                    f"{attribute[1:]} must contain one run or {number_of_flood_runs} runs; got {len(runs)}"
-                )
-
     def set_flood_runs(self, flood_runs: RunInput) -> None:
-        """Set flood runs and validate configured auxiliary runs.
+        """Set the flood run.
 
         Parameters
         ----------
         flood_runs : int, str, or sequence of int or str
-            Flood run number, run path, or sequence of flood runs.
+            Flood run number, run path, or one-element sequence of runs.
 
         Raises
         ------
         TypeError
-            If a flood run has an invalid type.
+            If the flood run has an invalid type.
         ValueError
-            If configured auxiliary run lists do not match the flood run
-            count.
+            If more than one flood run is supplied.
         """
-        super().set_flood_runs(flood_runs)
-        self._validate_run_lists()
+        super().set_flood_runs(self._as_single_run_list(flood_runs, "flood_runs"))
+
+    def set_direct_beam_runs(self, direct_beam_runs: RunInput) -> None:
+        """Set the direct-beam run used to find the beam center.
+
+        Parameters
+        ----------
+        direct_beam_runs : int, str, or sequence of int or str
+            Direct-beam run number, run path, or one-element sequence of runs.
+
+        Raises
+        ------
+        TypeError
+            If the direct-beam run has an invalid type.
+        ValueError
+            If more than one direct-beam run is supplied.
+        """
+        super().set_direct_beam_runs(self._as_single_run_list(direct_beam_runs, "direct_beam_runs"))
+
+    def set_dark_current_runs(self, dark_current_runs: Optional[RunInput]) -> None:
+        """Set the optional dark-current run.
+
+        Parameters
+        ----------
+        dark_current_runs : int, str, sequence of int or str, or None
+            Dark-current run number, run path, one-element sequence of runs,
+            or ``None``.
+
+        Raises
+        ------
+        TypeError
+            If the dark-current run has an invalid type.
+        ValueError
+            If more than one dark-current run is supplied.
+        """
+        super().set_dark_current_runs(self._as_single_run_list(dark_current_runs, "dark_current_runs"))
 
     def set_sample_detector_offsets(self, sample_offset: float, detector_offset: float) -> None:
         """Set sample and detector offsets.
@@ -306,14 +353,19 @@ class PrepareSensitivityCorrection(PrepareBase):
         self._detector_offset = float(detector_offset)
 
     def set_tof_cuts(self, low_tof_clip: float, high_tof_clip: float) -> None:
-        """Set low and high time-of-flight clipping values.
+        """Set the time-of-flight clipping widths.
+
+        The two widths are independent: neither is an absolute TOF limit, and
+        ``low_tof_clip`` may exceed ``high_tof_clip``.
 
         Parameters
         ----------
         low_tof_clip : float
-            Lower time-of-flight limit, in microseconds.
+            Width trimmed from the fast-neutron end of each transmitted band,
+            after its minimum TOF, in microseconds.
         high_tof_clip : float
-            Upper time-of-flight limit, in microseconds.
+            Width trimmed from the slow-neutron end of each transmitted band,
+            before its maximum TOF, in microseconds.
 
         Raises
         ------
@@ -333,17 +385,17 @@ class PrepareSensitivityCorrection(PrepareBase):
         Parameters
         ----------
         runs : int, str, sequence of int or str, or None
-            Blocked-beam run number, run path, sequence of runs, or ``None``.
+            Blocked-beam run number, run path, one-element sequence of runs, or
+            ``None``.
 
         Raises
         ------
         TypeError
             If a run has an invalid type.
         ValueError
-            If the run list is empty or does not match the flood run count.
+            If the input does not contain exactly one run.
         """
-        self._blocked_beam_runs = self._as_run_list(runs, "blocked_beam_runs")
-        self._validate_run_lists()
+        self._blocked_beam_runs = self._as_single_run_list(runs, "blocked_beam_runs")
 
     def set_empty_cell_runs(self, runs: Optional[RunInput]) -> None:
         """Set optional empty-cell runs.
@@ -351,17 +403,17 @@ class PrepareSensitivityCorrection(PrepareBase):
         Parameters
         ----------
         runs : int, str, sequence of int or str, or None
-            Empty-cell run number, run path, sequence of runs, or ``None``.
+            Empty-cell run number, run path, one-element sequence of runs, or
+            ``None``.
 
         Raises
         ------
         TypeError
             If a run has an invalid type.
         ValueError
-            If the run list is empty or does not match the flood run count.
+            If the input does not contain exactly one run.
         """
-        self._empty_cell_runs = self._as_run_list(runs, "empty_cell_runs")
-        self._validate_run_lists()
+        self._empty_cell_runs = self._as_single_run_list(runs, "empty_cell_runs")
 
     def set_transmission_correction(
         self,
@@ -374,28 +426,28 @@ class PrepareSensitivityCorrection(PrepareBase):
         Parameters
         ----------
         transmission_flood_runs : int, str, sequence of int or str, or None
-            Flood transmission run number, path, sequence of runs, or
-            ``None``.
+            Flood transmission run number, path, one-element sequence of runs,
+            or ``None``.
         transmission_empty_cell_runs : int, str, sequence of int or str, or None
-            Empty-cell transmission run number, path, sequence of runs, or
-            ``None``.
+            Empty-cell transmission run number, path, one-element sequence of runs,
+            or ``None``.
         transmission_reference_runs : int, str, sequence of int or str, or None
-            Reference transmission run number, path, sequence of runs, or
-            ``None``.
+            Reference transmission run number, path, one-element sequence of runs,
+            or ``None``.
 
         Raises
         ------
         TypeError
             If a run has an invalid type.
         ValueError
-            If only some transmission runs are supplied, a run list is empty,
-            or a run list does not match the flood run count.
+            If only some transmission runs are supplied, or an input does not
+            contain exactly one run.
         """
-        self._transmission_flood_runs = self._as_run_list(transmission_flood_runs, "transmission_flood_runs")
-        self._transmission_empty_cell_runs = self._as_run_list(
+        self._transmission_flood_runs = self._as_single_run_list(transmission_flood_runs, "transmission_flood_runs")
+        self._transmission_empty_cell_runs = self._as_single_run_list(
             transmission_empty_cell_runs, "transmission_empty_cell_runs"
         )
-        self._transmission_reference_runs = self._as_run_list(
+        self._transmission_reference_runs = self._as_single_run_list(
             transmission_reference_runs, "transmission_reference_runs"
         )
         self._validate_run_lists()
@@ -451,6 +503,36 @@ class PrepareSensitivityCorrection(PrepareBase):
         if isinstance(run, str) and (run.startswith("EQSANS") or os.path.exists(run)):
             return run
         raise ValueError(f"{name} {run!r} is not recognized")
+
+    def _resolve_beam_center_run(self, beam_center_run: Run) -> str:
+        """Resolve the direct-beam run with the EQSANS run-name rules.
+
+        Parameters
+        ----------
+        beam_center_run : int or str
+            Run number, instrument-qualified run name, or path to a NeXus file.
+
+        Returns
+        -------
+        str
+            Instrument-qualified run name or validated run path.
+        """
+        return self._resolve_run(beam_center_run, "direct_beam_run")
+
+    def _resolve_parent_flood_run(self, parent_flood_run: Run) -> str:
+        """Resolve the flood run used as the parent of the exported map.
+
+        Parameters
+        ----------
+        parent_flood_run : int or str
+            Run number, instrument-qualified run name, or path to a NeXus file.
+
+        Returns
+        -------
+        str
+            Instrument-qualified run name or validated run path.
+        """
+        return self._resolve_run(parent_flood_run, "flood_run")
 
     def _prepare_eqsans_workspace(
         self,
@@ -731,3 +813,51 @@ class PrepareSensitivityCorrection(PrepareBase):
             time-of-flight settings.
         """
         return PrepareBase._prepare_data_opts(self, beam_center)
+
+    def execute(
+        self,
+        use_moving_detector_method: bool,
+        min_threshold: float,
+        max_threshold: float,
+        output_nexus_name: str,
+        enforce_use_nexus_idf: bool = False,
+        debug_mode: bool = False,
+    ) -> None:
+        """Calculate and export the EQSANS sensitivity correction.
+
+        EQSANS sensitivities are calculated with the detector-patch method.
+        The moving-detector method requires floods in which the beam-stop
+        shadow falls on different pixels, and the common workflow implements
+        it only for GPSANS and BIOSANS.
+
+        Parameters
+        ----------
+        use_moving_detector_method : bool
+            Must be ``False``; the moving-detector method is not supported for
+            EQSANS.
+        min_threshold : float
+            Minimum normalized detector response accepted for a good pixel.
+        max_threshold : float
+            Maximum normalized detector response accepted for a good pixel.
+        output_nexus_name : str
+            Path to the output processed NeXus file.
+        enforce_use_nexus_idf : bool, optional
+            Whether to use the instrument definition stored in the NeXus file.
+        debug_mode : bool, optional
+            Whether to save intermediate flood workspaces for debugging.
+
+        Raises
+        ------
+        ValueError
+            If ``use_moving_detector_method`` is ``True``.
+        """
+        if use_moving_detector_method:
+            raise ValueError("The moving-detector method is not supported for EQSANS; use the detector-patch method")
+        super().execute(
+            use_moving_detector_method,
+            min_threshold,
+            max_threshold,
+            output_nexus_name,
+            enforce_use_nexus_idf=enforce_use_nexus_idf,
+            debug_mode=debug_mode,
+        )

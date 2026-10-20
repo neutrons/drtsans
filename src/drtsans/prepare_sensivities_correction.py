@@ -510,6 +510,34 @@ class PrepareSensitivityCorrection(object):
 
         return beam_center_workspace
 
+    def _resolve_beam_center_run(self, beam_center_run):
+        """Resolve a configured beam-center run for the instrument loader.
+
+        Parameters
+        ----------
+        beam_center_run : int or str
+            Run number, numeric string, or path to a NeXus file.
+
+        Returns
+        -------
+        str
+            Instrument-qualified run name or existing file path.
+
+        Notes
+        -----
+        Instrument subclasses may override this hook to accept additional run
+        identifiers.
+        """
+        if isinstance(beam_center_run, str) and beam_center_run.isdigit():
+            beam_center_run = int(beam_center_run)  # convert to int if possible
+
+        if isinstance(beam_center_run, int):
+            return "{}_{}".format(self._instrument, beam_center_run)
+        if isinstance(beam_center_run, str):
+            assert os.path.exists(beam_center_run), f"Bean center run {beam_center_run} cannot be found"
+            return beam_center_run
+        raise RuntimeError(f"Beam center run {beam_center_run} is not recognized")
+
     def _calculate_beam_center(self, index):
         """Find beam centers for all flood runs
 
@@ -529,17 +557,7 @@ class PrepareSensitivityCorrection(object):
 
         """
         # Process the input run chosen to calculate the beam center
-        beam_center_run = self._get_beam_center_run(index)
-        if isinstance(beam_center_run, str) and beam_center_run.isdigit():
-            beam_center_run = int(beam_center_run)  # convert to int if possible
-
-        if isinstance(beam_center_run, int):
-            beam_center_run = "{}_{}".format(self._instrument, beam_center_run)
-        elif isinstance(beam_center_run, str):
-            assert os.path.exists(beam_center_run), f"Bean center run {beam_center_run} cannot be found"
-        else:
-            raise RuntimeError(f"Beam center run {beam_center_run} is not recognized")
-
+        beam_center_run = self._resolve_beam_center_run(self._get_beam_center_run(index))
         beam_center_workspace = self._get_beam_center_workspace(beam_center_run)
         beam_center = FIND_BEAM_CENTER[self._instrument](beam_center_workspace)
         return beam_center[:-1]  # last item is the fit results, useless here
@@ -661,6 +679,31 @@ class PrepareSensitivityCorrection(object):
         """
         return None
 
+    def _resolve_parent_flood_run(self, parent_flood_run):
+        """Resolve the flood run whose metadata is the parent of the output.
+
+        Parameters
+        ----------
+        parent_flood_run : int or str
+            Flood run number or path to a NeXus file.
+
+        Returns
+        -------
+        str
+            Run identifier or existing file path accepted by ``load_events``.
+
+        Notes
+        -----
+        Instrument subclasses may override this hook to accept additional run
+        identifiers.
+        """
+        instrument_name = {CG2: "GPSANS", CG3: "BIOSANS", EQSANS: "EQSANS_"}[self._instrument]
+        if isinstance(parent_flood_run, int):
+            return "{}{}".format(instrument_name, parent_flood_run)
+        # must be a nexus file already
+        assert os.path.exists(parent_flood_run)
+        return parent_flood_run
+
     def _export_sensitivity(self, sensitivity_ws, output_nexus_name, parent_flood_run):
         """Process and export sensitivities to a processed NeXus file
 
@@ -679,14 +722,7 @@ class PrepareSensitivityCorrection(object):
 
         """
         # Create a new workspace for output
-        instrument_name = {CG2: "GPSANS", CG3: "BIOSANS", EQSANS: "EQSANS_"}[self._instrument]
-        if isinstance(parent_flood_run, int):
-            event_nexus = "{}{}".format(instrument_name, parent_flood_run)
-        else:
-            # must be a nexus file already
-            event_nexus = parent_flood_run
-            assert os.path.exists(event_nexus)
-
+        event_nexus = self._resolve_parent_flood_run(parent_flood_run)
         parent_ws = load_events(run=event_nexus, MetaDataOnly=True, LoadNexusInstrumentXML=self._enforce_use_nexus_idf)
 
         # Create new sensitivity workspace

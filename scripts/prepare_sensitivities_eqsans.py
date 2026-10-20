@@ -18,22 +18,22 @@ ScaleComponents = dict[str, list[float]]
 DOCUMENTATION_URL = "https://drtsans.readthedocs.io/latest/user/sensitivity_eqsans.html"
 
 
-# Run inputs may be one integer run number, one string run identifier/path, or a
-# sequence of either. Examples: 12345, "EQSANS_12345", "/path/to/run.nxs",
-# or (12345, 12346). A sequence pairs its entries with the flood runs below.
+# Run inputs contain exactly one run: an integer run number, a string run
+# identifier/path, or a one-element sequence of either. Examples: 12345,
+# "EQSANS_12345", "/path/to/run.nxs", or (12345,). The EQSANS detector-patch
+# method computes the sensitivity from a single flood run.
 FLOOD_RUNS: RunInput = (0,)
 DIRECT_BEAM_RUNS: RunInput = (0,)
 
-# Optional auxiliary run inputs use the same forms as the flood runs. Leave
-# these as None when the correction is not needed. One run is broadcast to all
-# flood runs; otherwise provide one auxiliary run per flood run.
+# Optional auxiliary run inputs use the same forms as the flood run. Leave
+# these as None when the correction is not needed.
 DARK_CURRENT_RUNS: OptionalRunInput = None
 BLOCKED_BEAM_RUNS: OptionalRunInput = None
 EMPTY_CELL_RUNS: OptionalRunInput = None
 
 # Optional wavelength-dependent transmission runs use the same run-input forms.
 # Configure all three together: transmission flood, transmission empty-cell,
-# and transmission reference. Each may be one run or one run per flood run.
+# and transmission reference.
 TRANSMISSION_FLOOD_RUNS: OptionalRunInput = None
 TRANSMISSION_EMPTY_CELL_RUNS: OptionalRunInput = None
 TRANSMISSION_REFERENCE_RUNS: OptionalRunInput = None
@@ -41,6 +41,9 @@ TRANSMISSION_REFERENCE_RUNS: OptionalRunInput = None
 # EQSANS geometry and time-of-flight options.
 SAMPLE_OFFSET = 0.0  # mm
 DETECTOR_OFFSET = 0.0  # mm
+# TOF clipping widths are independent, non-negative amounts in microseconds.
+# LOW_TOF_CLIP trims the fast-neutron end of each transmitted band (after its
+# minimum TOF); HIGH_TOF_CLIP trims the slow-neutron end (before its maximum).
 LOW_TOF_CLIP = 500.0  # microseconds
 HIGH_TOF_CLIP = 2000.0  # microseconds
 
@@ -71,8 +74,8 @@ SOLID_ANGLE_CORRECTION = True
 
 # Sensitivity calculation.
 # Select the sensitivity-preparation method.
-# Input type: bool. Use True for moving-detector data, or False for the
-# detector-patch method. Example: False.
+# Input type: bool. Must be False: EQSANS uses the detector-patch method, and
+# the moving-detector method is not supported. Example: False.
 MOVING_DETECTORS = False
 # Minimum accepted normalized detector response.
 # Input type: float. Pixels below this value are masked. Example: 0.5.
@@ -262,14 +265,16 @@ def merge_configuration(overrides: Mapping[str, Any]) -> dict[str, Any]:
     ):
         raise ValueError("TRANSMISSION_* options must be supplied together")
 
-    flood_count = len(configuration["FLOOD_RUNS"])
-    for option_name in _OPTIONAL_RUN_OPTIONS:
+    for option_name in sorted(_RUN_OPTIONS):
         runs = configuration[option_name]
-        if runs is not None and len(runs) not in (1, flood_count):
-            raise ValueError(f"{option_name} must contain one run or one run per flood run")
+        if runs is not None and len(runs) != 1:
+            raise ValueError(f"{option_name} must contain exactly one run")
 
-    if configuration["LOW_TOF_CLIP"] > configuration["HIGH_TOF_CLIP"]:
-        raise ValueError("LOW_TOF_CLIP cannot exceed HIGH_TOF_CLIP")
+    if configuration["MOVING_DETECTORS"]:
+        raise ValueError("MOVING_DETECTORS must be false; the moving-detector method is not supported for EQSANS")
+    for option_name in ("LOW_TOF_CLIP", "HIGH_TOF_CLIP"):
+        if configuration[option_name] < 0.0:
+            raise ValueError(f"{option_name} must be non-negative")
     if configuration["MIN_THRESHOLD"] > configuration["MAX_THRESHOLD"]:
         raise ValueError("MIN_THRESHOLD cannot exceed MAX_THRESHOLD")
     if configuration["MASK_BEAM_CENTER_RADIUS"] < 0.0:

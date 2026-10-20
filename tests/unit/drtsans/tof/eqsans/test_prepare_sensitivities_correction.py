@@ -40,26 +40,80 @@ def test_eqsans_beam_center_options_omit_flood_geometry_and_tof():
     assert options == {"center_x": 0.0, "center_y": 0.0, "flux_method": None}
 
 
-def test_eqsans_auxiliary_run_inputs_are_normalized_and_broadcast():
+def test_eqsans_run_inputs_are_normalized_to_one_run():
     preparer = PrepareSensitivityCorrection()
-    preparer.set_flood_runs([1, 2])
-    preparer.set_blocked_beam_runs(3)
-    preparer.set_empty_cell_runs("EQSANS_4.nxs.h5")
-    preparer.set_transmission_correction(5, 6, 7)
+    preparer.set_flood_runs(1)
+    preparer.set_direct_beam_runs(["EQSANS_2"])
+    preparer.set_dark_current_runs("3")
+    preparer.set_blocked_beam_runs(4)
+    preparer.set_empty_cell_runs("EQSANS_5.nxs.h5")
+    preparer.set_transmission_correction(6, 7, 8)
 
-    assert preparer._blocked_beam_runs == [3, 3]
-    assert preparer._empty_cell_runs == ["EQSANS_4.nxs.h5", "EQSANS_4.nxs.h5"]
-    assert preparer._transmission_flood_runs == [5, 5]
-    assert preparer._transmission_empty_cell_runs == [6, 6]
-    assert preparer._transmission_reference_runs == [7, 7]
+    assert preparer._flood_runs == [1]
+    assert preparer._direct_beam_center_runs == ["EQSANS_2"]
+    assert preparer._dark_current_runs == ["3"]
+    assert preparer._blocked_beam_runs == [4]
+    assert preparer._empty_cell_runs == ["EQSANS_5.nxs.h5"]
+    assert preparer._transmission_flood_runs == [6]
+    assert preparer._transmission_empty_cell_runs == [7]
+    assert preparer._transmission_reference_runs == [8]
 
 
-def test_eqsans_auxiliary_run_lists_must_match_flood_runs():
+def test_eqsans_optional_run_inputs_accept_none():
     preparer = PrepareSensitivityCorrection()
-    preparer.set_flood_runs([1, 2])
+    preparer.set_dark_current_runs(None)
+    preparer.set_blocked_beam_runs(None)
+    preparer.set_empty_cell_runs(None)
+    preparer.set_transmission_correction(None, None, None)
 
-    with pytest.raises(ValueError, match="blocked_beam_runs"):
-        preparer.set_blocked_beam_runs([3, 4, 5])
+    assert preparer._dark_current_runs is None
+    assert preparer._blocked_beam_runs is None
+    assert preparer._empty_cell_runs is None
+    assert preparer._transmission_reference_runs is None
+
+
+@pytest.mark.parametrize(
+    "setter, name",
+    [
+        ("set_flood_runs", "flood_runs"),
+        ("set_direct_beam_runs", "direct_beam_runs"),
+        ("set_dark_current_runs", "dark_current_runs"),
+        ("set_blocked_beam_runs", "blocked_beam_runs"),
+        ("set_empty_cell_runs", "empty_cell_runs"),
+    ],
+)
+def test_eqsans_run_inputs_reject_more_than_one_run(setter, name):
+    preparer = PrepareSensitivityCorrection()
+
+    with pytest.raises(ValueError, match=f"{name} must contain exactly one run"):
+        getattr(preparer, setter)([1, 2])
+
+
+def test_eqsans_transmission_runs_reject_more_than_one_run():
+    preparer = PrepareSensitivityCorrection()
+
+    with pytest.raises(ValueError, match="transmission_reference_runs must contain exactly one run"):
+        preparer.set_transmission_correction(1, 2, [3, 4])
+
+
+def test_eqsans_execute_rejects_moving_detector_method(monkeypatch):
+    preparer = PrepareSensitivityCorrection()
+    preparer.set_flood_runs(1)
+    preparer.set_direct_beam_runs(2)
+    monkeypatch.setattr(PrepareBase, "execute", lambda *_args, **_kwargs: pytest.fail("common workflow must not run"))
+
+    with pytest.raises(ValueError, match="moving-detector method is not supported for EQSANS"):
+        preparer.execute(True, 0.5, 2.0, "sensitivity.nxs")
+
+
+def test_eqsans_execute_delegates_patch_method_to_common_workflow(monkeypatch):
+    preparer = PrepareSensitivityCorrection()
+    calls = []
+    monkeypatch.setattr(PrepareBase, "execute", lambda *args, **kwargs: calls.append((args[1:], kwargs)))
+
+    preparer.execute(False, 0.5, 2.0, "sensitivity.nxs")
+
+    assert calls == [((False, 0.5, 2.0, "sensitivity.nxs"), {"enforce_use_nexus_idf": False, "debug_mode": False})]
 
 
 def test_eqsans_transmission_runs_must_be_supplied_together():
@@ -67,6 +121,87 @@ def test_eqsans_transmission_runs_must_be_supplied_together():
 
     with pytest.raises(ValueError, match="must be supplied together"):
         preparer.set_transmission_correction(1, None, 3)
+
+
+def test_eqsans_tof_cuts_are_independent_clipping_widths():
+    preparer = PrepareSensitivityCorrection()
+
+    preparer.set_tof_cuts(low_tof_clip=2000.0, high_tof_clip=500.0)
+
+    assert preparer._low_tof_clip == 2000.0
+    assert preparer._high_tof_clip == 500.0
+
+
+@pytest.mark.parametrize(
+    "run, expected",
+    [(1236, "EQSANS_1236"), ("1236", "EQSANS_1236"), ("EQSANS_1236", "EQSANS_1236")],
+)
+def test_eqsans_beam_center_and_parent_runs_use_eqsans_run_names(run, expected):
+    preparer = PrepareSensitivityCorrection()
+
+    assert preparer._resolve_beam_center_run(run) == expected
+    assert preparer._resolve_parent_flood_run(run) == expected
+
+
+def test_eqsans_beam_center_and_parent_runs_reject_unknown_names():
+    preparer = PrepareSensitivityCorrection()
+
+    with pytest.raises(ValueError, match="direct_beam_run"):
+        preparer._resolve_beam_center_run("/missing/run.nxs.h5")
+    with pytest.raises(ValueError, match="flood_run"):
+        preparer._resolve_parent_flood_run("/missing/run.nxs.h5")
+
+
+def test_eqsans_execute_accepts_instrument_qualified_run_names(monkeypatch, clean_workspace):
+    preparer = PrepareSensitivityCorrection()
+    preparer.set_flood_runs("EQSANS_1234")
+    preparer.set_direct_beam_runs("EQSANS_1236")
+
+    def create_workspace(name):
+        clean_workspace(name)
+        clean_workspace(f"{name}_new")
+        return CreateWorkspace(DataX=[1.0, 2.0], DataY=[1.0, 1.0], DataE=[0.1, 0.1], NSpec=2, OutputWorkspace=name)
+
+    loaded_runs = []
+    beam_center_workspaces = []
+    parent_runs = []
+    saved_files = []
+
+    def fake_prepare_data(data, output_workspace=None, **_kwargs):
+        loaded_runs.append(data)
+        return create_workspace(output_workspace or "eqsans_named_run_flood")
+
+    def fake_find_beam_center(workspace):
+        beam_center_workspaces.append(str(workspace))
+        return 0.01, 0.02, None
+
+    def fake_load_events(run, **_kwargs):
+        parent_runs.append(run)
+        return create_workspace("eqsans_named_run_parent")
+
+    monkeypatch.setitem(common_sensitivity.PREPARE_DATA, "EQSANS", fake_prepare_data)
+    monkeypatch.setitem(common_sensitivity.FIND_BEAM_CENTER, "EQSANS", fake_find_beam_center)
+    monkeypatch.setitem(
+        common_sensitivity.CALCULATE_SENSITIVITY_CORRECTION,
+        common_sensitivity.PATCHING_DETECTORS,
+        lambda workspace, **_kwargs: workspace,
+    )
+    monkeypatch.setattr(eqsans_sensitivity, "NormaliseByCurrent", lambda **kwargs: kwargs["InputWorkspace"])
+    monkeypatch.setattr(common_sensitivity, "load_events", fake_load_events)
+    monkeypatch.setattr(common_sensitivity, "MaskDetectors", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        common_sensitivity, "SaveNexusProcessed", lambda **kwargs: saved_files.append(kwargs["Filename"])
+    )
+    monkeypatch.setattr(preparer, "_get_masked_detectors", lambda _workspace: np.zeros((2, 1), dtype=bool))
+    monkeypatch.setattr(preparer, "_mask_beam_center", lambda workspace, _beam_center: workspace)
+    monkeypatch.setattr(preparer, "_set_mask_value", lambda workspace, *_args: workspace)
+
+    preparer.execute(False, 0.5, 2.0, "sensitivity.nxs")
+
+    assert loaded_runs == ["EQSANS_1236", "EQSANS_1234"]
+    assert beam_center_workspaces == ["BC_EQSANS_1236"]
+    assert parent_runs == ["EQSANS_1234"]
+    assert saved_files == ["sensitivity.nxs"]
 
 
 def test_eqsans_tof_cuts_must_be_non_negative():
@@ -332,18 +467,18 @@ def test_eqsans_sensitivity_provenance_logs(clean_workspace):
     clean_workspace(workspace)
     clean_workspace(flood_workspace)
     preparer = PrepareSensitivityCorrection()
-    preparer.set_flood_runs([1, 2])
-    preparer.set_direct_beam_runs([3, 4])
-    preparer.set_dark_current_runs([5, 6])
-    preparer.set_blocked_beam_runs([7, 8])
-    preparer.set_empty_cell_runs([9, 10])
-    preparer.set_transmission_correction([11, 12], [13, 14], [15, 16])
+    preparer.set_flood_runs(1)
+    preparer.set_direct_beam_runs(3)
+    preparer.set_dark_current_runs(5)
+    preparer.set_blocked_beam_runs(7)
+    preparer.set_empty_cell_runs(9)
+    preparer.set_transmission_correction(11, 13, 15)
     preparer.set_sample_detector_offsets(12.0, 34.0)
     preparer.set_tof_cuts(500.0, 2000.0)
     preparer.set_beam_center_radius(6.0)
     preparer.set_masks("default.xml", "1-4")
     preparer.scale_components = {"detector1": [1.0, 2.0, 1.0]}
-    preparer._last_beam_centers = [(0.1, 0.2), (0.3, 0.4)]
+    preparer._last_beam_centers = [(0.1, 0.2)]
     preparer._last_flood_workspace = flood_workspace
     preparer._last_sensitivity_options = {
         "use_moving_detector_method": False,
@@ -357,8 +492,8 @@ def test_eqsans_sensitivity_provenance_logs(clean_workspace):
 
     run = workspace.getRun()
     assert run.getProperty("sensitivity_method").value == "patch"
-    assert json.loads(run.getProperty("flood_runs").value) == [1, 2]
-    assert run.getProperty("beam_center_x").value == "[0.1, 0.3]"
+    assert json.loads(run.getProperty("flood_runs").value) == [1]
+    assert run.getProperty("beam_center_x").value == pytest.approx(0.1)
     assert run.getProperty("sample_offset").value == 12.0
     assert json.loads(run.getProperty("scale_components").value) == {"detector1": [1.0, 2.0, 1.0]}
     assert run.getProperty("theta_dependent_transmission").value

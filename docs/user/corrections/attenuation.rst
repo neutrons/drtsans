@@ -157,7 +157,8 @@ The formula and fitted parameter values are read from a text file:
 drtsans includes a timestamped default file, ``GPSANS_attenuation_coefficients.txt``. Each calibration block
 starts with ``[effective YYYY-MM-DD]``. During reduction, the block is selected from the empty beam timestamp,
 using ``start_time`` first, then ``run_start``, then ``run_begin``. The most recent block whose effective date is
-not later than the run date is used. The existing packaged coefficients are effective ``1990-01-01``:
+not later than the run date is used. The packaged calibration blocks are effective ``1990-01-01``,
+``2020-02-26`` and ``2026-09-24``:
 
 
 .. literalinclude:: ../../../src/drtsans/configuration/GPSANS_attenuation_coefficients.txt

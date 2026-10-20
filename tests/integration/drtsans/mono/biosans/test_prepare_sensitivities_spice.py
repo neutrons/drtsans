@@ -4,6 +4,7 @@ import h5py
 import os
 import warnings
 from mantid.api import AnalysisDataService
+from mantid.kernel import amend_config
 from mantid.simpleapi import DeleteWorkspace, CompareWorkspaces
 from drtsans.mono.spice_data import SpiceRun
 from drtsans.mono.biosans.prepare_sensitivities_correction import (
@@ -120,26 +121,29 @@ def test_main_detector(datarepo_dir, temp_directory, clean_workspace):
         SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0], DARK_CURRENT_RUN[1]) if DARK_CURRENT_RUN else None
     )
 
-    prepare_spice_sensitivities_correction(
-        COMPONENT,
-        flood_run,
-        direct_beam_run,
-        dark_current_run,
-        SOLID_ANGLE_CORRECTION,
-        transmission_flood_run,
-        open_beam_transmission,
-        BEAM_TRAP_SIZE_FACTOR,
-        THETA_DEPENDENT_CORRECTION,
-        UNIVERSAL_MASK,
-        MASKED_PIXELS,
-        MASK_BEAM_CENTER_RADIUS,
-        MAIN_DET_MASK_ANGLE,
-        WING_DET_MASK_ANGLE,
-        MIN_THRESHOLD,
-        MAX_THRESHOLD,
-        SENSITIVITY_FILE,
-        nexus_dir=datarepo_dir.biosans,
-    )
+    # debug_mode=True saves the prepared flood with a relative file name, which
+    # Mantid resolves against defaultsave.directory
+    with amend_config(**{"defaultsave.directory": output_dir}):
+        prepare_spice_sensitivities_correction(
+            COMPONENT,
+            flood_run,
+            direct_beam_run,
+            dark_current_run,
+            SOLID_ANGLE_CORRECTION,
+            transmission_flood_run,
+            open_beam_transmission,
+            BEAM_TRAP_SIZE_FACTOR,
+            THETA_DEPENDENT_CORRECTION,
+            UNIVERSAL_MASK,
+            MASKED_PIXELS,
+            MASK_BEAM_CENTER_RADIUS,
+            MAIN_DET_MASK_ANGLE,
+            WING_DET_MASK_ANGLE,
+            MIN_THRESHOLD,
+            MAX_THRESHOLD,
+            SENSITIVITY_FILE,
+            nexus_dir=datarepo_dir.biosans,
+        )
     # Verify
     gold_sens_file = os.path.join(datarepo_dir.biosans, "CG3_sens_main_exp549_scan9.nxs")
     assert os.path.exists(gold_sens_file)
@@ -229,26 +233,29 @@ def test_wing_detector(has_sns_mount, reference_dir, temp_directory, clean_works
         SpiceRun(CG3, IPTS, EXPERIMENT, DARK_CURRENT_RUN[0], DARK_CURRENT_RUN[1]) if DARK_CURRENT_RUN else None
     )
 
-    prepare_spice_sensitivities_correction(
-        COMPONENT,
-        flood_run,
-        direct_beam_run,
-        dark_current_run,
-        SOLID_ANGLE_CORRECTION,
-        transmission_flood_run,
-        open_beam_transmission,
-        BEAM_TRAP_SIZE_FACTOR,
-        THETA_DEPENDENT_CORRECTION,
-        UNIVERSAL_MASK,
-        MASKED_PIXELS,
-        MASK_BEAM_CENTER_RADIUS,
-        MAIN_DET_MASK_ANGLE,
-        WING_DET_MASK_ANGLE,
-        MIN_THRESHOLD,
-        MAX_THRESHOLD,
-        SENSITIVITY_FILE,
-        nexus_dir=reference_dir.biosans,
-    )
+    # debug_mode=True saves the prepared flood with a relative file name, which
+    # Mantid resolves against defaultsave.directory
+    with amend_config(**{"defaultsave.directory": output_dir}):
+        prepare_spice_sensitivities_correction(
+            COMPONENT,
+            flood_run,
+            direct_beam_run,
+            dark_current_run,
+            SOLID_ANGLE_CORRECTION,
+            transmission_flood_run,
+            open_beam_transmission,
+            BEAM_TRAP_SIZE_FACTOR,
+            THETA_DEPENDENT_CORRECTION,
+            UNIVERSAL_MASK,
+            MASKED_PIXELS,
+            MASK_BEAM_CENTER_RADIUS,
+            MAIN_DET_MASK_ANGLE,
+            WING_DET_MASK_ANGLE,
+            MIN_THRESHOLD,
+            MAX_THRESHOLD,
+            SENSITIVITY_FILE,
+            nexus_dir=reference_dir.biosans,
+        )
     # Verify
     gold_sens_file = os.path.join(reference_dir.biosans, "CG3_sens_wing_exp549_scan20.nxs")
     assert os.path.exists(gold_sens_file)

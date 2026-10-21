@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
+from drtsans import sensitivity_correction_patch
 from drtsans.sensitivity_correction_patch import calculate_sensitivity_correction
 
 
@@ -586,7 +587,7 @@ def test_patch_fit_uses_inverse_uncertainty_weights_and_supports_cubic_covarianc
 
 
 @pytest.mark.parametrize("workspace_with_instrument", [dict(name="EQSANS", Nx=8, Ny=20)], indirect=True)
-def test_patch_skips_tube_without_residual_degrees_of_freedom(workspace_with_instrument, clean_workspace):
+def test_patch_skips_tube_without_residual_degrees_of_freedom(workspace_with_instrument, clean_workspace, monkeypatch):
     # Arrange: every tube has a beam-center pixel (-inf) to patch. Tube 0 keeps exactly
     # poly_order + 1 fittable pixels, which leaves no residual degree of freedom for the
     # scaled covariance. The remaining tubes keep all their pixels.
@@ -604,6 +605,16 @@ def test_patch_skips_tube_without_residual_degrees_of_freedom(workspace_with_ins
         view="array",
     )
     clean_workspace(workspace)
+    notices = []
+
+    class _Logger:
+        def notice(self, message):
+            notices.append(message)
+
+        def error(self, message):
+            pass
+
+    monkeypatch.setattr(sensitivity_correction_patch, "logger", _Logger())
 
     # Act
     sensitivity = calculate_sensitivity_correction(
@@ -621,3 +632,5 @@ def test_patch_skips_tube_without_residual_degrees_of_freedom(workspace_with_ins
     beam_center_pixels = sensitivity.extractY().reshape(8, 20)[:, -1]
     assert np.isneginf(beam_center_pixels[0])
     assert np.all(np.isfinite(beam_center_pixels[1:]))
+    # The skipped tube is not counted as interpolated.
+    assert notices == ["Interpolated beam-center masked pixels in 7 of 8 tubes"]

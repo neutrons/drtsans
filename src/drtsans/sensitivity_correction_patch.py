@@ -159,7 +159,6 @@ def calculate_sensitivity_correction(
 
         # Do a weighted polynomial fit. ``numpy.polyfit`` expects weights that
         # multiply the residual, so inverse standard deviations are required.
-        num_interpolated_tubes += 1
         # covariance matrix is calculated differently from numpy 1.6
         # Refer to: https://numpy.org/devdocs/release/
         #                   1.16.0-notes.html#the-scaling-of-the-covariance-matrix-in-np-polyfit-is-different
@@ -178,6 +177,7 @@ def calculate_sensitivity_correction(
         polynomial_coeffs, cov_matrix = np.polyfit(
             xx[valid_fit], yy[valid_fit], poly_order, w=1.0 / ee[valid_fit], cov=True
         )
+        num_interpolated_tubes += 1
 
         beam_center_masked_pixels = np.array(beam_center_masked_pixels)
 
@@ -192,6 +192,8 @@ def calculate_sensitivity_correction(
         for i, index in enumerate(beam_center_masked_pixels[:, 1]):
             II[index] = y_new[i]
             dI[index] = e_new[i]
+
+    logger.notice(f"Interpolated beam-center masked pixels in {num_interpolated_tubes} of {num_tubes} tubes")
 
     # The final sensitivity, S(m,n), is produced by dividing this result by the average value
     # per Equations A3.13 and A3.14

@@ -21,9 +21,10 @@ DOCUMENTATION_URL = "https://drtsans.readthedocs.io/latest/user/sensitivity_eqsa
 # Run inputs contain exactly one run: an integer run number, a string run
 # identifier/path, or a one-element sequence of either. Examples: 12345,
 # "EQSANS_12345", "/path/to/run.nxs", or (12345,). The EQSANS detector-patch
-# method computes the sensitivity from a single flood run.
-FLOOD_RUNS: RunInput = (0,)
-DIRECT_BEAM_RUNS: RunInput = (0,)
+# method computes the sensitivity from a single flood run. The flood and
+# direct-beam runs are required and have no default value.
+FLOOD_RUNS: OptionalRunInput = None
+DIRECT_BEAM_RUNS: OptionalRunInput = None
 
 # Optional auxiliary run inputs use the same forms as the flood run. Leave
 # these as None when the correction is not needed.
@@ -119,7 +120,8 @@ _RUN_OPTIONS = {
     "TRANSMISSION_EMPTY_CELL_RUNS",
     "TRANSMISSION_REFERENCE_RUNS",
 }
-_OPTIONAL_RUN_OPTIONS = _RUN_OPTIONS - {"FLOOD_RUNS", "DIRECT_BEAM_RUNS"}
+_REQUIRED_RUN_OPTIONS = ("FLOOD_RUNS", "DIRECT_BEAM_RUNS")
+_OPTIONAL_RUN_OPTIONS = _RUN_OPTIONS - set(_REQUIRED_RUN_OPTIONS)
 _FLOAT_OPTIONS = {
     "SAMPLE_OFFSET",
     "DETECTOR_OFFSET",
@@ -241,12 +243,17 @@ def merge_configuration(overrides: Mapping[str, Any]) -> dict[str, Any]:
     Raises
     ------
     ValueError
-        If an option is unknown or has an invalid value.
+        If an option is unknown, a required option is missing, or an option
+        has an invalid value.
     """
     unknown_options = set(overrides) - set(DEFAULT_CONFIGURATION)
     if unknown_options:
         names = ", ".join(sorted(unknown_options))
         raise ValueError(f"Unknown configuration option(s): {names}")
+    missing_options = [name for name in _REQUIRED_RUN_OPTIONS if name not in overrides]
+    if missing_options:
+        names = ", ".join(missing_options)
+        raise ValueError(f"Missing required configuration option(s): {names}")
 
     configuration = copy.deepcopy(dict(DEFAULT_CONFIGURATION))
     for option_name, value in overrides.items():

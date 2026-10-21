@@ -7,6 +7,7 @@ from drtsans.path import load_module
 
 _ROOT_DIR = Path(__file__).parents[2]
 _SCRIPT = load_module(_ROOT_DIR / "scripts/prepare_sensitivities_eqsans.py")
+_REQUIRED_RUNS = {"FLOOD_RUNS": 1234, "DIRECT_BEAM_RUNS": 1235}
 
 
 def test_configuration_accepts_scalar_and_sequence_run_inputs():
@@ -53,6 +54,25 @@ SCALE_COMPONENTS = { detector1 = [1.0, 1.1, 1.0] }
     assert configuration["SCALE_COMPONENTS"] == {"detector1": [1.0, 1.1, 1.0]}
 
 
+@pytest.mark.parametrize("option_name", ["FLOOD_RUNS", "DIRECT_BEAM_RUNS"])
+def test_configuration_requires_flood_and_direct_beam_runs(option_name):
+    overrides = {name: value for name, value in _REQUIRED_RUNS.items() if name != option_name}
+
+    with pytest.raises(ValueError, match=f"Missing required configuration option\\(s\\): {option_name}"):
+        _SCRIPT.merge_configuration(overrides)
+
+
+def test_configuration_reports_all_missing_required_runs():
+    with pytest.raises(ValueError, match="FLOOD_RUNS, DIRECT_BEAM_RUNS"):
+        _SCRIPT.merge_configuration({})
+
+
+@pytest.mark.parametrize("option_name", ["FLOOD_RUNS", "DIRECT_BEAM_RUNS"])
+def test_configuration_rejects_null_required_runs(option_name):
+    with pytest.raises(ValueError, match=f"{option_name} cannot be null"):
+        _SCRIPT.merge_configuration({**_REQUIRED_RUNS, option_name: None})
+
+
 @pytest.mark.parametrize(
     "option_name",
     [
@@ -65,13 +85,14 @@ SCALE_COMPONENTS = { detector1 = [1.0, 1.1, 1.0] }
 )
 def test_configuration_rejects_more_than_one_run(option_name):
     with pytest.raises(ValueError, match=f"{option_name} must contain exactly one run"):
-        _SCRIPT.merge_configuration({option_name: [1, 2]})
+        _SCRIPT.merge_configuration({**_REQUIRED_RUNS, option_name: [1, 2]})
 
 
 def test_configuration_rejects_more_than_one_transmission_run():
     with pytest.raises(ValueError, match="TRANSMISSION_REFERENCE_RUNS must contain exactly one run"):
         _SCRIPT.merge_configuration(
             {
+                **_REQUIRED_RUNS,
                 "TRANSMISSION_FLOOD_RUNS": 1,
                 "TRANSMISSION_EMPTY_CELL_RUNS": 2,
                 "TRANSMISSION_REFERENCE_RUNS": [3, 4],
@@ -81,11 +102,11 @@ def test_configuration_rejects_more_than_one_transmission_run():
 
 def test_configuration_rejects_moving_detectors():
     with pytest.raises(ValueError, match="MOVING_DETECTORS must be false"):
-        _SCRIPT.merge_configuration({"MOVING_DETECTORS": True})
+        _SCRIPT.merge_configuration({**_REQUIRED_RUNS, "MOVING_DETECTORS": True})
 
 
 def test_configuration_accepts_independent_tof_clipping_widths():
-    configuration = _SCRIPT.merge_configuration({"LOW_TOF_CLIP": 2000.0, "HIGH_TOF_CLIP": 500.0})
+    configuration = _SCRIPT.merge_configuration({**_REQUIRED_RUNS, "LOW_TOF_CLIP": 2000.0, "HIGH_TOF_CLIP": 500.0})
 
     assert configuration["LOW_TOF_CLIP"] == 2000.0
     assert configuration["HIGH_TOF_CLIP"] == 500.0
@@ -94,20 +115,20 @@ def test_configuration_accepts_independent_tof_clipping_widths():
 @pytest.mark.parametrize("option_name", ["LOW_TOF_CLIP", "HIGH_TOF_CLIP"])
 def test_configuration_rejects_negative_tof_clipping_widths(option_name):
     with pytest.raises(ValueError, match=f"{option_name} must be non-negative"):
-        _SCRIPT.merge_configuration({option_name: -1.0})
+        _SCRIPT.merge_configuration({**_REQUIRED_RUNS, option_name: -1.0})
 
 
 def test_configuration_requires_transmission_settings_together():
     with pytest.raises(ValueError, match="must be supplied together"):
-        _SCRIPT.merge_configuration({"TRANSMISSION_FLOOD_RUNS": 1})
+        _SCRIPT.merge_configuration({**_REQUIRED_RUNS, "TRANSMISSION_FLOOD_RUNS": 1})
 
 
 def test_configuration_validates_scale_components():
     with pytest.raises(ValueError, match="three-number lists"):
-        _SCRIPT.merge_configuration({"SCALE_COMPONENTS": {"detector1": [1.0, 1.0]}})
+        _SCRIPT.merge_configuration({**_REQUIRED_RUNS, "SCALE_COMPONENTS": {"detector1": [1.0, 1.0]}})
 
     with pytest.raises(ValueError, match="positive"):
-        _SCRIPT.merge_configuration({"SCALE_COMPONENTS": {"detector1": [1.0, 0.0, 1.0]}})
+        _SCRIPT.merge_configuration({**_REQUIRED_RUNS, "SCALE_COMPONENTS": {"detector1": [1.0, 0.0, 1.0]}})
 
 
 def test_configuration_rejects_unknown_options_including_output_path():
@@ -117,10 +138,10 @@ def test_configuration_rejects_unknown_options_including_output_path():
 
 def test_configuration_rejects_invalid_option_types():
     with pytest.raises(ValueError, match="SOLID_ANGLE_CORRECTION must be a boolean"):
-        _SCRIPT.merge_configuration({"SOLID_ANGLE_CORRECTION": 1})
+        _SCRIPT.merge_configuration({**_REQUIRED_RUNS, "SOLID_ANGLE_CORRECTION": 1})
 
     with pytest.raises(ValueError, match="MIN_THRESHOLD cannot exceed"):
-        _SCRIPT.merge_configuration({"MIN_THRESHOLD": 2.0, "MAX_THRESHOLD": 1.0})
+        _SCRIPT.merge_configuration({**_REQUIRED_RUNS, "MIN_THRESHOLD": 2.0, "MAX_THRESHOLD": 1.0})
 
 
 def test_help_includes_documentation_url(capsys):

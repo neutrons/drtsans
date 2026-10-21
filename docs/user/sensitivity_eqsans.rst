@@ -69,11 +69,11 @@ run identifiers or NeXus paths. For example, all of the following are valid:
 ``12345``, ``"12345"``, ``[12345]``, and ``["12345"]``.
 
 ``FLOOD_RUNS``
-   Flood measurement used to calculate the detector response. Default:
-   ``[0]``; provide the experiment's flood run for a real reduction.
+   Flood measurement used to calculate the detector response. Required.
 
 ``DIRECT_BEAM_RUNS``
-   Measurement used to determine the beam center. Default: ``[0]``.
+   Measurement used to determine the beam center. The beam center is used to
+   center the detector and to mask the beam-stop region. Required.
 
 ``DARK_CURRENT_RUNS``
    Optional dark-current measurement. Omit this setting when no dark-current

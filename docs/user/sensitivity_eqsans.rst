@@ -26,9 +26,11 @@ invoke the packaged command directly:
       /path/to/sensitivity.nxs
 
 The configuration file uses uppercase keys matching the settings described
-below. Settings omitted from the file retain their defaults. TOML does not
-have a ``None`` value, so omit optional settings when the corresponding
-correction is not needed. Invalid values and unknown keys are rejected.
+below. ``FLOOD_RUNS`` and ``DIRECT_BEAM_RUNS`` are required; other settings
+omitted from the file retain their defaults. TOML does not have a ``None``
+value, so omit optional settings when the corresponding correction is not
+needed. Missing required settings, invalid values, and unknown keys are
+rejected.
 
 For example:
 

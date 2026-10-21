@@ -16,16 +16,16 @@ from drtsans.samplelogs import SampleLogs
 
 @pytest.mark.datarepo
 @pytest.mark.parametrize(
-    "run_number, effective_date, expected_value, expected_error",
+    "run_number, expected_wavelength, effective_date, expected_value, expected_error",
     [
-        # empty cell, 2026-06-07, before the 2026-09-24 calibration
-        (170056, date(2020, 2, 26), 0.00021825564301391177, 2.682365493341721e-05),
-        # empty cell, 2026-10-18, after the 2026-09-24 calibration
-        (176202, date(2026, 9, 24), 0.00018121045456012452, 2.7952234707187197e-05),
+        # empty cell, 2024-10-16, before the 2026-09-24 calibration
+        (114407, 4.75, date(2020, 2, 26), 0.0002193835497834906, 2.694847300248351e-05),
+        # empty cell, 2026-10-17, after the 2026-09-24 calibration
+        (176118, 4.76, date(2026, 9, 24), 0.00018121471157356517, 2.795282160895838e-05),
     ],
 )
 def test_attenuation_factor_effective_block(
-    datarepo_dir, clean_workspace, run_number, effective_date, expected_value, expected_error
+    datarepo_dir, clean_workspace, run_number, expected_wavelength, effective_date, expected_value, expected_error
 ):
     """Attenuation factor of the x10k attenuator at 4.76 Å, from the coefficients block effective for the run.
 
@@ -37,7 +37,7 @@ def test_attenuation_factor_effective_block(
     clean_workspace(workspace)
 
     assert _attenuator_name(workspace) == "x10k"
-    assert SampleLogs(workspace).single_value("wavelength") == pytest.approx(4.76, abs=0.01)
+    assert SampleLogs(workspace).single_value("wavelength") == pytest.approx(expected_wavelength, abs=0.01)
     assert _load_default_attenuation_coefficients(_run_start_time(workspace)).effective_date == effective_date
 
     value, error = attenuation_factor(workspace)

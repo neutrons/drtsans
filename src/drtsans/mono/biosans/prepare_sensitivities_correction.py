@@ -359,6 +359,7 @@ def prepare_spice_sensitivities_correction(
     max_count_threshold: float,
     sensitivity_file_name: str,
     nexus_dir: str = None,
+    debug_mode: bool = False,
 ):
     """Prepare sensitivities from SPICE files
 
@@ -400,6 +401,9 @@ def prepare_spice_sensitivities_correction(
         output file name with full path
     nexus_dir: str or None
         directory for nexus file.  None for default.
+    debug_mode: bool
+        Flag to save each prepared flood to ``<workspace>_flood.nxs`` in
+        Mantid's ``defaultsave.directory`` for inspection.
 
     """
 
@@ -457,5 +461,5 @@ def prepare_spice_sensitivities_correction(
         max_count_threshold,
         sensitivity_file_name,
         enforce_use_nexus_idf=True,
-        debug_mode=True,
+        debug_mode=debug_mode,
     )

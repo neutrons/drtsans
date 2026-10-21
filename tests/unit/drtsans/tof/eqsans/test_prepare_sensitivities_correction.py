@@ -8,6 +8,7 @@ from drtsans import prepare_sensivities_correction as common_sensitivity
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
 from drtsans.tof.eqsans import prepare_sensitivities_correction as eqsans_sensitivity
 from drtsans.tof.eqsans.prepare_sensitivities_correction import PrepareSensitivityCorrection
+from drtsans.samplelogs import SampleLogs
 
 
 def test_eqsans_options_are_not_added_to_common_preparer_interface():
@@ -482,6 +483,40 @@ def test_masking_beam_center_does_not_reset_propagated_uncertainties(monkeypatch
     np.testing.assert_allclose(result.extractE().flatten(), [0.2, 0.3])
 
 
+def test_eqsans_sensitivity_provenance_requires_execute_values(clean_workspace):
+    workspace = CreateWorkspace(
+        DataX=[1.0, 2.0],
+        DataY=[1.0],
+        DataE=[0.1],
+        NSpec=1,
+        OutputWorkspace="eqsans_incomplete_provenance_test",
+    )
+    clean_workspace(workspace)
+    preparer = PrepareSensitivityCorrection()
+    preparer.set_flood_runs(1)
+    preparer.set_direct_beam_runs(3)
+
+    with pytest.raises(KeyError, match="sensitivity_options"):
+        preparer._add_sensitivity_provenance(workspace, {})
+
+
+def test_eqsans_input_provenance_reads_flood_wavelength_logs(clean_workspace):
+    flood_workspace = CreateWorkspace(
+        DataX=[1.0, 2.0],
+        DataY=[1.0],
+        DataE=[0.1],
+        NSpec=1,
+        OutputWorkspace="eqsans_provenance_flood_test",
+    )
+    clean_workspace(flood_workspace)
+    SampleLogs(flood_workspace).insert("wavelength_min", 2.5, unit="Angstrom")
+    SampleLogs(flood_workspace).insert("wavelength_max", 6.0, unit="Angstrom")
+
+    provenance = PrepareSensitivityCorrection()._capture_sensitivity_input_provenance(flood_workspace)
+
+    assert provenance == {"wavelength_min": 2.5, "wavelength_max": 6.0}
+
+
 def test_eqsans_sensitivity_provenance_logs(clean_workspace):
     workspace = CreateWorkspace(
         DataX=[1.0, 2.0],
@@ -490,15 +525,7 @@ def test_eqsans_sensitivity_provenance_logs(clean_workspace):
         NSpec=1,
         OutputWorkspace="eqsans_provenance_test",
     )
-    flood_workspace = CreateWorkspace(
-        DataX=[1.0, 2.0],
-        DataY=[1.0],
-        DataE=[0.1],
-        NSpec=1,
-        OutputWorkspace="eqsans_provenance_flood_test",
-    )
     clean_workspace(workspace)
-    clean_workspace(flood_workspace)
     preparer = PrepareSensitivityCorrection()
     preparer.set_flood_runs(1)
     preparer.set_direct_beam_runs(3)
@@ -511,17 +538,20 @@ def test_eqsans_sensitivity_provenance_logs(clean_workspace):
     preparer.set_beam_center_radius(6.0)
     preparer.set_masks("default.xml", "1-4")
     preparer.scale_components = {"detector1": [1.0, 2.0, 1.0]}
-    preparer._last_beam_centers = [(0.1, 0.2)]
-    preparer._last_flood_workspace = flood_workspace
-    preparer._last_sensitivity_options = {
-        "use_moving_detector_method": False,
-        "min_threshold": 0.5,
-        "max_threshold": 2.0,
-        "polynomial_order": 2,
-        "min_detectors_per_tube": 50,
+    provenance = {
+        "beam_centers": [(0.1, 0.2)],
+        "sensitivity_options": {
+            "use_moving_detector_method": False,
+            "min_threshold": 0.5,
+            "max_threshold": 2.0,
+            "polynomial_order": 2,
+            "min_detectors_per_tube": 50,
+        },
+        "wavelength_min": 2.5,
+        "wavelength_max": 6.0,
     }
 
-    preparer._add_sensitivity_provenance(workspace)
+    preparer._add_sensitivity_provenance(workspace, provenance)
 
     run = workspace.getRun()
     assert run.getProperty("sensitivity_method").value == "patch"
@@ -531,3 +561,6 @@ def test_eqsans_sensitivity_provenance_logs(clean_workspace):
     assert json.loads(run.getProperty("scale_components").value) == {"detector1": [1.0, 2.0, 1.0]}
     assert run.getProperty("theta_dependent_transmission").value
     assert run.getProperty("wavelength_weighting").value == "counts"
+    assert run.getProperty("wavelength_min").value == 2.5
+    assert run.getProperty("wavelength_max").value == 6.0
+    assert run.getProperty("poly_order").value == 2

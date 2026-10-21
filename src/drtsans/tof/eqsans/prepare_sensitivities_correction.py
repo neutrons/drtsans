@@ -122,30 +122,29 @@ class PrepareSensitivityCorrection(PrepareBase):
             value = value.item()
         return value
 
-    def _add_sensitivity_provenance(self, sensitivity_ws):
+    def _add_sensitivity_provenance(self, sensitivity_ws, provenance):
         """Record EQSANS preparation settings in the sensitivity workspace.
 
         Parameters
         ----------
         sensitivity_ws : ~mantid.api.MatrixWorkspace
             Export workspace whose sample logs will contain the provenance.
+        provenance : dict
+            Values collected by :meth:`execute`: ``beam_centers``,
+            ``sensitivity_options``, ``wavelength_min``, and
+            ``wavelength_max``.
 
         Notes
         -----
         Values that can contain several runs or beam centers are stored as JSON
         strings so the exported NeXus file remains self-describing.
         """
-        options = getattr(self, "_last_sensitivity_options", {})
-        beam_centers = getattr(self, "_last_beam_centers", [])
-        flood_workspace = getattr(self, "_last_flood_workspace", None)
+        options = provenance["sensitivity_options"]
+        beam_centers = provenance["beam_centers"]
         beam_center_x = [float(center[0]) for center in beam_centers]
         beam_center_y = [float(center[1]) for center in beam_centers]
-        if hasattr(self, "_last_wavelength_min"):
-            wavelength_min = self._last_wavelength_min
-            wavelength_max = self._last_wavelength_max
-        else:
-            wavelength_min = self._workspace_log_value(flood_workspace, "wavelength_min")
-            wavelength_max = self._workspace_log_value(flood_workspace, "wavelength_max")
+        wavelength_min = provenance["wavelength_min"]
+        wavelength_max = provenance["wavelength_max"]
 
         logs = SampleLogs(sensitivity_ws)
 
@@ -157,7 +156,7 @@ class PrepareSensitivityCorrection(PrepareBase):
         insert("drtsans_version", __version__)
         insert(
             "sensitivity_method",
-            "moving_detectors" if options.get("use_moving_detector_method") else "patch",
+            "moving_detectors" if options["use_moving_detector_method"] else "patch",
         )
         insert("flood_runs", self._json_log_value(self._flood_runs))
         insert("beam_center_runs", self._json_log_value(self._direct_beam_center_runs))
@@ -181,10 +180,10 @@ class PrepareSensitivityCorrection(PrepareBase):
         insert("wavelength_min", wavelength_min, "Angstrom")
         insert("wavelength_max", wavelength_max, "Angstrom")
         insert("wavelength_weighting", "counts")
-        insert("min_threshold", options.get("min_threshold", ""))
-        insert("max_threshold", options.get("max_threshold", ""))
-        insert("poly_order", options.get("polynomial_order", ""))
-        insert("min_detectors_per_tube", options.get("min_detectors_per_tube", ""))
+        insert("min_threshold", options["min_threshold"])
+        insert("max_threshold", options["max_threshold"])
+        insert("poly_order", options["polynomial_order"])
+        insert("min_detectors_per_tube", options["min_detectors_per_tube"])
         insert("masked_pixels", self._json_log_value(self._extra_mask_dict))
         insert("default_mask", "" if self._default_mask is None else str(self._default_mask))
 
@@ -195,9 +194,16 @@ class PrepareSensitivityCorrection(PrepareBase):
         ----------
         flood_workspace : ~mantid.api.MatrixWorkspace
             Prepared EQSANS flood workspace.
+
+        Returns
+        -------
+        dict
+            The flood's ``wavelength_min`` and ``wavelength_max`` logs, in Angstrom.
         """
-        self._last_wavelength_min = self._workspace_log_value(flood_workspace, "wavelength_min")
-        self._last_wavelength_max = self._workspace_log_value(flood_workspace, "wavelength_max")
+        return {
+            "wavelength_min": self._workspace_log_value(flood_workspace, "wavelength_min"),
+            "wavelength_max": self._workspace_log_value(flood_workspace, "wavelength_max"),
+        }
 
     @staticmethod
     def _as_run_list(runs: Optional[RunInput], name: str) -> Optional[list[Run]]:

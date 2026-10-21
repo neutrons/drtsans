@@ -665,13 +665,17 @@ class PrepareSensitivityCorrection(object):
 
         return flood_ws
 
-    def _add_sensitivity_provenance(self, sensitivity_ws):
+    def _add_sensitivity_provenance(self, sensitivity_ws, provenance):
         """Add instrument-specific provenance to an exported sensitivity.
 
         Parameters
         ----------
         sensitivity_ws : ~mantid.api.MatrixWorkspace
             Sensitivity workspace that is about to be written.
+        provenance : dict
+            Values collected by :meth:`execute`: ``beam_centers``,
+            ``sensitivity_options``, and the entries returned by
+            :meth:`_capture_sensitivity_input_provenance`.
 
         Notes
         -----
@@ -688,13 +692,17 @@ class PrepareSensitivityCorrection(object):
         flood_workspace : ~mantid.api.MatrixWorkspace
             Prepared flood workspace whose logs may be needed during export.
 
+        Returns
+        -------
+        dict
+            Input-specific provenance entries. The common preparer has none.
+
         Notes
         -----
-        The common preparer has no input-specific provenance fields. Instrument
-        subclasses may override this hook when export loads a workspace with a
-        name that can replace the prepared flood workspace.
+        Instrument subclasses may override this hook when export loads a
+        workspace with a name that can replace the prepared flood workspace.
         """
-        return None
+        return {}
 
     def _resolve_parent_flood_run(self, parent_flood_run):
         """Resolve the flood run whose metadata is the parent of the output.
@@ -721,7 +729,7 @@ class PrepareSensitivityCorrection(object):
         assert os.path.exists(parent_flood_run)
         return parent_flood_run
 
-    def _export_sensitivity(self, sensitivity_ws, output_nexus_name, parent_flood_run):
+    def _export_sensitivity(self, sensitivity_ws, output_nexus_name, parent_flood_run, provenance):
         """Process and export sensitivities to a processed NeXus file
 
         Parameters
@@ -732,6 +740,8 @@ class PrepareSensitivityCorrection(object):
             Output NeXus file  name
         parent_flood_run : int
             Flood run number to create parent workspace for sensitivity workspace
+        provenance : dict
+            Values passed to :meth:`_add_sensitivity_provenance`
 
         Returns
         -------
@@ -766,7 +776,7 @@ class PrepareSensitivityCorrection(object):
         for iws in mask_ws_indexes:
             new_sensitivity_ws.mutableY(iws)[0] = np.nan
 
-        self._add_sensitivity_provenance(new_sensitivity_ws)
+        self._add_sensitivity_provenance(new_sensitivity_ws, provenance)
 
         # Save
         SaveNexusProcessed(InputWorkspace=new_sensitivity_ws, Filename=output_nexus_name)
@@ -827,8 +837,6 @@ class PrepareSensitivityCorrection(object):
             beam_centers.append(beam_center_i)
             logger.notice("Calculated beam center ({}-th) = {}".format(i, beam_center_i))
 
-        self._last_beam_centers = beam_centers
-
         # Set default value to dark current runs
         if self._dark_current_runs is None:
             self._dark_current_runs = [None] * num_workspaces_set
@@ -875,8 +883,7 @@ class PrepareSensitivityCorrection(object):
                 f"Number of NaNs = {len(np.where(np.isnan(fws.extractY()))[0])}\n"
             )
         logger.notice(info)
-        self._last_flood_workspace = flood_workspaces[0]
-        self._capture_sensitivity_input_provenance(self._last_flood_workspace)
+        input_provenance = self._capture_sensitivity_input_provenance(flood_workspaces[0])
 
         # Debug output
         if debug_mode:
@@ -921,16 +928,20 @@ class PrepareSensitivityCorrection(object):
                 component_name=self._component,
             )
 
-        self._last_sensitivity_options = {
-            "use_moving_detector_method": use_moving_detector_method,
-            "min_threshold": min_threshold,
-            "max_threshold": max_threshold,
-            "polynomial_order": None if use_moving_detector_method else polynomial_order,
-            "min_detectors_per_tube": None if use_moving_detector_method else 50,
+        provenance = {
+            "beam_centers": beam_centers,
+            "sensitivity_options": {
+                "use_moving_detector_method": use_moving_detector_method,
+                "min_threshold": min_threshold,
+                "max_threshold": max_threshold,
+                "polynomial_order": None if use_moving_detector_method else polynomial_order,
+                "min_detectors_per_tube": None if use_moving_detector_method else 50,
+            },
+            **input_provenance,
         }
 
         # Export
-        self._export_sensitivity(sens_ws, output_nexus_name, self._flood_runs[0])
+        self._export_sensitivity(sens_ws, output_nexus_name, self._flood_runs[0], provenance)
 
 
 def debug_output(workspace, output_file):

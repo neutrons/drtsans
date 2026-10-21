@@ -97,6 +97,32 @@ class PrepareSensitivityCorrection(object):
     """
 
     @staticmethod
+    def _detector_mask_array(workspace) -> np.ndarray:
+        """Get the detector mask state of every spectrum
+
+        Parameters
+        ----------
+        workspace : ~mantid.api.MatrixWorkspace
+            Workspace to get the detector mask state from
+
+        Returns
+        -------
+        numpy.ndarray
+            (N,) bool array, True for being masked
+
+        """
+        # Do not infer masking from uncertainties. Mantid algorithms propagate
+        # non-zero uncertainties through the preparation workflow, and a valid
+        # detector can legitimately have a small uncertainty.
+        spectrum_info = workspace.spectrumInfo()
+        num_spectra = workspace.getNumberHistograms()
+        return np.fromiter(
+            (spectrum_info.isMasked(index) for index in range(num_spectra)),
+            dtype=bool,
+            count=num_spectra,
+        )
+
+    @staticmethod
     def _get_masked_detectors(workspace):
         """Get the detector masking information
 
@@ -111,13 +137,7 @@ class PrepareSensitivityCorrection(object):
             (N, 1) bool array, True for being masked
 
         """
-        # Do not infer masking from uncertainties. Mantid algorithms propagate
-        # non-zero uncertainties through the preparation workflow, and a valid
-        # detector can legitimately have a small uncertainty.
-        return np.asarray(
-            [workspace.spectrumInfo().isMasked(index) for index in range(workspace.getNumberHistograms())],
-            dtype=bool,
-        ).reshape(-1, 1)
+        return PrepareSensitivityCorrection._detector_mask_array(workspace).reshape(-1, 1)
 
     @staticmethod
     def _set_mask_value(flood_workspace, det_mask_array, use_moving_detector_method=True):
@@ -140,10 +160,7 @@ class PrepareSensitivityCorrection(object):
         """
         # The detector mask records both configured masks and the beam-center
         # mask. It is independent of the propagated data uncertainties.
-        total_mask_array = np.asarray(
-            [flood_workspace.spectrumInfo().isMasked(index) for index in range(flood_workspace.getNumberHistograms())],
-            dtype=bool,
-        )
+        total_mask_array = PrepareSensitivityCorrection._detector_mask_array(flood_workspace)
         if det_mask_array is None:
             det_mask_array = np.zeros_like(total_mask_array, dtype=bool)
         else:

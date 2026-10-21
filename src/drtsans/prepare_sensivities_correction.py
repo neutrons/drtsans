@@ -18,10 +18,9 @@ import numpy as np
 from drtsans.load import load_events
 from drtsans.geometry import panel_names
 from drtsans.instruments import extract_run_number
-from drtsans.mask_utils import circular_mask_from_beam_center, apply_mask
+from drtsans.mask_utils import apply_mask, circular_mask_from_beam_center
 import drtsans.mono.gpsans
 import drtsans.mono.biosans
-from drtsans.process_uncertainties import set_init_uncertainties
 from drtsans.sensitivity_correction_moving_detectors import (
     calculate_sensitivity_correction as calculate_sensitivity_correction_moving,
 )
@@ -98,6 +97,32 @@ class PrepareSensitivityCorrection(object):
     """
 
     @staticmethod
+    def _detector_mask_array(workspace) -> np.ndarray:
+        """Get the detector mask state of every spectrum
+
+        Parameters
+        ----------
+        workspace : ~mantid.api.MatrixWorkspace
+            Workspace to get the detector mask state from
+
+        Returns
+        -------
+        numpy.ndarray
+            (N,) bool array, True for being masked
+
+        """
+        # Do not infer masking from uncertainties. Mantid algorithms propagate
+        # non-zero uncertainties through the preparation workflow, and a valid
+        # detector can legitimately have a small uncertainty.
+        spectrum_info = workspace.spectrumInfo()
+        num_spectra = workspace.getNumberHistograms()
+        return np.fromiter(
+            (spectrum_info.isMasked(index) for index in range(num_spectra)),
+            dtype=bool,
+            count=num_spectra,
+        )
+
+    @staticmethod
     def _get_masked_detectors(workspace):
         """Get the detector masking information
 
@@ -112,10 +137,7 @@ class PrepareSensitivityCorrection(object):
             (N, 1) bool array, True for being masked
 
         """
-        # The masked pixels after `set_uncertainties()` will have zero uncertainty.
-        # Thus, it is an efficient way to identify them by check uncertainties (E) close to zero
-        masked_array = workspace.extractE() < 1e-5
-        return masked_array
+        return PrepareSensitivityCorrection._detector_mask_array(workspace).reshape(-1, 1)
 
     @staticmethod
     def _set_mask_value(flood_workspace, det_mask_array, use_moving_detector_method=True):
@@ -136,30 +158,34 @@ class PrepareSensitivityCorrection(object):
         -------
 
         """
-        # Complete mask array.  Flood workspace has been processed by set_uncertainties.  Therefore all the masked
-        # pixels' uncertainties are zero, which is different from other pixels
-        total_mask_array = flood_workspace.extractE() < 1e-6
+        # The detector mask records both configured masks and the beam-center
+        # mask. It is independent of the propagated data uncertainties.
+        total_mask_array = PrepareSensitivityCorrection._detector_mask_array(flood_workspace)
+        if det_mask_array is None:
+            det_mask_array = np.zeros_like(total_mask_array, dtype=bool)
+        else:
+            det_mask_array = np.asarray(det_mask_array, dtype=bool).reshape(-1)
 
         # Loop through each detector pixel to check its masking state to determine whether its value shall be
         # set to NaN, -infinity or not changed (i.e., for pixels without mask)
         num_spec = flood_workspace.getNumberHistograms()
         problematic_pixels = list()
         for i in range(num_spec):
-            if total_mask_array[i][0] and use_moving_detector_method:
+            if total_mask_array[i] and use_moving_detector_method:
                 # Moving detector algorithm.  Any masked detector pixel is set to NaN
-                flood_workspace.mutableY(i)[0] = np.nan
-                flood_workspace.mutableE(i)[0] = np.nan
-            elif total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
+                flood_workspace.mutableY(i)[:] = np.nan
+                flood_workspace.mutableE(i)[:] = np.nan
+            elif total_mask_array[i] and not use_moving_detector_method and det_mask_array[i]:
                 # Patch detector method: Masked as the bad pixels and thus set to NaN
-                flood_workspace.mutableY(i)[0] = np.nan
-                flood_workspace.mutableE(i)[0] = np.nan
-            elif total_mask_array[i][0]:
+                flood_workspace.mutableY(i)[:] = np.nan
+                flood_workspace.mutableE(i)[:] = np.nan
+            elif total_mask_array[i]:
                 # Patch detector method: Pixels that have not been masked as bad pixels, but have been
                 # identified as needing to have values set by the patch applied. To identify them, the
                 # value is set to -INF.
-                flood_workspace.mutableY(i)[0] = -np.inf
-                flood_workspace.mutableE(i)[0] = -np.inf
-            elif not total_mask_array[i][0] and not use_moving_detector_method and det_mask_array[i][0]:
+                flood_workspace.mutableY(i)[:] = -np.inf
+                flood_workspace.mutableE(i)[:] = -np.inf
+            elif not total_mask_array[i] and not use_moving_detector_method and det_mask_array[i]:
                 # Logic error: impossible case
                 problematic_pixels.append(i)
         # END-FOR
@@ -450,6 +476,26 @@ class PrepareSensitivityCorrection(object):
             opts["enforce_use_nexus_idf"] = self._enforce_use_nexus_idf
         return opts
 
+    def _prepare_beam_center_data_opts(self, beam_center):
+        """Set options for loading a beam-center workspace.
+
+        This hook is deliberately separate from :meth:`_prepare_data_opts`.
+        Instrument-specific preparers may add geometry or TOF options to their
+        flood-data loads, while the beam-center load must retain the same
+        unshifted geometry used by the reduction workflow.
+
+        Parameters
+        ----------
+        beam_center : list
+            Beam-center coordinates passed to the instrument loader.
+
+        Returns
+        -------
+        dict
+            Options for the instrument's ``prepare_data`` function.
+        """
+        return self._prepare_data_opts(beam_center)
+
     def _get_beam_center_workspace(self, beam_center_run):
         r"""
         Load and prepare the beam center run with customary corrections
@@ -476,10 +522,38 @@ class PrepareSensitivityCorrection(object):
             btp=self._extra_mask_dict,
             solid_angle=False,
             output_workspace=output_workspace,
-            **self._prepare_data_opts(beam_center=[0.0, 0.0]),
+            **self._prepare_beam_center_data_opts(beam_center=[0.0, 0.0]),
         )
 
         return beam_center_workspace
+
+    def _resolve_beam_center_run(self, beam_center_run):
+        """Resolve a configured beam-center run for the instrument loader.
+
+        Parameters
+        ----------
+        beam_center_run : int or str
+            Run number, numeric string, or path to a NeXus file.
+
+        Returns
+        -------
+        str
+            Instrument-qualified run name or existing file path.
+
+        Notes
+        -----
+        Instrument subclasses may override this hook to accept additional run
+        identifiers.
+        """
+        if isinstance(beam_center_run, str) and beam_center_run.isdigit():
+            beam_center_run = int(beam_center_run)  # convert to int if possible
+
+        if isinstance(beam_center_run, int):
+            return "{}_{}".format(self._instrument, beam_center_run)
+        if isinstance(beam_center_run, str):
+            assert os.path.exists(beam_center_run), f"Bean center run {beam_center_run} cannot be found"
+            return beam_center_run
+        raise RuntimeError(f"Beam center run {beam_center_run} is not recognized")
 
     def _calculate_beam_center(self, index):
         """Find beam centers for all flood runs
@@ -500,17 +574,7 @@ class PrepareSensitivityCorrection(object):
 
         """
         # Process the input run chosen to calculate the beam center
-        beam_center_run = self._get_beam_center_run(index)
-        if isinstance(beam_center_run, str) and beam_center_run.isdigit():
-            beam_center_run = int(beam_center_run)  # convert to int if possible
-
-        if isinstance(beam_center_run, int):
-            beam_center_run = "{}_{}".format(self._instrument, beam_center_run)
-        elif isinstance(beam_center_run, str):
-            assert os.path.exists(beam_center_run), f"Bean center run {beam_center_run} cannot be found"
-        else:
-            raise RuntimeError(f"Beam center run {beam_center_run} is not recognized")
-
+        beam_center_run = self._resolve_beam_center_run(self._get_beam_center_run(index))
         beam_center_workspace = self._get_beam_center_workspace(beam_center_run)
         beam_center = FIND_BEAM_CENTER[self._instrument](beam_center_workspace)
         return beam_center[:-1]  # last item is the fit results, useless here
@@ -599,13 +663,73 @@ class PrepareSensitivityCorrection(object):
             masking = list(circular_mask_from_beam_center(flood_ws, self._beam_center_radius))
             apply_mask(flood_ws, mask=masking)  # data_ws reference shall not be invalidated here!
 
-        # Set uncertainties
-        # output: masked are zero intensity and zero error
-        masked_flood_ws = set_init_uncertainties(flood_ws)
+        return flood_ws
 
-        return masked_flood_ws
+    def _add_sensitivity_provenance(self, sensitivity_ws, provenance):
+        """Add instrument-specific provenance to an exported sensitivity.
 
-    def _export_sensitivity(self, sensitivity_ws, output_nexus_name, parent_flood_run):
+        Parameters
+        ----------
+        sensitivity_ws : ~mantid.api.MatrixWorkspace
+            Sensitivity workspace that is about to be written.
+        provenance : dict
+            Values collected by :meth:`execute`: ``beam_centers``,
+            ``sensitivity_options``, and the entries returned by
+            :meth:`_capture_sensitivity_input_provenance`.
+
+        Notes
+        -----
+        Instrument subclasses may override this hook when their workflow has
+        additional configuration that must be recorded.
+        """
+        return None
+
+    def _capture_sensitivity_input_provenance(self, flood_workspace):
+        """Capture input-workspace provenance before export can invalidate it.
+
+        Parameters
+        ----------
+        flood_workspace : ~mantid.api.MatrixWorkspace
+            Prepared flood workspace whose logs may be needed during export.
+
+        Returns
+        -------
+        dict
+            Input-specific provenance entries. The common preparer has none.
+
+        Notes
+        -----
+        Instrument subclasses may override this hook when export loads a
+        workspace with a name that can replace the prepared flood workspace.
+        """
+        return {}
+
+    def _resolve_parent_flood_run(self, parent_flood_run):
+        """Resolve the flood run whose metadata is the parent of the output.
+
+        Parameters
+        ----------
+        parent_flood_run : int or str
+            Flood run number or path to a NeXus file.
+
+        Returns
+        -------
+        str
+            Run identifier or existing file path accepted by ``load_events``.
+
+        Notes
+        -----
+        Instrument subclasses may override this hook to accept additional run
+        identifiers.
+        """
+        instrument_name = {CG2: "GPSANS", CG3: "BIOSANS", EQSANS: "EQSANS_"}[self._instrument]
+        if isinstance(parent_flood_run, int):
+            return "{}{}".format(instrument_name, parent_flood_run)
+        # must be a nexus file already
+        assert os.path.exists(parent_flood_run)
+        return parent_flood_run
+
+    def _export_sensitivity(self, sensitivity_ws, output_nexus_name, parent_flood_run, provenance):
         """Process and export sensitivities to a processed NeXus file
 
         Parameters
@@ -616,6 +740,8 @@ class PrepareSensitivityCorrection(object):
             Output NeXus file  name
         parent_flood_run : int
             Flood run number to create parent workspace for sensitivity workspace
+        provenance : dict
+            Values passed to :meth:`_add_sensitivity_provenance`
 
         Returns
         -------
@@ -623,14 +749,7 @@ class PrepareSensitivityCorrection(object):
 
         """
         # Create a new workspace for output
-        instrument_name = {CG2: "GPSANS", CG3: "BIOSANS", EQSANS: "EQSANS_"}[self._instrument]
-        if isinstance(parent_flood_run, int):
-            event_nexus = "{}{}".format(instrument_name, parent_flood_run)
-        else:
-            # must be a nexus file already
-            event_nexus = parent_flood_run
-            assert os.path.exists(event_nexus)
-
+        event_nexus = self._resolve_parent_flood_run(parent_flood_run)
         parent_ws = load_events(run=event_nexus, MetaDataOnly=True, LoadNexusInstrumentXML=self._enforce_use_nexus_idf)
 
         # Create new sensitivity workspace
@@ -656,6 +775,8 @@ class PrepareSensitivityCorrection(object):
         new_sensitivity_ws = mtd[new_sens_name]
         for iws in mask_ws_indexes:
             new_sensitivity_ws.mutableY(iws)[0] = np.nan
+
+        self._add_sensitivity_provenance(new_sensitivity_ws, provenance)
 
         # Save
         SaveNexusProcessed(InputWorkspace=new_sensitivity_ws, Filename=output_nexus_name)
@@ -762,6 +883,7 @@ class PrepareSensitivityCorrection(object):
                 f"Number of NaNs = {len(np.where(np.isnan(fws.extractY()))[0])}\n"
             )
         logger.notice(info)
+        input_provenance = self._capture_sensitivity_input_provenance(flood_workspaces[0])
 
         # Debug output
         if debug_mode:
@@ -806,8 +928,20 @@ class PrepareSensitivityCorrection(object):
                 component_name=self._component,
             )
 
+        provenance = {
+            "beam_centers": beam_centers,
+            "sensitivity_options": {
+                "use_moving_detector_method": use_moving_detector_method,
+                "min_threshold": min_threshold,
+                "max_threshold": max_threshold,
+                "polynomial_order": None if use_moving_detector_method else polynomial_order,
+                "min_detectors_per_tube": None if use_moving_detector_method else 50,
+            },
+            **input_provenance,
+        }
+
         # Export
-        self._export_sensitivity(sens_ws, output_nexus_name, self._flood_runs[0])
+        self._export_sensitivity(sens_ws, output_nexus_name, self._flood_runs[0], provenance)
 
 
 def debug_output(workspace, output_file):

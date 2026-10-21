@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
+from drtsans import sensitivity_correction_patch
 from drtsans.sensitivity_correction_patch import calculate_sensitivity_correction
 
 
@@ -504,6 +505,132 @@ def test_prepare_sensitivity(workspace_with_instrument, clean_workspace):
     # Get correct results
     gold_sensitivity_matrix, gold_uncertainty_matrix = create_gold_result()
 
+    # The inverse-sigma fit and full covariance propagation change the values
+    # at the patched pixels compared with the historical quadratic result.
+    gold_sensitivity_matrix[(0, 0)] = 0.9822122552
+    gold_sensitivity_matrix[(0, 4)] = 0.9890038269
+    gold_sensitivity_matrix[(0, 5)] = 1.0005494619
+    gold_sensitivity_matrix[(0, 6)] = 1.0034428813
+    gold_sensitivity_matrix[(8, 3)] = 1.0009749124
+    gold_sensitivity_matrix[(9, 3)] = 1.0006671145
+    gold_sensitivity_matrix[(19, 0)] = 0.9239439038
+    gold_sensitivity_matrix[(19, 1)] = 0.9409603324
+    gold_sensitivity_matrix[(19, 3)] = 1.0346267937
+    gold_sensitivity_matrix[(19, 4)] = 0.9352686818
+    gold_sensitivity_matrix[(19, 5)] = 0.9966145071
+    gold_sensitivity_matrix[(19, 6)] = 1.0535325061
+    gold_sensitivity_matrix[(19, 7)] = 1.0182393929
+    gold_uncertainty_matrix[(0, 0)] = 0.0321839904
+    gold_uncertainty_matrix[(0, 1)] = 0.0380905714
+    gold_uncertainty_matrix[(0, 2)] = 0.0266252259
+    gold_uncertainty_matrix[(0, 3)] = 0.0351440281
+    gold_uncertainty_matrix[(0, 4)] = 0.0334720815
+    gold_uncertainty_matrix[(0, 5)] = 0.0430980266
+    gold_uncertainty_matrix[(0, 6)] = 0.0348521710
+    gold_uncertainty_matrix[(0, 7)] = 0.0283495854
+    gold_uncertainty_matrix[(8, 3)] = 0.0190231869
+    gold_uncertainty_matrix[(9, 3)] = 0.0193561914
+    gold_uncertainty_matrix[(19, 0)] = 0.0313800544
+    gold_uncertainty_matrix[(19, 1)] = 0.0384011993
+
     # Verify the result
     assert_allclose(gold_sensitivity_matrix, out_result, equal_nan=True, atol=0.001)
     assert_allclose(gold_uncertainty_matrix, out_uncertainty, equal_nan=True, atol=0.001)
+
+
+@pytest.mark.parametrize("workspace_with_instrument", [dict(name="EQSANS", Nx=8, Ny=20)], indirect=True)
+def test_patch_fit_uses_inverse_uncertainty_weights_and_supports_cubic_covariance(
+    workspace_with_instrument, clean_workspace, monkeypatch
+):
+    counts = 100.0 + np.arange(160.0).reshape(20, 8)
+    uncertainties = np.sqrt(counts)
+    counts[0, :] = -np.inf
+    uncertainties[0, :] = -np.inf
+    workspace = workspace_with_instrument(
+        axis_values=[1.0, 2.0],
+        intensities=counts,
+        uncertainties=uncertainties,
+        view="array",
+    )
+    clean_workspace(workspace)
+    input_y = workspace.extractY().flatten()
+    input_e = workspace.extractE().flatten()
+    valid = np.isfinite(input_y)
+    n_elements = np.count_nonzero(valid)
+    average = np.sum(input_y[valid]) / n_elements
+    average_error = np.sqrt(np.sum(input_e[valid] ** 2)) / n_elements
+    expected_uncertainty = (input_y / average) * np.sqrt(
+        np.square(input_e / input_y) + np.square(average_error / average)
+    )
+    original_polyfit = np.polyfit
+    captured = []
+
+    def capture_polyfit(x, y, degree, **kwargs):
+        captured.append((np.asarray(x), np.asarray(y), kwargs["w"]))
+        return original_polyfit(x, y, degree, **kwargs)
+
+    monkeypatch.setattr(np, "polyfit", capture_polyfit)
+    calculate_sensitivity_correction(
+        workspace,
+        min_threshold=0.1,
+        max_threshold=10.0,
+        poly_order=3,
+        min_detectors_per_tube=0,
+    )
+
+    assert len(captured) == 8
+    for tube, (x, y, weights) in enumerate(captured):
+        expected_weights = 1.0 / expected_uncertainty[20 * tube + x.astype(int)]
+        np.testing.assert_allclose(weights, expected_weights)
+        assert np.all(np.isfinite(weights))
+        assert np.all(weights > 0.0)
+
+
+@pytest.mark.parametrize("workspace_with_instrument", [dict(name="EQSANS", Nx=8, Ny=20)], indirect=True)
+def test_patch_skips_tube_without_residual_degrees_of_freedom(workspace_with_instrument, clean_workspace, monkeypatch):
+    # Arrange: every tube has a beam-center pixel (-inf) to patch. Tube 0 keeps exactly
+    # poly_order + 1 fittable pixels, which leaves no residual degree of freedom for the
+    # scaled covariance. The remaining tubes keep all their pixels.
+    poly_order = 2
+    counts = 100.0 + np.arange(160.0).reshape(20, 8)
+    uncertainties = np.sqrt(counts)
+    counts[0, :] = -np.inf
+    uncertainties[0, :] = -np.inf
+    counts[poly_order + 2 :, 0] = np.nan
+    uncertainties[poly_order + 2 :, 0] = np.nan
+    workspace = workspace_with_instrument(
+        axis_values=[1.0, 2.0],
+        intensities=counts,
+        uncertainties=uncertainties,
+        view="array",
+    )
+    clean_workspace(workspace)
+    notices = []
+
+    class _Logger:
+        def notice(self, message):
+            notices.append(message)
+
+        def error(self, message):
+            pass
+
+    monkeypatch.setattr(sensitivity_correction_patch, "logger", _Logger())
+
+    # Act
+    sensitivity = calculate_sensitivity_correction(
+        workspace,
+        min_threshold=0.1,
+        max_threshold=10.0,
+        poly_order=poly_order,
+        min_detectors_per_tube=0,
+    )
+    clean_workspace(sensitivity)
+
+    # Assert: tube 0 is skipped, so its beam-center pixel is left unpatched,
+    # while the beam-center pixel of every other tube is filled by the fit.
+    # Array-view row 0 is the last pixel of each tube.
+    beam_center_pixels = sensitivity.extractY().reshape(8, 20)[:, -1]
+    assert np.isneginf(beam_center_pixels[0])
+    assert np.all(np.isfinite(beam_center_pixels[1:]))
+    # The skipped tube is not counted as interpolated.
+    assert notices == ["Interpolated beam-center masked pixels in 7 of 8 tubes"]

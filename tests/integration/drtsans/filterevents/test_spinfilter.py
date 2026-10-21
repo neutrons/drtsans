@@ -12,13 +12,13 @@ from drtsans.polarization import (
 
 class TestSpinFilter:
     @pytest.fixture(scope="function")
-    def gpsans_workspace(self, datarepo_dir):
-        """GPSANS run that is 300s long"""
+    def gpsans_workspace(self, datarepo_dir, temp_workspace_name):
+        """GPSANS run that is 300s long, deleted when the test finishes"""
         nexus_name = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
         workspace = LoadEventNexus(
             Filename=nexus_name,
             LoadMonitors=False,
-            OutputWorkspace=mtd.unique_hidden_name(),
+            OutputWorkspace=temp_workspace_name(),
         )
         return workspace
 

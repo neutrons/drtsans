@@ -246,7 +246,8 @@ Conda package
 Creating Candidate and Production Releases
 ------------------------------------------
 - Follow the `Software Maturity Model <https://ornl-neutrons.atlassian.net/wiki/spaces/NDPD/pages/23363585/Software+Maturity+Model>`_ for continous versioning as well as creating release candidates and stable releases.
-- Update file `release_notes.rst` with major fixes, updates and additions since last stable release.
+- Publish major fixes, updates, and additions since the last stable release on
+  the `drtsans Releases page <https://github.com/neutrons/drtsans/releases>`_.
 
 --------------------------------------------
 Standard variable names and what they denote

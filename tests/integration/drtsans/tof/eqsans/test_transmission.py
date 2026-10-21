@@ -11,7 +11,7 @@ LoadNexus <https://docs.mantidproject.org/nightly/algorithms/LoadNexus-v1.html>
 SumSpectra <https://docs.mantidproject.org/nightly/algorithms/SumSpectra-v1.html>
 amend_config <https://docs.mantidproject.org/nightly/api/python/mantid/kernel/AmendConfig.html>
 """
-from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, LoadNexus, SumSpectra
+from mantid.simpleapi import CompareWorkspaces, CreateWorkspace, DeleteWorkspace, LoadNexus, SumSpectra
 from mantid.api import mtd
 from mantid.kernel import amend_config
 
@@ -288,16 +288,18 @@ def test_fit_transmission_and_calc(test_data_9a_part_2, temp_workspace_name):
     assert (intercept_value, intercept_error) == pytest.approx(data.intercept, abs=data.precision)
 
 
-@pytest.fixture(scope="module")
 @namedtuplefy
-def transmission_fixture(datarepo_dir):
+def _load_transmission_fixture(datarepo_dir):
     data_dir = pjn(datarepo_dir.eqsans, "test_transmission")
     cmp_dir = pjn(data_dir, "compare")
 
     def quick_compare(tentative, asset):
         r"""asset: str, name of golden standard nexus file"""
         ws = LoadNexus(pjn(cmp_dir, asset), OutputWorkspace=mtd.unique_hidden_name())
-        return CompareWorkspaces(tentative, ws, Tolerance=1.0e-4, NaNsEqual=True).Result
+        try:
+            return CompareWorkspaces(tentative, ws, Tolerance=1.0e-4, NaNsEqual=True).Result
+        finally:
+            DeleteWorkspace(ws)
 
     a = LoadNexus(pjn(data_dir, "sample.nxs"), OutputWorkspace=mtd.unique_hidden_name())
     insert_aperture_logs(a)  # source and sample aperture diameters
@@ -317,6 +319,16 @@ def transmission_fixture(datarepo_dir):
         reference_skip=d,
         compare=quick_compare,
     )
+
+
+@pytest.fixture(scope="module")
+def transmission_fixture(datarepo_dir):
+    fixture = _load_transmission_fixture(datarepo_dir)
+    yield fixture
+    # The workspaces are shared by the tests of this module; delete them after the last one
+    for workspace in (fixture.sample, fixture.reference, fixture.sample_skip, fixture.reference_skip):
+        if mtd.doesExist(str(workspace)):
+            DeleteWorkspace(str(workspace))
 
 
 @pytest.mark.datarepo

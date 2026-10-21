@@ -14,6 +14,7 @@ User Guide
 
    /user/calibration
    /user/corrections/index
+   /user/normalizations
    /user/slicing
    /user/binning
    /user/polarization
@@ -22,7 +23,9 @@ User Guide
    /user/autoreduction
    /drtsans/reduction_parameters
    /drtsans/reduction_scripts
-   release_notes
+
+Release notes are published on the `drtsans Releases page
+<https://github.com/neutrons/drtsans/releases>`_.
 
 
 API documentation

@@ -76,12 +76,15 @@ def _reduction_input(sensitivity_file: Path, output_directory: Path) -> dict:
             "thickness": 0.1,
             "transmission": {"runNumber": "188974", "value": ""},
         },
+        # Use the transmission runs of the sensitivity map: 188969 is the empty-beam
+        # reference and 188970 the empty-cell transmission, so that the flatness
+        # check is not affected by a different transmission convention
         "background": {
             "runNumber": "188978",
-            "transmission": {"runNumber": "", "value": "1.0"},
+            "transmission": {"runNumber": "188970", "value": ""},
         },
-        "emptyTransmission": {"runNumber": "188970", "value": None},
-        "beamCenter": {"runNumber": "188970"},
+        "emptyTransmission": {"runNumber": "188969", "value": None},
+        "beamCenter": {"runNumber": "188969"},
         "dataDirectories": str(DATA_DIRECTORY),
         "configuration": {
             "outputDir": str(output_directory),

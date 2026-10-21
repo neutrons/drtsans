@@ -19,7 +19,7 @@ class DiskChopperSetConfigurationParsingError(Exception):
 class DiskChopperSetConfiguration:
     """Configuration for a set of disk choppers.
 
-    Attributes
+    Parameters
     ----------
     n_choppers: int
         Number of single disk choppers in the set.

@@ -137,9 +137,6 @@ Example for BIOSANS or GPSANS:
         "sample": {
             "runNumber": "1322",
             "loadOptions": {"FilterByTimeStart": 10.0, "FilterByTimeStop": 300.0}
-        },
-        "configuration": {
-            ...
         }
     }
 

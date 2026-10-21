@@ -8,20 +8,20 @@ It reads an experiment-specific TOML configuration file and writes a processed
 NeXus sensitivity file. The output path is a required command-line argument
 and is deliberately not part of the configuration file.
 
-In a development checkout, run the source script from the repository root:
-
-.. code-block:: shell
-
-   pixi run python scripts/prepare_sensitivities_eqsans.py \
-      eqsans_sensitivity.toml \
-      /path/to/sensitivity.nxs
-
-When the conda package is installed, as in environments `sans_dev`, `sans_qa`, and `sans`,
+When the conda package is installed, as in environments ``sans_dev``, ``sans_qa``, and ``sans``,
 invoke the packaged command directly:
 
 .. code-block:: shell
 
    prepare_sensitivities_eqsans \
+      eqsans_sensitivity.toml \
+      /path/to/sensitivity.nxs
+
+In a development checkout, run the source script from the repository root:
+
+.. code-block:: shell
+
+   pixi run python scripts/prepare_sensitivities_eqsans.py \
       eqsans_sensitivity.toml \
       /path/to/sensitivity.nxs
 

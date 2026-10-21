@@ -2,7 +2,7 @@ import json
 
 import numpy as np
 import pytest
-from mantid.simpleapi import CreateWorkspace, MaskDetectors
+from mantid.simpleapi import CreateSampleWorkspace, CreateWorkspace, MaskDetectors
 
 from drtsans import prepare_sensivities_correction as common_sensitivity
 from drtsans.prepare_sensivities_correction import PrepareSensitivityCorrection as PrepareBase
@@ -294,6 +294,37 @@ def test_eqsans_flood_subtracts_blocked_beam_and_empty_cell_before_integration(m
         ("flood_run", "empty_cell_run"),
     ]
     assert len(integrations) == 1
+
+
+def test_eqsans_workspace_preparation_converts_event_workspace_to_histogram(monkeypatch, clean_workspace):
+    preparer = PrepareSensitivityCorrection()
+    events = CreateSampleWorkspace(
+        WorkspaceType="Event",
+        NumBanks=1,
+        BankPixelWidth=2,
+        XUnit="Wavelength",
+        XMin=2.0,
+        XMax=6.0,
+        BinWidth=0.5,
+        OutputWorkspace="eqsans_event_flood_test",
+    )
+    clean_workspace(events)
+    # The conversion replaces the workspace in place, invalidating the "events" handle
+    expected_spectra = events.getNumberHistograms()
+    expected_x = events.readX(0).copy()
+    expected_y = events.readY(0).copy()
+    expected_e = events.readE(0).copy()
+
+    monkeypatch.setitem(eqsans_sensitivity.PREPARE_DATA, "EQSANS", lambda **_kwargs: events)
+    monkeypatch.setattr(eqsans_sensitivity, "NormaliseByCurrent", lambda **kwargs: kwargs["InputWorkspace"])
+
+    workspace = preparer._prepare_eqsans_workspace(123, [0.0, 0.0], None, "flood_run")
+
+    assert workspace.id() == "Workspace2D"
+    assert workspace.getNumberHistograms() == expected_spectra
+    np.testing.assert_allclose(workspace.readX(0), expected_x)
+    np.testing.assert_allclose(workspace.readY(0), expected_y)
+    np.testing.assert_allclose(workspace.readE(0), expected_e)
 
 
 def test_eqsans_workspace_preparation_propagates_missing_proton_charge(monkeypatch):

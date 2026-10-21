@@ -6,7 +6,8 @@ import json
 import os
 from typing import Optional, Sequence, Union
 
-from mantid.simpleapi import Integration, NormaliseByCurrent, mtd
+from mantid.api import IEventWorkspace
+from mantid.simpleapi import ConvertToMatrixWorkspace, Integration, NormaliseByCurrent, mtd
 
 from drtsans import __version__
 from drtsans import subtract_background
@@ -561,7 +562,8 @@ class PrepareSensitivityCorrection(PrepareBase):
         Returns
         -------
         ~mantid.api.MatrixWorkspace
-            Prepared, proton-charge-normalized workspace with wavelength bins.
+            Prepared, proton-charge-normalized histogram workspace with
+            wavelength bins.
         """
         resolved_run = self._resolve_run(run, name)
         resolved_dark_current = (
@@ -580,7 +582,13 @@ class PrepareSensitivityCorrection(PrepareBase):
         if name != "flood_run":
             options["output_workspace"] = mtd.unique_hidden_name()
         workspace = PREPARE_DATA["EQSANS"](**options)
-        return NormaliseByCurrent(InputWorkspace=workspace, OutputWorkspace=str(workspace))
+        workspace = NormaliseByCurrent(InputWorkspace=workspace, OutputWorkspace=str(workspace))
+        # Without a dark-current run, prepare_data can return an EventWorkspace (when no
+        # histogram bin is empty), which background subtraction does not accept. The
+        # conversion keeps the wavelength bins and their uncertainties.
+        if isinstance(workspace, IEventWorkspace):
+            workspace = ConvertToMatrixWorkspace(InputWorkspace=workspace, OutputWorkspace=str(workspace))
+        return workspace
 
     @staticmethod
     def _integrate_workspace(workspace):

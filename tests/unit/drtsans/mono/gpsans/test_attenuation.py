@@ -90,7 +90,7 @@ def test_attenuation_factor_missing_logs(generic_workspace, clean_workspace):
 
 
 # Coefficients (A, A error, B, B error, C, C error) provided by Lisa Debeer-Schmitt, 2020-02-26
-REFERENCE_COEFFICIENTS = {
+REFERENCE_COEFFICIENTS_2020 = {
     "x3": (
         0.3733459538730628,
         0.008609717163831113,
@@ -142,6 +142,59 @@ REFERENCE_COEFFICIENTS = {
 }
 
 
+# Coefficients (A, A error, B, B error, C, C error) provided by Lisa Debeer-Schmitt, 2026-09-24
+REFERENCE_COEFFICIENTS_2026 = {
+    "x3": (
+        0.3861114327357229,
+        0.004239972193268125,
+        0.17048384639745545,
+        0.005760698177732567,
+        0.15406796773216525,
+        0.003366262880170969,
+    ),
+    "x30": (
+        0.13466104537173806,
+        0.006408776768442125,
+        0.3049738880531191,
+        0.012517966056449047,
+        0.005711031222037586,
+        0.0005286523425874059,
+    ),
+    "x300": (
+        0.03547027397895719,
+        0.002041820264387735,
+        0.4551281723376627,
+        0.012509168216534727,
+        0.0002657734837046053,
+        2.885946204570936e-05,
+    ),
+    "x2k": (
+        0.012538268888626858,
+        0.0010216195171160712,
+        0.5684076235626234,
+        0.01567222021183265,
+        3.452194182922479e-05,
+        4.1627928366097935e-06,
+    ),
+    "x10k": (
+        0.004910754969104092,
+        0.0005671670819554812,
+        0.7033092827870542,
+        0.023738391005254978,
+        8.267968384329289e-06,
+        9.179490306820116e-07,
+    ),
+    "x100k": (
+        0.0026133799012462156,
+        0.0004035014258150725,
+        0.9153662035388047,
+        0.03446223683597386,
+        4.019353093347865e-06,
+        2.416598603172101e-07,
+    ),
+}
+
+
 def _write_formula_file(path, formula="A * exp(-B * wavelength) + C", effective=None, attenuators=None):
     attenuators = attenuators or {
         "x2k": {
@@ -181,18 +234,32 @@ def _coefficients_as_tuples(formula_block):
 def test_default_coefficients_file():
     default_file = importlib.resources.files("drtsans.configuration") / "GPSANS_attenuation_coefficients.txt"
     with importlib.resources.as_file(default_file) as filename:
-        coefficients = _parse_timestamped_formula_blocks(filename)[0]
-    assert coefficients.effective_date == date(1990, 1, 1)
-    assert coefficients.formula == "A * exp(-B * wavelength) + C"
-    assert coefficients.parameters == ("A", "B", "C")
-    assert _coefficients_as_tuples(coefficients) == REFERENCE_COEFFICIENTS
-    assert set(coefficients.coefficients) == set(_ATTENUATOR_NAMES.values()) - _NO_ATTENUATION
-    # the default file is used when no file is given
-    assert _coefficients_as_tuples(_load_attenuation_coefficients()) == REFERENCE_COEFFICIENTS
-    assert (
-        _coefficients_as_tuples(_load_default_attenuation_coefficients("2000-01-01T00:00:00"))
-        == REFERENCE_COEFFICIENTS
-    )
+        coefficients = _parse_timestamped_formula_blocks(filename)
+    assert [block.effective_date for block in coefficients] == [
+        date(1990, 1, 1),
+        date(2020, 2, 26),
+        date(2026, 9, 24),
+    ]
+    assert all(block.formula == "A * exp(-B * wavelength) + C" for block in coefficients)
+    assert all(block.parameters == ("A", "B", "C") for block in coefficients)
+    assert all(set(block.coefficients) == set(_ATTENUATOR_NAMES.values()) - _NO_ATTENUATION for block in coefficients)
+    assert _coefficients_as_tuples(coefficients[0]) == REFERENCE_COEFFICIENTS_2020
+    assert _coefficients_as_tuples(coefficients[1]) == REFERENCE_COEFFICIENTS_2020
+    assert _coefficients_as_tuples(coefficients[2]) == REFERENCE_COEFFICIENTS_2026
+
+
+@pytest.mark.parametrize(
+    "run_start, expected_coefficients",
+    [
+        ("2000-01-01T00:00:00", REFERENCE_COEFFICIENTS_2020),
+        ("2026-09-23T23:59:59", REFERENCE_COEFFICIENTS_2020),
+        ("2026-09-24T00:00:00", REFERENCE_COEFFICIENTS_2026),
+        ("2026-10-18T11:42:41", REFERENCE_COEFFICIENTS_2026),
+    ],
+)
+def test_default_coefficients_select_effective_block(run_start, expected_coefficients):
+    selected = _load_default_attenuation_coefficients(run_start)
+    assert _coefficients_as_tuples(selected) == expected_coefficients
 
 
 def test_attenuation_factor_custom_file(generic_workspace, clean_workspace, tmp_path):

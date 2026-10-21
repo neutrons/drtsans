@@ -693,8 +693,6 @@ class PrepareSensitivityCorrection(PrepareBase):
             Corrected flood workspace with one integrated bin per spectrum.
         """
         run_index = self._flood_run_index(flood_run)
-        if self._transmission_reference_runs is not None and self._empty_cell_runs is None:
-            raise ValueError("empty_cell_runs must be configured for transmission correction")
 
         flood_workspace = self._prepare_eqsans_workspace(
             flood_run,
@@ -857,10 +855,16 @@ class PrepareSensitivityCorrection(PrepareBase):
         Raises
         ------
         ValueError
-            If ``use_moving_detector_method`` is ``True``.
+            If ``use_moving_detector_method`` is ``True``, or if transmission
+            correction is configured without an empty-cell run.
         """
         if use_moving_detector_method:
             raise ValueError("The moving-detector method is not supported for EQSANS; use the detector-patch method")
+        # Transmission is applied to the flood and the empty cell before their
+        # subtraction, so it requires an empty-cell run. Check this before the
+        # beam-center and flood workspaces are loaded.
+        if self._transmission_reference_runs is not None and self._empty_cell_runs is None:
+            raise ValueError("empty_cell_runs must be configured for transmission correction")
         super().execute(
             use_moving_detector_method,
             min_threshold,

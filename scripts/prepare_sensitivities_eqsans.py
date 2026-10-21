@@ -271,6 +271,8 @@ def merge_configuration(overrides: Mapping[str, Any]) -> dict[str, Any]:
         value is not None for value in transmission_values
     ):
         raise ValueError("TRANSMISSION_* options must be supplied together")
+    if transmission_values[0] is not None and configuration["EMPTY_CELL_RUNS"] is None:
+        raise ValueError("EMPTY_CELL_RUNS is required when TRANSMISSION_* options are supplied")
 
     for option_name in sorted(_RUN_OPTIONS):
         runs = configuration[option_name]

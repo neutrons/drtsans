@@ -417,13 +417,15 @@ def test_eqsans_transmission_is_applied_to_flood_and_empty_cell_before_subtracti
     assert len(integrations) == 1
 
 
-def test_eqsans_transmission_requires_an_empty_cell_run():
+def test_eqsans_transmission_requires_an_empty_cell_run(monkeypatch):
     preparer = PrepareSensitivityCorrection()
     preparer.set_flood_runs(1)
-    preparer.set_transmission_correction(2, 3, 4)
+    preparer.set_direct_beam_runs(2)
+    preparer.set_transmission_correction(3, 4, 5)
+    monkeypatch.setattr(PrepareBase, "execute", lambda *_args, **_kwargs: pytest.fail("common workflow must not run"))
 
-    with pytest.raises(ValueError, match="empty_cell_runs"):
-        preparer._prepare_flood_data(1, [0.0, 0.0], None)
+    with pytest.raises(ValueError, match="empty_cell_runs must be configured for transmission correction"):
+        preparer.execute(False, 0.5, 2.0, "sensitivity.nxs")
 
 
 @pytest.mark.parametrize("workspace_with_instrument", [dict(name="EQSANS", Nx=2, Ny=1)], indirect=True)

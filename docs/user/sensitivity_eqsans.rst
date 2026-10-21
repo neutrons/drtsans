@@ -107,7 +107,9 @@ transmission. Omitting all three disables this correction:
    Empty-beam reference measurement.
 
 Each setting contains exactly one run. Providing only some of the three
-settings is invalid.
+settings is invalid. Transmission correction also requires
+``EMPTY_CELL_RUNS``, because the transmission is applied to both the flood and
+the empty cell before the empty cell is subtracted.
 
 Geometry and data preparation
 -----------------------------

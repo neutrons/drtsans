@@ -93,6 +93,7 @@ def test_configuration_rejects_more_than_one_transmission_run():
         _SCRIPT.merge_configuration(
             {
                 **_REQUIRED_RUNS,
+                "EMPTY_CELL_RUNS": 5,
                 "TRANSMISSION_FLOOD_RUNS": 1,
                 "TRANSMISSION_EMPTY_CELL_RUNS": 2,
                 "TRANSMISSION_REFERENCE_RUNS": [3, 4],
@@ -121,6 +122,18 @@ def test_configuration_rejects_negative_tof_clipping_widths(option_name):
 def test_configuration_requires_transmission_settings_together():
     with pytest.raises(ValueError, match="must be supplied together"):
         _SCRIPT.merge_configuration({**_REQUIRED_RUNS, "TRANSMISSION_FLOOD_RUNS": 1})
+
+
+def test_configuration_requires_empty_cell_for_transmission():
+    with pytest.raises(ValueError, match="EMPTY_CELL_RUNS is required when TRANSMISSION_"):
+        _SCRIPT.merge_configuration(
+            {
+                **_REQUIRED_RUNS,
+                "TRANSMISSION_FLOOD_RUNS": 1,
+                "TRANSMISSION_EMPTY_CELL_RUNS": 2,
+                "TRANSMISSION_REFERENCE_RUNS": 3,
+            }
+        )
 
 
 def test_configuration_validates_scale_components():

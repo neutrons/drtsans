@@ -56,10 +56,8 @@ def flux_file(datarepo_dir):
     return pj(datarepo_dir.eqsans, "test_normalization", "beam_profile_flux.txt")
 
 
-@pytest.fixture(scope="module", params=run_sets, ids=[item["run"] for item in run_sets])
 @namedtuplefy
-def run_infoset(datarepo_dir, request):
-    run_set = request.param
+def _load_run_infoset(datarepo_dir, run_set):
     run = run_set["run"]
     tof_workspace = mtd.unique_hidden_name()
     with amend_config(data_dir=datarepo_dir.eqsans):
@@ -72,6 +70,16 @@ def run_infoset(datarepo_dir, request):
     )
     wavelength_workspace = eqsans.set_init_uncertainties(wavelength_workspace)
     return {**run_set, **dict(ws=tof_workspace, wl=wavelength_workspace)}
+
+
+@pytest.fixture(scope="module", params=run_sets, ids=[item["run"] for item in run_sets])
+def run_infoset(datarepo_dir, request):
+    infoset = _load_run_infoset(datarepo_dir, request.param)
+    yield infoset
+    # The workspaces are shared by the tests of this module; delete them after the last one
+    for workspace in (infoset.ws, infoset.wl):
+        if mtd.doesExist(str(workspace)):
+            DeleteWorkspace(str(workspace))
 
 
 class TestLoadEvents(object):
@@ -102,11 +110,11 @@ class TestLoadEvents(object):
         assert bool(SampleLogs(ws).is_frame_skipping.value) == run_infoset.skip_frame
 
     @pytest.mark.datarepo
-    def test_offsets(self, datarepo_dir):
+    def test_offsets(self, datarepo_dir, temp_workspace_name):
         with amend_config(data_dir=datarepo_dir.eqsans):
             workspace = eqsans.load_events(
                 "EQSANS_86217",
-                output_workspace=mtd.unique_hidden_name(),
+                output_workspace=temp_workspace_name(),
                 detector_offset=42,
                 sample_offset=-24,
             )
@@ -118,12 +126,12 @@ class TestLoadEvents(object):
 
 
 @pytest.mark.datarepo
-def test_transform_to_wavelength(run_infoset):
+def test_transform_to_wavelength(run_infoset, temp_workspace_name):
     ws, bands = eqsans.transform_to_wavelength(
         run_infoset.ws,
         low_tof_clip=500,
         high_tof_clip=2000,
-        output_workspace=mtd.unique_hidden_name(),
+        output_workspace=temp_workspace_name(),
     )
     ws = eqsans.set_init_uncertainties(ws)
     sl = SampleLogs(ws)
@@ -136,13 +144,13 @@ def test_transform_to_wavelength(run_infoset):
 
 
 @pytest.mark.datarepo
-def test_normalize_by_flux(run_infoset, flux_file):
+def test_normalize_by_flux(run_infoset, flux_file, temp_workspace_name):
     data_workspace = run_infoset.wl
     normalized_data_workspace = eqsans.normalize_by_flux(
         data_workspace,
         flux_file,
         method="proton charge",
-        output_workspace=mtd.unique_hidden_name(),
+        output_workspace=temp_workspace_name(),
     )
     normalized_data_workspace = SumSpectra(normalized_data_workspace)
     assert 1.0e6 * np.average(normalized_data_workspace.y(0)) == approx(run_infoset.flux_normalized, abs=1.0)
@@ -151,11 +159,11 @@ def test_normalize_by_flux(run_infoset, flux_file):
 
 
 @pytest.mark.datarepo
-def test_subtract_background(datarepo_dir):
+def test_subtract_background(datarepo_dir, temp_workspace_name):
     data_dir = pj(datarepo_dir.eqsans, "test_subtract_background")
-    ws = LoadNexus(pj(data_dir, "sample.nxs"), OutputWorkspace=mtd.unique_hidden_name())
+    ws = LoadNexus(pj(data_dir, "sample.nxs"), OutputWorkspace=temp_workspace_name())
     ws_name = ws.name()
-    wb = LoadNexus(pj(data_dir, "background.nxs"), OutputWorkspace=mtd.unique_hidden_name())
+    wb = LoadNexus(pj(data_dir, "background.nxs"), OutputWorkspace=temp_workspace_name())
     ws_wb = eqsans.subtract_background(ws, wb, scale=0.42)
     assert ws_wb.name() == ws_name
     assert max(ws_wb.y(0)) < 1.0e-09
@@ -192,10 +200,10 @@ def test_prepare_monitors(datarepo_dir):
 
 
 @pytest.mark.datarepo
-def test_solid_angle(run_infoset):
+def test_solid_angle(run_infoset, temp_workspace_name):
     ws2 = solid_angle_correction(
         run_infoset.ws,
-        output_workspace=mtd.unique_hidden_name(),
+        output_workspace=temp_workspace_name(),
         detector_type="VerticalTube",
     )
     assert isinstance(ws2, EventWorkspace)

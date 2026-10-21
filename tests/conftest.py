@@ -38,6 +38,7 @@ import pytest
 
 # standard imports
 from collections import namedtuple
+import ctypes
 from pathlib import Path
 import os
 from os.path import join as pjoin
@@ -112,6 +113,34 @@ class GetWS(object):
     def __setitem__(self, key, value):
         msg = "'GetWS' object does not support item assignment"
         raise TypeError(msg)
+
+
+def _load_malloc_trim():
+    """Return glibc's ``malloc_trim``, or None on platforms that do not provide it."""
+    if not sys.platform.startswith("linux"):
+        return None
+    try:
+        return ctypes.CDLL("libc.so.6").malloc_trim
+    except (OSError, AttributeError):
+        return None
+
+
+_MALLOC_TRIM = _load_malloc_trim()
+
+
+@pytest.fixture(scope="module", autouse=True)
+def release_free_memory():
+    """Return freed heap memory to the operating system after each test module.
+
+    glibc keeps the memory of deleted Mantid workspaces reserved for reuse, so a
+    pytest-xdist worker that has run many modules holds several GiB it no longer
+    uses. Releasing it lowers the peak memory of the test suite on CI runners.
+    Workspaces are not affected; this fixture does not replace deleting the
+    workspaces a test creates.
+    """
+    yield
+    if _MALLOC_TRIM is not None:
+        _MALLOC_TRIM(0)
 
 
 @pytest.fixture(scope="session")

@@ -175,6 +175,12 @@ class PrepareSensitivityCorrection(PrepareBase):
         insert("background_transmission_runs", self._json_log_value(self._transmission_empty_cell_runs))
         insert("empty_beam_transmission_run", self._json_log_value(self._transmission_reference_runs))
         insert("theta_dependent_transmission", int(self._transmission_reference_runs is not None))
+        # Sensitivity preparation produces the map, so it cannot correct its own
+        # transmission inputs for detector sensitivity, unlike a sample reduction.
+        insert(
+            "transmission_sensitivity_corrected",
+            None if self._transmission_reference_runs is None else 0,
+        )
         insert("low_tof_clip", self._low_tof_clip, "microsecond")
         insert("high_tof_clip", self._high_tof_clip, "microsecond")
         insert("wavelength_min", wavelength_min, "Angstrom")

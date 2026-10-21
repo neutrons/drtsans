@@ -517,6 +517,38 @@ def test_eqsans_input_provenance_reads_flood_wavelength_logs(clean_workspace):
     assert provenance == {"wavelength_min": 2.5, "wavelength_max": 6.0}
 
 
+def test_eqsans_sensitivity_provenance_without_transmission(clean_workspace):
+    workspace = CreateWorkspace(
+        DataX=[1.0, 2.0],
+        DataY=[1.0],
+        DataE=[0.1],
+        NSpec=1,
+        OutputWorkspace="eqsans_provenance_no_transmission_test",
+    )
+    clean_workspace(workspace)
+    preparer = PrepareSensitivityCorrection()
+    preparer.set_flood_runs(1)
+    preparer.set_direct_beam_runs(3)
+    provenance = {
+        "beam_centers": [(0.1, 0.2)],
+        "sensitivity_options": {
+            "use_moving_detector_method": False,
+            "min_threshold": 0.5,
+            "max_threshold": 2.0,
+            "polynomial_order": 2,
+            "min_detectors_per_tube": 50,
+        },
+        "wavelength_min": 2.5,
+        "wavelength_max": 6.0,
+    }
+
+    preparer._add_sensitivity_provenance(workspace, provenance)
+
+    run = workspace.getRun()
+    assert run.getProperty("theta_dependent_transmission").value == 0
+    assert run.getProperty("transmission_sensitivity_corrected").value == ""
+
+
 def test_eqsans_sensitivity_provenance_logs(clean_workspace):
     workspace = CreateWorkspace(
         DataX=[1.0, 2.0],
@@ -560,6 +592,7 @@ def test_eqsans_sensitivity_provenance_logs(clean_workspace):
     assert run.getProperty("sample_offset").value == 12.0
     assert json.loads(run.getProperty("scale_components").value) == {"detector1": [1.0, 2.0, 1.0]}
     assert run.getProperty("theta_dependent_transmission").value
+    assert run.getProperty("transmission_sensitivity_corrected").value == 0
     assert run.getProperty("wavelength_weighting").value == "counts"
     assert run.getProperty("wavelength_min").value == 2.5
     assert run.getProperty("wavelength_max").value == 6.0

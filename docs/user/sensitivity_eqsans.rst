@@ -194,7 +194,9 @@ workflow in one important respect: a sample reduction can apply sensitivity
 normalization to the transmission runs before calculating transmission,
 whereas sensitivity preparation is producing the sensitivity map and cannot
 apply that output map to its own transmission inputs. The map's provenance logs
-record the transmission configuration and this known distinction.
+record the transmission configuration and this known distinction: when
+transmission correction is configured, the ``transmission_sensitivity_corrected``
+log is ``0``.
 
 Beam-center data
 ----------------

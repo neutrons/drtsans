@@ -246,6 +246,8 @@ def test_default_coefficients_file():
     assert _coefficients_as_tuples(coefficients[0]) == REFERENCE_COEFFICIENTS_2020
     assert _coefficients_as_tuples(coefficients[1]) == REFERENCE_COEFFICIENTS_2020
     assert _coefficients_as_tuples(coefficients[2]) == REFERENCE_COEFFICIENTS_2026
+    # the default file is used when no file is given, selecting the block effective today
+    assert _coefficients_as_tuples(_load_attenuation_coefficients()) == REFERENCE_COEFFICIENTS_2026
 
 
 @pytest.mark.parametrize(

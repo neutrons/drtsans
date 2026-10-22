@@ -19,7 +19,7 @@ from drtsans.samplelogs import SampleLogs
     "run_number, expected_wavelength, effective_date, expected_value, expected_error",
     [
         # empty cell, 2024-10-16, before the 2026-09-24 calibration
-        (114407, 4.75, date(2020, 2, 26), 0.0002193835497834906, 2.694847300248351e-05),
+        (114407, 4.75, date(1990, 1, 1), 0.0002193835497834906, 2.694847300248351e-05),
         # empty cell, 2026-10-17, after the 2026-09-24 calibration
         (176118, 4.76, date(2026, 9, 24), 0.00018121471157356517, 2.795282160895838e-05),
     ],

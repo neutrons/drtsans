@@ -237,15 +237,13 @@ def test_default_coefficients_file():
         coefficients = _parse_timestamped_formula_blocks(filename)
     assert [block.effective_date for block in coefficients] == [
         date(1990, 1, 1),
-        date(2020, 2, 26),
         date(2026, 9, 24),
     ]
     assert all(block.formula == "A * exp(-B * wavelength) + C" for block in coefficients)
     assert all(block.parameters == ("A", "B", "C") for block in coefficients)
     assert all(set(block.coefficients) == set(_ATTENUATOR_NAMES.values()) - _NO_ATTENUATION for block in coefficients)
     assert _coefficients_as_tuples(coefficients[0]) == REFERENCE_COEFFICIENTS_2020
-    assert _coefficients_as_tuples(coefficients[1]) == REFERENCE_COEFFICIENTS_2020
-    assert _coefficients_as_tuples(coefficients[2]) == REFERENCE_COEFFICIENTS_2026
+    assert _coefficients_as_tuples(coefficients[1]) == REFERENCE_COEFFICIENTS_2026
     # the default file is used when no file is given, selecting the block effective today
     assert _coefficients_as_tuples(_load_attenuation_coefficients()) == REFERENCE_COEFFICIENTS_2026
 

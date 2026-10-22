@@ -157,7 +157,8 @@ The formula and fitted parameter values are read from a text file:
 drtsans includes a timestamped default file, ``GPSANS_attenuation_coefficients.txt``. Each calibration block
 starts with ``[effective YYYY-MM-DD]``. During reduction, the block is selected from the empty beam timestamp,
 using ``start_time`` first, then ``run_start``, then ``run_begin``. The most recent block whose effective date is
-not later than the run date is used. The existing packaged coefficients are effective ``1990-01-01``:
+not later than the run date is used. The packaged calibration blocks are effective ``1990-01-01`` and
+``2026-09-24``:
 
 
 .. literalinclude:: ../../../src/drtsans/configuration/GPSANS_attenuation_coefficients.txt
@@ -172,8 +173,26 @@ The location of the default file in the installed package is given by
 
     print(os.path.join(drtsans.configdir, "GPSANS_attenuation_coefficients.txt"))
 
-A copy of the parameter blocks in this file is a good starting point for a custom file. Custom files do not use
-``[effective ...]`` sections, because they are explicit overrides for the reduction.
+A copy of one calibration block in this file is a good starting point for a custom file. A custom file contains a
+single fit: one ``formula =`` line followed by the attenuator blocks. It must not contain an
+``[effective YYYY-MM-DD]`` header, because a custom file is an explicit override that is used regardless of the
+empty beam timestamp. Only the attenuator of the empty beam run needs to be listed. For example, a custom file
+with the 2026-09-24 coefficients of the x2k and x10k attenuators:
+
+.. code-block:: text
+
+    # Custom GPSANS attenuator fit coefficients
+    formula = A * exp(-B * wavelength) + C
+
+    [attenuator x2k]
+    A = 0.012538268888626858, 0.0010216195171160712
+    B = 0.5684076235626234, 0.01567222021183265
+    C = 3.452194182922479e-05, 4.1627928366097935e-06
+
+    [attenuator x10k]
+    A = 0.004910754969104092, 0.0005671670819554812
+    B = 0.7033092827870542, 0.023738391005254978
+    C = 8.267968384329289e-06, 9.179490306820116e-07
 
 Using a Custom Coefficients File
 --------------------------------
@@ -205,6 +224,7 @@ The reduction stops with an error if:
 
 - the file does not exist (reported when the reduction parameters are validated);
 - the custom file uses the old seven-column comma-separated format;
+- the custom file contains an ``[effective YYYY-MM-DD]`` header;
 - the file has malformed formula, attenuator, or parameter lines;
 - the attenuator blocks do not all define the same fitted parameter names;
 - a value or uncertainty is not a finite number;

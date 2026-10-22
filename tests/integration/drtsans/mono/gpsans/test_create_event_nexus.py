@@ -29,7 +29,7 @@ from drtsans.files.event_nexus_rw import (
     EventNeXusWriter,
 )
 from drtsans.mono.gpsans.cg2_spice_to_nexus import CG2EventNexusConvert
-from drtsans.mono.gpsans.attenuation import _load_attenuation_coefficients
+from drtsans.mono.gpsans.attenuation import _load_default_attenuation_coefficients
 from drtsans.files.log_h5_reader import verify_cg2_reduction_results
 from mantid.simpleapi import mtd
 from mantid.simpleapi import ConvertToMatrixWorkspace
@@ -157,9 +157,10 @@ def test_reduction(datarepo_dir, temp_directory):
             "useSubpixels": False,
         },
     }
-    # Custom attenuation coefficients file: the default coefficients, so that the results are unchanged,
-    # plus one additional attenuator that shows the custom file is the one saved in the reduction log
-    default_coefficients = _load_attenuation_coefficients()
+    # Custom attenuation coefficients file: the default coefficients effective for the empty beam run
+    # CG2_9177 (2020-02-20), so that the results are unchanged, plus one additional attenuator that shows
+    # the custom file is the one saved in the reduction log
+    default_coefficients = _load_default_attenuation_coefficients("2020-02-20T03:18:57")
     coefficients_file = os.path.join(output_dir, "custom_attenuation_coefficients.txt")
     with open(coefficients_file, "w") as file:
         file.write(f"formula = {default_coefficients.formula}\n\n")

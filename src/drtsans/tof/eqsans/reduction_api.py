@@ -239,7 +239,7 @@ def bin_i_with_correction(
     Parameters
     ----------
     iq1d_in_frames: list[~drtsans.dataobjects.IQmod]
-        Objects containing 1D unbinned data I(|Q|). It will be used for scalar binned data
+        Objects containing 1D unbinned data :math:`I(|Q|)`. It will be used for scalar binned data
     iq2d_in_frames: list[~drtsans.dataobjects.IQazimuthal]
         Objects containing 2D unbinned data I(Qx, Qy). It will be used for 2D binned data,
         and 1D wedge or annular binned data
@@ -277,7 +277,7 @@ def bin_i_with_correction(
     correction_setup: ~drtsans.tof.eqsans.correction_api.CorrectionConfiguration
         Parameters for elastic and inelastic/incoherence scattering correction
     iq1d_elastic_ref_fr: list[~drtsans.dataobjects.IQmod]
-        Objects containing 1D unbinned data I(|Q|) for the elastic reference run
+        Objects containing 1D unbinned data :math:`I(|Q|)` for the elastic reference run
     iq2d_elastic_ref_fr: list[~drtsans.dataobjects.IQazimuthal]
         Objects containing 2D unbinned data I(Qx, Qy) for the elastic reference run
     raw_name: str

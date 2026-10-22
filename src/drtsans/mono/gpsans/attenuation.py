@@ -1,6 +1,6 @@
 import ast
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 import importlib.resources
 import keyword
 import math
@@ -869,7 +869,8 @@ def _run_start_time(input_workspace: Union[str, MatrixWorkspace]) -> datetime:
     Returns
     -------
     datetime
-        Run timestamp. Naive timestamps are interpreted later as instrument-local time.
+        Run timestamp. Mantid stores these logs in UTC without an offset, so naive timestamps are
+        interpreted as UTC.
 
     Raises
     ------
@@ -1079,14 +1080,15 @@ def _as_datetime(timestamp: Union[str, datetime]) -> datetime:
     Returns
     -------
     datetime.datetime
-        Timezone-aware timestamp. Naive timestamps are interpreted in the GPSANS instrument time zone.
+        Timezone-aware timestamp. Naive timestamps are interpreted as UTC, the convention of Mantid sample logs.
     """
     if isinstance(timestamp, datetime):
         result = timestamp
     else:
         result = parse_date(str(timestamp))
+    # Mantid converts NeXus start_time (local time with offset) to UTC and drops the offset when writing logs
     if result.tzinfo is None:
-        result = result.replace(tzinfo=_INSTRUMENT_TIME_ZONE)
+        result = result.replace(tzinfo=timezone.utc)
     return result
 
 

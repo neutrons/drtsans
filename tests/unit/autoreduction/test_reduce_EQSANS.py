@@ -223,12 +223,12 @@ def test_reduce_sample_forces_fallback_beam_center(simulated_events, tmp_path, m
     assert saved["beamCenter"]["useFallbackBeamCenter"] is True
 
 
-@pytest.mark.parametrize("load_fails", [False, True])
-def test_reduce_sample_restores_working_directory(simulated_events, tmp_path, monkeypatch, mocker, load_fails):
-    """Files are loaded from within AUTOREDUCE_DIR, but the caller's working directory is restored afterwards
+@pytest.mark.parametrize("failing_step", [None, "load_all_files", "reduce_single_configuration"])
+def test_reduce_sample_restores_working_directory(simulated_events, tmp_path, monkeypatch, mocker, failing_step):
+    """Files are loaded and reduced from within AUTOREDUCE_DIR, but the caller's working directory is restored
 
     Relative paths used by the caller after the reduction, such as test output, must not resolve
-    against the production autoreduction directory. This holds also when loading the files fails.
+    against the production autoreduction directory. This holds also when loading or reducing the files fails.
     """
     caller_dir, output_dir, shared_dir = tmp_path / "caller", tmp_path / "output", tmp_path / "shared"
     for directory in (caller_dir, output_dir, shared_dir):
@@ -256,28 +256,34 @@ def test_reduce_sample_restores_working_directory(simulated_events, tmp_path, mo
 
     mocker.patch.object(reduce_EQSANS, "update_reduction_parameters", side_effect=update_without_validation)
 
-    # record the working directory at the time the input files are loaded
-    load_dirs = []
+    # record the working directory at the time the input files are loaded and reduced
+    steps = ["load_all_files", "reduce_single_configuration"]
+    step_dirs = {}
 
-    def record_load_dir(*args, **kwargs):
-        load_dirs.append(os.getcwd())
-        if load_fails:
-            raise RuntimeError("simulated load failure")
+    def record_step_dir(step):
+        def side_effect(*args, **kwargs):
+            step_dirs[step] = os.getcwd()
+            if step == failing_step:
+                raise RuntimeError(f"simulated {step} failure")
 
-    mocker.patch.object(reduce_EQSANS, "load_all_files", side_effect=record_load_dir)
-    mocker.patch.object(reduce_EQSANS, "reduce_single_configuration")
+        return side_effect
+
+    for step in steps:
+        mocker.patch.object(reduce_EQSANS, step, side_effect=record_step_dir(step))
     mocker.patch.object(reduce_EQSANS, "plot_reduction_output")
     mocker.patch.object(reduce_EQSANS, "plotly_reduction_output", return_value="")
     mocker.patch.object(reduce_EQSANS, "reduce_non_sample", return_value="")
     mocker.patch.object(reduce_EQSANS, "GPR_AVAILABLE", False)
 
-    if load_fails:
-        with pytest.raises(RuntimeError, match="simulated load failure"):
+    if failing_step:
+        with pytest.raises(RuntimeError, match=f"simulated {failing_step} failure"):
             reduce_EQSANS.reduce_sample(simulated_events, str(output_dir), MagicMock())
     else:
         reduce_EQSANS.reduce_sample(simulated_events, str(output_dir), MagicMock())
 
-    assert load_dirs == [str(shared_dir)]
+    # steps up to and including the failing one ran from within AUTOREDUCE_DIR
+    executed = steps[: steps.index(failing_step) + 1] if failing_step else steps
+    assert step_dirs == {step: str(shared_dir) for step in executed}
     assert os.getcwd() == str(caller_dir)
 
 

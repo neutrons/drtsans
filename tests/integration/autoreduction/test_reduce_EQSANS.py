@@ -10,8 +10,9 @@ from drtsans.path import load_module
 # Add the root directory to the path
 _root_dir = pathlib.Path(__file__).parent.parent.parent.parent  # Go up 4 levels from test file
 reduce_EQSANS = load_module(_root_dir / "scripts/autoreduction/reduce_EQSANS.py")
-# reduction options in the production shared autoreduction directory, read before the tests mock AUTOREDUCE_DIR
-REDUCTION_OPTIONS = os.path.join(reduce_EQSANS.AUTOREDUCE_DIR, "reduction_options.json")
+# production shared autoreduction directory and its reduction options, stored before the tests mock AUTOREDUCE_DIR
+PRODUCTION_AUTOREDUCE_DIR = reduce_EQSANS.AUTOREDUCE_DIR
+REDUCTION_OPTIONS = os.path.join(PRODUCTION_AUTOREDUCE_DIR, "reduction_options.json")
 
 
 @pytest.mark.mount_eqsans
@@ -60,6 +61,16 @@ def test_autoreduce_sample(tmp_path, monkeypatch):
     ]
     for expected in filenames:
         assert os.path.isfile(os.path.join(mock_args.outdir, expected))
+
+    # autoreduction leaves the working directory unchanged, so later relative-path output of other tests
+    # is not redirected to the (soon deleted) mocked shared directory or to the production directory
+    assert os.getcwd() == str(tmp_path)
+    assert os.getcwd() != PRODUCTION_AUTOREDUCE_DIR
+    os.makedirs("test_output", exist_ok=True)
+    with open(os.path.join("test_output", "relative_output.txt"), "w") as relative_file:
+        relative_file.write("written with a relative path after autoreduction")
+    assert (tmp_path / "test_output" / "relative_output.txt").is_file()
+    assert not (shared_dir / "test_output").exists()
 
 
 if __name__ == "__main__":

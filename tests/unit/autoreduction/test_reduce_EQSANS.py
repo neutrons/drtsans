@@ -1,4 +1,5 @@
 from copy import deepcopy
+import io
 import json
 import os
 import pathlib
@@ -156,6 +157,32 @@ def test_autoreduce_rejects_empty_event_workspace(tmp_path, mocker):
     args = MagicMock(events_file=str(events_file), outdir=str(tmp_path), no_publish=True)
     with pytest.raises(RuntimeError, match="has no events after loading with LoadEventNexus"):
         reduce_EQSANS.autoreduce(args)
+
+
+def test_autoreduce_resolves_relative_output_directory(tmp_path, monkeypatch, mocker):
+    """A relative output directory resolves against the caller's working directory
+
+    reduce_sample() loads and reduces from within AUTOREDUCE_DIR, so an unresolved relative output directory
+    would send the reduced files to AUTOREDUCE_DIR and the remaining output to the caller's working directory.
+    """
+    monkeypatch.chdir(tmp_path)
+    events_file = tmp_path / "EQSANS_186603.nxs.h5"
+    events_file.touch()
+    events = MagicMock()
+    events.getNumberEvents.return_value = 1
+    events.getRunNumber.return_value = 186603
+    mocker.patch.object(reduce_EQSANS, "LoadEventNexus", return_value=events)
+    mocker.patch.object(reduce_EQSANS, "SampleLogs")
+    # avoid adding handlers to the root logger
+    mocker.patch.object(reduce_EQSANS, "configure_logger", return_value=(io.StringIO(), "autoreduce.log"))
+    reduce_events = mocker.patch.object(reduce_EQSANS, "reduce_events", return_value="")
+    mocker.patch.object(reduce_EQSANS, "footer", return_value="")
+
+    args = MagicMock(events_file=str(events_file), outdir="output/", no_publish=True)
+    reduce_EQSANS.autoreduce(args)
+
+    assert reduce_events.call_args.args[1] == str(tmp_path / "output")
+    assert (tmp_path / "output" / "EQSANS_186603.html").is_file()
 
 
 def test_intensity_array(simulated_events):

@@ -646,9 +646,11 @@ def autoreduce(args: argparse.Namespace):
 
     # amend the output directory, if necessary
     ipts = SampleLogs(events).experiment_identifier.value[5:]  # e.g. "12345" when having IPTS-12345
-    output_dir = args.outdir.rstrip("/")  # remove trailing slash, if any
+    # resolve against the caller's working directory, as reduce_sample() changes it to AUTOREDUCE_DIR.
+    # abspath also removes the trailing slash, if any
+    output_dir = os.path.abspath(args.outdir)
     if output_dir == AUTOREDUCE_IPTS_DIR.format(ipts=ipts):  # e.g. /SNS/EQSANS/IPTS-12345/shared/autoreduce/
-        output_dir = os.path.join(args.outdir, run)  # e.g. /SNS/EQSANS/IPTS-12345/shared/autoreduce/198434/
+        output_dir = os.path.join(output_dir, run)  # e.g. /SNS/EQSANS/IPTS-12345/shared/autoreduce/198434/
     os.makedirs(output_dir, exist_ok=True)
     # Give write access to group so that the autoreduction service can overwrite any output files generated
     # by one of the developers when manually running the reduction, for instance for debugging purposes

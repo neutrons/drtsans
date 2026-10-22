@@ -421,12 +421,13 @@ def reduce_sample(
 
     # load files and reduce
     logger.info("reduce_sample: loading input files with load_all_files()")
-    # load_all_files() requires AUTOREDUCE_DIR as the working directory; restore the caller's afterwards
+    # load_all_files() and reduce_single_configuration() resolve relative paths against AUTOREDUCE_DIR;
+    # restore the caller's working directory afterwards
     with contextlib.chdir(AUTOREDUCE_DIR):
         # For live reduction, enable loading of processed Nexus files
         loaded = load_all_files(input_config, allow_processed_nexus=is_live_reduction)
-    logger.info("reduce_sample: reducing with reduce_single_configuration()")
-    output = reduce_single_configuration(loaded, input_config)
+        logger.info("reduce_sample: reducing with reduce_single_configuration()")
+        output = reduce_single_configuration(loaded, input_config)
 
     # create PNG images for all intensity profiles
     logger.info("reduce_sample: saving intensity profiles to PNG images with plot_reduction_output()")

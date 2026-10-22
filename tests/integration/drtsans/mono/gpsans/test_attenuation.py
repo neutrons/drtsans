@@ -27,7 +27,7 @@ from drtsans.samplelogs import SampleLogs
 def test_attenuation_factor_effective_block(
     datarepo_dir, clean_workspace, run_number, expected_wavelength, effective_date, expected_value, expected_error
 ):
-    """Attenuation factor of the x10k attenuator at 4.76 Å, from the coefficients block effective for the run.
+    """Attenuation factor of the x10k attenuator from the coefficients block effective for the run.
 
     Expected values are A * exp(-B * wavelength) + C, with uncertainty propagated from the independent
     uncertainties of A, B and C, evaluated at the logged wavelength with the coefficients of the effective block.

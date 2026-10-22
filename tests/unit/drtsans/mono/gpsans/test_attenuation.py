@@ -244,16 +244,19 @@ def test_default_coefficients_file():
     assert all(set(block.coefficients) == set(_ATTENUATOR_NAMES.values()) - _NO_ATTENUATION for block in coefficients)
     assert _coefficients_as_tuples(coefficients[0]) == REFERENCE_COEFFICIENTS_2026
     assert _coefficients_as_tuples(coefficients[1]) == REFERENCE_COEFFICIENTS_2020
-    # the default file is used when no file is given, selecting the block effective today
-    assert _coefficients_as_tuples(_load_attenuation_coefficients()) == REFERENCE_COEFFICIENTS_2026
+    # the default file is used when no file is given, selecting the block effective today (the most recent one)
+    assert _coefficients_as_tuples(_load_attenuation_coefficients()) == _coefficients_as_tuples(coefficients[0])
 
 
 @pytest.mark.parametrize(
     "run_start, expected_coefficients",
     [
         ("2000-01-01T00:00:00", REFERENCE_COEFFICIENTS_2020),
-        ("2026-09-23T23:59:59", REFERENCE_COEFFICIENTS_2020),
-        ("2026-09-24T00:00:00", REFERENCE_COEFFICIENTS_2026),
+        # naive timestamps are UTC, as in Mantid sample logs; the block boundary is local midnight (EDT, UTC-4)
+        ("2026-09-24T03:59:59", REFERENCE_COEFFICIENTS_2020),
+        ("2026-09-24T04:00:00", REFERENCE_COEFFICIENTS_2026),
+        ("2026-09-23T23:59:59-04:00", REFERENCE_COEFFICIENTS_2020),
+        ("2026-09-24T00:00:00-04:00", REFERENCE_COEFFICIENTS_2026),
         ("2026-10-18T11:42:41", REFERENCE_COEFFICIENTS_2026),
     ],
 )
@@ -363,8 +366,8 @@ def test_timestamp_selection_uses_most_recent_effective_block(tmp_path):
         )
     )
     blocks = _parse_timestamped_formula_blocks(coefficients_file)
-    assert _select_effective_block(blocks, "2026-04-30T23:59:59").coefficients["x2k"]["A"].value == pytest.approx(1.0)
-    assert _select_effective_block(blocks, "2026-05-01T00:00:00").coefficients["x2k"]["A"].value == pytest.approx(2.0)
+    assert _select_effective_block(blocks, "2026-05-01T03:59:59").coefficients["x2k"]["A"].value == pytest.approx(1.0)
+    assert _select_effective_block(blocks, "2026-05-01T04:00:00").coefficients["x2k"]["A"].value == pytest.approx(2.0)
 
 
 def test_run_start_time_uses_start_time_before_run_start_and_run_begin(generic_workspace, clean_workspace):

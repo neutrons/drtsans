@@ -9,6 +9,7 @@ To make changes to this file:
 """
 
 import argparse
+import contextlib
 from copy import deepcopy
 import datetime
 import io
@@ -420,9 +421,10 @@ def reduce_sample(
 
     # load files and reduce
     logger.info("reduce_sample: loading input files with load_all_files()")
-    os.chdir(AUTOREDUCE_DIR)  # required for load_all_files() to work
-    # For live reduction, enable loading of processed Nexus files
-    loaded = load_all_files(input_config, allow_processed_nexus=is_live_reduction)
+    # load_all_files() requires AUTOREDUCE_DIR as the working directory; restore the caller's afterwards
+    with contextlib.chdir(AUTOREDUCE_DIR):
+        # For live reduction, enable loading of processed Nexus files
+        loaded = load_all_files(input_config, allow_processed_nexus=is_live_reduction)
     logger.info("reduce_sample: reducing with reduce_single_configuration()")
     output = reduce_single_configuration(loaded, input_config)
 

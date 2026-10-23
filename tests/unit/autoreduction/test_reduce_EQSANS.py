@@ -1,4 +1,5 @@
 from copy import deepcopy
+import io
 import json
 import os
 import pathlib
@@ -158,6 +159,32 @@ def test_autoreduce_rejects_empty_event_workspace(tmp_path, mocker):
         reduce_EQSANS.autoreduce(args)
 
 
+def test_autoreduce_resolves_relative_output_directory(tmp_path, monkeypatch, mocker):
+    """A relative output directory resolves against the caller's working directory
+
+    reduce_sample() loads and reduces from within AUTOREDUCE_DIR, so an unresolved relative output directory
+    would send the reduced files to AUTOREDUCE_DIR and the remaining output to the caller's working directory.
+    """
+    monkeypatch.chdir(tmp_path)
+    events_file = tmp_path / "EQSANS_186603.nxs.h5"
+    events_file.touch()
+    events = MagicMock()
+    events.getNumberEvents.return_value = 1
+    events.getRunNumber.return_value = 186603
+    mocker.patch.object(reduce_EQSANS, "LoadEventNexus", return_value=events)
+    mocker.patch.object(reduce_EQSANS, "SampleLogs")
+    # avoid adding handlers to the root logger
+    mocker.patch.object(reduce_EQSANS, "configure_logger", return_value=(io.StringIO(), "autoreduce.log"))
+    reduce_events = mocker.patch.object(reduce_EQSANS, "reduce_events", return_value="")
+    mocker.patch.object(reduce_EQSANS, "footer", return_value="")
+
+    args = MagicMock(events_file=str(events_file), outdir="output/", no_publish=True)
+    reduce_EQSANS.autoreduce(args)
+
+    assert reduce_events.call_args.args[1] == str(tmp_path / "output")
+    assert (tmp_path / "output" / "EQSANS_186603.html").is_file()
+
+
 def test_intensity_array(simulated_events):
     x, y, z = reduce_EQSANS.intensity_array(simulated_events)
     assert z.shape == (reduce_EQSANS.PIXELS_PER_TUBE, reduce_EQSANS.TUBES_IN_DETECTOR1)
@@ -172,7 +199,7 @@ def test_reduce_sample_forces_fallback_beam_center(simulated_events, tmp_path, m
 
     The input file below asks for `false`, so a passing test also shows the amendment overrides it.
     """
-    monkeypatch.chdir(tmp_path)  # the script chdir's to AUTOREDUCE_DIR; restore the cwd afterwards
+    monkeypatch.chdir(tmp_path)  # start from a known working directory, restored after the test
     run_number = str(simulated_events.getRunNumber())
     output_dir, shared_dir, ipts_dir = tmp_path / "output", tmp_path / "shared", tmp_path / "IPTS-12345"
     for directory in (output_dir, shared_dir, ipts_dir):
@@ -221,6 +248,70 @@ def test_reduce_sample_forces_fallback_beam_center(simulated_events, tmp_path, m
     # the comprehensive options saved for the record carry the forced value, not the requested `false`
     saved = json.loads((output_dir / f"reduction_options_{run_number}.json").read_text())
     assert saved["beamCenter"]["useFallbackBeamCenter"] is True
+
+
+@pytest.mark.parametrize("failing_step", [None, "load_all_files", "reduce_single_configuration"])
+def test_reduce_sample_restores_working_directory(simulated_events, tmp_path, monkeypatch, mocker, failing_step):
+    """Files are loaded and reduced from within AUTOREDUCE_DIR, but the caller's working directory is restored
+
+    Relative paths used by the caller after the reduction, such as test output, must not resolve
+    against the production autoreduction directory. This holds also when loading or reducing the files fails.
+    """
+    caller_dir, output_dir, shared_dir = tmp_path / "caller", tmp_path / "output", tmp_path / "shared"
+    for directory in (caller_dir, output_dir, shared_dir):
+        directory.mkdir()
+    monkeypatch.chdir(caller_dir)
+    monkeypatch.setattr(reduce_EQSANS, "AUTOREDUCE_DIR", str(shared_dir))
+    monkeypatch.setattr(reduce_EQSANS, "AUTOREDUCE_IPTS_DIR", str(tmp_path / "IPTS-{ipts}"))
+
+    run_number = str(simulated_events.getRunNumber())
+    raw_options = {
+        "instrumentName": "EQSANS",
+        "iptsNumber": 12345,
+        "sample": {"runNumber": run_number, "thickness": 1.0},
+        "outputFileName": f"EQSANS_{run_number}",
+        "configuration": {"outputDir": str(output_dir)},
+        "beamCenter": {"runNumber": run_number},
+    }
+    (output_dir / f"reduction_options_{run_number}.json").write_text(json.dumps(raw_options))
+
+    # skip validation because the dataSource validators need files on /SNS
+    real_update = reduce_EQSANS.update_reduction_parameters
+
+    def update_without_validation(parameters_original, parameter_changes, **kwargs):
+        return real_update(parameters_original, parameter_changes, validate=False, permissible=True)
+
+    mocker.patch.object(reduce_EQSANS, "update_reduction_parameters", side_effect=update_without_validation)
+
+    # record the working directory at the time the input files are loaded and reduced
+    steps = ["load_all_files", "reduce_single_configuration"]
+    step_dirs = {}
+
+    def record_step_dir(step):
+        def side_effect(*args, **kwargs):
+            step_dirs[step] = os.getcwd()
+            if step == failing_step:
+                raise RuntimeError(f"simulated {step} failure")
+
+        return side_effect
+
+    for step in steps:
+        mocker.patch.object(reduce_EQSANS, step, side_effect=record_step_dir(step))
+    mocker.patch.object(reduce_EQSANS, "plot_reduction_output")
+    mocker.patch.object(reduce_EQSANS, "plotly_reduction_output", return_value="")
+    mocker.patch.object(reduce_EQSANS, "reduce_non_sample", return_value="")
+    mocker.patch.object(reduce_EQSANS, "GPR_AVAILABLE", False)
+
+    if failing_step:
+        with pytest.raises(RuntimeError, match=f"simulated {failing_step} failure"):
+            reduce_EQSANS.reduce_sample(simulated_events, str(output_dir), MagicMock())
+    else:
+        reduce_EQSANS.reduce_sample(simulated_events, str(output_dir), MagicMock())
+
+    # steps up to and including the failing one ran from within AUTOREDUCE_DIR
+    executed = steps[: steps.index(failing_step) + 1] if failing_step else steps
+    assert step_dirs == {step: str(shared_dir) for step in executed}
+    assert os.getcwd() == str(caller_dir)
 
 
 if __name__ == "__main__":

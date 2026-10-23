@@ -9,6 +9,7 @@ To make changes to this file:
 """
 
 import argparse
+import contextlib
 from copy import deepcopy
 import datetime
 import io
@@ -420,11 +421,13 @@ def reduce_sample(
 
     # load files and reduce
     logger.info("reduce_sample: loading input files with load_all_files()")
-    os.chdir(AUTOREDUCE_DIR)  # required for load_all_files() to work
-    # For live reduction, enable loading of processed Nexus files
-    loaded = load_all_files(input_config, allow_processed_nexus=is_live_reduction)
-    logger.info("reduce_sample: reducing with reduce_single_configuration()")
-    output = reduce_single_configuration(loaded, input_config)
+    # load_all_files() and reduce_single_configuration() resolve relative paths against AUTOREDUCE_DIR;
+    # restore the caller's working directory afterwards
+    with contextlib.chdir(AUTOREDUCE_DIR):
+        # For live reduction, enable loading of processed Nexus files
+        loaded = load_all_files(input_config, allow_processed_nexus=is_live_reduction)
+        logger.info("reduce_sample: reducing with reduce_single_configuration()")
+        output = reduce_single_configuration(loaded, input_config)
 
     # create PNG images for all intensity profiles
     logger.info("reduce_sample: saving intensity profiles to PNG images with plot_reduction_output()")
@@ -643,9 +646,11 @@ def autoreduce(args: argparse.Namespace):
 
     # amend the output directory, if necessary
     ipts = SampleLogs(events).experiment_identifier.value[5:]  # e.g. "12345" when having IPTS-12345
-    output_dir = args.outdir.rstrip("/")  # remove trailing slash, if any
+    # resolve against the caller's working directory, as reduce_sample() changes it to AUTOREDUCE_DIR.
+    # abspath also removes the trailing slash, if any
+    output_dir = os.path.abspath(args.outdir)
     if output_dir == AUTOREDUCE_IPTS_DIR.format(ipts=ipts):  # e.g. /SNS/EQSANS/IPTS-12345/shared/autoreduce/
-        output_dir = os.path.join(args.outdir, run)  # e.g. /SNS/EQSANS/IPTS-12345/shared/autoreduce/198434/
+        output_dir = os.path.join(output_dir, run)  # e.g. /SNS/EQSANS/IPTS-12345/shared/autoreduce/198434/
     os.makedirs(output_dir, exist_ok=True)
     # Give write access to group so that the autoreduction service can overwrite any output files generated
     # by one of the developers when manually running the reduction, for instance for debugging purposes

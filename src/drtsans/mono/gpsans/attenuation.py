@@ -1,4 +1,3 @@
-import ast
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 import importlib.resources
@@ -14,6 +13,7 @@ from mantid.kernel import logger
 import numpy as np
 import sympy
 
+from drtsans.expressions import Expression, ExpressionError, parse_expression, reserved_names
 from drtsans.samplelogs import SampleLogs
 
 __all__ = ["attenuation_factor"]
@@ -32,32 +32,7 @@ _ATTENUATOR_NAMES = {
 _NO_ATTENUATION = {"Undefined", "Close", "Open"}
 _DEFAULT_COEFFICIENTS_FILE = "GPSANS_attenuation_coefficients.txt"
 _INSTRUMENT_TIME_ZONE = ZoneInfo("America/New_York")
-
-
-def _log10(argument):
-    return sympy.log(argument, 10)
-
-
-_SUPPORTED_FUNCTIONS = {
-    "abs": sympy.Abs,
-    "acos": sympy.acos,
-    "asin": sympy.asin,
-    "atan": sympy.atan,
-    "cos": sympy.cos,
-    "cosh": sympy.cosh,
-    "erf": sympy.erf,
-    "exp": sympy.exp,
-    "log": sympy.log,
-    "log10": _log10,
-    "sin": sympy.sin,
-    "sinh": sympy.sinh,
-    "sqrt": sympy.sqrt,
-    "tan": sympy.tan,
-    "tanh": sympy.tanh,
-}
-_SUPPORTED_CONSTANTS = {"pi": sympy.pi}
-_RESERVED_NAMES = frozenset({"wavelength", *_SUPPORTED_FUNCTIONS, *_SUPPORTED_CONSTANTS})
-_LAMBDIFY_MODULES = [{"erf": math.erf}, "numpy"]
+_RESERVED_NAMES = reserved_names(("wavelength",))
 
 
 @dataclass(frozen=True)
@@ -111,31 +86,6 @@ class _FormulaBlockBuilder:
 
 
 @dataclass(frozen=True)
-class _CompiledFormula:
-    """Represent a validated attenuation expression ready for numerical evaluation.
-
-    Parameters
-    ----------
-    expression
-        Symbolic SymPy expression for the attenuation factor.
-    parameters
-        Ordered fitted parameter names declared by the first attenuator block.
-    uses_wavelength
-        Whether ``expression`` references the reserved variable ``wavelength``.
-    value_function
-        Lambdified callable that evaluates ``expression``.
-    derivative_functions
-        Lambdified partial derivatives keyed by fitted parameter name.
-    """
-
-    expression: sympy.Expr
-    parameters: Tuple[str, ...]
-    uses_wavelength: bool
-    value_function: object
-    derivative_functions: Dict[str, object]
-
-
-@dataclass(frozen=True)
 class _FormulaBlock:
     """Store a validated attenuation formula block.
 
@@ -156,7 +106,7 @@ class _FormulaBlock:
     formula: str
     parameters: Tuple[str, ...]
     coefficients: Dict[str, Dict[str, _ParameterValue]]
-    compiled: _CompiledFormula
+    compiled: Expression
     effective_date: Optional[date] = None
 
     def coefficients_for_log(self) -> Dict[str, Dict[str, Dict[str, float]]]:
@@ -272,7 +222,7 @@ def _attenuator_transmission(
         raise ValueError(message)
 
     wavelength = (
-        SampleLogs(input_workspace).single_value("wavelength") if coefficients.compiled.uses_wavelength else 0.0
+        SampleLogs(input_workspace).single_value("wavelength") if coefficients.compiled.uses("wavelength") else 0.0
     )
     return _evaluate_formula_with_error(coefficients, attenuator_name, wavelength)
 
@@ -722,7 +672,7 @@ def _compile_formula(
     parameters: Tuple[str, ...],
     source: Optional[Union[str, Path]] = None,
     line_number: Optional[int] = None,
-) -> _CompiledFormula:
+) -> Expression:
     """Compile a validated attenuation formula string.
 
     Parameters
@@ -738,8 +688,9 @@ def _compile_formula(
 
     Returns
     -------
-    _CompiledFormula
-        SymPy expression and numerical callables for the formula and its partial derivatives.
+    ~drtsans.expressions.Expression
+        SymPy expression and numerical callables for the formula and its partial derivatives, with the fitted
+        parameters followed by ``wavelength`` as arguments.
 
     Raises
     ------
@@ -747,31 +698,11 @@ def _compile_formula(
         If the expression uses unsupported syntax or names not declared by the attenuator blocks.
     """
     try:
-        parsed = ast.parse(formula, mode="eval")
-    except SyntaxError as error:
-        _raise_parse_error(source, line_number, f"invalid formula syntax: {error.msg}")
-
-    symbols = {parameter: sympy.Symbol(parameter, real=True) for parameter in parameters}
-    wavelength_symbol = sympy.Symbol("wavelength", real=True)
-    expression = _ast_to_sympy(parsed.body, symbols, wavelength_symbol, source, line_number)
-    uses_wavelength = wavelength_symbol in expression.free_symbols
-    unknown_symbols = {str(symbol) for symbol in expression.free_symbols} - set(parameters) - {"wavelength"}
-    if unknown_symbols:
-        _raise_parse_error(source, line_number, f"unknown formula symbols: {sorted(unknown_symbols)}")
-
-    arguments = [symbols[parameter] for parameter in parameters] + [wavelength_symbol]
-    value_function = sympy.lambdify(arguments, expression, modules=_LAMBDIFY_MODULES)
-    derivative_functions = {
-        parameter: sympy.lambdify(arguments, sympy.diff(expression, symbols[parameter]), modules=_LAMBDIFY_MODULES)
-        for parameter in parameters
-    }
-    return _CompiledFormula(
-        expression=expression,
-        parameters=parameters,
-        uses_wavelength=uses_wavelength,
-        value_function=value_function,
-        derivative_functions=derivative_functions,
-    )
+        return parse_expression(formula, variables=("wavelength",), parameters=parameters, with_uncertainty=True)
+    except ExpressionError as error:
+        if error.unknown_name is not None:
+            _raise_parse_error(source, line_number, f"{error.unknown_name} is not a parameter of any attenuator block")
+        _raise_parse_error(source, line_number, str(error))
 
 
 def _evaluate_formula_with_error(
@@ -794,19 +725,11 @@ def _evaluate_formula_with_error(
         Formula value and uncertainty from independent-parameter propagation.
     """
     parameter_values = formula_block.coefficients[attenuator_name]
-    values = [parameter_values[parameter].value for parameter in formula_block.parameters]
-    # Lambdify emits plain operators for division and powers. With NumPy scalars, division by zero and fractional
-    # powers of negative numbers yield inf or nan, which the finite checks below report, instead of raising
-    # ZeroDivisionError or returning a complex number as Python floats do.
-    arguments = [np.float64(argument) for argument in values + [wavelength]]
-    with np.errstate(all="ignore"):
-        value = float(formula_block.compiled.value_function(*arguments))
-    variance = 0.0
-    for parameter in formula_block.parameters:
-        with np.errstate(all="ignore"):
-            derivative = float(formula_block.compiled.derivative_functions[parameter](*arguments))
-        variance += (derivative * parameter_values[parameter].error) ** 2
-    uncertainty = float(np.sqrt(variance))
+    value, uncertainty = formula_block.compiled.evaluate_with_uncertainty(
+        [parameter_values[parameter].value for parameter in formula_block.parameters],
+        [parameter_values[parameter].error for parameter in formula_block.parameters],
+        [wavelength],
+    )
     if not math.isfinite(value):
         message = f"Attenuation formula for {attenuator_name} evaluated to non-finite value {value}"
         logger.error(message)
@@ -952,86 +875,6 @@ def _split_assignment(source: Optional[Union[str, Path]], line: str, line_number
         _raise_parse_error(source, line_number, "expected assignment containing '='")
     name, value = line.split("=", 1)
     return name.strip(), value.strip()
-
-
-def _ast_to_sympy(
-    node: ast.AST,
-    symbols: Dict[str, sympy.Symbol],
-    wavelength_symbol: sympy.Symbol,
-    source: Optional[Union[str, Path]],
-    line_number: Optional[int],
-) -> sympy.Expr:
-    """Translate an allowed Python expression AST into a SymPy expression.
-
-    Parameters
-    ----------
-    node
-        AST node from ``ast.parse(..., mode="eval")``.
-    symbols
-        Allowed fitted-parameter names mapped to SymPy symbols.
-    wavelength_symbol
-        SymPy symbol for the reserved ``wavelength`` variable.
-    source
-        Optional file path or label for diagnostics.
-    line_number
-        Optional source line number for diagnostics.
-
-    Returns
-    -------
-    sympy.Expr
-        Symbolic expression equivalent to ``node``.
-
-    Raises
-    ------
-    ValueError
-        If ``node`` contains unsupported syntax, unsupported function calls, or undeclared names.
-    """
-    if isinstance(node, ast.Constant):
-        if isinstance(node.value, (int, float)):
-            return sympy.Float(node.value) if isinstance(node.value, float) else sympy.Integer(node.value)
-        _raise_parse_error(source, line_number, "formula constants must be numbers")
-    if isinstance(node, ast.Name):
-        if node.id in symbols:
-            return symbols[node.id]
-        if node.id == "wavelength":
-            return wavelength_symbol
-        if node.id in _SUPPORTED_CONSTANTS:
-            return _SUPPORTED_CONSTANTS[node.id]
-        _raise_parse_error(source, line_number, f"{node.id} is not a parameter of any attenuator block")
-    if isinstance(node, ast.BinOp):
-        left = _ast_to_sympy(node.left, symbols, wavelength_symbol, source, line_number)
-        right = _ast_to_sympy(node.right, symbols, wavelength_symbol, source, line_number)
-        if isinstance(node.op, ast.Add):
-            return left + right
-        if isinstance(node.op, ast.Sub):
-            return left - right
-        if isinstance(node.op, ast.Mult):
-            return left * right
-        if isinstance(node.op, ast.Div):
-            return left / right
-        if isinstance(node.op, ast.Pow):
-            return left**right
-        _raise_parse_error(source, line_number, "unsupported formula operator")
-    if isinstance(node, ast.UnaryOp):
-        operand = _ast_to_sympy(node.operand, symbols, wavelength_symbol, source, line_number)
-        if isinstance(node.op, ast.UAdd):
-            return operand
-        if isinstance(node.op, ast.USub):
-            return -operand
-        _raise_parse_error(source, line_number, "unsupported unary formula operator")
-    if isinstance(node, ast.Call):
-        if not isinstance(node.func, ast.Name) or node.func.id not in _SUPPORTED_FUNCTIONS:
-            _raise_parse_error(source, line_number, "formula calls are limited to supported functions")
-        if node.keywords:
-            _raise_parse_error(source, line_number, "formula functions do not accept keyword arguments")
-        arguments = [
-            _ast_to_sympy(argument, symbols, wavelength_symbol, source, line_number) for argument in node.args
-        ]
-        try:
-            return _SUPPORTED_FUNCTIONS[node.func.id](*arguments)
-        except (TypeError, ValueError) as error:
-            _raise_parse_error(source, line_number, f"invalid call to {node.func.id}: {error}")
-    _raise_parse_error(source, line_number, "formula contains unsupported syntax")
 
 
 def _formula_parameter_names(expression: sympy.Expr, parameters: Tuple[str, ...]) -> set:

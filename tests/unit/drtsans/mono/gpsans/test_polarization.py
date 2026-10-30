@@ -409,6 +409,33 @@ class TestPolarizationDecoder:
         assert decoder.p(10.0) == pytest.approx(0.9)
         assert decoder.e(10.0) == pytest.approx(0.8)
 
+    def test_supported_functions_and_constants(self):
+        config = {"polarization": {"polarizer": {"polarization": "0.95 - 0.01*exp(-x/pi)", "efficiency": "1"}}}
+        decoder = PolarizationDecoder(config)
+        assert decoder.p(6.0) == pytest.approx(0.95 - 0.01 * np.exp(-6.0 / np.pi))
+
+    @pytest.mark.parametrize(
+        "expression, match",
+        [
+            ("0.95 - 0.01*(wavelength - 16)", "wavelength is not an allowed name"),
+            ("y + 1", "y is not an allowed name"),
+            ("gamma(x)", "formula calls are limited to supported functions"),
+            ("__import__('os')", "formula calls are limited to supported functions"),
+            ("x.real", "formula contains unsupported syntax"),
+            ("x =", "invalid formula syntax"),
+        ],
+    )
+    def test_invalid_expression_raises_on_construction(self, expression, match):
+        config = {"polarization": {"polarizer": {"polarization": expression}}}
+        with pytest.raises(ValueError, match=match) as exc_info:
+            PolarizationDecoder(config)
+        assert "polarizer polarization" in str(exc_info.value)
+
+    def test_invalid_analyzer_expression_raises_on_construction(self):
+        config = {"polarization": {"analyzer": {"polarizationPi": "-0.9 + wavelength"}}}
+        with pytest.raises(ValueError, match="analyzer polarizationPi"):
+            FullPolarizationDecoder(config)
+
     def test_defaults_are_unity(self):
         decoder = PolarizationDecoder({})
         for wavelength in [5.0, 10.0, 16.0]:

@@ -757,6 +757,46 @@ class TestReductionParametersGPSANS:
         )
         reduction_parameters(parameters_new, permissible=True)
 
+    @pytest.mark.datarepo
+    def test_polarization_expressions(self, datarepo_dir):
+        r"""Test the checkExpression validation of polarization properties"""
+        parameters = deepcopy(self.parameters_all)
+        polarization = parameters["configuration"]["polarization"]
+
+        # numbers and valid expressions in x are accepted
+        polarization["polarizer"] = {"polarization": 0.95, "efficiency": "0.98 - 0.001*(x - 16)"}
+        polarization["analyzer"] = {"polarizationZero": "0.9*exp(-x/pi)", "polarizationPi": -0.9}
+        with amend_config(data_dir=datarepo_dir.gpsans):
+            validate_reduction_parameters(parameters)
+
+        # invalid expressions are rejected for every polarization property
+        for device, name in [
+            ("polarizer", "polarization"),
+            ("polarizer", "efficiency"),
+            ("analyzer", "polarizationZero"),
+            ("analyzer", "polarizationPi"),
+        ]:
+            for expression, reason in [
+                ("0.95 - 0.01*(wavelength - 16)", "wavelength is not an allowed name"),
+                ("y + 1", "y is not an allowed name"),
+                ("gamma(x)", "formula calls are limited to supported functions"),
+                ("x.real", "formula contains unsupported syntax"),
+            ]:
+                invalid = deepcopy(parameters)
+                invalid["configuration"]["polarization"][device][name] = expression
+                with pytest.raises(ReductionParameterError) as exc_info:
+                    with amend_config(data_dir=datarepo_dir.gpsans):
+                        validate_reduction_parameters(invalid)
+                assert f"Invalid expression {expression!r}: {reason}" in str(exc_info.value)
+                assert f"configuration.polarization.{device}.{name}" in str(exc_info.value)
+
+        # numbers outside the physical bounds are still rejected by the numeric bounds
+        polarization["polarizer"]["efficiency"] = 1.5
+        with pytest.raises(ReductionParameterError) as exc_info:
+            with amend_config(data_dir=datarepo_dir.gpsans):
+                validate_reduction_parameters(parameters)
+        assert "1.5 is greater than the maximum of 1" in str(exc_info.value)
+
     def test_polarization_defaults(self):
         assert self.parameters_all["configuration"]["polarization"] == {
             "polarizer": {"polarization": "1", "efficiency": "1"},

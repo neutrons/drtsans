@@ -20,6 +20,7 @@ from mantid.kernel import IntArrayProperty  # noqa: E404
 
 # drtsans imports
 from drtsans import configdir  # noqa: E404, non-source files
+from drtsans.expressions import ExpressionError, parse_expression  # noqa: E404
 from drtsans.instruments import (
     instrument_filesystem_name,
     instrument_standard_name,
@@ -582,6 +583,7 @@ class ReductionParameters:
     # 1. private class variables
 
     _validators = {
+        "checkExpression": "_validate_check_expression",
         "dataSource": "_validate_data_source",
         "evaluateCondition": "_validate_evaluate_condition",
         "exclusiveOr": "_validate_exclusive_or",
@@ -801,6 +803,36 @@ class ReductionParameters:
                     if "preferredType" in schema_value:  # parameter_value is not empty
                         cast = type_selector(schema_value["preferredType"])
                         parameters[name] = cast(parameter_value)
+
+    def _validate_check_expression(self, validator, value, instance, schema):
+        r"""
+        Check that a string entry is a valid expression in the variable named by the schema.
+
+        For example, ``"checkExpression": {"variable": "x"}`` accepts ``"0.95 - 0.01*(x - 16)"`` and rejects
+        ``"0.95 - 0.01*(wavelength - 16)"``. The expression syntax is that of :py:mod:`drtsans.expressions`.
+
+        Parameters
+        ----------
+        validator: ~jsonschema.IValidator
+        value: dict
+            ``{"variable": name}``, the only variable name the expression may use.
+        instance: object
+            value for the entry being validated. Only strings are checked; numbers are left to the numeric
+            branch of the schema.
+        schema: dict
+            schema related to `instance`
+
+        Raises
+        ------
+        ~jsonschema.ValidationError
+            when `instance` is a string that is not a valid expression.
+        """
+        if not isinstance(instance, str):
+            return
+        try:
+            parse_expression(instance, variables=(value["variable"],))
+        except ExpressionError as error:
+            yield jsonschema.ValidationError(f"Invalid expression {instance!r}: {error}")
 
     def _validate_data_source(self, validator, value, instance, schema):
         r"""

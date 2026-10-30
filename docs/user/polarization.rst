@@ -432,6 +432,8 @@ The input configuration (JSON file) allows for the specification of the polarize
 and the efficiency of the flipper.
 It also allows for the specification of analyzer's polarizations for the two states of the analyzer.
 These values can be specified as either a single value or as a string expression representing
-a wavelength-dependent function :math:`f(x)`.
+a wavelength-dependent function :math:`f(x)`, where ``x`` is the wavelength in Å. ``x`` is the only
+variable name accepted; see :ref:`user.expressions` for the allowed operators and functions.
+An invalid expression is rejected when the reduction parameters are validated.
 See the "polarization" entry in the :doc:`reduction parameters reference </drtsans/reduction_parameters>`
 for the full JSON configuration schema.

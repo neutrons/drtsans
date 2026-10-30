@@ -148,10 +148,8 @@ The formula and fitted parameter values are read from a text file:
 - parameter lines use ``parameter = value, uncertainty``;
 - the first attenuator block declares the fitted parameter names, and every later attenuator block must define
   the same parameter names;
-- supported formula syntax is numbers, fitted parameter names, ``wavelength``, arithmetic operators,
-  parentheses, and the functions ``abs``, ``acos``, ``asin``, ``atan``, ``cos``, ``cosh``, ``erf``, ``exp``,
-  ``log``, ``log10``, ``sin``, ``sinh``, ``sqrt``, ``tan`` and ``tanh``;
-- the constant ``pi`` is supported;
+- the formula may use the fitted parameter names, the variable ``wavelength``, and the syntax described in
+  :ref:`user.expressions`;
 - each attenuator name appears only once.
 
 drtsans includes a timestamped default file, ``GPSANS_attenuation_coefficients.txt``. Each calibration block

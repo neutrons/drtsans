@@ -138,12 +138,29 @@ def test_non_string_non_number_input_is_rejected(value):
         ("x[0]", "formula contains unsupported syntax"),
         ("x < 1", "formula contains unsupported syntax"),
         ("lambda: x", "formula contains unsupported syntax"),
+        ("sqrt(-1)", "formula has a complex value"),
+        ("(-1)**0.5", "formula has a complex value"),
+        ("log(-1) + x", "formula has a complex value"),
+        ("1/0", "infinite value of undefined sign"),
+        ("x / 0", "infinite value of undefined sign"),
+        ("log(0)", "infinite value of undefined sign"),
+        ("10**400", "formula constant is out of range"),
+        ("0.1**-400", "formula constant is out of range"),
+        ("10**10**10", "formula constant is out of range"),
+        ("(10**200)**2", "formula constant is out of range"),
     ],
 )
 def test_unsupported_syntax(text, message):
     with pytest.raises(ExpressionError, match=message) as exc_info:
         parse_expression(text, variables=("x",))
     assert exc_info.value.unknown_name is None
+
+
+@pytest.mark.parametrize(
+    "text, expected", [("10**300", 1.0e300), ("2**-1000", 2.0**-1000), ("x**1000", 1.0), ("0**400", 0.0)]
+)
+def test_powers_within_float_range(text, expected):
+    assert parse_expression(text, variables=("x",))(1.0) == pytest.approx(expected)
 
 
 def test_unknown_name_is_reported():
@@ -167,6 +184,8 @@ def test_reserved_names():
         (("x",), ("pi",), "pi is a reserved name"),
         (("exp",), (), "exp is a reserved name"),
         (("x",), ("1A",), "is not a valid variable or parameter name"),
+        # fullwidth K, which Python reads as K
+        (("x",), ("\uff2b",), "is not a valid variable or parameter name"),
         (("x",), ("x",), "names are repeated"),
     ],
 )

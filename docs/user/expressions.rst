@@ -4,8 +4,11 @@ Expression Syntax
 =================
 
 Some configuration values are mathematical expressions rather than plain numbers, for example a polarization
-that varies with wavelength. drtsans reads all of them with the same restricted syntax, provided by
+that varies with wavelength. The settings listed below are read with the same restricted syntax, provided by
 :py:mod:`drtsans.expressions`. An invalid expression is rejected when it is read, before any data are reduced.
+
+The ``expr`` fit constraint in the beam-center ``gaussian_centering_options`` is not covered by this page. It is
+passed to the `lmfit <https://lmfit.github.io/lmfit-py/constraints.html>`_ fitting package and follows its syntax.
 
 Where expressions are used
 --------------------------
@@ -42,11 +45,14 @@ Allowed syntax
 
 Anything else is rejected, including undeclared names (for example ``wavelength`` in a polarization setting, which
 must use ``x``), other functions, keyword arguments, attribute access such as ``np.exp``, indexing, comparisons,
-the operators ``//`` and ``%``, and text in quotes. The error message states the reason.
+the operators ``//`` and ``%``, and text in quotes. Expressions whose constant part has a complex value, such as
+``sqrt(-1)``, or is infinite with undefined sign, such as ``1/0``, are also rejected, as are constant powers too
+large or too small for a 64-bit floating-point number, such as ``10**400``. The error message states the reason.
 
-Division by zero, or a fractional power of a negative number, is not detected when the expression is read. It
-gives an infinite or undefined value when the expression is evaluated. The attenuation correction and the
-polarization correction then report an error.
+When a division by zero, or a fractional power of a negative number, depends on the value of a variable or of a
+fitted parameter, it cannot be detected when the expression is read. It gives an infinite or undefined value
+when the expression is evaluated. The attenuation correction and the polarization correction then report an
+error.
 
 Examples
 --------

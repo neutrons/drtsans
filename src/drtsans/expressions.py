@@ -12,6 +12,7 @@ import ast
 from dataclasses import dataclass, field
 import math
 from typing import Callable, Dict, FrozenSet, Optional, Sequence, Tuple, Union
+import unicodedata
 
 import numpy as np
 import sympy
@@ -49,6 +50,9 @@ SUPPORTED_FUNCTIONS = {
 }
 SUPPORTED_CONSTANTS = {"pi": sympy.pi}
 _LAMBDIFY_MODULES = [{"erf": math.erf}, "numpy"]
+# Largest decimal exponent of a 64-bit float. Constant powers beyond it cannot be evaluated as floats, and SymPy
+# would compute them exactly while parsing, which takes unbounded time and memory.
+_MAX_DECIMAL_EXPONENT = 308
 
 
 class ExpressionError(ValueError):
@@ -233,8 +237,9 @@ def parse_expression(
     Raises
     ------
     ExpressionError
-        If ``value`` is not a string or number, uses unsupported syntax, or references undeclared names, or if a
-        variable or parameter name is invalid or conflicts with a reserved name.
+        If ``value`` is not a string or number, uses unsupported syntax, references undeclared names, has a
+        complex value, or has a constant power beyond the range of 64-bit floats, or if a variable or parameter
+        name is invalid or conflicts with a reserved name.
     """
     variables = tuple(variables)
     parameters = tuple(parameters)
@@ -255,6 +260,12 @@ def parse_expression(
         expression = _ast_to_sympy(parsed.body, symbols)
     else:
         expression = sympy.Float(value) if isinstance(value, float) else sympy.Integer(value)
+
+    # SymPy simplifies constant parts while parsing, so sqrt(-1) becomes I and 1/0 or log(0) becomes complex infinity
+    if expression.has(sympy.I):
+        raise ExpressionError("formula has a complex value")
+    if expression.has(sympy.zoo):
+        raise ExpressionError("formula has an infinite value of undefined sign, for example from a division by zero")
 
     arguments = [parameter_symbols[name] for name in parameters] + [variable_symbols[name] for name in variables]
     value_function = sympy.lambdify(arguments, expression, modules=_LAMBDIFY_MODULES)
@@ -287,11 +298,14 @@ def _validate_names(variables: Tuple[str, ...], parameters: Tuple[str, ...]) -> 
     Raises
     ------
     ExpressionError
-        If a name is not an identifier, is repeated, or is a supported function or constant name.
+        If a name is not an identifier, is not in Unicode NFKC normal form, is repeated, or is a supported function
+        or constant name.
     """
     names = variables + parameters
     for name in names:
-        if not name.isidentifier():
+        # Python converts identifiers to NFKC form when parsing, so a name such as fullwidth "\uff2b" would be
+        # read as "K" in the expression and no longer match its declaration
+        if not name.isidentifier() or unicodedata.normalize("NFKC", name) != name:
             raise ExpressionError(f"{name!r} is not a valid variable or parameter name")
         if name in SUPPORTED_FUNCTIONS or name in SUPPORTED_CONSTANTS:
             raise ExpressionError(f"{name} is a reserved name")
@@ -322,6 +336,30 @@ def _evaluate(function: Callable, arguments: Sequence[float]) -> float:
         return float(function(*[np.float64(argument) for argument in arguments]))
 
 
+def _check_power_range(base: sympy.Expr, exponent: sympy.Expr) -> None:
+    """Reject a constant power whose magnitude is beyond the range of 64-bit floats.
+
+    Parameters
+    ----------
+    base
+        Constant base of the power.
+    exponent
+        Constant exponent of the power.
+
+    Raises
+    ------
+    ExpressionError
+        If :math:`|\\text{exponent} \\cdot \\log_{10}|\\text{base}||` exceeds the largest decimal exponent of a
+        64-bit float.
+    """
+    magnitude = float(sympy.Abs(base))
+    if magnitude == 0.0 or not math.isfinite(magnitude):
+        return
+    decimal_exponent = float(sympy.Abs(exponent)) * abs(math.log10(magnitude))
+    if decimal_exponent > _MAX_DECIMAL_EXPONENT:
+        raise ExpressionError("formula constant is out of range")
+
+
 def _ast_to_sympy(node: ast.AST, symbols: Dict[str, sympy.Symbol]) -> sympy.Expr:
     """Translate an allowed Python expression AST into a SymPy expression.
 
@@ -340,7 +378,8 @@ def _ast_to_sympy(node: ast.AST, symbols: Dict[str, sympy.Symbol]) -> sympy.Expr
     Raises
     ------
     ExpressionError
-        If ``node`` contains unsupported syntax, unsupported function calls, or undeclared names.
+        If ``node`` contains unsupported syntax, unsupported function calls, undeclared names, or a constant power
+        beyond the range of 64-bit floats.
     """
     if isinstance(node, ast.Constant):
         if isinstance(node.value, (int, float)):
@@ -364,6 +403,8 @@ def _ast_to_sympy(node: ast.AST, symbols: Dict[str, sympy.Symbol]) -> sympy.Expr
         if isinstance(node.op, ast.Div):
             return left / right
         if isinstance(node.op, ast.Pow):
+            if left.is_number and right.is_number:
+                _check_power_range(left, right)
             return left**right
         raise ExpressionError("unsupported formula operator")
     if isinstance(node, ast.UnaryOp):

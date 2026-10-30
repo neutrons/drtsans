@@ -106,6 +106,11 @@ def test_surrounding_whitespace_is_ignored():
     assert parse_expression("  0.9 + x \n", variables=("x",))(0.05) == pytest.approx(0.95)
 
 
+@pytest.mark.parametrize("text, expected", [("+x", 2.0), ("-x", -2.0), ("-(-x)", 2.0), ("2 * -x", -4.0)])
+def test_unary_operators(text, expected):
+    assert parse_expression(text, variables=("x",))(2.0) == pytest.approx(expected)
+
+
 @pytest.mark.parametrize("value, expected", [(0.9, 0.9), (-1, -1.0), (2, 2.0)])
 def test_number_input(value, expected):
     assert parse_expression(value, variables=("x",))(6.0) == pytest.approx(expected)
@@ -184,3 +189,5 @@ def test_evaluation_argument_errors():
     with_uncertainty = parse_expression("A * x", variables=("x",), parameters=("A",), with_uncertainty=True)
     with pytest.raises(TypeError, match="expected 1 parameter values"):
         with_uncertainty.evaluate_with_uncertainty([1.0, 2.0], [0.1], [1.0])
+    with pytest.raises(TypeError, match="expected 1 variable values, got 2"):
+        with_uncertainty.evaluate_with_uncertainty([1.0], [0.1], [1.0, 2.0])

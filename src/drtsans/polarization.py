@@ -11,9 +11,9 @@ from mantid.api import AnalysisDataService
 from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import DeleteLog, logger, mtd
 import numpy as np
-import sympy as sp
 
 # drtsans imports
+from drtsans.expressions import Expression, ExpressionError, parse_expression
 from drtsans.path import abspath
 from drtsans.samplelogs import SampleLogs
 from drtsans.type_hints import MantidWorkspace
@@ -257,7 +257,10 @@ class PolarizationDecoder:
     reduction_config : dict
         Reduction configuration containing optional ``polarization.polarizer`` entries.
         The polarizer ``polarization`` and flipper ``efficiency`` values may be numeric
-        constants or expressions in wavelength symbol ``x``.
+        constants or expressions in wavelength symbol ``x``, in Å. Expressions use the
+        syntax of :py:mod:`drtsans.expressions`; ``x`` is the only name allowed besides
+        the supported functions and ``pi``. Invalid expressions raise ``ValueError``
+        when the decoder is created.
 
     Attributes
     ----------
@@ -267,17 +270,34 @@ class PolarizationDecoder:
         Wavelength-dependent polarizer flipper efficiency, bounded in ``[0, 1]``.
     """
 
-    _x = sp.Symbol("x")  # wavelength symbol used in all sympy expressions
+    @staticmethod
+    def _parse(name: str, value: Union[str, int, float]) -> Expression:
+        """
+        Parse a config value (string or number) into a callable of the wavelength ``x``, in Å.
 
-    @classmethod
-    def _sympify(cls, value) -> sp.Expr:
-        """Parse a config value (string or number) into a sympy expression in x (wavelength)."""
-        return sp.sympify(str(value))
+        Parameters
+        ----------
+        name : str
+            Configuration key of ``value``, used in the exception message.
+        value : str, int or float
+            Constant or expression in ``x`` using the syntax of :py:mod:`drtsans.expressions`.
 
-    @classmethod
-    def _lambdify(cls, expr: sp.Expr):
-        """Convert a sympy expression in x into a numpy-callable function."""
-        return sp.lambdify(cls._x, expr, "numpy")
+        Returns
+        -------
+        ~drtsans.expressions.Expression
+            Callable returning the value at a given wavelength.
+
+        Raises
+        ------
+        ValueError
+            If ``value`` is not a number or a valid expression in ``x``.
+        """
+        try:
+            return parse_expression(value, variables=("x",))
+        except ExpressionError as error:
+            message = f"Invalid {name} expression {value!r}: {error}"
+            logger.error(message)
+            raise ValueError(message) from None
 
     @staticmethod
     def _validate_polarization(name: str, value: float):
@@ -331,8 +351,8 @@ class PolarizationDecoder:
             to perfect polarization and perfect flipper efficiency.
         """
         polarizer = reduction_config.get("polarization", {}).get("polarizer", {})
-        self.p = self._lambdify(self._sympify(polarizer.get("polarization", "1")))
-        self.e = self._lambdify(self._sympify(polarizer.get("efficiency", "1")))
+        self.p = self._parse("polarizer polarization", polarizer.get("polarization", "1"))
+        self.e = self._parse("polarizer efficiency", polarizer.get("efficiency", "1"))
 
     def decode(self, device_cross_sections):
         """
@@ -466,8 +486,8 @@ class FullPolarizationDecoder(PolarizationDecoder):
         """
         super().__init__(reduction_config)
         analyzer = reduction_config.get("polarization", {}).get("analyzer", {})
-        self.p_0 = self._lambdify(self._sympify(analyzer.get("polarizationZero", "1")))
-        self.p_pi = self._lambdify(self._sympify(analyzer.get("polarizationPi", "-1")))
+        self.p_0 = self._parse("analyzer polarizationZero", analyzer.get("polarizationZero", "1"))
+        self.p_pi = self._parse("analyzer polarizationPi", analyzer.get("polarizationPi", "-1"))
 
     def encoding_matrix(self, wavelength: float) -> np.ndarray:
         """

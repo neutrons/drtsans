@@ -141,6 +141,9 @@ def test_non_string_non_number_input_is_rejected(value):
         ("sqrt(-1)", "formula has a complex value"),
         ("(-1)**0.5", "formula has a complex value"),
         ("log(-1) + x", "formula has a complex value"),
+        ("acos(2)", "formula has a complex value"),
+        ("x * acos(2)", "formula has a complex value"),
+        ("(-1)**(1/3)", "formula has a complex value"),
         ("1/0", "infinite value of undefined sign"),
         ("x / 0", "infinite value of undefined sign"),
         ("log(0)", "infinite value of undefined sign"),
@@ -148,6 +151,12 @@ def test_non_string_non_number_input_is_rejected(value):
         ("0.1**-400", "formula constant is out of range"),
         ("10**10**10", "formula constant is out of range"),
         ("(10**200)**2", "formula constant is out of range"),
+        ("10**200 * 10**200", "formula constant is out of range"),
+        ("pi**1000", "formula constant is out of range"),
+        # exact powers that SymPy would take unbounded time and memory to compute while parsing
+        ("(1 + 1/10**20)**(10**9)", "formula constant is out of range"),
+        ("(10**200 * 10**200)**1000000000", "formula constant is out of range"),
+        ("sqrt(2)**(10**9)", "formula constant is out of range"),
     ],
 )
 def test_unsupported_syntax(text, message):
@@ -157,7 +166,19 @@ def test_unsupported_syntax(text, message):
 
 
 @pytest.mark.parametrize(
-    "text, expected", [("10**300", 1.0e300), ("2**-1000", 2.0**-1000), ("x**1000", 1.0), ("0**400", 0.0)]
+    "text, expected",
+    [
+        ("10**300", 1.0e300),
+        ("(1.5e308)**1", 1.5e308),
+        ("2**-1000", 2.0**-1000),
+        # smallest subnormal 64-bit float
+        ("2**-1074", 5.0e-324),
+        # too small for a 64-bit float, so evaluates to zero
+        ("10**-400", 0.0),
+        ("x**1000", 1.0),
+        ("0**400", 0.0),
+        ("1**(10**9)", 1.0),
+    ],
 )
 def test_powers_within_float_range(text, expected):
     assert parse_expression(text, variables=("x",))(1.0) == pytest.approx(expected)

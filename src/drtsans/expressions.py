@@ -11,6 +11,7 @@ names of fitted parameters whose uncertainties are propagated to first order.
 import ast
 from dataclasses import dataclass, field
 import math
+import sys
 from typing import Callable, Dict, FrozenSet, Optional, Sequence, Tuple, Union
 import unicodedata
 
@@ -50,9 +51,11 @@ SUPPORTED_FUNCTIONS = {
 }
 SUPPORTED_CONSTANTS = {"pi": sympy.pi}
 _LAMBDIFY_MODULES = [{"erf": math.erf}, "numpy"]
-# Largest decimal exponent of a 64-bit float. Constant powers beyond it cannot be evaluated as floats, and SymPy
-# would compute them exactly while parsing, which takes unbounded time and memory.
-_MAX_DECIMAL_EXPONENT = 308
+# Decimal logarithm of the largest 64-bit float. Constants beyond it cannot be evaluated as floats.
+_MAX_FLOAT_LOG10 = math.log10(sys.float_info.max)
+# SymPy computes powers of exact numbers exactly while parsing. Bounding the number of decimal digits of exact
+# numbers keeps that computation fast, and still allows every value a 64-bit float can represent.
+_MAX_EXACT_DIGITS = 1000
 
 
 class ExpressionError(ValueError):
@@ -238,7 +241,7 @@ def parse_expression(
     ------
     ExpressionError
         If ``value`` is not a string or number, uses unsupported syntax, references undeclared names, has a
-        complex value, or has a constant power beyond the range of 64-bit floats, or if a variable or parameter
+        complex value, or has a constant beyond the range of 64-bit floats, or if a variable or parameter
         name is invalid or conflicts with a reserved name.
     """
     variables = tuple(variables)
@@ -261,11 +264,13 @@ def parse_expression(
     else:
         expression = sympy.Float(value) if isinstance(value, float) else sympy.Integer(value)
 
-    # SymPy simplifies constant parts while parsing, so sqrt(-1) becomes I and 1/0 or log(0) becomes complex infinity
-    if expression.has(sympy.I):
-        raise ExpressionError("formula has a complex value")
+    # SymPy simplifies constant parts while parsing, so 1/0 or log(0) becomes complex infinity and sqrt(-1) becomes
+    # I. Constant parts that SymPy leaves unevaluated, such as acos(2), are still known not to be real.
     if expression.has(sympy.zoo):
         raise ExpressionError("formula has an infinite value of undefined sign, for example from a division by zero")
+    if any(sub.is_real is False for sub in sympy.preorder_traversal(expression) if not sub.free_symbols):
+        raise ExpressionError("formula has a complex value")
+    _check_number_range(expression)
 
     arguments = [parameter_symbols[name] for name in parameters] + [variable_symbols[name] for name in variables]
     value_function = sympy.lambdify(arguments, expression, modules=_LAMBDIFY_MODULES)
@@ -336,8 +341,24 @@ def _evaluate(function: Callable, arguments: Sequence[float]) -> float:
         return float(function(*[np.float64(argument) for argument in arguments]))
 
 
+def _exact_digits(number: sympy.Rational) -> float:
+    """Return the number of decimal digits of the larger of the numerator and denominator of an exact number.
+
+    Parameters
+    ----------
+    number
+        Exact integer or rational number.
+
+    Returns
+    -------
+    float
+        Decimal logarithm of the larger of the numerator and denominator.
+    """
+    return math.log10(max(abs(number.p), number.q))
+
+
 def _check_power_range(base: sympy.Expr, exponent: sympy.Expr) -> None:
-    """Reject a constant power whose magnitude is beyond the range of 64-bit floats.
+    """Reject a constant power that SymPy cannot compute quickly or that exceeds the largest 64-bit float.
 
     Parameters
     ----------
@@ -349,15 +370,50 @@ def _check_power_range(base: sympy.Expr, exponent: sympy.Expr) -> None:
     Raises
     ------
     ExpressionError
-        If :math:`|\\text{exponent} \\cdot \\log_{10}|\\text{base}||` exceeds the largest decimal exponent of a
+        If the exact numbers in ``base`` raised to ``exponent`` would exceed the allowed number of digits, or if
+        :math:`\\text{exponent} \\cdot \\log_{10}|\\text{base}|` exceeds the decimal logarithm of the largest
         64-bit float.
     """
-    magnitude = float(sympy.Abs(base))
-    if magnitude == 0.0 or not math.isfinite(magnitude):
-        return
-    decimal_exponent = float(sympy.Abs(exponent)) * abs(math.log10(magnitude))
-    if decimal_exponent > _MAX_DECIMAL_EXPONENT:
+    try:
+        exponent_magnitude = float(sympy.Abs(exponent))
+    except OverflowError:
+        exponent_magnitude = math.inf
+    # SymPy distributes the power over the exact numbers in the base, for example sqrt(2)**n becomes 2**(n/2)
+    base_digits = max((_exact_digits(number) for number in base.atoms(sympy.Rational)), default=0.0)
+    if base_digits > 0.0 and exponent_magnitude * base_digits > _MAX_EXACT_DIGITS:
         raise ExpressionError("formula constant is out of range")
+    # constants such as pi**1000 are not computed while parsing, but their value would overflow when evaluated
+    magnitude = float(sympy.Abs(base))
+    if magnitude in (0.0, 1.0) or not math.isfinite(magnitude) or not exponent.is_extended_real:
+        return
+    exponent_sign = 1.0 if exponent.is_extended_nonnegative else -1.0
+    if exponent_sign * exponent_magnitude * math.log10(magnitude) > _MAX_FLOAT_LOG10:
+        raise ExpressionError("formula constant is out of range")
+
+
+def _check_number_range(expression: sympy.Expr) -> None:
+    """Reject numbers in an expression that exceed the largest 64-bit float or the allowed number of exact digits.
+
+    Parameters
+    ----------
+    expression
+        Parsed expression.
+
+    Raises
+    ------
+    ExpressionError
+        If a number is infinite when converted to a 64-bit float, or if an exact number has more than the allowed
+        number of digits. Numbers too small for a 64-bit float are accepted, because they evaluate to zero.
+    """
+    for number in expression.atoms(sympy.Number):
+        if isinstance(number, sympy.Rational) and _exact_digits(number) > _MAX_EXACT_DIGITS:
+            raise ExpressionError("formula constant is out of range")
+        try:
+            value = float(number)
+        except OverflowError:
+            value = math.inf
+        if math.isinf(value):
+            raise ExpressionError("formula constant is out of range")
 
 
 def _ast_to_sympy(node: ast.AST, symbols: Dict[str, sympy.Symbol]) -> sympy.Expr:

@@ -46,8 +46,9 @@ Allowed syntax
 Anything else is rejected, including undeclared names (for example ``wavelength`` in a polarization setting, which
 must use ``x``), other functions, keyword arguments, attribute access such as ``np.exp``, indexing, comparisons,
 the operators ``//`` and ``%``, and text in quotes. Expressions whose constant part has a complex value, such as
-``sqrt(-1)``, or is infinite with undefined sign, such as ``1/0``, are also rejected, as are constant powers too
-large or too small for a 64-bit floating-point number, such as ``10**400``. The error message states the reason.
+``sqrt(-1)`` or ``acos(2)``, or is infinite with undefined sign, such as ``1/0``, are also rejected, as are
+constants too large for a 64-bit floating-point number, such as ``10**400``. Constants too small for it, such as
+``10**-400``, evaluate to zero. The error message states the reason.
 
 When a division by zero, or a fractional power of a negative number, depends on the value of a variable or of a
 fitted parameter, it cannot be detected when the expression is read. It gives an infinite or undefined value

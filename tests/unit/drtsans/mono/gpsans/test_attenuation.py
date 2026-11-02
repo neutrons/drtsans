@@ -307,6 +307,8 @@ def test_attenuation_factor_custom_file(generic_workspace, clean_workspace, tmp_
         ("formula = A\n\n[attenuator x2k]\nA = nan, 0.01", "finite numbers"),
         ("formula = A\n\n[attenuator x2k]\nA = 0.1, inf", "finite numbers"),
         ("formula = A\n\n[attenuator x2k]\nA = 0.1, -0.01", "uncertainties must be non-negative"),
+        ("formula = A\n\n[attenuator x2k]\nlambda = 0.1, 0.01", "'lambda' is not a valid"),
+        ("formula = A\n\n[attenuator x2k]\nexp = 0.1, 0.01", "exp is a reserved name"),
     ],
 )
 def test_malformed_coefficients_file(tmp_path, contents, message):
@@ -479,7 +481,7 @@ def test_formula_evaluation_rejects_non_finite_results(tmp_path, formula, parame
             "formula = A + B\n[attenuator x2k]\nA = 0.1, 0.01\nB = 0.2, 0.02\n[attenuator x30]\nA = 0.3, 0.03\n",
             "does not define the same parameters",
         ),
-        ("formula = exp()\n[attenuator x2k]\nA = 0.1, 0.01\n", "invalid call to exp"),
+        ("formula = exp()\n[attenuator x2k]\nA = 0.1, 0.01\n", "exp takes exactly one argument"),
         ("x2k,0.1,0.01,0.5,0.01,0.001,0.0001\n", "old comma-separated attenuation coefficients"),
     ],
 )

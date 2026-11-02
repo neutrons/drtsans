@@ -9,7 +9,7 @@ from drtsans.expressions import (
     SUPPORTED_FUNCTIONS,
     ExpressionError,
     parse_expression,
-    reserved_names,
+    validate_names,
 )
 
 
@@ -111,6 +111,27 @@ def test_unary_operators(text, expected):
     assert parse_expression(text, variables=("x",))(2.0) == pytest.approx(expected)
 
 
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        # ^ has the precedence of **, not the lower precedence of Python's bitwise exclusive or
+        ("2*x^2 + 1", 19.0),
+        ("x^-1", 1.0 / 3.0),
+        # right associative, as **
+        ("2^3^2", 512.0),
+        ("x^2 - x**2", 0.0),
+    ],
+)
+def test_caret_is_power(text, expected):
+    assert parse_expression(text, variables=("x",))(3.0) == pytest.approx(expected)
+
+
+def test_ln_is_natural_logarithm():
+    expression = parse_expression("ln(x)", variables=("x",))
+    assert expression(math.e**2) == pytest.approx(2.0)
+    assert expression.expression == parse_expression("log(x)", variables=("x",)).expression
+
+
 @pytest.mark.parametrize("value, expected", [(0.9, 0.9), (-1, -1.0), (2, 2.0)])
 def test_number_input(value, expected):
     assert parse_expression(value, variables=("x",))(6.0) == pytest.approx(expected)
@@ -127,13 +148,18 @@ def test_non_string_non_number_input_is_rejected(value):
     [
         ("x =", "invalid formula syntax"),
         ("'0.9'", "formula constants must be numbers"),
+        ("x * True", "formula constants must be numbers"),
+        ("0.95 * False", "formula constants must be numbers"),
         ("x // 2", "unsupported formula operator"),
         ("not x", "unsupported unary formula operator"),
         ("gamma(x)", "formula calls are limited to supported functions"),
         ("__import__('os')", "formula calls are limited to supported functions"),
         ("np.exp(x)", "formula calls are limited to supported functions"),
         ("exp(x=1)", "formula functions do not accept keyword arguments"),
-        ("exp()", "invalid call to exp"),
+        ("exp()", "exp takes exactly one argument"),
+        # SymPy reads the second argument as the evaluate flag of sqrt and the base of log
+        ("sqrt(x, 2)", "sqrt takes exactly one argument"),
+        ("log(x, 0)", "log takes exactly one argument"),
         ("x.real", "formula contains unsupported syntax"),
         ("x[0]", "formula contains unsupported syntax"),
         ("x < 1", "formula contains unsupported syntax"),
@@ -147,12 +173,24 @@ def test_non_string_non_number_input_is_rejected(value):
         ("1/0", "infinite value of undefined sign"),
         ("x / 0", "infinite value of undefined sign"),
         ("log(0)", "infinite value of undefined sign"),
+        ("0/0", "formula has an undefined value"),
+        ("x + 0/0", "formula has an undefined value"),
+        ("log(0)*0", "formula has an undefined value"),
+        ("exp(-log(0))", "formula has an undefined value"),
         ("10**400", "formula constant is out of range"),
         ("0.1**-400", "formula constant is out of range"),
         ("10**10**10", "formula constant is out of range"),
         ("(10**200)**2", "formula constant is out of range"),
         ("10**200 * 10**200", "formula constant is out of range"),
         ("pi**1000", "formula constant is out of range"),
+        ("1e400", "formula constant is out of range"),
+        ("x * -1e400", "formula constant is out of range"),
+        # constants that SymPy leaves unevaluated
+        ("exp(1000)", "formula constant is out of range"),
+        ("x * exp(1000)", "formula constant is out of range"),
+        ("exp(1000)**2", "formula constant is out of range"),
+        ("exp(exp(10))", "formula constant is out of range"),
+        ("cosh(1000) - x", "formula constant is out of range"),
         # exact powers that SymPy would take unbounded time and memory to compute while parsing
         ("(1 + 1/10**20)**(10**9)", "formula constant is out of range"),
         ("(10**200 * 10**200)**1000000000", "formula constant is out of range"),
@@ -191,12 +229,30 @@ def test_unknown_name_is_reported():
     assert exc_info.value.unknown_name == "D"
 
 
-def test_reserved_names():
-    names = reserved_names(("wavelength",))
-    assert "wavelength" in names
-    assert set(SUPPORTED_FUNCTIONS) <= names
-    assert set(SUPPORTED_CONSTANTS) <= names
-    assert "x" not in names
+@pytest.mark.parametrize(
+    "text",
+    [
+        "+".join(["x"] * 3001),
+        "-" * 3000 + "x",
+        "**".join(["x"] * 3001),
+        "**".join(["x"] * 300),
+    ],
+    ids=["sum", "unary", "power-parser", "power-translation"],
+)
+def test_deeply_nested_expression_is_rejected(text):
+    with pytest.raises(ExpressionError, match="formula is nested too deeply"):
+        parse_expression(text, variables=("x",))
+
+
+def test_constants_within_float_range():
+    expression = parse_expression("x * exp(700) + cosh(-700)", variables=("x",))
+    assert expression(1.0) == pytest.approx(math.exp(700) + math.cosh(700))
+
+
+@pytest.mark.parametrize("name", sorted({*SUPPORTED_FUNCTIONS, *SUPPORTED_CONSTANTS}))
+def test_supported_names_are_reserved(name):
+    with pytest.raises(ExpressionError, match=f"{name} is a reserved name"):
+        validate_names(("wavelength",), (name,))
 
 
 @pytest.mark.parametrize(
@@ -205,6 +261,9 @@ def test_reserved_names():
         (("x",), ("pi",), "pi is a reserved name"),
         (("exp",), (), "exp is a reserved name"),
         (("x",), ("1A",), "is not a valid variable or parameter name"),
+        # keywords cannot be parsed as names
+        (("lambda",), (), "is not a valid variable or parameter name"),
+        (("x",), ("None",), "is not a valid variable or parameter name"),
         # fullwidth K, which Python reads as K
         (("x",), ("\uff2b",), "is not a valid variable or parameter name"),
         (("x",), ("x",), "names are repeated"),

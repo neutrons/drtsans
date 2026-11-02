@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 import importlib.resources
-import keyword
 import math
 from pathlib import Path
 from typing import Dict, Optional, Tuple, Union
@@ -13,7 +12,7 @@ from mantid.kernel import logger
 import numpy as np
 import sympy
 
-from drtsans.expressions import Expression, ExpressionError, parse_expression, reserved_names
+from drtsans.expressions import Expression, ExpressionError, parse_expression, validate_names
 from drtsans.samplelogs import SampleLogs
 
 __all__ = ["attenuation_factor"]
@@ -32,7 +31,6 @@ _ATTENUATOR_NAMES = {
 _NO_ATTENUATION = {"Undefined", "Close", "Open"}
 _DEFAULT_COEFFICIENTS_FILE = "GPSANS_attenuation_coefficients.txt"
 _INSTRUMENT_TIME_ZONE = ZoneInfo("America/New_York")
-_RESERVED_NAMES = reserved_names(("wavelength",))
 
 
 @dataclass(frozen=True)
@@ -575,10 +573,10 @@ def _parse_parameter_line(source: Union[str, Path], line: str, line_number: int)
     parameter, values = _split_assignment(source, line, line_number)
     if not parameter:
         _raise_parse_error(source, line_number, "empty parameter name")
-    if not parameter.isidentifier() or keyword.iskeyword(parameter):
-        _raise_parse_error(source, line_number, f"{parameter} is not a valid parameter name")
-    if parameter in _RESERVED_NAMES:
-        _raise_parse_error(source, line_number, f"{parameter} is a reserved name")
+    try:
+        validate_names(("wavelength",), (parameter,))
+    except ExpressionError as error:
+        _raise_parse_error(source, line_number, str(error))
     fields = [field.strip() for field in values.split(",")]
     if len(fields) != 2:
         _raise_parse_error(source, line_number, "parameter lines must have the form parameter = value, uncertainty")

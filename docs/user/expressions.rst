@@ -37,18 +37,21 @@ Allowed syntax
 
 - numbers, such as ``2``, ``0.95`` or ``1.5e-3``;
 - the variable and other names listed in the table above;
-- the arithmetic operators ``+``, ``-``, ``*``, ``/`` and ``**`` (power), unary ``+`` and ``-``, and parentheses;
-- the functions ``abs``, ``acos``, ``asin``, ``atan``, ``cos``, ``cosh``, ``erf``, ``exp``, ``log`` (natural
-  logarithm), ``log10``, ``sin``, ``sinh``, ``sqrt``, ``tan`` and ``tanh``, each called with positional
-  arguments;
+- the arithmetic operators ``+``, ``-``, ``*``, ``/`` and ``**`` (power), unary ``+`` and ``-``, and parentheses.
+  ``^`` is also a power, with the same precedence as ``**``, so ``2*x^2`` is :math:`2x^2`;
+- the functions ``abs``, ``acos``, ``asin``, ``atan``, ``cos``, ``cosh``, ``erf``, ``exp``, ``ln`` and ``log``
+  (both the natural logarithm), ``log10``, ``sin``, ``sinh``, ``sqrt``, ``tan`` and ``tanh``, each called with a
+  single argument;
 - the constant ``pi``.
 
 Anything else is rejected, including undeclared names (for example ``wavelength`` in a polarization setting, which
-must use ``x``), other functions, keyword arguments, attribute access such as ``np.exp``, indexing, comparisons,
-the operators ``//`` and ``%``, and text in quotes. Expressions whose constant part has a complex value, such as
-``sqrt(-1)`` or ``acos(2)``, or is infinite with undefined sign, such as ``1/0``, are also rejected, as are
-constants too large for a 64-bit floating-point number, such as ``10**400``. Constants too small for it, such as
-``10**-400``, evaluate to zero. The error message states the reason.
+must use ``x``), other functions, functions called with more than one argument or with keyword arguments,
+attribute access such as ``np.exp``, indexing, comparisons, the operators ``//`` and ``%``, ``True`` and
+``False``, and text in quotes. Expressions whose constant part has a complex value, such as ``sqrt(-1)`` or
+``acos(2)``, is infinite with undefined sign, such as ``1/0``, or is undefined, such as ``0/0``, are also
+rejected, as are constants too large for a 64-bit floating-point number, such as ``10**400``, ``1e400`` or
+``exp(1000)``. Constants too small for it, such as ``10**-400``, evaluate to zero. Expressions nested too deeply
+to be read, such as a sum of thousands of terms, are rejected as well. The error message states the reason.
 
 When a division by zero, or a fractional power of a negative number, depends on the value of a variable or of a
 fitted parameter, it cannot be detected when the expression is read. It gives an infinite or undefined value

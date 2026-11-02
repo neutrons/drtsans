@@ -10,9 +10,10 @@ names of fitted parameters whose uncertainties are propagated to first order.
 
 import ast
 from dataclasses import dataclass, field
+import keyword
 import math
 import sys
-from typing import Callable, Dict, FrozenSet, Optional, Sequence, Tuple, Union
+from typing import Callable, Dict, Optional, Sequence, Tuple, Union
 import unicodedata
 
 import numpy as np
@@ -24,11 +25,11 @@ __all__ = [
     "SUPPORTED_CONSTANTS",
     "SUPPORTED_FUNCTIONS",
     "parse_expression",
-    "reserved_names",
+    "validate_names",
 ]
 
 
-def _log10(argument):
+def _log10(argument: sympy.Expr) -> sympy.Expr:
     return sympy.log(argument, 10)
 
 
@@ -41,6 +42,7 @@ SUPPORTED_FUNCTIONS = {
     "cosh": sympy.cosh,
     "erf": sympy.erf,
     "exp": sympy.exp,
+    "ln": sympy.log,
     "log": sympy.log,
     "log10": _log10,
     "sin": sympy.sin,
@@ -191,22 +193,6 @@ class Expression:
         return value, float(np.sqrt(variance))
 
 
-def reserved_names(variables: Sequence[str]) -> FrozenSet[str]:
-    """Return the names that cannot be used for parameters.
-
-    Parameters
-    ----------
-    variables
-        Names of the independent variables.
-
-    Returns
-    -------
-    frozenset of str
-        Variable names, supported function names and supported constant names.
-    """
-    return frozenset({*variables, *SUPPORTED_FUNCTIONS, *SUPPORTED_CONSTANTS})
-
-
 def parse_expression(
     value: Union[str, int, float],
     variables: Sequence[str],
@@ -216,8 +202,8 @@ def parse_expression(
     """Parse an expression and compile it for numerical evaluation.
 
     Supported syntax is numbers, the names in ``variables`` and ``parameters``, the operators ``+``, ``-``, ``*``,
-    ``/`` and ``**``, unary ``+`` and ``-``, parentheses, the functions in :py:data:`SUPPORTED_FUNCTIONS` and the
-    constant ``pi``.
+    ``/`` and ``**`` (or ``^``), unary ``+`` and ``-``, parentheses, the functions in
+    :py:data:`SUPPORTED_FUNCTIONS` called with one argument, and the constant ``pi``.
 
     Parameters
     ----------
@@ -241,12 +227,12 @@ def parse_expression(
     ------
     ExpressionError
         If ``value`` is not a string or number, uses unsupported syntax, references undeclared names, has a
-        complex value, or has a constant beyond the range of 64-bit floats, or if a variable or parameter
-        name is invalid or conflicts with a reserved name.
+        complex or undefined value, has a constant beyond the range of 64-bit floats, or is nested too deeply to
+        be translated, or if a variable or parameter name is invalid or conflicts with a reserved name.
     """
     variables = tuple(variables)
     parameters = tuple(parameters)
-    _validate_names(variables, parameters)
+    validate_names(variables, parameters)
 
     variable_symbols = {name: sympy.Symbol(name, real=True) for name in variables}
     parameter_symbols = {name: sympy.Symbol(name, real=True) for name in parameters}
@@ -255,31 +241,36 @@ def parse_expression(
     # bool is a subclass of int, but True or False in a configuration is a mistake, not a number
     if isinstance(value, bool) or not isinstance(value, (str, int, float)):
         raise ExpressionError(f"expressions must be strings or numbers, not {type(value).__name__}")
-    if isinstance(value, str):
-        try:
-            parsed = ast.parse(value.strip(), mode="eval")
-        except SyntaxError as error:
-            raise ExpressionError(f"invalid formula syntax: {error.msg}") from None
-        expression = _ast_to_sympy(parsed.body, symbols)
-    else:
-        expression = sympy.Float(value) if isinstance(value, float) else sympy.Integer(value)
-
-    # SymPy simplifies constant parts while parsing, so 1/0 or log(0) becomes complex infinity and sqrt(-1) becomes
-    # I. Constant parts that SymPy leaves unevaluated, such as acos(2), are still known not to be real.
-    if expression.has(sympy.zoo):
-        raise ExpressionError("formula has an infinite value of undefined sign, for example from a division by zero")
-    if any(sub.is_real is False for sub in sympy.preorder_traversal(expression) if not sub.free_symbols):
-        raise ExpressionError("formula has a complex value")
-    _check_number_range(expression)
-
     arguments = [parameter_symbols[name] for name in parameters] + [variable_symbols[name] for name in variables]
-    value_function = sympy.lambdify(arguments, expression, modules=_LAMBDIFY_MODULES)
-    derivative_functions = {}
-    if with_uncertainty:
-        derivative_functions = {
-            name: sympy.lambdify(arguments, sympy.diff(expression, parameter_symbols[name]), modules=_LAMBDIFY_MODULES)
-            for name in parameters
-        }
+    # Translation, SymPy and lambdify are recursive, so a long chain of operators such as x+x+...+x exceeds the
+    # Python recursion limit
+    try:
+        if isinstance(value, str):
+            # As in SymPy's sympify, ^ is a power rather than the bitwise exclusive or of Python. Replacing it before
+            # parsing gives it the precedence and right associativity of **, so 2*x^2 is 2*(x**2).
+            try:
+                parsed = ast.parse(value.strip().replace("^", "**"), mode="eval")
+            except SyntaxError as error:
+                raise ExpressionError(f"invalid formula syntax: {error.msg}") from None
+            except MemoryError:
+                # the parser reports an expression it cannot represent, such as x**x**...**x, as a stack overflow
+                raise ExpressionError("formula is nested too deeply") from None
+            expression = _ast_to_sympy(parsed.body, symbols)
+        else:
+            expression = sympy.Float(value) if isinstance(value, float) else sympy.Integer(value)
+        _check_constant_values(expression)
+
+        value_function = sympy.lambdify(arguments, expression, modules=_LAMBDIFY_MODULES)
+        derivative_functions = {}
+        if with_uncertainty:
+            derivative_functions = {
+                name: sympy.lambdify(
+                    arguments, sympy.diff(expression, parameter_symbols[name]), modules=_LAMBDIFY_MODULES
+                )
+                for name in parameters
+            }
+    except RecursionError:
+        raise ExpressionError("formula is nested too deeply") from None
     return Expression(
         text=str(value),
         expression=expression,
@@ -290,8 +281,11 @@ def parse_expression(
     )
 
 
-def _validate_names(variables: Tuple[str, ...], parameters: Tuple[str, ...]) -> None:
+def validate_names(variables: Sequence[str], parameters: Sequence[str] = ()) -> None:
     """Check that variable and parameter names are distinct identifiers that do not shadow reserved names.
+
+    :py:func:`parse_expression` applies this check. Callers that read parameter declarations before the expression
+    can apply it earlier, to report an invalid name where it is declared.
 
     Parameters
     ----------
@@ -303,14 +297,15 @@ def _validate_names(variables: Tuple[str, ...], parameters: Tuple[str, ...]) -> 
     Raises
     ------
     ExpressionError
-        If a name is not an identifier, is not in Unicode NFKC normal form, is repeated, or is a supported function
-        or constant name.
+        If a name is not an identifier, is a Python keyword, is not in Unicode NFKC normal form, is repeated, or
+        is a supported function or constant name.
     """
-    names = variables + parameters
+    names = tuple(variables) + tuple(parameters)
     for name in names:
         # Python converts identifiers to NFKC form when parsing, so a name such as fullwidth "\uff2b" would be
-        # read as "K" in the expression and no longer match its declaration
-        if not name.isidentifier() or unicodedata.normalize("NFKC", name) != name:
+        # read as "K" in the expression and no longer match its declaration. A keyword such as lambda cannot be
+        # parsed as a name at all.
+        if not name.isidentifier() or keyword.iskeyword(name) or unicodedata.normalize("NFKC", name) != name:
             raise ExpressionError(f"{name!r} is not a valid variable or parameter name")
         if name in SUPPORTED_FUNCTIONS or name in SUPPORTED_CONSTANTS:
             raise ExpressionError(f"{name} is a reserved name")
@@ -391,8 +386,8 @@ def _check_power_range(base: sympy.Expr, exponent: sympy.Expr) -> None:
         raise ExpressionError("formula constant is out of range")
 
 
-def _check_number_range(expression: sympy.Expr) -> None:
-    """Reject numbers in an expression that exceed the largest 64-bit float or the allowed number of exact digits.
+def _check_constant_values(expression: sympy.Expr) -> None:
+    """Reject constant parts of an expression that are undefined, complex, or beyond the range of 64-bit floats.
 
     Parameters
     ----------
@@ -402,18 +397,37 @@ def _check_number_range(expression: sympy.Expr) -> None:
     Raises
     ------
     ExpressionError
-        If a number is infinite when converted to a 64-bit float, or if an exact number has more than the allowed
-        number of digits. Numbers too small for a 64-bit float are accepted, because they evaluate to zero.
+        If a constant part is complex infinity, undefined, or not real, if its value is infinite when converted to
+        a 64-bit float, or if an exact number has more than the allowed number of digits. Constants too small for
+        a 64-bit float are accepted, because they evaluate to zero.
     """
-    for number in expression.atoms(sympy.Number):
-        if isinstance(number, sympy.Rational) and _exact_digits(number) > _MAX_EXACT_DIGITS:
+    # SymPy simplifies constant parts while parsing, so 1/0 or log(0) becomes complex infinity, 0/0 becomes nan and
+    # sqrt(-1) becomes I
+    if expression.has(sympy.zoo):
+        raise ExpressionError("formula has an infinite value of undefined sign, for example from a division by zero")
+    if expression.has(sympy.nan):
+        raise ExpressionError("formula has an undefined value, for example from 0/0")
+    # Lambdify evaluates every constant part as a 64-bit float, including parts that SymPy leaves unevaluated, such
+    # as exp(1000) in x*exp(1000). Children are visited before their parents, so a constant is evaluated only after
+    # its own constant parts are known to be within range.
+    for sub in sympy.postorder_traversal(expression):
+        if not isinstance(sub, sympy.Expr) or sub.free_symbols:
+            continue
+        if isinstance(sub, sympy.Rational) and _exact_digits(sub) > _MAX_EXACT_DIGITS:
             raise ExpressionError("formula constant is out of range")
+        value = sub if isinstance(sub, sympy.Number) else sub.evalf()
+        # complex values are not numbers here; they are reported below
+        if not value.is_Number:
+            continue
         try:
-            value = float(number)
+            magnitude = abs(float(value))
         except OverflowError:
-            value = math.inf
-        if math.isinf(value):
+            magnitude = math.inf
+        if math.isinf(magnitude):
             raise ExpressionError("formula constant is out of range")
+    # constant parts that SymPy leaves unevaluated, such as acos(2), are still known not to be real
+    if any(sub.is_real is False for sub in sympy.preorder_traversal(expression) if not sub.free_symbols):
+        raise ExpressionError("formula has a complex value")
 
 
 def _ast_to_sympy(node: ast.AST, symbols: Dict[str, sympy.Symbol]) -> sympy.Expr:
@@ -438,7 +452,8 @@ def _ast_to_sympy(node: ast.AST, symbols: Dict[str, sympy.Symbol]) -> sympy.Expr
         beyond the range of 64-bit floats.
     """
     if isinstance(node, ast.Constant):
-        if isinstance(node.value, (int, float)):
+        # bool is a subclass of int, but True or False in an expression is a mistake, not a number
+        if isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
             return sympy.Float(node.value) if isinstance(node.value, float) else sympy.Integer(node.value)
         raise ExpressionError("formula constants must be numbers")
     if isinstance(node, ast.Name):
@@ -475,6 +490,10 @@ def _ast_to_sympy(node: ast.AST, symbols: Dict[str, sympy.Symbol]) -> sympy.Expr
             raise ExpressionError("formula calls are limited to supported functions")
         if node.keywords:
             raise ExpressionError("formula functions do not accept keyword arguments")
+        # SymPy functions accept further positional arguments with other meanings, such as the base of log or the
+        # evaluate flag of sqrt, but every supported function takes a single argument
+        if len(node.args) != 1:
+            raise ExpressionError(f"{node.func.id} takes exactly one argument")
         arguments = [_ast_to_sympy(argument, symbols) for argument in node.args]
         try:
             return SUPPORTED_FUNCTIONS[node.func.id](*arguments)

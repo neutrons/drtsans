@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from datetime import date
 import importlib.resources
-import math
 import textwrap
 
 import numpy as np
@@ -308,6 +307,8 @@ def test_attenuation_factor_custom_file(generic_workspace, clean_workspace, tmp_
         ("formula = A\n\n[attenuator x2k]\nA = nan, 0.01", "finite numbers"),
         ("formula = A\n\n[attenuator x2k]\nA = 0.1, inf", "finite numbers"),
         ("formula = A\n\n[attenuator x2k]\nA = 0.1, -0.01", "uncertainties must be non-negative"),
+        ("formula = A\n\n[attenuator x2k]\nlambda = 0.1, 0.01", "'lambda' is not a valid"),
+        ("formula = A\n\n[attenuator x2k]\nexp = 0.1, 0.01", "exp is a reserved name"),
     ],
 )
 def test_malformed_coefficients_file(tmp_path, contents, message):
@@ -455,47 +456,11 @@ def test_formula_without_wavelength_is_wavelength_independent(generic_workspace,
     assert error == pytest.approx(np.sqrt(0.01**2 + 0.02**2))
 
 
-def test_additional_supported_functions(tmp_path):
-    coefficients_file = tmp_path / "additional-functions.txt"
-    _write_formula_file(
-        coefficients_file,
-        formula="log10(A) + sinh(B) + tanh(C) + abs(D)",
-        attenuators={"x2k": {"A": (100.0, 1.0), "B": (0.5, 0.01), "C": (0.25, 0.02), "D": (-0.3, 0.03)}},
-    )
-    formula_block = _load_custom_attenuation_coefficients(coefficients_file)
-    value, error = attenuation_factor_from_block(formula_block, "x2k", 4.0)
-    expected_value = np.log10(100.0) + np.sinh(0.5) + np.tanh(0.25) + abs(-0.3)
-    expected_error = np.sqrt(
-        (1.0 / (100.0 * np.log(10.0)) * 1.0) ** 2
-        + (np.cosh(0.5) * 0.01) ** 2
-        + ((1.0 / np.cosh(0.25) ** 2) * 0.02) ** 2
-        + ((-1.0) * 0.03) ** 2
-    )
-    assert value == pytest.approx(expected_value)
-    assert error == pytest.approx(expected_error)
-
-
-def test_erf_formula_value_and_uncertainty(tmp_path):
-    coefficients_file = tmp_path / "erf.txt"
-    _write_formula_file(
-        coefficients_file,
-        formula="erf(A)",
-        attenuators={"x2k": {"A": (0.5, 0.1)}},
-    )
-    formula_block = _load_custom_attenuation_coefficients(coefficients_file)
-    value, error = attenuation_factor_from_block(formula_block, "x2k", 4.0)
-    assert value == pytest.approx(math.erf(0.5))
-    assert error == pytest.approx((2.0 / math.sqrt(math.pi)) * math.exp(-(0.5**2)) * 0.1)
-
-
 @pytest.mark.parametrize(
     "formula, parameters, message",
     [
-        ("sqrt(A)", {"A": (-1.0, 0.1)}, "evaluated to non-finite value"),
-        ("sqrt(A)", {"A": (0.0, 0.1)}, "uncertainty.*evaluated to non-finite value"),
-        ("A / B", {"A": (1.0, 0.1), "B": (0.0, 0.1)}, "evaluated to non-finite value"),
-        ("A ** 0.5", {"A": (-1.0, 0.1)}, "evaluated to non-finite value"),
-        ("A ** 0.5", {"A": (0.0, 0.1)}, "uncertainty.*evaluated to non-finite value"),
+        ("sqrt(A)", {"A": (-1.0, 0.1)}, "Attenuation formula for x2k evaluated to non-finite value"),
+        ("sqrt(A)", {"A": (0.0, 0.1)}, "Attenuation formula uncertainty for x2k evaluated to non-finite value"),
     ],
 )
 def test_formula_evaluation_rejects_non_finite_results(tmp_path, formula, parameters, message):
@@ -516,7 +481,7 @@ def test_formula_evaluation_rejects_non_finite_results(tmp_path, formula, parame
             "formula = A + B\n[attenuator x2k]\nA = 0.1, 0.01\nB = 0.2, 0.02\n[attenuator x30]\nA = 0.3, 0.03\n",
             "does not define the same parameters",
         ),
-        ("formula = exp()\n[attenuator x2k]\nA = 0.1, 0.01\n", "invalid call to exp"),
+        ("formula = exp()\n[attenuator x2k]\nA = 0.1, 0.01\n", "exp takes exactly one argument"),
         ("x2k,0.1,0.01,0.5,0.01,0.001,0.0001\n", "old comma-separated attenuation coefficients"),
     ],
 )

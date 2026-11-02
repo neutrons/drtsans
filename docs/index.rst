@@ -17,6 +17,7 @@ User Guide
    /user/normalizations
    /user/slicing
    /user/binning
+   /user/expressions
    /user/polarization
    /user/eqsans_reduction
    /user/reduction_output

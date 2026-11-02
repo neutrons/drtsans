@@ -89,6 +89,14 @@ drtsans.determine\_bins module
    :undoc-members:
    :show-inheritance:
 
+drtsans.expressions module
+--------------------------
+
+.. automodule:: drtsans.expressions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 drtsans.frame\_mode module
 --------------------------
 

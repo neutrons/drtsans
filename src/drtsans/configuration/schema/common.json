@@ -151,17 +151,17 @@
       ]
     },
     "polarizationPropertyPolarization": {
-      "anyOf": [
-        {"type": "string"},
-        {"type": "number", "minimum": -1, "maximum": 1}
-      ],
+      "type": ["string", "number"],
+      "minimum": -1,
+      "maximum": 1,
+      "checkExpression": {"variable": "x"},
       "examples": ["0.95", "-0.95","0.95-0.01*(x-16)", 0.95, -0.95]
     },
     "polarizationPropertyEfficiency": {
-      "anyOf": [
-        {"type": "string"},
-        {"type": "number", "minimum": 0, "maximum": 1}
-      ],
+      "type": ["string", "number"],
+      "minimum": 0,
+      "maximum": 1,
+      "checkExpression": {"variable": "x"},
       "default": "1",
       "examples": ["0.95", "0.95-0.01*(x-16)", 0.95]
     }

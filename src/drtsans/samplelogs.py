@@ -277,7 +277,7 @@ class SampleLogs(object):
         duration = duration_end - duration_start
 
         # use total nanoseconds and convert to seconds to retain the decimal places
-        return duration.total_nanoseconds() / SECONDS_TO_NANOSECONDS
+        return duration.totalNanoseconds() / SECONDS_TO_NANOSECONDS
 
     def single_value(self, log_key, operation=np.mean):
         r"""Cast the log entry to a single value

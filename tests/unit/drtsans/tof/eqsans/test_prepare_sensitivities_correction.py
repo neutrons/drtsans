@@ -312,9 +312,9 @@ def test_eqsans_workspace_preparation_converts_event_workspace_to_histogram(monk
     clean_workspace(events)
     # The conversion replaces the workspace in place, invalidating the "events" handle
     expected_spectra = events.getNumberHistograms()
-    expected_x = events.readX(0).copy()
-    expected_y = events.readY(0).copy()
-    expected_e = events.readE(0).copy()
+    expected_x = events.x(0).copy()
+    expected_y = events.y(0).copy()
+    expected_e = events.e(0).copy()
 
     monkeypatch.setitem(eqsans_sensitivity.PREPARE_DATA, "EQSANS", lambda **_kwargs: events)
     monkeypatch.setattr(eqsans_sensitivity, "NormaliseByCurrent", lambda **kwargs: kwargs["InputWorkspace"])
@@ -323,9 +323,9 @@ def test_eqsans_workspace_preparation_converts_event_workspace_to_histogram(monk
 
     assert workspace.id() == "Workspace2D"
     assert workspace.getNumberHistograms() == expected_spectra
-    np.testing.assert_allclose(workspace.readX(0), expected_x)
-    np.testing.assert_allclose(workspace.readY(0), expected_y)
-    np.testing.assert_allclose(workspace.readE(0), expected_e)
+    np.testing.assert_allclose(workspace.x(0), expected_x)
+    np.testing.assert_allclose(workspace.y(0), expected_y)
+    np.testing.assert_allclose(workspace.e(0), expected_e)
 
 
 def test_eqsans_workspace_preparation_propagates_missing_proton_charge(monkeypatch):

@@ -99,7 +99,7 @@ jobs:
         with:
           package-name: ${{ env.PKG_NAME }}
           local-channel: ./local-channel
-          extra-channels: mantid-ornl neutrons
+          extra-channels: mantid/label/main neutrons
 
       - name: Verify Conda Package
         uses: neutrons/gh-actions/pkg-verify@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2

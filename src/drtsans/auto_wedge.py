@@ -1,5 +1,7 @@
 import numpy as np
 import os
+from dataclasses import dataclass, replace
+from enum import Enum
 from typing import List, Tuple
 from drtsans.dataobjects import I1DAnnular
 from drtsans.determine_bins import determine_1d_linear_bins
@@ -20,7 +22,103 @@ __all__ = ["getWedgeSelection"]
 # https://docs.mantidproject.org/nightly/fitting/fitfunctions/Gaussian.html
 SIGMA_TO_FWHM = 2.0 * np.sqrt(2.0 * np.log(2.0))
 
-MANTID_FUNCTION_MAP = {Gaussian().name: Gaussian, FlatBackground().name: FlatBackground}
+
+def _circular_difference(angle: float, reference: float) -> float:
+    """Signed difference ``angle - reference`` between azimuthal angles, wrapped into [-180, 180) degrees.
+
+    For example, 361 and 1 degrees differ by 0 degrees, and 1 and 359 degrees differ by 2 degrees.
+    """
+    return (angle - reference + 180.0) % 360.0 - 180.0
+
+
+class RingStatus(Enum):
+    """Outcome of the automatic wedge selection for one Q-ring."""
+
+    FIT_FAILED = "fit failed"  # no usable fit of the azimuthal profile
+    REJECTED = "rejected"  # fitted, but fails the seed criteria and is not rescued
+    SEED = "seed"  # passes the seed criteria and belongs to the consensus orientation
+    INCONSISTENT = "inconsistent"  # passes the seed criteria, but its orientation differs from the consensus
+    RESCUED = "rescued"  # fails the seed criteria, but matches the consensus and passes the rescue criteria
+
+    @property
+    def accepted(self) -> bool:
+        """True if rings with this status contribute to the wedge angles."""
+        return self in (RingStatus.SEED, RingStatus.RESCUED)
+
+
+@dataclass(frozen=True)
+class PeakFit:
+    """One Gaussian peak fitted to the azimuthal intensity profile I(phi) of a Q-ring.
+
+    Attributes
+    ----------
+    height, height_error: float
+        Peak height H above the flat background and its uncertainty, in the intensity units of the input
+        (1/cm on absolute scale).
+    centre, centre_error: float
+        Peak centre and its uncertainty, in degrees.
+    fwhm, fwhm_error: float
+        Full width at half maximum and its uncertainty, in degrees.
+    """
+
+    height: float
+    height_error: float
+    centre: float
+    centre_error: float
+    fwhm: float
+    fwhm_error: float
+
+    @classmethod
+    def from_fit_result(cls, result: dict, label: str) -> "PeakFit":
+        """Create from fit parameters stored as ``{"f1.Height": (value, error), ...}``.
+
+        Parameters
+        ----------
+        result: dict
+            Fit parameters as ``(value, error)`` tuples, keyed by Mantid parameter name.
+        label: str
+            Label of the Gaussian in the composite fit function, ``"f1"`` or ``"f2"``.
+        """
+        height, height_error = result[f"{label}.Height"]
+        centre, centre_error = result[f"{label}.PeakCentre"]
+        sigma, sigma_error = result[f"{label}.Sigma"]
+        # the fit does not constrain the sign of Sigma
+        fwhm, fwhm_error = abs(float(sigma)) * SIGMA_TO_FWHM, abs(float(sigma_error)) * SIGMA_TO_FWHM
+        return cls(float(height), float(height_error), float(centre), float(centre_error), fwhm, fwhm_error)
+
+    @property
+    def is_valid(self) -> bool:
+        """True if all values and uncertainties are finite and all uncertainties are positive."""
+        errors = (self.height_error, self.centre_error, self.fwhm_error)
+        values = (self.height, self.centre, self.fwhm) + errors
+        return bool(np.all(np.isfinite(values)) and min(errors) > 0.0)
+
+    @property
+    def significance(self) -> float:
+        """Peak height relative to its uncertainty, H / sigma_H; NaN if the uncertainty is not finite and positive."""
+        if not (np.isfinite(self.height_error) and self.height_error > 0.0):
+            return np.nan
+        return self.height / self.height_error
+
+    def contrast(self, background: float) -> float:
+        """Peak height relative to the flat background A0 of the fit, H / A0; NaN unless A0 is finite and positive."""
+        if not (np.isfinite(background) and background > 0.0):
+            return np.nan
+        return self.height / background
+
+    @property
+    def centre_weight(self) -> float:
+        """Weight of the centre when averaging over Q-rings, 1 / centre_error."""
+        return 1.0 / self.centre_error
+
+    @property
+    def fwhm_weight(self) -> float:
+        """Weight of the FWHM when averaging over Q-rings, 1 / fwhm_error."""
+        return 1.0 / self.fwhm_error
+
+    def with_centre(self, centre: float) -> "PeakFit":
+        """Copy of this peak with another centre, in degrees; used to unwrap centres near a reference angle."""
+        return replace(self, centre=centre)
 
 
 def _create_fit_function(combo_function_str):
@@ -42,6 +140,8 @@ def _create_fit_function(combo_function_str):
         list of Mantid IFunction in order of
 
     """
+    mantid_function_map = {Gaussian().name: Gaussian, FlatBackground().name: FlatBackground}
+
     # split to multiple functions
     single_function_str_list = combo_function_str.split(";")
     single_functions = list()
@@ -52,7 +152,7 @@ def _create_fit_function(combo_function_str):
         params = single_func.split(",")
         # create function
         func_name = params[0].split("=")[1]
-        func_i = MANTID_FUNCTION_MAP[func_name]()
+        func_i = mantid_function_map[func_name]()
         # start to set parameters
         for value_index in range(1, len(params)):
             # split in PARAM_NAME=PARAM_VALUE style

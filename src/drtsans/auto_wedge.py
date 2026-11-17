@@ -194,6 +194,11 @@ class RingFit:
         """Peaks subject to the acceptance criteria; a mirrored peak carries no independent information."""
         return self.peaks[:1] if self.symmetric else self.peaks
 
+    @property
+    def weight(self) -> float:
+        """Weight of the ring in the consensus, the sum of 1 / center_error over the evaluated peaks."""
+        return sum(peak.center_weight for peak in self.evaluated_peaks)
+
     def aligned_to(self, reference: tuple[float, float]) -> tuple[PeakFit, PeakFit]:
         """The two peaks matched to two reference centers, in degrees.
 
@@ -326,6 +331,81 @@ class AcceptanceCriteria:
                     f"peak {number}: FWHM = {peak.fwhm:.3g} deg outside [{self.fwhm_min:g}, {self.fwhm_max:g}] deg"
                 )
         return failures
+
+
+@dataclass(frozen=True)
+class ConsensusGroup:
+    """Seed candidates sharing one orientation, with the weighted average of their peaks.
+
+    Attributes
+    ----------
+    centers, fwhms: tuple[float, float]
+        Weighted average center and FWHM of each of the two peaks, in degrees.
+    members: tuple[RingFit, ...]
+        Seed candidates in the group, strongest first.
+    weight_fraction: float
+        Share of the group in the total weight of all seed candidates.
+    """
+
+    centers: tuple[float, float]
+    fwhms: tuple[float, float]
+    members: tuple[RingFit, ...]
+    weight_fraction: float
+
+    def matches(self, ring: RingFit, tolerance: float, candidate: bool = False) -> bool:
+        """True if each evaluated peak center of the ring lies within ``tolerance`` x FWHM of the group center.
+
+        ``tolerance`` is a fraction of the FWHM of each peak. The FWHM is the group FWHM when rescuing a ring, and
+        the mean of the ring and group FWHMs when a seed candidate (``candidate=True``) joins the group.
+        """
+        aligned = ring.aligned_to(self.centers)[: len(ring.evaluated_peaks)]
+        for peak, center, fwhm in zip(aligned, self.centers, self.fwhms):
+            width = 0.5 * (peak.fwhm + fwhm) if candidate else fwhm
+            if abs(peak.center - center) > tolerance * width:
+                return False
+        return True
+
+
+def _average_peaks(
+    rings: list[RingFit], reference: tuple[float, float]
+) -> tuple[tuple[float, float], tuple[float, float]]:
+    """Weighted average centers and FWHMs of the two peaks over Q-rings, in degrees.
+
+    The peaks of each ring are matched to the reference centers and unwrapped near them (see
+    ``RingFit.aligned_to``). Centers are weighted by 1 / center_error and FWHMs by 1 / fwhm_error.
+    """
+    if not rings:
+        raise ValueError("Cannot average the peaks of zero Q-rings")
+    aligned = [ring.aligned_to(reference) for ring in rings]
+    centers, fwhms = [], []
+    for k in range(2):
+        peaks = [pair[k] for pair in aligned]
+        centers.append(float(np.average([p.center for p in peaks], weights=[p.center_weight for p in peaks])))
+        fwhms.append(float(np.average([p.fwhm for p in peaks], weights=[p.fwhm_weight for p in peaks])))
+    return (centers[0], centers[1]), (fwhms[0], fwhms[1])
+
+
+def _find_consensus(candidates: list[RingFit], tolerance: float) -> list[ConsensusGroup]:
+    """Group seed candidates by orientation, largest weight first.
+
+    Candidates are taken strongest first. Each joins the first group whose current weighted center it matches
+    (see ``ConsensusGroup.matches``), otherwise it starts a new group. The group center is recomputed after each
+    addition. Since the strongest rings join first, they fix the center, which prevents chaining rings whose
+    centers drift gradually with Q into one group.
+    """
+    groups: list[ConsensusGroup] = []
+    for ring in sorted(candidates, key=lambda candidate: candidate.weight, reverse=True):
+        index = next((i for i, g in enumerate(groups) if g.matches(ring, tolerance, candidate=True)), None)
+        if index is None:
+            centers = tuple(peak.center for peak in ring.peaks)
+            groups.append(ConsensusGroup(centers, tuple(peak.fwhm for peak in ring.peaks), (ring,), 0.0))
+        else:
+            members = groups[index].members + (ring,)
+            centers, fwhms = _average_peaks(list(members), groups[index].centers)
+            groups[index] = ConsensusGroup(centers, fwhms, members, 0.0)
+    total_weight = sum(ring.weight for ring in candidates)
+    groups = [replace(g, weight_fraction=sum(ring.weight for ring in g.members) / total_weight) for g in groups]
+    return sorted(groups, key=lambda group: group.weight_fraction, reverse=True)
 
 
 def _create_fit_function(combo_function_str):

@@ -29,18 +29,18 @@ class TestPeakFit:
     @staticmethod
     def _peak(**changes) -> PeakFit:
         """Peak at 181 deg with height 0.2 +/- 0.002 and FWHM 17 +/- 0.5 deg, with optional field changes"""
-        values = dict(height=0.2, height_error=0.002, centre=181.0, centre_error=0.1, fwhm=17.0, fwhm_error=0.5)
+        values = dict(height=0.2, height_error=0.002, center=181.0, center_error=0.1, fwhm=17.0, fwhm_error=0.5)
         values.update(changes)
         return PeakFit(**values)
 
     def test_from_fit_result(self):
-        """Height, centre and FWHM with their errors are read from the fit parameters of one Gaussian"""
+        """Height, center and FWHM with their errors are read from the fit parameters of one Gaussian"""
         # Arrange: a negative Sigma describes the same peak, since the Gaussian depends only on Sigma squared
         result = {"f2.Height": (0.2, 0.002), "f2.PeakCentre": (361.3, 0.1), "f2.Sigma": (-7.5, 0.2)}
         # Act
         peak = PeakFit.from_fit_result(result, "f2")
         # Assert
-        assert (peak.height, peak.height_error, peak.centre, peak.centre_error) == (0.2, 0.002, 361.3, 0.1)
+        assert (peak.height, peak.height_error, peak.center, peak.center_error) == (0.2, 0.002, 361.3, 0.1)
         assert peak.fwhm == pytest.approx(7.5 * SIGMA_TO_FWHM)
         assert peak.fwhm_error == pytest.approx(0.2 * SIGMA_TO_FWHM)
 
@@ -55,19 +55,19 @@ class TestPeakFit:
             assert np.isnan(self._peak(height_error=height_error).significance)
 
     @pytest.mark.parametrize(
-        "changes", [{}, {"height_error": 0.0}, {"centre_error": -0.1}, {"fwhm_error": np.nan}, {"centre": np.inf}]
+        "changes", [{}, {"height_error": 0.0}, {"center_error": -0.1}, {"fwhm_error": np.nan}, {"center": np.inf}]
     )
     def test_is_valid(self, changes):
         """A peak is valid only if all values are finite and all uncertainties are positive"""
         assert self._peak(**changes).is_valid == (not changes)
 
-    def test_weights_and_with_centre(self):
-        """Averaging weights are inverse uncertainties, and with_centre returns a copy with another centre"""
+    def test_weights_and_with_center(self):
+        """Averaging weights are inverse uncertainties, and with_center returns a copy with another center"""
         peak = self._peak()
-        moved = peak.with_centre(1.3)
-        assert peak.centre_weight == pytest.approx(10.0)
+        moved = peak.with_center(1.3)
+        assert peak.center_weight == pytest.approx(10.0)
         assert peak.fwhm_weight == pytest.approx(2.0)
-        assert moved.centre == 1.3 and peak.centre == 181.0  # the original is unchanged
+        assert moved.center == 1.3 and peak.center == 181.0  # the original is unchanged
         assert moved.fwhm == peak.fwhm and moved.height == peak.height
 
 
@@ -75,11 +75,11 @@ class TestRingFit:
     """Fit of the azimuthal profile of one Q-ring and its selection outcome"""
 
     @staticmethod
-    def _fit_result(centres=(1.0, 181.0)) -> dict:
+    def _fit_result(centers=(1.0, 181.0)) -> dict:
         """Fit result as returned by _fitSpectrum: background 0.25, two peaks of height 0.2 and Sigma 7.5 deg"""
         result = {"fit_function": "name=FlatBackground", "chisq": (1.5, 0.0), "f0.A0": (0.25, 0.01)}
-        for label, centre in zip(("f1", "f2"), centres):
-            result.update({f"{label}.Height": (0.2, 0.002), f"{label}.PeakCentre": (centre, 0.1)})
+        for label, center in zip(("f1", "f2"), centers):
+            result.update({f"{label}.Height": (0.2, 0.002), f"{label}.PeakCentre": (center, 0.1)})
             result[f"{label}.Sigma"] = (7.5, 0.2)
         return result
 
@@ -89,7 +89,7 @@ class TestRingFit:
         ring = RingFit.from_fit_result(3, 0.05, result)
         assert ring.is_fitted and ring.status is RingStatus.REJECTED and ring.reasons == []
         assert (ring.index, ring.q, ring.background, ring.chisq) == (3, 0.05, 0.25, 1.5)
-        assert [peak.centre for peak in ring.peaks] == [1.0, 181.0]
+        assert [peak.center for peak in ring.peaks] == [1.0, 181.0]
         ring.parameters["chisq"] = (9.0, 0.0)
         assert result["chisq"] == (1.5, 0.0)  # the ring holds a copy of the fit result
 
@@ -106,19 +106,19 @@ class TestRingFit:
         assert symmetric.evaluated_peaks == symmetric.peaks[:1]  # the mirrored peak is not evaluated
 
     @pytest.mark.parametrize(
-        "centres, reference, expected",
+        "centers, reference, expected",
         [
             ((1.0, 181.0), (0.0, 180.0), (1.0, 181.0)),  # same order as the reference
             ((181.0, 1.0), (0.0, 180.0), (1.0, 181.0)),  # swapped order
             ((2.0, 181.0), (180.0, 359.0), (181.0, 362.0)),  # swapped, and unwrapped across 360 deg
         ],
     )
-    def test_aligned_to(self, centres, reference, expected):
-        """Peaks are matched to the reference centres regardless of fit order and unwrapped near the reference"""
-        ring = RingFit.from_fit_result(0, 0.05, self._fit_result(centres))
+    def test_aligned_to(self, centers, reference, expected):
+        """Peaks are matched to the reference centers regardless of fit order and unwrapped near the reference"""
+        ring = RingFit.from_fit_result(0, 0.05, self._fit_result(centers))
         aligned = ring.aligned_to(reference)
-        assert [peak.centre for peak in aligned] == pytest.approx(expected)
-        assert [peak.centre for peak in ring.peaks] == list(centres)  # the ring is unchanged
+        assert [peak.center for peak in aligned] == pytest.approx(expected)
+        assert [peak.center for peak in ring.peaks] == list(centers)  # the ring is unchanged
 
     def test_to_legacy_dict(self):
         """The legacy dictionary holds the fit parameters, or the joined reasons of a failed fit"""

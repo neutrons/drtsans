@@ -56,16 +56,16 @@ class PeakFit:
     height, height_error: float
         Peak height H above the flat background and its uncertainty, in the intensity units of the input
         (1/cm on absolute scale).
-    centre, centre_error: float
-        Peak centre and its uncertainty, in degrees.
+    center, center_error: float
+        Peak center and its uncertainty, in degrees.
     fwhm, fwhm_error: float
         Full width at half maximum and its uncertainty, in degrees.
     """
 
     height: float
     height_error: float
-    centre: float
-    centre_error: float
+    center: float
+    center_error: float
     fwhm: float
     fwhm_error: float
 
@@ -81,17 +81,17 @@ class PeakFit:
             Label of the Gaussian in the composite fit function, ``"f1"`` or ``"f2"``.
         """
         height, height_error = result[f"{label}.Height"]
-        centre, centre_error = result[f"{label}.PeakCentre"]
+        center, center_error = result[f"{label}.PeakCentre"]
         sigma, sigma_error = result[f"{label}.Sigma"]
         # the fit does not constrain the sign of Sigma
         fwhm, fwhm_error = abs(float(sigma)) * SIGMA_TO_FWHM, abs(float(sigma_error)) * SIGMA_TO_FWHM
-        return cls(float(height), float(height_error), float(centre), float(centre_error), fwhm, fwhm_error)
+        return cls(float(height), float(height_error), float(center), float(center_error), fwhm, fwhm_error)
 
     @property
     def is_valid(self) -> bool:
         """True if all values and uncertainties are finite and all uncertainties are positive."""
-        errors = (self.height_error, self.centre_error, self.fwhm_error)
-        values = (self.height, self.centre, self.fwhm) + errors
+        errors = (self.height_error, self.center_error, self.fwhm_error)
+        values = (self.height, self.center, self.fwhm) + errors
         return bool(np.all(np.isfinite(values)) and min(errors) > 0.0)
 
     @property
@@ -108,18 +108,18 @@ class PeakFit:
         return self.height / background
 
     @property
-    def centre_weight(self) -> float:
-        """Weight of the centre when averaging over Q-rings, 1 / centre_error."""
-        return 1.0 / self.centre_error
+    def center_weight(self) -> float:
+        """Weight of the center when averaging over Q-rings, 1 / center_error."""
+        return 1.0 / self.center_error
 
     @property
     def fwhm_weight(self) -> float:
         """Weight of the FWHM when averaging over Q-rings, 1 / fwhm_error."""
         return 1.0 / self.fwhm_error
 
-    def with_centre(self, centre: float) -> "PeakFit":
-        """Copy of this peak with another centre, in degrees; used to unwrap centres near a reference angle."""
-        return replace(self, centre=centre)
+    def with_center(self, center: float) -> "PeakFit":
+        """Copy of this peak with another center, in degrees; used to unwrap centers near a reference angle."""
+        return replace(self, center=center)
 
 
 @dataclass
@@ -189,19 +189,19 @@ class RingFit:
         return self.peaks[:1] if self.symmetric else self.peaks
 
     def aligned_to(self, reference: tuple[float, float]) -> tuple[PeakFit, PeakFit]:
-        """The two peaks matched to two reference centres, in degrees.
+        """The two peaks matched to two reference centers, in degrees.
 
         The fit may return the peaks in either order, so the order with the smaller total angular distance
-        to the reference is chosen. Each centre is then expressed within 180 deg of its reference centre,
-        so that centres near 0 and 360 deg can be averaged.
+        to the reference is chosen. Each center is then expressed within 180 deg of its reference center,
+        so that centers near 0 and 360 deg can be averaged.
         """
         first, second = self.peaks
 
         def distance(peaks: tuple[PeakFit, PeakFit]) -> float:
-            return sum(abs(_circular_difference(p.centre, r)) for p, r in zip(peaks, reference))
+            return sum(abs(_circular_difference(p.center, r)) for p, r in zip(peaks, reference))
 
         ordered = min((first, second), (second, first), key=distance)
-        return tuple(p.with_centre(r + _circular_difference(p.centre, r)) for p, r in zip(ordered, reference))
+        return tuple(p.with_center(r + _circular_difference(p.center, r)) for p, r in zip(ordered, reference))
 
     def to_legacy_dict(self) -> dict:
         """Fit result in the dictionary format of the diagnostic plots and HDF5 file.

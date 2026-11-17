@@ -5,10 +5,13 @@ import pytest
 from drtsans.auto_wedge import (
     SIGMA_TO_FWHM,
     AcceptanceCriteria,
+    ConsensusGroup,
     PeakFit,
     RingFit,
     RingStatus,
+    _average_peaks,
     _circular_difference,
+    _find_consensus,
 )
 
 
@@ -31,6 +34,14 @@ def _fit_result(centers=(1.0, 181.0), background=0.25, chisq=1.5, f1=None, f2=No
         peak = {"Height": (0.2, 0.002), "PeakCentre": (center, 0.1), "Sigma": (7.5, 0.2), **(changes or {})}
         result.update({f"{label}.{name}": value for name, value in peak.items()})
     return result
+
+
+def _ring(index, centers, center_error=0.1, fwhm=18.0, symmetric=False) -> RingFit:
+    """Fitted Q-ring with the given peak centers, center uncertainty and FWHM, all in degrees"""
+    peaks = [{"PeakCentre": (center, center_error), "Sigma": (fwhm / SIGMA_TO_FWHM, 0.2)} for center in centers]
+    return RingFit.from_fit_result(
+        index, 0.01 * (index + 1), _fit_result(centers, f1=peaks[0], f2=peaks[1]), symmetric
+    )
 
 
 class TestRingStatus:
@@ -130,6 +141,12 @@ class TestRingFit:
         assert [peak.center for peak in aligned] == pytest.approx(expected)
         assert [peak.center for peak in ring.peaks] == list(centers)  # the ring is unchanged
 
+    def test_weight(self):
+        """The weight is the sum of 1 / center_error over the evaluated peaks"""
+        result = _fit_result(f1={"PeakCentre": (1.0, 0.1)}, f2={"PeakCentre": (181.0, 0.2)})
+        assert RingFit.from_fit_result(0, 0.05, result).weight == pytest.approx(15.0)
+        assert RingFit.from_fit_result(0, 0.05, result, symmetric=True).weight == pytest.approx(10.0)
+
     def test_to_legacy_dict(self):
         """The legacy dictionary holds the fit parameters, or the joined reasons of a failed fit"""
         result = _fit_result()
@@ -209,3 +226,59 @@ class TestAcceptanceCriteria:
         assert criteria.seed_failures(symmetric) == []
         failed = RingFit.failed(1, 0.06, "empty peak search window")
         assert criteria.seed_failures(failed) == criteria.rescue_failures(failed) == ["fit failed"]
+
+
+class TestConsensusGroup:
+    """Seed candidates sharing one orientation, and the rules to match a ring to it"""
+
+    GROUP = ConsensusGroup(centers=(181.0, 1.0), fwhms=(18.0, 18.0), members=(), weight_fraction=1.0)
+
+    @pytest.mark.parametrize("centers, expected", [((186.0, 6.0), True), ((193.0, 13.0), False), ((6.0, 186.0), True)])
+    def test_matches_rescue(self, centers, expected):
+        """A rescued ring must lie within 0.5 x the group FWHM (9 deg) of the group center, in any peak order"""
+        assert self.GROUP.matches(_ring(0, centers), tolerance=0.5) == expected
+
+    def test_matches_candidate(self):
+        """A seed candidate is compared using the mean of its FWHM and the group FWHM"""
+        ring = _ring(0, (192.0, 12.0), fwhm=30.0)  # 11 deg away; tolerance 0.5 x (30 + 18) / 2 = 12 deg
+        assert self.GROUP.matches(ring, tolerance=0.5, candidate=True)
+        assert not self.GROUP.matches(ring, tolerance=0.5)  # rescue tolerance 0.5 x 18 = 9 deg
+
+    def test_matches_symmetric(self):
+        """Only the fitted peak of a symmetric ring is compared with the group center"""
+        assert self.GROUP.matches(_ring(0, (186.0, 50.0), symmetric=True), tolerance=0.5)
+        assert not self.GROUP.matches(_ring(0, (186.0, 50.0)), tolerance=0.5)
+
+
+def test_average_peaks():
+    """Centers and FWHMs are averaged with 1 / error weights, after aligning the peak order and the 360 deg wrap"""
+    rings = [_ring(0, (180.0, 0.0), center_error=0.1), _ring(1, (183.0, 3.0), center_error=0.2)]
+    expected_centers = pytest.approx((181.0, 1.0))  # weights 10 and 5
+    assert _average_peaks(rings, (180.0, 0.0)) == (expected_centers, pytest.approx((18.0, 18.0)))
+    rings[1] = _ring(1, (363.0, 183.0), center_error=0.2)  # swapped peak order, second center wrapped
+    assert _average_peaks(rings, (180.0, 0.0))[0] == expected_centers
+    with pytest.raises(ValueError):
+        _average_peaks([], (180.0, 0.0))
+
+
+def test_find_consensus_single_group():
+    """Rings within 0.5 FWHM of the group center form one group, listed strongest first"""
+    rings = [_ring(2, (186.0, 6.0), 0.25), _ring(1, (176.0, 356.0), 0.2), _ring(0, (181.0, 1.0), 0.1)]
+    (group,) = _find_consensus(rings, tolerance=0.5)
+    assert [ring.index for ring in group.members] == [0, 1, 2]
+    assert group.weight_fraction == pytest.approx(1.0)
+
+
+def test_find_consensus_two_groups():
+    """Rings with different orientations form separate groups, largest weight fraction first"""
+    rings = [_ring(0, (91.0, 271.0)), _ring(1, (181.0, 1.0)), _ring(2, (181.5, 1.5))]
+    groups = _find_consensus(rings, tolerance=0.5)
+    assert [[ring.index for ring in group.members] for group in groups] == [[1, 2], [0]]
+    assert [group.weight_fraction for group in groups] == pytest.approx([2 / 3, 1 / 3])
+
+
+def test_find_consensus_no_chaining():
+    """Rings whose centers drift by 7 deg per ring are not chained into a single group"""
+    rings = [_ring(index, (center, center + 180.0)) for index, center in enumerate((180.0, 187.0, 194.0, 201.0))]
+    groups = _find_consensus(rings, tolerance=0.5)
+    assert [[ring.index for ring in group.members] for group in groups] == [[0, 1], [2, 3]]

@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import List, Tuple
 from drtsans.dataobjects import I1DAnnular
@@ -120,6 +120,96 @@ class PeakFit:
     def with_centre(self, centre: float) -> "PeakFit":
         """Copy of this peak with another centre, in degrees; used to unwrap centres near a reference angle."""
         return replace(self, centre=centre)
+
+
+@dataclass
+class RingFit:
+    """Fit of the azimuthal profile I(phi) of one Q-ring, and the outcome of the ring selection for it.
+
+    Only ``status`` and ``reasons`` change after creation; the ring selection sets them.
+
+    Attributes
+    ----------
+    index: int
+        Index of the Q-ring.
+    q: float
+        Centre of the Q-ring, in 1/Angstrom.
+    parameters: dict
+        Fit parameters as ``(value, error)`` tuples keyed by Mantid parameter name, plus ``"chisq"`` and the
+        ``"fit_function"`` string. Empty when the fit failed.
+    symmetric: bool
+        True if the second peak is the mirror image of the first (``f2`` = ``f1`` shifted by 180 deg)
+        rather than an independent fit.
+    status: RingStatus
+        Outcome of the selection. A fitted ring is ``REJECTED`` until the selection accepts it.
+    reasons: list[str]
+        Why the ring failed to fit or was not accepted.
+    """
+
+    index: int
+    q: float
+    parameters: dict
+    symmetric: bool = False
+    status: RingStatus = RingStatus.REJECTED
+    reasons: list[str] = field(default_factory=list)
+
+    @classmethod
+    def from_fit_result(cls, index: int, q: float, result: dict, symmetric: bool = False) -> "RingFit":
+        """Create from the dictionary returned by ``_fitSpectrum``."""
+        return cls(index, q, dict(result), symmetric)
+
+    @classmethod
+    def failed(cls, index: int, q: float, reason: str) -> "RingFit":
+        """Create for a Q-ring whose azimuthal profile could not be fitted."""
+        return cls(index, q, {}, status=RingStatus.FIT_FAILED, reasons=[reason])
+
+    @property
+    def is_fitted(self) -> bool:
+        """True if fit parameters are available."""
+        return self.status is not RingStatus.FIT_FAILED
+
+    @property
+    def background(self) -> float:
+        """Flat background A0, in the intensity units of the input."""
+        return float(self.parameters["f0.A0"][0])
+
+    @property
+    def chisq(self) -> float:
+        """Cost function value of the fit."""
+        return float(self.parameters["chisq"][0])
+
+    @property
+    def peaks(self) -> tuple[PeakFit, PeakFit]:
+        """The two peaks, in the order of the fit function."""
+        return PeakFit.from_fit_result(self.parameters, "f1"), PeakFit.from_fit_result(self.parameters, "f2")
+
+    @property
+    def evaluated_peaks(self) -> tuple[PeakFit, ...]:
+        """Peaks subject to the acceptance criteria; a mirrored peak carries no independent information."""
+        return self.peaks[:1] if self.symmetric else self.peaks
+
+    def aligned_to(self, reference: tuple[float, float]) -> tuple[PeakFit, PeakFit]:
+        """The two peaks matched to two reference centres, in degrees.
+
+        The fit may return the peaks in either order, so the order with the smaller total angular distance
+        to the reference is chosen. Each centre is then expressed within 180 deg of its reference centre,
+        so that centres near 0 and 360 deg can be averaged.
+        """
+        first, second = self.peaks
+
+        def distance(peaks: tuple[PeakFit, PeakFit]) -> float:
+            return sum(abs(_circular_difference(p.centre, r)) for p, r in zip(peaks, reference))
+
+        ordered = min((first, second), (second, first), key=distance)
+        return tuple(p.with_centre(r + _circular_difference(p.centre, r)) for p, r in zip(ordered, reference))
+
+    def to_legacy_dict(self) -> dict:
+        """Fit result in the dictionary format of the diagnostic plots and HDF5 file.
+
+        ``"error"`` is None for a fitted ring, otherwise it holds the reasons of the fit failure.
+        """
+        error = None if self.is_fitted else "; ".join(self.reasons)
+        return {**self.parameters, "error": error}
 
 
 def _create_fit_function(combo_function_str):

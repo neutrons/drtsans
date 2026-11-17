@@ -2,7 +2,14 @@
 import numpy as np
 import pytest
 
-from drtsans.auto_wedge import SIGMA_TO_FWHM, PeakFit, RingFit, RingStatus, _circular_difference
+from drtsans.auto_wedge import (
+    SIGMA_TO_FWHM,
+    AcceptanceCriteria,
+    PeakFit,
+    RingFit,
+    RingStatus,
+    _circular_difference,
+)
 
 
 @pytest.mark.parametrize(
@@ -12,6 +19,18 @@ from drtsans.auto_wedge import SIGMA_TO_FWHM, PeakFit, RingFit, RingStatus, _cir
 def test_circular_difference(angle, reference, expected):
     """Signed angle differences are wrapped into [-180, 180) deg"""
     assert _circular_difference(angle, reference) == pytest.approx(expected)
+
+
+def _fit_result(centers=(1.0, 181.0), background=0.25, chisq=1.5, f1=None, f2=None) -> dict:
+    """Fit result as returned by _fitSpectrum, with two peaks of height 0.2 +/- 0.002 and Sigma 7.5 +/- 0.2 deg.
+
+    ``f1`` and ``f2`` optionally replace parameters of one peak, as in ``f1={"Height": (0.03, 0.005)}``.
+    """
+    result = {"fit_function": "name=FlatBackground", "chisq": (chisq, 0.0), "f0.A0": (background, 0.01)}
+    for label, center, changes in zip(("f1", "f2"), centers, (f1, f2)):
+        peak = {"Height": (0.2, 0.002), "PeakCentre": (center, 0.1), "Sigma": (7.5, 0.2), **(changes or {})}
+        result.update({f"{label}.{name}": value for name, value in peak.items()})
+    return result
 
 
 class TestRingStatus:
@@ -74,18 +93,9 @@ class TestPeakFit:
 class TestRingFit:
     """Fit of the azimuthal profile of one Q-ring and its selection outcome"""
 
-    @staticmethod
-    def _fit_result(centers=(1.0, 181.0)) -> dict:
-        """Fit result as returned by _fitSpectrum: background 0.25, two peaks of height 0.2 and Sigma 7.5 deg"""
-        result = {"fit_function": "name=FlatBackground", "chisq": (1.5, 0.0), "f0.A0": (0.25, 0.01)}
-        for label, center in zip(("f1", "f2"), centers):
-            result.update({f"{label}.Height": (0.2, 0.002), f"{label}.PeakCentre": (center, 0.1)})
-            result[f"{label}.Sigma"] = (7.5, 0.2)
-        return result
-
     def test_from_fit_result(self):
         """A fitted ring starts as rejected, holds a copy of the fit result and exposes its parameters"""
-        result = self._fit_result()
+        result = _fit_result()
         ring = RingFit.from_fit_result(3, 0.05, result)
         assert ring.is_fitted and ring.status is RingStatus.REJECTED and ring.reasons == []
         assert (ring.index, ring.q, ring.background, ring.chisq) == (3, 0.05, 0.25, 1.5)
@@ -101,8 +111,8 @@ class TestRingFit:
 
     def test_evaluated_peaks(self):
         """Both peaks are evaluated, except the mirrored peak in symmetric mode"""
-        assert len(RingFit.from_fit_result(0, 0.05, self._fit_result()).evaluated_peaks) == 2
-        symmetric = RingFit.from_fit_result(0, 0.05, self._fit_result(), symmetric=True)
+        assert len(RingFit.from_fit_result(0, 0.05, _fit_result()).evaluated_peaks) == 2
+        symmetric = RingFit.from_fit_result(0, 0.05, _fit_result(), symmetric=True)
         assert symmetric.evaluated_peaks == symmetric.peaks[:1]  # the mirrored peak is not evaluated
 
     @pytest.mark.parametrize(
@@ -115,15 +125,87 @@ class TestRingFit:
     )
     def test_aligned_to(self, centers, reference, expected):
         """Peaks are matched to the reference centers regardless of fit order and unwrapped near the reference"""
-        ring = RingFit.from_fit_result(0, 0.05, self._fit_result(centers))
+        ring = RingFit.from_fit_result(0, 0.05, _fit_result(centers))
         aligned = ring.aligned_to(reference)
         assert [peak.center for peak in aligned] == pytest.approx(expected)
         assert [peak.center for peak in ring.peaks] == list(centers)  # the ring is unchanged
 
     def test_to_legacy_dict(self):
         """The legacy dictionary holds the fit parameters, or the joined reasons of a failed fit"""
-        result = self._fit_result()
+        result = _fit_result()
         assert RingFit.from_fit_result(0, 0.05, result).to_legacy_dict() == {**result, "error": None}
         failed = RingFit.failed(1, 0.06, "a")
         failed.reasons.append("b")
         assert failed.to_legacy_dict() == {"error": "a; b"}
+
+
+class TestAcceptanceCriteria:
+    """Thresholds deciding whether a Q-ring is a seed candidate or can be rescued"""
+
+    @staticmethod
+    def _criteria(**changes) -> AcceptanceCriteria:
+        """Criteria with N = 10, C = 0.2, tolerance 0.5 FWHM, 1 deg azimuthal bins and maxchisq 1000"""
+        settings = dict(signal_to_noise_min=10.0, contrast_min=0.2, center_tolerance=0.5, azimuthal_delta=1.0)
+        settings.update(maxchisq=1000.0, **changes)
+        return AcceptanceCriteria.from_settings(**settings)
+
+    def test_from_settings(self):
+        """The FWHM range spans 3 azimuthal bins to 180 deg, and the rescue threshold never exceeds N"""
+        criteria = self._criteria(azimuthal_delta=2.0)
+        assert (criteria.fwhm_min, criteria.fwhm_max, criteria.rescue_significance_min) == (6.0, 180.0, 5.0)
+        assert criteria.consensus_weight_fraction == 0.67
+        assert self._criteria(signal_to_noise_min=1.2).rescue_significance_min == 1.2
+
+    @pytest.mark.parametrize(
+        "changes",
+        [
+            {"contrast_min": 0.0},
+            {"signal_to_noise_min": np.nan},
+            {"center_tolerance": 0.0},
+            {"center_tolerance": 1.5},
+            {"azimuthal_delta": 60.0},
+        ],
+    )
+    def test_invalid_settings(self, changes):
+        """Non-positive thresholds, a tolerance outside (0, 1] and too wide azimuthal bins are refused"""
+        with pytest.raises(ValueError):
+            self._criteria(**changes)
+        with pytest.raises(ValueError, match="Consensus weight fraction"):
+            AcceptanceCriteria(10.0, 0.2, 0.5, 3.0, 1000.0, consensus_weight_fraction=0.5)
+
+    def test_seed_failures_none(self):
+        """A strong ring with H/sigma_H = 100, H/A0 = 0.8 and FWHM = 17.7 deg is a seed candidate"""
+        assert self._criteria().seed_failures(RingFit.from_fit_result(0, 0.05, _fit_result())) == []
+
+    @pytest.mark.parametrize(
+        "changes, expected",
+        [
+            ({"chisq": 2000.0}, "chisq = 2e+03 > 1000"),
+            ({"f1": {"Height": (0.2, 0.0)}}, "peak 1: non-finite parameter or non-positive uncertainty"),
+            ({"f2": {"Height": (0.04, 0.002)}}, "peak 2: H/A0 = 0.16 < 0.2"),
+            ({"background": -0.1}, "peak 1: background A0 = -0.1 is not positive"),
+            ({"f1": {"Height": (0.2, 0.05)}}, "peak 1: H/sigma_H = 4 < 10"),
+            ({"f2": {"Sigma": (0.5, 0.05)}}, "peak 2: FWHM = 1.18 deg outside [3, 180] deg"),
+            ({"f1": {"Sigma": (80.0, 1.0)}}, "peak 1: FWHM = 188 deg outside [3, 180] deg"),
+        ],
+    )
+    def test_seed_failures(self, changes, expected):
+        """Each failed seed criterion is reported with the measured value and the threshold"""
+        assert expected in self._criteria().seed_failures(RingFit.from_fit_result(0, 0.05, _fit_result(**changes)))
+
+    def test_rescue_failures(self):
+        """A weak ring of low contrast can be rescued if H/sigma_H >= 5, but not below"""
+        criteria = self._criteria()
+        weak = RingFit.from_fit_result(0, 0.05, _fit_result(f1={"Height": (0.035, 0.005)}))
+        assert len(criteria.seed_failures(weak)) == 2  # contrast 0.14 and significance 7
+        assert criteria.rescue_failures(weak) == []
+        weaker = RingFit.from_fit_result(0, 0.05, _fit_result(f1={"Height": (0.015, 0.005)}))
+        assert criteria.rescue_failures(weaker) == ["peak 1: H/sigma_H = 3 < 5"]
+
+    def test_symmetric_and_failed_rings(self):
+        """Only the fitted peak of a symmetric ring is checked, and a failed ring reports the failed fit"""
+        criteria = self._criteria()
+        symmetric = RingFit.from_fit_result(0, 0.05, _fit_result(f2={"Height": (0.01, 0.01)}), symmetric=True)
+        assert criteria.seed_failures(symmetric) == []
+        failed = RingFit.failed(1, 0.06, "empty peak search window")
+        assert criteria.seed_failures(failed) == criteria.rescue_failures(failed) == ["fit failed"]

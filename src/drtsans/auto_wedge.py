@@ -23,6 +23,12 @@ __all__ = ["getWedgeSelection"]
 # https://docs.mantidproject.org/nightly/fitting/fitfunctions/Gaussian.html
 SIGMA_TO_FWHM = 2.0 * np.sqrt(2.0 * np.log(2.0))
 
+# Constants of the Q-ring selection
+RESCUE_SIGNIFICANCE_MIN = 5.0  # H/sigma_H for a ring to confirm an orientation already found by the seed rings
+FWHM_MIN_BINS = 3  # a peak narrower than three azimuthal bins is not resolved
+FWHM_MAX = 180.0  # deg; the two peaks are 180 deg apart, so a wider peak is not defined
+CONSENSUS_WEIGHT_FRACTION = 0.67  # fraction of the seed weight that the consensus group must hold
+
 
 def _circular_difference(angle: float, reference: float) -> float:
     """Signed difference ``angle - reference`` between azimuthal angles, wrapped into [-180, 180) degrees.
@@ -133,7 +139,7 @@ class RingFit:
     index: int
         Index of the Q-ring.
     q: float
-        Centre of the Q-ring, in 1/Angstrom.
+        Center of the Q-ring, in 1/Angstrom.
     parameters: dict
         Fit parameters as ``(value, error)`` tuples keyed by Mantid parameter name, plus ``"chisq"`` and the
         ``"fit_function"`` string. Empty when the fit failed.
@@ -210,6 +216,116 @@ class RingFit:
         """
         error = None if self.is_fitted else "; ".join(self.reasons)
         return {**self.parameters, "error": error}
+
+
+@dataclass(frozen=True)
+class AcceptanceCriteria:
+    """Thresholds deciding whether a Q-ring is a seed ring, or can be rescued once the orientation is known.
+
+    A fitted ring whose peaks all pass the seed criteria (contrast, significance, FWHM range and chisq) is a seed
+    candidate. Only seed candidates take part in finding the consensus orientation: candidates in the consensus
+    group become seed rings, and candidates in any other group are inconsistent and not used. Rescuing applies
+    afterwards to the rings that failed the seed criteria:
+    such a ring is still accepted if its two peak centers match
+    the consensus and its two peaks pass the weaker rescue criteria (significance, FWHM range and chisq,
+    no contrast).
+    Seed and rescued rings together determine the wedge angles.
+
+    Attributes
+    ----------
+    significance_min: float
+        N, minimum significance H/sigma_H of each peak of a seed ring.
+    contrast_min: float
+        C, minimum contrast H/A0 of each peak of a seed ring.
+    center_tolerance: float
+        Maximum deviation of each peak center from the consensus, as a fraction of that peak's FWHM.
+    fwhm_min, fwhm_max: float
+        Allowed range of the FWHM, in degrees.
+    maxchisq: float
+        Maximum cost function value of the fit.
+    rescue_significance_min: float
+        Minimum significance H/sigma_H of each peak of a rescued ring.
+    consensus_weight_fraction: float
+        Fraction of the seed weight that the consensus group must hold.
+    """
+
+    significance_min: float
+    contrast_min: float
+    center_tolerance: float
+    fwhm_min: float
+    maxchisq: float
+    fwhm_max: float = FWHM_MAX
+    rescue_significance_min: float = RESCUE_SIGNIFICANCE_MIN
+    consensus_weight_fraction: float = CONSENSUS_WEIGHT_FRACTION
+
+    @classmethod
+    def from_settings(
+        cls,
+        signal_to_noise_min: float,
+        contrast_min: float,
+        center_tolerance: float,
+        azimuthal_delta: float,
+        maxchisq: float,
+    ) -> "AcceptanceCriteria":
+        """Create from the user settings and the azimuthal bin width, in degrees.
+
+        The rescue threshold never exceeds the seed threshold N, so that a seed-quality ring is never refused rescue.
+        """
+        rescue_significance_min = min(RESCUE_SIGNIFICANCE_MIN, signal_to_noise_min)
+        fwhm_min = FWHM_MIN_BINS * azimuthal_delta
+        return cls(
+            signal_to_noise_min, contrast_min, center_tolerance, fwhm_min, maxchisq, FWHM_MAX, rescue_significance_min
+        )
+
+    def __post_init__(self):
+        for name in ("significance_min", "contrast_min", "fwhm_min", "maxchisq", "rescue_significance_min"):
+            value = getattr(self, name)
+            if not (np.isfinite(value) and value > 0.0):
+                raise ValueError(f"Auto-wedge {name} must be a positive number, got {value}")
+        if not 0.0 < self.center_tolerance <= 1.0:
+            raise ValueError(
+                f"Auto-wedge center tolerance must be a fraction of the FWHM in (0, 1], got {self.center_tolerance}"
+            )
+        if self.fwhm_min >= self.fwhm_max:
+            raise ValueError(
+                f"Auto-wedge minimum FWHM ({FWHM_MIN_BINS} azimuthal bins = {self.fwhm_min:g} deg) must be below "
+                f"{self.fwhm_max:g} deg; decrease autoWedgeAzimuthalDelta"
+            )
+        if not 0.5 < self.consensus_weight_fraction <= 1.0:
+            raise ValueError(f"Consensus weight fraction must be in (0.5, 1], got {self.consensus_weight_fraction}")
+
+    def seed_failures(self, ring: RingFit) -> list[str]:
+        """Reasons why the ring is not a seed ring; empty if it is one."""
+        return self._failures(ring, self.significance_min, check_contrast=True)
+
+    def rescue_failures(self, ring: RingFit) -> list[str]:
+        """Reasons why the ring cannot be rescued, apart from its centers; empty if it can.
+
+        Contrast is not required: the match with the consensus centers, checked separately, already protects
+        against artifacts of low contrast.
+        """
+        return self._failures(ring, self.rescue_significance_min, check_contrast=False)
+
+    def _failures(self, ring: RingFit, significance_min: float, check_contrast: bool) -> list[str]:
+        if not ring.is_fitted:
+            return ["fit failed"]
+        failures = [] if ring.chisq <= self.maxchisq else [f"chisq = {ring.chisq:.3g} > {self.maxchisq:g}"]
+        for number, peak in enumerate(ring.evaluated_peaks, start=1):
+            if not peak.is_valid:
+                failures.append(f"peak {number}: non-finite parameter or non-positive uncertainty")
+                continue
+            contrast = peak.contrast(ring.background)
+            if check_contrast and np.isnan(contrast):
+                failures.append(f"peak {number}: background A0 = {ring.background:.3g} is not positive")
+            elif check_contrast and contrast < self.contrast_min:
+                failures.append(f"peak {number}: H/A0 = {contrast:.3g} < {self.contrast_min:g}")
+            if peak.significance < significance_min:
+                failures.append(f"peak {number}: H/sigma_H = {peak.significance:.3g} < {significance_min:g}")
+            if not self.fwhm_min <= peak.fwhm <= self.fwhm_max:
+                failures.append(
+                    f"peak {number}: FWHM = {peak.fwhm:.3g} deg outside [{self.fwhm_min:g}, {self.fwhm_max:g}] deg"
+                )
+        return failures
 
 
 def _create_fit_function(combo_function_str):

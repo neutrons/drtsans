@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import re
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import List, Tuple
@@ -148,8 +149,8 @@ def _create_fit_function(combo_function_str):
 
     # convert to function
     for single_func in single_function_str_list:
-        # split with ','
-        params = single_func.split(",")
+        # split with ',' except inside parentheses, as in "constraints=(0<Height,0<Sigma)"
+        params = re.split(r",(?![^()]*\))", single_func)
         # create function
         func_name = params[0].split("=")[1]
         func_i = mantid_function_map[func_name]()
@@ -160,7 +161,8 @@ def _create_fit_function(combo_function_str):
             param_name_i = param_list[0]
             param_value_i = param_list[1]
             if param_name_i == "constraints":
-                func_i.constrain(param_value_i)
+                for constraint in param_value_i.strip("()").split(","):
+                    func_i.constrain(constraint)
             else:
                 func_i.__setattr__(param_name_i, float(param_value_i))
         # END-FOR
@@ -735,7 +737,8 @@ def _fitSpectrum(
     function = ["name=FlatBackground,A0={}".format(background)]
 
     # template for describing initial peak guess
-    gaussian_str = "name=Gaussian,Height={},PeakCentre={},Sigma={},constraints=(0<Height)"
+    # Sigma is constrained positive so that the reported FWHM (proportional to Sigma) is never negative
+    gaussian_str = "name=Gaussian,Height={},PeakCentre={},Sigma={},constraints=(0<Height,0<Sigma)"
 
     # guess where one peak might be, start with a window of WINDOW_SIZE each side around 110
     intensity_peak, azimuthal_first, sigma = _estimatePeakParameters(

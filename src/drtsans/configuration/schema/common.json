@@ -533,7 +533,9 @@
           "#configuration/autoWedgeAzimuthalDelta",
           "#configuration/autoWedgePeakWidth",
           "#configuration/autoWedgeBackgroundWidth",
-          "#configuration/autoWedgeSignalToNoiseMin"
+          "#configuration/autoWedgeSignalToNoiseMin",
+          "#configuration/autoWedgeContrastMin",
+          "#configuration/autoWedgeCenterTolerance"
         ]
       ],
       "examples": ["scalar", "annular", "wedge"]
@@ -610,15 +612,23 @@
     },
     "autoWedgePeakWidth": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "description": "Percent of full-width-half-max (FWHM) of the peak in the I(phi) profile representing a wedge."
+      "description": "Half-width of each peak wedge, as a fraction of the full-width-half-max (FWHM) of the fitted peak in the I(phi) profile. The wedge spans the peak center plus or minus this fraction of the FWHM."
     },
     "autoWedgeBackgroundWidth": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "description": "Percent of full-width-half-max (FWHM) of the peak in the I(phi) profile representing a wedge."
+      "description": "Distance from each peak center to the edges of the background wedges, as a fraction of the FWHM of the fitted peak. The background wedges lie between the peaks. If the peaks are so wide that the background wedges would be empty, the value is reduced automatically, with a warning."
     },
     "autoWedgeSignalToNoiseMin": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "description": "Minimum signal to noise ratio for the data to be considered fittable in automatic wedge detection"
+      "description": "Minimum significance H/sigma_H (fitted peak height over its uncertainty) of each peak for a Q-ring to seed the wedge orientation"
+    },
+    "autoWedgeContrastMin": {
+      "$ref": "common.json#/definitions/safeStringPositiveFloat",
+      "description": "Minimum contrast H/A0 (fitted peak height over the flat background) of each peak for a Q-ring to seed the wedge orientation"
+    },
+    "autoWedgeCenterTolerance": {
+      "$ref": "common.json#/definitions/safeStringPositiveFloat",
+      "description": "Maximum deviation of a peak center from the consensus orientation of the seed Q-rings, as a fraction of the FWHM of the peak, in (0, 1]"
     },
     "autoWedgePeakSearchWindowSizeFactor": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",

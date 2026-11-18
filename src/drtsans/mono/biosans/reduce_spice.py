@@ -72,6 +72,8 @@ def reduce_biosans_nexus(
     OL_range_wedge1: Union[Tuple[float, float], List[float]],
     refresh_cycle: int,
     nexus_dir: Union[str, None],
+    auto_wedge_contrast_min: float = 0.2,
+    auto_wedge_center_tolerance: float = 0.5,
 ):
     # Convert SPICE scan-pt tuple to NeXus files
     sample_runs = map_to_nexus(CG3, ipts_number, experiment_number, sample_runs, nexus_dir=nexus_dir)
@@ -162,6 +164,8 @@ def reduce_biosans_nexus(
             "autoWedgeAzimuthalDelta": auto_wedge_delta_azimuthal_angle,
             "autoWedgeBackgroundWidth": auto_wedge_background_width,
             "autoWedgeSignalToNoiseMin": auto_wedge_minimum_signal_to_noise_ratio,
+            "autoWedgeContrastMin": auto_wedge_contrast_min,
+            "autoWedgeCenterTolerance": auto_wedge_center_tolerance,
             "wedge1QminMain": q_range_main_wedge0[0],
             "wedge1QmaxMain": q_range_main_wedge0[1],
             "wedge1QminWing": q_range_wing_wedge0[0],

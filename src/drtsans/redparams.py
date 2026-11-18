@@ -1212,7 +1212,8 @@ class ReductionParameters:
         Two sources of wedge parameter are identified:
         1. custom WedgeMinAngles and WedgeMaxAngles.
         2. automatic wedges, requires autoWedgeQmin, autoWedgeQmax, autoWedgeQdelta, autoWedgeAzimuthalDelta,
-        autoWedgePeakWidth, autoWedgeBackgroundWidth, and autoWedgeSignalToNoiseMin.
+        autoWedgePeakWidth, autoWedgeBackgroundWidth, autoWedgeSignalToNoiseMin, autoWedgeContrastMin, and
+        autoWedgeCenterTolerance.
 
         Parameters
         ----------

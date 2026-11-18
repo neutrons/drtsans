@@ -101,7 +101,9 @@
         "autoWedgeAzimuthalDelta":  {"$ref":  "common.json#/configuration/autoWedgeAzimuthalDelta", "default": 1.0},
         "autoWedgePeakWidth":        {"$ref":  "common.json#/configuration/autoWedgePeakWidth", "default":  0.25},
         "autoWedgeBackgroundWidth":  {"$ref":  "common.json#/configuration/autoWedgeBackgroundWidth", "default": 1.5},
-        "autoWedgeSignalToNoiseMin": {"$ref":  "common.json#/configuration/autoWedgeSignalToNoiseMin", "default": 2.0},
+        "autoWedgeSignalToNoiseMin": {"$ref":  "common.json#/configuration/autoWedgeSignalToNoiseMin", "default": 10.0},
+        "autoWedgeContrastMin":      {"$ref":  "common.json#/configuration/autoWedgeContrastMin", "default": 0.2},
+        "autoWedgeCenterTolerance":  {"$ref":  "common.json#/configuration/autoWedgeCenterTolerance", "default": 0.5},
         "autoWedgePeakSearchWindowSizeFactor": {"$ref":  "common.json#/configuration/autoWedgePeakSearchWindowSizeFactor", "default":  0.6},
         "AnnularAngleBin":           {"$ref":  "common.json#/configuration/AnnularAngleBin", "default":  1.0},
 
@@ -162,8 +164,9 @@
         "numQBins", "LogQBinsPerDecade",
         "useLogQBinsDecadeCenter", "useLogQBinsEvenDecade", "WedgeMinAngles", "WedgeMaxAngles",
         "autoWedgeQmin", "autoWedgeQmax", "autoWedgeQdelta", "autoWedgeAzimuthalDelta",
-        "autoWedgePeakWidth", "autoWedgeBackgroundWidth", "autoWedgeSignalToNoiseMin", "AnnularAngleBin",
-        "Qmin", "Qmax", "useErrorWeighting", "smearingPixelSizeX", "smearingPixelSizeY",
+        "autoWedgePeakWidth", "autoWedgeBackgroundWidth", "autoWedgeSignalToNoiseMin", "autoWedgeContrastMin",
+        "autoWedgeCenterTolerance", "AnnularAngleBin", "Qmin", "Qmax", "useErrorWeighting",
+        "smearingPixelSizeX", "smearingPixelSizeY",
         "useSubpixels", "subpixelsX", "subpixelsY", "polarization"]
     }
   },

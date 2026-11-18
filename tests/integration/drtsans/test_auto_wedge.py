@@ -8,7 +8,7 @@ import pytest
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from drtsans.auto_wedge import _binInQAndAzimuthal, _fitQAndAzimuthal
+from drtsans.auto_wedge import AcceptanceCriteria, _binInQAndAzimuthal, _fitQAndAzimuthal
 from drtsans.dataobjects import IQazimuthal, I1DAnnular
 from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans import getWedgeSelection
@@ -452,39 +452,39 @@ def test_fitting():
     """Test that the fitting generates reasonable results for fitting the peaks"""
     q, azimuthal_rings = _create_2d_histogram_data()
     # this calling forces there to be two found peaks
-    ring_fit_tuple = _fitQAndAzimuthal(
+    selection = _fitQAndAzimuthal(
         azimuthal_rings,
         q,
-        signal_to_noise_min=2.0,
+        criteria=AcceptanceCriteria.from_settings(10.0, 0.2, 0.5, azimuthal_delta=5.0, maxchisq=1000.0),
         azimuthal_start=110.0,
-        maxchisq=1000.0,
         peak_search_window_size_factor=0.6,
     )
-    center_list = ring_fit_tuple[0]
-    fwhm_list = ring_fit_tuple[1]
+    assert selection.succeeded
+    center_list, fwhm_list = selection.centers, selection.fwhms
 
+    # Q-rings 2-5 are seed rings; ring 1 is rejected because its first peak has H/sigma_H of about 1
     assert center_list[0] == pytest.approx(180.0, abs=3.0)
-    assert center_list[1] == pytest.approx(360.0, abs=4.0)
-    assert fwhm_list[0] == pytest.approx(fwhm_list[1], abs=2.0)
+    assert center_list[1] == pytest.approx(364.0, abs=4.0)
+    assert fwhm_list[0] == pytest.approx(46.9, abs=2.0)
+    assert fwhm_list[1] == pytest.approx(51.6, abs=2.0)
 
 
 def test_fitting_symmetric():
     """Test that the fitting generates reasonable results for fitting the peaks"""
     q, azimuthal_rings = _create_2d_histogram_data()
     # this calling forces there to be two found peaks
-    ring_fit_tuple = _fitQAndAzimuthal(
+    selection = _fitQAndAzimuthal(
         azimuthal_rings,
         q,
-        signal_to_noise_min=2.0,
+        criteria=AcceptanceCriteria.from_settings(10.0, 0.2, 0.5, azimuthal_delta=5.0, maxchisq=1000.0),
         azimuthal_start=110.0,
-        maxchisq=1000.0,
         peak_search_window_size_factor=0.6,
         auto_symmetric_wedges=True,
         auto_wedge_phi_min=2.5,
         auto_wedge_phi_max=217.5,
     )
-    center_list = ring_fit_tuple[0]
-    fwhm_list = ring_fit_tuple[1]
+    assert selection.succeeded
+    center_list, fwhm_list = selection.centers, selection.fwhms
 
     assert center_list[0] == pytest.approx(180.0, abs=5.0)
     assert center_list[1] == pytest.approx(360.0, abs=5.0)
@@ -524,29 +524,31 @@ def test_integration():
             assert -90.0 < max_val < 270.0
     peak_wedge, back_wedge = wedges
 
+    # Expected values follow from the Q-ring selection: rings 2-5 are seed rings, ring 1 is rejected because its
+    # first peak has H/sigma_H of about 1. They differ from the spreadsheet, which used rings 1-4.
     # verify peaks
     # first peak
     assert 0.5 * (peak_wedge[0][0] + peak_wedge[0][1]) == pytest.approx(180.0, abs=3.0), "First peak center is at 180."
     assert peak_wedge[0][0] == pytest.approx(171.0, abs=0.5)
     assert peak_wedge[0][1] == pytest.approx(195.0, abs=0.5)
     # second peak
-    assert 0.5 * (peak_wedge[1][0] + peak_wedge[1][1]) == pytest.approx(3.0, abs=1.0), "Second peak center is at 0."
-    assert peak_wedge[1][0] == pytest.approx(-9.0, abs=0.5)
-    assert peak_wedge[1][1] == pytest.approx(16.0, abs=0.5)
+    assert 0.5 * (peak_wedge[1][0] + peak_wedge[1][1]) == pytest.approx(4.0, abs=1.0), "Second peak center is at 4."
+    assert peak_wedge[1][0] == pytest.approx(-8.9, abs=0.5)
+    assert peak_wedge[1][1] == pytest.approx(16.9, abs=0.5)
 
     # verify background
     # first background - the extra 360 is to get around the circle
-    assert 0.5 * (back_wedge[0][0] + back_wedge[0][1] + 360) == pytest.approx(272.0, abs=1.2), (
+    assert 0.5 * (back_wedge[0][0] + back_wedge[0][1] + 360) == pytest.approx(269.9, abs=1.2), (
         "First background center is at 270."
     )
-    assert back_wedge[0][0] == pytest.approx(255.0, abs=0.5)
-    assert back_wedge[0][1] == pytest.approx(-69.0, abs=0.5)
+    assert back_wedge[0][0] == pytest.approx(253.1, abs=0.5)
+    assert back_wedge[0][1] == pytest.approx(-73.4, abs=0.5)
     # second background
-    assert 0.5 * (back_wedge[1][0] + back_wedge[1][1]) == pytest.approx(90.0, abs=5.0), (
-        "Second background center is at 90."
+    assert 0.5 * (back_wedge[1][0] + back_wedge[1][1]) == pytest.approx(97.0, abs=5.0), (
+        "Second background center is at 97."
     )
-    assert back_wedge[1][0] == pytest.approx(76.0, abs=0.5)
-    assert back_wedge[1][1] == pytest.approx(111.0, abs=0.5)
+    assert back_wedge[1][0] == pytest.approx(81.4, abs=0.5)
+    assert back_wedge[1][1] == pytest.approx(112.6, abs=0.5)
 
 
 @pytest.mark.datarepo

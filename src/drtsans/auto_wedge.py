@@ -918,12 +918,14 @@ def getWedgeSelection(
     azimuthal_delta,
     peak_width=0.25,
     background_width=1.5,
-    signal_to_noise_min=2.0,
+    signal_to_noise_min=10.0,
     peak_search_window_size_factor=0.6,
     debug_dir="/tmp/",
     auto_wedge_phi_min=0,
     auto_wedge_phi_max=360,
     auto_symmetric_wedges=False,
+    contrast_min=0.2,
+    center_tolerance=0.5,
 ) -> List[List[Tuple[float, float]]]:
     r"""
     Calculate azimuthal binning ranges automatically based on finding peaks in the annular ring. The
@@ -948,7 +950,7 @@ def getWedgeSelection(
         Percent of full-width-half-max (FWHM) of the peak to define the background between peaks
         to be within when determining the final range for azimuthal binning.
     signal_to_noise_min: float
-        Minimum signal to noise ratio for the data to be considered fittable.
+        Minimum significance H/sigma_H (fitted peak height over its uncertainty) of each peak of a seed ring.
     peak_search_window_size_factor: float
         Factor of 360 / (num peaks) to construct the search range for wedge peak.
     debug_dir: str
@@ -960,6 +962,11 @@ def getWedgeSelection(
     auto_symmetric_wedges: bool
         find a wedge between auto_wedge_phi_min and auto_wedge_phi_max, then symmetrize the findings to the remaining
         phi angle domain
+    contrast_min: float
+        Minimum contrast H/A0 (fitted peak height over the flat background) of each peak of a seed ring.
+    center_tolerance: float
+        Maximum deviation of a peak center from the consensus orientation of the seed rings, as a fraction
+        of the FWHM of the peak, in (0, 1].
 
     Returns
     =======
@@ -969,7 +976,15 @@ def getWedgeSelection(
         background regions associated to the wedges.
         The first item is `[(wedge1\_phimin, wedge1\_phimax), (wedge2\_phimin, wedge2\_phimax)]`,
         and the second item is `[(back1\_phimin, back1\_phimax), (back2\_phimin, back2\_phimax)]]`.
+
+    Raises
+    ======
+    AutoWedgeError
+        If no orientation can be determined from the Q-rings. The diagnostic files are written beforehand.
     """
+    criteria = AcceptanceCriteria.from_settings(
+        signal_to_noise_min, contrast_min, center_tolerance, azimuthal_delta, maxchisq=1000.0
+    )
     # Bin azimuthal
     q, azimuthal_rings = _binInQAndAzimuthal(
         data2d,
@@ -978,20 +993,19 @@ def getWedgeSelection(
         q_delta=q_delta,
         azimuthal_delta=azimuthal_delta,
     )
-    fit_results_tuple = _fitQAndAzimuthal(
+    selection = _fitQAndAzimuthal(
         azimuthal_rings,
         q_bins=q,
-        signal_to_noise_min=signal_to_noise_min,
+        criteria=criteria,
         azimuthal_start=110.0,
-        maxchisq=1000.0,
         peak_search_window_size_factor=peak_search_window_size_factor,
         auto_wedge_phi_min=auto_wedge_phi_min,
         auto_wedge_phi_max=auto_wedge_phi_max,
         auto_symmetric_wedges=auto_symmetric_wedges,
     )
-    center_vec, fwhm_vec, fit_dict = fit_results_tuple
+    fit_dict = selection.legacy_dicts()
 
-    # Export fitting result
+    # Export fitting result before any failure is raised, so that the user can inspect the fits
     _export_to_h5(
         iq2d=data2d,
         rings=azimuthal_rings,
@@ -1001,10 +1015,14 @@ def getWedgeSelection(
     )
     _plot_fit_results(azimuthal_rings, fit_dict, debug_dir, auto_symmetric_wedges)
 
-    # verify that the results didn't predict wedges larger than half of the data
-    if np.any(np.array(fwhm_vec) > 360.0 / 2):
-        values = ["{:.1f}deg".format(value) for value in fwhm_vec]
-        raise RuntimeError("Encountered large fwhm values: {}".format(", ".join(values)))
+    if not selection.succeeded:
+        message = _failure_message(selection, debug_dir)
+        logger.error(message)
+        raise AutoWedgeError(message, selection)
+    logger.notice(f"Automatic wedge detection, Q-ring selection:\n{_format_ring_table(selection)}")
+    # the acceptance criteria limit the FWHM of every accepted peak to FWHM_MAX
+    center_vec, fwhm_vec = selection.centers, selection.fwhms
+    logger.notice(f"Wedge peak centers (deg): {center_vec}, FWHMs (deg): {fwhm_vec}")
 
     # convert to min and max ranges
     min_vec, max_vec = [], []
@@ -1145,6 +1163,8 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
         # create a search window around azimuthal_new
         left_index = azimuthal.searchsorted(window_min, side="right")
         right_index = azimuthal.searchsorted(window_max, side="right")
+        if right_index <= left_index:
+            raise RuntimeError(f"no data in the peak search window around {azimuthal_new:.1f} deg")
         # the highest value in the window
         max_value = intensity[left_index:right_index].max()
         # where that is in the window
@@ -1183,7 +1203,6 @@ def _estimatePeakParameters(intensity, azimuthal, azimuthal_start, window_half_w
 def _fitSpectrum(
     spectrum,
     q_value,
-    signal_to_noise_min,
     azimuthal_start,
     peak_search_window_size_factor,
     verbose=True,
@@ -1200,8 +1219,6 @@ def _fitSpectrum(
     spectrum:
     q_value: float
         center (of q_min and q_max) for given annular binned Q-ring
-    signal_to_noise_min: float
-        Minimum signal to noise ratio for the data to be considered "fittable"
     azimuthal_start: float
         First position to look for peaks around
     peak_search_window_size_factor: float
@@ -1245,16 +1262,9 @@ def _fitSpectrum(
         raise RuntimeError("Less than 8 points being fit with 7 parameters (found {} points)".format(np.sum(mask)))
 
     # first estimate background as minimum value
-    # this will be subtracted off from found intensities during estimation
+    # this will be subtracted off from found intensities during estimation.
+    # Whether the ring is anisotropic is decided after the fit, by the acceptance criteria of the ring selection.
     background = spectrum.intensity[mask].min()
-
-    # check if there is signal to noise greater than 2
-    # this calculation assumes that the background is positive
-    signal_to_noise = np.sum(spectrum.intensity[mask]) / (float(np.sum(mask)) * background)
-    if signal_to_noise < signal_to_noise_min:
-        raise RuntimeError(
-            "Estimated signal to noise is smaller than {}: found {:.2f}".format(signal_to_noise_min, signal_to_noise)
-        )
 
     # start of what will eventually be the fit function by specifying the background
     function = ["name=FlatBackground,A0={}".format(background)]
@@ -1345,110 +1355,41 @@ def _fitSpectrum(
     return result
 
 
-def _toPositionAndFWHM(fitresult, peak_label, maxchisq):
-    """Returns ((center, center_error), (width, width_error))
-    If chisq is too large or any of the errors is nan, all return values are set to nan
-
-    This also generates the weights as height / parameter_error"""
-    if fitresult["chisq"][0] > maxchisq:
-        return (np.nan, np.nan), (np.nan, np.nan)
-    else:
-        # height = fitresult[peak_label + '.Height']
-        center = fitresult[peak_label + ".PeakCentre"]
-        fwhm = tuple([value * SIGMA_TO_FWHM for value in fitresult[peak_label + ".Sigma"]])
-
-    # Anything being nan suggests that a fit failed. Set everything to nan so they do not
-    # contribute to the weighted average.
-    if np.isnan(center[1]) or np.isnan(fwhm[1]) or center[1] == 0.0 or fwhm[1] == 0.0:
-        return (np.nan, np.nan), (np.nan, np.nan)
-
-    # Weights for are height divided by uncertainty. This results in stronger peaks with lower fitting
-    # uncertainty contributing more to the parameters in azimuthal angle.
-    center = center[0], 1.0 / center[1]
-    fwhm = fwhm[0], 1.0 / fwhm[1]
-
-    return center, fwhm
-
-
-def _weighted_position_and_width(peaks):
-    """For a set of peaks, calculate the weighted average position and weighted average fwhm
-
-    Parameters
-    ==========
-    peaks: list
-        [((position, weight), (fwhm, weight)), ...] Each is a peak for a single Q-value
-    as a function of azimuthal angle.
-
-    Results
-    =======
-    tuple
-        (position, fwhm)
-    """
-    if len(peaks) <= 0:
-        raise RuntimeError("Encountered zero fitted peaks")
-    pos_accum, pos_weight_accum = 0.0, 0.0
-    fwhm_accum, fwhm_weight_accum = 0.0, 0.0
-    for peak in peaks:
-        # friendlier names
-        pos, pos_weight = peak[0]  # position and weight
-        fwhm, fwhm_weight = peak[1]  # fwhm and weight
-
-        if np.isnan(pos_weight) or np.isnan(fwhm_weight) or pos_weight <= 0.0 or fwhm_weight <= 0.0:
-            continue  # don't use these points
-
-        pos_accum += pos * pos_weight
-        pos_weight_accum += pos_weight
-
-        fwhm_accum += fwhm * fwhm_weight
-        fwhm_weight_accum += fwhm_weight
-
-    try:
-        return (pos_accum / pos_weight_accum), (fwhm_accum / fwhm_weight_accum)
-    except ZeroDivisionError as e:
-        raise RuntimeError("Cannot determine fitted positions from zero weights") from e
-
-
 def _fitQAndAzimuthal(
     azimuthal_rings,
     q_bins,
-    signal_to_noise_min,
+    criteria: AcceptanceCriteria,
     azimuthal_start,
-    maxchisq,
     peak_search_window_size_factor,
     verbose=True,
     auto_wedge_phi_min=0,
     auto_wedge_phi_max=360,
     auto_symmetric_wedges=False,
-):
-    """Find the peaks in the azimuthal spectra, then combine them into
-    two composite centers and fwhm. This is currently coded to only
-    look for two peaks.
+) -> RingSelection:
+    """Fit the azimuthal profile of every Q-ring, then select the rings that determine the wedge angles.
 
     Parameters
     ==========
-    intensity: numpy.ndarray
-        The intensity as a 2-d array of Q and azimuthal
-    error: numpy.ndarray
-        The uncertainties as a 2-d array of Q and azimuthal
-    azimuthal_bins: numpy.ndarray
-        Array of azimuthal angles bin boundaries
+    azimuthal_rings: list[~drtsans.dataobjects.I1DAnnular]
+        Azimuthal profile I(phi) of each Q-ring
     q_bins: numpy.ndarray
-        array of Q bin boundaries
-    signal_to_noise_min: float
-        Minimum signal to noise ratio for the data to be considered "fittable"
+        Array of Q bin boundaries, in 1/Angstrom
+    criteria: AcceptanceCriteria
+        Thresholds of the ring selection
     azimuthal_start: float
-        First position to look for peaks around
-    maxchisq: float
-        The maximum chisq value for a fit result to be used in calculating the composite peak
+        First position to look for peaks around, in degrees
     peak_search_window_size_factor: float
         Factor of 360 / (num peaks) to construct the search range for wedge peak
     verbose: bool
         Flag to turn on fitting information output
+    auto_wedge_phi_min, auto_wedge_phi_max, auto_symmetric_wedges:
+        See :py:func:`getWedgeSelection`
 
     Results
     =======
-    list, list, dict
-        The first list is the peak centers, the second is the peak fwhm, the third is a dictionary for fit result
+    RingSelection
+        Status and reasons of every Q-ring and, on success, the weighted average peak centers and FWHMs.
+        A failed selection is reported through ``RingSelection.failure``, never raised.
     """
     if len(azimuthal_rings) != len(q_bins) - 1:
         raise RuntimeError("must supply q-bin boundaries")
@@ -1456,26 +1397,12 @@ def _fitQAndAzimuthal(
     # change to centers in Q for messages
     q_centers = 0.5 * (q_bins[:-1] + q_bins[1:])
 
-    # select out a single spectrum
-    peakResults = [[], []]
-    q_centers_used = []
-
-    index = -1  # ring index: set to -1 due to too many 'continue' in the loop
-    used_index = list()
-    unfit_message = ""
-    fitted_peaks_message = ""
-    fit_result_dict = dict()
-
-    for spectrum, q_center in zip(azimuthal_rings, q_centers):
-        # increase the index number
-        index += 1
-        # init dict
-        fit_result_dict[index] = dict()
+    ring_fits = []
+    for index, (spectrum, q_center) in enumerate(zip(azimuthal_rings, q_centers)):
         try:
             fitresult = _fitSpectrum(
                 spectrum,
                 q_center,
-                signal_to_noise_min=signal_to_noise_min,
                 azimuthal_start=azimuthal_start,
                 peak_search_window_size_factor=peak_search_window_size_factor,
                 verbose=verbose,
@@ -1483,52 +1410,9 @@ def _fitQAndAzimuthal(
                 auto_wedge_phi_max=auto_wedge_phi_max,
                 auto_symmetric_wedges=auto_symmetric_wedges,
             )
-            newlyFittedPeaks = [_toPositionAndFWHM(fitresult, label, maxchisq) for label in ["f1", "f2"]]
-
-            # record the fit result
-            fit_result_dict[index] = fitresult
-
-            if np.isnan(newlyFittedPeaks[0][0][0]) or np.isnan(newlyFittedPeaks[1][0][0]):
-                error_reason = f"spectrum {index}: failed to fit peaks due to NaN in fit result\n"
-                unfit_message += error_reason
-                fit_result_dict[index]["error"] = error_reason
-                continue
-            else:
-                fitted_peaks_message += f"spectrum {index - 1}: Fitted peaks: {newlyFittedPeaks}\n"
-            for i in range(len(peakResults)):
-                peakResults[i].append(newlyFittedPeaks[i])
-            q_centers_used.append(q_center)
-            used_index.append(index)
-        except RuntimeError as e:
-            error_reason = "spectrum {}: Not using information from Q-slice ({}A):".format(index, q_center)
-            error_reason += f"Encountered runtime error: {e}\n"  # don't worry about it
-            unfit_message += error_reason
-            fit_result_dict[index]["error"] = error_reason
-            continue
-        except ValueError as val_err:
-            # in case user specifies a range containing no Q values
-            error_reason = f"Spectrum {index}: unable to fit peaks due to {val_err}\n"
-            unfit_message += error_reason
-            fit_result_dict[index]["error"] = error_reason
-            continue
+        except (RuntimeError, ValueError) as e:
+            ring_fits.append(RingFit.failed(index, float(q_center), str(e)))
         else:
-            # this ring is used
-            fit_result_dict[index]["error"] = None
+            ring_fits.append(RingFit.from_fit_result(index, float(q_center), fitresult, auto_symmetric_wedges))
 
-    logger.notice(f"Q-rings used to determine overall wedges: {q_centers_used}")
-    logger.information(f"used annular binning index: {used_index}")
-    logger.notice(unfit_message)
-
-    peakResults = [_weighted_position_and_width(peak) for peak in peakResults]
-
-    # convert into parallel arrays of centers and fwhm
-    center_list = []
-    fwhm_list = []
-    for center, fwhm in peakResults:
-        center_list.append(center)
-        fwhm_list.append(fwhm)
-
-    logger.notice(f"Fitted peak centers:\n{fitted_peaks_message}\n")
-    logger.notice(f"Summed peak centers: {center_list}\nFWHMs              : {fwhm_list}")
-
-    return center_list, fwhm_list, fit_result_dict
+    return _select_rings(ring_fits, criteria)

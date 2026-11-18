@@ -8,7 +8,19 @@ import pytest
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from drtsans.auto_wedge import AcceptanceCriteria, _binInQAndAzimuthal, _fitQAndAzimuthal
+import h5py
+from matplotlib.image import imread
+from drtsans.auto_wedge import (
+    RING_PLOT_COLUMNS,
+    RING_PLOT_PANEL_SIZE,
+    AcceptanceCriteria,
+    AutoWedgeError,
+    RingStatus,
+    SelectionFailure,
+    _binInQAndAzimuthal,
+    _estimatePeakParameters,
+    _fitQAndAzimuthal,
+)
 from drtsans.dataobjects import IQazimuthal, I1DAnnular
 from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans import getWedgeSelection
@@ -467,6 +479,56 @@ def test_fitting():
     assert center_list[1] == pytest.approx(364.0, abs=4.0)
     assert fwhm_list[0] == pytest.approx(46.9, abs=2.0)
     assert fwhm_list[1] == pytest.approx(51.6, abs=2.0)
+    # the two highest Q-rings have too few points to be fitted
+    statuses = [ring.status for ring in selection.ring_fits]
+    assert statuses == [RingStatus.REJECTED] + [RingStatus.SEED] * 4 + [RingStatus.FIT_FAILED] * 2
+    assert all(ring.reasons for ring in selection.ring_fits if ring.status is not RingStatus.SEED)
+
+
+def test_estimate_peak_parameters_empty_window():
+    """An empty peak search window raises a RuntimeError with a clear message"""
+    azimuthal = np.arange(0.0, 150.0, 5.0)  # too short to leave a window 90 deg inside both edges
+    with pytest.raises(RuntimeError, match="no data in the peak search window"):
+        _estimatePeakParameters(np.ones_like(azimuthal), azimuthal, azimuthal_start=110.0, window_half_width=108.0)
+
+
+def _anisotropic_ring(contrast, background=1000.0, seed=42):
+    """Azimuthal profile with two Gaussian peaks at 180 and 360 deg of height ``contrast`` x background"""
+    phi = np.arange(2.5, 545.0, 5.0)
+    peaks = sum(np.exp(-0.5 * (((phi - center + 180.0) % 360.0 - 180.0) / 15.0) ** 2) for center in (180.0, 360.0))
+    intensity = background * (1.0 + contrast * peaks) + np.random.default_rng(seed).normal(0.0, 1.0, phi.size)
+    return I1DAnnular(intensity=intensity, error=np.ones_like(phi), phi=phi)
+
+
+def test_fit_low_contrast_ring():
+    """A low-contrast ring is fitted, then rejected for its contrast only"""
+    selection = _fitQAndAzimuthal(
+        [_anisotropic_ring(contrast=0.1)],
+        np.array([0.5, 1.5]),
+        criteria=AcceptanceCriteria.from_settings(10.0, 0.2, 0.5, azimuthal_delta=5.0, maxchisq=1000.0),
+        azimuthal_start=110.0,
+        peak_search_window_size_factor=0.6,
+    )
+    (ring,) = selection.ring_fits
+    assert ring.is_fitted and ring.status is RingStatus.REJECTED
+    assert ring.reasons and all("H/A0" in reason for reason in ring.reasons if not reason.startswith("rescue"))
+    assert selection.failure is SelectionFailure.NO_SEED_CANDIDATE
+
+
+def test_get_wedge_selection_isotropic(tmp_path):
+    """Nearly isotropic data raise AutoWedgeError, after the diagnostic files are written"""
+    qx = qy = np.linspace(-5.0, 5.0, 41)
+    qx_grid, qy_grid = np.meshgrid(qx, qy, indexing="ij")
+    phi = np.arctan2(qy_grid, qx_grid)
+    intensity = 1000.0 * (1.0 + 0.05 * np.cos(phi) ** 2) + np.random.default_rng(7).normal(0.0, 1.0, phi.shape)
+    data2d = IQazimuthal(intensity=intensity, error=np.ones_like(intensity), qx=qx, qy=qy)
+
+    with pytest.raises(AutoWedgeError, match="autoWedgeContrastMin") as error:
+        getWedgeSelection(data2d, q_min=1.5, q_delta=1.0, q_max=4.5, azimuthal_delta=5.0, debug_dir=str(tmp_path))
+
+    assert error.value.selection.failure is SelectionFailure.NO_SEED_CANDIDATE
+    assert (tmp_path / "auto_wedge_rings.png").exists()
+    assert (tmp_path / "auto_wedge_fit.h5").exists()
 
 
 def test_fitting_symmetric():
@@ -491,7 +553,27 @@ def test_fitting_symmetric():
     assert fwhm_list[0] == pytest.approx(fwhm_list[1], abs=2.0)
 
 
-def test_integration():
+def test_get_wedge_selection_diagnostics(tmp_path):
+    """The HDF5 file holds the status and reasons of every Q-ring, and the figure has one panel per ring"""
+    getWedgeSelection(
+        _create_2d_data(), q_min=0.5, q_max=7.5, q_delta=1.0, azimuthal_delta=5.0, debug_dir=str(tmp_path)
+    )
+
+    with h5py.File(tmp_path / "auto_wedge_fit.h5", "r") as h5:
+        rings = {name: h5[group][name] for group in ("good fit", "no fit") for name in h5[group] if "ring" in name}
+        statuses = [rings[f"ring {index}"]["status"][0].decode() for index in range(len(rings))]
+        reasons = rings["ring 0"]["reasons"][0].decode().split("\n")
+    assert statuses == ["rejected"] + ["seed"] * 4 + ["fit failed"] * 2
+    assert reasons == ["peak 1: H/sigma_H = 1.02 < 10", "rescue: peak 1: H/sigma_H = 1.02 < 5"]
+
+    # 7 Q-rings give 2 rows of panels
+    width, height = RING_PLOT_PANEL_SIZE
+    dpi = plt.rcParams["figure.dpi"]
+    image = imread(tmp_path / "auto_wedge_rings.png")
+    assert image.shape[:2] == (round(2 * height * dpi), round(RING_PLOT_COLUMNS * width * dpi))
+
+
+def test_integration(tmp_path):
     """Test the full workflow of the algorithm"""
     data2d = _create_2d_data()
     # parameters for azimuthal
@@ -509,6 +591,7 @@ def test_integration():
         q_max=q_max,
         q_delta=q_delta,
         azimuthal_delta=azimuthal_delta,
+        debug_dir=str(tmp_path),
     )
 
     # from drtsans.plots.api import plot_IQazimuthal

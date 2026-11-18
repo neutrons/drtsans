@@ -2,9 +2,11 @@
 import numpy as np
 import pytest
 
+import drtsans.auto_wedge
 from drtsans.auto_wedge import (
     SIGMA_TO_FWHM,
     AcceptanceCriteria,
+    AutoWedgeError,
     ConsensusGroup,
     PeakFit,
     RingFit,
@@ -13,8 +15,11 @@ from drtsans.auto_wedge import (
     SelectionFailure,
     _average_peaks,
     _circular_difference,
+    _failure_message,
     _find_consensus,
+    _format_ring_table,
     _select_rings,
+    _summarize_reasons,
 )
 
 
@@ -379,3 +384,96 @@ def test_select_rings_symmetric():
     rings = [_ring(index, (181.0, 1.0), symmetric=True, heights=heights) for index in range(2)]
     selection = _select_rings(rings, CRITERIA)
     assert selection.succeeded and _statuses(selection) == ["SEED", "SEED"]
+
+
+class TestAutoWedgeError:
+    """Error raised when automatic wedge detection fails"""
+
+    def test_attributes(self):
+        """The error is a RuntimeError, keeps the selection, and is exported by the module"""
+        selection = _select_rings([RingFit.failed(0, 0.01, "no data in ring")], CRITERIA)
+        error = AutoWedgeError("Automatic wedge detection failed", selection)
+        assert isinstance(error, RuntimeError) and str(error) == "Automatic wedge detection failed"
+        assert error.selection is selection
+        assert "AutoWedgeError" in drtsans.auto_wedge.__all__
+
+
+@pytest.mark.parametrize(
+    "reasons, expected",
+    [
+        (["chisq = 2e+03 > 1000"], "chisq"),
+        (["peak 1: non-finite parameter or non-positive uncertainty"], "invalid fit"),
+        (["peak 1: background A0 = -0.1 is not positive"], "background"),
+        (["peak 1: H/A0 = 0.1 < 0.2", "peak 2: H/A0 = 0.1 < 0.2"], "contrast"),  # named once for both peaks
+        (["peak 2: H/sigma_H = 4 < 10"], "significance"),
+        (["peak 1: FWHM = 1.5 deg outside [3, 180] deg"], "FWHM"),
+        (["centers outside the consensus tolerance (181.0/1.0 deg)"], "center tolerance"),
+        (["orientation 91.0/271.0 deg differs from the consensus 181.0/1.0 deg"], "orientation"),
+        (["peak 1: H/sigma_H = 2 < 10", "rescue: peak 1: H/sigma_H = 2 < 5"], "significance; rescue: significance"),
+    ],
+)
+def test_summarize_reasons(reasons, expected):
+    """Each reason of a fitted ring is reduced to the name of its criterion"""
+    ring = _ring(0, (181.0, 1.0))
+    ring.reasons = reasons
+    assert _summarize_reasons(ring) == expected
+
+
+def test_summarize_reasons_fit_failed():
+    """The reason of a failed fit is reported in full"""
+    assert _summarize_reasons(RingFit.failed(0, 0.01, "Fit did not converge")) == "Fit did not converge"
+
+
+def test_format_ring_table():
+    """The table has a header and one row per ring in Q order, ending with the status and failed criteria"""
+    rows = _format_ring_table(_select_rings(_mixed_rings(), CRITERIA)).splitlines()
+    assert rows[0].split() == ["Q", "(1/A)", "H/A0", "H/sigma_H", "FWHM", "(deg)", "centers", "(deg)", "result"]
+    results = ["seed"] * 3 + [
+        "inconsistent: orientation",
+        "rescued: contrast, significance",
+        "rejected: contrast, significance, center tolerance",
+        "rejected: contrast, significance; rescue: significance",
+        "fit failed: empty peak search window",
+    ]
+    assert len(rows) == 9 and all(row.endswith(result) for row, result in zip(rows[1:], results))
+    assert rows[1].split()[:8] == ["0.01", "0.8", "/", "0.8", "100", "/", "100", "18.0"]
+    assert rows[-1].split()[:5] == ["0.08", "-", "-", "-", "-"]
+    symmetric = _ring(0, (181.0, 1.0), symmetric=True)
+    assert _format_ring_table(_select_rings([symmetric], CRITERIA)).splitlines()[1].split()[:5] == [
+        "0.01",
+        "0.8",
+        "100",
+        "18.0",
+        "181.0",
+    ]  # one value per column for the single fitted peak
+
+
+@pytest.mark.parametrize(
+    "rings, expected_lines",
+    [
+        (
+            [_ring(0, (181.0, 1.0), heights=WEAK)],
+            ["contrast H/A0 >= 0.2 (autoWedgeContrastMin)", "Highest contrast found: 0.14 at Q = 0.01 1/A"],
+        ),
+        (
+            [_ring(0, (181.0, 1.0)), _ring(1, (91.0, 271.0))],
+            ["Consensus tolerance: 0.5 x FWHM of each peak", "50%", "No group holds 67% of the seed weight."],
+        ),
+        ([RingFit.failed(0, 1.025, "no data in ring")], ["Adjust autoWedgeQmin / autoWedgeQmax"]),
+    ],
+)
+def test_failure_message(rings, expected_lines):
+    """Each kind of failure is explained with its key information and the per-ring table"""
+    selection = _select_rings(rings, CRITERIA)
+    message = _failure_message(selection)
+    assert message.startswith(f"Automatic wedge detection failed: {selection.failure.value}.")
+    assert all(line in message for line in expected_lines)
+    assert _format_ring_table(selection) in message
+    assert "Diagnostic plots" not in message
+
+
+def test_failure_message_output_dir(tmp_path):
+    """The paths of the diagnostic files are given when the output directory is known"""
+    selection = _select_rings([RingFit.failed(0, 1.025, "no data in ring")], CRITERIA)
+    message = _failure_message(selection, output_dir=str(tmp_path))
+    assert f"{tmp_path / 'ring_<n>.png'}, fit results: {tmp_path / 'auto_wedge_fit.h5'}" in message

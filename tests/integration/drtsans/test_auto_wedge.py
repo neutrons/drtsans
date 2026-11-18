@@ -23,7 +23,7 @@ from drtsans.auto_wedge import (
     _estimatePeakParameters,
     _fitQAndAzimuthal,
 )
-from drtsans.dataobjects import IQazimuthal, I1DAnnular
+from drtsans.dataobjects import IQazimuthal, I1DAnnular, load_iq2d_from_h5
 from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans import getWedgeSelection
 from drtsans.mono import biosans
@@ -661,8 +661,32 @@ def test_integration(tmp_path):
     assert back_wedge[1][1] == pytest.approx(112.6, abs=0.5)
 
 
+def _assert_wedges(wedges, expected, tolerance=0.5):
+    """Compare (peak, background) wedges with expected angle pairs, in degrees."""
+    for found, wanted in zip(wedges, expected, strict=True):
+        assert np.asarray(found) == pytest.approx(np.asarray(wanted), abs=tolerance)
+
+
+@pytest.mark.datarepo
+def test_real_data_eqsans(datarepo_dir, tmp_path):
+    """Test the wedge selection on EQSANS data with a narrow streak on an incoherent background."""
+    # the former mean/min ratio check rejected every Q-ring of these data
+    data_file = os.path.join(datarepo_dir.eqsans, "auto_wedge", "EQSANS_auto_wedge_iqazimuthal.h5")
+    if not os.path.exists(data_file):
+        pytest.skip(f"{data_file} not available")
+    iq2d = load_iq2d_from_h5(data_file)
+
+    wedges = getWedgeSelection(
+        iq2d, q_min=0.08, q_delta=0.05, q_max=0.8, azimuthal_delta=1.0, peak_width=0.25, debug_dir=str(tmp_path)
+    )
+    expected_peaks = [(176.6, 185.3), (-3.4, 5.9)]
+    expected_backgrounds = [(207.1, -26.7), (29.2, 154.8)]
+    _assert_wedges(wedges, (expected_peaks, expected_backgrounds))
+
+
 @pytest.mark.datarepo
 def test_real_data_biosans(datarepo_dir):
+    """Test the wedge selection and the wedge binning on BIOSANS data."""
     MSamp_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5532_mBSub.h5")
     MBuff_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5562_mBSub.h5")
 
@@ -685,9 +709,10 @@ def test_real_data_biosans(datarepo_dir):
         azimuthal_delta=0.5,
         peak_width=0.25,
         background_width=1.5,
-        signal_to_noise_min=1.2,
     )
-    assert len(wedge_angles) == 2, "Expect 2 separate wedges"
+    expected_peaks = [(157.3, 169.2), (-23.0, -10.7)]
+    expected_backgrounds = [(198.9, -53.6), (19.9, 127.6)]
+    _assert_wedges(wedge_angles, (expected_peaks, expected_backgrounds))
 
     # use these to integrate the wedges
     for wedges in wedge_angles:
@@ -735,6 +760,7 @@ def test_real_data_biosans(datarepo_dir):
 
 @pytest.mark.datarepo
 def test_real_data_biosans_autosymmetric_wedges(datarepo_dir):
+    """Test the symmetric wedge selection and the wedge binning on BIOSANS data."""
     MSamp_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5532_mBSub.h5")
     MBuff_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5562_mBSub.h5")
 
@@ -757,10 +783,11 @@ def test_real_data_biosans_autosymmetric_wedges(datarepo_dir):
         azimuthal_delta=0.5,
         peak_width=0.25,
         background_width=1.5,
-        signal_to_noise_min=1.2,
         auto_symmetric_wedges=True,
     )
-    assert len(wedge_angles) == 2, "Expect 2 separate wedges"
+    expected_peaks = [(-22.2, -11.5), (157.8, 168.5)]
+    expected_backgrounds = [(15.4, 131.0), (195.4, -49.0)]
+    _assert_wedges(wedge_angles, (expected_peaks, expected_backgrounds))
 
     # use these to integrate the wedges
     for wedges in wedge_angles:

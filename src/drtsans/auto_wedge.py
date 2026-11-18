@@ -17,7 +17,7 @@ from mantid.api import IFunction
 import h5py
 from matplotlib import pyplot as plt
 
-__all__ = ["getWedgeSelection"]
+__all__ = ["AutoWedgeError", "getWedgeSelection"]
 
 # factor to convert from a sigma to full width half max
 # https://docs.mantidproject.org/nightly/fitting/fitfunctions/Gaussian.html
@@ -511,6 +511,138 @@ def _select_rings(ring_fits: list[RingFit], criteria: AcceptanceCriteria) -> Rin
     # Average the peaks of the seed and rescued rings, which determine the wedge angles
     selection.centers, selection.fwhms = _average_peaks(selection.accepted, consensus.centers)
     return selection
+
+
+class AutoWedgeError(RuntimeError):
+    """Automatic wedge detection could not determine the wedge angles.
+
+    Attributes
+    ----------
+    selection: RingSelection
+        Outcome of the Q-ring selection, with the status and reasons of every ring.
+    """
+
+    def __init__(self, message: str, selection: RingSelection):
+        super().__init__(message)
+        self.selection = selection
+
+
+# Short names of the criteria, keyed by a text identifying the reasons produced by the ring selection
+_CRITERION_NAMES = {
+    "chisq": "chisq",
+    "non-finite": "invalid fit",
+    "background A0": "background",
+    "H/A0": "contrast",
+    "H/sigma_H": "significance",
+    "FWHM": "FWHM",
+    "centers outside": "center tolerance",
+    "orientation": "orientation",
+}
+
+
+def _summarize_reasons(ring: RingFit) -> str:
+    """Names of the criteria a ring failed, such as "contrast, significance; rescue: significance".
+
+    The measured values are in the other table columns. A fit failure is reported in full.
+    """
+    if not ring.is_fitted:
+        return "; ".join(ring.reasons)
+    seed, rescue = [], []
+    for reason in ring.reasons:
+        names = rescue if reason.startswith("rescue:") else seed
+        name = next((n for key, n in _CRITERION_NAMES.items() if key in reason), reason)
+        if name not in names:
+            names.append(name)
+    return ", ".join(seed) + ("; rescue: " + ", ".join(rescue) if rescue else "")
+
+
+def _format_ring_table(selection: RingSelection) -> str:
+    """Table of the fitted values and the selection outcome of every Q-ring, one row per ring in Q order."""
+
+    def per_peak(fmt: str, values: list[float]) -> str:
+        return " / ".join(fmt.format(value) for value in values)
+
+    rows = [f"   {'Q (1/A)':<9}{'H/A0':<16}{'H/sigma_H':<16}{'FWHM (deg)':<15}{'centers (deg)':<16}result"]
+    for ring in sorted(selection.ring_fits, key=lambda ring_fit: ring_fit.q):
+        columns = ["-"] * 4
+        if ring.is_fitted:
+            peaks = ring.evaluated_peaks
+            columns = [
+                per_peak("{:.3g}", [peak.contrast(ring.background) for peak in peaks]),
+                per_peak("{:.3g}", [peak.significance for peak in peaks]),
+                per_peak("{:.1f}", [peak.fwhm for peak in peaks]),
+                per_peak("{:.1f}", [peak.center % 360.0 for peak in peaks]),
+            ]
+        result = ring.status.value + (": " + _summarize_reasons(ring) if ring.reasons else "")
+        rows.append(f"   {ring.q:<9.4g}{columns[0]:<16}{columns[1]:<16}{columns[2]:<15}{columns[3]:<16}{result}")
+    return "\n".join(rows)
+
+
+def _failure_message(selection: RingSelection, output_dir: str | None = None) -> str:
+    """Explanation of a failed Q-ring selection, with the per-ring table and suggestions to the user."""
+    criteria = selection.criteria
+    q_values = [ring.q for ring in selection.ring_fits]
+    q_range = f"Q-ring centers {min(q_values):.4g}-{max(q_values):.4g} 1/A" if q_values else "no Q-rings"
+    lines = [f"Automatic wedge detection failed: {selection.failure.value}."]
+    if selection.failure is SelectionFailure.NO_SEED_CANDIDATE:
+        lines += [
+            f"  Seed criteria (each peak): contrast H/A0 >= {criteria.contrast_min:g} (autoWedgeContrastMin),",
+            f"    significance H/sigma_H >= {criteria.significance_min:g} (autoWedgeSignalToNoiseMin),",
+            f"    {criteria.fwhm_min:g} deg <= FWHM <= {criteria.fwhm_max:g} deg",
+            f"  {q_range}, {len(q_values)} rings (autoWedgeQmin, autoWedgeQmax, autoWedgeQdelta)",
+            "",
+            _format_ring_table(selection),
+            "",
+        ]
+        contrasts = [
+            (peak.contrast(ring.background), ring.q)
+            for ring in selection.ring_fits
+            if ring.is_fitted
+            for peak in ring.evaluated_peaks
+            if peak.is_valid and np.isfinite(peak.contrast(ring.background))
+        ]
+        if contrasts:
+            contrast, q = max(contrasts)
+            lines.append(
+                f"  Highest contrast found: {contrast:.3g} at Q = {q:.4g} 1/A (required {criteria.contrast_min:g})."
+            )
+        lines += [
+            "  Suggestions:",
+            '   - Inspect I(Qx,Qy): the data may be isotropic in this Q range; use 1DQbinType "scalar"',
+            "     or set WedgeMinAngles/WedgeMaxAngles manually.",
+            "   - If the anisotropy lies at lower Q, decrease autoWedgeQmin.",
+            "   - Lower autoWedgeContrastMin only if the anisotropy is known to be weak.",
+        ]
+    elif selection.failure is SelectionFailure.NO_CONSENSUS:
+        lines += [
+            f"  Consensus tolerance: {criteria.center_tolerance:g} x FWHM of each peak (autoWedgeCenterTolerance)",
+            "",
+            f"   {'group':<7}{'rings (Q, 1/A)':<30}{'centers (deg)':<16}weight",
+        ]
+        for label, group in zip("ABCDEFGHIJKLMNOPQRSTUVWXYZ", selection.groups):
+            rings = ", ".join(f"{q:.4g}" for q in sorted(ring.q for ring in group.members))
+            centers = " / ".join(f"{center % 360.0:.1f}" for center in group.centers)
+            lines.append(f"   {label:<7}{rings:<30}{centers:<16}{group.weight_fraction:.0%}")
+        lines += [
+            "",
+            f"  No group holds {criteria.consensus_weight_fraction:.0%} of the seed weight.",
+            "  The sample may contain more than one oriented structure. Restrict the Q range to one",
+            "  group (autoWedgeQmin / autoWedgeQmax), or set WedgeMinAngles/WedgeMaxAngles manually.",
+            "",
+            _format_ring_table(selection),
+        ]
+    else:
+        lines += [
+            f"  {q_range}, {len(q_values)} rings",
+            "",
+            _format_ring_table(selection),
+            "",
+            "  Adjust autoWedgeQmin / autoWedgeQmax to lie within the Q range of the data.",
+        ]
+    if output_dir is not None:
+        plots, fits = os.path.join(output_dir, "ring_<n>.png"), os.path.join(output_dir, "auto_wedge_fit.h5")
+        lines.append(f"  Diagnostic plots per ring: {plots}, fit results: {fits}")
+    return "\n".join(lines)
 
 
 def _create_fit_function(combo_function_str):

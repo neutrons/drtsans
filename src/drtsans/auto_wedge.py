@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import re
+import textwrap
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import List, Tuple
@@ -16,6 +17,7 @@ from mantid.simpleapi import Fit
 from mantid.api import IFunction
 import h5py
 from matplotlib import pyplot as plt
+from matplotlib.lines import Line2D
 
 __all__ = ["AutoWedgeError", "getWedgeSelection"]
 
@@ -640,8 +642,8 @@ def _failure_message(selection: RingSelection, output_dir: str | None = None) ->
             "  Adjust autoWedgeQmin / autoWedgeQmax to lie within the Q range of the data.",
         ]
     if output_dir is not None:
-        plots, fits = os.path.join(output_dir, "ring_<n>.png"), os.path.join(output_dir, "auto_wedge_fit.h5")
-        lines.append(f"  Diagnostic plots per ring: {plots}, fit results: {fits}")
+        plots, fits = os.path.join(output_dir, "auto_wedge_rings.png"), os.path.join(output_dir, "auto_wedge_fit.h5")
+        lines.append(f"  Diagnostic plot of the ring fits: {plots}, fit results: {fits}")
     return "\n".join(lines)
 
 
@@ -750,45 +752,64 @@ def _calculate_function(fit_functions, vec_x):
     return vec_y
 
 
-def _plot_fit_results(rings, peak_fit_dict, output_dir, auto_symmetric_wedges):
-    """Plot original data and fit result
+# Layout of the figure of the Q-ring fits
+RING_PLOT_COLUMNS = 5
+RING_PLOT_PANEL_SIZE = (4.25, 5.0)  # inches
+
+
+def _ring_title(ring_fit: RingFit) -> str:
+    """Q, status and failed criteria of a Q-ring, such as "Q = 0.01 1/A" and "rejected: contrast" on two lines."""
+    outcome = ring_fit.status.value + (f": {_summarize_reasons(ring_fit)}" if ring_fit.reasons else "")
+    return f"Q = {ring_fit.q:.4g} 1/A\n" + textwrap.fill(outcome, width=45)
+
+
+def _plot_fit_results(rings, selection: RingSelection, output_dir, auto_symmetric_wedges):
+    """Plot the observed profile and the fit of every Q-ring in one figure, ``auto_wedge_rings.png``
+
+    There is one panel per Q-ring in Q order, including rings whose fit failed (observed points only).
+    The panel title gives the ring status and the criteria it failed.
 
     Parameters
     ----------
     rings:  ~list
         List of I(Qx, Qy) in rings
-    peak_fit_dict: ~dict
-        dictionary containing all the peak fitting result
+    selection: RingSelection
+        Fit results and selection outcome of every Q-ring
     output_dir: str
         full path of the output directory
     auto_symmetric_wedges: bool
         if True, label the second peak as mirrored
-
-    Returns
-    -------
-
     """
 
     def _set_function_params_and_calculate(fit_functions: list[IFunction], peak_fitted_dict: dict):
         for param_name in peak_fitted_dict:
             if param_name not in ["fit_function", "error", "used"]:
                 # parameter value is recorded as tuple as value and error
-                _set_function_param_value(fit_function_set, param_name, peak_fitted_dict[param_name][0])
-        # calculate
-        model_y = _calculate_function(fit_functions, ring.phi)
-        return model_y
+                _set_function_param_value(fit_functions, param_name, peak_fitted_dict[param_name][0])
+        return _calculate_function(fit_functions, ring.phi)
 
-    for index, ring in enumerate(rings):
-        # add fitting related information to hdf file
+    peak_fit_dict = selection.legacy_dicts()
+    ring_fits = {ring_fit.index: ring_fit for ring_fit in selection.ring_fits}
+    rows = max(1, -(-len(rings) // RING_PLOT_COLUMNS))  # ceiling division
+    width, height = RING_PLOT_PANEL_SIZE
+    figure, axes = plt.subplots(rows, RING_PLOT_COLUMNS, figsize=(RING_PLOT_COLUMNS * width, rows * height))
+    axes = np.atleast_1d(axes).ravel()
+    for axis in axes[len(rings) :]:
+        axis.set_visible(False)
+
+    for index, (ring, axis) in enumerate(zip(rings, axes)):
+        # markers, since a line is not drawn between bins separated by NaN (bins without data)
+        axis.plot(ring.phi, ring.intensity, "o", markersize=3, label="observed", color="black", zorder=3)
+        axis.set_title(_ring_title(ring_fits[index]), fontsize="large")
+        axis.tick_params(labelsize="medium")
+        axis.set_xlabel("azimuthal angle (deg)", fontsize="large")
+        if index % RING_PLOT_COLUMNS == 0:
+            axis.set_ylabel("intensity", fontsize="large")  # first panel of each row
         if peak_fit_dict[index]["error"] is not None:
-            # bad fit
-            continue
+            continue  # the fit failed; show the observed points only
 
-        # construct function from estimated
-        fit_function_str = peak_fit_dict[index]["fit_function"]
-        fit_function_set = _create_fit_function(fit_function_str)
-        # calculate estimated peaks
-        estimated_y = _calculate_function(fit_function_set, ring.phi)
+        # construct the fit function; its parameters are set to the fitted values below
+        fit_function_set = _create_fit_function(peak_fit_dict[index]["fit_function"])
 
         if auto_symmetric_wedges:
             # separate fitted peak ("f1" params) from mirrored peak (fake "f2" params) to plot them separately
@@ -807,29 +828,45 @@ def _plot_fit_results(rings, peak_fit_dict, output_dir, auto_symmetric_wedges):
             peak_fitted_dict = peak_fit_dict[index]
 
         model_y = _set_function_params_and_calculate(fit_function_set, peak_fitted_dict)
-
-        # plot
-        plt.cla()
-        plt.plot(ring.phi, ring.intensity, label="observed", color="black")
-        plt.plot(ring.phi, estimated_y, label="estimated", color="blue")
-        plt.plot(ring.phi, model_y, label="fitted", color="red")
+        axis.plot(ring.phi, model_y, label="fitted", color="red")
         if auto_symmetric_wedges:
             mirrored_model_y = _set_function_params_and_calculate(fit_function_set, peak_mirrored_dict)
-            plt.plot(ring.phi, mirrored_model_y, label="mirrored", color="red", linestyle="dashed")
-        plt.legend(loc="upper left")
-        plt.savefig(os.path.join(output_dir, f"ring_{index:01}.png"))
+            axis.plot(ring.phi, mirrored_model_y, label="mirrored", color="red", linestyle="dashed")
+
+    # one legend for the figure, taken from the panel with the most curves
+    handles, labels = max((axis.get_legend_handles_labels() for axis in axes), key=lambda hl: len(hl[1]))
+    figure.legend(handles, labels, loc="upper center", ncol=len(labels), fontsize="large", frameon=False)
+    # leave 0.4 inch for the legend, and 3 font heights between rows for the separating line
+    figure.tight_layout(rect=(0, 0, 1, 1 - 0.4 / (rows * height)), h_pad=3.0)
+    # separate the rows with a horizontal line, in the middle of the gap between the x-axis labels of a row
+    # and the titles of the next row
+    to_figure = figure.transFigure.inverted()
+
+    def _extent(row: int) -> list:
+        visible = [
+            axis for axis in axes[row * RING_PLOT_COLUMNS : (row + 1) * RING_PLOT_COLUMNS] if axis.get_visible()
+        ]
+        return [axis.get_tightbbox().transformed(to_figure) for axis in visible]
+
+    for row in range(1, rows):
+        y = 0.5 * (min(box.y0 for box in _extent(row - 1)) + max(box.y1 for box in _extent(row)))
+        figure.add_artist(Line2D([0.01, 0.99], [y, y], transform=figure.transFigure, color="gray", linewidth=1))
+    figure.savefig(os.path.join(output_dir, "auto_wedge_rings.png"))
+    plt.close(figure)
 
 
-def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
+def _export_to_h5(iq2d, rings, azimuthal_delta, selection: RingSelection, output_dir):
     """write annular binned I(Qx, Qy) and intensity rings to hdf5 for further review
+
+    Each fitted ring ("good fit") and failed ring ("no fit") also holds its selection ``status`` and ``reasons``.
 
     Parameters
     ----------
     iq2d:  ~drtsans.dataobjects.Azimuthal
     rings: ~list
         List of I(Qx, Qy) in rings
-    peak_fit_dict: ~dict
-        dictionary containing all the peak fitting result
+    selection: RingSelection
+        Fit results and selection outcome of every Q-ring
     output_dir: str
         full path of the output directory
 
@@ -865,6 +902,8 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
 
     # write out for each ring
     func_param_dict = dict()
+    peak_fit_dict = selection.legacy_dicts()
+    ring_fits = {ring_fit.index: ring_fit for ring_fit in selection.ring_fits}
 
     for index, ring in enumerate(rings):
         # add data to hdf file
@@ -894,6 +933,14 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, peak_fit_dict, output_dir):
             # error message
             string_data_set = group.create_dataset("error", (1,), dtype=h5_string_type)
             string_data_set[0] = peak_fit_dict[index]["error"]
+
+        # outcome of the ring selection
+        for name, text in [
+            ("status", ring_fits[index].status.value),
+            ("reasons", "\n".join(ring_fits[index].reasons)),
+        ]:
+            string_data_set = group.create_dataset(name, (1,), dtype=h5_string_type)
+            string_data_set[0] = text
 
         # fit function
         if "fit_function" in peak_fit_dict[index]:
@@ -1003,17 +1050,15 @@ def getWedgeSelection(
         auto_wedge_phi_max=auto_wedge_phi_max,
         auto_symmetric_wedges=auto_symmetric_wedges,
     )
-    fit_dict = selection.legacy_dicts()
-
     # Export fitting result before any failure is raised, so that the user can inspect the fits
     _export_to_h5(
         iq2d=data2d,
         rings=azimuthal_rings,
         azimuthal_delta=azimuthal_delta,
-        peak_fit_dict=fit_dict,
+        selection=selection,
         output_dir=debug_dir,
     )
-    _plot_fit_results(azimuthal_rings, fit_dict, debug_dir, auto_symmetric_wedges)
+    _plot_fit_results(azimuthal_rings, selection, debug_dir, auto_symmetric_wedges)
 
     if not selection.succeeded:
         message = _failure_message(selection, debug_dir)

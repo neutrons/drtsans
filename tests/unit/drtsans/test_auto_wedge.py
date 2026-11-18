@@ -469,11 +469,11 @@ def test_failure_message(rings, expected_lines):
     assert message.startswith(f"Automatic wedge detection failed: {selection.failure.value}.")
     assert all(line in message for line in expected_lines)
     assert _format_ring_table(selection) in message
-    assert "Diagnostic plots" not in message
+    assert "Diagnostic plot" not in message
 
 
 def test_failure_message_output_dir(tmp_path):
     """The paths of the diagnostic files are given when the output directory is known"""
     selection = _select_rings([RingFit.failed(0, 1.025, "no data in ring")], CRITERIA)
     message = _failure_message(selection, output_dir=str(tmp_path))
-    assert f"{tmp_path / 'ring_<n>.png'}, fit results: {tmp_path / 'auto_wedge_fit.h5'}" in message
+    assert f"{tmp_path / 'auto_wedge_rings.png'}, fit results: {tmp_path / 'auto_wedge_fit.h5'}" in message

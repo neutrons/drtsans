@@ -408,6 +408,111 @@ def _find_consensus(candidates: list[RingFit], tolerance: float) -> list[Consens
     return sorted(groups, key=lambda group: group.weight_fraction, reverse=True)
 
 
+class SelectionFailure(Enum):
+    """Reason why no wedge angles could be determined from the Q-rings."""
+
+    NO_FITTED_RINGS = "none of the Q-rings could be fitted"
+    NO_SEED_CANDIDATE = "no Q-ring passes the seed criteria"
+    NO_CONSENSUS = "seed candidates do not agree on a single orientation"
+
+
+@dataclass
+class RingSelection:
+    """Outcome of the Q-ring selection: the status of every ring and, on success, the wedge peak parameters.
+
+    Attributes
+    ----------
+    ring_fits: list[RingFit]
+        All Q-rings, with their final status and reasons.
+    criteria: AcceptanceCriteria
+        Thresholds used for the selection.
+    groups: list[ConsensusGroup]
+        Groups of seed candidates by orientation, largest weight fraction first; the first is the consensus.
+    centers, fwhms: tuple[float, float] or None
+        Weighted average center and FWHM of the two peaks over the accepted rings, in degrees; None on failure.
+    failure: SelectionFailure or None
+        Reason of the failure; None on success.
+    """
+
+    ring_fits: list[RingFit]
+    criteria: AcceptanceCriteria
+    groups: list[ConsensusGroup] = field(default_factory=list)
+    centers: tuple[float, float] | None = None
+    fwhms: tuple[float, float] | None = None
+    failure: SelectionFailure | None = None
+
+    @property
+    def succeeded(self) -> bool:
+        """True if the wedge peak parameters were determined."""
+        return self.failure is None
+
+    @property
+    def accepted(self) -> list[RingFit]:
+        """Seed and rescued rings, which determine the wedge angles."""
+        return [ring for ring in self.ring_fits if ring.status.accepted]
+
+    def legacy_dicts(self) -> dict[int, dict]:
+        """Fit results keyed by ring index, in the format of the diagnostic plots and HDF5 file."""
+        return {ring.index: ring.to_legacy_dict() for ring in self.ring_fits}
+
+
+def _select_rings(ring_fits: list[RingFit], criteria: AcceptanceCriteria) -> RingSelection:
+    """Select the Q-rings that determine the wedge angles, setting the status and reasons of every ring.
+
+    Seed candidates are the fitted rings passing the seed criteria. The consensus is the group of candidates
+    holding at least ``criteria.consensus_weight_fraction`` of their weight; its members become seed rings. Rings
+    failing the seed criteria are rescued if they match the consensus and pass the rescue criteria. A failed
+    selection is reported through ``RingSelection.failure``, never raised.
+    """
+    selection = RingSelection(ring_fits, criteria)
+    # Evaluate the seed criteria for every fitted ring, starting from a rejected status
+    fitted = [ring for ring in ring_fits if ring.is_fitted]
+    for ring in fitted:
+        ring.status, ring.reasons = RingStatus.REJECTED, criteria.seed_failures(ring)
+    if not fitted:
+        selection.failure = SelectionFailure.NO_FITTED_RINGS
+        return selection
+    # Rings with no seed failures are the seed candidates
+    candidates = [ring for ring in fitted if not ring.reasons]
+    if not candidates:
+        selection.failure = SelectionFailure.NO_SEED_CANDIDATE
+        return selection
+
+    # Group the candidates by orientation; the largest group must hold enough weight to be the consensus
+    selection.groups = _find_consensus(candidates, criteria.center_tolerance)
+    consensus = selection.groups[0]
+    if consensus.weight_fraction < criteria.consensus_weight_fraction:
+        for ring in candidates:
+            ring.status = RingStatus.INCONSISTENT
+        selection.failure = SelectionFailure.NO_CONSENSUS
+        return selection
+
+    # Candidates in the consensus become seed rings, and those in other groups are inconsistent
+    consensus_centers = "/".join(f"{center % 360.0:.1f}" for center in consensus.centers)
+    for group in selection.groups:
+        for ring in group.members:
+            ring.status = RingStatus.SEED if group is consensus else RingStatus.INCONSISTENT
+            if group is not consensus:
+                centers = "/".join(f"{center % 360.0:.1f}" for center in group.centers)
+                ring.reasons = [f"orientation {centers} deg differs from the consensus {consensus_centers} deg"]
+
+    # Rescue rejected rings that match the consensus centers and pass the rescue criteria
+    for ring in fitted:
+        if ring.status is not RingStatus.REJECTED:
+            continue
+        rescue_failures = criteria.rescue_failures(ring)
+        if not consensus.matches(ring, criteria.center_tolerance):
+            ring.reasons.append(f"centers outside the consensus tolerance ({consensus_centers} deg)")
+        elif rescue_failures:
+            ring.reasons.extend(f"rescue: {reason}" for reason in rescue_failures)
+        else:
+            ring.status = RingStatus.RESCUED
+
+    # Average the peaks of the seed and rescued rings, which determine the wedge angles
+    selection.centers, selection.fwhms = _average_peaks(selection.accepted, consensus.centers)
+    return selection
+
+
 def _create_fit_function(combo_function_str):
     """Create fit function from a Mantid combo function string
 

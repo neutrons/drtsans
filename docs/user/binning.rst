@@ -71,6 +71,93 @@ the azimuthal limits for one or more wedges. For instance, the two wedges
    :alt: User defined wedges
    :width: 800px
 
+Automatic Finding of the Wedge
++++++++++++++++++++++++++++++++
+
+If User wants `drtsans` to automatically find the azimuthal limits for wedge binning, there are
+options to specify. For instance, we want the resulting :math:`I(q)` from :math:`q_{min}=0.03 A^{-1}`
+to :math:`q_{max}=0.12 A^{-1}` in bins of width :math:`\delta q=0.01 A^{-1}`.
+The automatic finding is restricted to one wedge along the :math:`X`-axis,
+along with its symmetric counterpart. `drtsans` will find the azimuthal limits for the wedge.
+
+.. code-block:: json
+
+    {
+      "autoWedgeQmin": 0.03,
+      "autoWedgeQmax": 0.12,
+      "autoWedgeQdelta": 0.01,
+    }
+
+.. figure:: media/wedge_binning_5.png
+   :alt: automatic finding the wedge
+   :width: 800px
+
+User may define a single azimuthal range for the automatic finding of the wedge.
+User can provide negative values for the azimuthal range, for instance, :math:`(-90, -30)`, with the understanding
+that the range is interpreted as :math:`(270, 330)`.
+Once the `autoWedgePhiMin` and `autoWedgePhiMax` range is provided,
+the search for the wedge begins at the midpoint of the range, and is initially constrained to half the range
+around this midpoint.
+
+For instance, in the BIOSANS instrument the area in the main detector defined by the azimuthal range
+:math:`(-90, 90)` is partially occluded by the Wing detector,
+because the Wing detector is positioned closer to the sample than the main detector.
+User can request finding the wedge in the azimuthal range :math:`(90, 270)` free from occlusion, and then
+automatically include the symmetric wedge in the binning.
+The range :math:`(-90, 90)` is effectively masked during the wedge search.
+
+.. code-block:: json
+
+    {
+      "autoWedgeQmin": 0.03,
+      "autoWedgeQmax": 0.12,
+      "autoWedgeQdelta": 0.01,
+      "autoWedgePhiMin": 90,
+      "autoWedgePhiMax": 270,
+      "autoSymmetricWedges": true
+    }
+
+.. figure:: media/wedge_binning_6.png
+   :alt: automatic finding the wedge
+   :width: 800px
+
+Other additional options for the automatic wedge finding:
+
+- `autoWedgeAzimuthalDelta`: binning in azimuthal angle when generating the :math:`I(\phi)` profile.
+- `autoWedgePeakWidth`: percent of the full-width-half-max (FWHM) of the peak in the :math:`I(\phi)` profile
+  representing a wedge, used to define the confidence limits of the wedge.
+- `autoWedgeBackgroundWidth`: percent of the full-width-half-max (FWHM) of the peak in the :math:`I(\phi)` profile
+  representing a wedge, used to define the confidence limits of the background signal for the wedge.
+  Each background wedge lies between the two peaks, from `autoWedgeBackgroundWidth` :math:`\times` FWHM past one
+  peak to `autoWedgeBackgroundWidth` :math:`\times` FWHM before the other. When the peaks are so wide that
+  `autoWedgeBackgroundWidth` :math:`\times (\mathrm{FWHM}_1 + \mathrm{FWHM}_2)` reaches the separation :math:`S`
+  of the two peak centers (about 180 degrees), the background wedges would be empty. The reduction then uses
+  :math:`S / (\mathrm{FWHM}_1 + \mathrm{FWHM}_2) -` `autoWedgePeakWidth` instead, which makes each background
+  wedge about as wide as the peak wedges, and logs a warning with the requested and the applied values.
+  For example, peaks with a FWHM of 95 degrees reduce the default 1.5 to about 0.70. If the peaks leave no room for a
+  background wedge at all, the automatic wedge detection fails with a message suggesting a narrower Q range or
+  manual wedges.
+
+For instance, for real data collected at the BIOSANS instrument,
+
+.. code-block:: json
+
+    {
+      "autoWedgeQmin": 0.0,
+      "autoWedgeQmax": 0.02,
+      "autoWedgeQdelta": 0.001,
+      "autoWedgeAzimuthalDelta": 1.0,
+      "autoWedgePeakWidth": 0.25,
+      "autoWedgeBackgroundWidth": 1.5
+    }
+
+We obtain two wedges (:math:`w_1`, :math:`w_2`) as well as two azimuthal ranges (:math:`b_1`, :math:`b_2`)
+interpreted as background signal for the wedges.
+
+.. figure:: media/wedge_binning_7.png
+   :alt: wedges for a real BIOSANS example
+   :width: 900px
+
 Wedge JSON Settings
 +++++++++++++++++++
 
@@ -256,93 +343,6 @@ overlap stitching ranges for each wedge:
         "wedge2overlapStitchQmax": 0.095
       }
     }
-
-Automatic Finding of the Wedge
-+++++++++++++++++++++++++++++++
-
-If User wants `drtsans` to automatically find the azimuthal limits for wedge binning, there are
-options to specify. For instance, we want the resulting :math:`I(q)` from :math:`q_{min}=0.03 A^{-1}`
-to :math:`q_{max}=0.12 A^{-1}` in bins of width :math:`\delta q=0.01 A^{-1}`.
-The automatic finding is restricted to one wedge along the :math:`X`-axis,
-along with its symmetric counterpart. `drtsans` will find the azimuthal limits for the wedge.
-
-.. code-block:: json
-
-    {
-      "autoWedgeQmin": 0.03,
-      "autoWedgeQmax": 0.12,
-      "autoWedgeQdelta": 0.01,
-    }
-
-.. figure:: media/wedge_binning_5.png
-   :alt: automatic finding the wedge
-   :width: 800px
-
-User may define a single azimuthal range for the automatic finding of the wedge.
-User can provide negative values for the azimuthal range, for instance, :math:`(-90, -30)`, with the understanding
-that the range is interpreted as :math:`(270, 330)`.
-Once the `autoWedgePhiMin` and `autoWedgePhiMax` range is provided,
-the search for the wedge begins at the midpoint of the range, and is initially constrained to half the range
-around this midpoint.
-
-For instance, in the BIOSANS instrument the area in the main detector defined by the azimuthal range
-:math:`(-90, 90)` is partially occluded by the Wing detector,
-because the Wing detector is positioned closer to the sample than the main detector.
-User can request finding the wedge in the azimuthal range :math:`(90, 270)` free from occlusion, and then
-automatically include the symmetric wedge in the binning.
-The range :math:`(-90, 90)` is effectively masked during the wedge search.
-
-.. code-block:: json
-
-    {
-      "autoWedgeQmin": 0.03,
-      "autoWedgeQmax": 0.12,
-      "autoWedgeQdelta": 0.01,
-      "autoWedgePhiMin": 90,
-      "autoWedgePhiMax": 270,
-      "autoSymmetricWedges": true
-    }
-
-.. figure:: media/wedge_binning_6.png
-   :alt: automatic finding the wedge
-   :width: 800px
-
-Other additional options for the automatic wedge finding:
-
-- `autoWedgeAzimuthalDelta`: binning in azimuthal angle when generating the :math:`I(\phi)` profile.
-- `autoWedgePeakWidth`: percent of the full-width-half-max (FWHM) of the peak in the :math:`I(\phi)` profile
-  representing a wedge, used to define the confidence limits of the wedge.
-- `autoWedgeBackgroundWidth`: percent of the full-width-half-max (FWHM) of the peak in the :math:`I(\phi)` profile
-  representing a wedge, used to define the confidence limits of the background signal for the wedge.
-  Each background wedge lies between the two peaks, from `autoWedgeBackgroundWidth` :math:`\times` FWHM past one
-  peak to `autoWedgeBackgroundWidth` :math:`\times` FWHM before the other. When the peaks are so wide that
-  `autoWedgeBackgroundWidth` :math:`\times (\mathrm{FWHM}_1 + \mathrm{FWHM}_2)` reaches the separation :math:`S`
-  of the two peak centers (about 180 degrees), the background wedges would be empty. The reduction then uses
-  :math:`S / (\mathrm{FWHM}_1 + \mathrm{FWHM}_2) -` `autoWedgePeakWidth` instead, which makes each background
-  wedge about as wide as the peak wedges, and logs a warning with the requested and the applied values.
-  For example, peaks with a FWHM of 95 degrees reduce the default 1.5 to about 0.70. If the peaks leave no room for a
-  background wedge at all, the automatic wedge detection fails with a message suggesting a narrower Q range or
-  manual wedges.
-
-For instance, for real data collected at the BIOSANS instrument,
-
-.. code-block:: json
-
-    {
-      "autoWedgeQmin": 0.0,
-      "autoWedgeQmax": 0.02,
-      "autoWedgeQdelta": 0.001,
-      "autoWedgeAzimuthalDelta": 1.0,
-      "autoWedgePeakWidth": 0.25,
-      "autoWedgeBackgroundWidth": 1.5
-    }
-
-We obtain two wedges (:math:`w_1`, :math:`w_2`) as well as two azimuthal ranges (:math:`b_1`, :math:`b_2`)
-interpreted as background signal for the wedges.
-
-.. figure:: media/wedge_binning_7.png
-   :alt: wedges for a real BIOSANS example
-   :width: 900px
 
 Annular Binning
 ---------------

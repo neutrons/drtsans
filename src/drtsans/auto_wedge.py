@@ -794,7 +794,7 @@ def _format_ring_table(selection: RingSelection) -> str:
     def per_peak(fmt: str, values: list[float]) -> str:
         return " / ".join(fmt.format(value) for value in values)
 
-    rows = [f"   {'Q (1/A)':<9}{'H/A0':<16}{'H/sigma_H':<16}{'FWHM (deg)':<15}{'centers (deg)':<16}result"]
+    table = [["Q (1/A)", "H/A0", "H/sigma_H", "FWHM (deg)", "centers (deg)", "result"]]
     for ring in sorted(selection.ring_fits, key=lambda ring_fit: ring_fit.q):
         columns = ["-"] * 4
         if ring.is_fitted:
@@ -806,8 +806,10 @@ def _format_ring_table(selection: RingSelection) -> str:
                 per_peak("{:.1f}", [peak.center % 360.0 for peak in peaks]),
             ]
         result = ring.status.value + (": " + _summarize_reasons(ring) if ring.reasons else "")
-        rows.append(f"   {ring.q:<9.4g}{columns[0]:<16}{columns[1]:<16}{columns[2]:<15}{columns[3]:<16}{result}")
-    return "\n".join(rows)
+        table.append([f"{ring.q:.4g}", *columns, result])
+    # each column is as wide as its longest entry plus a two-space gap, so that wide values never run together
+    widths = [max(len(row[column]) for row in table) + 2 for column in range(len(table[0]) - 1)]
+    return "\n".join("   " + "".join(cell.ljust(width) for cell, width in zip(row, widths)) + row[-1] for row in table)
 
 
 def _failure_message(selection: RingSelection, output_dir: str | None = None) -> str:
@@ -1678,12 +1680,12 @@ def _fitSpectrum(
                 IgnoreInvalidData=True,
             )
     except RuntimeError as e:
-        raise RuntimeError("Failed to fit Q={} with fit function {}".format(q_value, fit_function)) from e
+        raise RuntimeError(f"Failed to fit Q={q_value:.4g} 1/A with fit function {fit_function}") from e
     finally:
         DeleteWorkspace(q_azimuthal_workspace)
 
     if fitresult.OutputStatus != "success":
-        raise RuntimeError("Failed to fit Q={}".format(q_value))
+        raise RuntimeError(f"Failed to fit Q={q_value:.4g} 1/A")
 
     # convert the table into a dict[name] = (value, error)
     result = {"fit_function": fit_function}

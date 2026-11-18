@@ -449,6 +449,21 @@ def test_format_ring_table():
     ]  # one value per column for the single fitted peak
 
 
+def test_format_ring_table_wide_values():
+    """Columns stay separated and aligned when a value is wider than its header"""
+    # Arrange: a peak height of 1e-5 +/- 0.1 gives contrast and significance values in exponent notation
+    weak = _ring(0, (181.0, 1.0), heights=((1.2345e-5, 0.1), (0.2, 0.002)))
+    # Act
+    rows = _format_ring_table(_select_rings([weak], CRITERIA)).splitlines()
+    # Assert
+    cells = rows[1].strip().split("  ")
+    cells = [cell.strip() for cell in cells if cell.strip()]
+    assert len(cells) == 6 and "e-05 / " in cells[1] and cells[2].startswith("0.000123 / ")
+    for header in ("H/sigma_H", "FWHM (deg)", "centers (deg)", "result"):
+        column = rows[0].index(header)
+        assert rows[1][column - 2 : column] == "  " and rows[1][column] != " "
+
+
 @pytest.mark.parametrize(
     "rings, expected_lines",
     [

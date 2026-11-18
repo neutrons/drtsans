@@ -8,10 +8,13 @@ from drtsans.auto_wedge import (
     ConsensusGroup,
     PeakFit,
     RingFit,
+    RingSelection,
     RingStatus,
+    SelectionFailure,
     _average_peaks,
     _circular_difference,
     _find_consensus,
+    _select_rings,
 )
 
 
@@ -36,9 +39,12 @@ def _fit_result(centers=(1.0, 181.0), background=0.25, chisq=1.5, f1=None, f2=No
     return result
 
 
-def _ring(index, centers, center_error=0.1, fwhm=18.0, symmetric=False) -> RingFit:
-    """Fitted Q-ring with the given peak centers, center uncertainty and FWHM, all in degrees"""
-    peaks = [{"PeakCentre": (center, center_error), "Sigma": (fwhm / SIGMA_TO_FWHM, 0.2)} for center in centers]
+def _ring(index, centers, center_error=0.1, fwhm=18.0, symmetric=False, heights=((0.2, 0.002),) * 2) -> RingFit:
+    """Fitted Q-ring with the given peak centers, center uncertainty and FWHM in degrees, and peak heights"""
+    peaks = [
+        {"PeakCentre": (center, center_error), "Sigma": (fwhm / SIGMA_TO_FWHM, 0.2), "Height": height}
+        for center, height in zip(centers, heights)
+    ]
     return RingFit.from_fit_result(
         index, 0.01 * (index + 1), _fit_result(centers, f1=peaks[0], f2=peaks[1]), symmetric
     )
@@ -282,3 +288,94 @@ def test_find_consensus_no_chaining():
     rings = [_ring(index, (center, center + 180.0)) for index, center in enumerate((180.0, 187.0, 194.0, 201.0))]
     groups = _find_consensus(rings, tolerance=0.5)
     assert [[ring.index for ring in group.members] for group in groups] == [[0, 1], [2, 3]]
+
+
+CRITERIA = AcceptanceCriteria.from_settings(10.0, 0.2, 0.5, 1.0, 1000.0)  # N, C, tolerance, bin width, maxchisq
+WEAK = ((0.035, 0.005),) * 2  # H/A0 = 0.14 and H/sigma_H = 7: fails the seed criteria, passes the rescue criteria
+
+
+def _statuses(selection: RingSelection) -> list[str]:
+    return [ring.status.name for ring in selection.ring_fits]
+
+
+class TestRingSelection:
+    """Outcome of the Q-ring selection"""
+
+    def test_properties(self):
+        """Accepted rings are the seed and rescued rings, and legacy dictionaries are keyed by ring index"""
+        rings = [_ring(0, (181.0, 1.0)), _ring(1, (182.0, 2.0)), RingFit.failed(2, 0.03, "no data in ring")]
+        rings[0].status, rings[1].status = RingStatus.SEED, RingStatus.RESCUED
+        selection = RingSelection(rings, CRITERIA, centers=(181.5, 1.5), fwhms=(18.0, 18.0))
+        assert selection.succeeded and selection.accepted == rings[:2]
+        legacy = selection.legacy_dicts()
+        assert sorted(legacy) == [0, 1, 2]
+        assert legacy[0]["error"] is None and legacy[2] == {"error": "no data in ring"}
+
+
+def test_select_rings_no_fitted_rings():
+    """Without any fitted ring the selection fails, and the rings keep their fit failure reasons"""
+    selection = _select_rings([RingFit.failed(0, 0.01, "no data in ring")], CRITERIA)
+    assert selection.failure is SelectionFailure.NO_FITTED_RINGS and selection.centers is None
+    assert _statuses(selection) == ["FIT_FAILED"] and selection.ring_fits[0].reasons == ["no data in ring"]
+
+
+def test_select_rings_no_seed_candidate():
+    """Without any seed candidate the selection fails, and each ring reports its seed failures"""
+    selection = _select_rings([_ring(0, (181.0, 1.0), heights=WEAK)], CRITERIA)
+    assert selection.failure is SelectionFailure.NO_SEED_CANDIDATE and selection.centers is None
+    assert _statuses(selection) == ["REJECTED"]
+    assert "peak 1: H/sigma_H = 7 < 10" in selection.ring_fits[0].reasons
+
+
+def test_select_rings_no_consensus():
+    """Two equally strong orientations fail the 67 % rule, and both candidates are inconsistent"""
+    selection = _select_rings([_ring(0, (181.0, 1.0)), _ring(1, (91.0, 271.0))], CRITERIA)
+    assert selection.failure is SelectionFailure.NO_CONSENSUS and selection.centers is None
+    assert [group.weight_fraction for group in selection.groups] == pytest.approx([0.5, 0.5])
+    assert _statuses(selection) == ["INCONSISTENT", "INCONSISTENT"]
+
+
+def _mixed_rings() -> list[RingFit]:
+    """Three seeds near 181 deg, an inconsistent ring, a rescued ring, two rejected rings and a failed fit"""
+    return [
+        _ring(0, (181.0, 1.0)),
+        _ring(1, (182.0, 2.0)),
+        _ring(2, (180.0, 0.0)),
+        _ring(3, (91.0, 271.0), center_error=0.3),
+        _ring(4, (185.0, 5.0), center_error=1.0, heights=WEAK),
+        _ring(5, (200.0, 20.0), center_error=1.0, heights=WEAK),
+        _ring(6, (181.0, 1.0), heights=((0.01, 0.005),) * 2),
+        RingFit.failed(7, 0.08, "empty peak search window"),
+    ]
+
+
+def test_select_rings_success():
+    """Seeds, inconsistent, rescued and rejected rings are identified, and accepted rings are averaged"""
+    selection = _select_rings(_mixed_rings(), CRITERIA)
+    assert selection.succeeded
+    expected = ["SEED"] * 3 + ["INCONSISTENT", "RESCUED", "REJECTED", "REJECTED", "FIT_FAILED"]
+    assert _statuses(selection) == expected
+    reasons = [ring.reasons for ring in selection.ring_fits]
+    assert reasons[3] == ["orientation 91.0/271.0 deg differs from the consensus 181.0/1.0 deg"]
+    assert reasons[5][-1] == "centers outside the consensus tolerance (181.0/1.0 deg)"
+    assert reasons[6][-1] == "rescue: peak 2: H/sigma_H = 2 < 5"
+    # weights 1 / center_error: 10 for each seed and 1 for the rescued ring at 185 deg
+    assert selection.centers == pytest.approx((5615.0 / 31.0, 5615.0 / 31.0 - 180.0))
+    assert selection.fwhms == pytest.approx((18.0, 18.0))
+
+
+def test_select_rings_repeatable():
+    """Selecting the same rings twice gives the same statuses and reasons"""
+    rings = _mixed_rings()
+    first = _select_rings(rings, CRITERIA)
+    statuses, reasons = _statuses(first), [list(ring.reasons) for ring in first.ring_fits]
+    second = _select_rings(rings, CRITERIA)
+    assert _statuses(second) == statuses and [ring.reasons for ring in second.ring_fits] == reasons
+
+
+def test_select_rings_symmetric():
+    """In symmetric mode only the fitted peak is evaluated, so a weak mirror peak does not reject a ring"""
+    heights = ((0.2, 0.002), (0.01, 0.01))
+    rings = [_ring(index, (181.0, 1.0), symmetric=True, heights=heights) for index in range(2)]
+    selection = _select_rings(rings, CRITERIA)
+    assert selection.succeeded and _statuses(selection) == ["SEED", "SEED"]

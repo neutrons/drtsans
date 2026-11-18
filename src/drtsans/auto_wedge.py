@@ -36,6 +36,18 @@ def _circular_difference(angle: float, reference: float) -> float:
     """Signed difference ``angle - reference`` between azimuthal angles, wrapped into [-180, 180) degrees.
 
     For example, 361 and 1 degrees differ by 0 degrees, and 1 and 359 degrees differ by 2 degrees.
+
+    Parameters
+    ----------
+    angle: float
+        Azimuthal angle, in degrees; any multiple of 360 deg is allowed.
+    reference: float
+        Azimuthal angle to compare with, in degrees; any multiple of 360 deg is allowed.
+
+    Returns
+    -------
+    float
+        Signed difference, in degrees, in [-180, 180).
     """
     return (angle - reference + 180.0) % 360.0 - 180.0
 
@@ -375,6 +387,24 @@ def _average_peaks(
 
     The peaks of each ring are matched to the reference centers and unwrapped near them (see
     ``RingFit.aligned_to``). Centers are weighted by 1 / center_error and FWHMs by 1 / fwhm_error.
+
+    Parameters
+    ----------
+    rings: list[RingFit]
+        Fitted Q-rings to average, such as the accepted rings or the members of a consensus group.
+    reference: tuple[float, float]
+        Approximate centers of the two peaks, in degrees, to which the peaks of every ring are matched.
+
+    Returns
+    -------
+    tuple[tuple[float, float], tuple[float, float]]
+        ``(centers, fwhms)``: the weighted average center and FWHM of each of the two peaks, in degrees.
+        The centers lie within 180 deg of the reference centers.
+
+    Raises
+    ------
+    ValueError
+        If ``rings`` is empty.
     """
     if not rings:
         raise ValueError("Cannot average the peaks of zero Q-rings")
@@ -394,6 +424,19 @@ def _find_consensus(candidates: list[RingFit], tolerance: float) -> list[Consens
     (see ``ConsensusGroup.matches``), otherwise it starts a new group. The group center is recomputed after each
     addition. Since the strongest rings join first, they fix the center, which prevents chaining rings whose
     centers drift gradually with Q into one group.
+
+    Parameters
+    ----------
+    candidates: list[RingFit]
+        Seed candidates, the fitted Q-rings passing the seed criteria. Must not be empty.
+    tolerance: float
+        Maximum deviation of each peak center from the group center, as a fraction of the FWHM
+        (``autoWedgeCenterTolerance``).
+
+    Returns
+    -------
+    list[ConsensusGroup]
+        Groups of candidates with the same orientation, largest weight fraction first.
     """
     groups: list[ConsensusGroup] = []
     for ring in sorted(candidates, key=lambda candidate: candidate.weight, reverse=True):
@@ -465,6 +508,19 @@ def _select_rings(ring_fits: list[RingFit], criteria: AcceptanceCriteria) -> Rin
     holding at least ``criteria.consensus_weight_fraction`` of their weight; its members become seed rings. Rings
     failing the seed criteria are rescued if they match the consensus and pass the rescue criteria. A failed
     selection is reported through ``RingSelection.failure``, never raised.
+
+    Parameters
+    ----------
+    ring_fits: list[RingFit]
+        All Q-rings, fitted or not. The ``status`` and ``reasons`` of every ring are set in place.
+    criteria: AcceptanceCriteria
+        Thresholds of the seed and rescue criteria and of the consensus.
+
+    Returns
+    -------
+    RingSelection
+        Status and reasons of every Q-ring and, on success, the weighted average peak centers and FWHMs
+        of the accepted rings.
     """
     selection = RingSelection(ring_fits, criteria)
     # Evaluate the seed criteria for every fitted ring, starting from a rejected status
@@ -549,6 +605,17 @@ def _summarize_reasons(ring: RingFit) -> str:
     """Names of the criteria a ring failed, such as "contrast, significance; rescue: significance".
 
     The measured values are in the other table columns. A fit failure is reported in full.
+
+    Parameters
+    ----------
+    ring: RingFit
+        Q-ring after the selection, with its ``reasons`` set.
+
+    Returns
+    -------
+    str
+        Short names of the failed seed criteria, followed by those of the rescue criteria after "rescue:".
+        Empty if the ring failed no criterion.
     """
     if not ring.is_fitted:
         return "; ".join(ring.reasons)
@@ -562,7 +629,19 @@ def _summarize_reasons(ring: RingFit) -> str:
 
 
 def _format_ring_table(selection: RingSelection) -> str:
-    """Table of the fitted values and the selection outcome of every Q-ring, one row per ring in Q order."""
+    """Table of the fitted values and the selection outcome of every Q-ring, one row per ring in Q order.
+
+    Parameters
+    ----------
+    selection: RingSelection
+        Outcome of the Q-ring selection.
+
+    Returns
+    -------
+    str
+        Table with the Q-ring center (1/A), contrast H/A0, significance H/sigma_H, FWHM (deg) and center (deg)
+        of each evaluated peak, and the ring status with the names of the failed criteria.
+    """
 
     def per_peak(fmt: str, values: list[float]) -> str:
         return " / ".join(fmt.format(value) for value in values)
@@ -584,7 +663,20 @@ def _format_ring_table(selection: RingSelection) -> str:
 
 
 def _failure_message(selection: RingSelection, output_dir: str | None = None) -> str:
-    """Explanation of a failed Q-ring selection, with the per-ring table and suggestions to the user."""
+    """Explanation of a failed Q-ring selection, with the per-ring table and suggestions to the user.
+
+    Parameters
+    ----------
+    selection: RingSelection
+        Outcome of a failed Q-ring selection; ``selection.failure`` is not None.
+    output_dir: str or None
+        Directory of the diagnostic files, whose paths are added to the message. None leaves the paths out.
+
+    Returns
+    -------
+    str
+        Multi-line message, starting with "Automatic wedge detection failed:".
+    """
     criteria = selection.criteria
     q_values = [ring.q for ring in selection.ring_fits]
     q_range = f"Q-ring centers {min(q_values):.4g}-{max(q_values):.4g} 1/A" if q_values else "no Q-rings"
@@ -797,7 +889,18 @@ RING_PLOT_PANEL_SIZE = (4.25, 5.0)  # inches
 
 
 def _ring_title(ring_fit: RingFit) -> str:
-    """Q, status and failed criteria of a Q-ring, such as "Q = 0.01 1/A" and "rejected: contrast" on two lines."""
+    """Q, status and failed criteria of a Q-ring, such as "Q = 0.01 1/A" and "rejected: contrast" on two lines.
+
+    Parameters
+    ----------
+    ring_fit: RingFit
+        Q-ring after the selection.
+
+    Returns
+    -------
+    str
+        Title of the ring's panel in ``auto_wedge_rings.png``. The second line is wrapped to 45 characters.
+    """
     outcome = ring_fit.status.value + (f": {_summarize_reasons(ring_fit)}" if ring_fit.reasons else "")
     return f"Q = {ring_fit.q:.4g} 1/A\n" + textwrap.fill(outcome, width=45)
 

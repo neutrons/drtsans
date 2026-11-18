@@ -1,4 +1,6 @@
+from copy import deepcopy
 import os
+from unittest import mock
 
 import pytest
 
@@ -52,6 +54,7 @@ REDUCTION_INPUT = {
 
 @pytest.mark.datarepo
 def test_reduce_single_configuration(datarepo_dir, temp_directory):
+    """Test an annular reduction and the plot of its output."""
     reduction_input = REDUCTION_INPUT.copy()
     output_dir = temp_directory(prefix="test_annular_binning")
     reduction_input["configuration"]["outputDir"] = output_dir
@@ -73,3 +76,33 @@ def test_reduce_single_configuration(datarepo_dir, temp_directory):
     plot_reduction_output(output, reduction_input, loglog=False, close_figures=True)
     assert os.path.exists(os.path.join(output_dir, "1D", "Al4_1D.png"))
     del output
+
+
+class _StopReduction(Exception):
+    """Raised by a mock of getWedgeSelection to stop the reduction once the wedge options are known."""
+
+
+@pytest.mark.datarepo
+def test_reduce_single_configuration_auto_wedge_options(datarepo_dir, temp_directory):
+    """Test that the reduction passes the auto-wedge acceptance options to getWedgeSelection."""
+    reduction_input = deepcopy(REDUCTION_INPUT)
+    reduction_input["dataDirectories"] = datarepo_dir
+    reduction_input["configuration"].update(
+        {
+            "outputDir": temp_directory(prefix="test_auto_wedge_options"),
+            "sensitivityFileName": os.path.join(datarepo_dir.gpsans, "overwrite_gold_04282020", "sens_c486_noBar.nxs"),
+            "1DQbinType": "wedge",
+            "autoWedgeContrastMin": 0.3,
+            "autoWedgeCenterTolerance": 0.8,
+        }
+    )
+    reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=True)
+    loaded = load_all_files(reduction_input, prefix="GP_TEST_AUTO_WEDGE", load_params=None, path=datarepo_dir.gpsans)
+
+    with mock.patch("drtsans.mono.gpsans.api.getWedgeSelection", side_effect=_StopReduction) as mock_selection:
+        with pytest.raises(_StopReduction):
+            reduce_single_configuration(loaded, reduction_input)
+
+    options = mock_selection.call_args.kwargs
+    assert (options["contrast_min"], options["center_tolerance"]) == (0.3, 0.8)
+    assert options["signal_to_noise_min"] == 10.0

@@ -28,6 +28,7 @@ from numpy.testing import assert_allclose
 import pytest
 
 # standard imports
+from copy import deepcopy
 from math import isclose
 import os
 from os.path import join as pjoin
@@ -339,6 +340,42 @@ def test_reduce_single_configuration_slice_transmission_false(datarepo_dir, temp
     clean_all_ws(prefix)
     assert isclose(transmission_val, 0.9032617874341662)  # provided by s6v
     del output
+
+
+class _StopReduction(Exception):
+    """Raised by a mock of getWedgeSelection to stop the reduction once the wedge options are known."""
+
+
+@pytest.mark.datarepo
+def test_reduce_single_configuration_auto_wedge_options(datarepo_dir, temp_directory):
+    """Test that the reduction passes the auto-wedge acceptance options to getWedgeSelection."""
+    reduction_input = deepcopy(REDUCTION_INPUT)
+    reduction_input["configuration"].update(
+        {
+            "outputDir": temp_directory(prefix="auto_wedge_options"),
+            "1DQbinType": "wedge",
+            # in wedge mode, the overlap-stitch ranges are lists with one entry per detector overlap
+            "wedge1overlapStitchQmin": [0.025],
+            "wedge1overlapStitchQmax": [0.04],
+            "wedge2overlapStitchQmin": [0.03],
+            "wedge2overlapStitchQmax": [0.04],
+            "autoWedgeContrastMin": 0.3,
+            "autoWedgeCenterTolerance": 0.8,
+        }
+    )
+    reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
+    prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
+    with amend_config(data_dir=datarepo_dir.biosans):
+        loaded = load_all_files(reduction_input, prefix)
+
+    with mock_patch("drtsans.mono.biosans.api.getWedgeSelection", side_effect=_StopReduction) as mock_selection:
+        with pytest.raises(_StopReduction):
+            reduce_single_configuration(loaded, reduction_input)
+    clean_all_ws(prefix)
+
+    options = mock_selection.call_args.kwargs
+    assert (options["contrast_min"], options["center_tolerance"]) == (0.3, 0.8)
+    assert options["signal_to_noise_min"] == 2.0
 
 
 def clean_all_ws(prefix):

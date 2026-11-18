@@ -106,6 +106,9 @@
         "autoWedgeCenterTolerance":  {"$ref":  "common.json#/configuration/autoWedgeCenterTolerance", "default": 0.5},
         "autoWedgePeakSearchWindowSizeFactor": {"$ref":  "common.json#/configuration/autoWedgePeakSearchWindowSizeFactor", "default":  0.6},
         "AnnularAngleBin":           {"$ref":  "common.json#/configuration/AnnularAngleBin", "default":  1.0},
+        "autoWedgePhiMin":           {"$ref":  "common.json#/configuration/autoWedgePhiMin", "default": 0.0},
+        "autoWedgePhiMax":           {"$ref":  "common.json#/configuration/autoWedgePhiMax", "default": 360.0},
+        "autoSymmetricWedges":       {"$ref":  "common.json#/configuration/autoSymmetricWedges", "default": false},
 
         "Qmin":              {"$ref":  "common.json#/configuration/Qmin"},
         "Qmax":              {"$ref":  "common.json#/configuration/Qmax"},
@@ -165,7 +168,8 @@
         "useLogQBinsDecadeCenter", "useLogQBinsEvenDecade", "WedgeMinAngles", "WedgeMaxAngles",
         "autoWedgeQmin", "autoWedgeQmax", "autoWedgeQdelta", "autoWedgeAzimuthalDelta",
         "autoWedgePeakWidth", "autoWedgeBackgroundWidth", "autoWedgeSignalToNoiseMin", "autoWedgeContrastMin",
-        "autoWedgeCenterTolerance", "AnnularAngleBin", "Qmin", "Qmax", "useErrorWeighting",
+        "autoWedgeCenterTolerance", "AnnularAngleBin", "autoWedgePhiMin", "autoWedgePhiMax", "autoSymmetricWedges",
+        "Qmin", "Qmax", "useErrorWeighting",
         "smearingPixelSizeX", "smearingPixelSizeY",
         "useSubpixels", "subpixelsX", "subpixelsY", "polarization"]
     }

@@ -122,7 +122,18 @@ class PeakFit:
         return self.height / self.height_error
 
     def contrast(self, background: float) -> float:
-        """Peak height relative to the flat background A0 of the fit, H / A0; NaN unless A0 is finite and positive."""
+        """Peak height relative to the flat background A0 of the fit, H / A0; NaN unless A0 is finite and positive.
+
+        Parameters
+        ----------
+        background: float
+            Flat background A0 of the fit, in the intensity units of the input.
+
+        Returns
+        -------
+        float
+            Contrast H / A0, dimensionless, or NaN if A0 is not finite and positive.
+        """
         if not (np.isfinite(background) and background > 0.0):
             return np.nan
         return self.height / background
@@ -138,7 +149,18 @@ class PeakFit:
         return 1.0 / self.fwhm_error
 
     def with_center(self, center: float) -> "PeakFit":
-        """Copy of this peak with another center, in degrees; used to unwrap centers near a reference angle."""
+        """Copy of this peak with another center; used to unwrap centers near a reference angle.
+
+        Parameters
+        ----------
+        center: float
+            New peak center, in degrees.
+
+        Returns
+        -------
+        PeakFit
+            Copy with the new center and an unchanged center error.
+        """
         return replace(self, center=center)
 
 
@@ -175,12 +197,45 @@ class RingFit:
 
     @classmethod
     def from_fit_result(cls, index: int, q: float, result: dict, symmetric: bool = False) -> "RingFit":
-        """Create from the dictionary returned by ``_fitSpectrum``."""
+        """Create from the dictionary returned by ``_fitSpectrum``.
+
+        Parameters
+        ----------
+        index: int
+            Index of the Q-ring.
+        q: float
+            Center of the Q-ring, in 1/Angstrom.
+        result: dict
+            Fit result of ``_fitSpectrum``: ``(value, error)`` tuples keyed by Mantid parameter name, plus
+            ``"chisq"`` and ``"fit_function"``. It is copied.
+        symmetric: bool
+            True if ``f2`` is the mirror image of ``f1`` (``autoSymmetricWedges``).
+
+        Returns
+        -------
+        RingFit
+            Fitted ring with status ``REJECTED`` until the selection evaluates it.
+        """
         return cls(index, q, dict(result), symmetric)
 
     @classmethod
     def failed(cls, index: int, q: float, reason: str) -> "RingFit":
-        """Create for a Q-ring whose azimuthal profile could not be fitted."""
+        """Create for a Q-ring whose azimuthal profile could not be fitted.
+
+        Parameters
+        ----------
+        index: int
+            Index of the Q-ring.
+        q: float
+            Center of the Q-ring, in 1/Angstrom.
+        reason: str
+            Why the fit failed, such as the message of the exception raised by ``_fitSpectrum``.
+
+        Returns
+        -------
+        RingFit
+            Ring with no fit parameters and status ``FIT_FAILED``.
+        """
         return cls(index, q, {}, status=RingStatus.FIT_FAILED, reasons=[reason])
 
     @property
@@ -219,6 +274,16 @@ class RingFit:
         The fit may return the peaks in either order, so the order with the smaller total angular distance
         to the reference is chosen. Each center is then expressed within 180 deg of its reference center,
         so that centers near 0 and 360 deg can be averaged.
+
+        Parameters
+        ----------
+        reference: tuple[float, float]
+            Reference centers of the two peaks, in degrees.
+
+        Returns
+        -------
+        tuple[PeakFit, PeakFit]
+            Peaks matched to the first and the second reference center, with centers within 180 deg of them.
         """
         first, second = self.peaks
 
@@ -286,9 +351,34 @@ class AcceptanceCriteria:
         azimuthal_delta: float,
         maxchisq: float,
     ) -> "AcceptanceCriteria":
-        """Create from the user settings and the azimuthal bin width, in degrees.
+        """Create from the user settings and the azimuthal bin width.
 
         The rescue threshold never exceeds the seed threshold N, so that a seed-quality ring is never refused rescue.
+
+        Parameters
+        ----------
+        signal_to_noise_min: float
+            N, minimum significance H/sigma_H of each peak of a seed ring (``autoWedgeSignalToNoiseMin``).
+        contrast_min: float
+            C, minimum contrast H/A0 of each peak of a seed ring (``autoWedgeContrastMin``).
+        center_tolerance: float
+            Maximum deviation of each peak center from the consensus, as a fraction of the FWHM, in (0, 1]
+            (``autoWedgeCenterTolerance``).
+        azimuthal_delta: float
+            Azimuthal bin width of the ring profiles, in degrees (``autoWedgeAzimuthalDelta``). The minimum FWHM
+            is ``FWHM_MIN_BINS`` bins.
+        maxchisq: float
+            Maximum cost function value of the fit.
+
+        Returns
+        -------
+        AcceptanceCriteria
+            Criteria with the constants of the module for the other thresholds.
+
+        Raises
+        ------
+        ValueError
+            If a threshold is out of range (see ``__post_init__``).
         """
         rescue_significance_min = min(RESCUE_SIGNIFICANCE_MIN, signal_to_noise_min)
         fwhm_min = FWHM_MIN_BINS * azimuthal_delta
@@ -314,7 +404,18 @@ class AcceptanceCriteria:
             raise ValueError(f"Consensus weight fraction must be in (0.5, 1], got {self.consensus_weight_fraction}")
 
     def seed_failures(self, ring: RingFit) -> list[str]:
-        """Reasons why the ring is not a seed ring; empty if it is one."""
+        """Reasons why the ring is not a seed ring; empty if it is one.
+
+        Parameters
+        ----------
+        ring: RingFit
+            Q-ring to evaluate.
+
+        Returns
+        -------
+        list[str]
+            Failed seed criteria with the measured values, such as "peak 2: H/A0 = 0.16 < 0.2".
+        """
         return self._failures(ring, self.significance_min, check_contrast=True)
 
     def rescue_failures(self, ring: RingFit) -> list[str]:
@@ -322,10 +423,36 @@ class AcceptanceCriteria:
 
         Contrast is not required: the match with the consensus centers, checked separately, already protects
         against artifacts of low contrast.
+
+        Parameters
+        ----------
+        ring: RingFit
+            Q-ring to evaluate.
+
+        Returns
+        -------
+        list[str]
+            Failed rescue criteria with the measured values, such as "peak 1: H/sigma_H = 4 < 5".
         """
         return self._failures(ring, self.rescue_significance_min, check_contrast=False)
 
     def _failures(self, ring: RingFit, significance_min: float, check_contrast: bool) -> list[str]:
+        """Failed criteria of a ring: chisq, then for each evaluated peak validity, contrast, significance and FWHM.
+
+        Parameters
+        ----------
+        ring: RingFit
+            Q-ring to evaluate.
+        significance_min: float
+            Minimum significance H/sigma_H of each peak.
+        check_contrast: bool
+            True to require a positive background and the minimum contrast ``contrast_min``.
+
+        Returns
+        -------
+        list[str]
+            Failed criteria with the measured values; ``["fit failed"]`` for a ring that was not fitted.
+        """
         if not ring.is_fitted:
             return ["fit failed"]
         failures = [] if ring.chisq <= self.maxchisq else [f"chisq = {ring.chisq:.3g} > {self.maxchisq:g}"]
@@ -371,6 +498,20 @@ class ConsensusGroup:
 
         ``tolerance`` is a fraction of the FWHM of each peak. The FWHM is the group FWHM when rescuing a ring, and
         the mean of the ring and group FWHMs when a seed candidate (``candidate=True``) joins the group.
+
+        Parameters
+        ----------
+        ring: RingFit
+            Fitted Q-ring to compare with the group.
+        tolerance: float
+            Maximum deviation of each peak center, as a fraction of the FWHM (``autoWedgeCenterTolerance``).
+        candidate: bool
+            True when a seed candidate joins the group, False when a ring is rescued.
+
+        Returns
+        -------
+        bool
+            True if every evaluated peak center of the ring is within the tolerance.
         """
         aligned = ring.aligned_to(self.centers)[: len(ring.evaluated_peaks)]
         for peak, center, fwhm in zip(aligned, self.centers, self.fwhms):
@@ -576,6 +717,13 @@ class AutoWedgeError(RuntimeError):
 
     Raised when the Q-ring selection fails, or when the accepted peaks are too wide to leave room for background
     wedges; in the latter case ``selection.succeeded`` is True.
+
+    Parameters
+    ----------
+    message: str
+        Explanation of the failure, with the per-ring table and suggestions to the user.
+    selection: RingSelection
+        Outcome of the Q-ring selection.
 
     Attributes
     ----------

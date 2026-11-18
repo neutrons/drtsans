@@ -15,6 +15,7 @@ from drtsans.auto_wedge import (
     SelectionFailure,
     _average_peaks,
     _circular_difference,
+    _effective_background_width,
     _failure_message,
     _find_consensus,
     _format_ring_table,
@@ -477,3 +478,25 @@ def test_failure_message_output_dir(tmp_path):
     selection = _select_rings([RingFit.failed(0, 1.025, "no data in ring")], CRITERIA)
     message = _failure_message(selection, output_dir=str(tmp_path))
     assert f"{tmp_path / 'auto_wedge_rings.png'}, fit results: {tmp_path / 'auto_wedge_fit.h5'}" in message
+
+
+@pytest.mark.parametrize(
+    "centers, fwhms, expected",
+    [
+        ((180.0, 0.0), (18.0, 18.0), 1.5),  # narrow peaks: the requested width is kept
+        ((180.0, 0.0), (59.9, 59.9), 1.5),  # just below the limit 1.5 x (FWHM1 + FWHM2) < 180 deg
+        ((180.0, 0.0), (60.0, 60.0), 180.0 / 120.0 - 0.25),  # at the limit the width is reduced
+        ((182.0, 3.0), (95.0, 94.7), 179.0 / 189.7 - 0.25),  # separation taken from the fitted centers
+        ((358.0, 179.0), (95.0, 94.7), 179.0 / 189.7 - 0.25),  # order of the peaks and the 0/360 wrap
+    ],
+)
+def test_effective_background_width(centers, fwhms, expected):
+    """The background width is reduced only when the background wedges would be empty"""
+    assert _effective_background_width(centers, fwhms, background_width=1.5, peak_width=0.25) == pytest.approx(
+        expected
+    )
+
+
+def test_effective_background_width_no_room():
+    """Peaks 180 deg wide leave no room for a background wedge outside the peak wedges"""
+    assert _effective_background_width((180.0, 0.0), (180.0, 180.0), background_width=1.5, peak_width=0.25) <= 0.25

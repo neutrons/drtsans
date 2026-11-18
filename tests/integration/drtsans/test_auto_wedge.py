@@ -9,6 +9,8 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import h5py
+from unittest.mock import MagicMock
+import drtsans.auto_wedge
 from matplotlib.image import imread
 from drtsans.auto_wedge import (
     RING_PLOT_COLUMNS,
@@ -30,6 +32,7 @@ from drtsans.plots import plot_IQazimuthal
 # test internal function _toQmodAndAzimuthal as well
 from drtsans.iq import (
     _toQmodAndAzimuthal,
+    valid_wedge,
     BinningMethod,
     bin_intensity_into_q2d,
     select_i_of_q_by_wedge,
@@ -551,6 +554,30 @@ def test_fitting_symmetric():
     assert center_list[0] == pytest.approx(180.0, abs=5.0)
     assert center_list[1] == pytest.approx(360.0, abs=5.0)
     assert fwhm_list[0] == pytest.approx(fwhm_list[1], abs=2.0)
+
+
+def test_get_wedge_selection_wide_peaks(tmp_path, monkeypatch):
+    """Peaks too wide for the requested background width give valid wedges and a warning"""
+    qx = qy = np.linspace(-5.0, 5.0, 41)
+    qx_grid, qy_grid = np.meshgrid(qx, qy, indexing="ij")
+    phi = np.arctan2(qy_grid, qx_grid)
+    intensity = 1000.0 * (1.0 + 0.3 * np.cos(phi) ** 2) + np.random.default_rng(7).normal(0.0, 1.0, phi.shape)
+    data2d = IQazimuthal(intensity=intensity, error=np.ones_like(intensity), qx=qx, qy=qy)
+    logger = MagicMock()
+    monkeypatch.setattr(drtsans.auto_wedge, "logger", logger)
+
+    peak_wedges, background_wedges = getWedgeSelection(
+        data2d, q_min=1.5, q_delta=1.0, q_max=4.5, azimuthal_delta=5.0, debug_dir=str(tmp_path)
+    )
+
+    (warning,), _ = logger.warning.call_args
+    assert warning.startswith("autoWedgeBackgroundWidth reduced from 1.5 to")
+    # the background wedge on the side of the smaller peak separation is as wide as the mean peak wedge,
+    # the other one is wider by twice the deviation of the separation from 180 deg
+    widths = [valid_wedge(*wedge) for wedge in peak_wedges + background_wedges]
+    widths = [sum(high - low for low, high in pieces) for pieces in widths]
+    assert min(widths[2:]) == pytest.approx(0.5 * (widths[0] + widths[1]), abs=0.5)
+    assert max(widths[2:]) >= min(widths[2:])
 
 
 def test_get_wedge_selection_diagnostics(tmp_path):

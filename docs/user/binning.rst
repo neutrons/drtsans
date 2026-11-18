@@ -134,7 +134,8 @@ unset manual wedge angles with BIOSANS and GPSANS. Use empty lists, ``[]``, with
      - Fraction of the peak full-width-half-maximum (FWHM) used to define the signal wedge.
    * - ``autoWedgeBackgroundWidth``
      - Automatic
-     - Fraction of the peak FWHM used to define the background wedge.
+     - Fraction of the peak FWHM used to define the background wedge. If the peaks are too wide for this
+       value, it is reduced automatically, with a warning in the log (see below).
    * - ``autoWedgeSignalToNoiseMin``
      - Automatic
      - Minimum signal-to-noise ratio required for the azimuthal profile to be considered fittable.
@@ -313,6 +314,15 @@ Other additional options for the automatic wedge finding:
   representing a wedge, used to define the confidence limits of the wedge.
 - `autoWedgeBackgroundWidth`: percent of the full-width-half-max (FWHM) of the peak in the :math:`I(\phi)` profile
   representing a wedge, used to define the confidence limits of the background signal for the wedge.
+  Each background wedge lies between the two peaks, from `autoWedgeBackgroundWidth` :math:`\times` FWHM past one
+  peak to `autoWedgeBackgroundWidth` :math:`\times` FWHM before the other. When the peaks are so wide that
+  `autoWedgeBackgroundWidth` :math:`\times (\mathrm{FWHM}_1 + \mathrm{FWHM}_2)` reaches the separation :math:`S`
+  of the two peak centers (about 180 degrees), the background wedges would be empty. The reduction then uses
+  :math:`S / (\mathrm{FWHM}_1 + \mathrm{FWHM}_2) -` `autoWedgePeakWidth` instead, which makes each background
+  wedge about as wide as the peak wedges, and logs a warning with the requested and the applied values.
+  For example, peaks with a FWHM of 95 degrees reduce the default 1.5 to about 0.70. If the peaks leave no room for a
+  background wedge at all, the automatic wedge detection fails with a message suggesting a narrower Q range or
+  manual wedges.
 
 For instance, for real data collected at the BIOSANS instrument,
 

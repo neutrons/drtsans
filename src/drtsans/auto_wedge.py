@@ -518,6 +518,9 @@ def _select_rings(ring_fits: list[RingFit], criteria: AcceptanceCriteria) -> Rin
 class AutoWedgeError(RuntimeError):
     """Automatic wedge detection could not determine the wedge angles.
 
+    Raised when the Q-ring selection fails, or when the accepted peaks are too wide to leave room for background
+    wedges; in the latter case ``selection.succeeded`` is True.
+
     Attributes
     ----------
     selection: RingSelection
@@ -645,6 +648,42 @@ def _failure_message(selection: RingSelection, output_dir: str | None = None) ->
         plots, fits = os.path.join(output_dir, "auto_wedge_rings.png"), os.path.join(output_dir, "auto_wedge_fit.h5")
         lines.append(f"  Diagnostic plot of the ring fits: {plots}, fit results: {fits}")
     return "\n".join(lines)
+
+
+def _effective_background_width(
+    centers: tuple[float, float], fwhms: tuple[float, float], background_width: float, peak_width: float
+) -> float:
+    """Background width, as a fraction of the FWHM, for which the background wedges between the peaks are not empty.
+
+    Each background wedge spans from ``background_width`` x FWHM past one peak to ``background_width`` x FWHM
+    before the other. If the requested width leaves no room, i.e. ``background_width`` x (FWHM1 + FWHM2) is at
+    least the separation S of the peak centers, the width is reduced to S / (FWHM1 + FWHM2) - ``peak_width``, so
+    that each background wedge is as wide as the peak wedges. Otherwise the requested width is returned.
+
+    Parameters
+    ----------
+    centers: tuple[float, float]
+        Centers of the two peaks, in degrees. Their order and any multiple of 360 deg do not matter.
+    fwhms: tuple[float, float]
+        FWHM of the two peaks, in degrees.
+    background_width: float
+        Requested distance of each background wedge from the peak centers, as a fraction of the FWHM
+        (``autoWedgeBackgroundWidth``).
+    peak_width: float
+        Half-width of each peak wedge, as a fraction of the FWHM (``autoWedgePeakWidth``).
+
+    Returns
+    -------
+    float
+        Background width to use, as a fraction of the FWHM. A value not above ``peak_width`` means that the peaks
+        leave no room for a background wedge.
+    """
+    difference = abs(_circular_difference(centers[1], centers[0]))
+    separation = min(difference, 360.0 - difference)
+    total_fwhm = fwhms[0] + fwhms[1]
+    if background_width * total_fwhm < separation:
+        return background_width
+    return separation / total_fwhm - peak_width
 
 
 def _create_fit_function(combo_function_str):
@@ -995,7 +1034,9 @@ def getWedgeSelection(
         determining the final range for azimuthal binning.
     background_width: float
         Percent of full-width-half-max (FWHM) of the peak to define the background between peaks
-        to be within when determining the final range for azimuthal binning.
+        to be within when determining the final range for azimuthal binning. If the peaks are so wide that the
+        background wedges would be empty, it is reduced, with a warning, until each background wedge is as wide
+        as the peak wedges.
     signal_to_noise_min: float
         Minimum significance H/sigma_H (fitted peak height over its uncertainty) of each peak of a seed ring.
     peak_search_window_size_factor: float
@@ -1068,6 +1109,25 @@ def getWedgeSelection(
     # the acceptance criteria limit the FWHM of every accepted peak to FWHM_MAX
     center_vec, fwhm_vec = selection.centers, selection.fwhms
     logger.notice(f"Wedge peak centers (deg): {center_vec}, FWHMs (deg): {fwhm_vec}")
+
+    # wide peaks may leave no room for the background wedges at the requested width; reduce it then
+    effective_width = _effective_background_width(center_vec, fwhm_vec, background_width, peak_width)
+    if effective_width <= peak_width:
+        message = (
+            f"Automatic wedge detection failed: peaks of FWHM {fwhm_vec[0]:.1f} / {fwhm_vec[1]:.1f} deg leave no "
+            f"room for background wedges outside the peak wedges (autoWedgePeakWidth = {peak_width:g}).\n"
+            "  Restrict autoWedgeQmin / autoWedgeQmax to the Q-rings with narrower peaks, or set "
+            "WedgeMinAngles/WedgeMaxAngles manually.\n\n" + _format_ring_table(selection)
+        )
+        logger.error(message)
+        raise AutoWedgeError(message, selection)
+    if effective_width != background_width:
+        logger.warning(
+            f"autoWedgeBackgroundWidth reduced from {background_width:g} to {effective_width:.3g}: with peaks of FWHM "
+            f"{fwhm_vec[0]:.1f} / {fwhm_vec[1]:.1f} deg, the background wedges would be empty. Each background "
+            "wedge now has the angular width of the peak wedges."
+        )
+        background_width = effective_width
 
     # convert to min and max ranges
     min_vec, max_vec = [], []

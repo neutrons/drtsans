@@ -556,13 +556,51 @@ def test_fitting_symmetric():
     assert fwhm_list[0] == pytest.approx(fwhm_list[1], abs=2.0)
 
 
-def test_get_wedge_selection_wide_peaks(tmp_path, monkeypatch):
-    """Peaks too wide for the requested background width give valid wedges and a warning"""
+def test_fitting_symmetric_negative_phi_min():
+    """Test that a negative autoWedgePhiMin in symmetric mode gives the same peaks as the range shifted by 360 deg"""
+    q, azimuthal_rings = _create_2d_histogram_data()
+    criteria = AcceptanceCriteria.from_settings(10.0, 0.2, 0.5, azimuthal_delta=5.0, maxchisq=1000.0)
+    selections = [
+        _fitQAndAzimuthal(
+            azimuthal_rings,
+            q,
+            criteria=criteria,
+            azimuthal_start=110.0,
+            peak_search_window_size_factor=0.6,
+            auto_symmetric_wedges=True,
+            auto_wedge_phi_min=phi_min,
+            auto_wedge_phi_max=phi_min + 180.0,
+        )  # fmt: skip
+        for phi_min in (-90.0, 270.0)
+    ]
+    assert all(selection.succeeded for selection in selections)
+    assert selections[0].centers == pytest.approx(selections[1].centers)
+    assert selections[0].fwhms == pytest.approx(selections[1].fwhms)
+
+
+def _wide_peaks_data() -> IQazimuthal:
+    """Azimuthal profile 1 + 0.3 cos^2(phi) on a flat Q grid, with peaks of FWHM about 97 deg at 0 and 180 deg"""
     qx = qy = np.linspace(-5.0, 5.0, 41)
     qx_grid, qy_grid = np.meshgrid(qx, qy, indexing="ij")
     phi = np.arctan2(qy_grid, qx_grid)
     intensity = 1000.0 * (1.0 + 0.3 * np.cos(phi) ** 2) + np.random.default_rng(7).normal(0.0, 1.0, phi.shape)
-    data2d = IQazimuthal(intensity=intensity, error=np.ones_like(intensity), qx=qx, qy=qy)
+    return IQazimuthal(intensity=intensity, error=np.ones_like(intensity), qx=qx, qy=qy)
+
+
+def test_get_wedge_selection_no_room(tmp_path):
+    """Test that peaks too wide for the background wedges at any background width raise an error"""
+    # with autoWedgePeakWidth = 0.5, the reduced width S / (FWHM1 + FWHM2) - 0.5 is below the peak width
+    with pytest.raises(AutoWedgeError, match="leave no room for background wedges") as error:
+        getWedgeSelection(
+            _wide_peaks_data(), q_min=1.5, q_delta=1.0, q_max=4.5, azimuthal_delta=5.0, peak_width=0.5,
+            debug_dir=str(tmp_path),
+        )  # fmt: skip
+    assert error.value.selection.succeeded
+
+
+def test_get_wedge_selection_wide_peaks(tmp_path, monkeypatch):
+    """Peaks too wide for the requested background width give valid wedges and a warning"""
+    data2d = _wide_peaks_data()
     logger = MagicMock()
     monkeypatch.setattr(drtsans.auto_wedge, "logger", logger)
 
@@ -672,8 +710,6 @@ def test_real_data_eqsans(datarepo_dir, tmp_path):
     """Test the wedge selection on EQSANS data with a narrow streak on an incoherent background."""
     # the former mean/min ratio check rejected every Q-ring of these data
     data_file = os.path.join(datarepo_dir.eqsans, "auto_wedge", "EQSANS_auto_wedge_iqazimuthal.h5")
-    if not os.path.exists(data_file):
-        pytest.skip(f"{data_file} not available")
     iq2d = load_iq2d_from_h5(data_file)
 
     wedges = getWedgeSelection(
@@ -688,8 +724,6 @@ def test_real_data_eqsans(datarepo_dir, tmp_path):
 def test_real_data_eqsans_isotropic_q_range(datarepo_dir, tmp_path):
     """Test that the wedge selection fails with no seed ring on the isotropic Q range of the EQSANS data."""
     data_file = os.path.join(datarepo_dir.eqsans, "auto_wedge", "EQSANS_auto_wedge_iqazimuthal.h5")
-    if not os.path.exists(data_file):
-        pytest.skip(f"{data_file} not available")
     iq2d = load_iq2d_from_h5(data_file)
 
     with pytest.raises(AutoWedgeError, match="no Q-ring passes the seed criteria") as error:
@@ -703,8 +737,6 @@ def test_real_data_eqsans_isotropic_q_range(datarepo_dir, tmp_path):
 def test_real_data_eqsans_legacy_settings(datarepo_dir, tmp_path, monkeypatch):
     """Test that a background width equal to the peak width and a low significance give wedges and warnings."""
     data_file = os.path.join(datarepo_dir.eqsans, "auto_wedge", "EQSANS_auto_wedge_iqazimuthal.h5")
-    if not os.path.exists(data_file):
-        pytest.skip(f"{data_file} not available")
     iq2d = load_iq2d_from_h5(data_file)
     logger = MagicMock()
     monkeypatch.setattr(drtsans.auto_wedge, "logger", logger)
@@ -722,7 +754,7 @@ def test_real_data_eqsans_legacy_settings(datarepo_dir, tmp_path, monkeypatch):
 
 
 @pytest.mark.datarepo
-def test_real_data_biosans(datarepo_dir):
+def test_real_data_biosans(datarepo_dir, tmp_path):
     """Test the wedge selection and the wedge binning on BIOSANS data."""
     MSamp_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5532_mBSub.h5")
     MBuff_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5562_mBSub.h5")
@@ -746,6 +778,7 @@ def test_real_data_biosans(datarepo_dir):
         azimuthal_delta=0.5,
         peak_width=0.25,
         background_width=1.5,
+        debug_dir=str(tmp_path),
     )
     expected_peaks = [(157.3, 169.2), (-23.0, -10.7)]
     expected_backgrounds = [(198.9, -53.6), (19.9, 127.6)]
@@ -796,7 +829,7 @@ def test_real_data_biosans(datarepo_dir):
 
 
 @pytest.mark.datarepo
-def test_real_data_biosans_autosymmetric_wedges(datarepo_dir):
+def test_real_data_biosans_autosymmetric_wedges(datarepo_dir, tmp_path):
     """Test the symmetric wedge selection and the wedge binning on BIOSANS data."""
     MSamp_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5532_mBSub.h5")
     MBuff_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5562_mBSub.h5")
@@ -821,6 +854,7 @@ def test_real_data_biosans_autosymmetric_wedges(datarepo_dir):
         peak_width=0.25,
         background_width=1.5,
         auto_symmetric_wedges=True,
+        debug_dir=str(tmp_path),
     )
     expected_peaks = [(-22.2, -11.5), (157.8, 168.5)]
     expected_backgrounds = [(15.4, 131.0), (195.4, -49.0)]

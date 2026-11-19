@@ -342,6 +342,16 @@ def test_select_rings_no_consensus():
     assert all(ring.reasons == ["no orientation group holds 67% of the seed weight"] for ring in selection.ring_fits)
 
 
+def test_select_rings_nan_centers_not_rescued():
+    """A ring with NaN centers is not rescued, although NaN centers do not fail the comparison with the consensus"""
+    nan_ring = _ring(3, (np.nan, np.nan), heights=WEAK)
+    selection = _select_rings([_ring(0, (181.0, 1.0)), _ring(1, (182.0, 2.0)), _ring(2, (180.0, 0.0)), nan_ring],
+                              CRITERIA)  # fmt: skip
+    assert selection.succeeded
+    assert _statuses(selection) == ["SEED", "SEED", "SEED", "REJECTED"]
+    assert nan_ring.reasons
+
+
 def _mixed_rings() -> list[RingFit]:
     """Three seeds near 181 deg, an inconsistent ring, a rescued ring, two rejected rings and a failed fit"""
     return [

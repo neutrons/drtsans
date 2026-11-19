@@ -5,7 +5,7 @@ import textwrap
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import List, Tuple
-from drtsans.dataobjects import I1DAnnular
+from drtsans.dataobjects import I1DAnnular, IQazimuthal
 from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans.iq import BinningMethod, BinningParams, bin_annular_into_q1d
 
@@ -1253,21 +1253,21 @@ def _export_to_h5(iq2d, rings, azimuthal_delta, selection: RingSelection, output
 
 
 def getWedgeSelection(
-    data2d,
-    q_min,
-    q_delta,
-    q_max,
-    azimuthal_delta,
-    peak_width=0.25,
-    background_width=1.5,
-    signal_to_noise_min=10.0,
-    peak_search_window_size_factor=0.6,
-    debug_dir="/tmp/",
-    auto_wedge_phi_min=0,
-    auto_wedge_phi_max=360,
-    auto_symmetric_wedges=False,
-    contrast_min=0.2,
-    center_tolerance=0.5,
+    data2d: IQazimuthal,
+    q_min: float,
+    q_delta: float,
+    q_max: float,
+    azimuthal_delta: float,
+    peak_width: float = 0.25,
+    background_width: float = 1.5,
+    signal_to_noise_min: float = 10.0,
+    peak_search_window_size_factor: float = 0.6,
+    debug_dir: str = "/tmp/",
+    auto_wedge_phi_min: float = 0,
+    auto_wedge_phi_max: float = 360,
+    auto_symmetric_wedges: bool = False,
+    contrast_min: float = 0.2,
+    center_tolerance: float = 0.5,
 ) -> List[List[Tuple[float, float]]]:
     r"""
     Calculate azimuthal binning ranges automatically based on finding peaks in the annular ring. The
@@ -1275,24 +1275,22 @@ def getWedgeSelection(
 
     Parameters
     ==========
-    data2d: ~drtsans.dataobjects.Azimuthal
+    data2d: ~drtsans.dataobjects.IQazimuthal
         The 2D data object containing the azimuthal data.
     q_min: float
-        The left bin boundary for the first Q-bin.
+        The left bin boundary for the first Q-bin, in 1/Å.
     q_delta: float
-        The size of the bins in Q.
+        The size of the bins in Q, in 1/Å.
     q_max: float
-        The left bin boundary for the last Q-bin.
+        The left bin boundary for the last Q-bin, in 1/Å.
     azimuthal_delta: float
-        The size of the bins in azimuthal angle.
+        The size of the bins in azimuthal angle, in degrees.
     peak_width: float
-        Percent of full-width-half-max (FWHM) of the peak to define the signal to be within when
-        determining the final range for azimuthal binning.
+        Half-width of each peak wedge, as a fraction of the full-width-half-max (FWHM) of the fitted peak.
     background_width: float
-        Percent of full-width-half-max (FWHM) of the peak to define the background between peaks
-        to be within when determining the final range for azimuthal binning. If the peaks are so wide that the
-        background wedges would be empty, it is reduced, with a warning, until each background wedge is as wide
-        as the peak wedges.
+        Distance from each peak center to the edges of the background wedges, as a fraction of the FWHM of the
+        fitted peak. If (background_width + peak_width) x (FWHM1 + FWHM2) exceeds the separation of the peak
+        centers, it is reduced, with a warning, so that each background wedge is as wide as the peak wedges.
     signal_to_noise_min: float
         Minimum significance H/sigma_H (fitted peak height over its uncertainty) of each peak of a seed ring.
     peak_search_window_size_factor: float
@@ -1300,9 +1298,11 @@ def getWedgeSelection(
     debug_dir: str
         Full path of the output directory for debugging output files
     auto_wedge_phi_min: float
-        minimum angle to find a wedge for subsequent symmetrisation. Used if symmetric_wedges is true
+        Minimum azimuthal angle, in degrees, of the range where the wedge is searched before symmetrization.
+        Used only if auto_symmetric_wedges is True. Negative values are accepted, e.g. -90 for 270.
     auto_wedge_phi_max: float
-        maximum angle to find a wedge for subsequent symmetrisation. Used if symmetric_wedges is true
+        Maximum azimuthal angle, in degrees, of the range where the wedge is searched before symmetrization.
+        Used only if auto_symmetric_wedges is True.
     auto_symmetric_wedges: bool
         find a wedge between auto_wedge_phi_min and auto_wedge_phi_max, then symmetrize the findings to the remaining
         phi angle domain
@@ -1598,9 +1598,11 @@ def _fitSpectrum(
     verbose: bool
         Flag to output fitting information
     auto_wedge_phi_min: float
-        minimum angle to find a wedge for subsequent symmetrisation. Used if symmetric_wedges is true
+        Minimum azimuthal angle, in degrees, of the range where the wedge is searched before symmetrization.
+        Used only if auto_symmetric_wedges is True. Negative values are accepted, e.g. -90 for 270.
     auto_wedge_phi_max: float
-        maximum angle to find a wedge for subsequent symmetrisation. Used if symmetric_wedges is true
+        Maximum azimuthal angle, in degrees, of the range where the wedge is searched before symmetrization.
+        Used only if auto_symmetric_wedges is True.
     auto_symmetric_wedges: bool
         find a wedge between auto_wedge_phi_min and auto_wedge_phi_max, then symmetrize the findings to the remaining
         azimuthal angle domain

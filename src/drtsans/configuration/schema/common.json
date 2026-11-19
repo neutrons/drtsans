@@ -599,12 +599,12 @@
       "$ref": "common.json#/definitions/safeStringFloat",
       "pairedTo": "#configuration/autoWedgePhiMax",
       "lessThan": "#configuration/autoWedgePhiMax",
-      "description": "Minimum azimuthal angle for automatic wedge fitting"
+      "description": "Minimum azimuthal angle (deg) for automatic wedge fitting, used only if autoSymmetricWedges is true"
     },
     "autoWedgePhiMax": {
       "$ref": "common.json#/definitions/safeStringFloat",
       "pairedTo": "#configuration/autoWedgePhiMin",
-      "description": "Maximum azimuthal angle for automatic wedge fitting"
+      "description": "Maximum azimuthal angle (deg) for automatic wedge fitting, used only if autoSymmetricWedges is true"
     },
     "autoSymmetricWedges": {
       "type": "boolean",
@@ -624,7 +624,7 @@
     },
     "autoWedgeBackgroundWidth": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "description": "Distance from each peak center to the edges of the background wedges, as a fraction of the FWHM of the fitted peak. The background wedges lie between the peaks. If the peaks are so wide that the background wedges would be empty, the value is reduced automatically, with a warning."
+      "description": "Distance from each peak center to the edges of the background wedges, as a fraction of the FWHM of the fitted peak. The background wedges lie between the peaks. If the peaks are so wide that the background wedges would be narrower than the peak wedges, the value is reduced automatically, with a warning."
     },
     "autoWedgeSignalToNoiseMin": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",

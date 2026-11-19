@@ -1,7 +1,7 @@
 """Draw auto_wedge_criteria.png for docs/user/binning.rst, section "How Automatic Wedge Finding Works".
 
 The figure shows the contrast H/A0 and the significance H/sigma_H of fictitious Q-rings against Q, with the
-default thresholds of autoWedgeContrastMin and autoWedgeSignalToNoiseMin and the status of each ring. The rejected
+default thresholds of autoWedgeContrastMin and autoWedgeSignalToNoiseMin and the status of each ring. Most rejected
 rings at high Q are significant but have a low contrast, the case where significance alone would accept
 systematic artifacts.
 

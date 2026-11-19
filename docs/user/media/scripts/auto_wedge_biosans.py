@@ -1,4 +1,4 @@
-"""Draw wedge_binning_7.png for docs/user/binning.rst, section "Automatic Finding of the Wedge".
+"""Draw wedge_binning_7.png for docs/user/binning.rst, BIOSANS example in "Automatic Finding of the Wedge".
 
 The left half is the BIOSANS main detector with the peak wedges w1, w2 and the background wedges b1, b2 found for a
 real sample. The right half is a fictitious azimuthal profile I(phi | q_i) with the same wedge orientation, showing

@@ -6,7 +6,8 @@ import pytest
 from mantid.simpleapi import CreateEmptyTableWorkspace, mtd
 
 import drtsans.auto_wedge
-from drtsans.dataobjects import I1DAnnular
+from drtsans import getWedgeSelection
+from drtsans.dataobjects import I1DAnnular, IQazimuthal
 from drtsans.auto_wedge import (
     SIGMA_TO_FWHM,
     AcceptanceCriteria,
@@ -18,6 +19,7 @@ from drtsans.auto_wedge import (
     RingStatus,
     SelectionFailure,
     _average_peaks,
+    _background_wedge_widths,
     _circular_difference,
     _effective_background_width,
     _failure_message,
@@ -565,3 +567,30 @@ def test_plot_fit_results_no_rings(tmp_path):
     """The diagnostic figure is written when there is no Q-ring to draw"""
     _plot_fit_results([], RingSelection([], CRITERIA), str(tmp_path), auto_symmetric_wedges=False)
     assert (tmp_path / "auto_wedge_rings.png").is_file()
+
+
+@pytest.mark.parametrize(
+    "centers, fwhms, background_width, expected",
+    [
+        ((0.0, 180.0), (20.0, 20.0), 1.5, (120.0, 120.0)),  # antipodal peaks: equal background wedges
+        ((180.0, 276.0), (31.0, 31.0), 96.0 / 62.0 - 0.25, (15.5, 183.5)),  # one wedge above 180 deg
+        ((350.0, 170.0), (20.0, 20.0), 1.5, (120.0, 120.0)),  # the 0/360 wrap
+        ((0.0, 180.0), (97.0, 97.0), 1.0, (-14.0, -14.0)),  # overlapping wedges leave no background wedge
+    ],
+)
+def test_background_wedge_widths(centers, fwhms, background_width, expected):
+    """The background wedges span the peak separations minus background_width x (FWHM1 + FWHM2)"""
+    assert _background_wedge_widths(centers, fwhms, background_width) == pytest.approx(expected, abs=0.01)
+
+
+def test_get_wedge_selection_background_wedge_above_180(tmp_path, monkeypatch):
+    """A background wedge of 180 deg or more raises AutoWedgeError instead of failing later in the binning"""
+    qx = qy = np.linspace(-5.0, 5.0, 21)
+    data2d = IQazimuthal(intensity=np.ones((21, 21)), error=np.ones((21, 21)), qx=qx, qy=qy)
+    rings = [_ring(index, (180.0, 276.0), fwhm=31.0) for index in range(3)]
+    selection = _select_rings(rings, CRITERIA)
+    assert selection.succeeded
+    monkeypatch.setattr(drtsans.auto_wedge, "_fitQAndAzimuthal", lambda *_args, **_kwargs: selection)
+
+    with pytest.raises(AutoWedgeError, match="each must be wider than 0 and narrower than 180 deg"):
+        getWedgeSelection(data2d, q_min=1.5, q_delta=1.0, q_max=4.5, azimuthal_delta=1.0, debug_dir=str(tmp_path))

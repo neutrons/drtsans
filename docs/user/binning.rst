@@ -230,7 +230,8 @@ orientation. The seed candidates are therefore grouped by orientation. Starting 
 candidate joins the first group whose peak centers it matches within `autoWedgeCenterTolerance`
 :math:`\times` FWHM, where FWHM is the mean of the FWHMs of the ring and of the group, or starts a new group. Each ring weighs :math:`\sum 1/\sigma_c` over its peaks, where
 :math:`\sigma_c` is the uncertainty of a peak center, and angles are compared on the circle, so that 359° and 1°
-are 2° apart.
+are 2° apart. Membership is not tested again once a ring has joined, so when the rings have comparable weights and
+their centers drift gradually with :math:`q`, the final center can lie more than the tolerance from the first rings.
 
 The group with the largest weight is the consensus if it holds at least 67% of the weight of all candidates.
 Its rings become **seed** rings. Candidates in other groups are marked **inconsistent**. If no group reaches 67%,
@@ -278,7 +279,9 @@ wedge as wide as the mean peak wedge, and logs a warning with the requested and 
 FWHM of 95 degrees reduce the default 1.5 to about 0.70. If the reduced value is no larger than
 `autoWedgePeakWidth`, the peaks leave no room for background wedges, and the automatic wedge detection fails with a
 message suggesting a narrower Q range or manual wedges. A requested `autoWedgeBackgroundWidth` no larger than
-`autoWedgePeakWidth` is kept, with a warning that the peak and background wedges overlap.
+`autoWedgePeakWidth` is never reduced; the peak and background wedges then overlap, and a warning is logged. In every
+case, the automatic wedge detection fails if a background wedge would be 0° wide or less, or 180° or wider, which
+can happen when the two peaks are far from 180° apart.
 
 The :ref:`BIOSANS example <user.binning.auto_wedge_biosans>` shows the peak wedges :math:`w_1, w_2` and the
 background wedges :math:`b_1, b_2` found for a real sample.
@@ -323,6 +326,8 @@ the ring table and the paths of the diagnostic files:
   group.
 - **"peaks of FWHM ... leave no room for background wedges outside the peak wedges"**: the peaks are too wide for
   separate background wedges; restrict the :math:`q` range to rings with narrower peaks.
+- **"the background wedges would be ... deg wide"**: a background wedge would be empty or at least 180° wide, for
+  instance because the two peaks are far from 180° apart; restrict the :math:`q` range or set the wedges manually.
 
 In every case, the angles can also be set manually with `WedgeMinAngles` and `WedgeMaxAngles`.
 

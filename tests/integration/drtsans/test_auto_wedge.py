@@ -37,6 +37,7 @@ from drtsans.iq import (
     bin_intensity_into_q2d,
     select_i_of_q_by_wedge,
     bin_all,
+    validate_wedges_groups,
 )
 from matplotlib.colors import LogNorm  # noqa E402
 from mantid.simpleapi import LoadNexusProcessed
@@ -614,6 +615,30 @@ def test_get_wedge_selection_no_room(tmp_path):
             debug_dir=str(tmp_path),
         )  # fmt: skip
     assert error.value.selection.succeeded
+
+
+def test_get_wedge_selection_overlapping_wedges(tmp_path, monkeypatch):
+    """A background width not above the peak width is kept for wide peaks, with an overlap warning"""
+    logger = MagicMock()
+    monkeypatch.setattr(drtsans.auto_wedge, "logger", logger)
+
+    wedges = getWedgeSelection(
+        _wide_peaks_data(), q_min=1.5, q_delta=1.0, q_max=4.5, azimuthal_delta=5.0, peak_width=0.5,
+        background_width=0.5, debug_dir=str(tmp_path),
+    )  # fmt: skip
+
+    (warning,), _ = logger.warning.call_args
+    assert "the background wedges overlap the peak wedges" in warning
+    validate_wedges_groups(wedges, False)
+
+
+def test_get_wedge_selection_no_background_wedge(tmp_path):
+    """Overlapping wedges that leave a background wedge no positive width raise an error"""
+    with pytest.raises(AutoWedgeError, match="each must be wider than 0 and narrower than 180 deg"):
+        getWedgeSelection(
+            _wide_peaks_data(), q_min=1.5, q_delta=1.0, q_max=4.5, azimuthal_delta=5.0, peak_width=1.0,
+            background_width=1.0, debug_dir=str(tmp_path),
+        )  # fmt: skip
 
 
 def test_get_wedge_selection_wide_peaks(tmp_path, monkeypatch):

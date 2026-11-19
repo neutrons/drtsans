@@ -563,8 +563,9 @@ def _find_consensus(candidates: list[RingFit], tolerance: float) -> list[Consens
 
     Candidates are taken strongest first. Each joins the first group whose current weighted center it matches
     (see ``ConsensusGroup.matches``), otherwise it starts a new group. The group center is recomputed after each
-    addition. Since the strongest rings join first, they fix the center, which prevents chaining rings whose
-    centers drift gradually with Q into one group.
+    addition, and membership is not tested again. When the strongest rings dominate the weight, they fix the
+    center. When the weights are comparable and the centers drift gradually with Q, the final center can lie more
+    than the tolerance from the first members.
 
     Parameters
     ----------
@@ -930,6 +931,35 @@ def _effective_background_width(
     if (background_width + peak_width) * total_fwhm <= separation:
         return background_width
     return separation / total_fwhm - peak_width
+
+
+def _background_wedge_widths(
+    centers: tuple[float, float], fwhms: tuple[float, float], background_width: float
+) -> tuple[float, float]:
+    """Angular widths of the two background wedges, in degrees.
+
+    The background wedges span from ``background_width`` x FWHM past one peak to ``background_width`` x FWHM before
+    the other, on either side: d - ``background_width`` x (FWHM1 + FWHM2) from the first to the second peak, with
+    d = (c2 - c1) mod 360, and 360 - d - ``background_width`` x (FWHM1 + FWHM2) from the second back to the first.
+
+    Parameters
+    ----------
+    centers: tuple[float, float]
+        Centers c1, c2 of the two peaks, in degrees.
+    fwhms: tuple[float, float]
+        FWHM of the two peaks, in degrees.
+    background_width: float
+        Distance of the background wedges from the peak centers, as a fraction of the FWHM.
+
+    Returns
+    -------
+    tuple[float, float]
+        Widths of the background wedges after the first and after the second peak, in degrees. A width not above 0
+        means that the wedge is empty.
+    """
+    distance = (centers[1] - centers[0]) % 360.0
+    offset = background_width * (fwhms[0] + fwhms[1])
+    return distance - offset, 360.0 - distance - offset
 
 
 def _create_fit_function(combo_function_str):
@@ -1379,29 +1409,42 @@ def getWedgeSelection(
     center_vec, fwhm_vec = selection.centers, selection.fwhms
     logger.notice(f"Wedge peak centers (deg): {center_vec}, FWHMs (deg): {fwhm_vec}")
 
-    # wide peaks may leave no room for the background wedges at the requested width; reduce it then
-    effective_width = _effective_background_width(center_vec, fwhm_vec, background_width, peak_width)
-    if effective_width != background_width and effective_width <= peak_width:
-        message = (
-            f"Automatic wedge detection failed: peaks of FWHM {fwhm_vec[0]:.1f} / {fwhm_vec[1]:.1f} deg leave no "
-            f"room for background wedges outside the peak wedges (autoWedgePeakWidth = {peak_width:g}).\n"
-            "  Restrict autoWedgeQmin / autoWedgeQmax to the Q-rings with narrower peaks, or set "
-            "WedgeMinAngles/WedgeMaxAngles manually.\n\n" + _format_ring_table(selection)
-        )
-        logger.error(message)
-        raise AutoWedgeError(message, selection)
+    # a background width not above the peak width asks for overlapping wedges and is kept as requested;
+    # otherwise, wide peaks may leave no room for the background wedges at the requested width: reduce it then
+    reason = ""  # why no valid background wedges can be built
     if background_width <= peak_width:
         logger.warning(
             f"autoWedgeBackgroundWidth = {background_width:g} is not above autoWedgePeakWidth = {peak_width:g}: "
             "the background wedges overlap the peak wedges."
         )
-    elif effective_width != background_width:
-        logger.warning(
-            f"autoWedgeBackgroundWidth reduced from {background_width:g} to {effective_width:.3g}: with peaks of FWHM "
-            f"{fwhm_vec[0]:.1f} / {fwhm_vec[1]:.1f} deg, the background wedges would be narrower than the mean "
-            "peak wedge. The narrower background wedge now has the angular width of the mean peak wedge."
+    else:
+        effective_width = _effective_background_width(center_vec, fwhm_vec, background_width, peak_width)
+        if effective_width != background_width and effective_width <= peak_width:
+            reason = (
+                f"peaks of FWHM {fwhm_vec[0]:.1f} / {fwhm_vec[1]:.1f} deg leave no room for background wedges "
+                f"outside the peak wedges (autoWedgePeakWidth = {peak_width:g})."
+            )
+        elif effective_width != background_width:
+            logger.warning(
+                f"autoWedgeBackgroundWidth reduced from {background_width:g} to {effective_width:.3g}: with peaks of "
+                f"FWHM {fwhm_vec[0]:.1f} / {fwhm_vec[1]:.1f} deg, the background wedges would be narrower than the "
+                "mean peak wedge. The narrower background wedge now has the angular width of the mean peak wedge."
+            )
+            background_width = effective_width
+    # each background wedge needs a positive width below 180 deg, the limit of drtsans.iq.valid_wedge
+    widths = _background_wedge_widths(center_vec, fwhm_vec, background_width)
+    if not reason and not all(0.0 < width < 180.0 for width in widths):
+        reason = (
+            f"with autoWedgeBackgroundWidth = {background_width:.3g}, the background wedges would be "
+            f"{widths[0]:.1f} and {widths[1]:.1f} deg wide; each must be wider than 0 and narrower than 180 deg."
         )
-        background_width = effective_width
+    if reason:
+        message = (
+            f"Automatic wedge detection failed: {reason}\n  Restrict autoWedgeQmin / autoWedgeQmax to the Q-rings "
+            "with narrower peaks, or set WedgeMinAngles/WedgeMaxAngles manually.\n\n" + _format_ring_table(selection)
+        )
+        logger.error(message)
+        raise AutoWedgeError(message, selection)
 
     # convert to min and max ranges
     min_vec, max_vec = [], []

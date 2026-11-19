@@ -209,6 +209,14 @@ A ring is a seed candidate when its fit has :math:`\chi^2 \le 1000` and each pea
 - **Width** :math:`3 \times` `autoWedgeAzimuthalDelta` :math:`\le \mathrm{FWHM} \le 180°`. A narrower peak is not
   resolved by the azimuthal bins, and a wider peak cannot be separated from its partner 180° away.
 
+.. figure:: media/auto_wedge_criteria.png
+   :alt: contrast and significance of fictitious q rings against q, with the seed thresholds
+   :width: 650px
+
+   Contrast and significance of fictitious :math:`q` rings. The rejected rings at high :math:`q` pass the
+   significance threshold but not the contrast threshold, which is the case where significance alone would accept
+   systematic artifacts. The rescued ring matches the orientation of the seed rings.
+
 Consensus orientation
 ~~~~~~~~~~~~~~~~~~~~~
 

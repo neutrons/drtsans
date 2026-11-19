@@ -624,7 +624,7 @@
     },
     "autoWedgeBackgroundWidth": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "description": "Distance from each peak center to the edges of the background wedges, as a fraction of the FWHM of the fitted peak. The background wedges lie between the peaks. If the peaks are so wide that the background wedges would be narrower than the peak wedges, the value is reduced automatically, with a warning."
+      "description": "Distance from each peak center to the edges of the background wedges, as a fraction of the FWHM of the fitted peak. The background wedges lie between the peaks. If the peaks are so wide that the background wedges would be narrower than the mean of the two peak wedges, the value is reduced automatically, with a warning."
     },
     "autoWedgeSignalToNoiseMin": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",

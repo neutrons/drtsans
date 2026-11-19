@@ -615,7 +615,10 @@ def test_get_wedge_selection_wide_peaks(tmp_path, monkeypatch):
     widths = [valid_wedge(*wedge) for wedge in peak_wedges + background_wedges]
     widths = [sum(high - low for low, high in pieces) for pieces in widths]
     assert min(widths[2:]) == pytest.approx(0.5 * (widths[0] + widths[1]), abs=0.5)
-    assert max(widths[2:]) >= min(widths[2:])
+    centers = [0.5 * (low + high) for low, high in peak_wedges]
+    separation = abs(centers[1] - centers[0]) % 360.0
+    separation = min(separation, 360.0 - separation)
+    assert max(widths[2:]) - min(widths[2:]) == pytest.approx(360.0 - 2.0 * separation, abs=0.5)
 
 
 def test_get_wedge_selection_diagnostics(tmp_path):
@@ -784,12 +787,10 @@ def test_real_data_biosans(datarepo_dir, tmp_path):
     expected_backgrounds = [(198.9, -53.6), (19.9, 127.6)]
     _assert_wedges(wedge_angles, (expected_peaks, expected_backgrounds))
 
-    # use these to integrate the wedges
-    for wedges in wedge_angles:
-        for azi_min, azi_max in wedges:
-            print("integrating from {}deg to {} deg".format(azi_min, azi_max))
-            iq_wedge = select_i_of_q_by_wedge(q2d_data, azi_min, azi_max)
-            assert iq_wedge
+    # every wedge selects data, including the background wedges that wrap around 0 deg
+    for wedge in wedge_angles[0] + wedge_angles[1]:
+        pieces = [select_i_of_q_by_wedge(q2d_data, low, high) for low, high in valid_wedge(*wedge)]
+        assert sum(piece.intensity.size for piece in pieces) > 0
 
     # test bin_all
     nbins = 100.0
@@ -860,12 +861,10 @@ def test_real_data_biosans_autosymmetric_wedges(datarepo_dir, tmp_path):
     expected_backgrounds = [(15.4, 131.0), (195.4, -49.0)]
     _assert_wedges(wedge_angles, (expected_peaks, expected_backgrounds))
 
-    # use these to integrate the wedges
-    for wedges in wedge_angles:
-        for azi_min, azi_max in wedges:
-            print("integrating from {}deg to {} deg".format(azi_min, azi_max))
-            iq_wedge = select_i_of_q_by_wedge(q2d_data, azi_min, azi_max)
-            assert iq_wedge
+    # every wedge selects data, including the background wedges that wrap around 0 deg
+    for wedge in wedge_angles[0] + wedge_angles[1]:
+        pieces = [select_i_of_q_by_wedge(q2d_data, low, high) for low, high in valid_wedge(*wedge)]
+        assert sum(piece.intensity.size for piece in pieces) > 0
 
     # test bin_all
     nbins = 100.0

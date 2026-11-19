@@ -1,8 +1,12 @@
 # Unit tests for drtsans.auto_wedge
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
+from mantid.simpleapi import CreateEmptyTableWorkspace, mtd
 
 import drtsans.auto_wedge
+from drtsans.dataobjects import I1DAnnular
 from drtsans.auto_wedge import (
     SIGMA_TO_FWHM,
     AcceptanceCriteria,
@@ -18,7 +22,9 @@ from drtsans.auto_wedge import (
     _effective_background_width,
     _failure_message,
     _find_consensus,
+    _fitSpectrum,
     _format_ring_table,
+    _plot_fit_results,
     _select_rings,
     _summarize_reasons,
 )
@@ -532,3 +538,30 @@ def test_effective_background_width(centers, fwhms, expected):
 def test_effective_background_width_no_room():
     """Peaks 180 deg wide leave no room for a background wedge outside the peak wedges"""
     assert _effective_background_width((180.0, 0.0), (180.0, 180.0), background_width=1.5, peak_width=0.25) <= 0.25
+
+
+def test_fit_spectrum_not_converged_deletes_fit_workspaces(monkeypatch):
+    """A fit that does not converge raises and leaves no fit output workspaces"""
+    phi = np.arange(0.5, 360.0, 1.0)
+    distance = (phi - 90.0 + 90.0) % 180.0 - 90.0  # two peaks, at 90 and 270 deg
+    spectrum = I1DAnnular(intensity=1.0 + np.exp(-0.5 * (distance / 8.0) ** 2), error=np.ones_like(phi), phi=phi)
+    outputs = []
+
+    def _fit(**kwargs):
+        for label in ["_Parameters", "_NormalisedCovarianceMatrix"]:
+            outputs.append(kwargs["Output"] + label)
+            CreateEmptyTableWorkspace(OutputWorkspace=outputs[-1])
+        return SimpleNamespace(OutputStatus="Failed to converge after 500 iterations")
+
+    monkeypatch.setattr(drtsans.auto_wedge, "Fit", _fit)
+
+    with pytest.raises(RuntimeError, match="Failed to fit Q=0.01 1/A"):
+        _fitSpectrum(spectrum, 0.01, azimuthal_start=90.0, peak_search_window_size_factor=0.6)
+    assert len(outputs) == 2
+    assert not any(mtd.doesExist(name) for name in outputs)
+
+
+def test_plot_fit_results_no_rings(tmp_path):
+    """The diagnostic figure is written when there is no Q-ring to draw"""
+    _plot_fit_results([], RingSelection([], CRITERIA), str(tmp_path), auto_symmetric_wedges=False)
+    assert (tmp_path / "auto_wedge_rings.png").is_file()

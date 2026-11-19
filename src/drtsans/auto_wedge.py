@@ -16,7 +16,7 @@ from mantid.simpleapi import DeleteWorkspace, logger, Gaussian, FlatBackground, 
 from mantid.simpleapi import Fit
 from mantid.api import IFunction
 import h5py
-from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
 __all__ = ["AutoWedgeError", "getWedgeSelection"]
@@ -897,13 +897,14 @@ def _failure_message(selection: RingSelection, output_dir: str | None = None) ->
 def _effective_background_width(
     centers: tuple[float, float], fwhms: tuple[float, float], background_width: float, peak_width: float
 ) -> float:
-    """Background width, as a fraction of the FWHM, leaving background wedges at least as wide as the peak wedges.
+    """Background width, as a fraction of the FWHM, leaving background wedges as wide as the mean peak wedge.
 
     Each background wedge spans from ``background_width`` x FWHM past one peak to ``background_width`` x FWHM
     before the other, so its width is S - ``background_width`` x (FWHM1 + FWHM2), with S the separation of the peak
-    centers. The requested width is kept if the background wedges are at least as wide as the peak wedges, i.e.
-    (``background_width`` + ``peak_width``) x (FWHM1 + FWHM2) <= S. Otherwise the width is reduced to
-    S / (FWHM1 + FWHM2) - ``peak_width``, for which each background wedge is as wide as the peak wedges.
+    centers. The requested width is kept if the background wedges are no narrower than the mean of the two peak
+    wedges, i.e. (``background_width`` + ``peak_width``) x (FWHM1 + FWHM2) <= S. Otherwise the width is reduced to
+    S / (FWHM1 + FWHM2) - ``peak_width``, for which the narrower background wedge is as wide as the mean peak wedge.
+    When the two FWHMs are equal, the mean peak wedge is each peak wedge.
 
     Parameters
     ----------
@@ -1087,7 +1088,9 @@ def _plot_fit_results(rings, selection: RingSelection, output_dir, auto_symmetri
     ring_fits = {ring_fit.index: ring_fit for ring_fit in selection.ring_fits}
     rows = max(1, -(-len(rings) // RING_PLOT_COLUMNS))  # ceiling division
     width, height = RING_PLOT_PANEL_SIZE
-    figure, axes = plt.subplots(rows, RING_PLOT_COLUMNS, figsize=(RING_PLOT_COLUMNS * width, rows * height))
+    # a Figure outside pyplot is released with its last reference, also when drawing fails
+    figure = Figure(figsize=(RING_PLOT_COLUMNS * width, rows * height))
+    axes = figure.subplots(rows, RING_PLOT_COLUMNS)
     axes = np.atleast_1d(axes).ravel()
     for axis in axes[len(rings) :]:
         axis.set_visible(False)
@@ -1130,7 +1133,8 @@ def _plot_fit_results(rings, selection: RingSelection, output_dir, auto_symmetri
 
     # one legend for the figure, taken from the panel with the most curves
     handles, labels = max((axis.get_legend_handles_labels() for axis in axes), key=lambda hl: len(hl[1]))
-    figure.legend(handles, labels, loc="upper center", ncol=len(labels), fontsize="large", frameon=False)
+    if labels:  # no Q-ring, no curve
+        figure.legend(handles, labels, loc="upper center", ncol=len(labels), fontsize="large", frameon=False)
     # leave 0.4 inch for the legend, and 3 font heights between rows for the separating line
     figure.tight_layout(rect=(0, 0, 1, 1 - 0.4 / (rows * height)), h_pad=3.0)
     # separate the rows with a horizontal line, in the middle of the gap between the x-axis labels of a row
@@ -1147,7 +1151,6 @@ def _plot_fit_results(rings, selection: RingSelection, output_dir, auto_symmetri
         y = 0.5 * (min(box.y0 for box in _extent(row - 1)) + max(box.y1 for box in _extent(row)))
         figure.add_artist(Line2D([0.01, 0.99], [y, y], transform=figure.transFigure, color="gray", linewidth=1))
     figure.savefig(os.path.join(output_dir, "auto_wedge_rings.png"))
-    plt.close(figure)
 
 
 def _export_to_h5(iq2d, rings, azimuthal_delta, selection: RingSelection, output_dir):
@@ -1290,7 +1293,8 @@ def getWedgeSelection(
     background_width: float
         Distance from each peak center to the edges of the background wedges, as a fraction of the FWHM of the
         fitted peak. If (background_width + peak_width) x (FWHM1 + FWHM2) exceeds the separation of the peak
-        centers, it is reduced, with a warning, so that each background wedge is as wide as the peak wedges.
+        centers, it is reduced, with a warning, so that the background wedges are no narrower than the mean of the
+        two peak wedges.
     signal_to_noise_min: float
         Minimum significance H/sigma_H (fitted peak height over its uncertainty) of each peak of a seed ring.
     peak_search_window_size_factor: float
@@ -1361,7 +1365,10 @@ def getWedgeSelection(
         selection=selection,
         output_dir=debug_dir,
     )
-    _plot_fit_results(azimuthal_rings, selection, debug_dir, auto_symmetric_wedges)
+    try:
+        _plot_fit_results(azimuthal_rings, selection, debug_dir, auto_symmetric_wedges)
+    except Exception as error:  # the diagnostic figure must not hide the outcome of the selection
+        logger.warning(f"Could not draw auto_wedge_rings.png: {error}")
 
     if not selection.succeeded:
         message = _failure_message(selection, debug_dir)
@@ -1391,8 +1398,8 @@ def getWedgeSelection(
     elif effective_width != background_width:
         logger.warning(
             f"autoWedgeBackgroundWidth reduced from {background_width:g} to {effective_width:.3g}: with peaks of FWHM "
-            f"{fwhm_vec[0]:.1f} / {fwhm_vec[1]:.1f} deg, the background wedges would be narrower than the peak "
-            "wedges. Each background wedge now has the angular width of the peak wedges."
+            f"{fwhm_vec[0]:.1f} / {fwhm_vec[1]:.1f} deg, the background wedges would be narrower than the mean "
+            "peak wedge. The narrower background wedge now has the angular width of the mean peak wedge."
         )
         background_width = effective_width
 
@@ -1700,22 +1707,24 @@ def _fitSpectrum(
     finally:
         DeleteWorkspace(q_azimuthal_workspace)
 
-    if fitresult.OutputStatus != "success":
-        raise RuntimeError(f"Failed to fit Q={q_value:.4g} 1/A")
+    try:
+        if fitresult.OutputStatus != "success":
+            raise RuntimeError(f"Failed to fit Q={q_value:.4g} 1/A")
 
-    # convert the table into a dict[name] = (value, error)
-    result = {"fit_function": fit_function}
-    for i in range(fitresult.OutputParameters.rowCount()):
-        row = fitresult.OutputParameters.row(i)
-        logger.debug(f"[DEBUG-TEST] row: {row} of type {type(row)}")
-        name = row["Name"]
-        if name.startswith("Cost function"):
-            name = "chisq"
-        result[name] = (row["Value"], row["Error"])
-
-    # delete fit results
-    for label in ["_Parameters", "_NormalisedCovarianceMatrix"]:
-        DeleteWorkspace(Workspace=fit_workspace_prefix + label)
+        # convert the table into a dict[name] = (value, error)
+        result = {"fit_function": fit_function}
+        for i in range(fitresult.OutputParameters.rowCount()):
+            row = fitresult.OutputParameters.row(i)
+            logger.debug(f"[DEBUG-TEST] row: {row} of type {type(row)}")
+            name = row["Name"]
+            if name.startswith("Cost function"):
+                name = "chisq"
+            result[name] = (row["Value"], row["Error"])
+    finally:
+        # delete fit results, also when the fit did not converge
+        for label in ["_Parameters", "_NormalisedCovarianceMatrix"]:
+            if mtd.doesExist(fit_workspace_prefix + label):
+                DeleteWorkspace(Workspace=fit_workspace_prefix + label)
 
     # symmetrize the result
     if auto_symmetric_wedges:

@@ -99,15 +99,15 @@ def test_reduce_single_configuration_auto_wedge_options(datarepo_dir, temp_direc
     )
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=True)
     prefix = "GP_TEST_AUTO_WEDGE"
+    existing = set(mtd.getObjectNames())
     try:
         loaded = load_all_files(reduction_input, prefix=prefix, load_params=None, path=datarepo_dir.gpsans)
         with mock.patch("drtsans.mono.gpsans.api.getWedgeSelection", side_effect=_StopReduction) as mock_selection:
             with pytest.raises(_StopReduction):
                 reduce_single_configuration(loaded, reduction_input, prefix=prefix)
-    finally:
-        for name in mtd.getObjectNames():
-            if name.startswith(prefix):
-                DeleteWorkspace(name)
+    finally:  # the reduction also creates workspaces without the prefix
+        for name in set(mtd.getObjectNames()) - existing:
+            DeleteWorkspace(name)
 
     options = mock_selection.call_args.kwargs
     assert (options["contrast_min"], options["center_tolerance"]) == (0.3, 0.8)

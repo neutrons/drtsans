@@ -578,12 +578,30 @@ def test_fitting_symmetric_negative_phi_min():
     assert selections[0].fwhms == pytest.approx(selections[1].fwhms)
 
 
-def _wide_peaks_data() -> IQazimuthal:
-    """Azimuthal profile 1 + 0.3 cos^2(phi) on a flat Q grid, with peaks of FWHM about 97 deg at 0 and 180 deg"""
+def _wide_peaks_data(second_peak: float = 180.0) -> IQazimuthal:
+    """Wide peaks on a flat background, the same at every Q
+
+    Parameters
+    ----------
+    second_peak: float
+        Center of the second peak, in degrees; the first peak is at 0 deg. At 180 deg, the azimuthal profile is
+        1 + 0.3 cos^2(phi), with peaks of FWHM about 97 deg. Otherwise, it is 1 + 0.3 (L(0) + L(second_peak)), with
+        lobes L(c) = exp(kappa (cos(phi - c) - 1)) of FWHM 60 deg.
+
+    Returns
+    -------
+    IQazimuthal
+        Intensity on a 41 x 41 grid of Qx, Qy from -5 to 5 1/A, with Gaussian noise of standard deviation 1.
+    """
     qx = qy = np.linspace(-5.0, 5.0, 41)
     qx_grid, qy_grid = np.meshgrid(qx, qy, indexing="ij")
     phi = np.arctan2(qy_grid, qx_grid)
-    intensity = 1000.0 * (1.0 + 0.3 * np.cos(phi) ** 2) + np.random.default_rng(7).normal(0.0, 1.0, phi.shape)
+    if second_peak == 180.0:
+        profile = np.cos(phi) ** 2
+    else:
+        kappa = np.log(2.0) / (1.0 - np.cos(np.radians(30.0)))  # half maximum at 30 deg from the center
+        profile = sum(np.exp(kappa * (np.cos(phi - np.radians(center)) - 1.0)) for center in (0.0, second_peak))
+    intensity = 1000.0 * (1.0 + 0.3 * profile) + np.random.default_rng(7).normal(0.0, 1.0, phi.shape)
     return IQazimuthal(intensity=intensity, error=np.ones_like(intensity), qx=qx, qy=qy)
 
 
@@ -600,7 +618,7 @@ def test_get_wedge_selection_no_room(tmp_path):
 
 def test_get_wedge_selection_wide_peaks(tmp_path, monkeypatch):
     """Peaks too wide for the requested background width give valid wedges and a warning"""
-    data2d = _wide_peaks_data()
+    data2d = _wide_peaks_data(second_peak=160.0)  # not antipodal, so the two background wedges differ
     logger = MagicMock()
     monkeypatch.setattr(drtsans.auto_wedge, "logger", logger)
 
@@ -618,6 +636,7 @@ def test_get_wedge_selection_wide_peaks(tmp_path, monkeypatch):
     centers = [0.5 * (low + high) for low, high in peak_wedges]
     separation = abs(centers[1] - centers[0]) % 360.0
     separation = min(separation, 360.0 - separation)
+    assert abs(separation - 180.0) > 5.0
     assert max(widths[2:]) - min(widths[2:]) == pytest.approx(360.0 - 2.0 * separation, abs=0.5)
 
 

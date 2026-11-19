@@ -160,6 +160,10 @@ perpendicular to them, which give the background :math:`I(q)` output.
    :alt: wedges for a real BIOSANS example
    :width: 900px
 
+   Left: peak wedges :math:`w_1, w_2` and background wedges :math:`b_1, b_2` on the BIOSANS main detector.
+   Right: a fictitious :math:`I(\phi\,|\,q_i)` with the same orientation, showing how the wedge limits follow from
+   the fitted centers :math:`c_1, c_2` and widths :math:`\mathrm{FWHM}_1, \mathrm{FWHM}_2`.
+
 .. _user.binning.auto_wedge_method:
 
 How Automatic Wedge Finding Works

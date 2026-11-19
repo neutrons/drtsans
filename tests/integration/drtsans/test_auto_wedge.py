@@ -700,6 +700,28 @@ def test_real_data_eqsans_isotropic_q_range(datarepo_dir, tmp_path):
 
 
 @pytest.mark.datarepo
+def test_real_data_eqsans_legacy_settings(datarepo_dir, tmp_path, monkeypatch):
+    """Test that a background width equal to the peak width and a low significance give wedges and warnings."""
+    data_file = os.path.join(datarepo_dir.eqsans, "auto_wedge", "EQSANS_auto_wedge_iqazimuthal.h5")
+    if not os.path.exists(data_file):
+        pytest.skip(f"{data_file} not available")
+    iq2d = load_iq2d_from_h5(data_file)
+    logger = MagicMock()
+    monkeypatch.setattr(drtsans.auto_wedge, "logger", logger)
+
+    peak_wedges, background_wedges = getWedgeSelection(
+        iq2d, q_min=0.08, q_delta=0.05, q_max=0.8, azimuthal_delta=1.0, peak_width=0.25, background_width=0.25,
+        signal_to_noise_min=2.0, debug_dir=str(tmp_path),
+    )  # fmt: skip
+
+    warnings = [args[0] for args, _ in logger.warning.call_args_list]
+    assert any(warning.startswith("autoWedgeSignalToNoiseMin = 2 is the minimum significance") for warning in warnings)
+    assert any("the background wedges overlap the peak wedges" in warning for warning in warnings)
+    # adjacent wedges: each background wedge starts where a peak wedge ends
+    assert background_wedges[0][0] == pytest.approx(peak_wedges[0][1])
+
+
+@pytest.mark.datarepo
 def test_real_data_biosans(datarepo_dir):
     """Test the wedge selection and the wedge binning on BIOSANS data."""
     MSamp_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5532_mBSub.h5")

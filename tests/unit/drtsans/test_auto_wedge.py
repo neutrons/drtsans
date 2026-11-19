@@ -339,6 +339,7 @@ def test_select_rings_no_consensus():
     assert selection.failure is SelectionFailure.NO_CONSENSUS and selection.centers is None
     assert [group.weight_fraction for group in selection.groups] == pytest.approx([0.5, 0.5])
     assert _statuses(selection) == ["INCONSISTENT", "INCONSISTENT"]
+    assert all(ring.reasons == ["no orientation group holds 67% of the seed weight"] for ring in selection.ring_fits)
 
 
 def _mixed_rings() -> list[RingFit]:
@@ -469,7 +470,11 @@ def test_format_ring_table_wide_values():
     [
         (
             [_ring(0, (181.0, 1.0), heights=WEAK)],
-            ["contrast H/A0 >= 0.2 (autoWedgeContrastMin)", "Highest contrast found: 0.14 at Q = 0.01 1/A"],
+            [
+                "contrast H/A0 >= 0.2 (autoWedgeContrastMin)",
+                "chi2 <= 1000 (each ring)",
+                "Highest contrast found: 0.14 at Q = 0.01 1/A",
+            ],
         ),
         (
             [_ring(0, (181.0, 1.0)), _ring(1, (91.0, 271.0))],
@@ -499,14 +504,16 @@ def test_failure_message_output_dir(tmp_path):
     "centers, fwhms, expected",
     [
         ((180.0, 0.0), (18.0, 18.0), 1.5),  # narrow peaks: the requested width is kept
-        ((180.0, 0.0), (59.9, 59.9), 1.5),  # just below the limit 1.5 x (FWHM1 + FWHM2) < 180 deg
-        ((180.0, 0.0), (60.0, 60.0), 180.0 / 120.0 - 0.25),  # at the limit the width is reduced
+        ((180.0, 0.0), (51.0, 51.0), 1.5),  # below the limit: (1.5 + 0.25) x (FWHM1 + FWHM2) = 178.5 <= 180 deg
+        ((180.0, 0.0), (180.0 / 3.5, 180.0 / 3.5), 1.5),  # at the limit the requested and reduced widths agree
+        ((180.0, 0.0), (59.9, 59.9), 180.0 / 119.8 - 0.25),  # background wedges no narrower than the peak wedges
+        ((180.0, 0.0), (60.0, 60.0), 180.0 / 120.0 - 0.25),
         ((182.0, 3.0), (95.0, 94.7), 179.0 / 189.7 - 0.25),  # separation taken from the fitted centers
         ((358.0, 179.0), (95.0, 94.7), 179.0 / 189.7 - 0.25),  # order of the peaks and the 0/360 wrap
     ],
 )
 def test_effective_background_width(centers, fwhms, expected):
-    """The background width is reduced only when the background wedges would be empty"""
+    """The background width is reduced only when the background wedges would be narrower than the peak wedges"""
     assert _effective_background_width(centers, fwhms, background_width=1.5, peak_width=0.25) == pytest.approx(
         expected
     )

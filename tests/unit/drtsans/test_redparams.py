@@ -823,15 +823,20 @@ class TestReductionParametersGPSANS:
 
     @pytest.mark.datarepo
     def test_auto_wedge_validation(self, datarepo_dir):
-        r"""Validation fills empty auto-wedge acceptance keys and rejects non-positive values"""
+        r"""Validation fills empty auto-wedge acceptance keys and rejects out-of-range values"""
         parameters = deepcopy(self.parameters_all)
         parameters["configuration"].update({"autoWedgeContrastMin": "", "autoWedgeCenterTolerance": None})
         with amend_config(data_dir=datarepo_dir.gpsans):
             validated = validate_reduction_parameters(parameters)
         assert validated["configuration"]["autoWedgeContrastMin"] == 0.2
         assert validated["configuration"]["autoWedgeCenterTolerance"] == 0.5
+        parameters["configuration"]["autoWedgeCenterTolerance"] = "1.0"  # the upper limit is included
+        with amend_config(data_dir=datarepo_dir.gpsans):
+            assert validate_reduction_parameters(parameters)["configuration"]["autoWedgeCenterTolerance"] == 1.0
 
-        for name, value in [("autoWedgeContrastMin", -0.1), ("autoWedgeCenterTolerance", 0.0)]:
+        out_of_range = [("autoWedgeContrastMin", -0.1), ("autoWedgeCenterTolerance", 0.0)]
+        out_of_range += [("autoWedgeCenterTolerance", 1.5), ("autoWedgeCenterTolerance", "1.5")]
+        for name, value in out_of_range:
             invalid = deepcopy(self.parameters_all)
             invalid["configuration"][name] = value
             with pytest.raises(ReductionParameterError) as exc_info:

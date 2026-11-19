@@ -683,6 +683,7 @@ def _select_rings(ring_fits: list[RingFit], criteria: AcceptanceCriteria) -> Rin
     if consensus.weight_fraction < criteria.consensus_weight_fraction:
         for ring in candidates:
             ring.status = RingStatus.INCONSISTENT
+            ring.reasons = [f"no orientation group holds {criteria.consensus_weight_fraction:.0%} of the seed weight"]
         selection.failure = SelectionFailure.NO_CONSENSUS
         return selection
 
@@ -835,7 +836,8 @@ def _failure_message(selection: RingSelection, output_dir: str | None = None) ->
         lines += [
             f"  Seed criteria (each peak): contrast H/A0 >= {criteria.contrast_min:g} (autoWedgeContrastMin),",
             f"    significance H/sigma_H >= {criteria.significance_min:g} (autoWedgeSignalToNoiseMin),",
-            f"    {criteria.fwhm_min:g} deg <= FWHM <= {criteria.fwhm_max:g} deg",
+            f"    {criteria.fwhm_min:g} deg <= FWHM <= {criteria.fwhm_max:g} deg,",
+            f"    chi2 <= {criteria.maxchisq:g} (each ring)",
             f"  {q_range}, {len(q_values)} rings (autoWedgeQmin, autoWedgeQmax, autoWedgeQdelta)",
             "",
             _format_ring_table(selection),
@@ -895,12 +897,13 @@ def _failure_message(selection: RingSelection, output_dir: str | None = None) ->
 def _effective_background_width(
     centers: tuple[float, float], fwhms: tuple[float, float], background_width: float, peak_width: float
 ) -> float:
-    """Background width, as a fraction of the FWHM, for which the background wedges between the peaks are not empty.
+    """Background width, as a fraction of the FWHM, leaving background wedges at least as wide as the peak wedges.
 
     Each background wedge spans from ``background_width`` x FWHM past one peak to ``background_width`` x FWHM
-    before the other. If the requested width leaves no room, i.e. ``background_width`` x (FWHM1 + FWHM2) is at
-    least the separation S of the peak centers, the width is reduced to S / (FWHM1 + FWHM2) - ``peak_width``, so
-    that each background wedge is as wide as the peak wedges. Otherwise the requested width is returned.
+    before the other, so its width is S - ``background_width`` x (FWHM1 + FWHM2), with S the separation of the peak
+    centers. The requested width is kept if the background wedges are at least as wide as the peak wedges, i.e.
+    (``background_width`` + ``peak_width``) x (FWHM1 + FWHM2) <= S. Otherwise the width is reduced to
+    S / (FWHM1 + FWHM2) - ``peak_width``, for which each background wedge is as wide as the peak wedges.
 
     Parameters
     ----------
@@ -917,13 +920,13 @@ def _effective_background_width(
     Returns
     -------
     float
-        Background width to use, as a fraction of the FWHM. A value not above ``peak_width`` means that the peaks
-        leave no room for a background wedge.
+        Background width to use, as a fraction of the FWHM. A reduced value not above ``peak_width`` means that the
+        peaks leave no room for a background wedge.
     """
     difference = abs(_circular_difference(centers[1], centers[0]))
     separation = min(difference, 360.0 - difference)
     total_fwhm = fwhms[0] + fwhms[1]
-    if background_width * total_fwhm < separation:
+    if (background_width + peak_width) * total_fwhm <= separation:
         return background_width
     return separation / total_fwhm - peak_width
 
@@ -1326,6 +1329,12 @@ def getWedgeSelection(
     criteria = AcceptanceCriteria.from_settings(
         signal_to_noise_min, contrast_min, center_tolerance, azimuthal_delta, maxchisq=1000.0
     )
+    if signal_to_noise_min < RESCUE_SIGNIFICANCE_MIN:
+        logger.warning(
+            f"autoWedgeSignalToNoiseMin = {signal_to_noise_min:g} is the minimum significance H/sigma_H of each "
+            "fitted peak, no longer the ratio mean/min of I(phi). Values below "
+            f"{RESCUE_SIGNIFICANCE_MIN:g} accept weak peaks and lower the rescue threshold; the default is 10."
+        )
     # Bin azimuthal
     q, azimuthal_rings = _binInQAndAzimuthal(
         data2d,
@@ -1365,7 +1374,7 @@ def getWedgeSelection(
 
     # wide peaks may leave no room for the background wedges at the requested width; reduce it then
     effective_width = _effective_background_width(center_vec, fwhm_vec, background_width, peak_width)
-    if effective_width <= peak_width:
+    if effective_width != background_width and effective_width <= peak_width:
         message = (
             f"Automatic wedge detection failed: peaks of FWHM {fwhm_vec[0]:.1f} / {fwhm_vec[1]:.1f} deg leave no "
             f"room for background wedges outside the peak wedges (autoWedgePeakWidth = {peak_width:g}).\n"
@@ -1374,11 +1383,16 @@ def getWedgeSelection(
         )
         logger.error(message)
         raise AutoWedgeError(message, selection)
-    if effective_width != background_width:
+    if background_width <= peak_width:
+        logger.warning(
+            f"autoWedgeBackgroundWidth = {background_width:g} is not above autoWedgePeakWidth = {peak_width:g}: "
+            "the background wedges overlap the peak wedges."
+        )
+    elif effective_width != background_width:
         logger.warning(
             f"autoWedgeBackgroundWidth reduced from {background_width:g} to {effective_width:.3g}: with peaks of FWHM "
-            f"{fwhm_vec[0]:.1f} / {fwhm_vec[1]:.1f} deg, the background wedges would be empty. Each background "
-            "wedge now has the angular width of the peak wedges."
+            f"{fwhm_vec[0]:.1f} / {fwhm_vec[1]:.1f} deg, the background wedges would be narrower than the peak "
+            "wedges. Each background wedge now has the angular width of the peak wedges."
         )
         background_width = effective_width
 

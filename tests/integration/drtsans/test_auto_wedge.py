@@ -685,6 +685,21 @@ def test_real_data_eqsans(datarepo_dir, tmp_path):
 
 
 @pytest.mark.datarepo
+def test_real_data_eqsans_isotropic_q_range(datarepo_dir, tmp_path):
+    """Test that the wedge selection fails with no seed ring on the isotropic Q range of the EQSANS data."""
+    data_file = os.path.join(datarepo_dir.eqsans, "auto_wedge", "EQSANS_auto_wedge_iqazimuthal.h5")
+    if not os.path.exists(data_file):
+        pytest.skip(f"{data_file} not available")
+    iq2d = load_iq2d_from_h5(data_file)
+
+    with pytest.raises(AutoWedgeError, match="no Q-ring passes the seed criteria") as error:
+        getWedgeSelection(
+            iq2d, q_min=0.35, q_delta=0.05, q_max=0.8, azimuthal_delta=1.0, peak_width=0.25, debug_dir=str(tmp_path)
+        )
+    assert error.value.selection.failure is SelectionFailure.NO_SEED_CANDIDATE
+
+
+@pytest.mark.datarepo
 def test_real_data_biosans(datarepo_dir):
     """Test the wedge selection and the wedge binning on BIOSANS data."""
     MSamp_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5532_mBSub.h5")

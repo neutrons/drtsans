@@ -131,9 +131,9 @@ The range :math:`(-90, 90)` is effectively masked during the wedge search.
 Other additional options for the automatic wedge finding:
 
 - `autoWedgeAzimuthalDelta`: binning in azimuthal angle when generating the :math:`I(\phi)` profile.
-- `autoWedgePeakWidth`: width of the peak wedges, as a fraction of the FWHM of the fitted peaks.
-- `autoWedgeBackgroundWidth`: position of the edges of the background wedges, as a fraction of the FWHM of the
-  fitted peaks.
+- `autoWedgePeakWidth`: half-width of each peak wedge, as a fraction of the FWHM of the fitted peak.
+- `autoWedgeBackgroundWidth`: distance from each peak center to the nearer edge of the background wedges, as a
+  fraction of the FWHM of that peak.
 - `autoWedgeSignalToNoiseMin`, `autoWedgeContrastMin` and `autoWedgeCenterTolerance`: thresholds that decide
   which :math:`q` rings determine the wedges.
 
@@ -268,20 +268,46 @@ two peak wedges and two background wedges:
 With `autoSymmetricWedges`, :math:`c_2 = c_1 + 180°` and :math:`\mathrm{FWHM}_2 = \mathrm{FWHM}_1`, so the two
 peak wedges, and the two background wedges, are related by a rotation of 180 degrees.
 
-Each background wedge lies between the two peaks, from `autoWedgeBackgroundWidth` :math:`\times` FWHM past one peak
-to `autoWedgeBackgroundWidth` :math:`\times` FWHM before the other. The requested value is kept as long as
+Each background wedge spans from `autoWedgeBackgroundWidth` :math:`\times` FWHM past one peak to
+`autoWedgeBackgroundWidth` :math:`\times` FWHM before the other. The requested value is kept as long as the
+background wedges are no narrower than the mean of the two peak wedges, that is, as long as
 (`autoWedgeBackgroundWidth` :math:`+` `autoWedgePeakWidth`) :math:`\times (\mathrm{FWHM}_1 + \mathrm{FWHM}_2) \le S`,
-where :math:`S` is the separation of the two peak centers (about 180 degrees). This keeps the background wedges
-no narrower than the mean of the two peak wedges, which is each peak wedge when
-:math:`\mathrm{FWHM}_1 = \mathrm{FWHM}_2`. For wider peaks, the reduction uses
-:math:`S / (\mathrm{FWHM}_1 + \mathrm{FWHM}_2) -` `autoWedgePeakWidth` instead, which makes the narrower background
-wedge as wide as the mean peak wedge, and logs a warning with the requested and the applied values. For example, peaks with a
-FWHM of 95 degrees reduce the default 1.5 to about 0.70. If the reduced value is no larger than
-`autoWedgePeakWidth`, the peaks leave no room for background wedges, and the automatic wedge detection fails with a
+where :math:`S` is the separation of the two peak centers (about 180 degrees). For wider peaks, the value is reduced
+to :math:`S / (\mathrm{FWHM}_1 + \mathrm{FWHM}_2) -` `autoWedgePeakWidth`, and a warning with the requested and the
+applied values is logged.
+
+.. figure:: media/auto_wedge_background_kept_reduced.png
+   :alt: peak and background wedges for peaks with a FWHM of 30 and 95 degrees
+   :width: 800px
+
+   Peak wedges (blue) and background wedges (orange) on fictitious profiles, with the default widths. (a) With a
+   FWHM of 30°, the requested 1.5 is kept: the background wedges are 90° wide. (b) With a FWHM of 95°, 1.5 is
+   reduced to 0.70, which makes the background wedges 47.5° wide, as wide as the peak wedges.
+
+If the reduced value is no larger than `autoWedgePeakWidth`, background wedges as wide as the mean peak wedge would
+enter the peak wedges. The peaks leave no room for background wedges, and the automatic wedge detection fails with a
 message suggesting a narrower Q range or manual wedges. A requested `autoWedgeBackgroundWidth` no larger than
-`autoWedgePeakWidth` is never reduced; the peak and background wedges then overlap, and a warning is logged. In every
-case, the automatic wedge detection fails if a background wedge would be 0° wide or less, or 180° or wider, which
-can happen when the two peaks are far from 180° apart.
+`autoWedgePeakWidth`, on the other hand, is never reduced: the background wedges overlap the peak wedges, and a
+warning is logged.
+
+.. figure:: media/auto_wedge_background_no_room_overlap.png
+   :alt: wide peaks leaving no room for background wedges, and background wedges overlapping the peak wedges
+   :width: 800px
+
+   (a) Peaks 140° apart with a FWHM of 150°: the reduced value, 0.22, is below `autoWedgePeakWidth` = 0.25, so
+   the background wedges would overlap the peak wedges (cross-hatched) and the detection fails. (b) A requested
+   value of 0.1 is kept: the background wedges overlap the peak wedges, and a warning is logged.
+
+In every case, the automatic wedge detection fails if a background wedge would be 0° wide or less, or 180° or
+wider, which can happen when the two peaks are far from 180° apart.
+
+.. figure:: media/auto_wedge_background_not_antipodal.png
+   :alt: background wedges for peaks 160 and 50 degrees apart
+   :width: 800px
+
+   (a) Peaks 160° apart: the background wedges are 100° and 140° wide, both valid. (b) Peaks 50° apart: the
+   value is reduced to 1.0, leaving background wedges of 10° and 270°. The second one is 180° or wider, so the
+   detection fails.
 
 The :ref:`BIOSANS example <user.binning.auto_wedge_biosans>` shows the peak wedges :math:`w_1, w_2` and the
 background wedges :math:`b_1, b_2` found for a real sample.

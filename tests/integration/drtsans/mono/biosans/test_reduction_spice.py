@@ -105,7 +105,7 @@ def test_spice_reduction(datarepo_dir, temp_directory):
     PeakWidth_TDW = 0.5  # Wedge0 opening angle based of peak width (Default is 0.5--- 50%)
     AziDelta_TDW = 1.0  # Azimuthal Angle, Phi step-size
     BkgWidth_TDW = 1.0  # Wedge1 opening angle based of peak width (Default is 1.5--- 150%)
-    MinSigtoNoise_TDW = 2.0  # The intensity ratio between peak and background to detect a peak (Default is 2.0)
+    MinSigtoNoise_TDW = 2.0  # Minimum significance H/sigma_H of each fitted peak of a seed Q-ring (Default is 10.0)
 
     if clearBuffer:
         clear_buffer()

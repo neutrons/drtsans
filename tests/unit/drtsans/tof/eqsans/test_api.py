@@ -11,6 +11,7 @@ from drtsans.tof.eqsans import reduction_parameters
 from drtsans.tof.eqsans.api import (
     I_output,
     load_all_files,
+    parse_auto_wedge_setup,
     prepare_data_workspaces,
     plot_reduction_output,
     plotly_reduction_output,
@@ -484,6 +485,22 @@ title = I_1D_1_wedge_1
 </div></table>
 """
     )
+
+
+def test_parse_auto_wedge_setup():
+    """Test that the automatic wedge options carry the acceptance criteria of the configuration."""
+    specs = {"configuration": {"autoWedgeContrastMin": 0.3}}
+    reduction_config = reduction_parameters(specs, instrument_name="EQSANS", validate=False)["configuration"]
+
+    options, symmetric_wedges = parse_auto_wedge_setup(reduction_config, "wedge", [])
+    assert options["contrast_min"] == 0.3
+    assert options["center_tolerance"] == 0.5
+    assert options["signal_to_noise_min"] == 10.0
+    assert symmetric_wedges is False
+
+    options, symmetric_wedges = parse_auto_wedge_setup(reduction_config, "wedge", [-30.0])
+    assert options == {}
+    assert symmetric_wedges is True
 
 
 if __name__ == "__main__":

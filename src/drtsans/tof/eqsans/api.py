@@ -1191,6 +1191,8 @@ def parse_auto_wedge_setup(reduction_config: Dict, bin1d_type: str, wedges_min) 
             "peak_width": reduction_config["autoWedgePeakWidth"],
             "background_width": reduction_config["autoWedgeBackgroundWidth"],
             "signal_to_noise_min": reduction_config["autoWedgeSignalToNoiseMin"],
+            "contrast_min": reduction_config["autoWedgeContrastMin"],
+            "center_tolerance": reduction_config["autoWedgeCenterTolerance"],
         }
         # auto-aniso returns all of the wedges
         symmetric_wedges = False

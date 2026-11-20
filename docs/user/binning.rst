@@ -4,6 +4,9 @@
 Binning
 =======
 
+.. contents:: Contents
+   :local:
+
 Scalar Binning
 --------------
 
@@ -17,7 +20,7 @@ Scalar or azimuthal binning produces a one dimensional intensity profile :math:`
       "QbinType": "linear",
       "numQBins": 200,
       "Qmin": 0.003,
-      "Qmax": 0.005,
+      "Qmax": 0.005
     }
 
 
@@ -30,24 +33,25 @@ This method is particularly useful when the scattering pattern exhibits anisotro
 directions in the sample structure.
 
 After obtaining intensity :math:`I(q_x, q_y)` in the detector plane, we can rebin the intensity in
-"polar" coordinates :math:`I(q, \psi)`, where :math:`q = \sqrt{q_x^2 + q_y^2}` is the magnitude of the
-scattering vector and :math:`\psi = \arctan(q_y/q_x)` is the azimuthal angle. The intensity is then
+"polar" coordinates :math:`I(q, \phi)`, where :math:`q = \sqrt{q_x^2 + q_y^2}` is the magnitude of the
+scattering vector and :math:`\phi = \arctan(q_y/q_x)` is the azimuthal angle. The intensity is then
 binned into :math:`q`-bins of constant width.
 
 .. figure:: media/wedge_binning_1.png
    :alt: polar-coordinate binning
    :width: 800px
 
-Most typical is to integrate :math:`I(q, \psi)` over the azimuthal angle :math:`\psi` between
-limits :math:`\psi_m` and :math:`\psi_M` defining a wedge, yielding the :math:`I(q)`
+Most typical is to integrate :math:`I(q, \phi)` over the azimuthal angle :math:`\phi` between
+limits :math:`\phi_m` and :math:`\phi_M` defining a wedge, yielding the :math:`I(q)`
 representative of the feature captured in the wedge region.
 
 .. figure:: media/wedge_binning_2.png
    :alt: intensity profile in the wedge
    :width: 800px
 
-The feature is achiral so the intensity profile is symmetric in the :math:`X`-axis,
-:math:`I(-q_x, q_y) = I(q_x, q_y)` or :math:`I(q, \pi - \psi) = I(q, \psi)`.
+The feature is achiral so the intensity profile is symmetric with respect to the beam center,
+:math:`I(-q_x, -q_y) = I(q_x, q_y)` or :math:`I(q, \phi + \pi) = I(q, \phi)`. The symmetric wedge is
+therefore the wedge rotated by 180 degrees.
 The intensity profile is then binned within the region defined by the two symmetric wedges:
 
 .. figure:: media/wedge_binning_3.png
@@ -71,8 +75,305 @@ the azimuthal limits for one or more wedges. For instance, the two wedges
    :alt: User defined wedges
    :width: 800px
 
+.. _user.binning.auto_wedge:
+
+Automatic Finding of the Wedge
++++++++++++++++++++++++++++++++
+
+If User wants `drtsans` to automatically find the azimuthal limits for wedge binning, there are
+options to specify. For instance, we want the resulting :math:`I(q)` from :math:`q_{min}=0.03 A^{-1}`
+to :math:`q_{max}=0.12 A^{-1}` in bins of width :math:`\delta q=0.01 A^{-1}`.
+In this example the anisotropy lies along the :math:`X`-axis, so `drtsans` finds one wedge along that
+axis, along with its symmetric counterpart. The algorithm itself is not restricted to any orientation.
+
+.. code-block:: json
+
+    {
+      "autoWedgeQmin": 0.03,
+      "autoWedgeQmax": 0.12,
+      "autoWedgeQdelta": 0.01
+    }
+
+.. figure:: media/wedge_binning_5.png
+   :alt: automatic finding the wedge
+   :width: 800px
+
+User may define a single azimuthal range for the automatic finding of the wedge.
+User can provide negative values for the azimuthal range, for instance, :math:`(-90, -30)`, with the understanding
+that the range is interpreted as :math:`(270, 330)`.
+The range is used only when `autoSymmetricWedges` is ``true``; otherwise the wedge is searched over the full
+azimuthal domain. Once the `autoWedgePhiMin` and `autoWedgePhiMax` range is provided,
+the search for the wedge begins at the midpoint of the range, and is initially constrained to half the range
+around this midpoint.
+
+For instance, in the BIOSANS instrument the area in the main detector defined by the azimuthal range
+:math:`(-90, 90)` is partially occluded by the Wing detector,
+because the Wing detector is positioned closer to the sample than the main detector.
+User can request finding the wedge in the azimuthal range :math:`(90, 270)` free from occlusion, and then
+automatically include the symmetric wedge in the binning.
+The range :math:`(-90, 90)` is effectively masked during the wedge search.
+
+.. code-block:: json
+
+    {
+      "autoWedgeQmin": 0.03,
+      "autoWedgeQmax": 0.12,
+      "autoWedgeQdelta": 0.01,
+      "autoWedgePhiMin": 90,
+      "autoWedgePhiMax": 270,
+      "autoSymmetricWedges": true
+    }
+
+.. figure:: media/wedge_binning_6.png
+   :alt: automatic finding the wedge
+   :width: 800px
+
+Other additional options for the automatic wedge finding:
+
+- `autoWedgeAzimuthalDelta`: binning in azimuthal angle when generating the :math:`I(\phi)` profile.
+- `autoWedgePeakWidth`: half-width of each peak wedge, as a fraction of the FWHM of the fitted peak.
+- `autoWedgeBackgroundWidth`: distance from each peak center to the nearer edge of the background wedges, as a
+  fraction of the FWHM of that peak.
+- `autoWedgeSignalToNoiseMin`, `autoWedgeContrastMin` and `autoWedgeCenterTolerance`: thresholds that decide
+  which :math:`q` rings determine the wedges.
+
+These quantities are defined in :ref:`user.binning.auto_wedge_method`.
+
+For instance, for real data collected at the BIOSANS instrument,
+
+.. code-block:: json
+
+    {
+      "autoWedgeQmin": 0.0,
+      "autoWedgeQmax": 0.02,
+      "autoWedgeQdelta": 0.001,
+      "autoWedgeAzimuthalDelta": 1.0,
+      "autoWedgePeakWidth": 0.25,
+      "autoWedgeBackgroundWidth": 1.5
+    }
+
+We obtain two wedges (:math:`w_1`, :math:`w_2`) as well as two azimuthal ranges (:math:`b_1`, :math:`b_2`)
+perpendicular to them, which give the background :math:`I(q)` output.
+
+.. _user.binning.auto_wedge_biosans:
+
+.. figure:: media/wedge_binning_7.png
+   :alt: wedges for a real BIOSANS example
+   :width: 900px
+
+   Left: peak wedges :math:`w_1, w_2` and background wedges :math:`b_1, b_2` on the BIOSANS main detector.
+   Right: a fictitious :math:`I(\phi\,|\,q_i)` with the same orientation, showing how the wedge limits follow from
+   the fitted centers :math:`c_1, c_2` and widths :math:`\mathrm{FWHM}_1, \mathrm{FWHM}_2`.
+
+.. _user.binning.auto_wedge_method:
+
+How Automatic Wedge Finding Works
++++++++++++++++++++++++++++++++++
+
+Automatic wedge finding fits the azimuthal profile of several :math:`q` rings, decides which rings show the
+anisotropy of the sample, and builds the wedges from the peaks of those rings.
+
+Q-rings and azimuthal profiles
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :math:`q` range from `autoWedgeQmin` to `autoWedgeQmax` is divided into rings of width `autoWedgeQdelta`.
+The intensity of each ring is binned in azimuthal angle :math:`\phi` with bins of `autoWedgeAzimuthalDelta`
+degrees, which gives one profile :math:`I(\phi)` per ring.
+
+Fit model
+~~~~~~~~~
+
+Each profile is fitted with a flat background plus two Gaussian peaks:
+
+.. math::
+
+   I(\phi) = A_0 + \sum_{i=1}^{2} H_i \exp\left[-\frac{(\phi - c_i)^2}{2 \sigma_i^2}\right],
+   \qquad \mathrm{FWHM}_i = 2\sqrt{2 \ln 2}\, \sigma_i
+
+The fit returns the background :math:`A_0` and, for each peak, the height :math:`H` with its uncertainty
+:math:`\sigma_H`, the center :math:`c` and the FWHM. With `autoSymmetricWedges`, the second peak is the mirror of
+the first: same height and width, with :math:`c_2 = c_1 + 180°`. Only the first peak is then evaluated.
+
+.. figure:: media/auto_wedge_fit_model.png
+   :alt: fictitious azimuthal profile of one q ring with the fit and its parameters
+   :width: 800px
+
+   Fictitious :math:`I(\phi)` profile of one :math:`q` ring, with the fitted model and its parameters.
+
+Seed criteria
+~~~~~~~~~~~~~
+
+A ring is a seed candidate when its fit has :math:`\chi^2 \le 1000` and each peak satisfies:
+
+- **Contrast** :math:`H/A_0 \ge` `autoWedgeContrastMin`, with :math:`A_0 > 0`. The contrast measures how much the
+  peak stands out from the isotropic scattering. It does not change with counting time, so it separates real
+  anisotropy from weak systematic structure, such as detector artifacts, at any statistics.
+- **Significance** :math:`H/\sigma_H \ge` `autoWedgeSignalToNoiseMin`. The significance ensures that the peak is
+  not a statistical fluctuation. It grows as the square root of the counts for real peaks and for systematic
+  artifacts alike, which is why it is combined with the contrast rather than used alone.
+- **Width** :math:`3 \times` `autoWedgeAzimuthalDelta` :math:`\le \mathrm{FWHM} \le 180°`. A narrower peak is not
+  resolved by the azimuthal bins, and a wider peak cannot be separated from its partner 180° away.
+
+.. figure:: media/auto_wedge_criteria.png
+   :alt: contrast and significance of fictitious q rings against q, with the seed thresholds
+   :width: 650px
+
+   Contrast and significance of fictitious :math:`q` rings. Most rejected rings at high :math:`q` pass the
+   significance threshold but not the contrast threshold, which is the case where significance alone would accept
+   systematic artifacts. The rescued ring matches the orientation of the seed rings.
+
+Consensus orientation
+~~~~~~~~~~~~~~~~~~~~~
+
+Rings without anisotropy can still produce fits that pass the seed criteria, at an unrelated
+orientation. The seed candidates are therefore grouped by orientation. Starting from the strongest ring, each
+candidate joins the first group whose peak centers it matches within `autoWedgeCenterTolerance`
+:math:`\times` FWHM, where FWHM is the mean of the FWHMs of the ring and of the group, or starts a new group. Each ring weighs :math:`\sum 1/\sigma_c` over its peaks, where
+:math:`\sigma_c` is the uncertainty of a peak center, and angles are compared on the circle, so that 359° and 1°
+are 2° apart. Membership is not tested again once a ring has joined, so when the rings have comparable weights and
+their centers drift gradually with :math:`q`, the final center can lie more than the tolerance from the first rings.
+
+The group with the largest weight is the consensus if it holds at least 67% of the weight of all candidates.
+Its rings become **seed** rings. Candidates in other groups are marked **inconsistent**. If no group reaches 67%,
+the rings disagree on the orientation and the wedge finding fails.
+
+Rescue of weaker rings
+~~~~~~~~~~~~~~~~~~~~~~
+
+A ring that fails the seed criteria, for instance because its contrast is low, is **rescued** if each of its peak
+centers lies within `autoWedgeCenterTolerance` :math:`\times` the consensus FWHM of that peak, its fit has
+:math:`\chi^2 \le 1000`, and each peak has a valid width and :math:`H/\sigma_H \ge \min(5, N)`, where :math:`N` is
+`autoWedgeSignalToNoiseMin`. Contrast is not required, since agreement with the consensus already excludes artifacts at other
+orientations. Other rings are **rejected**, and rings whose fit did not converge are marked **fit failed**.
+
+The seed and rescued rings are the accepted rings. Their peak centers, averaged with weights :math:`1/\sigma_c`,
+and their FWHMs, averaged with weights :math:`1/\sigma_\mathrm{FWHM}`, determine the wedges.
+
+From peaks to wedges
+~~~~~~~~~~~~~~~~~~~~
+
+With the averaged centers :math:`c_1, c_2` and widths :math:`\mathrm{FWHM}_1, \mathrm{FWHM}_2`, the reduction builds
+two peak wedges and two background wedges:
+
+- **Peak wedge** :math:`i` spans :math:`c_i \pm` `autoWedgePeakWidth` :math:`\times \mathrm{FWHM}_i`. The two peak
+  wedges are combined and binned together into the first :math:`I(q)` output, which is therefore the average over
+  both wedges, not their sum.
+- **Background wedges** lie between the peaks, from :math:`c_1 +` `autoWedgeBackgroundWidth`
+  :math:`\times \mathrm{FWHM}_1` to :math:`c_2 -` `autoWedgeBackgroundWidth` :math:`\times \mathrm{FWHM}_2`, and
+  from :math:`c_2 +` `autoWedgeBackgroundWidth` :math:`\times \mathrm{FWHM}_2` to :math:`c_1 -`
+  `autoWedgeBackgroundWidth` :math:`\times \mathrm{FWHM}_1`. They are combined and binned together, in the same
+  way, into the second :math:`I(q)` output, which describes the scattering perpendicular to the anisotropy. It is not subtracted from the first
+  output.
+
+With `autoSymmetricWedges`, :math:`c_2 = c_1 + 180°` and :math:`\mathrm{FWHM}_2 = \mathrm{FWHM}_1`, so the two
+peak wedges, and the two background wedges, are related by a rotation of 180 degrees.
+
+Each background wedge spans from `autoWedgeBackgroundWidth` :math:`\times` FWHM past one peak to
+`autoWedgeBackgroundWidth` :math:`\times` FWHM before the other. The requested value is kept as long as the
+background wedges are no narrower than the mean of the two peak wedges, that is, as long as
+(`autoWedgeBackgroundWidth` :math:`+` `autoWedgePeakWidth`) :math:`\times (\mathrm{FWHM}_1 + \mathrm{FWHM}_2) \le S`,
+where :math:`S` is the separation of the two peak centers (about 180 degrees). For wider peaks, the value is reduced
+to :math:`S / (\mathrm{FWHM}_1 + \mathrm{FWHM}_2) -` `autoWedgePeakWidth`, and a warning with the requested and the
+applied values is logged.
+
+.. figure:: media/auto_wedge_background_kept_reduced.png
+   :alt: peak and background wedges for peaks with a FWHM of 30 and 95 degrees
+   :width: 800px
+
+   Peak wedges (blue) and background wedges (orange) on fictitious profiles, with the default widths. (a) With a
+   FWHM of 30°, the requested 1.5 is kept: the background wedges are 90° wide. (b) With a FWHM of 95°, 1.5 is
+   reduced to 0.70, which makes the background wedges 47.5° wide, as wide as the peak wedges.
+
+If the reduced value is no larger than `autoWedgePeakWidth`, background wedges as wide as the mean peak wedge would
+enter the peak wedges. The peaks leave no room for background wedges, and the automatic wedge detection fails with a
+message suggesting a narrower Q range or manual wedges. A requested `autoWedgeBackgroundWidth` no larger than
+`autoWedgePeakWidth`, on the other hand, is never reduced: the background wedges overlap the peak wedges, and a
+warning is logged.
+
+.. figure:: media/auto_wedge_background_no_room_overlap.png
+   :alt: wide peaks leaving no room for background wedges, and background wedges overlapping the peak wedges
+   :width: 800px
+
+   (a) Peaks 140° apart with a FWHM of 150°: the reduced value, 0.22, is below `autoWedgePeakWidth` = 0.25, so
+   the background wedges would overlap the peak wedges (cross-hatched) and the detection fails. (b) A requested
+   value of 0.1 is kept: the background wedges overlap the peak wedges, and a warning is logged.
+
+In every case, the automatic wedge detection fails if a background wedge would be 0° wide or less, or 180° or
+wider, which can happen when the two peaks are far from 180° apart.
+
+.. figure:: media/auto_wedge_background_not_antipodal.png
+   :alt: background wedges for peaks 160 and 50 degrees apart
+   :width: 800px
+
+   (a) Peaks 160° apart: the background wedges are 100° and 140° wide, both valid. (b) Peaks 50° apart: the
+   value is reduced to 1.0, leaving background wedges of 10° and 270°. The second one is 180° or wider, so the
+   detection fails.
+
+The :ref:`BIOSANS example <user.binning.auto_wedge_biosans>` shows the peak wedges :math:`w_1, w_2` and the
+background wedges :math:`b_1, b_2` found for a real sample.
+
+Diagnostics
+~~~~~~~~~~~
+
+Every automatic wedge finding reports the outcome for each :math:`q` ring, whether it succeeds or fails:
+
+- **Ring table in the log.** One row per ring with the contrast, significance, FWHM and center of each peak, and the
+  status of the ring with the failed criteria. It is logged as a notice when the wedge finding succeeds and as an
+  error when it fails. For example, for fictitious data:
+
+  .. code-block:: text
+
+     Q (1/A)  H/A0            H/sigma_H       FWHM (deg)   centers (deg)  result
+     0.01     0.8 / 0.8       100 / 100       18.0 / 18.0  181.0 / 1.0    seed
+     0.04     0.8 / 0.8       100 / 100       18.0 / 18.0  91.0 / 271.0   inconsistent: orientation
+     0.05     0.14 / 0.14     7 / 7           18.0 / 18.0  185.0 / 5.0    rescued: contrast, significance
+     0.06     0.14 / 0.14     7 / 7           18.0 / 18.0  200.0 / 20.0   rejected: contrast, significance, center tolerance
+     0.08     -               -               -            -              fit failed: no data in the peak search window around 95.0 deg
+
+- **auto_wedge_rings.png**: one panel per ring with the observed :math:`I(\phi)`, the fitted model and the status
+  of the ring, including rings whose fit failed.
+- **auto_wedge_fit.h5**: the fit parameters of every ring, with its status and the full list of reasons.
+
+The two files are written to the output directory of the reduction (`outputDir`) before any error is raised, so
+that a failed wedge finding can be inspected.
+
+When the wedge finding fails
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The reduction stops with an error that starts with ``Automatic wedge detection failed:``, followed by the reason,
+the ring table and the paths of the diagnostic files:
+
+- **"none of the Q-rings could be fitted"**: no ring has enough data, usually because `autoWedgeQmin` and
+  `autoWedgeQmax` lie outside the :math:`q` range of the data, or because the rings are almost entirely masked.
+- **"no Q-ring passes the seed criteria"**: the message lists the criteria and the highest contrast found. The data
+  may be isotropic in this :math:`q` range, or the anisotropy may lie at other :math:`q`.
+- **"seed candidates do not agree on a single orientation"**: the message lists the groups of rings with their
+  centers and weights. The sample may contain more than one oriented structure; restrict the :math:`q` range to one
+  group.
+- **"peaks of FWHM ... leave no room for background wedges outside the peak wedges"**: the peaks are too wide for
+  separate background wedges; restrict the :math:`q` range to rings with narrower peaks.
+- **"the background wedges would be ... deg wide"**: a background wedge would be empty or at least 180° wide, for
+  instance because the two peaks are far from 180° apart; restrict the :math:`q` range or set the wedges manually.
+
+In every case, the angles can also be set manually with `WedgeMinAngles` and `WedgeMaxAngles`.
+
+Practical guidance
+~~~~~~~~~~~~~~~~~~
+
+- Choose `autoWedgeQmin` and `autoWedgeQmax` where the anisotropy is visible in :math:`I(q_x, q_y)`. Rings outside
+  this range are rejected and do not change the wedges, but a range made mostly of isotropic rings makes the
+  failure messages longer and the consensus less clear.
+- Keep the default `autoWedgeContrastMin` unless the anisotropy is known to be weak, for instance a small
+  modulation on strong isotropic scattering. Lowering it also admits systematic artifacts.
+- After a first reduction, inspect auto_wedge_rings.png to check that the seed rings show the expected peaks.
+- When the orientation is known in advance, or the wedge finding fails, set the wedges manually.
+
 Wedge JSON Settings
 +++++++++++++++++++
+
+This section lists the settings of manual and automatic wedge reduction. The quantities used by the automatic
+settings, such as the peak height :math:`H`, the background :math:`A_0` and the FWHM, are defined in
+:ref:`user.binning.auto_wedge_method`.
 
 Wedge reduction is enabled by selecting wedge binning for the 1D output:
 
@@ -131,16 +432,35 @@ unset manual wedge angles with BIOSANS and GPSANS. Use empty lists, ``[]``, with
      - Azimuthal bin width, in degrees, used to build each :math:`I(\phi)` profile.
    * - ``autoWedgePeakWidth``
      - Automatic
-     - Fraction of the peak full-width-half-maximum (FWHM) used to define the signal wedge.
+     - Half-width of each peak wedge, as a fraction of the full-width-half-maximum (FWHM) of the fitted peak.
+       The peak wedge spans the peak center :math:`\pm` ``autoWedgePeakWidth`` :math:`\times` FWHM. Default 0.25.
    * - ``autoWedgeBackgroundWidth``
      - Automatic
-     - Fraction of the peak FWHM used to define the background wedge.
+     - Distance from each peak center to the edges of the background wedges, which lie between the peaks, as a
+       fraction of the FWHM of the fitted peak. If the peaks are too wide for the background wedges to be as wide
+       as the mean of the two peak wedges, it is reduced automatically, with a warning in the log (see
+       :ref:`user.binning.auto_wedge_method`). Default 1.5.
    * - ``autoWedgeSignalToNoiseMin``
      - Automatic
-     - Minimum signal-to-noise ratio required for the azimuthal profile to be considered fittable.
+     - Minimum significance :math:`H/\sigma_H` (fitted peak height over its uncertainty) of each peak for a
+       :math:`q` ring to seed the wedge orientation. Default 10. In earlier versions, this key set a threshold on the
+       ratio of the mean to the minimum of :math:`I(\phi)`; a value kept in an existing JSON file is now read as
+       a significance. A value below 5 also lowers the significance required to rescue a ring, and logs a
+       warning.
+   * - ``autoWedgeContrastMin``
+     - Automatic
+     - Minimum contrast :math:`H/A_0` (fitted peak height over the flat background) of each peak for a
+       :math:`q` ring to seed the wedge orientation. Default 0.2.
+   * - ``autoWedgeCenterTolerance``
+     - Automatic
+     - Maximum deviation of a peak center from the orientation shared by the seed rings, as a fraction of the
+       FWHM, in :math:`(0, 1]`. The FWHM is the mean of the ring and group FWHMs when grouping seed rings, and the
+       consensus FWHM when rescuing a ring. Default 0.5.
    * - ``autoWedgePhiMin`` / ``autoWedgePhiMax``
      - Automatic
-     - Optional azimuthal search range, in degrees. This is useful when part of the detector should be excluded from the search.
+     - Optional azimuthal search range, in degrees, used only when ``autoSymmetricWedges`` is ``true``. Negative
+       values are accepted, for instance :math:`(-90, 90)` for :math:`(270, 450)`. This is useful when part of the
+       detector should be excluded from the search.
    * - ``autoSymmetricWedges``
      - Automatic
      - If ``true``, find the wedge only inside the requested azimuthal search range, then add its symmetric counterpart.
@@ -195,7 +515,9 @@ angles:
         "autoWedgeAzimuthalDelta": 1.0,
         "autoWedgePeakWidth": 0.25,
         "autoWedgeBackgroundWidth": 1.5,
-        "autoWedgeSignalToNoiseMin": 2.0
+        "autoWedgeSignalToNoiseMin": 10.0,
+        "autoWedgeContrastMin": 0.2,
+        "autoWedgeCenterTolerance": 0.5
       }
     }
 
@@ -216,7 +538,9 @@ For EQSANS, use empty manual wedge angle lists instead:
         "autoWedgeAzimuthalDelta": 1.0,
         "autoWedgePeakWidth": 0.25,
         "autoWedgeBackgroundWidth": 1.5,
-        "autoWedgeSignalToNoiseMin": 2.0
+        "autoWedgeSignalToNoiseMin": 10.0,
+        "autoWedgeContrastMin": 0.2,
+        "autoWedgeCenterTolerance": 0.5
       }
     }
 
@@ -256,84 +580,6 @@ overlap stitching ranges for each wedge:
       }
     }
 
-Automatic Finding of the Wedge
-+++++++++++++++++++++++++++++++
-
-If User wants `drtsans` to automatically find the azimuthal limits for wedge binning, there are
-options to specify. For instance, we want the resulting :math:`I(q)` from :math:`q_{min}=0.03 A^{-1}`
-to :math:`q_{max}=0.12 A^{-1}` in bins of width :math:`\delta q=0.01 A^{-1}`.
-The automatic finding is restricted to one wedge along the :math:`X`-axis,
-along with its symmetric counterpart. `drtsans` will find the azimuthal limits for the wedge.
-
-.. code-block:: json
-
-    {
-      "autoWedgeQmin": 0.03,
-      "autoWedgeQmax": 0.12,
-      "autoWedgeQdelta": 0.01,
-    }
-
-.. figure:: media/wedge_binning_5.png
-   :alt: automatic finding the wedge
-   :width: 800px
-
-User may define a single azimuthal range for the automatic finding of the wedge.
-User can provide negative values for the azimuthal range, for instance, :math:`(-90, -30)`, with the understanding
-that the range is interpreted as :math:`(270, 330)`.
-Once the `autoWedgePhiMin` and `autoWedgePhiMax` range is provided,
-the search for the wedge begins at the midpoint of the range, and is initially constrained to half the range
-around this midpoint.
-
-For instance, in the BIOSANS instrument the area in the main detector defined by the azimuthal range
-:math:`(-90, 90)` is partially occluded by the Wing detector,
-because the Wing detector is positioned closer to the sample than the main detector.
-User can request finding the wedge in the azimuthal range :math:`(90, 270)` free from occlusion, and then
-automatically include the symmetric wedge in the binning.
-The range :math:`(-90, 90)` is effectively masked during the wedge search.
-
-.. code-block:: json
-
-    {
-      "autoWedgeQmin": 0.03,
-      "autoWedgeQmax": 0.12,
-      "autoWedgeQdelta": 0.01,
-      "autoWedgePhiMin": 90,
-      "autoWedgePhiMax": 270,
-      "autoSymmetricWedges": true
-    }
-
-.. figure:: media/wedge_binning_6.png
-   :alt: automatic finding the wedge
-   :width: 800px
-
-Other additional options for the automatic wedge finding:
-
-- `autoWedgeAzimuthalDelta`: binning in azimuthal angle when generating the :math:`I(\phi)` profile.
-- `autoWedgePeakWidth`: percent of the full-width-half-max (FWHM) of the peak in the :math:`I(\phi)` profile
-  representing a wedge, used to define the confidence limits of the wedge.
-- `autoWedgeBackgroundWidth`: percent of the full-width-half-max (FWHM) of the peak in the :math:`I(\phi)` profile
-  representing a wedge, used to define the confidence limits of the background signal for the wedge.
-
-For instance, for real data collected at the BIOSANS instrument,
-
-.. code-block:: json
-
-    {
-      "autoWedgeQmin": 0.0,
-      "autoWedgeQmax": 0.02,
-      "autoWedgeQdelta": 0.001,
-      "autoWedgeAzimuthalDelta": 1.0,
-      "autoWedgePeakWidth": 0.25,
-      "autoWedgeBackgroundWidth": 1.5
-    }
-
-We obtain two wedges (:math:`w_1`, :math:`w_2`) as well as two azimuthal ranges (:math:`b_1`, :math:`b_2`)
-interpreted as background signal for the wedges.
-
-.. figure:: media/wedge_binning_7.png
-   :alt: wedges for a real BIOSANS example
-   :width: 900px
-
 Annular Binning
 ---------------
 
@@ -347,5 +593,5 @@ as a function of the angle around the beam center, :math:`\phi`, over a limited 
       "1DQbinType": "annular",
       "AnnularAngleBin": 1.0,
       "Qmin": 0.003,
-      "Qmax": 0.005,
+      "Qmax": 0.005
     }

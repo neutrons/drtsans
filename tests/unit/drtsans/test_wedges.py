@@ -38,6 +38,19 @@ def test_create_functions():
     assert g2.Height == pytest.approx(685867.5517201225, 1e-9)
 
 
+def test_create_functions_with_constraints():
+    """Test that several constraints in one function string are all applied"""
+    input_function_str = (
+        "name=FlatBackground,A0=0.2;"
+        "name=Gaussian,Height=0.15,PeakCentre=170.0,Sigma=40.0,constraints=(0<Height,0<Sigma)"
+    )
+
+    gaussian = _create_fit_function(input_function_str)[1]
+
+    assert gaussian.Sigma == pytest.approx(40.0)
+    assert "constraints=(0<Height,0<Sigma)" in str(gaussian)
+
+
 def test_set_param_value():
     """Test setting parameter values"""
     # Create input functions

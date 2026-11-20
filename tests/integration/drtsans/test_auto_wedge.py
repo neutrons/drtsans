@@ -8,8 +8,22 @@ import pytest
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from drtsans.auto_wedge import _binInQAndAzimuthal, _fitQAndAzimuthal
-from drtsans.dataobjects import IQazimuthal, I1DAnnular
+import h5py
+from unittest.mock import MagicMock
+import drtsans.auto_wedge
+from matplotlib.image import imread
+from drtsans.auto_wedge import (
+    RING_PLOT_COLUMNS,
+    RING_PLOT_PANEL_SIZE,
+    AcceptanceCriteria,
+    AutoWedgeError,
+    RingStatus,
+    SelectionFailure,
+    _binInQAndAzimuthal,
+    _estimatePeakParameters,
+    _fitQAndAzimuthal,
+)
+from drtsans.dataobjects import IQazimuthal, I1DAnnular, load_iq2d_from_h5
 from drtsans.determine_bins import determine_1d_linear_bins
 from drtsans import getWedgeSelection
 from drtsans.mono import biosans
@@ -18,10 +32,12 @@ from drtsans.plots import plot_IQazimuthal
 # test internal function _toQmodAndAzimuthal as well
 from drtsans.iq import (
     _toQmodAndAzimuthal,
+    valid_wedge,
     BinningMethod,
     bin_intensity_into_q2d,
     select_i_of_q_by_wedge,
     bin_all,
+    validate_wedges_groups,
 )
 from matplotlib.colors import LogNorm  # noqa E402
 from mantid.simpleapi import LoadNexusProcessed
@@ -452,46 +468,224 @@ def test_fitting():
     """Test that the fitting generates reasonable results for fitting the peaks"""
     q, azimuthal_rings = _create_2d_histogram_data()
     # this calling forces there to be two found peaks
-    ring_fit_tuple = _fitQAndAzimuthal(
+    selection = _fitQAndAzimuthal(
         azimuthal_rings,
         q,
-        signal_to_noise_min=2.0,
+        criteria=AcceptanceCriteria.from_settings(10.0, 0.2, 0.5, azimuthal_delta=5.0, maxchisq=1000.0),
         azimuthal_start=110.0,
-        maxchisq=1000.0,
         peak_search_window_size_factor=0.6,
     )
-    center_list = ring_fit_tuple[0]
-    fwhm_list = ring_fit_tuple[1]
+    assert selection.succeeded
+    center_list, fwhm_list = selection.centers, selection.fwhms
 
+    # Q-rings 2-5 are seed rings; ring 1 is rejected because its first peak has H/sigma_H of about 1
     assert center_list[0] == pytest.approx(180.0, abs=3.0)
-    assert center_list[1] == pytest.approx(360.0, abs=4.0)
-    assert fwhm_list[0] == pytest.approx(fwhm_list[1], abs=2.0)
+    assert center_list[1] == pytest.approx(364.0, abs=4.0)
+    assert fwhm_list[0] == pytest.approx(46.9, abs=2.0)
+    assert fwhm_list[1] == pytest.approx(51.6, abs=2.0)
+    # the two highest Q-rings have too few points to be fitted
+    statuses = [ring.status for ring in selection.ring_fits]
+    assert statuses == [RingStatus.REJECTED] + [RingStatus.SEED] * 4 + [RingStatus.FIT_FAILED] * 2
+    assert all(ring.reasons for ring in selection.ring_fits if ring.status is not RingStatus.SEED)
+
+
+def test_estimate_peak_parameters_empty_window():
+    """An empty peak search window raises a RuntimeError with a clear message"""
+    azimuthal = np.arange(0.0, 150.0, 5.0)  # too short to leave a window 90 deg inside both edges
+    with pytest.raises(RuntimeError, match="no data in the peak search window"):
+        _estimatePeakParameters(np.ones_like(azimuthal), azimuthal, azimuthal_start=110.0, window_half_width=108.0)
+
+
+def _anisotropic_ring(contrast, background=1000.0, seed=42):
+    """Azimuthal profile with two Gaussian peaks at 180 and 360 deg of height ``contrast`` x background"""
+    phi = np.arange(2.5, 545.0, 5.0)
+    peaks = sum(np.exp(-0.5 * (((phi - center + 180.0) % 360.0 - 180.0) / 15.0) ** 2) for center in (180.0, 360.0))
+    intensity = background * (1.0 + contrast * peaks) + np.random.default_rng(seed).normal(0.0, 1.0, phi.size)
+    return I1DAnnular(intensity=intensity, error=np.ones_like(phi), phi=phi)
+
+
+def test_fit_low_contrast_ring():
+    """A low-contrast ring is fitted, then rejected for its contrast only"""
+    selection = _fitQAndAzimuthal(
+        [_anisotropic_ring(contrast=0.1)],
+        np.array([0.5, 1.5]),
+        criteria=AcceptanceCriteria.from_settings(10.0, 0.2, 0.5, azimuthal_delta=5.0, maxchisq=1000.0),
+        azimuthal_start=110.0,
+        peak_search_window_size_factor=0.6,
+    )
+    (ring,) = selection.ring_fits
+    assert ring.is_fitted and ring.status is RingStatus.REJECTED
+    assert ring.reasons and all("H/A0" in reason for reason in ring.reasons if not reason.startswith("rescue"))
+    assert selection.failure is SelectionFailure.NO_SEED_CANDIDATE
+
+
+def test_get_wedge_selection_isotropic(tmp_path):
+    """Nearly isotropic data raise AutoWedgeError, after the diagnostic files are written"""
+    qx = qy = np.linspace(-5.0, 5.0, 41)
+    qx_grid, qy_grid = np.meshgrid(qx, qy, indexing="ij")
+    phi = np.arctan2(qy_grid, qx_grid)
+    intensity = 1000.0 * (1.0 + 0.05 * np.cos(phi) ** 2) + np.random.default_rng(7).normal(0.0, 1.0, phi.shape)
+    data2d = IQazimuthal(intensity=intensity, error=np.ones_like(intensity), qx=qx, qy=qy)
+
+    with pytest.raises(AutoWedgeError, match="autoWedgeContrastMin") as error:
+        getWedgeSelection(data2d, q_min=1.5, q_delta=1.0, q_max=4.5, azimuthal_delta=5.0, debug_dir=str(tmp_path))
+
+    assert error.value.selection.failure is SelectionFailure.NO_SEED_CANDIDATE
+    assert (tmp_path / "auto_wedge_rings.png").exists()
+    assert (tmp_path / "auto_wedge_fit.h5").exists()
 
 
 def test_fitting_symmetric():
     """Test that the fitting generates reasonable results for fitting the peaks"""
     q, azimuthal_rings = _create_2d_histogram_data()
     # this calling forces there to be two found peaks
-    ring_fit_tuple = _fitQAndAzimuthal(
+    selection = _fitQAndAzimuthal(
         azimuthal_rings,
         q,
-        signal_to_noise_min=2.0,
+        criteria=AcceptanceCriteria.from_settings(10.0, 0.2, 0.5, azimuthal_delta=5.0, maxchisq=1000.0),
         azimuthal_start=110.0,
-        maxchisq=1000.0,
         peak_search_window_size_factor=0.6,
         auto_symmetric_wedges=True,
         auto_wedge_phi_min=2.5,
         auto_wedge_phi_max=217.5,
     )
-    center_list = ring_fit_tuple[0]
-    fwhm_list = ring_fit_tuple[1]
+    assert selection.succeeded
+    center_list, fwhm_list = selection.centers, selection.fwhms
 
     assert center_list[0] == pytest.approx(180.0, abs=5.0)
     assert center_list[1] == pytest.approx(360.0, abs=5.0)
     assert fwhm_list[0] == pytest.approx(fwhm_list[1], abs=2.0)
 
 
-def test_integration():
+def test_fitting_symmetric_negative_phi_min():
+    """Test that a negative autoWedgePhiMin in symmetric mode gives the same peaks as the range shifted by 360 deg"""
+    q, azimuthal_rings = _create_2d_histogram_data()
+    criteria = AcceptanceCriteria.from_settings(10.0, 0.2, 0.5, azimuthal_delta=5.0, maxchisq=1000.0)
+    selections = [
+        _fitQAndAzimuthal(
+            azimuthal_rings,
+            q,
+            criteria=criteria,
+            azimuthal_start=110.0,
+            peak_search_window_size_factor=0.6,
+            auto_symmetric_wedges=True,
+            auto_wedge_phi_min=phi_min,
+            auto_wedge_phi_max=phi_min + 180.0,
+        )  # fmt: skip
+        for phi_min in (-90.0, 270.0)
+    ]
+    assert all(selection.succeeded for selection in selections)
+    assert selections[0].centers == pytest.approx(selections[1].centers)
+    assert selections[0].fwhms == pytest.approx(selections[1].fwhms)
+
+
+def _wide_peaks_data(second_peak: float = 180.0) -> IQazimuthal:
+    """Wide peaks on a flat background, the same at every Q
+
+    Parameters
+    ----------
+    second_peak: float
+        Center of the second peak, in degrees; the first peak is at 0 deg. At 180 deg, the azimuthal profile is
+        1 + 0.3 cos^2(phi), with peaks of FWHM about 97 deg. Otherwise, it is 1 + 0.3 (L(0) + L(second_peak)), with
+        lobes L(c) = exp(kappa (cos(phi - c) - 1)) of FWHM 60 deg.
+
+    Returns
+    -------
+    IQazimuthal
+        Intensity on a 41 x 41 grid of Qx, Qy from -5 to 5 1/A, with Gaussian noise of standard deviation 1.
+    """
+    qx = qy = np.linspace(-5.0, 5.0, 41)
+    qx_grid, qy_grid = np.meshgrid(qx, qy, indexing="ij")
+    phi = np.arctan2(qy_grid, qx_grid)
+    if second_peak == 180.0:
+        profile = np.cos(phi) ** 2
+    else:
+        kappa = np.log(2.0) / (1.0 - np.cos(np.radians(30.0)))  # half maximum at 30 deg from the center
+        profile = sum(np.exp(kappa * (np.cos(phi - np.radians(center)) - 1.0)) for center in (0.0, second_peak))
+    intensity = 1000.0 * (1.0 + 0.3 * profile) + np.random.default_rng(7).normal(0.0, 1.0, phi.shape)
+    return IQazimuthal(intensity=intensity, error=np.ones_like(intensity), qx=qx, qy=qy)
+
+
+def test_get_wedge_selection_no_room(tmp_path):
+    """Test that peaks too wide for the background wedges at any background width raise an error"""
+    # with autoWedgePeakWidth = 0.5, the reduced width S / (FWHM1 + FWHM2) - 0.5 is below the peak width
+    with pytest.raises(AutoWedgeError, match="leave no room for background wedges") as error:
+        getWedgeSelection(
+            _wide_peaks_data(), q_min=1.5, q_delta=1.0, q_max=4.5, azimuthal_delta=5.0, peak_width=0.5,
+            debug_dir=str(tmp_path),
+        )  # fmt: skip
+    assert error.value.selection.succeeded
+
+
+def test_get_wedge_selection_overlapping_wedges(tmp_path, monkeypatch):
+    """A background width not above the peak width is kept for wide peaks, with an overlap warning"""
+    logger = MagicMock()
+    monkeypatch.setattr(drtsans.auto_wedge, "logger", logger)
+
+    wedges = getWedgeSelection(
+        _wide_peaks_data(), q_min=1.5, q_delta=1.0, q_max=4.5, azimuthal_delta=5.0, peak_width=0.5,
+        background_width=0.5, debug_dir=str(tmp_path),
+    )  # fmt: skip
+
+    (warning,), _ = logger.warning.call_args
+    assert "the background wedges overlap the peak wedges" in warning
+    validate_wedges_groups(wedges, False)
+
+
+def test_get_wedge_selection_no_background_wedge(tmp_path):
+    """Overlapping wedges that leave a background wedge no positive width raise an error"""
+    with pytest.raises(AutoWedgeError, match="each must be wider than 0 and narrower than 180 deg"):
+        getWedgeSelection(
+            _wide_peaks_data(), q_min=1.5, q_delta=1.0, q_max=4.5, azimuthal_delta=5.0, peak_width=1.0,
+            background_width=1.0, debug_dir=str(tmp_path),
+        )  # fmt: skip
+
+
+def test_get_wedge_selection_wide_peaks(tmp_path, monkeypatch):
+    """Peaks too wide for the requested background width give valid wedges and a warning"""
+    data2d = _wide_peaks_data(second_peak=160.0)  # not antipodal, so the two background wedges differ
+    logger = MagicMock()
+    monkeypatch.setattr(drtsans.auto_wedge, "logger", logger)
+
+    peak_wedges, background_wedges = getWedgeSelection(
+        data2d, q_min=1.5, q_delta=1.0, q_max=4.5, azimuthal_delta=5.0, debug_dir=str(tmp_path)
+    )
+
+    (warning,), _ = logger.warning.call_args
+    assert warning.startswith("autoWedgeBackgroundWidth reduced from 1.5 to")
+    # the background wedge on the side of the smaller peak separation is as wide as the mean peak wedge,
+    # the other one is wider by twice the deviation of the separation from 180 deg
+    widths = [valid_wedge(*wedge) for wedge in peak_wedges + background_wedges]
+    widths = [sum(high - low for low, high in pieces) for pieces in widths]
+    assert min(widths[2:]) == pytest.approx(0.5 * (widths[0] + widths[1]), abs=0.5)
+    centers = [0.5 * (low + high) for low, high in peak_wedges]
+    separation = abs(centers[1] - centers[0]) % 360.0
+    separation = min(separation, 360.0 - separation)
+    assert abs(separation - 180.0) > 5.0
+    assert max(widths[2:]) - min(widths[2:]) == pytest.approx(360.0 - 2.0 * separation, abs=0.5)
+
+
+def test_get_wedge_selection_diagnostics(tmp_path):
+    """The HDF5 file holds the status and reasons of every Q-ring, and the figure has one panel per ring"""
+    getWedgeSelection(
+        _create_2d_data(), q_min=0.5, q_max=7.5, q_delta=1.0, azimuthal_delta=5.0, debug_dir=str(tmp_path)
+    )
+
+    with h5py.File(tmp_path / "auto_wedge_fit.h5", "r") as h5:
+        rings = {name: h5[group][name] for group in ("good fit", "no fit") for name in h5[group] if "ring" in name}
+        statuses = [rings[f"ring {index}"]["status"][0].decode() for index in range(len(rings))]
+        reasons = rings["ring 0"]["reasons"][0].decode().split("\n")
+    assert statuses == ["rejected"] + ["seed"] * 4 + ["fit failed"] * 2
+    assert reasons == ["peak 1: H/sigma_H = 1.02 < 10", "rescue: peak 1: H/sigma_H = 1.02 < 5"]
+
+    # 7 Q-rings give 2 rows of panels
+    width, height = RING_PLOT_PANEL_SIZE
+    dpi = plt.rcParams["figure.dpi"]
+    image = imread(tmp_path / "auto_wedge_rings.png")
+    assert image.shape[:2] == (round(2 * height * dpi), round(RING_PLOT_COLUMNS * width * dpi))
+
+
+def test_integration(tmp_path):
     """Test the full workflow of the algorithm"""
     data2d = _create_2d_data()
     # parameters for azimuthal
@@ -509,6 +703,7 @@ def test_integration():
         q_max=q_max,
         q_delta=q_delta,
         azimuthal_delta=azimuthal_delta,
+        debug_dir=str(tmp_path),
     )
 
     # from drtsans.plots.api import plot_IQazimuthal
@@ -524,33 +719,90 @@ def test_integration():
             assert -90.0 < max_val < 270.0
     peak_wedge, back_wedge = wedges
 
+    # Expected values follow from the Q-ring selection: rings 2-5 are seed rings, ring 1 is rejected because its
+    # first peak has H/sigma_H of about 1. They differ from the spreadsheet, which used rings 1-4.
     # verify peaks
     # first peak
     assert 0.5 * (peak_wedge[0][0] + peak_wedge[0][1]) == pytest.approx(180.0, abs=3.0), "First peak center is at 180."
     assert peak_wedge[0][0] == pytest.approx(171.0, abs=0.5)
     assert peak_wedge[0][1] == pytest.approx(195.0, abs=0.5)
     # second peak
-    assert 0.5 * (peak_wedge[1][0] + peak_wedge[1][1]) == pytest.approx(3.0, abs=1.0), "Second peak center is at 0."
-    assert peak_wedge[1][0] == pytest.approx(-9.0, abs=0.5)
-    assert peak_wedge[1][1] == pytest.approx(16.0, abs=0.5)
+    assert 0.5 * (peak_wedge[1][0] + peak_wedge[1][1]) == pytest.approx(4.0, abs=1.0), "Second peak center is at 4."
+    assert peak_wedge[1][0] == pytest.approx(-8.9, abs=0.5)
+    assert peak_wedge[1][1] == pytest.approx(16.9, abs=0.5)
 
     # verify background
     # first background - the extra 360 is to get around the circle
-    assert 0.5 * (back_wedge[0][0] + back_wedge[0][1] + 360) == pytest.approx(272.0, abs=1.2), (
+    assert 0.5 * (back_wedge[0][0] + back_wedge[0][1] + 360) == pytest.approx(269.9, abs=1.2), (
         "First background center is at 270."
     )
-    assert back_wedge[0][0] == pytest.approx(255.0, abs=0.5)
-    assert back_wedge[0][1] == pytest.approx(-69.0, abs=0.5)
+    assert back_wedge[0][0] == pytest.approx(253.1, abs=0.5)
+    assert back_wedge[0][1] == pytest.approx(-73.4, abs=0.5)
     # second background
-    assert 0.5 * (back_wedge[1][0] + back_wedge[1][1]) == pytest.approx(90.0, abs=5.0), (
-        "Second background center is at 90."
+    assert 0.5 * (back_wedge[1][0] + back_wedge[1][1]) == pytest.approx(97.0, abs=5.0), (
+        "Second background center is at 97."
     )
-    assert back_wedge[1][0] == pytest.approx(76.0, abs=0.5)
-    assert back_wedge[1][1] == pytest.approx(111.0, abs=0.5)
+    assert back_wedge[1][0] == pytest.approx(81.4, abs=0.5)
+    assert back_wedge[1][1] == pytest.approx(112.6, abs=0.5)
+
+
+def _assert_wedges(wedges, expected, tolerance=0.5):
+    """Compare (peak, background) wedges with expected angle pairs, in degrees."""
+    for found, wanted in zip(wedges, expected, strict=True):
+        assert np.asarray(found) == pytest.approx(np.asarray(wanted), abs=tolerance)
 
 
 @pytest.mark.datarepo
-def test_real_data_biosans(datarepo_dir):
+def test_real_data_eqsans(datarepo_dir, tmp_path):
+    """Test the wedge selection on EQSANS data with a narrow streak on an incoherent background."""
+    # the former mean/min ratio check rejected every Q-ring of these data
+    data_file = os.path.join(datarepo_dir.eqsans, "auto_wedge", "EQSANS_auto_wedge_iqazimuthal.h5")
+    iq2d = load_iq2d_from_h5(data_file)
+
+    wedges = getWedgeSelection(
+        iq2d, q_min=0.08, q_delta=0.05, q_max=0.8, azimuthal_delta=1.0, peak_width=0.25, debug_dir=str(tmp_path)
+    )
+    expected_peaks = [(176.6, 185.3), (-3.4, 5.9)]
+    expected_backgrounds = [(207.1, -26.7), (29.2, 154.8)]
+    _assert_wedges(wedges, (expected_peaks, expected_backgrounds))
+
+
+@pytest.mark.datarepo
+def test_real_data_eqsans_isotropic_q_range(datarepo_dir, tmp_path):
+    """Test that the wedge selection fails with no seed ring on the isotropic Q range of the EQSANS data."""
+    data_file = os.path.join(datarepo_dir.eqsans, "auto_wedge", "EQSANS_auto_wedge_iqazimuthal.h5")
+    iq2d = load_iq2d_from_h5(data_file)
+
+    with pytest.raises(AutoWedgeError, match="no Q-ring passes the seed criteria") as error:
+        getWedgeSelection(
+            iq2d, q_min=0.35, q_delta=0.05, q_max=0.8, azimuthal_delta=1.0, peak_width=0.25, debug_dir=str(tmp_path)
+        )
+    assert error.value.selection.failure is SelectionFailure.NO_SEED_CANDIDATE
+
+
+@pytest.mark.datarepo
+def test_real_data_eqsans_legacy_settings(datarepo_dir, tmp_path, monkeypatch):
+    """Test that a background width equal to the peak width and a low significance give wedges and warnings."""
+    data_file = os.path.join(datarepo_dir.eqsans, "auto_wedge", "EQSANS_auto_wedge_iqazimuthal.h5")
+    iq2d = load_iq2d_from_h5(data_file)
+    logger = MagicMock()
+    monkeypatch.setattr(drtsans.auto_wedge, "logger", logger)
+
+    peak_wedges, background_wedges = getWedgeSelection(
+        iq2d, q_min=0.08, q_delta=0.05, q_max=0.8, azimuthal_delta=1.0, peak_width=0.25, background_width=0.25,
+        signal_to_noise_min=2.0, debug_dir=str(tmp_path),
+    )  # fmt: skip
+
+    warnings = [args[0] for args, _ in logger.warning.call_args_list]
+    assert any(warning.startswith("autoWedgeSignalToNoiseMin = 2 is the minimum significance") for warning in warnings)
+    assert any("the background wedges overlap the peak wedges" in warning for warning in warnings)
+    # adjacent wedges: each background wedge starts where a peak wedge ends
+    assert background_wedges[0][0] == pytest.approx(peak_wedges[0][1])
+
+
+@pytest.mark.datarepo
+def test_real_data_biosans(datarepo_dir, tmp_path):
+    """Test the wedge selection and the wedge binning on BIOSANS data."""
     MSamp_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5532_mBSub.h5")
     MBuff_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5562_mBSub.h5")
 
@@ -573,16 +825,16 @@ def test_real_data_biosans(datarepo_dir):
         azimuthal_delta=0.5,
         peak_width=0.25,
         background_width=1.5,
-        signal_to_noise_min=1.2,
+        debug_dir=str(tmp_path),
     )
-    assert len(wedge_angles) == 2, "Expect 2 separate wedges"
+    expected_peaks = [(157.3, 169.2), (-23.0, -10.7)]
+    expected_backgrounds = [(198.9, -53.6), (19.9, 127.6)]
+    _assert_wedges(wedge_angles, (expected_peaks, expected_backgrounds))
 
-    # use these to integrate the wedges
-    for wedges in wedge_angles:
-        for azi_min, azi_max in wedges:
-            print("integrating from {}deg to {} deg".format(azi_min, azi_max))
-            iq_wedge = select_i_of_q_by_wedge(q2d_data, azi_min, azi_max)
-            assert iq_wedge
+    # every wedge selects data, including the background wedges that wrap around 0 deg
+    for wedge in wedge_angles[0] + wedge_angles[1]:
+        pieces = [select_i_of_q_by_wedge(q2d_data, low, high) for low, high in valid_wedge(*wedge)]
+        assert sum(piece.intensity.size for piece in pieces) > 0
 
     # test bin_all
     nbins = 100.0
@@ -622,7 +874,8 @@ def test_real_data_biosans(datarepo_dir):
 
 
 @pytest.mark.datarepo
-def test_real_data_biosans_autosymmetric_wedges(datarepo_dir):
+def test_real_data_biosans_autosymmetric_wedges(datarepo_dir, tmp_path):
+    """Test the symmetric wedge selection and the wedge binning on BIOSANS data."""
     MSamp_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5532_mBSub.h5")
     MBuff_fn = os.path.join(datarepo_dir.biosans, "CG3_127_5562_mBSub.h5")
 
@@ -645,17 +898,17 @@ def test_real_data_biosans_autosymmetric_wedges(datarepo_dir):
         azimuthal_delta=0.5,
         peak_width=0.25,
         background_width=1.5,
-        signal_to_noise_min=1.2,
         auto_symmetric_wedges=True,
+        debug_dir=str(tmp_path),
     )
-    assert len(wedge_angles) == 2, "Expect 2 separate wedges"
+    expected_peaks = [(-22.2, -11.5), (157.8, 168.5)]
+    expected_backgrounds = [(15.4, 131.0), (195.4, -49.0)]
+    _assert_wedges(wedge_angles, (expected_peaks, expected_backgrounds))
 
-    # use these to integrate the wedges
-    for wedges in wedge_angles:
-        for azi_min, azi_max in wedges:
-            print("integrating from {}deg to {} deg".format(azi_min, azi_max))
-            iq_wedge = select_i_of_q_by_wedge(q2d_data, azi_min, azi_max)
-            assert iq_wedge
+    # every wedge selects data, including the background wedges that wrap around 0 deg
+    for wedge in wedge_angles[0] + wedge_angles[1]:
+        pieces = [select_i_of_q_by_wedge(q2d_data, low, high) for low, high in valid_wedge(*wedge)]
+        assert sum(piece.intensity.size for piece in pieces) > 0
 
     # test bin_all
     nbins = 100.0

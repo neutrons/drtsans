@@ -165,6 +165,24 @@ def test_load_schema(instrument_name):
     assert instrument_standard_name(schema["properties"]["instrumentName"]["default"]) == instrument_name
 
 
+@pytest.mark.parametrize("instrument_name", ["BIOSANS", "EQSANS", "GPSANS"])
+def test_auto_wedge_defaults(instrument_name):
+    r"""Missing auto-wedge acceptance keys get the defaults of the instrument schema"""
+    configuration = reduction_parameters({"instrumentName": instrument_name}, validate=False)["configuration"]
+    assert configuration["autoWedgeSignalToNoiseMin"] == 10.0
+    assert configuration["autoWedgeContrastMin"] == 0.2
+    assert configuration["autoWedgeCenterTolerance"] == 0.5
+
+
+@pytest.mark.parametrize("instrument_name", ["BIOSANS", "EQSANS", "GPSANS"])
+def test_auto_wedge_values_kept(instrument_name):
+    r"""Explicit auto-wedge acceptance values replace the defaults of the instrument schema"""
+    values = {"autoWedgeSignalToNoiseMin": 5.0, "autoWedgeContrastMin": 0.1, "autoWedgeCenterTolerance": 0.8}
+    parameters = {"instrumentName": instrument_name, "configuration": values}
+    configuration = reduction_parameters(parameters, validate=False)["configuration"]
+    assert {key: configuration[key] for key in values} == values
+
+
 class TestReferenceResolver:
     def test_derefence(self, redparams_data):
         resolver = ReferenceResolver(redparams_data["schema_common_file"])
@@ -802,6 +820,29 @@ class TestReductionParametersGPSANS:
             "polarizer": {"polarization": "1", "efficiency": "1"},
             "analyzer": {"polarizationZero": "1", "polarizationPi": "-1"},
         }
+
+    @pytest.mark.datarepo
+    def test_auto_wedge_validation(self, datarepo_dir):
+        r"""Validation fills empty auto-wedge acceptance keys and rejects out-of-range values"""
+        parameters = deepcopy(self.parameters_all)
+        parameters["configuration"].update({"autoWedgeContrastMin": "", "autoWedgeCenterTolerance": None})
+        with amend_config(data_dir=datarepo_dir.gpsans):
+            validated = validate_reduction_parameters(parameters)
+        assert validated["configuration"]["autoWedgeContrastMin"] == 0.2
+        assert validated["configuration"]["autoWedgeCenterTolerance"] == 0.5
+        parameters["configuration"]["autoWedgeCenterTolerance"] = "1.0"  # the upper limit is included
+        with amend_config(data_dir=datarepo_dir.gpsans):
+            assert validate_reduction_parameters(parameters)["configuration"]["autoWedgeCenterTolerance"] == 1.0
+
+        out_of_range = [("autoWedgeContrastMin", -0.1), ("autoWedgeCenterTolerance", 0.0)]
+        out_of_range += [("autoWedgeCenterTolerance", 1.5), ("autoWedgeCenterTolerance", "1.5")]
+        for name, value in out_of_range:
+            invalid = deepcopy(self.parameters_all)
+            invalid["configuration"][name] = value
+            with pytest.raises(ReductionParameterError) as exc_info:
+                with amend_config(data_dir=datarepo_dir.gpsans):
+                    validate_reduction_parameters(invalid)
+            assert f"configuration.{name}" in str(exc_info.value)
 
 
 class TestReductionParametersBIOSANS:

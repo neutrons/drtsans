@@ -645,6 +645,15 @@ class TestReductionParameters:
         assert "entry_not_in_the_schema" in str(error_info.value)
         ReductionParameters(reduction_parameters_new, redparams_data["schema_instrument"], permissible=True)
 
+    def test_setitem_logs_closest_match(self, redparams_data, mocker):
+        mock_logger = mocker.patch("drtsans.redparams.logger")
+        parameters = ReductionParameters(redparams_data["reduction_parameters"], redparams_data["schema_instrument"])
+        parameters["configuration"] = parameters["configuration"]
+        mock_logger.warning.assert_not_called()
+        parameters["configuraton"] = None
+        mock_logger.warning.assert_called_once()
+        assert 'Closest match is "configuration"' in mock_logger.warning.call_args[0][0]
+
 
 class TestReductionParametersGPSANS:
     parameters_common = {

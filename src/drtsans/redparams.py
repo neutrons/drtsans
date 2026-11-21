@@ -722,7 +722,7 @@ class ReductionParameters:
     def __setitem__(self, key, value):
         top_match = self._entries.top_match(key)
         if top_match != key:
-            warnings.warn(f'{key} not found in the parameters dictionary. Closest match is "{top_match}"')
+            logger.warning(f'{key} not found in the parameters dictionary. Closest match is "{top_match}"')
         self._parameters.__setitem__(key, value)
 
     def initialize_validator(self):

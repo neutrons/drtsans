@@ -5,7 +5,6 @@ import json
 import numpy as np
 import numexpr
 import os
-import warnings
 
 
 r""" Hyperlinks to mantid algorithms
@@ -46,6 +45,7 @@ from mantid.simpleapi import (
     SaveNexus,
 )
 from mantid.api import FileLoaderRegistry, mtd
+from mantid.kernel import logger
 
 r"""
 Hyperlinks to drtsans functions
@@ -171,15 +171,14 @@ class BarPositionFormula:
         -------
         str
 
-        Warnings
-        --------
-        UserWarning
-            When ```instrument_component``` is not found in the default instrument formulae.
+        Notes
+        -----
+        A warning is logged when ```instrument_component``` is not found in the default instrument formulae.
         """
         default_formula = BarPositionFormula._default_formula
         default_formulae = BarPositionFormula._default_formulae
         if instrument_component not in default_formulae:
-            warnings.warn(
+            logger.warning(
                 f"Unable to find a bar position formula for argument {instrument_component}.\n"
                 f"Using default formula: {default_formula}.\n"
                 f"Valid values are {default_formulae.keys()}\n"
@@ -207,7 +206,7 @@ class BarPositionFormula:
         if "{y}" not in formula:
             raise ValueError('Formula does not contain "{y}", e.g. formula = "565-{y}+0.008*(191-{tube})"')
         if "{tube}" not in formula:
-            warnings.warn('Formula does not contain "{tube}", e.g. formula = "565-{y}+0.008*(191-{tube})"')
+            logger.warning('Formula does not contain "{tube}", e.g. formula = "565-{y}+0.008*(191-{tube})"')
             formula += " + 0.0 * {tube}"
         return formula
 
@@ -874,7 +873,7 @@ def apply_calibrations(
                 calibration = load_calibration(input_workspace, caltype, component, database=database)
             except CalibrationNotFound as e:
                 calibration = None
-                warnings.warn(str(e))
+                logger.warning(str(e))
             if calibration is not None:
                 calibration.apply(output_workspace)
 

@@ -1656,7 +1656,7 @@ def calculate_apparent_tube_width(flood_input, component="detector1", load_barsc
     count_densities = list()
     for tube in collection:
         weighted_intensities = tube.readY.ravel() / tube.pixel_heights
-        d = np.mean(weighted_intensities[~tube.isMasked])
+        d = np.nan if np.all(tube.isMasked) else np.mean(weighted_intensities[~tube.isMasked])
         count_densities.append(d)
     count_densities = np.array(count_densities)  # is convenient to cast densities into a numpy array data structure.
 

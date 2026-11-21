@@ -292,12 +292,19 @@ class SampleLogs(object):
         Returns
         -------
         str, float, None
-            The single value associated with the log entry.
+            The single value associated with the log entry. ``nan`` when the log entry is a numeric time series
+            with no values.
 
         Raises
         ------
         RuntimeError
             When the log_key is not found in the sample logs
+
+        Notes
+        -----
+        A numeric time series with no values yields ``nan`` rather than an exception. Callers such as
+        :func:`~drtsans.geometry.translate_detector_by_z` and :func:`~drtsans.geometry.translate_source_by_z`
+        rely on this to fall back to the instrument definition, so that an empty log does not stop the reduction.
         """
         _run = self.__dict__["_run"]
         value = _run[log_key].value
@@ -309,6 +316,8 @@ class SampleLogs(object):
             assert len(value) > 0, "time series {} has no values".format(log_key)
             if isinstance(value[0], str):
                 return value[0]
+        if isinstance(value, np.ndarray) and value.size == 0:
+            return np.nan
         return float(operation(value))  # works for int, float, and lists
 
     def find_run(self, other):

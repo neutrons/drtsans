@@ -2,7 +2,6 @@ import json
 import matplotlib
 import numpy as np
 from typing import Any, Dict, List, Union
-import warnings
 
 from mantid.api import mtd  # noqa E402
 from mantid.simpleapi import logger  # noqa E402
@@ -17,8 +16,6 @@ from drtsans.dataobjects import DataType, getDataType, IQmod, IQazimuthal  # noq
 from drtsans.geometry import panel_names  # noqa E402
 from drtsans.iq import get_wedges, validate_wedges_groups  # noqa E402
 from drtsans.tubecollection import TubeCollection  # noqa E402
-
-warnings.simplefilter("ignore", UserWarning)
 
 __all__ = [
     "plot_IQmod",

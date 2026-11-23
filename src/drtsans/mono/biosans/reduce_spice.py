@@ -12,9 +12,6 @@ from drtsans.mono.biosans import (
     reduction_parameters,
     update_reduction_parameters,
 )
-import warnings
-
-warnings.filterwarnings("ignore")
 
 CG3 = "CG3"
 

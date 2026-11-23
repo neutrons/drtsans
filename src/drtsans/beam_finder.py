@@ -17,6 +17,7 @@ from scipy import constants
 
 # standard imports
 from typing import Union
+import warnings
 
 __all__ = [
     "BeamCenterNotFound",
@@ -143,7 +144,11 @@ def _find_beam_center_gaussian(ws, parameters={}):
     if "CenterY" not in params:
         # default beam center y as the mean of intensities along y
         params.add("CenterY", value=np.mean(y))
-    results = model.fit(intes, x1=x, y1=y, weights=1.0 / intes_err, params=params, nan_policy="omit")
+    with warnings.catch_warnings():
+        # lmfit builds `uncertainties` values for every parameter, including those held fixed
+        # (vary=False), whose standard error is 0. drtsans does not use these values.
+        warnings.filterwarnings("ignore", message="Using UFloat objects with std_dev==0", category=UserWarning)
+        results = model.fit(intes, x1=x, y1=y, weights=1.0 / intes_err, params=params, nan_policy="omit")
     fit_params = results.params
     return (
         fit_params["CenterX"].value,

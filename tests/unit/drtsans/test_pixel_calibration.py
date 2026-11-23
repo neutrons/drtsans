@@ -3,7 +3,9 @@ from drtsans.pixel_calibration import (
     apply_calibrations,
     BarPositionFormula,
     CalibrationNotFound,
+    INCORRECT_PIXEL_ASSIGNMENT,
     loader_algorithm,
+    resolve_incorrect_pixel_assignments,
     Table,
 )
 from drtsans.settings import namedtuplefy
@@ -11,12 +13,14 @@ from drtsans.settings import namedtuplefy
 # third-party imports
 from mantid.api import AnalysisDataService
 from mantid.simpleapi import LoadEmptyInstrument
+import numpy as np
 import pytest
 
 # standard imports
 import json
 import os
 import tempfile
+import warnings
 import shutil
 
 
@@ -113,6 +117,22 @@ class TestBarPositionFormula:
         mock_logger = mocker.patch("drtsans.pixel_calibration.logger")
         BarPositionFormula(formula="{y} - 565").validate_top_position(1150.0)
         assert 'Formula does not contain "{tube}"' in mock_logger.warning.call_args[0][0]
+
+
+def test_resolve_incorrect_pixel_assignments_single_valid_point():
+    """A tube with one valid bar position is skipped without a RankWarning; other tubes are still corrected"""
+    bar_positions = np.tile(np.arange(10.0, 130.0, 10.0)[:, np.newaxis], (1, 2))  # mm, 12 positions, 2 tubes
+    bottom_shadow_pixels = np.empty((12, 2))
+    bottom_shadow_pixels[:, 0] = INCORRECT_PIXEL_ASSIGNMENT
+    bottom_shadow_pixels[0, 0] = 249  # the only valid bar position in the first tube
+    bottom_shadow_pixels[:, 1] = 230 - 2 * np.arange(12)  # second tube follows a line
+    bottom_shadow_pixels[5, 1] = 4  # outlier in the second tube
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions)
+    assert bottom_shadow_pixels[0, 0] == 249
+    assert np.all(bottom_shadow_pixels[1:, 0] == INCORRECT_PIXEL_ASSIGNMENT)
+    assert bottom_shadow_pixels[5, 1] == INCORRECT_PIXEL_ASSIGNMENT
 
 
 def test_apply_calibrations_logs_missing_calibration(mocker, clean_workspace):

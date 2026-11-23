@@ -1514,6 +1514,8 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
     We must find these outliers and assign them as incorrect. We use a linear fit to find out outliers.
 
     Fixes to corner cases are skippedd for bad tubes (see ~drtsans.pixel_calibration.bad_tube).
+    Corner case 2 is also skipped for tubes with fewer than two distinct valid bar positions, since no line can be
+    fitted.
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
 
@@ -1553,11 +1555,13 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
         # Filter out bad pixels
         y_correct = y[y != INCORRECT_PIXEL_ASSIGNMENT]
         x_correct = x[y != INCORRECT_PIXEL_ASSIGNMENT]  # bar positions, in mili-meters
-        # Linear fit between bar positions in pixel coordinates and mili-meters
-        try:
-            coefficients = np.polynomial.polynomial.polyfit(x_correct, y_correct, 1)
-        except TypeError:  # empty array `x_correct`, meaning this tube was masked or malfunctioning
+        # A line needs at least two distinct bar positions. Tubes with fewer valid points (masked, malfunctioning, or
+        # with the bar edge not found) later receive the average positions and heights of the good tubes.
+        if np.unique(x_correct).size < 2:
+            logger.debug(f"Tube {tube_index} has fewer than two valid bar positions; skipping the linear fit")
             continue
+        # Linear fit between bar positions in pixel coordinates and mili-meters
+        coefficients = np.polynomial.polynomial.polyfit(x_correct, y_correct, 1)
         # Find residuals of correct pixels
         y_fitted = np.polynomial.polynomial.polyval(x_correct, coefficients)
         residuals = np.abs(y_correct - y_fitted)  # deviations between the linear fit and the actual positions

@@ -1,7 +1,9 @@
 import os
-from typing import List, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 import numpy as np
 import time
+from mantid.api import WorkspaceGroup
+from mantid.kernel import config
 from mantid.simpleapi import mtd
 from drtsans.mono.spice_data import map_to_nexus
 from drtsans.mono.biosans import (
@@ -11,16 +13,49 @@ from drtsans.mono.biosans import (
     reduction_parameters,
     update_reduction_parameters,
 )
-import warnings
-
-warnings.filterwarnings("ignore")
 
 CG3 = "CG3"
 
 
-def clear_buffer():
-    """Clear memory buffer: clear mantid workspaces"""
-    mtd.clear()
+def all_workspace_names() -> List[str]:
+    """Names of all workspaces in the Analysis Data Service, including hidden ones (names starting with ``__``).
+
+    ``mtd.getObjectNames()`` lists hidden workspaces only when the Mantid setting
+    ``MantidOptions.InvisibleWorkspaces`` is on, so the setting is switched on temporarily and then restored.
+    """
+    setting = "MantidOptions.InvisibleWorkspaces"
+    original = config[setting]
+    config[setting] = "1"
+    try:
+        return mtd.getObjectNames()
+    finally:
+        config[setting] = original
+
+
+def clear_buffer(keep: Optional[Iterable[str]] = None) -> None:
+    """Free memory by deleting workspaces in the Analysis Data Service, including hidden ones.
+
+    Called without arguments, it deletes every workspace, like ``mtd.clear()``, but without the warning that
+    ``mtd.clear()`` emits.
+
+    Parameters
+    ----------
+    keep
+        Names of workspaces to keep, visible or hidden, for instance those present before a reduction started
+        (see :func:`all_workspace_names`). If :py:obj:`None`, all workspaces are deleted. The members of a kept
+        workspace group are also kept.
+    """
+    keep = set() if keep is None else set(keep)
+    # Mantid removes a group when its last member is removed, so kept groups must also keep their members
+    groups = [name for name in keep if mtd.doesExist(name) and isinstance(mtd[name], WorkspaceGroup)]
+    while groups:
+        members = set(mtd[groups.pop()].getNames()) - keep
+        keep |= members
+        groups += [name for name in members if isinstance(mtd[name], WorkspaceGroup)]  # nested groups
+    for name in all_workspace_names():
+        # removing the last member of a group also removes the group, which may come later in the list
+        if name not in keep and mtd.doesExist(name):
+            mtd.remove(name)
 
 
 def reduce_biosans_nexus(
@@ -216,6 +251,7 @@ def reduce_biosans_nexus(
                 os.makedirs(output_folder)
 
     start_time = time.time()
+    workspaces_before = set(all_workspace_names())
     # Loop for samples
     for i, sample_name in enumerate(sample_names):
         start_time_loop = time.time()
@@ -253,8 +289,7 @@ def reduce_biosans_nexus(
         print("\nloop_" + str(i + 1) + ": ", time.time() - start_time_loop)
 
         if np.remainder(i, refresh_cycle) == 0 and i > 0:
-            # mtd.clear()
-            clear_buffer()
+            clear_buffer(keep=workspaces_before)
 
     print("Total Time : ", time.time() - start_time)
 

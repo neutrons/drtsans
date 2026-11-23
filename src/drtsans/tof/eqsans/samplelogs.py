@@ -2,6 +2,7 @@
 
 from typing import Union
 
+import numpy as np
 from mantid.api import MatrixWorkspace, Run
 
 from drtsans.samplelogs import SampleLogs
@@ -38,6 +39,6 @@ def get_frequency(input_workspace: Union[str, Run, MatrixWorkspace, SampleLogs])
             frequency = sample_logs.single_value(log_name)
         except (AssertionError, AttributeError, KeyError, RuntimeError):
             continue
-        if frequency > 0.0:
+        if np.isfinite(frequency) and frequency > 0.0:
             return frequency
     return DEFAULT_FREQUENCY

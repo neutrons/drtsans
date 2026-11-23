@@ -1,15 +1,26 @@
 # local imports
-from drtsans.pixel_calibration import loader_algorithm, BarPositionFormula, Table
+from drtsans.pixel_calibration import (
+    apply_calibrations,
+    BarPositionFormula,
+    CalibrationNotFound,
+    INCORRECT_PIXEL_ASSIGNMENT,
+    loader_algorithm,
+    resolve_incorrect_pixel_assignments,
+    Table,
+)
 from drtsans.settings import namedtuplefy
 
 # third-party imports
 from mantid.api import AnalysisDataService
+from mantid.simpleapi import LoadEmptyInstrument
+import numpy as np
 import pytest
 
 # standard imports
 import json
 import os
 import tempfile
+import warnings
 import shutil
 
 
@@ -68,36 +79,72 @@ def test_loader_algorithm(input_file, loader_name, datarepo_dir):
 
 
 class TestBarPositionFormula:
-    def test_elucidate_formula(self):
+    def test_elucidate_formula(self, mocker):
+        mock_logger = mocker.patch("drtsans.pixel_calibration.logger")
         formula = BarPositionFormula._elucidate_formula(("BIOSANS", "detector1"))
         assert formula == "565 - {y} + 0.0083115 * (191 - {tube})"
-        with pytest.warns(UserWarning, match="Unable to find a bar position formula for argument Mary Poppings"):
-            formula = BarPositionFormula._elucidate_formula("Mary Poppings")
+        mock_logger.warning.assert_not_called()
+        formula = BarPositionFormula._elucidate_formula("Mary Poppings")
         assert formula == "565 - {y} + 0.0 * {tube}"
+        mock_logger.warning.assert_called_once()
+        assert "bar position formula for argument Mary Poppings" in mock_logger.warning.call_args[0][0]
 
-    def test_validate_symbols(self):
+    def test_validate_symbols(self, mocker):
+        mock_logger = mocker.patch("drtsans.pixel_calibration.logger")
         BarPositionFormula._validate_symbols("{y} {tube}")
         for invalid_formula in ("{tube}", "{dcal}", "y"):
             with pytest.raises(ValueError):
                 BarPositionFormula._validate_symbols(invalid_formula)
-        with pytest.warns(UserWarning, match='Formula does not contain "{tube}"'):
-            assert BarPositionFormula._validate_symbols("565 - {y}") == "565 - {y} + 0.0 * {tube}"
+        mock_logger.warning.assert_not_called()
+        assert BarPositionFormula._validate_symbols("565 - {y}") == "565 - {y} + 0.0 * {tube}"
+        mock_logger.warning.assert_called_once()
+        assert 'Formula does not contain "{tube}"' in mock_logger.warning.call_args[0][0]
 
-    def test_str(self):
-        with pytest.warns(UserWarning, match="Unable to find a bar position formula for argument unknown"):
-            assert str(BarPositionFormula(instrument_component="unknown")) == BarPositionFormula._default_formula
+    def test_str(self, mocker):
+        mock_logger = mocker.patch("drtsans.pixel_calibration.logger")
+        assert str(BarPositionFormula(instrument_component="unknown")) == BarPositionFormula._default_formula
+        assert "Unable to find a bar position formula for argument unknown" in mock_logger.warning.call_args[0][0]
 
     def test_evaluate(self):
         formula = BarPositionFormula(instrument_component=("GPSANS", "detector1"))  # use default formula
         assert formula.evaluate(565, 191) == pytest.approx(0.0)
 
-    def test_validate_top_position(self):
+    def test_validate_top_position(self, mocker):
         for formula in BarPositionFormula._default_formulae.values():
             BarPositionFormula(formula=formula).validate_top_position(0.0)
         with pytest.raises(RuntimeError):
             BarPositionFormula(("BIOSANS", "wing_detector")).validate_top_position(1150.0)
-        with pytest.warns(UserWarning, match='Formula does not contain "{tube}"'):
-            BarPositionFormula(formula="{y} - 565").validate_top_position(1150.0)
+        mock_logger = mocker.patch("drtsans.pixel_calibration.logger")
+        BarPositionFormula(formula="{y} - 565").validate_top_position(1150.0)
+        assert 'Formula does not contain "{tube}"' in mock_logger.warning.call_args[0][0]
+
+
+def test_resolve_incorrect_pixel_assignments_single_valid_point():
+    """A tube with one valid bar position is skipped without a RankWarning; other tubes are still corrected"""
+    bar_positions = np.tile(np.arange(10.0, 130.0, 10.0)[:, np.newaxis], (1, 2))  # mm, 12 positions, 2 tubes
+    bottom_shadow_pixels = np.empty((12, 2))
+    bottom_shadow_pixels[:, 0] = INCORRECT_PIXEL_ASSIGNMENT
+    bottom_shadow_pixels[0, 0] = 249  # the only valid bar position in the first tube
+    bottom_shadow_pixels[:, 1] = 230 - 2 * np.arange(12)  # second tube follows a line
+    bottom_shadow_pixels[5, 1] = 4  # outlier in the second tube
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions)
+    assert bottom_shadow_pixels[0, 0] == 249
+    assert np.all(bottom_shadow_pixels[1:, 0] == INCORRECT_PIXEL_ASSIGNMENT)
+    assert bottom_shadow_pixels[5, 1] == INCORRECT_PIXEL_ASSIGNMENT
+
+
+def test_apply_calibrations_logs_missing_calibration(mocker, clean_workspace):
+    """A calibration missing from the database is logged as a warning and not applied"""
+    workspace = LoadEmptyInstrument(InstrumentName="EQ-SANS", OutputWorkspace=clean_workspace("missing_calibration"))
+    mock_load = mocker.patch(
+        "drtsans.pixel_calibration.load_calibration", side_effect=CalibrationNotFound("No BARSCAN calibration found")
+    )
+    mock_logger = mocker.patch("drtsans.pixel_calibration.logger")
+    apply_calibrations(workspace, database="unused.json", calibrations="BARSCAN")
+    mock_load.assert_called_once()
+    mock_logger.warning.assert_called_once_with("No BARSCAN calibration found")
 
 
 class TestTable:

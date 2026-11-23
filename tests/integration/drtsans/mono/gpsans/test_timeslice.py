@@ -1,17 +1,20 @@
 import pytest
 import os
-from mantid.simpleapi import mtd
 from drtsans.mono.gpsans import (
     load_all_files,
     reduction_parameters,
     reduce_single_configuration,
 )
+from drtsans.mono.biosans.reduce_spice import all_workspace_names, clear_buffer
 from drtsans.samplelogs import SampleLogs
 from drtsans.api import NoDataProcessedError
 
 
 @pytest.mark.datarepo
-def test_timeslice(datarepo_dir, temp_directory):
+def test_timeslice(datarepo_dir, temp_directory, request):
+    workspaces_before = all_workspace_names()
+    # delete the workspaces this test creates, also when it fails
+    request.addfinalizer(lambda: clear_buffer(keep=workspaces_before))
     reduction_input = {
         "instrumentName": "GPSANS",
         "iptsNumber": "24727",
@@ -100,4 +103,3 @@ def test_timeslice(datarepo_dir, temp_directory):
     with pytest.raises(NoDataProcessedError) as e:
         reduce_single_configuration(loaded, reduction_input)
     assert "No data was processed. Check the input data." in str(e.value)
-    mtd.clear()

@@ -5,7 +5,6 @@ import json
 import numpy as np
 import numexpr
 import os
-import warnings
 
 
 r""" Hyperlinks to mantid algorithms
@@ -46,6 +45,7 @@ from mantid.simpleapi import (
     SaveNexus,
 )
 from mantid.api import FileLoaderRegistry, mtd
+from mantid.kernel import logger
 
 r"""
 Hyperlinks to drtsans functions
@@ -171,15 +171,14 @@ class BarPositionFormula:
         -------
         str
 
-        Warnings
-        --------
-        UserWarning
-            When ```instrument_component``` is not found in the default instrument formulae.
+        Notes
+        -----
+        A warning is logged when ```instrument_component``` is not found in the default instrument formulae.
         """
         default_formula = BarPositionFormula._default_formula
         default_formulae = BarPositionFormula._default_formulae
         if instrument_component not in default_formulae:
-            warnings.warn(
+            logger.warning(
                 f"Unable to find a bar position formula for argument {instrument_component}.\n"
                 f"Using default formula: {default_formula}.\n"
                 f"Valid values are {default_formulae.keys()}\n"
@@ -207,7 +206,7 @@ class BarPositionFormula:
         if "{y}" not in formula:
             raise ValueError('Formula does not contain "{y}", e.g. formula = "565-{y}+0.008*(191-{tube})"')
         if "{tube}" not in formula:
-            warnings.warn('Formula does not contain "{tube}", e.g. formula = "565-{y}+0.008*(191-{tube})"')
+            logger.warning('Formula does not contain "{tube}", e.g. formula = "565-{y}+0.008*(191-{tube})"')
             formula += " + 0.0 * {tube}"
         return formula
 
@@ -874,7 +873,7 @@ def apply_calibrations(
                 calibration = load_calibration(input_workspace, caltype, component, database=database)
             except CalibrationNotFound as e:
                 calibration = None
-                warnings.warn(str(e))
+                logger.warning(str(e))
             if calibration is not None:
                 calibration.apply(output_workspace)
 
@@ -1515,6 +1514,8 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
     We must find these outliers and assign them as incorrect. We use a linear fit to find out outliers.
 
     Fixes to corner cases are skippedd for bad tubes (see ~drtsans.pixel_calibration.bad_tube).
+    Corner case 2 is also skipped for tubes with fewer than two distinct valid bar positions, since no line can be
+    fitted.
 
     devs - Jose Borreguero <borreguerojm@ornl.gov>
 
@@ -1554,11 +1555,13 @@ def resolve_incorrect_pixel_assignments(bottom_shadow_pixels, bar_positions):
         # Filter out bad pixels
         y_correct = y[y != INCORRECT_PIXEL_ASSIGNMENT]
         x_correct = x[y != INCORRECT_PIXEL_ASSIGNMENT]  # bar positions, in mili-meters
-        # Linear fit between bar positions in pixel coordinates and mili-meters
-        try:
-            coefficients = np.polynomial.polynomial.polyfit(x_correct, y_correct, 1)
-        except TypeError:  # empty array `x_correct`, meaning this tube was masked or malfunctioning
+        # A line needs at least two distinct bar positions. Tubes with fewer valid points (masked, malfunctioning, or
+        # with the bar edge not found) later receive the average positions and heights of the good tubes.
+        if np.unique(x_correct).size < 2:
+            logger.debug(f"Tube {tube_index} has fewer than two valid bar positions; skipping the linear fit")
             continue
+        # Linear fit between bar positions in pixel coordinates and mili-meters
+        coefficients = np.polynomial.polynomial.polyfit(x_correct, y_correct, 1)
         # Find residuals of correct pixels
         y_fitted = np.polynomial.polynomial.polyval(x_correct, coefficients)
         residuals = np.abs(y_correct - y_fitted)  # deviations between the linear fit and the actual positions
@@ -1656,7 +1659,7 @@ def calculate_apparent_tube_width(flood_input, component="detector1", load_barsc
     count_densities = list()
     for tube in collection:
         weighted_intensities = tube.readY.ravel() / tube.pixel_heights
-        d = np.mean(weighted_intensities[~tube.isMasked])
+        d = np.nan if np.all(tube.isMasked) else np.mean(weighted_intensities[~tube.isMasked])
         count_densities.append(d)
     count_densities = np.array(count_densities)  # is convenient to cast densities into a numpy array data structure.
 

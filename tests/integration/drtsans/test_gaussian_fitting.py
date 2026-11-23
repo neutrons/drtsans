@@ -7,6 +7,7 @@ import lmfit
 import pytest
 import json
 import os
+import warnings
 
 
 # defining 2D Gaussian fitting functions
@@ -17,6 +18,13 @@ def Gaussian2D(x1, y1, amp, sigma_x, sigma_y, theta, x0, y0):
     amplitude = amp / (np.sqrt(2.0 * np.pi) * np.sqrt(sigma_x * sigma_y))
     val = amplitude * np.exp(-(a * (x1 - x0) ** 2 + 2.0 * b * (x1 - x0) * (y1 - y0) + c * (y1 - y0) ** 2))
     return val
+
+
+def _reference_fit(model, intes, x, y, intes_err, params):
+    """Fit with lmfit directly, ignoring the zero-uncertainty warning for the fixed parameter ``theta``"""
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="Using UFloat objects with std_dev==0", category=UserWarning)
+        return model.fit(intes, x1=x, y1=y, weights=1.0 / intes_err, params=params)
 
 
 def test_gaussian_fit(datarepo_dir, temp_directory):
@@ -90,7 +98,7 @@ def test_gaussian_fit(datarepo_dir, temp_directory):
     params.add("x0", value=0.0)
     params.add("y0", value=0.0)
     params["theta"].vary = False
-    results = model.fit(intes, x1=x, y1=y, weights=1.0 / intes_err, params=params)
+    results = _reference_fit(model, intes, x, y, intes_err, params)
 
     x0, y0, _, fit_results = sans.find_beam_center(
         ws,
@@ -107,7 +115,7 @@ def test_gaussian_fit(datarepo_dir, temp_directory):
     assert fit_results["theta"]["value"] == pytest.approx(np.pi / 2.0)
 
     params["theta"].value = 0.0
-    results = model.fit(intes, x1=x, y1=y, weights=1.0 / intes_err, params=params)
+    results = _reference_fit(model, intes, x, y, intes_err, params)
     x0, y0, _, fit_results = sans.find_beam_center(
         ws,
         method="gaussian",

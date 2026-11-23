@@ -1,14 +1,23 @@
 # local imports
-from drtsans.beam_finder import BeamCenterNotFound, _calculate_neutron_drop, fbc_options_json, find_beam_center
+from drtsans.beam_finder import (
+    BeamCenterNotFound,
+    _calculate_neutron_drop,
+    _find_beam_center_gaussian,
+    _Gaussian2D,
+    fbc_options_json,
+    find_beam_center,
+)
 from drtsans.mono.biosans.beam_finder import find_beam_center as biosans_find_beam_center
 from drtsans.redparams import reduction_parameters
 
 # third party imports
+from mantid.simpleapi import CreateSampleWorkspace
 import numpy as np
 from numpy.testing import assert_almost_equal
 import pytest
 
 # standard imports
+import warnings
 
 
 # EQSANS beam center assumed when a fit fails, in meters
@@ -27,6 +36,33 @@ def test_calculate_neutron_drop():
     wavelength = 18.0  # Angstrom
     gravity_drop = _calculate_neutron_drop(path_length, wavelength)
     assert_almost_equal(gravity_drop, 0.02284, decimal=4)
+
+
+def test_find_beam_center_gaussian_fixed_parameter(clean_workspace):
+    """Fitting with a fixed parameter, as allowed by gaussian_centering_options, emits no UFloat warning"""
+    ws = CreateSampleWorkspace(
+        WorkspaceType="Histogram",
+        NumBanks=1,
+        BankPixelWidth=20,
+        XMin=0.0,
+        XMax=1.0,
+        BinWidth=1.0,
+        OutputWorkspace=clean_workspace("gaussian_fixed_parameter"),
+    )
+    spectrum_info = ws.spectrumInfo()
+    center_x, center_y = 0.03, 0.04  # meters
+    for index in range(ws.getNumberHistograms()):
+        position = spectrum_info.position(index)
+        intensity = _Gaussian2D(position.X(), position.Y(), 100.0, 0.02, 0.02, 0.0, center_x, center_y) + 1.0
+        ws.mutableY(index)[0] = intensity
+        ws.mutableE(index)[0] = np.sqrt(intensity)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        x, y, results = _find_beam_center_gaussian(ws, {"theta": {"value": 0.0, "vary": False}})
+    assert x == pytest.approx(center_x, abs=1e-3)
+    assert y == pytest.approx(center_y, abs=1e-3)
+    assert results["theta"]["stderr"] == 0
+    assert np.isfinite(results["CenterX"]["stderr"])
 
 
 @pytest.fixture

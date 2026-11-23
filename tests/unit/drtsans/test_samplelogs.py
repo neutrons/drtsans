@@ -1,7 +1,10 @@
 from os.path import join as pjn
+import warnings
 
+import numpy as np
 import pytest
 from mantid.api import Run
+from mantid.kernel import FloatTimeSeriesProperty, Int32TimeSeriesProperty
 from mantid.simpleapi import CreateWorkspace, LoadNexusProcessed
 from numpy.testing import assert_almost_equal
 
@@ -212,6 +215,16 @@ class TestSampleLogs:
         assert_almost_equal(sl.single_value("proton_charge"), sl._run.getStatistics("proton_charge").mean, decimal=0)
         with pytest.raises(RuntimeError):
             sl.single_value("log_does_not_exist")
+
+    @pytest.mark.parametrize("property_type", [FloatTimeSeriesProperty, Int32TimeSeriesProperty])
+    def test_single_value_empty_time_series(self, clean_workspace, property_type):
+        """An empty numeric time series yields NaN without a RuntimeWarning from averaging an empty array"""
+        ws = CreateWorkspace(dataX=[1.0], dataY=[42.0])
+        clean_workspace(ws)
+        ws.mutableRun().addProperty("empty_log", property_type("empty_log"), True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            assert np.isnan(SampleLogs(ws).single_value("empty_log"))
 
     @pytest.mark.datarepo
     def test_records_json(self, datarepo_dir, clean_workspace):

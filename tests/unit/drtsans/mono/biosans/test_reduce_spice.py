@@ -1,8 +1,10 @@
 from unittest import mock
 
+from mantid.kernel import config
+from mantid.simpleapi import CreateSingleValuedWorkspace, GroupWorkspaces, mtd
 import pytest
 
-from drtsans.mono.biosans.reduce_spice import reduce_biosans_nexus
+from drtsans.mono.biosans.reduce_spice import all_workspace_names, clear_buffer, reduce_biosans_nexus
 
 
 class _StopReduction(Exception):
@@ -34,3 +36,59 @@ def test_spice_reduction_auto_wedge_options(keywords, expected, tmp_path):
     configuration = mock_parameters.call_args.args[0]["configuration"]
     assert configuration["autoWedgeSignalToNoiseMin"] == 2.0
     assert (configuration["autoWedgeContrastMin"], configuration["autoWedgeCenterTolerance"]) == expected
+
+
+@pytest.mark.parametrize("show_hidden", ["0", "1"])
+def test_clear_buffer(clean_workspace, show_hidden):
+    """clear_buffer deletes visible and hidden workspaces, except those in ``keep``, whatever the Mantid setting"""
+    setting = "MantidOptions.InvisibleWorkspaces"
+    original = config[setting]
+    config[setting] = show_hidden
+    try:
+        workspaces_before = set(all_workspace_names())  # may belong to other tests running in this process
+        names = ["visible", "kept", "member1", "member2", "__hidden", "__kept_hidden"]
+        for name in names:
+            CreateSingleValuedWorkspace(1.0, OutputWorkspace=clean_workspace(name))
+        GroupWorkspaces(InputWorkspaces="member1,member2", OutputWorkspace=clean_workspace("group"))
+        assert {"__hidden", "__kept_hidden"} <= set(all_workspace_names())
+
+        clear_buffer(keep=workspaces_before | {"kept", "__kept_hidden"})
+        remaining = {name for name in names + ["group"] if mtd.doesExist(name)}
+        assert remaining == {"kept", "__kept_hidden"}
+        assert all(mtd.doesExist(name) for name in workspaces_before)
+        assert config[setting] == show_hidden
+    finally:
+        config[setting] = original
+
+
+def test_clear_buffer_keeps_group_members(clean_workspace):
+    """Keeping a workspace group keeps its members, including those of nested groups, so the group survives"""
+    workspaces_before = set(all_workspace_names())  # may belong to other tests running in this process
+    for name in ["member1", "member2", "member3", "unrelated"]:
+        CreateSingleValuedWorkspace(1.0, OutputWorkspace=clean_workspace(name))
+    GroupWorkspaces(InputWorkspaces="member1,member2", OutputWorkspace=clean_workspace("inner"))
+    GroupWorkspaces(InputWorkspaces="member3", OutputWorkspace=clean_workspace("outer"))
+    mtd.addToGroup("outer", "inner")  # GroupWorkspaces would flatten "inner" into "outer"
+
+    clear_buffer(keep=workspaces_before | {"outer"})
+    remaining = {name for name in ["outer", "inner", "member1", "member2", "member3", "unrelated"] if name in mtd}
+    assert remaining == {"outer", "inner", "member1", "member2", "member3"}
+
+
+def test_clear_buffer_without_keep():
+    """Without ``keep``, clear_buffer deletes every workspace still registered, hidden ones included"""
+    module = "drtsans.mono.biosans.reduce_spice"
+    registered = {"__hidden", "member1", "member2", "group", "visible"}
+
+    def remove(name):
+        registered.discard(name)
+        if not registered & {"member1", "member2"}:
+            registered.discard("group")  # Mantid removes a group together with its last member
+
+    with mock.patch(f"{module}.mtd") as mock_mtd, mock.patch(f"{module}.all_workspace_names") as mock_names:
+        mock_names.return_value = ["__hidden", "member1", "member2", "group", "visible"]
+        mock_mtd.doesExist.side_effect = lambda name: name in registered
+        mock_mtd.remove.side_effect = remove
+        clear_buffer()
+    assert [call.args[0] for call in mock_mtd.remove.call_args_list] == ["__hidden", "member1", "member2", "visible"]
+    assert registered == set()

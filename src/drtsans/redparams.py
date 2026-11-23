@@ -6,27 +6,23 @@ import itertools
 import json
 import os
 import re
-import warnings
 
 # third-party imports
 import jsonschema
 from jsonschema.exceptions import relevance, ValidationError
 from numpy import greater
-from mantid.kernel import logger
+from mantid.kernel import IntArrayProperty, logger
 import referencing
 
-warnings.filterwarnings("ignore")
-from mantid.kernel import IntArrayProperty  # noqa: E404
-
 # drtsans imports
-from drtsans import configdir  # noqa: E404, non-source files
-from drtsans.expressions import ExpressionError, parse_expression  # noqa: E404
+from drtsans import configdir
+from drtsans.expressions import ExpressionError, parse_expression
 from drtsans.instruments import (
     instrument_filesystem_name,
     instrument_standard_name,
     instrument_standard_names,
-)  # noqa: E404
-from drtsans.path import abspath, abspaths  # noqa: E404
+)
+from drtsans.path import abspath, abspaths
 
 COMMON_SCHEMA_FILEPATH = os.path.join(configdir, "schema", "common.json")
 
@@ -722,7 +718,7 @@ class ReductionParameters:
     def __setitem__(self, key, value):
         top_match = self._entries.top_match(key)
         if top_match != key:
-            warnings.warn(f'{key} not found in the parameters dictionary. Closest match is "{top_match}"')
+            logger.warning(f'{key} not found in the parameters dictionary. Closest match is "{top_match}"')
         self._parameters.__setitem__(key, value)
 
     def initialize_validator(self):

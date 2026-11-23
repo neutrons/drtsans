@@ -13,6 +13,7 @@ from numpy.testing import assert_array_almost_equal
 
 # package imports
 from drtsans.load import __monitor_counts, load_events
+from drtsans.mono.load import load_and_split
 from drtsans.samplelogs import SampleLogs, periodic_index_log
 
 
@@ -109,6 +110,44 @@ def test_periodic_timeslice_log(temp_workspace_name, ID, time_interval, duration
         # and again, [0 : 60 / 8 = 7.5 : 1]
         assert log.lastValue() == np.floor((60 - 42) / 8)
         assert max(log.value) == np.floor(60 / 8)
+
+
+@pytest.mark.datarepo
+def test_time_slice_metadata_with_load_time_cutoffs(datarepo_dir):
+    """Slices emptied by FilterByTimeStart/FilterByTimeStop are removed; the remaining slices keep their windows."""
+    # Arrange: 300 s GPSANS run. Slices every 15 s from 5 s; only events between 40 s and 100 s are loaded,
+    # so the slices 5-20 s and 20-35 s are empty and removed, as are all slices after 110 s.
+    filename = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
+    existing_workspaces = set(mtd.getObjectNames())
+
+    try:
+        # Act
+        split_group = load_and_split(
+            filename,
+            sample_to_si_name="CG2:CS:SampleToSi",
+            si_nominal_distance=0.0,
+            time_interval=15.0,
+            time_offset=5.0,
+            output_workspace="time_slice_metadata_cutoffs",
+            FilterByTimeStart=40.0,
+            FilterByTimeStop=100.0,
+        )
+
+        # Assert
+        assert split_group.getNumberOfEntries() == 5
+        for n, expected_start in enumerate([35.0, 50.0, 65.0, 80.0, 95.0]):
+            slice_workspace = split_group.getItem(n)
+            sample_logs = SampleLogs(slice_workspace)
+            assert sample_logs.slice_start.value == pytest.approx(expected_start)
+            assert sample_logs.slice_end.value == pytest.approx(expected_start + 15.0)
+            # the first pulse of the slice lies inside its recorded window
+            run_start = slice_workspace.run().startTime()
+            first_pulse = (sample_logs["proton_charge"].firstTime() - run_start).totalNanoseconds() / 1e9
+            assert expected_start - 1e-3 <= first_pulse < expected_start + 15.0
+    finally:
+        for name in set(mtd.getObjectNames()) - existing_workspaces:
+            if mtd.doesExist(name):
+                mtd.remove(name)
 
 
 class TestLoadEvents:

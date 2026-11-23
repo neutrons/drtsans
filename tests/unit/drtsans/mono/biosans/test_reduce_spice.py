@@ -61,11 +61,34 @@ def test_clear_buffer(clean_workspace, show_hidden):
         config[setting] = original
 
 
+def test_clear_buffer_keeps_group_members(clean_workspace):
+    """Keeping a workspace group keeps its members, including those of nested groups, so the group survives"""
+    workspaces_before = set(all_workspace_names())  # may belong to other tests running in this process
+    for name in ["member1", "member2", "member3", "unrelated"]:
+        CreateSingleValuedWorkspace(1.0, OutputWorkspace=clean_workspace(name))
+    GroupWorkspaces(InputWorkspaces="member1,member2", OutputWorkspace=clean_workspace("inner"))
+    GroupWorkspaces(InputWorkspaces="member3", OutputWorkspace=clean_workspace("outer"))
+    mtd.addToGroup("outer", "inner")  # GroupWorkspaces would flatten "inner" into "outer"
+
+    clear_buffer(keep=workspaces_before | {"outer"})
+    remaining = {name for name in ["outer", "inner", "member1", "member2", "member3", "unrelated"] if name in mtd}
+    assert remaining == {"outer", "inner", "member1", "member2", "member3"}
+
+
 def test_clear_buffer_without_keep():
     """Without ``keep``, clear_buffer deletes every workspace still registered, hidden ones included"""
     module = "drtsans.mono.biosans.reduce_spice"
+    registered = {"__hidden", "member1", "member2", "group", "visible"}
+
+    def remove(name):
+        registered.discard(name)
+        if not registered & {"member1", "member2"}:
+            registered.discard("group")  # Mantid removes a group together with its last member
+
     with mock.patch(f"{module}.mtd") as mock_mtd, mock.patch(f"{module}.all_workspace_names") as mock_names:
-        mock_names.return_value = ["__hidden", "group", "member1", "visible"]
-        mock_mtd.doesExist.side_effect = lambda name: name != "member1"  # deleted along with "group"
+        mock_names.return_value = ["__hidden", "member1", "member2", "group", "visible"]
+        mock_mtd.doesExist.side_effect = lambda name: name in registered
+        mock_mtd.remove.side_effect = remove
         clear_buffer()
-    assert [call.args[0] for call in mock_mtd.remove.call_args_list] == ["__hidden", "group", "visible"]
+    assert [call.args[0] for call in mock_mtd.remove.call_args_list] == ["__hidden", "member1", "member2", "visible"]
+    assert registered == set()

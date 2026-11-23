@@ -2,6 +2,7 @@ import os
 from typing import Iterable, List, Optional, Tuple, Union
 import numpy as np
 import time
+from mantid.api import WorkspaceGroup
 from mantid.kernel import config
 from mantid.simpleapi import mtd
 from drtsans.mono.spice_data import map_to_nexus
@@ -41,11 +42,18 @@ def clear_buffer(keep: Optional[Iterable[str]] = None) -> None:
     ----------
     keep
         Names of workspaces to keep, visible or hidden, for instance those present before a reduction started
-        (see :func:`all_workspace_names`). If :py:obj:`None`, all workspaces are deleted.
+        (see :func:`all_workspace_names`). If :py:obj:`None`, all workspaces are deleted. The members of a kept
+        workspace group are also kept.
     """
     keep = set() if keep is None else set(keep)
+    # Mantid removes a group when its last member is removed, so kept groups must also keep their members
+    groups = [name for name in keep if mtd.doesExist(name) and isinstance(mtd[name], WorkspaceGroup)]
+    while groups:
+        members = set(mtd[groups.pop()].getNames()) - keep
+        keep |= members
+        groups += [name for name in members if isinstance(mtd[name], WorkspaceGroup)]  # nested groups
     for name in all_workspace_names():
-        # deleting a group workspace also deletes its members, which may come later in the list
+        # removing the last member of a group also removes the group, which may come later in the list
         if name not in keep and mtd.doesExist(name):
             mtd.remove(name)
 

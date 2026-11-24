@@ -409,7 +409,7 @@
     },
     "timeSliceInterval": {
       "$ref": "common.json#/definitions/safeStringPositiveFloatOrArray",
-      "description": "Length of the time slices, in seconds: a single number, or a list giving consecutive slices of the listed lengths"
+      "description": "Length of the time slices, in seconds: a single number, or a list giving consecutive slices of the listed lengths. The last value is repeated until the run is covered, and the final slice absorbs the time left at the run end"
     },
     "timeSliceOffset": {
       "$ref": "common.json#/definitions/safeStringNonNegativeFloat",

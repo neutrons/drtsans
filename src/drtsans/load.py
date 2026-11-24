@@ -556,9 +556,10 @@ def load_and_split(
         num_events = split_ws.getNumberEvents()
         if num_events == 0:
             logger.notice(f"Remove empty sliced workspace {str(split_ws)}")
-            mtd[output_workspace].remove(str(split_ws))
+            # deleting from the AnalysisDataService also removes the workspace from its group
+            AnalysisDataService.remove(str(split_ws))
             if monitors:
-                mtd[output_workspace + "_monitors"].remove(split_monitors[i])
+                AnalysisDataService.remove(split_monitors[i])
 
     # Inject metadata using the strategy
     filter_strategy.inject_metadata(output_workspace)

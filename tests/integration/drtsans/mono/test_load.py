@@ -305,7 +305,7 @@ def test_load_biosans_overwrite_sdd(datarepo_dir, clean_workspace):
 
 @pytest.mark.datarepo
 def test_time_slice_metadata_with_load_time_cutoffs(datarepo_dir):
-    """Slices emptied by FilterByTimeStart/FilterByTimeStop are removed; the remaining slices keep their windows."""
+    """Slices emptied by FilterByTimeStart/FilterByTimeStop are deleted; the remaining slices keep their windows."""
     # Arrange: 300 s GPSANS run. Slices every 15 s from 5 s; only events between 40 s and 100 s are loaded,
     # so the slices 5-20 s and 20-35 s are empty and removed, as are all slices after 110 s.
     filename = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
@@ -326,6 +326,12 @@ def test_time_slice_metadata_with_load_time_cutoffs(datarepo_dir):
 
         # Assert
         assert split_group.getNumberOfEntries() == 5
+        # the removed empty slices and their monitor slices are deleted, not only taken out of their groups
+        monitor_group = mtd["time_slice_metadata_cutoffs_monitors"]
+        kept = {split_group.name(), monitor_group.name()}
+        kept |= set(split_group.getNames()) | set(monitor_group.getNames())
+        created = set(mtd.getObjectNames()) - existing_workspaces
+        assert {name for name in created if name.startswith("time_slice_metadata_cutoffs")} == kept
         for n, expected_start in enumerate([35.0, 50.0, 65.0, 80.0, 95.0]):
             slice_workspace = split_group.getItem(n)
             sample_logs = SampleLogs(slice_workspace)

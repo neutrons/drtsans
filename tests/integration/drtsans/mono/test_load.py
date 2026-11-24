@@ -2,12 +2,12 @@
 import pytest
 import os
 import numpy as np
-from drtsans.mono.load import load_events
+from drtsans.mono.load import load_and_split, load_events
 from drtsans.mono.meta_data import get_sample_detector_offset
 from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import sample_detector_distance
 from drtsans.load import move_instrument
-from mantid.simpleapi import AddSampleLogMultiple
+from mantid.simpleapi import AddSampleLogMultiple, mtd
 
 
 def test_load_gpsans(datarepo_dir, clean_workspace):
@@ -301,6 +301,50 @@ def test_load_biosans_overwrite_sdd(datarepo_dir, clean_workspace):
     # verify the values from calculated and from meta data are identical
     sample_det_distance_meta = sample_detector_distance(ws, unit="mm", search_logs=True)
     assert sample_det_distance_cal == pytest.approx(sample_det_distance_meta * 1e-3, 1e-7)
+
+
+@pytest.mark.datarepo
+def test_time_slice_metadata_with_load_time_cutoffs(datarepo_dir):
+    """Slices emptied by FilterByTimeStart/FilterByTimeStop are deleted; the remaining slices keep their windows."""
+    # Arrange: 300 s GPSANS run. Slices every 15 s from 5 s; only events between 40 s and 100 s are loaded,
+    # so the slices 5-20 s and 20-35 s are empty and removed, as are all slices after 110 s.
+    filename = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
+    existing_workspaces = set(mtd.getObjectNames())
+
+    try:
+        # Act
+        split_group = load_and_split(
+            filename,
+            sample_to_si_name="CG2:CS:SampleToSi",
+            si_nominal_distance=0.0,
+            time_interval=15.0,
+            time_offset=5.0,
+            output_workspace="time_slice_metadata_cutoffs",
+            FilterByTimeStart=40.0,
+            FilterByTimeStop=100.0,
+        )
+
+        # Assert
+        assert split_group.getNumberOfEntries() == 5
+        # the removed empty slices and their monitor slices are deleted, not only taken out of their groups
+        monitor_group = mtd["time_slice_metadata_cutoffs_monitors"]
+        kept = {split_group.name(), monitor_group.name()}
+        kept |= set(split_group.getNames()) | set(monitor_group.getNames())
+        created = set(mtd.getObjectNames()) - existing_workspaces
+        assert {name for name in created if name.startswith("time_slice_metadata_cutoffs")} == kept
+        for n, expected_start in enumerate([35.0, 50.0, 65.0, 80.0, 95.0]):
+            slice_workspace = split_group.getItem(n)
+            sample_logs = SampleLogs(slice_workspace)
+            assert sample_logs.slice_start.value == pytest.approx(expected_start)
+            assert sample_logs.slice_end.value == pytest.approx(expected_start + 15.0)
+            # the first pulse of the slice lies inside its recorded window
+            run_start = slice_workspace.run().startTime()
+            first_pulse = (sample_logs["proton_charge"].firstTime() - run_start).totalNanoseconds() / 1e9
+            assert expected_start - 1e-3 <= first_pulse < expected_start + 15.0
+    finally:
+        for name in set(mtd.getObjectNames()) - existing_workspaces:
+            if mtd.doesExist(name):
+                mtd.remove(name)
 
 
 if __name__ == "__main__":

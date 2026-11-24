@@ -15,6 +15,9 @@ If wedge binning is selected, the wedge label appears between the slice and fram
 e.g. ``myFileName_0_wedge_0_frame_0_Iq.dat``. PNG plot filenames follow the
 same convention as the corresponding reduced data files.
 
+.. contents:: Contents
+   :local:
+
 Time Slicing
 ------------
 
@@ -63,6 +66,9 @@ Example 2: Slicing using time interval and offset
    :alt: Diagram of time slicing using an interval and offset
    :width: 800px
 
+Events recorded before ``timeSliceOffset`` (here 0-1 s) are discarded. When the remaining run is not an
+exact multiple of ``timeSliceInterval``, the last slice is shorter (here slice 4, from 9 s to 10 s).
+
 Example 3: Slicing using time slice period
 ++++++++++++++++++++++++++++++++++++++++++
 
@@ -82,7 +88,25 @@ In the figure, red slices are reduced together, and blue slices are reduced toge
    :alt: Diagram of time slicing using an interval and a period
    :width: 800px
 
-Note: if the time slice interval is a non-integer multiple of the period, then the remainder will be the last of the slices. In the example below, there will be two 3 second slices, then one 2 second slice.
+The offset also applies to periodic slicing. With ``"timeSliceOffset": 1.0`` and the same interval and
+period, the first period starts at 1 s and the last window (9-10 s) is shorter:
+
+.. code-block:: json
+
+    {
+        "useTimeSlice": true,
+        "timeSliceInterval": 2.0,
+        "timeSliceOffset": 1.0,
+        "timeSlicePeriod": 4.0,
+    }
+
+.. figure:: media/time_slicing_offset_period.png
+   :alt: Diagram of time slicing using an interval, an offset and a period
+   :width: 800px
+
+Note: if the period is not an integer multiple of the time slice interval, then the remainder of each period
+forms its last, shorter slice. In the example below, each period holds two 3 second slices, then one
+2 second slice.
 
 .. code-block:: json
 
@@ -125,8 +149,7 @@ Event Filtering for BIOSANS and GPSANS
 
 BIOSANS and GPSANS (HFIR monochromatic instruments) also support event filtering using
 ``loadOptions``. The same ``FilterByTimeStart`` and ``FilterByTimeStop`` parameters can be used
-to filter events before reduction. These options are passed directly to the Mantid algorithm
-``LoadEventAsWorkspace2D``.
+to filter events before reduction.
 
 Example for BIOSANS or GPSANS:
 
@@ -140,14 +163,90 @@ Example for BIOSANS or GPSANS:
         }
     }
 
-When using ``loadOptions`` with time slicing on HFIR instruments, the time filtering is applied
-first during loading, and then the time slicing is applied to the filtered events. This allows for
-fine-grained control over which portion of the run to analyze.
+As for EQSANS (Example 4), the load-time cutoffs and the time slices are independent. Events outside
+``FilterByTimeStart`` and ``FilterByTimeStop`` are discarded during loading, but the slices still start at
+``timeSliceOffset`` after the run start, whatever the value of ``FilterByTimeStart``. Slices that fall
+outside the cutoffs hold no events; see `Empty and partially filled slices`_.
 
 .. note::
    The ``FilterByTimeStart`` and ``FilterByTimeStop`` parameters specify times in seconds relative
-   to the start of the run. For HFIR instruments (BIOSANS and GPSANS), these options are passed to
-   ``LoadEventAsWorkspace2D``, while for SNS instruments (EQSANS), they are passed to ``LoadEventNexus``.
+   to the start of the run. When the run is split (time slicing, log slicing, or polarization on GPSANS), these
+   options are passed to ``LoadEventNexus`` for all instruments. When the run is not split, they are passed
+   to ``LoadEventAsWorkspace2D`` for HFIR instruments (BIOSANS and GPSANS) and to ``LoadEventNexus`` for
+   EQSANS.
+
+Empty and partially filled slices
++++++++++++++++++++++++++++++++++
+
+Slices that hold no events, because they fall outside the load-time cutoffs or during a period without
+beam, are dropped and not reduced. The output suffix (``_0``, ``_1``, ...) counts only the remaining
+slices, so ``_0`` is not necessarily the first time window of the run. If only one slice remains, the
+output files have no suffix.
+
+A slice can also be skipped during the reduction, with a warning in the log: on BIOSANS and GPSANS when its
+monitor counts are zero, on BIOSANS also when its time-slice transmission fails the transmission checks, and
+on EQSANS when its neutron flux is zero. The suffixes are not renumbered, so the written files then have a
+gap in their suffixes where a slice was skipped.
+
+A slice that straddles a cutoff keeps only part of its window. Its ``duration`` and ``proton_charge``
+sample logs cover only the time it actually holds, so the normalization uses its actual exposure.
+
+In the example below, a 60 s run is sliced every 10 s and only the events after 25 s are loaded. The windows
+0-10 s and 10-20 s are dropped. The window 20-30 s, which holds the events from 25 s to 30 s, is written
+with suffix ``_0``, and the windows 30-40 s, 40-50 s and 50-60 s with suffixes ``_1``, ``_2`` and ``_3``.
+
+.. code-block:: json
+
+    {
+        "sample": {
+            "loadOptions": {"FilterByTimeStart": 25.0}
+        },
+        "configuration": {
+            "useTimeSlice": true,
+            "timeSliceInterval": 10.0,
+            "timeSliceOffset": 0.0,
+            "timeSlicePeriod": null,
+        }
+    }
+
+.. figure:: media/time_slicing_empty_slices.png
+   :alt: Diagram of time slicing with empty slices removed
+   :width: 800px
+
+With periodic slicing, an empty window does not remove a slice, because each slice also collects the events
+of the same window in the other periods. In the figure of Example 4, the empty window 0-2 s belongs to slice 0,
+which still holds the events recorded from 4 s to 6 s and from 8 s to 8.71 s.
+
+Slice metadata
+++++++++++++++
+
+Each slice receives the following sample logs:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Sample log
+     - Meaning
+   * - ``slice_start``, ``slice_end``
+     - Time slicing: start and end of the slice's window, in seconds from the run start. This is the full
+       window even when the slice is only partly filled, and the last slice may end slightly after the run end.
+       Periodic slicing: start and end of the window, in seconds from the start of each period. Log slicing: lower and upper
+       values of the sample log, in the log's units.
+   * - ``slice_interval``
+     - Time and periodic slicing: the value of ``timeSliceInterval``, in seconds. Log slicing: the
+       log-value interval.
+   * - ``slice_period``
+     - The value of ``timeSlicePeriod``, in seconds (periodic slicing only).
+   * - ``slice_parameter``
+     - ``relative time from start`` (time slicing), ``periodic time from start`` (periodic slicing), or the
+       name of the sample log (log slicing).
+   * - ``slice``, ``number_of_slices``
+     - Position of the slice, counting from 1, and number of slices. Both count only the remaining slices.
+   * - ``duration``
+     - The exposure the slice actually covers, in seconds.
+
+To place a slice in time, use ``slice_start`` and ``slice_end``, not the output suffix.
 
 Log Slicing
 -----------

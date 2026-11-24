@@ -9,10 +9,42 @@ import re
 from typing import Union, List
 from mantid.simpleapi import GenerateEventsFilter, mtd
 
+from drtsans.dataobjects import workspace_handle
 from drtsans.filterevents.basefilter import FilterStrategy
 from drtsans.filterevents.logfilter import LogValueFilter
 from drtsans.samplelogs import SampleLogs
 from drtsans.type_hints import MantidWorkspace
+
+
+def _splitter_row(workspace_name: str) -> int:
+    """
+    Return the splitter-table row whose events a sliced workspace holds.
+
+    ``FilterEvents`` (with ``OutputWorkspaceIndexedFrom1=True``) names the workspace holding the events
+    of splitter row ``k - 1`` as ``<base>_k``.
+
+    Parameters
+    ----------
+    workspace_name : str
+        Name of a workspace produced by ``FilterEvents``, e.g. ``GPSANS_9166_3``
+
+    Returns
+    -------
+    int
+        Zero-based row index in the splitter table
+
+    Raises
+    ------
+    RuntimeError
+        If the name does not end with ``_k``, ``k`` being a positive integer
+    """
+    _, separator, suffix = workspace_name.rpartition("_")
+    if not separator or not suffix.isdigit() or int(suffix) < 1:
+        raise RuntimeError(
+            f"Cannot find the splitter row of sliced workspace '{workspace_name}': "
+            "expected a name ending in '_k', k being a positive integer"
+        )
+    return int(suffix) - 1
 
 
 class TimeIntervalFilter(FilterStrategy):
@@ -91,12 +123,16 @@ class TimeIntervalFilter(FilterStrategy):
         workspace : MantidWorkspace
             The workspace group (or its name) containing the filtered workspaces
         """
+        workspace_group = workspace_handle(workspace)
         for n, samplelogs, _ in self._inject_common_metadata(workspace):
             samplelogs.insert("slice_parameter", "relative time from start")
             samplelogs.insert("slice_interval", self.time_interval)
 
-            start_time_ns = mtd[self.splitter_workspace].cell(n, 0)
-            end_time_ns = mtd[self.splitter_workspace].cell(n, 1)
+            # Empty slices have already been removed from the group, so the slice's position in the group
+            # no longer matches its row in the splitter table. The row is encoded in the workspace name.
+            row = _splitter_row(workspace_group.getItem(n).name())
+            start_time_ns = mtd[self.splitter_workspace].cell(row, 0)
+            end_time_ns = mtd[self.splitter_workspace].cell(row, 1)
             run_start_ns = samplelogs.startTime().totalNanoseconds()
 
             samplelogs.insert("slice_start", (start_time_ns - run_start_ns) / 1e9, "seconds")

@@ -170,16 +170,23 @@ outside the cutoffs hold no events; see `Empty and partially filled slices`_.
 
 .. note::
    The ``FilterByTimeStart`` and ``FilterByTimeStop`` parameters specify times in seconds relative
-   to the start of the run. With time slicing, these options are passed to ``LoadEventNexus`` for all
-   instruments. Without time slicing, they are passed to ``LoadEventAsWorkspace2D`` for HFIR instruments
-   (BIOSANS and GPSANS) and to ``LoadEventNexus`` for EQSANS.
+   to the start of the run. When the run is split (time slicing, log slicing, or polarization on GPSANS), these
+   options are passed to ``LoadEventNexus`` for all instruments. When the run is not split, they are passed
+   to ``LoadEventAsWorkspace2D`` for HFIR instruments (BIOSANS and GPSANS) and to ``LoadEventNexus`` for
+   EQSANS.
 
 Empty and partially filled slices
 +++++++++++++++++++++++++++++++++
 
 Slices that hold no events, because they fall outside the load-time cutoffs or during a period without
 beam, are dropped and not reduced. The output suffix (``_0``, ``_1``, ...) counts only the remaining
-slices, so ``_0`` is not necessarily the first time window of the run.
+slices, so ``_0`` is not necessarily the first time window of the run. If only one slice remains, the
+output files have no suffix.
+
+A slice can also be skipped during the reduction, with a warning in the log: on BIOSANS and GPSANS when its
+monitor counts are zero, on BIOSANS also when its time-slice transmission fails the transmission checks, and
+on EQSANS when its neutron flux is zero. The suffixes are not renumbered, so the written files then have a
+gap in their suffixes where a slice was skipped.
 
 A slice that straddles a cutoff keeps only part of its window. Its ``duration`` and ``proton_charge``
 sample logs cover only the time it actually holds, so the normalization uses its actual exposure.

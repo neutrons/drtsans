@@ -50,7 +50,8 @@ def create_filter_strategy(
     Raises
     ------
     ValueError
-        If no valid filtering parameters are provided
+        If no valid filtering parameters are provided, or if time_period is combined with a list of more than
+        one time_interval value
 
     Notes
     -----
@@ -64,6 +65,17 @@ def create_filter_strategy(
 
     # Determine filter type based on provided parameters
     if time_interval is not None:
+        # A one-item list of time intervals is the same as a single interval
+        if isinstance(time_interval, (list, tuple)) and len(time_interval) == 1:
+            time_interval = time_interval[0]
+        # Periodic slicing needs a single interval. The same check runs at schema validation
+        # (`_validate_requires_single_interval` in redparams.py); this one covers direct calls to `load_and_split`.
+        if isinstance(time_interval, (list, tuple)) and time_period is not None:
+            raise ValueError(
+                f"time_period ({time_period} s) requires a single time_interval value, but time_interval is a "
+                f"list of {len(time_interval)} values {list(time_interval)}. Periodic slicing cannot use a list "
+                "of interval lengths."
+            )
         # Check if this is periodic time slicing
         if time_period is not None:
             # Periodic time slicing

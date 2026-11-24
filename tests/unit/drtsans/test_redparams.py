@@ -24,6 +24,7 @@ from drtsans.redparams import (
     reduction_parameters,
     resolver_common,
     Suggest,
+    type_selector,
     update_reduction_parameters,
     validate_reduction_parameters,
 )
@@ -181,6 +182,91 @@ def test_auto_wedge_values_kept(instrument_name):
     parameters = {"instrumentName": instrument_name, "configuration": values}
     configuration = reduction_parameters(parameters, validate=False)["configuration"]
     assert {key: configuration[key] for key in values} == values
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [(60, 60.0), ("60", 60.0), (60.0, 60.0), ([120, "30"], [120.0, 30.0]), ((45,), [45.0])],
+    ids=["int", "string", "float", "list", "tuple"],
+)
+def test_type_selector_float_or_float_list(value, expected):
+    # Act
+    cast_value = type_selector("float_or_[float]")(value)
+    # Assert
+    assert cast_value == expected
+    assert type(cast_value) is type(expected)
+
+
+def _time_slice_errors(instrument_name, configuration):
+    r"""Cast and validate `configuration` with the instrument schema. Return the error messages of the time slice
+    entries only, so the test needs no data files."""
+    parameters = reduction_parameters({"instrumentName": instrument_name}, validate=False)
+    parameters["configuration"].update(configuration)
+    reduction_params = ReductionParameters(parameters, load_schema(instrument_name))  # casts the values
+    validator = reduction_params.initialize_validator()
+    errors = validator.iter_errors(reduction_params.parameters)
+    entries = ("timeSliceInterval", "timeSlicePeriod")
+    messages = [error.message for error in errors if set(entries) & set(map(str, error.absolute_path))]
+    return reduction_params.parameters["configuration"], messages
+
+
+@pytest.mark.parametrize("instrument_name", ["BIOSANS", "EQSANS", "GPSANS"])
+@pytest.mark.parametrize(
+    "interval, expected",
+    [(60, 60.0), ("60", 60.0), ([120, "30", 60.5], [120.0, 30.0, 60.5]), ([45], [45.0])],
+    ids=["number", "string", "list", "one-item list"],
+)
+def test_time_slice_interval_accepted(instrument_name, interval, expected):
+    # Act
+    configuration, messages = _time_slice_errors(
+        instrument_name, {"useTimeSlice": True, "timeSliceInterval": interval}
+    )
+    # Assert
+    assert messages == []
+    assert configuration["timeSliceInterval"] == expected
+
+
+@pytest.mark.parametrize("instrument_name", ["BIOSANS", "EQSANS", "GPSANS"])
+@pytest.mark.parametrize(
+    "interval", [[], [-5], [30, None], [30, ""]], ids=["empty", "negative", "null", "empty string"]
+)
+def test_time_slice_interval_rejected(instrument_name, interval):
+    # Act
+    _, messages = _time_slice_errors(instrument_name, {"useTimeSlice": True, "timeSliceInterval": interval})
+    # Assert
+    assert messages
+
+
+@pytest.mark.parametrize("instrument_name", ["BIOSANS", "EQSANS", "GPSANS"])
+def test_time_slice_period_requires_single_interval(instrument_name):
+    # Arrange
+    configuration = {"useTimeSlice": True, "timeSliceInterval": [120, 30, 60], "timeSlicePeriod": 600}
+    # Act
+    _, messages = _time_slice_errors(instrument_name, configuration)
+    # Assert
+    assert messages == [
+        "timeSlicePeriod (600.0 s) requires a single timeSliceInterval value, but timeSliceInterval is a list of 3 "
+        "values [120.0, 30.0, 60.0]. Periodic slicing cannot use a list of interval lengths. Either set "
+        "timeSlicePeriod to null, or give timeSliceInterval a single value."
+    ]
+
+
+@pytest.mark.parametrize("instrument_name", ["BIOSANS", "EQSANS", "GPSANS"])
+@pytest.mark.parametrize(
+    "configuration",
+    [
+        {"useTimeSlice": True, "timeSliceInterval": [120], "timeSlicePeriod": 600},
+        {"useTimeSlice": True, "timeSliceInterval": [120, 30], "timeSlicePeriod": None},
+        {"useTimeSlice": False, "timeSliceInterval": [120, 30], "timeSlicePeriod": 600},
+        {"useTimeSlice": True, "timeSliceInterval": 120, "timeSlicePeriod": 500},
+    ],
+    ids=["one-item list with period", "list without period", "time slicing off", "period not a multiple"],
+)
+def test_time_slice_period_single_interval_accepted(instrument_name, configuration):
+    # Act
+    _, messages = _time_slice_errors(instrument_name, configuration)
+    # Assert
+    assert messages == []
 
 
 class TestReferenceResolver:

@@ -100,3 +100,36 @@ def test_create_filter_strategy():
     # no params → ValueError
     with pytest.raises(ValueError, match="No valid filtering parameters"):
         create_filter_strategy(ws)
+
+
+def test_create_filter_strategy_interval_list():
+    # Arrange
+    ws = MagicMock()
+
+    # Act
+    strategy = create_filter_strategy(ws, time_interval=[10.0, 20.0])
+    # Assert
+    assert isinstance(strategy, TimeIntervalFilter)
+    assert strategy.time_interval == [10.0, 20.0]
+
+    # Act: a one-item list is the same as a single interval
+    strategy = create_filter_strategy(ws, time_interval=[10.0])
+    # Assert
+    assert isinstance(strategy, TimeIntervalFilter)
+    assert strategy.time_interval == 10.0
+
+
+def test_create_filter_strategy_periodic_single_interval():
+    # Arrange
+    ws = MagicMock()
+
+    # Act: a one-item list with a period
+    with patch("drtsans.filterevents.timefilter.PeriodicTimeFilter._create_periodic_log"):
+        strategy = create_filter_strategy(ws, time_interval=[5.0], time_period=60.0)
+    # Assert
+    assert isinstance(strategy, PeriodicTimeFilter)
+    assert strategy.time_interval == 5.0
+
+    # Act and Assert: a list of several intervals with a period
+    with pytest.raises(ValueError, match=r"requires a single time_interval value.+list of 2 values \[5.0, 10.0\]"):
+        create_filter_strategy(ws, time_interval=[5.0, 10.0], time_period=60.0)

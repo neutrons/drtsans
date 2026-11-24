@@ -35,14 +35,15 @@ __all__ = [
 
 def type_selector(preferred_type):  # noqa: C901
     r"""
-    Callable the will cast an object to a preferred type.
+    Return a callable that casts an object to a preferred type.
 
-    Example: type_enforcer('str')(42) returns '42'
+    Example: type_selector('str')(42) returns '42'
 
     Parameters
     ----------
     preferred_type: str
-        One of 'str', 'int', 'float', '[str]', '[float]', '[dict]'
+        One of 'str', 'int', 'float', 'float_or_[float]', 'runstr', '[str]', '[float]', '[dict]'.
+        'float_or_[float]' casts a list or tuple to a list of floats, and any other object to a float.
 
     Returns
     -------
@@ -153,10 +154,36 @@ def type_selector(preferred_type):  # noqa: C901
             instance = instance.replace(run_range, all_runs)
         return instance
 
+    def float_or_float_list(instance):
+        r"""
+        Cast a list or tuple to a list of floats, and any other object to a float
+
+        Examples: ``[120, "30"]`` becomes ``[120.0, 30.0]``, and ``"60"`` becomes ``60.0``. List items that
+        cannot be cast, such as ``None`` or ``""``, are kept unchanged so that schema validation reports them.
+
+        Parameters
+        ----------
+        instance: int, float, str, list, tuple
+
+        Returns
+        -------
+        float, list
+        """
+        if isinstance(instance, (list, tuple)):
+            items = list()
+            for item in instance:
+                try:
+                    items.append(float(item))
+                except (TypeError, ValueError):
+                    items.append(item)
+            return items
+        return float(instance)
+
     # the type_selector cast the input instance to desired data-type
     dispatcher = {
         "int": int,
         "float": float,
+        "float_or_[float]": float_or_float_list,
         "str": str,
         "runstr": run_str,
         "[float]": list_comprehension_exec(float),
@@ -588,6 +615,7 @@ class ReductionParameters:
         "onlyOneTrue": "_validate_only_one_true",
         "pairedTo": "_validate_is_paired_to",
         "pairwiseLessThan": "_validate_pairwise_less_than",
+        "requiresSingleInterval": "_validate_requires_single_interval",
         "sameLen": "_validate_equal_len",
         "scalableComponents": "_validate_components_to_scale",
         "useEntry": "_validate_use_entry",
@@ -1118,6 +1146,44 @@ class ReductionParameters:
             other_instance = self.get_parameter_value(composite_key)
             if other_instance is None:
                 yield jsonschema.ValidationError(f"{composite_key} is empty")
+
+    def _validate_requires_single_interval(self, validator, value, instance, schema):
+        r"""
+        Verify that periodic time slicing is not combined with a list of time slice lengths.
+
+        Example: if 'timeSlicePeriod' is set and 'useTimeSlice' is True, 'timeSliceInterval' must be a single
+        value or a one-item list.
+
+        Parameters
+        ----------
+        validator: ~jsonschema.IValidator
+        value: str
+            composite key of the time slice interval entry, such as '#configuration/timeSliceInterval'.
+        instance: object
+            value of 'timeSlicePeriod', in seconds. Nothing is checked when it is :py:obj:`None`.
+        schema: dict
+            schema related to `instance`
+
+        Raises
+        ------
+        ~jsonschema.ValidationError
+            when the interval entry is a list of more than one value, time slicing is used, and the period is set
+        """
+        if instance is None:
+            return
+        # the interval entry and 'useTimeSlice' belong to the same configuration block
+        use_time_slice_key = value.rsplit("/", 1)[0] + "/useTimeSlice"
+        if not self.get_parameter_value(use_time_slice_key):
+            return
+        interval = self.get_parameter_value(value)
+        if isinstance(interval, (list, tuple)) and len(interval) > 1:
+            period = float(instance)
+            intervals = [float(item) for item in interval]
+            yield jsonschema.ValidationError(
+                f"timeSlicePeriod ({period} s) requires a single timeSliceInterval value, but timeSliceInterval "
+                f"is a list of {len(intervals)} values {intervals}. Periodic slicing cannot use a list of interval "
+                "lengths. Either set timeSlicePeriod to null, or give timeSliceInterval a single value."
+            )
 
     def _validate_only_one_true(self, validator, value, instance, schema):
         r"""

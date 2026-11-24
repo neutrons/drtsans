@@ -153,8 +153,8 @@ def _workspace_without_proton_charge():
 def test_events_end_fallback(mock_workspace_handle, workspace):
     # Arrange
     mock_workspace_handle.return_value = workspace
-    # Act and Assert: the run end is used
-    assert _events_end("workspace", run_duration=300.048) == 300.048
+    # Act and Assert: the run end plus Mantid's default margin of 0.1 s is used
+    assert _events_end("workspace", run_duration=300.048) == pytest.approx(300.148)
 
 
 @patch("drtsans.filterevents.timefilter._events_end", side_effect=lambda _workspace, run_duration: run_duration)

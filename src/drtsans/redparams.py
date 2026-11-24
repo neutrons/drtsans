@@ -1226,11 +1226,11 @@ class ReductionParameters:
         interval = self.get_parameter_value(value)
         if isinstance(interval, (list, tuple)) and len(interval) > 1:
             period = float(instance)
-            intervals = [float(item) for item in interval]
+            # the items are not cast here: an invalid item is reported by the schema, not raised by this check
             yield jsonschema.ValidationError(
                 f"timeSlicePeriod ({period} s) requires a single timeSliceInterval value, but timeSliceInterval "
-                f"is a list of {len(intervals)} values {intervals}. Periodic slicing cannot use a list of interval "
-                "lengths. Either set timeSlicePeriod to null, or give timeSliceInterval a single value."
+                f"is a list of {len(interval)} values {list(interval)}. Periodic slicing cannot use a list of "
+                "interval lengths. Either set timeSlicePeriod to null, or give timeSliceInterval a single value."
             )
 
     def _validate_only_one_true(self, validator, value, instance, schema):

@@ -228,13 +228,27 @@ def test_time_slice_interval_accepted(instrument_name, interval, expected):
 
 @pytest.mark.parametrize("instrument_name", ["BIOSANS", "EQSANS", "GPSANS"])
 @pytest.mark.parametrize(
-    "interval", [[], [-5], [30, None], [30, ""]], ids=["empty", "negative", "null", "empty string"]
+    "interval",
+    [[], [-5], [30, None], [30, ""], [30, "1a2"], [30, "."]],
+    ids=["empty", "negative", "null", "empty string", "not a number", "dot"],
 )
 def test_time_slice_interval_rejected(instrument_name, interval):
     # Act
     _, messages = _time_slice_errors(instrument_name, {"useTimeSlice": True, "timeSliceInterval": interval})
     # Assert
     assert messages
+
+
+@pytest.mark.parametrize("instrument_name", ["BIOSANS", "EQSANS", "GPSANS"])
+@pytest.mark.parametrize("interval", [[30, None], [30, ""], [30, "1a2"]], ids=["null", "empty string", "not a number"])
+def test_time_slice_interval_rejected_with_period(instrument_name, interval):
+    # Arrange: an invalid item, and a period that triggers the single-interval check
+    configuration = {"useTimeSlice": True, "timeSliceInterval": interval, "timeSlicePeriod": 600}
+    # Act: the invalid item is reported as a validation error, not raised by the single-interval check
+    _, messages = _time_slice_errors(instrument_name, configuration)
+    # Assert: the schema reports the invalid item, and the single-interval check reports the list with a period
+    assert any("is not valid under any of the given schemas" in message for message in messages)
+    assert any("requires a single timeSliceInterval value" in message for message in messages)
 
 
 @pytest.mark.parametrize("instrument_name", ["BIOSANS", "EQSANS", "GPSANS"])

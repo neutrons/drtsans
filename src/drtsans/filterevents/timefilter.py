@@ -24,6 +24,10 @@ logger = Logger("drtsans.filterevents.timefilter")
 # Absorbs floating-point rounding only, in seconds. It is not a tolerance on the slice lengths.
 _ROUNDING_TOLERANCE = 1.0e-6
 
+# Margin added to the run end when the pulse period is unknown, in seconds. It is the default of Mantid's
+# GenerateEventsFilter, which drtsans relied on before passing StopTime explicitly.
+_DEFAULT_RUN_END_MARGIN = 0.1
+
 
 def _slice_lengths(
     time_interval: Union[float, List[float]], time_offset: float, run_duration: float
@@ -100,8 +104,8 @@ def _events_end(workspace: MantidWorkspace, run_duration: float) -> float:
     -------
     float
         The later of ``run_duration`` and the last pulse time plus one pulse period. The pulse period is the median
-        spacing of the ``proton_charge`` log entries. ``run_duration`` when the workspace has no pulse times or no
-        such log.
+        spacing of the ``proton_charge`` log entries. When the workspace has no pulse times or no such log,
+        ``run_duration`` plus a margin of 0.1 s, the default of Mantid's ``GenerateEventsFilter``.
     """
     try:
         events = workspace_handle(workspace)
@@ -109,9 +113,9 @@ def _events_end(workspace: MantidWorkspace, run_duration: float) -> float:
         last_pulse_ns = events.getPulseTimeMax().totalNanoseconds() - run.startTime().totalNanoseconds()
         pulse_times = np.asarray(run.getProperty("proton_charge").times, dtype="datetime64[ns]")
     except (AttributeError, KeyError, RuntimeError):  # not an event workspace, or no proton_charge log
-        return run_duration
+        return run_duration + _DEFAULT_RUN_END_MARGIN
     if pulse_times.size < 2:
-        return run_duration
+        return run_duration + _DEFAULT_RUN_END_MARGIN
     pulse_period_ns = float(np.median(np.diff(pulse_times).astype("int64")))
     # an event workspace without events returns a placeholder pulse time long before the run start
     return max(run_duration, (last_pulse_ns + pulse_period_ns) / 1e9)

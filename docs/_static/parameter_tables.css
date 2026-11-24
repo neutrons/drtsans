@@ -1,0 +1,24 @@
+/* Tables of reduction parameter descriptions (DefaultJson.to_rest_table). */
+
+/* Widen the page holding these tables, up to 1600 px instead of the theme's fixed 940 px, so that the tables are
+   about twice as wide. Other pages keep the theme's width. */
+div.document:has(table.parameter-descriptions) {
+    width: auto;
+    max-width: 1600px;
+    margin-left: 2%;
+    margin-right: 2%;
+}
+
+div.body:has(table.parameter-descriptions) {
+    max-width: none;
+}
+
+/* Parameter paths: a smaller font, and wrapping at the zero-width spaces placed after their dots, instead of
+   widening the first column to the longest path. */
+table.parameter-descriptions td:first-child {
+    font-size: 70%;
+}
+
+table.parameter-descriptions span.pre {
+    white-space: normal;
+}

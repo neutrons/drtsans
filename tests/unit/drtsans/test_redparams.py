@@ -703,6 +703,50 @@ configuration:
 """
         assert d == compared
 
+    def test_to_rest_table(self):
+        # Arrange: descriptions with nested properties, a missing description, inline code and markup characters
+        schema = {
+            "properties": {
+                "instrumentName": {"description": "The name of the instrument"},
+                "sample": {
+                    "properties": {
+                        "transmission": {"properties": {"value": {}}},
+                    }
+                },
+                "configuration": {
+                    "properties": {
+                        "wavelengthSpread": {"description": "Spread in Angstrom. `wavelength` must be set"},
+                        "Qmin": {"description": "The minimum |Q| value, in 1/Angstrom"},
+                    }
+                },
+            }
+        }
+        # Act
+        d = DefaultJson(schema, field="description").to_rest_table("BIOSANS")
+        # Assert
+        compared = r"""BIOSANS
+=======
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+   :class: parameter-descriptions
+
+   * - Parameter
+     - Description
+   * - ``instrumentName``
+     - The name of the instrument
+   * - ``sample.~transmission.~value``
+     - -
+   * - ``configuration.~wavelengthSpread``
+     - Spread in Angstrom. ``wavelength`` must be set
+   * - ``configuration.~Qmin``
+     - The minimum \|Q\| value, in 1/Angstrom
+
+"""
+        # the paths have a zero-width space after each dot, written "~" above
+        assert d == compared.replace("~", "\u200b")
+
     def test_property_names(self, default_json):
         compared = {
             "instrumentName",

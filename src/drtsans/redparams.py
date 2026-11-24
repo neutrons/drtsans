@@ -467,6 +467,54 @@ class DefaultJson:
         doc += "   " + def_dict + "\n\n"
         return r"{}".format(doc)
 
+    def to_rest_table(self, title: str) -> str:
+        r"""
+        Represent the parameters as a restructuredtext table of property paths and their values.
+
+        Meant for the descriptions of the parameters (``field="description"``): the descriptions are prose, so a
+        table lets them wrap with the page width. Each nested property appears as its dot-separated path, for
+        instance ``sample.transmission.runNumber``, with a zero-width space after each dot so that a long path can
+        wrap at its dots. The table has the class ``parameter-descriptions``, whose style sheet
+        (``docs/_static/parameter_tables.css``) lets its inline code wrap.
+
+        Parameters
+        ----------
+        title
+            Section title of the table, usually the instrument name
+
+        Returns
+        -------
+        str
+        """
+
+        def rows(parameters: dict, prefix: str = ""):
+            for name, value in parameters.items():
+                if isinstance(value, dict):
+                    yield from rows(value, prefix=f"{prefix}{name}.")
+                else:
+                    yield f"{prefix}{name}", value
+
+        def to_text(value) -> str:
+            # `name` in a description is shown as inline code; other markup characters, such as the bars of
+            # |Q|, are escaped so that they appear as written
+            if value is None or value == "":
+                return "-"
+            parts = re.split(r"`([^`]+)`", str(value))
+            for i, part in enumerate(parts):
+                if i % 2 == 1:
+                    parts[i] = f"``{part}``"
+                else:
+                    parts[i] = re.sub(r"([\\*_|`])", r"\\\1", part)
+            return "".join(parts)
+
+        doc = f"{title}\n" + "=" * len(title) + "\n\n"
+        doc += ".. list-table::\n   :header-rows: 1\n   :widths: 20 80\n   :class: parameter-descriptions\n\n"
+        doc += "   * - Parameter\n     - Description\n"
+        for path, value in rows(self.parameters):
+            breakable_path = path.replace(".", ".\u200b")  # zero-width space: a line break opportunity
+            doc += f"   * - ``{breakable_path}``\n     - {to_text(value)}\n"
+        return doc + "\n"
+
     # private bound methods:
 
     def __init__(self, schema, field="default"):

@@ -443,6 +443,40 @@ def test_reduce_single_configuration_slice_transmission_true(datarepo_dir, temp_
 
 
 @pytest.mark.datarepo
+def test_load_all_files_time_slice_interval_list(datarepo_dir, temp_directory):
+    r"""
+    Verify that `load_all_files` slices the BIOSANS sample run with the list of slice lengths from the original
+    report (issue #1191). The ~600.06 s run is shorter than the list's 1920 s, so the run end cuts the 10th slice
+    short and the last two values are not used.
+    """
+    reduction_input = deepcopy(REDUCTION_INPUT)  # deep copy, so the interval list does not reach other tests
+    reduction_input["configuration"]["useTimeSlice"] = True
+    reduction_input["configuration"]["timeSliceInterval"] = [120, 120, 30, 30, 30, 30, 60, 60, 120, 120, 300, 900]
+    reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
+    reduction_input["configuration"]["outputDir"] = temp_directory(prefix="slice_interval_list")
+    prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
+    try:
+        with amend_config(data_dir=datarepo_dir.biosans):
+            loaded = load_all_files(reduction_input, prefix)
+        windows = [
+            (SampleLogs(ws).slice_start.value, SampleLogs(ws).slice_end.value, SampleLogs(ws).slice_interval.value)
+            for ws in loaded.sample
+        ]
+    finally:
+        clean_all_ws(prefix)
+
+    boundaries = [0, 120, 240, 270, 300, 330, 360, 420, 480, 600]
+    assert len(windows) == len(boundaries)
+    for (start, end, length), expected_start, expected_end in zip(windows, boundaries, boundaries[1:]):
+        assert (start, end, length) == pytest.approx((expected_start, expected_end, expected_end - expected_start))
+    # the 10th slice starts at 600 s and ends just after the run end, instead of at 720 s
+    start, end, length = windows[-1]
+    assert start == pytest.approx(600.0)
+    assert 600.06 <= end < 600.1
+    assert length == pytest.approx(end - start)
+
+
+@pytest.mark.datarepo
 def test_reduce_single_configuration_slice_skip_all(datarepo_dir, temp_directory):
     r"""
     Verify that `reduce_single_configuration` raises `NoDataProcessedError` when every time slice is skipped

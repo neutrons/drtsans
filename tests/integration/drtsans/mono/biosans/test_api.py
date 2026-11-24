@@ -320,6 +320,10 @@ REDUCTION_INPUT = {
 
 @pytest.mark.datarepo
 def test_reduce_single_configuration_slice_transmission_false(datarepo_dir, temp_directory):
+    r"""
+    Verify that `reduce_single_configuration` reduces an unsliced run as a single sample, and that the sample
+    transmission computed from the whole run matches the reference value ~0.9033.
+    """
     reduction_input = REDUCTION_INPUT.copy()
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
     reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_false")
@@ -398,24 +402,26 @@ def test_reduce_single_configuration_slice_transmission_true(datarepo_dir, temp_
     Verify that `reduce_single_configuration` correctly handles time-sliced data when per-slice
     transmission calculation is enabled (`useTimeSlice=True`, `useTimeSliceTransmission=True`).
 
-    The run (~600 s) is divided into 60-second intervals, producing 11 slices. The 11th slice is
-    expected to be skipped because its transmission error exceeds the configured tolerance of 0.05.
-    As a result, only 10 slices appear in the output.
+    The run (~600.06 s) is divided into eleven 60-second intervals, a list longer than the run, so the run end cuts
+    the 11th slice to 0.06 s (a single 60 s interval would absorb that leftover into the 10th slice instead).
+    The 11th slice is expected to be skipped because its transmission error exceeds the configured tolerance of
+    0.05. As a result, only 10 slices appear in the output.
 
     After reduction, the transmission value computed from the last (skipped) slice's sample
     transmission workspace is verified against a known reference value of ~0.7498, using a
     relaxed error tolerance of 3.0 to accommodate the high uncertainty of that slice.
     """
-    reduction_input = REDUCTION_INPUT.copy()
+    reduction_input = deepcopy(REDUCTION_INPUT)  # deep copy, so the interval list does not reach other tests
     reduction_input["configuration"]["useTimeSlice"] = True
     reduction_input["configuration"]["useTimeSliceTransmission"] = True
+    reduction_input["configuration"]["timeSliceInterval"] = [60.0] * 11
     reduction_input["sample"]["transmission"]["errorTolerance"] = 0.05
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
     reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_true")
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
     with amend_config(data_dir=datarepo_dir.biosans):
         loaded = load_all_files(reduction_input, prefix)
-    assert len(loaded.sample) == 11  # 600.06/60 = 11 rounded up
+    assert len(loaded.sample) == 11  # the run end cuts the 11th slice to 0.06 s
     output = reduce_single_configuration(loaded, reduction_input)
     assert len(output) == 10  # the 11th slice is skipped due to too high transmission error
 
@@ -438,6 +444,10 @@ def test_reduce_single_configuration_slice_transmission_true(datarepo_dir, temp_
 
 @pytest.mark.datarepo
 def test_reduce_single_configuration_slice_skip_all(datarepo_dir, temp_directory):
+    r"""
+    Verify that `reduce_single_configuration` raises `NoDataProcessedError` when every time slice is skipped
+    because its monitor counts are zero.
+    """
     reduction_input = REDUCTION_INPUT.copy()
     reduction_input["configuration"]["useTimeSlice"] = True
 
@@ -446,7 +456,7 @@ def test_reduce_single_configuration_slice_skip_all(datarepo_dir, temp_directory
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
     with amend_config(data_dir=datarepo_dir.biosans):
         loaded = load_all_files(reduction_input, prefix)
-    assert len(loaded.sample) == 11  # 600.06/60 = 11 rounded up
+    assert len(loaded.sample) == 10  # 600.06 s run: ten slices, the final one absorbing the 0.06 s leftover
 
     # set all monitor counts to zero
     for ws in loaded.sample:
@@ -459,29 +469,38 @@ def test_reduce_single_configuration_slice_skip_all(datarepo_dir, temp_directory
 
 @pytest.mark.datarepo
 def test_reduce_single_configuration_slice_transmission_skip_some(datarepo_dir, temp_directory):
-    reduction_input = REDUCTION_INPUT.copy()
+    r"""
+    Verify that, with per-slice transmission (`useTimeSliceTransmission=True`), `reduce_single_configuration`
+    skips the time slices whose monitor counts are zero and reduces the others.
+    """
+    reduction_input = deepcopy(REDUCTION_INPUT)  # deep copy, so the changes below do not reach other tests
     reduction_input["configuration"]["useTimeSlice"] = True
     reduction_input["configuration"]["useTimeSliceTransmission"] = True
+    reduction_input["sample"]["transmission"]["errorTolerance"] = 0.05
 
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
     reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_true")
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
     with amend_config(data_dir=datarepo_dir.biosans):
         loaded = load_all_files(reduction_input, prefix)
-    assert len(loaded.sample) == 11  # 600.06/60 = 11 rounded up
+    assert len(loaded.sample) == 10  # 600.06 s run: ten slices, the final one absorbing the 0.06 s leftover
 
     # set every second monitor counts to zero
     for ws in loaded.sample[::2]:
         SampleLogs(ws).insert("monitor", 0.0)
 
     output = reduce_single_configuration(loaded, reduction_input)
-    assert len(output) == 5  # 6 should be skipped from the original 11
+    assert len(output) == 5  # 5 should be skipped from the original 10
 
     clean_all_ws(prefix)
 
 
 @pytest.mark.datarepo
 def test_reduce_single_configuration_slice_skip_some(datarepo_dir, temp_directory):
+    r"""
+    Verify that, with the transmission of the whole run (`useTimeSliceTransmission=False`),
+    `reduce_single_configuration` skips the time slices whose monitor counts are zero and reduces the others.
+    """
     reduction_input = REDUCTION_INPUT.copy()
     reduction_input["configuration"]["useTimeSlice"] = (True,)
     reduction_input["configuration"]["useTimeSliceTransmission"] = False
@@ -491,14 +510,14 @@ def test_reduce_single_configuration_slice_skip_some(datarepo_dir, temp_director
     prefix = "sans-backend-test" + str(threading.get_ident()) + "_"
     with amend_config(data_dir=datarepo_dir.biosans):
         loaded = load_all_files(reduction_input, prefix)
-    assert len(loaded.sample) == 11  # 600.06/60 = 11 rounded up
+    assert len(loaded.sample) == 10  # 600.06 s run: ten slices, the final one absorbing the 0.06 s leftover
 
     # set every second monitor counts to zero
     for ws in loaded.sample[::2]:
         SampleLogs(ws).insert("monitor", 0.0)
 
     output = reduce_single_configuration(loaded, reduction_input)
-    assert len(output) == 5  # 6 should be skipped from the original 11
+    assert len(output) == 5  # 5 should be skipped from the original 10
 
     clean_all_ws(prefix)
 
@@ -507,6 +526,10 @@ def test_reduce_single_configuration_slice_skip_some(datarepo_dir, temp_director
 @mock_patch("drtsans.load.LoadEventAsWorkspace2D", new=_mock_LoadEventAsWorkspace2D_syntheticDataset)
 @mock_patch("drtsans.load.__monitor_counts")
 def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, biosans_synthetic_dataset, temp_directory):
+    r"""
+    Reduce the synthetic BIOSANS dataset with scalar 1D binning and verify the combined I(Q): its number of Q bins,
+    and the peak intensities of the two ring patterns in the data.
+    """
     data = biosans_synthetic_dataset
     mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
     reduction_input = {
@@ -591,6 +614,10 @@ def test_reduce_single_configuration_synthetic_dataset(mock_monitor_counts, bios
 def test_reduce_single_configuration_with_wedges_synthetic_dataset(
     mock_monitor_counts, biosans_synthetic_dataset, temp_directory
 ):
+    r"""
+    Reduce the synthetic BIOSANS dataset with two symmetric wedges and verify the combined I(Q) of each wedge: its
+    number of Q bins, and the peak intensities of the two ring patterns in the data.
+    """
     data = biosans_synthetic_dataset
     mock_monitor_counts.return_value = biosans_synthetic_dataset["monitor_counts"]
     reduction_input = {

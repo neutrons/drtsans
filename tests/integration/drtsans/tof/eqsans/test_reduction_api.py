@@ -317,17 +317,17 @@ def test_timeslice(has_sns_mount, run_config, basename, temp_directory, referenc
     with amend_config(data_dir=run_config["dataDirectories"]):
         loaded = load_all_files(input_config)
 
-    assert len(loaded.sample) == 4
+    assert len(loaded.sample) == 3  # slices of 250 s, the final one absorbing the leftover of the run
 
     reduction_output = reduce_single_configuration(loaded, input_config)
-    assert len(reduction_output) == 8
+    assert len(reduction_output) == 6  # two frames per slice
 
     # set the proton charge to zero for every second workspace
     for ws in loaded.sample[::2]:
         SampleLogs(ws.data).insert("gd_prtn_chrg", 0.0)
 
     reduction_output = reduce_single_configuration(loaded, input_config)
-    assert len(reduction_output) == 4  # half the slices are skipped
+    assert len(reduction_output) == 2  # slices 0 and 2 are skipped
 
     # set the proton charge to zero for every workspace
     for ws in loaded.sample:

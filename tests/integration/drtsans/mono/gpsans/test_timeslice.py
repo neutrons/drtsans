@@ -84,17 +84,17 @@ def test_timeslice(datarepo_dir, temp_directory, request):
         load_params=None,
         path=datarepo_dir.gpsans,
     )
-    assert len(loaded.sample) == 7  # 300.048/50 rounded up
+    assert len(loaded.sample) == 6  # 300.048 s run: six slices, the final one absorbing the 50.048 s leftover
 
     output = reduce_single_configuration(loaded, reduction_input)
-    assert len(output) == 7  # nothing skipped, same length as loaded
+    assert len(output) == 6  # nothing skipped, same length as loaded
 
     # set every second workspace monitor counts to zero
     for ws in loaded.sample[::2]:
         SampleLogs(ws).insert("monitor", 0.0)
 
     output = reduce_single_configuration(loaded, reduction_input)
-    assert len(output) == 3  # 4 out of 7 skipped
+    assert len(output) == 3  # 3 out of 6 skipped
 
     # set every workspace monitor counts to zero
     for ws in loaded.sample:

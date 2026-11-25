@@ -15,6 +15,7 @@ import pytest
 from drtsans import configdir
 from drtsans.instruments import instrument_standard_names, instrument_standard_name
 from drtsans.redparams import (
+    _any_of_types,
     DefaultJson,
     generate_json_files,
     load_schema,
@@ -750,16 +751,15 @@ configuration:
      - Description
    * - ``instrumentName``
      - The name of the instrument
-   * - ``sample.~transmission.~value``
+   * - ``sample.transmission.value``
      - -
-   * - ``configuration.~wavelengthSpread``
+   * - ``configuration.wavelengthSpread``
      - Spread in Angstrom. ``wavelength`` must be set
-   * - ``configuration.~Qmin``
+   * - ``configuration.Qmin``
      - The minimum \|Q\| value, in 1/Angstrom
 
 """
-        # the paths have a zero-width space after each dot, written "~" above
-        assert d == compared.replace("~", "\u200b")
+        assert d == compared
 
     def test_property_names(self, default_json):
         compared = {
@@ -1433,3 +1433,13 @@ class TestReductionParameterError:
 
 if __name__ == "__main__":
     pytest.main([__file__])
+
+
+def test_any_of_types():
+    # Arrange: a reference to another anyOf definition is resolved into a nested anyOf branch
+    branches = [
+        {"anyOf": [{"type": "string"}, {"type": "null"}, {"type": "number"}]},
+        {"type": "array", "items": {"type": "number"}},
+    ]
+    # Act and Assert
+    assert _any_of_types(branches) == ["string", "null", "number", "array"]

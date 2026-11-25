@@ -13,12 +13,13 @@ div.body:has(table.parameter-descriptions) {
     max-width: none;
 }
 
-/* Parameter paths: a smaller font, and wrapping at the zero-width spaces placed after their dots, instead of
-   widening the first column to the longest path. */
+/* Parameter paths: a smaller font, and wrapping where a path is longer than its column, instead of widening the
+   first column to the longest path. The paths hold no hidden break characters, so they can be copied as written. */
 table.parameter-descriptions td:first-child {
     font-size: 70%;
 }
 
-table.parameter-descriptions span.pre {
+table.parameter-descriptions td:first-child span.pre {
     white-space: normal;
+    overflow-wrap: anywhere;
 }

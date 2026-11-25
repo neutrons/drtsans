@@ -31,12 +31,12 @@ def create_filter_strategy(
         Reduction configuration dictionary. Only used to detect if the sample
         is polarized. All other filter parameters should be passed explicitly.
     time_interval : float or list of float, optional
-        Time interval(s) for time-based splitting, in seconds
+        Time interval(s) for time-based splitting, in seconds. Numeric strings are accepted and cast to float
     time_offset : float, optional
-        Offset for the start time, in seconds. Default is 0.0
+        Offset for the start time, in seconds. Default is 0.0. A numeric string is cast to float
     time_period : float, optional
         Period for periodic time slicing, in seconds. If provided with
-        time_interval, creates a PeriodicTimeFilter
+        time_interval, creates a PeriodicTimeFilter. A numeric string is cast to float
     log_name : str, optional
         Name of the sample log for log-based filtering
     log_value_interval : float, optional
@@ -65,6 +65,13 @@ def create_filter_strategy(
 
     # Determine filter type based on provided parameters
     if time_interval is not None:
+        # Values from a configuration that was not validated (validate=False) can still be strings, such as "60"
+        if isinstance(time_interval, (list, tuple)):
+            time_interval = [float(value) for value in time_interval]
+        else:
+            time_interval = float(time_interval)
+        time_offset = 0.0 if time_offset is None else float(time_offset)
+        time_period = None if time_period is None else float(time_period)
         # A one-item list of time intervals is the same as a single interval
         if isinstance(time_interval, (list, tuple)) and len(time_interval) == 1:
             time_interval = time_interval[0]

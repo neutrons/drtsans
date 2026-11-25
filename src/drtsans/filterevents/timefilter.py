@@ -9,10 +9,10 @@ import math
 import re
 from typing import List, Optional, Tuple, Union
 
-import numpy as np
 from mantid.kernel import Logger
 from mantid.simpleapi import GenerateEventsFilter, mtd
 
+from drtsans.chopper import PULSE_FREQUENCY
 from drtsans.dataobjects import workspace_handle
 from drtsans.filterevents.basefilter import FilterStrategy
 from drtsans.filterevents.logfilter import LogValueFilter
@@ -24,9 +24,8 @@ logger = Logger("drtsans.filterevents.timefilter")
 # Absorbs floating-point rounding only, in seconds. It is not a tolerance on the slice lengths.
 _ROUNDING_TOLERANCE = 1.0e-6
 
-# Margin added to the run end when the pulse period is unknown, in seconds. It is the default of Mantid's
-# GenerateEventsFilter, which drtsans relied on before passing StopTime explicitly.
-_DEFAULT_RUN_END_MARGIN = 0.1
+# Time between two pulses of the data acquisition, in seconds
+_PULSE_PERIOD = 1.0 / PULSE_FREQUENCY
 
 
 def _slice_lengths(
@@ -54,10 +53,20 @@ def _slice_lengths(
     tuple
         The list of slice lengths, in seconds, and either ``None`` or a ``(level, message)`` pair to log, with level
         ``"warning"`` when a list was extended and ``"error"`` when the run is shorter than the values.
+
+    Raises
+    ------
+    ValueError
+        When ``time_offset`` is at or after the run end, so that no slice can be produced
     """
     is_list = isinstance(time_interval, (list, tuple))
     lengths = [float(value) for value in time_interval] if is_list else [float(time_interval)]
     available = run_duration - time_offset  # time from the start of the first slice to the run end
+    if available <= _ROUNDING_TOLERANCE:
+        raise ValueError(
+            f"timeSliceOffset ({time_offset:.6g} s) is at or after the run end ({run_duration:.6g} s from the run "
+            "start): no time slice can be produced"
+        )
     covered = math.fsum(lengths)
     if covered > available + _ROUNDING_TOLERANCE:
         message = (
@@ -103,22 +112,16 @@ def _events_end(workspace: MantidWorkspace, run_duration: float) -> float:
     Returns
     -------
     float
-        The later of ``run_duration`` and the last pulse time plus one pulse period. The pulse period is the median
-        spacing of the ``proton_charge`` log entries. When the workspace has no pulse times or no such log,
-        ``run_duration`` plus a margin of 0.1 s, the default of Mantid's ``GenerateEventsFilter``.
+        The later of ``run_duration`` and the last pulse time plus one pulse period (``1 / PULSE_FREQUENCY``,
+        1/60 s). When the workspace has no pulse times, ``run_duration`` plus one pulse period.
     """
     try:
         events = workspace_handle(workspace)
-        run = events.run()
-        last_pulse_ns = events.getPulseTimeMax().totalNanoseconds() - run.startTime().totalNanoseconds()
-        pulse_times = np.asarray(run.getProperty("proton_charge").times, dtype="datetime64[ns]")
-    except (AttributeError, KeyError, RuntimeError):  # not an event workspace, or no proton_charge log
-        return run_duration + _DEFAULT_RUN_END_MARGIN
-    if pulse_times.size < 2:
-        return run_duration + _DEFAULT_RUN_END_MARGIN
-    pulse_period_ns = float(np.median(np.diff(pulse_times).astype("int64")))
+        last_pulse_ns = events.getPulseTimeMax().totalNanoseconds() - events.run().startTime().totalNanoseconds()
+    except (AttributeError, RuntimeError):  # not an event workspace
+        return run_duration + _PULSE_PERIOD
     # an event workspace without events returns a placeholder pulse time long before the run start
-    return max(run_duration, (last_pulse_ns + pulse_period_ns) / 1e9)
+    return max(run_duration, last_pulse_ns / 1e9 + _PULSE_PERIOD)
 
 
 def _splitter_row(workspace_name: str) -> int:
@@ -156,17 +159,18 @@ class TimeIntervalFilter(FilterStrategy):
     """
     Filter events by regular time intervals.
 
-    This strategy splits event data into time slices of specified duration(s).
-    Time intervals can be either a single value (creating equal-duration slices)
-    or a list of values (creating variable-duration slices).
+    This strategy splits event data into consecutive time slices starting at ``time_offset``. Time intervals can
+    be either a single value (creating equal-duration slices) or a list of values (creating variable-duration
+    slices). The last value is repeated until the run is covered, and the final slice absorbs the time left at the
+    run end, so that it lasts at least that value and less than twice it (see ``_slice_lengths``).
 
     Parameters
     ----------
     workspace : str or IEventWorkspace
         The input workspace to be filtered
     time_interval : float or list of float
-        Time interval(s) for splitting, in seconds. If a single float, all slices
-        will have the same duration. If a list, each slice can have a different duration.
+        Time interval(s) for splitting, in seconds. If a single float, all slices but the final one
+        have the same duration. If a list, each slice can have a different duration.
     time_offset : float, optional
         Offset to add to the start time of the first slice, in seconds. Default is 0.0.
 
@@ -210,7 +214,7 @@ class TimeIntervalFilter(FilterStrategy):
         ending at ``StopTime``, because Mantid would otherwise start a list over and
         leave a shorter last slice.
         """
-        options = {"TimeInterval": self.time_interval}
+        options = {"StartTime": str(self.time_offset), "TimeInterval": self.time_interval, "UnitOfTime": "Seconds"}
         try:
             # whole-run duration, from the run start and end logs, which load-time cutoffs do not change
             run_duration = SampleLogs(self.workspace).run_duration
@@ -226,15 +230,22 @@ class TimeIntervalFilter(FilterStrategy):
             if slices_end <= run_duration + _ROUNDING_TOLERANCE:
                 # the slices end at the run end: the final slice also takes the events of the last pulse
                 lengths[-1] += events_end - slices_end
-                slices_end = events_end
-            stop_time = min(slices_end, events_end)
-            options = {"TimeInterval": lengths, "StopTime": str(stop_time)}
+            # Whole nanoseconds: Mantid converts each length and StopTime from seconds to nanoseconds separately,
+            # rounding down, so the slices would end just before StopTime and Mantid would add a 1 ns slice.
+            # Integers make StopTime exactly the end of the last slice.
+            lengths_ns = [round(length * 1e9) for length in lengths]
+            start_ns = round(self.time_offset * 1e9)
+            stop_ns = min(start_ns + sum(lengths_ns), round(events_end * 1e9))
+            options = {
+                "StartTime": str(start_ns),
+                "StopTime": str(stop_ns),
+                "TimeInterval": [float(length_ns) for length_ns in lengths_ns],
+                "UnitOfTime": "Nanoseconds",
+            }
         GenerateEventsFilter(
             InputWorkspace=self.workspace,
             OutputWorkspace=self.splitter_workspace,
             InformationWorkspace=self.info_workspace,
-            StartTime=str(self.time_offset),
-            UnitOfTime="Seconds",
             **options,
         )
 
@@ -284,7 +295,8 @@ class PeriodicTimeFilter(FilterStrategy):
     time_interval : float
         Duration of each slice within a period, in seconds
     time_period : float
-        Duration of the full period, in seconds. Must be a multiple of time_interval.
+        Duration of the full period, in seconds. It need not be a multiple of time_interval: the remainder of
+        each period then forms its last, shorter slice.
     time_offset : float, optional
         Offset to add to the start time, in seconds. Default is 0.0.
 

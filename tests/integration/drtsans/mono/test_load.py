@@ -2,6 +2,7 @@
 import pytest
 import os
 import numpy as np
+from drtsans.filterevents.timefilter import TimeIntervalFilter
 from drtsans.mono.load import load_and_split, load_events
 from drtsans.mono.meta_data import get_sample_detector_offset
 from drtsans.samplelogs import SampleLogs
@@ -392,6 +393,39 @@ def test_time_slice_partition(datarepo_dir, time_interval, time_offset, expected
         if time_offset == 0.0:  # the slices hold every event of the run
             sliced_events = sum(split_group.getItem(n).getNumberEvents() for n in range(len(expected_windows)))
             assert sliced_events == 2313852
+    finally:
+        for name in set(mtd.getObjectNames()) - existing_workspaces:
+            if mtd.doesExist(name):
+                mtd.remove(name)
+
+
+@pytest.mark.datarepo
+@pytest.mark.parametrize(
+    "time_interval, time_offset, expected_rows",
+    [(70.0, 0.0, 4), ([10.0, 20.0], 5.0, 15), ([0.7, 0.3], 0.0, 998), (0.1, 0.0, 3000), ([200.0, 150.0], 0.0, 2)],
+    ids=["single number", "list with offset", "non-integer list", "short interval", "list longer than the run"],
+)
+def test_time_slice_splitter_rows(datarepo_dir, time_interval, time_offset, expected_rows):
+    """The splitter table has one row per slice: Mantid never starts the list over for a last sliver of time."""
+    # Arrange: 300 s GPSANS run
+    filename = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
+    existing_workspaces = set(mtd.getObjectNames())
+
+    try:
+        LoadEventNexus(Filename=filename, OutputWorkspace="time_slice_splitter_rows")
+        time_filter = TimeIntervalFilter(
+            "time_slice_splitter_rows", time_interval=time_interval, time_offset=time_offset
+        )
+
+        # Act
+        time_filter.generate_filter()
+
+        # Assert: the last row ends one pulse period after the last pulse
+        splitter = mtd[time_filter.splitter_workspace]
+        assert splitter.rowCount() == expected_rows
+        run_start_ns = mtd["time_slice_splitter_rows"].run().startTime().totalNanoseconds()
+        last_end = (splitter.cell(expected_rows - 1, 1) - run_start_ns) / 1e9
+        assert last_end == pytest.approx(_CG2_9166_EVENTS_END, abs=1e-3)
     finally:
         for name in set(mtd.getObjectNames()) - existing_workspaces:
             if mtd.doesExist(name):

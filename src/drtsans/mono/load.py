@@ -458,15 +458,16 @@ def load_and_split(
     pixel_calibration: bool
         Adjust pixel heights and widths according to bar-scan and tube-width calibrations.
     time_interval
-        Array for lengths of time intervals for splitters.  If the array has one value,
-        then all splitters will have same time intervals. If the size of the array is larger
-        than one, then the splitters can have various time interval values.
+        Length of the time slices, in seconds: a single value, or a list of the lengths of consecutive slices.
+        The last value is repeated until the run is covered, and the final slice absorbs the time left at the
+        run end, so that it lasts at least that value and less than twice it. When the run is shorter than the
+        list, the run end cuts the slices short.
     time_offset
         Offset to be added to the start time of the first splitter, in seconds.
     time_period
-        A multiple integer of the time interval. If specified, it indicates that the time
-        slicing is periodic so that events in time intervals separated by one (or more) period
-        should be reduced together.
+        Period of the time slicing, in seconds. If specified, the time slicing is periodic, so that events in
+        time intervals separated by one (or more) period are reduced together. The period need not be a multiple
+        of ``time_interval``, which must then be a single value; a list raises ``ValueError``.
     sample_to_si_value: float or None
         Sample to silicon window distance to overwrite the EPICS value.  None for no operation.  unit = meter
     sample_detector_distance_value: float or None

@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 from unittest.mock import MagicMock, PropertyMock, patch
 
@@ -86,6 +85,13 @@ def test_slice_lengths_report(time_interval, run_duration, level, phrase):
         assert lengths == (list(time_interval) if isinstance(time_interval, list) else [time_interval])
 
 
+@pytest.mark.parametrize("time_offset", [73.0, 80.0], ids=["at the run end", "after the run end"])
+def test_slice_lengths_offset_after_run_end(time_offset):
+    # Act and Assert
+    with pytest.raises(ValueError, match=r"timeSliceOffset \(\d+ s\) is at or after the run end \(73 s"):
+        _slice_lengths([10.0, 20.0], time_offset, run_duration=73.0)
+
+
 @pytest.mark.parametrize(
     "time_interval, time_offset, run_duration, expected",
     [
@@ -104,15 +110,11 @@ def test_slice_lengths_rounding(time_interval, time_offset, run_duration, expect
     assert all(length > 0 for length in lengths)
 
 
-def _event_workspace(run_start_ns, last_pulse_s, pulse_period_s=1 / 60, pulses=3):
-    # mock event workspace whose last pulse is `last_pulse_s` after the run start, with a proton_charge log
-    # holding `pulses` entries spaced by `pulse_period_s`
+def _event_workspace(run_start_ns, last_pulse_s):
+    # mock event workspace whose last pulse is `last_pulse_s` after the run start
     workspace = MagicMock()
-    run = workspace.run.return_value
-    run.startTime.return_value.totalNanoseconds.return_value = run_start_ns
+    workspace.run.return_value.startTime.return_value.totalNanoseconds.return_value = run_start_ns
     workspace.getPulseTimeMax.return_value.totalNanoseconds.return_value = run_start_ns + int(last_pulse_s * 1e9)
-    times = np.datetime64("2020-01-01T00:00:00", "ns") + np.arange(pulses) * np.timedelta64(int(pulse_period_s * 1e9))
-    run.getProperty.return_value.times = times
     return workspace
 
 
@@ -134,27 +136,12 @@ def test_events_end(mock_workspace_handle, last_pulse_s, expected):
     assert events_end == pytest.approx(expected, abs=1e-6)
 
 
-def _workspace_without_proton_charge():
-    workspace = _event_workspace(1_000_000_000, 300.048)
-    workspace.run.return_value.getProperty.side_effect = RuntimeError("Unknown property search object proton_charge")
-    return workspace
-
-
-@pytest.mark.parametrize(
-    "workspace",
-    [
-        MagicMock(spec=["run"]),  # not an event workspace: no getPulseTimeMax
-        _workspace_without_proton_charge(),
-        _event_workspace(1_000_000_000, 300.048, pulses=1),  # a single pulse: no pulse period
-    ],
-    ids=["not an event workspace", "no proton_charge log", "single pulse"],
-)
 @patch("drtsans.filterevents.timefilter.workspace_handle")
-def test_events_end_fallback(mock_workspace_handle, workspace):
-    # Arrange
-    mock_workspace_handle.return_value = workspace
-    # Act and Assert: the run end plus Mantid's default margin of 0.1 s is used
-    assert _events_end("workspace", run_duration=300.048) == pytest.approx(300.148)
+def test_events_end_without_pulse_times(mock_workspace_handle):
+    # Arrange: not an event workspace, so no getPulseTimeMax
+    mock_workspace_handle.return_value = MagicMock(spec=["run"])
+    # Act and Assert: the run end plus one pulse period
+    assert _events_end("workspace", run_duration=300.048) == pytest.approx(300.048 + 1 / 60)
 
 
 @patch("drtsans.filterevents.timefilter._events_end", side_effect=lambda _workspace, run_duration: run_duration)
@@ -166,20 +153,38 @@ def test_time_interval_filter_generate_filter(mock_gef, mock_samplelogs_cls, moc
 
     # Act: default offset
     TimeIntervalFilter(MagicMock(), time_interval=10.0).generate_filter()
-    # Assert
+    # Assert: whole nanoseconds, and StopTime exactly at the end of the last slice
     _, kwargs = mock_gef.call_args
-    assert kwargs["TimeInterval"] == pytest.approx([10.0] * 6 + [13.0])
-    assert kwargs["UnitOfTime"] == "Seconds"
-    assert kwargs["StartTime"] == "0.0"
-    assert float(kwargs["StopTime"]) == pytest.approx(73.0)
+    assert kwargs["TimeInterval"] == [10e9] * 6 + [13e9]
+    assert kwargs["UnitOfTime"] == "Nanoseconds"
+    assert kwargs["StartTime"] == "0"
+    assert kwargs["StopTime"] == "73000000000"
 
     # Act: explicit offset and a list
     TimeIntervalFilter(MagicMock(), time_interval=[10.0, 20.0], time_offset=5.0).generate_filter()
     # Assert
     _, kwargs = mock_gef.call_args
-    assert kwargs["StartTime"] == "5.0"
-    assert kwargs["TimeInterval"] == pytest.approx([10.0, 20.0, 38.0])
-    assert float(kwargs["StopTime"]) == pytest.approx(73.0)
+    assert kwargs["StartTime"] == "5000000000"
+    assert kwargs["TimeInterval"] == [10e9, 20e9, 38e9]
+    assert kwargs["StopTime"] == "73000000000"
+
+
+@patch("drtsans.filterevents.timefilter._events_end", side_effect=lambda _workspace, run_duration: run_duration)
+@patch("drtsans.filterevents.timefilter.SampleLogs")
+@patch("drtsans.filterevents.timefilter.GenerateEventsFilter")
+def test_time_interval_filter_generate_filter_whole_nanoseconds(mock_gef, mock_samplelogs_cls, mock_events_end):
+    # Arrange: lengths and an offset that are not whole nanoseconds in binary floating point
+    mock_samplelogs_cls.return_value.run_duration = 300.0482009
+    # Act
+    TimeIntervalFilter(MagicMock(), time_interval=[0.7, 0.3], time_offset=0.3).generate_filter()
+    # Assert: every value is a whole number of nanoseconds, and the slices end exactly at StopTime, so that Mantid
+    # does not start the list over for the last nanosecond
+    _, kwargs = mock_gef.call_args
+    assert all(length_ns == int(length_ns) for length_ns in kwargs["TimeInterval"])
+    assert int(kwargs["StartTime"]) + sum(int(length_ns) for length_ns in kwargs["TimeInterval"]) == int(
+        kwargs["StopTime"]
+    )
+    assert kwargs["StopTime"] == "300048200900"
 
 
 @patch("drtsans.filterevents.timefilter._events_end", return_value=73.02)
@@ -192,8 +197,8 @@ def test_time_interval_filter_generate_filter_last_pulse(mock_gef, mock_samplelo
     TimeIntervalFilter(MagicMock(), time_interval=[10.0, 20.0]).generate_filter()
     # Assert: the partition uses the run end, and only the final slice reaches past it, to the last event
     _, kwargs = mock_gef.call_args
-    assert kwargs["TimeInterval"] == pytest.approx([10.0, 20.0, 20.0, 23.02])
-    assert float(kwargs["StopTime"]) == pytest.approx(73.02)
+    assert kwargs["TimeInterval"] == [10e9, 20e9, 20e9, 23.02e9]
+    assert kwargs["StopTime"] == "73020000000"
 
 
 @patch("drtsans.filterevents.timefilter._events_end", return_value=35.02)
@@ -207,8 +212,8 @@ def test_time_interval_filter_generate_filter_run_shorter(mock_gef, mock_samplel
     TimeIntervalFilter(MagicMock(), time_interval=[10.0, 20.0, 30.0]).generate_filter()
     # Assert: the list is passed unchanged and Mantid stops after the last event
     _, kwargs = mock_gef.call_args
-    assert kwargs["TimeInterval"] == [10.0, 20.0, 30.0]
-    assert float(kwargs["StopTime"]) == pytest.approx(35.02)
+    assert kwargs["TimeInterval"] == [10e9, 20e9, 30e9]
+    assert kwargs["StopTime"] == "35020000000"
     mock_logger.error.assert_called_once()
 
 
@@ -220,9 +225,11 @@ def test_time_interval_filter_generate_filter_no_run_duration(mock_gef, mock_sam
     type(mock_samplelogs_cls.return_value).run_duration = PropertyMock(side_effect=RuntimeError("no run_end"))
     # Act
     TimeIntervalFilter(MagicMock(), time_interval=[10.0, 20.0]).generate_filter()
-    # Assert: the interval goes to Mantid unchanged, without StopTime
+    # Assert: the interval goes to Mantid unchanged, in seconds, without StopTime
     _, kwargs = mock_gef.call_args
     assert kwargs["TimeInterval"] == [10.0, 20.0]
+    assert kwargs["UnitOfTime"] == "Seconds"
+    assert kwargs["StartTime"] == "0.0"
     assert "StopTime" not in kwargs
     mock_logger.warning.assert_called_once()
 

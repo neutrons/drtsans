@@ -47,8 +47,11 @@ slice of its own: the final slice absorbs it, so the final slice lasts at least 
 When the run is shorter than the values of the list, the run end cuts the current slice short, however short that
 is, and the remaining values are not used. An error message in the log reports it.
 
-The final slice ends one neutron pulse after the last pulse of the run when that is later than the run end, so that
-it keeps the events of the last pulse.
+The final slice ends one pulse period after the last pulse recorded in the data file, when that is later than the
+run end, so that it keeps the events of the last pulse. The pulses are those of the data acquisition, 1/60 s apart:
+at SNS (EQSANS) they are the neutron pulses of the source, and at HFIR (BIOSANS and GPSANS), a reactor, they are
+written by the data acquisition. The final slice is therefore a fraction of a second longer than the rule above
+gives: for example 90.065 s instead of 90.048 s for 70 s slices of a 300.048 s run.
 
 
 Example 1: Slicing using time interval
@@ -109,6 +112,9 @@ Example 3: Slicing using a list of slice lengths
 The 13 s run is longer than the 6 s of the list, so the last value, 4 s, is repeated, and the final slice absorbs
 the 3 s left at the run end: it lasts 7 s, from 6 s to 13 s. A warning in the log reports the slices added to the
 list. For a 5 s run, the slices would be 0-2 s and 2-5 s, the run end cutting the second slice short.
+
+The offset delays only the first slice and leaves the lengths unchanged: with ``"timeSliceOffset": 1.0``, the 13 s
+run would give the slices 1-3 s, 3-7 s and 7-13 s, the final slice absorbing 2 s.
 
 A list of more than one value cannot be combined with ``timeSlicePeriod``: the reduction parameters are rejected
 when they are validated.
@@ -280,7 +286,8 @@ Each slice receives the following sample logs:
        values of the sample log, in the log's units.
    * - ``slice_interval``
      - Time slicing: the length of the slice, in seconds; it differs between slices for a list of slice lengths
-       and for the final slice. Periodic slicing: the value of ``timeSliceInterval``, in seconds. Log slicing: the
+       and for the final slice, whose length includes the fraction of a second after the run end (see
+       `The final slice`_). Periodic slicing: the value of ``timeSliceInterval``, in seconds. Log slicing: the
        log-value interval.
    * - ``slice_period``
      - The value of ``timeSlicePeriod``, in seconds (periodic slicing only).

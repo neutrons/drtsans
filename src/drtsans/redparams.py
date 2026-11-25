@@ -6,9 +6,11 @@ import itertools
 import json
 import os
 import re
+from typing import Any, Iterator, List, Tuple, Union
 
 # third-party imports
 import jsonschema
+import jsonschema.protocols
 from jsonschema.exceptions import relevance, ValidationError
 from numpy import greater
 from mantid.kernel import IntArrayProperty, logger
@@ -154,7 +156,7 @@ def type_selector(preferred_type):  # noqa: C901
             instance = instance.replace(run_range, all_runs)
         return instance
 
-    def float_or_float_list(instance):
+    def float_or_float_list(instance: Union[int, float, str, list, tuple]) -> Union[float, list]:
         r"""
         Cast a list or tuple to a list of floats, and any other object to a float
 
@@ -473,9 +475,8 @@ class DefaultJson:
 
         Meant for the descriptions of the parameters (``field="description"``): the descriptions are prose, so a
         table lets them wrap with the page width. Each nested property appears as its dot-separated path, for
-        instance ``sample.transmission.runNumber``, with a zero-width space after each dot so that a long path can
-        wrap at its dots. The table has the class ``parameter-descriptions``, whose style sheet
-        (``docs/_static/parameter_tables.css``) lets its inline code wrap.
+        instance ``sample.transmission.runNumber``. The table has the class ``parameter-descriptions``, whose style
+        sheet (``docs/_static/parameter_tables.css``) lets a long path wrap, so the paths can be copied as written.
 
         Parameters
         ----------
@@ -487,14 +488,14 @@ class DefaultJson:
         str
         """
 
-        def rows(parameters: dict, prefix: str = ""):
+        def rows(parameters: dict, prefix: str = "") -> Iterator[Tuple[str, Any]]:
             for name, value in parameters.items():
                 if isinstance(value, dict):
                     yield from rows(value, prefix=f"{prefix}{name}.")
                 else:
                     yield f"{prefix}{name}", value
 
-        def to_text(value) -> str:
+        def to_text(value: Any) -> str:
             # `name` in a description is shown as inline code; other markup characters, such as the bars of
             # |Q|, are escaped so that they appear as written
             if value is None or value == "":
@@ -511,8 +512,7 @@ class DefaultJson:
         doc += ".. list-table::\n   :header-rows: 1\n   :widths: 20 80\n   :class: parameter-descriptions\n\n"
         doc += "   * - Parameter\n     - Description\n"
         for path, value in rows(self.parameters):
-            breakable_path = path.replace(".", ".\u200b")  # zero-width space: a line break opportunity
-            doc += f"   * - ``{breakable_path}``\n     - {to_text(value)}\n"
+            doc += f"   * - ``{path}``\n     - {to_text(value)}\n"
         return doc + "\n"
 
     # private bound methods:
@@ -581,6 +581,30 @@ class DefaultJson:
         return names
 
 
+def _any_of_types(branches: list) -> List[str]:
+    r"""
+    Types allowed by the branches of an ``anyOf`` schema, descending into branches that are themselves ``anyOf``
+    schemas, such as a reference to ``safeStringPositiveFloat``
+
+    Parameters
+    ----------
+    branches
+        The list of schemas under an ``anyOf`` keyword
+
+    Returns
+    -------
+    list
+        The ``type`` of each branch, in order
+    """
+    types = list()
+    for branch in branches:
+        if "anyOf" in branch:
+            types.extend(_any_of_types(branch["anyOf"]))
+        elif "type" in branch:
+            types.append(branch["type"])
+    return types
+
+
 class ReductionParameterError(Exception):
     r"""Custom exception for validation errors in the reduction parameters to make
     the error message more informative
@@ -605,10 +629,7 @@ class ReductionParameterError(Exception):
         if "type" in self.schema.keys():
             msg += f"\nType: {self.schema['type']}"
         if "anyOf" in self.schema.keys():
-            items = []
-            for each in self.schema["anyOf"]:
-                items.append(each["type"])
-            msg += f"\nType: {', '.join(items)}"
+            msg += f"\nType: {', '.join(_any_of_types(self.schema['anyOf']))}"
         if "enum" in self.schema.keys():
             msg += f"\nType: enum, values: {self.schema['enum']}"
         if "preferredType" in self.schema.keys():
@@ -1195,7 +1216,9 @@ class ReductionParameters:
             if other_instance is None:
                 yield jsonschema.ValidationError(f"{composite_key} is empty")
 
-    def _validate_requires_single_interval(self, validator, value, instance, schema):
+    def _validate_requires_single_interval(
+        self, validator: jsonschema.protocols.Validator, value: str, instance: Any, schema: dict
+    ) -> Iterator[jsonschema.ValidationError]:
         r"""
         Verify that periodic time slicing is not combined with a list of time slice lengths.
 

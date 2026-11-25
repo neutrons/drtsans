@@ -324,7 +324,7 @@ def test_reduce_single_configuration_slice_transmission_false(datarepo_dir, temp
     Verify that `reduce_single_configuration` reduces an unsliced run as a single sample, and that the sample
     transmission computed from the whole run matches the reference value ~0.9033.
     """
-    reduction_input = REDUCTION_INPUT.copy()
+    reduction_input = deepcopy(REDUCTION_INPUT)  # deep copy, so the changes below do not reach other tests
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
     reduction_input["configuration"]["outputDir"] = temp_directory(prefix="trans_slice_false")
 
@@ -482,7 +482,7 @@ def test_reduce_single_configuration_slice_skip_all(datarepo_dir, temp_directory
     Verify that `reduce_single_configuration` raises `NoDataProcessedError` when every time slice is skipped
     because its monitor counts are zero.
     """
-    reduction_input = REDUCTION_INPUT.copy()
+    reduction_input = deepcopy(REDUCTION_INPUT)  # deep copy, so the changes below do not reach other tests
     reduction_input["configuration"]["useTimeSlice"] = True
 
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)
@@ -535,8 +535,8 @@ def test_reduce_single_configuration_slice_skip_some(datarepo_dir, temp_director
     Verify that, with the transmission of the whole run (`useTimeSliceTransmission=False`),
     `reduce_single_configuration` skips the time slices whose monitor counts are zero and reduces the others.
     """
-    reduction_input = REDUCTION_INPUT.copy()
-    reduction_input["configuration"]["useTimeSlice"] = (True,)
+    reduction_input = deepcopy(REDUCTION_INPUT)  # deep copy, so the changes below do not reach other tests
+    reduction_input["configuration"]["useTimeSlice"] = True
     reduction_input["configuration"]["useTimeSliceTransmission"] = False
 
     reduction_input = reduction_parameters(parameters_particular=reduction_input, validate=False)

@@ -518,7 +518,8 @@ def test_incoherence_correction_elastic_normalization_slices_frames(
     # FullBinsOnly=True reduces wavelength bins.  Mantid 6.15 produces 27 bins
     # for both frames in this configuration.
     wavelength_count = [27, 27]  # number of wavelengths for each frame
-    for islice in range(3):
+    # The 4724 s run is sliced every 2000 s, giving 2 slices: the final slice absorbs the 724 s leftover
+    for islice in range(2):
         for iframe in range(2):
             if isinstance(fitInelasticIncoh, list) and fitInelasticIncoh[iframe] is False:
                 num_wavelengths_k = wavelength_count[iframe]

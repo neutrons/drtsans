@@ -34,11 +34,11 @@ def test_load_and_split(datarepo_dir, clean_workspace):
         clean_workspace(f"GPSANS_9177_{i + 1}")
         clean_workspace(f"GPSANS_9177_monitors_{i + 1}")
 
-    # suppose to get 3 output workspaces
-    assert filtered_ws.size() == 3
+    # 120.05 s run sliced every 50 s: the final slice absorbs the 20.05 s leftover, giving 2 output workspaces
+    assert filtered_ws.size() == 2
 
     # Get workspaces
-    sliced_ws_list = [filtered_ws.getItem(i) for i in range(3)]
+    sliced_ws_list = [filtered_ws.getItem(i) for i in range(2)]
 
     # Verify
     verify_geometry_meta(sliced_ws_list, 19.0, 83.0, -83.0 * 1e-3)
@@ -84,11 +84,11 @@ def test_load_and_split_overwrite_ssd(datarepo_dir, clean_workspace):
         clean_workspace(f"GPSANS_9177_{i + 1}")
         clean_workspace(f"GPSANS_9177_monitors_{i + 1}")
 
-    # suppose to get 3 output workspaces
-    assert filtered_ws.size() == 3
+    # 120.05 s run sliced every 50 s: the final slice absorbs the 20.05 s leftover, giving 2 output workspaces
+    assert filtered_ws.size() == 2
 
     # Get workspaces
-    sliced_ws_list = [filtered_ws.getItem(i) for i in range(3)]
+    sliced_ws_list = [filtered_ws.getItem(i) for i in range(2)]
 
     # Verify
     # SDD = 19. m

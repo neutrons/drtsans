@@ -31,12 +31,12 @@ def create_filter_strategy(
         Reduction configuration dictionary. Only used to detect if the sample
         is polarized. All other filter parameters should be passed explicitly.
     time_interval : float or list of float, optional
-        Time interval(s) for time-based splitting, in seconds
+        Time interval(s) for time-based splitting, in seconds. Numeric strings are accepted and cast to float
     time_offset : float, optional
-        Offset for the start time, in seconds. Default is 0.0
+        Offset for the start time, in seconds. Default is 0.0. A numeric string is cast to float
     time_period : float, optional
         Period for periodic time slicing, in seconds. If provided with
-        time_interval, creates a PeriodicTimeFilter
+        time_interval, creates a PeriodicTimeFilter. A numeric string is cast to float
     log_name : str, optional
         Name of the sample log for log-based filtering
     log_value_interval : float, optional
@@ -50,7 +50,8 @@ def create_filter_strategy(
     Raises
     ------
     ValueError
-        If no valid filtering parameters are provided
+        If no valid filtering parameters are provided, or if time_period is combined with a list of more than
+        one time_interval value
 
     Notes
     -----
@@ -64,6 +65,24 @@ def create_filter_strategy(
 
     # Determine filter type based on provided parameters
     if time_interval is not None:
+        # Values from a configuration that was not validated (validate=False) can still be strings, such as "60"
+        if isinstance(time_interval, (list, tuple)):
+            time_interval = [float(value) for value in time_interval]
+        else:
+            time_interval = float(time_interval)
+        time_offset = 0.0 if time_offset is None else float(time_offset)
+        time_period = None if time_period is None else float(time_period)
+        # A one-item list of time intervals is the same as a single interval
+        if isinstance(time_interval, (list, tuple)) and len(time_interval) == 1:
+            time_interval = time_interval[0]
+        # Periodic slicing needs a single interval. The same check runs at schema validation
+        # (`_validate_requires_single_interval` in redparams.py); this one covers direct calls to `load_and_split`.
+        if isinstance(time_interval, (list, tuple)) and time_period is not None:
+            raise ValueError(
+                f"time_period ({time_period} s) requires a single time_interval value, but time_interval is a "
+                f"list of {len(time_interval)} values {list(time_interval)}. Periodic slicing cannot use a list "
+                "of interval lengths."
+            )
         # Check if this is periodic time slicing
         if time_period is not None:
             # Periodic time slicing

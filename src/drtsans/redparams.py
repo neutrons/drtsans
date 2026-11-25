@@ -6,9 +6,11 @@ import itertools
 import json
 import os
 import re
+from typing import Any, Iterator, List, Tuple, Union
 
 # third-party imports
 import jsonschema
+import jsonschema.protocols
 from jsonschema.exceptions import relevance, ValidationError
 from numpy import greater
 from mantid.kernel import IntArrayProperty, logger
@@ -35,14 +37,15 @@ __all__ = [
 
 def type_selector(preferred_type):  # noqa: C901
     r"""
-    Callable the will cast an object to a preferred type.
+    Return a callable that casts an object to a preferred type.
 
-    Example: type_enforcer('str')(42) returns '42'
+    Example: type_selector('str')(42) returns '42'
 
     Parameters
     ----------
     preferred_type: str
-        One of 'str', 'int', 'float', '[str]', '[float]', '[dict]'
+        One of 'str', 'int', 'float', 'float_or_[float]', 'runstr', '[str]', '[float]', '[dict]'.
+        'float_or_[float]' casts a list or tuple to a list of floats, and any other object to a float.
 
     Returns
     -------
@@ -153,10 +156,36 @@ def type_selector(preferred_type):  # noqa: C901
             instance = instance.replace(run_range, all_runs)
         return instance
 
+    def float_or_float_list(instance: Union[int, float, str, list, tuple]) -> Union[float, list]:
+        r"""
+        Cast a list or tuple to a list of floats, and any other object to a float
+
+        Examples: ``[120, "30"]`` becomes ``[120.0, 30.0]``, and ``"60"`` becomes ``60.0``. List items that
+        cannot be cast, such as ``None`` or ``""``, are kept unchanged so that schema validation reports them.
+
+        Parameters
+        ----------
+        instance: int, float, str, list, tuple
+
+        Returns
+        -------
+        float, list
+        """
+        if isinstance(instance, (list, tuple)):
+            items = list()
+            for item in instance:
+                try:
+                    items.append(float(item))
+                except (TypeError, ValueError):
+                    items.append(item)
+            return items
+        return float(instance)
+
     # the type_selector cast the input instance to desired data-type
     dispatcher = {
         "int": int,
         "float": float,
+        "float_or_[float]": float_or_float_list,
         "str": str,
         "runstr": run_str,
         "[float]": list_comprehension_exec(float),
@@ -440,6 +469,52 @@ class DefaultJson:
         doc += "   " + def_dict + "\n\n"
         return r"{}".format(doc)
 
+    def to_rest_table(self, title: str) -> str:
+        r"""
+        Represent the parameters as a restructuredtext table of property paths and their values.
+
+        Meant for the descriptions of the parameters (``field="description"``): the descriptions are prose, so a
+        table lets them wrap with the page width. Each nested property appears as its dot-separated path, for
+        instance ``sample.transmission.runNumber``. The table has the class ``parameter-descriptions``, whose style
+        sheet (``docs/_static/parameter_tables.css``) lets a long path wrap, so the paths can be copied as written.
+
+        Parameters
+        ----------
+        title
+            Section title of the table, usually the instrument name
+
+        Returns
+        -------
+        str
+        """
+
+        def rows(parameters: dict, prefix: str = "") -> Iterator[Tuple[str, Any]]:
+            for name, value in parameters.items():
+                if isinstance(value, dict):
+                    yield from rows(value, prefix=f"{prefix}{name}.")
+                else:
+                    yield f"{prefix}{name}", value
+
+        def to_text(value: Any) -> str:
+            # `name` in a description is shown as inline code; other markup characters, such as the bars of
+            # |Q|, are escaped so that they appear as written
+            if value is None or value == "":
+                return "-"
+            parts = re.split(r"`([^`]+)`", str(value))
+            for i, part in enumerate(parts):
+                if i % 2 == 1:
+                    parts[i] = f"``{part}``"
+                else:
+                    parts[i] = re.sub(r"([\\*_|`])", r"\\\1", part)
+            return "".join(parts)
+
+        doc = f"{title}\n" + "=" * len(title) + "\n\n"
+        doc += ".. list-table::\n   :header-rows: 1\n   :widths: 20 80\n   :class: parameter-descriptions\n\n"
+        doc += "   * - Parameter\n     - Description\n"
+        for path, value in rows(self.parameters):
+            doc += f"   * - ``{path}``\n     - {to_text(value)}\n"
+        return doc + "\n"
+
     # private bound methods:
 
     def __init__(self, schema, field="default"):
@@ -506,6 +581,30 @@ class DefaultJson:
         return names
 
 
+def _any_of_types(branches: list) -> List[str]:
+    r"""
+    Types allowed by the branches of an ``anyOf`` schema, descending into branches that are themselves ``anyOf``
+    schemas, such as a reference to ``safeStringPositiveFloat``
+
+    Parameters
+    ----------
+    branches
+        The list of schemas under an ``anyOf`` keyword
+
+    Returns
+    -------
+    list
+        The ``type`` of each branch, in order
+    """
+    types = list()
+    for branch in branches:
+        if "anyOf" in branch:
+            types.extend(_any_of_types(branch["anyOf"]))
+        elif "type" in branch:
+            types.append(branch["type"])
+    return types
+
+
 class ReductionParameterError(Exception):
     r"""Custom exception for validation errors in the reduction parameters to make
     the error message more informative
@@ -530,10 +629,7 @@ class ReductionParameterError(Exception):
         if "type" in self.schema.keys():
             msg += f"\nType: {self.schema['type']}"
         if "anyOf" in self.schema.keys():
-            items = []
-            for each in self.schema["anyOf"]:
-                items.append(each["type"])
-            msg += f"\nType: {', '.join(items)}"
+            msg += f"\nType: {', '.join(_any_of_types(self.schema['anyOf']))}"
         if "enum" in self.schema.keys():
             msg += f"\nType: enum, values: {self.schema['enum']}"
         if "preferredType" in self.schema.keys():
@@ -588,6 +684,7 @@ class ReductionParameters:
         "onlyOneTrue": "_validate_only_one_true",
         "pairedTo": "_validate_is_paired_to",
         "pairwiseLessThan": "_validate_pairwise_less_than",
+        "requiresSingleInterval": "_validate_requires_single_interval",
         "sameLen": "_validate_equal_len",
         "scalableComponents": "_validate_components_to_scale",
         "useEntry": "_validate_use_entry",
@@ -1118,6 +1215,46 @@ class ReductionParameters:
             other_instance = self.get_parameter_value(composite_key)
             if other_instance is None:
                 yield jsonschema.ValidationError(f"{composite_key} is empty")
+
+    def _validate_requires_single_interval(
+        self, validator: jsonschema.protocols.Validator, value: str, instance: Any, schema: dict
+    ) -> Iterator[jsonschema.ValidationError]:
+        r"""
+        Verify that periodic time slicing is not combined with a list of time slice lengths.
+
+        Example: if 'timeSlicePeriod' is set and 'useTimeSlice' is True, 'timeSliceInterval' must be a single
+        value or a one-item list.
+
+        Parameters
+        ----------
+        validator: ~jsonschema.IValidator
+        value: str
+            composite key of the time slice interval entry, such as '#configuration/timeSliceInterval'.
+        instance: object
+            value of 'timeSlicePeriod', in seconds. Nothing is checked when it is :py:obj:`None`.
+        schema: dict
+            schema related to `instance`
+
+        Raises
+        ------
+        ~jsonschema.ValidationError
+            when the interval entry is a list of more than one value, time slicing is used, and the period is set
+        """
+        if instance is None:
+            return
+        # the interval entry and 'useTimeSlice' belong to the same configuration block
+        use_time_slice_key = value.rsplit("/", 1)[0] + "/useTimeSlice"
+        if not self.get_parameter_value(use_time_slice_key):
+            return
+        interval = self.get_parameter_value(value)
+        if isinstance(interval, (list, tuple)) and len(interval) > 1:
+            period = float(instance)
+            # the items are not cast here: an invalid item is reported by the schema, not raised by this check
+            yield jsonschema.ValidationError(
+                f"timeSlicePeriod ({period} s) requires a single timeSliceInterval value, but timeSliceInterval "
+                f"is a list of {len(interval)} values {list(interval)}. Periodic slicing cannot use a list of "
+                "interval lengths. Either set timeSlicePeriod to null, or give timeSliceInterval a single value."
+            )
 
     def _validate_only_one_true(self, validator, value, instance, schema):
         r"""

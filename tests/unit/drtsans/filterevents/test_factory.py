@@ -100,3 +100,52 @@ def test_create_filter_strategy():
     # no params → ValueError
     with pytest.raises(ValueError, match="No valid filtering parameters"):
         create_filter_strategy(ws)
+
+
+def test_create_filter_strategy_interval_list():
+    # Arrange
+    ws = MagicMock()
+
+    # Act
+    strategy = create_filter_strategy(ws, time_interval=[10.0, 20.0])
+    # Assert
+    assert isinstance(strategy, TimeIntervalFilter)
+    assert strategy.time_interval == [10.0, 20.0]
+
+    # Act: a one-item list is the same as a single interval
+    strategy = create_filter_strategy(ws, time_interval=[10.0])
+    # Assert
+    assert isinstance(strategy, TimeIntervalFilter)
+    assert strategy.time_interval == 10.0
+
+
+def test_create_filter_strategy_periodic_single_interval():
+    # Arrange
+    ws = MagicMock()
+
+    # Act: a one-item list with a period
+    with patch("drtsans.filterevents.timefilter.PeriodicTimeFilter._create_periodic_log"):
+        strategy = create_filter_strategy(ws, time_interval=[5.0], time_period=60.0)
+    # Assert
+    assert isinstance(strategy, PeriodicTimeFilter)
+    assert strategy.time_interval == 5.0
+
+    # Act and Assert: a list of several intervals with a period
+    with pytest.raises(ValueError, match=r"requires a single time_interval value.+list of 2 values \[5.0, 10.0\]"):
+        create_filter_strategy(ws, time_interval=[5.0, 10.0], time_period=60.0)
+
+
+def test_create_filter_strategy_casts_strings():
+    # Arrange: values from a configuration that was not validated
+    ws = MagicMock()
+
+    # Act
+    with patch("drtsans.filterevents.timefilter.PeriodicTimeFilter._create_periodic_log"):
+        periodic = create_filter_strategy(ws, time_interval="60", time_offset="5", time_period="120")
+    regular = create_filter_strategy(ws, time_interval=["10", 20], time_offset=None)
+
+    # Assert
+    assert isinstance(periodic, PeriodicTimeFilter)
+    assert (periodic.time_interval, periodic.time_offset, periodic.time_period) == (60.0, 5.0, 120.0)
+    assert isinstance(regular, TimeIntervalFilter)
+    assert (regular.time_interval, regular.time_offset) == ([10.0, 20.0], 0.0)

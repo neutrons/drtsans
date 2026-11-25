@@ -10,6 +10,10 @@ from drtsans.frame_mode import FrameMode
 from drtsans.type_hints import EmissionDelay
 from drtsans.wavelength import BROGLIE_NEUTRON, Wband, Wbands, from_tof as wavelength_from_tof
 
+# Pulse frequency of the data acquisition of EQSANS, BIOSANS and GPSANS, in Hz: the neutron pulses of the SNS source
+# for EQSANS, and the pulses written by the data acquisition at HFIR, a reactor, for BIOSANS and GPSANS.
+PULSE_FREQUENCY = 60.0
+
 
 class DiskChopperSetConfigurationParsingError(Exception):
     """Raised when there is an error parsing the disk chopper set configuration from JSON."""

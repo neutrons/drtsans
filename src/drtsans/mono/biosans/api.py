@@ -266,7 +266,7 @@ def load_all_files(
             filename = abspath(sample.strip(), instrument=instrument_name, ipts=ipts, directory=path)
             logger.notice(f"Loading filename {filename}")
             if timeslice:
-                timesliceinterval = float(reduction_config["timeSliceInterval"])
+                timesliceinterval = reduction_config["timeSliceInterval"]
                 timesliceperiod = reduction_config["timeSlicePeriod"]
                 logslicename = logsliceinterval = None
             elif logslice:

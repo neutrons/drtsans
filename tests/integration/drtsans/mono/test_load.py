@@ -2,12 +2,13 @@
 import pytest
 import os
 import numpy as np
+from drtsans.filterevents.timefilter import TimeIntervalFilter
 from drtsans.mono.load import load_and_split, load_events
 from drtsans.mono.meta_data import get_sample_detector_offset
 from drtsans.samplelogs import SampleLogs
 from drtsans.geometry import sample_detector_distance
 from drtsans.load import move_instrument
-from mantid.simpleapi import AddSampleLogMultiple, mtd
+from mantid.simpleapi import AddSampleLogMultiple, LoadEventNexus, mtd
 
 
 def test_load_gpsans(datarepo_dir, clean_workspace):
@@ -341,6 +342,132 @@ def test_time_slice_metadata_with_load_time_cutoffs(datarepo_dir):
             run_start = slice_workspace.run().startTime()
             first_pulse = (sample_logs["proton_charge"].firstTime() - run_start).totalNanoseconds() / 1e9
             assert expected_start - 1e-3 <= first_pulse < expected_start + 15.0
+    finally:
+        for name in set(mtd.getObjectNames()) - existing_workspaces:
+            if mtd.doesExist(name):
+                mtd.remove(name)
+
+
+# CG2_9166: run end 300.048 s, last pulse at 300.048 s; the final slice ends one pulse period (1/60 s) later
+_CG2_9166_EVENTS_END = 300.0649
+
+
+@pytest.mark.datarepo
+@pytest.mark.parametrize(
+    "time_interval, time_offset, expected_windows",
+    [
+        # list shorter than the run: the last value is repeated, the final slice absorbs the leftover
+        ([100.0, 60.0], 10.0, [(10, 110), (110, 170), (170, 230), (230, _CG2_9166_EVENTS_END)]),
+        # list longer than the run: the run end cuts the last slice short
+        ([200.0, 150.0], 0.0, [(0, 200), (200, _CG2_9166_EVENTS_END)]),
+        # single number: equal slices, the final slice absorbs the leftover (90.065 s)
+        (70.0, 0.0, [(0, 70), (70, 140), (140, 210), (210, _CG2_9166_EVENTS_END)]),
+    ],
+    ids=["list shorter than the run", "list longer than the run", "single number"],
+)
+def test_time_slice_partition(datarepo_dir, time_interval, time_offset, expected_windows):
+    """The run is partitioned with the last-slice rule, and each slice records its own window and length."""
+    # Arrange: 300 s GPSANS run
+    filename = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
+    existing_workspaces = set(mtd.getObjectNames())
+
+    try:
+        # Act
+        split_group = load_and_split(
+            filename,
+            sample_to_si_name="CG2:CS:SampleToSi",
+            si_nominal_distance=0.0,
+            time_interval=time_interval,
+            time_offset=time_offset,
+            output_workspace="time_slice_partition",
+        )
+
+        # Assert
+        assert split_group.getNumberOfEntries() == len(expected_windows)
+        for n, (start, end) in enumerate(expected_windows):
+            sample_logs = SampleLogs(split_group.getItem(n))
+            assert sample_logs.slice_start.value == pytest.approx(start, abs=1e-3)
+            assert sample_logs.slice_end.value == pytest.approx(end, abs=1e-3)
+            assert sample_logs.slice_interval.value == pytest.approx(end - start, abs=1e-3)
+            assert sample_logs["slice_interval"].units == "seconds"
+        if time_offset == 0.0:  # the slices hold every event of the run
+            sliced_events = sum(split_group.getItem(n).getNumberEvents() for n in range(len(expected_windows)))
+            assert sliced_events == 2313852
+    finally:
+        for name in set(mtd.getObjectNames()) - existing_workspaces:
+            if mtd.doesExist(name):
+                mtd.remove(name)
+
+
+@pytest.mark.datarepo
+@pytest.mark.parametrize(
+    "time_interval, time_offset, expected_rows",
+    [(70.0, 0.0, 4), ([10.0, 20.0], 5.0, 15), ([0.7, 0.3], 0.0, 998), (0.1, 0.0, 3000), ([200.0, 150.0], 0.0, 2)],
+    ids=["single number", "list with offset", "non-integer list", "short interval", "list longer than the run"],
+)
+def test_time_slice_splitter_rows(datarepo_dir, time_interval, time_offset, expected_rows):
+    """The splitter table has one row per slice: Mantid never starts the list over for a last sliver of time."""
+    # Arrange: 300 s GPSANS run
+    filename = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
+    existing_workspaces = set(mtd.getObjectNames())
+
+    try:
+        LoadEventNexus(Filename=filename, OutputWorkspace="time_slice_splitter_rows")
+        time_filter = TimeIntervalFilter(
+            "time_slice_splitter_rows", time_interval=time_interval, time_offset=time_offset
+        )
+
+        # Act
+        time_filter.generate_filter()
+
+        # Assert: the last row ends one pulse period after the last pulse
+        splitter = mtd[time_filter.splitter_workspace]
+        assert splitter.rowCount() == expected_rows
+        run_start_ns = mtd["time_slice_splitter_rows"].run().startTime().totalNanoseconds()
+        last_end = (splitter.cell(expected_rows - 1, 1) - run_start_ns) / 1e9
+        assert last_end == pytest.approx(_CG2_9166_EVENTS_END, abs=1e-3)
+    finally:
+        for name in set(mtd.getObjectNames()) - existing_workspaces:
+            if mtd.doesExist(name):
+                mtd.remove(name)
+
+
+@pytest.mark.datarepo
+def test_time_slice_partition_with_load_time_cutoffs(datarepo_dir):
+    """With a list and load-time cutoffs, the partition ignores the cutoffs and the empty slices are removed."""
+    # Arrange: 300 s GPSANS run, slices of 20 s then 30 s; only events between 40 s and 100 s are loaded, so only
+    # the slices 20-50 s, 50-80 s and 80-110 s hold events
+    filename = os.path.join(datarepo_dir.gpsans, "CG2_9166.nxs.h5")
+    existing_workspaces = set(mtd.getObjectNames())
+
+    try:
+        # Act
+        split_group = load_and_split(
+            filename,
+            sample_to_si_name="CG2:CS:SampleToSi",
+            si_nominal_distance=0.0,
+            time_interval=[20.0, 30.0],
+            output_workspace="time_slice_partition_cutoffs",
+            FilterByTimeStart=40.0,
+            FilterByTimeStop=100.0,
+        )
+        cut_events = LoadEventNexus(
+            Filename=filename,
+            OutputWorkspace="time_slice_partition_cutoffs_reference",
+            FilterByTimeStart=40.0,
+            FilterByTimeStop=100.0,
+        ).getNumberEvents()
+
+        # Assert
+        expected_windows = [(20, 50), (50, 80), (80, 110)]
+        assert split_group.getNumberOfEntries() == len(expected_windows)
+        for n, (start, end) in enumerate(expected_windows):
+            sample_logs = SampleLogs(split_group.getItem(n))
+            assert sample_logs.slice_start.value == pytest.approx(start)
+            assert sample_logs.slice_end.value == pytest.approx(end)
+            assert sample_logs.slice_interval.value == pytest.approx(30.0)
+        # the kept slices hold every loaded event
+        assert sum(split_group.getItem(n).getNumberEvents() for n in range(3)) == cut_events
     finally:
         for name in set(mtd.getObjectNames()) - existing_workspaces:
             if mtd.doesExist(name):

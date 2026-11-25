@@ -440,15 +440,16 @@ def load_and_split(
         Additional translation of the sample, in mm. The sample flange remains
         at the origin of coordinates. Positive moves the sample downstream.
     time_interval: float or list of floats
-        Array for lengths of time intervals for splitters.  If the array has one value,
-        then all splitters will have same time intervals. If the size of the array is larger
-        than one, then the splitters can have various time interval values.
+        Length of the time slices, in seconds: a single value, or a list of the lengths of consecutive slices.
+        The last value is repeated until the run is covered, and the final slice absorbs the time left at the
+        run end, so that it lasts at least that value and less than twice it. When the run is shorter than the
+        list, the run end cuts the slices short.
     time_offset
         Offset to be added to the start time of the first splitter, in seconds.
     time_period
-        A multiple integer of the time interval, in seconds. If specified, it indicates that the time
-        slicing is periodic so that events in time intervals separated by one (or more) period
-        should be reduced together.
+        Period of the time slicing, in seconds. If specified, the time slicing is periodic, so that events in
+        time intervals separated by one (or more) period are reduced together. The period need not be a multiple
+        of ``time_interval``, which must then be a single value; a list raises ``ValueError``.
     log_name: string
         Name of the sample log to use to filter. For example, the pulse charge is recorded in 'ProtonCharge'.
     log_value_interval: float

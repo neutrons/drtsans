@@ -18,9 +18,8 @@ Descriptions
 
 .. exec::
     from drtsans.redparams import _instrument_json_generator
-    # render the default values of the reduction parameter for each instrument suitable to restructured text
+    # render the descriptions of the reduction parameters for each instrument as a table
     docs = ''
     for name, default_json in _instrument_json_generator(field='description'):
-        default_json._json['instrumentName'] = name
-        docs += default_json.to_rest()
+        docs += default_json.to_rest_table(name)
     print(r'{}'.format(docs))  # we require a raw string

@@ -1,7 +1,13 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
-from drtsans.filterevents.timefilter import TimeIntervalFilter, PeriodicTimeFilter, _splitter_row
+from drtsans.filterevents.timefilter import (
+    TimeIntervalFilter,
+    PeriodicTimeFilter,
+    _events_end,
+    _slice_lengths,
+    _splitter_row,
+)
 
 
 def _make_workspace_group(comments, indexes=None):
@@ -32,20 +38,200 @@ def test_splitter_row_invalid_name(name):
         _splitter_row(name)
 
 
+@pytest.mark.parametrize(
+    "time_interval, time_offset, run_duration, expected",
+    [
+        ([10.0, 20.0], 0.0, 73.0, [10.0, 20.0, 20.0, 23.0]),  # last value repeated, final slice absorbs 3 s
+        ([10.0, 20.0], 0.0, 70.0, [10.0, 20.0, 20.0, 20.0]),  # no leftover
+        ([10.0, 20.0], 5.0, 73.0, [10.0, 20.0, 38.0]),  # offset: 68 s to partition, final slice 20 <= 38 < 40
+        ([10.0, 20.0], 0.0, 45.0, [10.0, 35.0]),  # no copy fits, the list's own last slice absorbs 15 s
+        ([10.0, 20.0, 30.0], 0.0, 60.0, [10.0, 20.0, 30.0]),  # exact match
+        (10.0, 0.0, 73.0, [10.0] * 6 + [13.0]),  # single number, final slice 10 <= 13 < 20
+        (2.0, 1.0, 10.0, [2.0, 2.0, 2.0, 3.0]),  # user documentation, Example 2
+        (10.0, 0.0, 70.0, [10.0] * 7),
+        ([10.0], 0.0, 73.0, [10.0] * 6 + [13.0]),  # one-item list, same as the number
+    ],
+)
+def test_slice_lengths(time_interval, time_offset, run_duration, expected):
+    # Act
+    lengths, _ = _slice_lengths(time_interval, time_offset, run_duration)
+    # Assert
+    assert lengths == pytest.approx(expected)
+    assert time_offset + sum(lengths) == pytest.approx(run_duration)
+
+
+@pytest.mark.parametrize(
+    "time_interval, run_duration, level, phrase",
+    [
+        ([10.0, 20.0], 73.0, "warning", "2 slice(s) of 20 s were added and the final slice lasts 23 s"),
+        ([10.0, 20.0], 45.0, "warning", "0 slice(s) of 20 s were added and the final slice lasts 35 s"),
+        ([10.0, 20.0, 30.0], 35.0, "error", "covers 60 s from the run start, but the run lasts 35 s"),
+        (100.0, 30.0, "error", "covers 100 s from the run start, but the run lasts 30 s"),
+        (10.0, 73.0, None, None),  # repeating a single number is not reported
+        ([10.0, 20.0, 30.0], 60.0, None, None),  # exact match
+    ],
+)
+def test_slice_lengths_report(time_interval, run_duration, level, phrase):
+    # Act
+    lengths, report = _slice_lengths(time_interval, 0.0, run_duration)
+    # Assert
+    if level is None:
+        assert report is None
+    else:
+        assert report[0] == level
+        assert phrase in report[1]
+    if level == "error":
+        # unchanged: the run end cuts the slices short
+        assert lengths == (list(time_interval) if isinstance(time_interval, list) else [time_interval])
+
+
+@pytest.mark.parametrize("time_offset", [73.0, 80.0], ids=["at the run end", "after the run end"])
+def test_slice_lengths_offset_after_run_end(time_offset):
+    # Act and Assert
+    with pytest.raises(ValueError, match=r"timeSliceOffset \(\d+ s\) is at or after the run end \(73 s"):
+        _slice_lengths([10.0, 20.0], time_offset, run_duration=73.0)
+
+
+@pytest.mark.parametrize(
+    "time_interval, time_offset, run_duration, expected",
+    [
+        ([0.1] * 10, 0.0, 1.0, [0.1] * 10),  # sums to 0.9999999999999999 with sum(), exactly 1.0 with fsum
+        ([0.1] * 3 + [0.7], 0.3, 2.4, [0.1, 0.1, 0.1, 0.7, 1.1]),  # non-integer values and offset, 0.7 <= 1.1 < 1.4
+        ([300.0, 900.0], 0.0, 2100.0000001, [300.0, 900.0, 900.0000001]),  # exact multiple up to rounding
+        ([300.0, 900.0], 0.0, 2099.9999999, [300.0, 900.0, 899.9999999]),  # just below, not a 2x final slice
+        ([300.0, 900.0], 0.0, 2999.5, [300.0, 900.0, 1799.5]),  # half a second short of a copy: absorbed
+    ],
+)
+def test_slice_lengths_rounding(time_interval, time_offset, run_duration, expected):
+    # Act
+    lengths, _ = _slice_lengths(time_interval, time_offset, run_duration)
+    # Assert
+    assert lengths == pytest.approx(expected, abs=1e-9)
+    assert all(length > 0 for length in lengths)
+
+
+def _event_workspace(run_start_ns, last_pulse_s):
+    # mock event workspace whose last pulse is `last_pulse_s` after the run start
+    workspace = MagicMock()
+    workspace.run.return_value.startTime.return_value.totalNanoseconds.return_value = run_start_ns
+    workspace.getPulseTimeMax.return_value.totalNanoseconds.return_value = run_start_ns + int(last_pulse_s * 1e9)
+    return workspace
+
+
+@pytest.mark.parametrize(
+    "last_pulse_s, expected",
+    [
+        (300.048, 300.048 + 1 / 60),  # events of the last pulse arrive up to one pulse period after it
+        (299.0, 300.048),  # last pulse well before the run end
+        (-5.4e9, 300.048),  # no events: Mantid returns a placeholder pulse time in 1843
+    ],
+)
+@patch("drtsans.filterevents.timefilter.workspace_handle")
+def test_events_end(mock_workspace_handle, last_pulse_s, expected):
+    # Arrange
+    mock_workspace_handle.return_value = _event_workspace(1_000_000_000, last_pulse_s)
+    # Act
+    events_end = _events_end("workspace", run_duration=300.048)
+    # Assert
+    assert events_end == pytest.approx(expected, abs=1e-6)
+
+
+@patch("drtsans.filterevents.timefilter.workspace_handle")
+def test_events_end_without_pulse_times(mock_workspace_handle):
+    # Arrange: not an event workspace, so no getPulseTimeMax
+    mock_workspace_handle.return_value = MagicMock(spec=["run"])
+    # Act and Assert: the run end plus one pulse period
+    assert _events_end("workspace", run_duration=300.048) == pytest.approx(300.048 + 1 / 60)
+
+
+@patch("drtsans.filterevents.timefilter._events_end", side_effect=lambda _workspace, run_duration: run_duration)
+@patch("drtsans.filterevents.timefilter.SampleLogs")
 @patch("drtsans.filterevents.timefilter.GenerateEventsFilter")
-def test_time_interval_filter_generate_filter(mock_gef):
-    # default offset
+def test_time_interval_filter_generate_filter(mock_gef, mock_samplelogs_cls, mock_events_end):
+    # Arrange
+    mock_samplelogs_cls.return_value.run_duration = 73.0
+
+    # Act: default offset
     TimeIntervalFilter(MagicMock(), time_interval=10.0).generate_filter()
+    # Assert: whole nanoseconds, and StopTime exactly at the end of the last slice
     _, kwargs = mock_gef.call_args
-    assert kwargs["TimeInterval"] == 10.0
+    assert kwargs["TimeInterval"] == [10e9] * 6 + [13e9]
+    assert kwargs["UnitOfTime"] == "Nanoseconds"
+    assert kwargs["StartTime"] == "0"
+    assert kwargs["StopTime"] == "73000000000"
+
+    # Act: explicit offset and a list
+    TimeIntervalFilter(MagicMock(), time_interval=[10.0, 20.0], time_offset=5.0).generate_filter()
+    # Assert
+    _, kwargs = mock_gef.call_args
+    assert kwargs["StartTime"] == "5000000000"
+    assert kwargs["TimeInterval"] == [10e9, 20e9, 38e9]
+    assert kwargs["StopTime"] == "73000000000"
+
+
+@patch("drtsans.filterevents.timefilter._events_end", side_effect=lambda _workspace, run_duration: run_duration)
+@patch("drtsans.filterevents.timefilter.SampleLogs")
+@patch("drtsans.filterevents.timefilter.GenerateEventsFilter")
+def test_time_interval_filter_generate_filter_whole_nanoseconds(mock_gef, mock_samplelogs_cls, mock_events_end):
+    # Arrange: lengths and an offset that are not whole nanoseconds in binary floating point
+    mock_samplelogs_cls.return_value.run_duration = 300.0482009
+    # Act
+    TimeIntervalFilter(MagicMock(), time_interval=[0.7, 0.3], time_offset=0.3).generate_filter()
+    # Assert: every value is a whole number of nanoseconds, and the slices end exactly at StopTime, so that Mantid
+    # does not start the list over for the last nanosecond
+    _, kwargs = mock_gef.call_args
+    assert all(length_ns == int(length_ns) for length_ns in kwargs["TimeInterval"])
+    assert int(kwargs["StartTime"]) + sum(int(length_ns) for length_ns in kwargs["TimeInterval"]) == int(
+        kwargs["StopTime"]
+    )
+    assert kwargs["StopTime"] == "300048200900"
+
+
+@patch("drtsans.filterevents.timefilter._events_end", return_value=73.02)
+@patch("drtsans.filterevents.timefilter.SampleLogs")
+@patch("drtsans.filterevents.timefilter.GenerateEventsFilter")
+def test_time_interval_filter_generate_filter_last_pulse(mock_gef, mock_samplelogs_cls, mock_events_end):
+    # Arrange: the events of the last pulse arrive until 73.02 s, after the run end at 73 s
+    mock_samplelogs_cls.return_value.run_duration = 73.0
+    # Act
+    TimeIntervalFilter(MagicMock(), time_interval=[10.0, 20.0]).generate_filter()
+    # Assert: the partition uses the run end, and only the final slice reaches past it, to the last event
+    _, kwargs = mock_gef.call_args
+    assert kwargs["TimeInterval"] == [10e9, 20e9, 20e9, 23.02e9]
+    assert kwargs["StopTime"] == "73020000000"
+
+
+@patch("drtsans.filterevents.timefilter._events_end", return_value=35.02)
+@patch("drtsans.filterevents.timefilter.logger")
+@patch("drtsans.filterevents.timefilter.SampleLogs")
+@patch("drtsans.filterevents.timefilter.GenerateEventsFilter")
+def test_time_interval_filter_generate_filter_run_shorter(mock_gef, mock_samplelogs_cls, mock_logger, mock_events_end):
+    # Arrange
+    mock_samplelogs_cls.return_value.run_duration = 35.0
+    # Act
+    TimeIntervalFilter(MagicMock(), time_interval=[10.0, 20.0, 30.0]).generate_filter()
+    # Assert: the list is passed unchanged and Mantid stops after the last event
+    _, kwargs = mock_gef.call_args
+    assert kwargs["TimeInterval"] == [10e9, 20e9, 30e9]
+    assert kwargs["StopTime"] == "35020000000"
+    mock_logger.error.assert_called_once()
+
+
+@patch("drtsans.filterevents.timefilter.logger")
+@patch("drtsans.filterevents.timefilter.SampleLogs")
+@patch("drtsans.filterevents.timefilter.GenerateEventsFilter")
+def test_time_interval_filter_generate_filter_no_run_duration(mock_gef, mock_samplelogs_cls, mock_logger):
+    # Arrange
+    type(mock_samplelogs_cls.return_value).run_duration = PropertyMock(side_effect=RuntimeError("no run_end"))
+    # Act
+    TimeIntervalFilter(MagicMock(), time_interval=[10.0, 20.0]).generate_filter()
+    # Assert: the interval goes to Mantid unchanged, in seconds, without StopTime
+    _, kwargs = mock_gef.call_args
+    assert kwargs["TimeInterval"] == [10.0, 20.0]
     assert kwargs["UnitOfTime"] == "Seconds"
     assert kwargs["StartTime"] == "0.0"
-
-    # explicit offset
-    TimeIntervalFilter(MagicMock(), time_interval=5.0, time_offset=3.0).generate_filter()
-    _, kwargs = mock_gef.call_args
-    assert kwargs["StartTime"] == "3.0"
-    assert kwargs["TimeInterval"] == 5.0
+    assert "StopTime" not in kwargs
+    mock_logger.warning.assert_called_once()
 
 
 @patch("drtsans.filterevents.basefilter.SampleLogs")
@@ -67,29 +253,31 @@ def test_time_interval_inject_metadata(
         samplelogs_instances.append(sl)
     mock_samplelogs_cls.side_effect = samplelogs_instances
 
-    # Splitter table: row n, col 0 = start ns, col 1 = end ns
+    # Splitter table: row n, col 0 = start ns, col 1 = end ns, slices of different lengths
     # Row 0: [run_start + 1.5s, run_start + 11.5s]
-    # Row 1: [run_start + 11.5s, run_start + 21.5s]
+    # Row 1: [run_start + 11.5s, run_start + 34.5s]
     def splitter_cell(row, col):
         starts = [run_start_ns + 1.5e9, run_start_ns + 11.5e9]
-        ends = [run_start_ns + 11.5e9, run_start_ns + 21.5e9]
+        ends = [run_start_ns + 11.5e9, run_start_ns + 34.5e9]
         return starts[row] if col == 0 else ends[row]
 
     splitter_table = MagicMock()
     splitter_table.cell.side_effect = splitter_cell
     mock_timefilter_mtd.__getitem__.return_value = splitter_table
 
-    TimeIntervalFilter(MagicMock(), time_interval=10.0).inject_metadata("output_ws")
+    TimeIntervalFilter(MagicMock(), time_interval=[10.0, 23.0]).inject_metadata("output_ws")
 
     sl0 = samplelogs_instances[0]
     sl0.insert.assert_any_call("slice_parameter", "relative time from start")
-    sl0.insert.assert_any_call("slice_interval", 10.0)
+    sl0.insert.assert_any_call("slice_interval", pytest.approx(10.0), "seconds")
     sl0.insert.assert_any_call("slice_start", pytest.approx(1.5), "seconds")
     sl0.insert.assert_any_call("slice_end", pytest.approx(11.5), "seconds")
 
+    # each slice records its own length
     sl1 = samplelogs_instances[1]
+    sl1.insert.assert_any_call("slice_interval", pytest.approx(23.0), "seconds")
     sl1.insert.assert_any_call("slice_start", pytest.approx(11.5), "seconds")
-    sl1.insert.assert_any_call("slice_end", pytest.approx(21.5), "seconds")
+    sl1.insert.assert_any_call("slice_end", pytest.approx(34.5), "seconds")
 
 
 @pytest.mark.parametrize(

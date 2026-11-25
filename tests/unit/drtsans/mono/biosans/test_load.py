@@ -211,7 +211,8 @@ def test_load_and_split(reference_dir, has_sns_mount):
     filtered_ws = load_and_split(
         "CG3_961.nxs.h5",
         data_dir=reference_dir.biosans,
-        time_interval=1000,
+        # 1809.48 s run: the final slice absorbs the 9.48 s leftover, giving windows 0-1000 s and 1000-1809.48 s
+        time_interval=[1000, 800],
         sample_to_si_name="CG3:CS:SampleToSi",
         si_nominal_distance=0.071,
     )
@@ -235,7 +236,7 @@ def test_load_and_split(reference_dir, has_sns_mount):
     assert SampleLogs(filtered_ws.getItem(0)).slice_parameter.value == "relative time from start"
     assert SampleLogs(filtered_ws.getItem(1)).slice_parameter.value == "relative time from start"
     assert SampleLogs(filtered_ws.getItem(0)).slice_interval.value == 1000
-    assert SampleLogs(filtered_ws.getItem(1)).slice_interval.value == 1000
+    assert SampleLogs(filtered_ws.getItem(1)).slice_interval.value == pytest.approx(809.4842799, abs=1e-5)
     assert SampleLogs(filtered_ws.getItem(0)).slice_start.value == 0
     assert SampleLogs(filtered_ws.getItem(1)).slice_start.value == 1000
     assert SampleLogs(filtered_ws.getItem(0)).slice_end.value == 1000
@@ -282,7 +283,8 @@ def test_load_and_split_overwrite_geometry(reference_dir, has_sns_mount):
     filtered_ws = load_and_split(
         "CG3_961",
         data_dir=reference_dir.biosans,
-        time_interval=1000,
+        # 1809.48 s run: the final slice absorbs the 9.48 s leftover, giving windows 0-1000 s and 1000-1809.48 s
+        time_interval=[1000, 800],
         sample_to_si_name="CG3:CS:SampleToSi",
         si_nominal_distance=0.071,
         sample_detector_distance_value=10.0,
@@ -308,7 +310,7 @@ def test_load_and_split_overwrite_geometry(reference_dir, has_sns_mount):
     assert SampleLogs(filtered_ws.getItem(0)).slice_parameter.value == "relative time from start"
     assert SampleLogs(filtered_ws.getItem(1)).slice_parameter.value == "relative time from start"
     assert SampleLogs(filtered_ws.getItem(0)).slice_interval.value == 1000
-    assert SampleLogs(filtered_ws.getItem(1)).slice_interval.value == 1000
+    assert SampleLogs(filtered_ws.getItem(1)).slice_interval.value == pytest.approx(809.4842799, abs=1e-5)
     assert SampleLogs(filtered_ws.getItem(0)).slice_start.value == 0
     assert SampleLogs(filtered_ws.getItem(1)).slice_start.value == 1000
     assert SampleLogs(filtered_ws.getItem(0)).slice_end.value == 1000

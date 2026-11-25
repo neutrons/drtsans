@@ -5,10 +5,11 @@ from typing import Union
 import numpy as np
 from mantid.api import MatrixWorkspace, Run
 
+from drtsans.chopper import PULSE_FREQUENCY
 from drtsans.samplelogs import SampleLogs
 
 
-DEFAULT_FREQUENCY = 60.0
+DEFAULT_FREQUENCY = PULSE_FREQUENCY
 FREQUENCY_LOG = "frequency"
 FALLBACK_FREQUENCY_LOG = "BL6:Det:TH:BL:Frequency"
 

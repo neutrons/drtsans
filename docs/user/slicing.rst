@@ -33,6 +33,26 @@ The following parameters specify the time slicing:
         "timeSlicePeriod": null,
     }
 
+``timeSliceInterval`` is either a single slice length or a list of slice lengths, in seconds (see Example 3).
+``timeSliceOffset`` is the start of the first slice, in seconds after the run start.
+
+The final slice
++++++++++++++++
+
+Without ``timeSlicePeriod``, the slices are consecutive and cover the run from ``timeSliceOffset`` to the run end.
+A single number ``t`` is the same as the list ``[t]``. The values of the list are used in order, and the last value
+``t`` is repeated until the run is covered. The time left at the run end, shorter than ``t``, is not made into a
+slice of its own: the final slice absorbs it, so the final slice lasts at least ``t`` and less than ``2t``.
+
+When the run is shorter than the values of the list, the run end cuts the current slice short, however short that
+is, and the remaining values are not used. An error message in the log reports it.
+
+The final slice ends one pulse period after the last pulse recorded in the data file, when that is later than the
+run end, so that it keeps the events of the last pulse. The pulses are those of the data acquisition, 1/60 s apart:
+at SNS (EQSANS) they are the neutron pulses of the source, and at HFIR (BIOSANS and GPSANS), a reactor, they are
+written by the data acquisition. The final slice is therefore a fraction of a second longer than the rule above
+gives: for example 90.065 s instead of 90.048 s for 70 s slices of a 300.048 s run.
+
 
 Example 1: Slicing using time interval
 ++++++++++++++++++++++++++++++++++++++
@@ -66,10 +86,40 @@ Example 2: Slicing using time interval and offset
    :alt: Diagram of time slicing using an interval and offset
    :width: 800px
 
-Events recorded before ``timeSliceOffset`` (here 0-1 s) are discarded. When the remaining run is not an
-exact multiple of ``timeSliceInterval``, the last slice is shorter (here slice 4, from 9 s to 10 s).
+Events recorded before ``timeSliceOffset`` (here 0-1 s) are discarded. The remaining 9 s are not an exact multiple
+of ``timeSliceInterval``: instead of a 1 s slice at the run end, the final slice absorbs the leftover and lasts 3 s,
+from 7 s to 10 s (see `The final slice`_).
 
-Example 3: Slicing using time slice period
+Example 3: Slicing using a list of slice lengths
+++++++++++++++++++++++++++++++++++++++++++++++++
+
+``timeSliceInterval`` can be a list of slice lengths, in seconds. Each value gives one slice, in order, starting at
+``timeSliceOffset``.
+
+.. code-block:: json
+
+    {
+        "useTimeSlice": true,
+        "timeSliceInterval": [2.0, 4.0],
+        "timeSliceOffset": 0.0,
+        "timeSlicePeriod": null,
+    }
+
+.. figure:: media/time_slicing_interval_list.png
+   :alt: Diagram of time slicing using a list of slice lengths
+   :width: 800px
+
+The 13 s run is longer than the 6 s of the list, so the last value, 4 s, is repeated, and the final slice absorbs
+the 3 s left at the run end: it lasts 7 s, from 6 s to 13 s. A warning in the log reports the slices added to the
+list. For a 5 s run, the slices would be 0-2 s and 2-5 s, the run end cutting the second slice short.
+
+The offset delays only the first slice and leaves the lengths unchanged: with ``"timeSliceOffset": 1.0``, the 13 s
+run would give the slices 1-3 s, 3-7 s and 7-13 s, the final slice absorbing 2 s.
+
+A list of more than one value cannot be combined with ``timeSlicePeriod``: the reduction parameters are rejected
+when they are validated.
+
+Example 4: Slicing using time slice period
 ++++++++++++++++++++++++++++++++++++++++++
 
 When using a time slice period, slices for a given time interval are reduced together.
@@ -105,8 +155,8 @@ period, the first period starts at 1 s and the last window (9-10 s) is shorter:
    :width: 800px
 
 Note: if the period is not an integer multiple of the time slice interval, then the remainder of each period
-forms its last, shorter slice. In the example below, each period holds two 3 second slices, then one
-2 second slice.
+forms its last, shorter slice: `The final slice`_ rule does not apply within a period. In the example below, each
+period holds two 3 second slices, then one 2 second slice.
 
 .. code-block:: json
 
@@ -117,7 +167,7 @@ forms its last, shorter slice. In the example below, each period holds two 3 sec
         "timeSlicePeriod": 8.0,
     }
 
-Example 4: Time slicing and event filtering during loading
+Example 5: Time slicing and event filtering during loading
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 The time slicing parameters are applied relative to the whole data from the beginning to the end of
@@ -163,7 +213,7 @@ Example for BIOSANS or GPSANS:
         }
     }
 
-As for EQSANS (Example 4), the load-time cutoffs and the time slices are independent. Events outside
+As for EQSANS (Example 5), the load-time cutoffs and the time slices are independent. Events outside
 ``FilterByTimeStart`` and ``FilterByTimeStop`` are discarded during loading, but the slices still start at
 ``timeSliceOffset`` after the run start, whatever the value of ``FilterByTimeStart``. Slices that fall
 outside the cutoffs hold no events; see `Empty and partially filled slices`_.
@@ -214,7 +264,7 @@ with suffix ``_0``, and the windows 30-40 s, 40-50 s and 50-60 s with suffixes `
    :width: 800px
 
 With periodic slicing, an empty window does not remove a slice, because each slice also collects the events
-of the same window in the other periods. In the figure of Example 4, the empty window 0-2 s belongs to slice 0,
+of the same window in the other periods. In the figure of Example 5, the empty window 0-2 s belongs to slice 0,
 which still holds the events recorded from 4 s to 6 s and from 8 s to 8.71 s.
 
 Slice metadata
@@ -230,11 +280,14 @@ Each slice receives the following sample logs:
      - Meaning
    * - ``slice_start``, ``slice_end``
      - Time slicing: start and end of the slice's window, in seconds from the run start. This is the full
-       window even when the slice is only partly filled, and the last slice may end slightly after the run end.
+       window even when the slice is only partly filled, and the final slice may end slightly after the run end
+       (see `The final slice`_).
        Periodic slicing: start and end of the window, in seconds from the start of each period. Log slicing: lower and upper
        values of the sample log, in the log's units.
    * - ``slice_interval``
-     - Time and periodic slicing: the value of ``timeSliceInterval``, in seconds. Log slicing: the
+     - Time slicing: the length of the slice, in seconds; it differs between slices for a list of slice lengths
+       and for the final slice, whose length includes the fraction of a second after the run end (see
+       `The final slice`_). Periodic slicing: the value of ``timeSliceInterval``, in seconds. Log slicing: the
        log-value interval.
    * - ``slice_period``
      - The value of ``timeSlicePeriod``, in seconds (periodic slicing only).

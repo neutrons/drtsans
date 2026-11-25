@@ -88,6 +88,17 @@
       ],
       "preferredType": "float"
     },
+    "safeStringPositiveFloatOrArray": {
+      "anyOf": [
+        { "$ref": "common.json#/definitions/safeStringPositiveFloat" },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "number", "exclusiveMinimum": 0 }
+        }
+      ],
+      "preferredType": "float_or_[float]"
+    },
     "safeStringPositiveInteger": {
       "anyOf": [
         { "type": "string", "pattern": "^[1-9][0-9]*$" },
@@ -395,8 +406,8 @@
       "description": "Indicate whether the data should be processed as time slices (incompatible with sample log slicing)"
     },
     "timeSliceInterval": {
-      "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "description": "Interval for time slicing, in seconds"
+      "$ref": "common.json#/definitions/safeStringPositiveFloatOrArray",
+      "description": "Length of the time slices, in seconds: a single number, or a list giving consecutive slices of the listed lengths. The last value is repeated until the run is covered, and the final slice absorbs the time left at the run end"
     },
     "timeSliceOffset": {
       "$ref": "common.json#/definitions/safeStringNonNegativeFloat",
@@ -404,8 +415,8 @@
     },
     "timeSlicePeriod": {
       "$ref": "common.json#/definitions/safeStringPositiveFloat",
-      "description": "Period for time slicing, in seconds and a multiple of timeSliceInterval. Default is None, meaning no periodicity",
-      "isIntegerMultiple": "#configuration/timeSliceInterval"
+      "description": "Period for time slicing, in seconds. It requires a single timeSliceInterval value. Default is None, meaning no periodicity",
+      "requiresSingleInterval": "#configuration/timeSliceInterval"
     },
     "useSliceIDxAsSuffix": {
       "type": "boolean",
